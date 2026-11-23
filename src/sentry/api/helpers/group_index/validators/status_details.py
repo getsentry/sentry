@@ -1,54 +1,84 @@
-from typing import NotRequired, TypedDict
+from typing import Annotated, NotRequired, TypedDict
 
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from sentry.api.helpers.group_index.validators.in_commit import InCommitResult, InCommitValidator
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.release import Release
 
 
 class StatusDetailsResult(TypedDict):
-    inNextRelease: NotRequired[bool]
-    inRelease: NotRequired[str]
-    inCommit: NotRequired[InCommitResult]
-    ignoreDuration: NotRequired[int]
-    ignoreCount: NotRequired[int]
-    ignoreWindow: NotRequired[int]
-    ignoreUserCount: NotRequired[int]
-    ignoreUserWindow: NotRequired[int]
+    inNextRelease: NotRequired[
+        Annotated[bool, ApiDescription("Whether the issues are resolved in the next release")]
+    ]
+    inRelease: NotRequired[
+        Annotated[str, ApiDescription("Version of the release the issues are resolved in")]
+    ]
+    inCommit: NotRequired[
+        Annotated[InCommitResult, ApiDescription("Commit that resolves the issues")]
+    ]
+    ignoreDuration: NotRequired[
+        Annotated[int, ApiDescription("Minutes the issues are ignored for")]
+    ]
+    ignoreCount: NotRequired[
+        Annotated[
+            int,
+            ApiDescription(
+                "Number of occurrences, within ignoreWindow minutes, after which the issues stop being ignored"
+            ),
+        ]
+    ]
+    ignoreWindow: NotRequired[Annotated[int, ApiDescription("Window in minutes for ignoreCount")]]
+    ignoreUserCount: NotRequired[
+        Annotated[
+            int,
+            ApiDescription(
+                "Number of affected users, within ignoreUserWindow minutes, after which the issues stop being ignored"
+            ),
+        ]
+    ]
+    ignoreUserWindow: NotRequired[
+        Annotated[int, ApiDescription("Window in minutes for ignoreUserCount")]
+    ]
 
 
 @extend_schema_serializer()
 class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
     inNextRelease = serializers.BooleanField(
-        help_text="If true, marks the issue as resolved in the next release."
+        required=False, help_text="If true, marks the issue as resolved in the next release."
     )
     inRelease = serializers.CharField(
+        required=False,
         help_text=(
             "The version of the release that the issue should be resolved in."
             "If set to `latest`, the latest release will be used."
-        )
+        ),
     )
     inCommit = InCommitValidator(
         help_text="The commit data that the issue should use for resolution.", required=False
     )
     ignoreDuration = serializers.IntegerField(
-        help_text="Ignore the issue until for this many minutes.", min_value=0
+        required=False, help_text="Ignore the issue until for this many minutes.", min_value=0
     )
     ignoreCount = serializers.IntegerField(
+        required=False,
         help_text="Ignore the issue until it has occurred this many times in `ignoreWindow` minutes.",
         min_value=0,
     )
     ignoreWindow = serializers.IntegerField(
+        required=False,
         help_text="Ignore the issue until it has occurred `ignoreCount` times in this many minutes. (Max: 1 week)",
         min_value=0,
         max_value=7 * 24 * 60,
     )
     ignoreUserCount = serializers.IntegerField(
+        required=False,
         help_text="Ignore the issue until it has affected this many users in `ignoreUserWindow` minutes.",
         min_value=0,
     )
     ignoreUserWindow = serializers.IntegerField(
+        required=False,
         help_text="Ignore the issue until it has affected `ignoreUserCount` users in this many minutes. (Max: 1 week)",
         min_value=0,
         max_value=7 * 24 * 60,

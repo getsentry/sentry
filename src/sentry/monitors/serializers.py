@@ -10,6 +10,7 @@ from django.db.models import prefetch_related_objects
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.constants import ObjectStatusName
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.monitors.models import (
@@ -30,6 +31,12 @@ from sentry.monitors.processing_errors.errors import (
 from sentry.monitors.utils import fetch_associated_groups
 from sentry.monitors.validators import IntervalNames
 from sentry.types.actor import Actor
+
+# The names of the MonitorStatus and CheckInStatus choices, as get_status_display() returns them.
+MonitorStatusName = Literal[
+    "active", "disabled", "pending_deletion", "deletion_in_progress", "ok", "error"
+]
+CheckInStatusName = Literal["unknown", "ok", "error", "in_progress", "missed", "timeout"]
 
 
 class MonitorEnvBrokenDetectionSerializerResponse(TypedDict):
@@ -107,9 +114,7 @@ class MonitorIncidentSerializer(Serializer[MonitorIncidentSerializerResponse]):
 
 class MonitorEnvironmentSerializerResponse(TypedDict):
     name: Annotated[str, ApiDescription("Name of the environment")]
-    status: Annotated[
-        str, ApiDescription("Status of the monitor in the environment, such as ok, error or active")
-    ]
+    status: Annotated[MonitorStatusName, ApiDescription("Status of the monitor in the environment")]
     isMuted: Annotated[
         bool, ApiDescription("Whether incidents are muted for the monitor in the environment")
     ]
@@ -197,7 +202,7 @@ class MonitorEnvironmentSerializer(Serializer[MonitorEnvironmentSerializerRespon
         environment = attrs["environment"]
         return {
             "name": environment.name if environment else "[removed]",
-            "status": obj.get_status_display(),
+            "status": cast(MonitorStatusName, obj.get_status_display()),
             "isMuted": obj.is_muted,
             "dateCreated": attrs["date_added"],
             "lastCheckIn": obj.last_checkin,
@@ -252,10 +257,8 @@ class MonitorSerializerResponse(TypedDict):
     name: Annotated[str, ApiDescription("Name of the monitor")]
     slug: Annotated[str, ApiDescription("Slug that identifies the monitor in the organization")]
     status: Annotated[
-        str,
-        ApiDescription(
-            "Status of the monitor: active or disabled. Disabled monitors don't accept check-ins"
-        ),
+        ObjectStatusName,
+        ApiDescription("Status of the monitor. Disabled monitors don't accept check-ins"),
     ]
     isMuted: Annotated[
         bool, ApiDescription("Whether incidents are muted in all of the monitor's environments")
@@ -393,7 +396,7 @@ class MonitorSerializer(Serializer[MonitorSerializerResponse]):
 
         result: MonitorSerializerResponse = {
             "id": str(obj.guid),
-            "status": obj.get_status_display(),
+            "status": cast(ObjectStatusName, obj.get_status_display()),
             "isMuted": attrs["is_muted"],
             "isUpserting": obj.is_upserting,
             "name": obj.name,
@@ -420,10 +423,7 @@ class MonitorCheckInSerializerResponseOptional(TypedDict, total=False):
 class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional):
     id: Annotated[str, ApiDescription("ID of the check-in")]
     environment: Annotated[str, ApiDescription("Name of the environment the check-in belongs to")]
-    status: Annotated[
-        str,
-        ApiDescription("Status of the check-in, such as ok, error, in_progress, missed or timeout"),
-    ]
+    status: Annotated[CheckInStatusName, ApiDescription("Status of the check-in")]
     duration: Annotated[int | None, ApiDescription("Duration of the job run in milliseconds")]
     dateCreated: Annotated[
         datetime | None, ApiDescription("When the check-in was stored (ISO 8601)")
@@ -489,7 +489,7 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
         }
         checkin_configs = dict(
             MonitorCheckInConfig.objects.filter(
-                id__in={c.checkin_config_id for c in item_list if c.checkin_config_id}
+                id__in={c.checkin_config_id for c in item_list}
             ).values_list("id", "config")
         )
 
@@ -500,9 +500,7 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
                 env_name = env.name if env else "[removed]"
 
             attrs[checkin]["environment_name"] = env_name
-            attrs[checkin]["monitor_config"] = checkin_configs.get(
-                checkin.checkin_config_id, checkin.monitor_config
-            )
+            attrs[checkin]["monitor_config"] = checkin_configs.get(checkin.checkin_config_id, {})
 
         if self._expand("groups") and self.start and self.end:
             # aggregate all the trace_ids in the given set of check-ins
@@ -536,8 +534,7 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
         user: Any,
         **kwargs: Any,
     ) -> MonitorCheckInSerializerResponse:
-        monitor_config = attrs["monitor_config"]
-        config = monitor_config.copy() if monitor_config else {}
+        config = attrs["monitor_config"].copy()
         if "schedule_type" in config:
             # XXX: We don't use monitor.get_schedule_type_display() in case it differs from the
             # config saved on the check-in
@@ -545,7 +542,7 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
         result: MonitorCheckInSerializerResponse = {
             "id": str(obj.guid),
             "environment": attrs["environment_name"],
-            "status": obj.get_status_display(),
+            "status": cast(CheckInStatusName, obj.get_status_display()),
             "duration": obj.duration,
             "dateCreated": obj.date_created,
             "dateAdded": obj.date_added,
@@ -553,7 +550,7 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
             "dateClock": obj.date_clock,
             "dateInProgress": obj.date_in_progress,
             "expectedTime": obj.expected_time,
-            "monitorConfig": cast(MonitorConfigSerializerResponse, config),
+            "monitorConfig": config,
         }
 
         if self._expand("groups"):

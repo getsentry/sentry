@@ -13,7 +13,7 @@ import {flushSync} from 'react-dom';
 import styled from '@emotion/styled';
 import type {Placement} from '@floating-ui/react-dom';
 import * as Sentry from '@sentry/react';
-import * as qs from 'query-string';
+import {parseAsFloat, parseAsString, useQueryStates} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
@@ -28,6 +28,7 @@ import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import * as qs from 'sentry/utils/url/qs';
 import {useApi} from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -116,6 +117,16 @@ export interface TraceWaterfallProps {
   scrollToNode?: UseTraceScrollToPath;
 }
 
+// One-shot params that ask the waterfall to scroll to (and zoom into, or just reveal) a node once
+// the trace has loaded. The handler removes them after reading them.
+const zoomQueryParsers = {
+  node: parseAsString,
+  revealNode: parseAsString,
+  zoomToNode: parseAsString,
+  zoomToTimestamp: parseAsFloat,
+  zoomToVital: parseAsString,
+};
+
 export function TraceWaterfall(props: TraceWaterfallProps) {
   const disableUrlSync = props.disableUrlSync ?? false;
   const api = useApi();
@@ -186,10 +197,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   // Initialize the tabs reducer when the tree initializes
   useLayoutEffect(() => {
-    return traceDispatch({
-      type: 'set roving count',
-      items: props.tree.list.length - 1,
-    });
+    return traceDispatch({type: 'set roving count', items: props.tree.list.length - 1});
   }, [props.tree.list.length, traceDispatch]);
 
   // Initialize the tabs reducer when the tree initializes
@@ -331,13 +339,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           }
           const {eventId: _eventId, ...query} = qs.parse(location.search);
           navigate(
-            {
-              pathname: location.pathname,
-              query: {
-                ...query,
-                node: nextNodePath,
-              },
-            },
+            {pathname: location.pathname, query: {...query, node: nextNodePath}},
             {replace: true}
           );
           queryStringAnimationTimeoutRef.current = null;
@@ -364,12 +366,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const onRowClick = useCallback(
     (node: BaseNode, event: React.MouseEvent<HTMLElement>, index: number) => {
       if (!node.canShowDetails) {
-        traceDispatch({
-          type: 'set roving index',
-          action_source: 'click',
-          index,
-          node,
-        });
+        traceDispatch({type: 'set roving index', action_source: 'click', index, node});
         return;
       }
 
@@ -397,12 +394,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         traceDispatch({type: 'clear search iterator index'});
       }
 
-      traceDispatch({
-        type: 'set roving index',
-        action_source: 'click',
-        index,
-        node,
-      });
+      traceDispatch({type: 'set roving index', action_source: 'click', index, node});
     },
     [setRowAsFocused, traceDispatch, organization, projects]
   );
@@ -521,12 +513,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
       traceDispatch({type: 'minimize drawer', payload: false});
       setRowAsFocused(node, null, traceStateRef.current.search.resultsLookup, index);
-      traceDispatch({
-        type: 'set roving index',
-        node,
-        index,
-        action_source: 'load',
-      });
+      traceDispatch({type: 'set roving index', node, index, action_source: 'load'});
     });
   }, [
     disableUrlSync,
@@ -609,16 +596,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   const [traceGridRef, setTraceGridRef] = useState<HTMLElement | null>(null);
 
-  useTraceTimelineChangeSync({
-    tree: props.tree,
-    traceScheduler,
-  });
+  useTraceTimelineChangeSync({tree: props.tree, traceScheduler});
 
-  useTraceSpaceListeners({
-    view: traceView,
-    viewManager,
-    traceScheduler,
-  });
+  useTraceSpaceListeners({view: traceView, viewManager, traceScheduler});
 
   useDividerResizeSync(traceScheduler);
 
@@ -636,14 +616,21 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     manager: viewManager,
   });
 
+  const [zoomQuery, setZoomQuery] = useQueryStates(zoomQueryParsers, {
+    history: 'replace',
+  });
   const handledZoomQueryRef = useRef<string | null>(null);
   useEffect(() => {
     if (disableUrlSync) {
       return;
     }
 
-    const query = qs.parse(routerLocation.search);
-    if (typeof query.zoomToNode !== 'string') {
+    // `node` is only read when a trace loads, so links into the already open trace (e.g. Seer's
+    // "View span") pass their target as `revealNode` instead.
+    const {zoomToNode, zoomToTimestamp, zoomToVital} = zoomQuery;
+    const revealNode = zoomToNode ? null : zoomQuery.revealNode;
+    const targetPath = zoomToNode ?? revealNode;
+    if (!targetPath) {
       handledZoomQueryRef.current = null;
       return;
     }
@@ -657,58 +644,46 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     handledZoomQueryRef.current = routerLocation.search;
 
     const node = props.tree.root.findChild(candidate =>
-      candidate.matchByPath(query.zoomToNode as TraceTree.NodePath)
+      candidate.matchByPath(targetPath as TraceTree.NodePath)
     );
 
-    const {
-      zoomToNode: _zoomToNode,
-      zoomToTimestamp: _zoomToTimestamp,
-      zoomToVital: _zoomToVital,
-      ...nextQuery
-    } = query;
-    navigate(
-      {
-        pathname: routerLocation.pathname,
-        query: nextQuery,
-      },
-      {replace: true}
-    );
+    void setZoomQuery({
+      zoomToNode: null,
+      zoomToTimestamp: null,
+      zoomToVital: null,
+      revealNode: null,
+      ...(revealNode ? {node: revealNode} : {}),
+    });
 
     if (!node) {
       return;
     }
 
     void onTabScrollToNode(node);
-    const timestamp =
-      typeof query.zoomToTimestamp === 'string'
-        ? Number.parseFloat(query.zoomToTimestamp)
-        : Number.NaN;
-    if (Number.isFinite(timestamp)) {
-      viewManager.onZoomToVital(
-        timestamp,
-        typeof query.zoomToVital === 'string' ? query.zoomToVital : `${timestamp}`
-      );
+    if (revealNode) {
+      return;
+    }
+    if (zoomToTimestamp !== null && Number.isFinite(zoomToTimestamp)) {
+      viewManager.onZoomToVital(zoomToTimestamp, zoomToVital ?? `${zoomToTimestamp}`);
     } else {
       viewManager.onZoomIntoSpace(node.space);
     }
   }, [
     disableUrlSync,
-    navigate,
     onLoadScrollStatus,
     onTabScrollToNode,
     props.tree,
-    routerLocation.pathname,
     routerLocation.search,
+    setZoomQuery,
     viewManager,
+    zoomQuery,
   ]);
 
   // Sync part of the state with the URL
   const traceQueryStateSync = useMemo(() => {
     return {search: traceState.search.query};
   }, [traceState.search.query]);
-  useTraceQueryParamStateSync(traceQueryStateSync, {
-    disabled: disableUrlSync,
-  });
+  useTraceQueryParamStateSync(traceQueryStateSync, {disabled: disableUrlSync});
 
   const onAutogroupChange = useCallback(() => {
     const value = !traceState.preferences.autogroup.parent;
@@ -742,10 +717,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
     traceAnalytics.trackAutogroupingPreferenceChange(props.organization, value);
     props.tree.rebuild();
-    traceDispatch({
-      type: 'set autogrouping',
-      payload: value,
-    });
+    traceDispatch({type: 'set autogrouping', payload: value});
   }, [traceDispatch, traceState.preferences.autogroup, props.tree, props.organization]);
 
   const onMissingInstrumentationChange = useCallback(() => {
@@ -758,9 +730,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         missingInstrumentationCount > 0
           ? tct(
               'Missing instrumentation enabled, found [count] missing instrumentation spans',
-              {
-                count: missingInstrumentationCount,
-              }
+              {count: missingInstrumentationCount}
             )
           : t('Missing instrumentation enabled')
       );
@@ -770,9 +740,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         removeCount > 0
           ? tct(
               'Missing instrumentation disabled, removed [count] missing instrumentation spans',
-              {
-                count: removeCount,
-              }
+              {count: removeCount}
             )
           : t('Missing instrumentation disabled')
       );
@@ -780,10 +748,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
     traceAnalytics.trackMissingInstrumentationPreferenceChange(props.organization, value);
     props.tree.rebuild();
-    traceDispatch({
-      type: 'set missing instrumentation',
-      payload: value,
-    });
+    traceDispatch({type: 'set missing instrumentation', payload: value});
   }, [
     traceDispatch,
     traceState.preferences.missing_instrumentation,
@@ -798,10 +763,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       value ? t('Compressed timeline enabled') : t('Compressed timeline disabled')
     );
     traceAnalytics.trackCompressedTimelinePreferenceChange(props.organization, value);
-    traceDispatch({
-      type: 'set compressed timeline',
-      payload: value,
-    });
+    traceDispatch({type: 'set compressed timeline', payload: value});
   }, [traceDispatch, traceState.preferences.compressed_timeline, props.organization]);
 
   if (props.tree.type === 'empty' && props.hideIfNoData) {

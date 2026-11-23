@@ -21,11 +21,7 @@ export const userFeedback: OnboardingConfig<PlatformOptions> = {
               'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/configuration/#bring-your-own-button',
           }),
         },
-        ...getSetupConfiguration({
-          params,
-          showExtraStep: false,
-          showDescription: false,
-        }),
+        ...getSetupConfiguration({params, showExtraStep: false, showDescription: false}),
         {
           type: 'text',
           text: crashReportCallout({

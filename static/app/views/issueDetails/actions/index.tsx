@@ -11,7 +11,9 @@ import {IconUpload} from '@sentry/icons/upload';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
@@ -28,7 +30,6 @@ import {ArchiveActions} from 'sentry/components/actions/archive';
 import {ResolveActions} from 'sentry/components/actions/resolve';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import {openConfirmModal} from 'sentry/components/confirm';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
@@ -39,12 +40,14 @@ import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
 import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -54,7 +57,7 @@ import {discardIssueMutationOptions} from 'sentry/views/issueDetails/discardIssu
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {GroupPriorityCommandPaletteAction} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeCommandPaletteAction} from 'sentry/views/issueDetails/header/assigneeSelector';
-import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {groupQueryFilter} from 'sentry/views/issueDetails/useGroup';
 import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
 import {
   getGroupReprocessingStatus,
@@ -222,6 +225,27 @@ export function GroupActions({
   });
   const queryClient = useQueryClient();
   const {mutate: discardIssue} = useMutation(discardIssueMutationOptions({navigate}));
+  const {mutate: assessImpact, isPending: isAssessingImpact} = useMutation({
+    mutationFn: () =>
+      fetchMutation<{runId: string}>({
+        method: 'POST',
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/issues/$issueId/impact/assess/',
+          {path: {organizationIdOrSlug: organization.slug, issueId: group.id}}
+        ),
+      }),
+    onMutate: () => {
+      toast.loading(t('Starting impact assessment\u2026'));
+    },
+    onSuccess: () => {
+      toast.dismiss();
+      toast.success(t('Impact assessment started'));
+    },
+    onError: () => {
+      toast.dismiss();
+      toast.error(t('Unable to start impact assessment'));
+    },
+  });
 
   const bookmarkKey = group.isBookmarked ? 'unbookmark' : 'bookmark';
   const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
@@ -338,12 +362,9 @@ export function GroupActions({
       // GroupStore already shows the error
       // oxlint-disable-next-line react/todo
     } finally {
-      queryClient.invalidateQueries({
-        queryKey: groupQueryKey({
-          organizationSlug: organization.slug,
-          groupId: group.id,
-        }),
-      });
+      queryClient.invalidateQueries(
+        groupQueryFilter({organizationSlug: organization.slug, groupId: group.id})
+      );
     }
   };
 
@@ -387,9 +408,7 @@ export function GroupActions({
   const onTogglePublicShare = () => {
     const newIsPublic = !group.isPublic;
     if (newIsPublic) {
-      trackAnalytics('issue.shared_publicly', {
-        organization,
-      });
+      trackAnalytics('issue.shared_publicly', {organization});
     }
     trackIssueAction('shared');
   };
@@ -414,11 +433,7 @@ export function GroupActions({
 
   const onDiscard = () => {
     trackIssueAction('discarded');
-    discardIssue({
-      groupId: group.id,
-      orgSlug: organization.slug,
-      projectId: project.id,
-    });
+    discardIssue({groupId: group.id, orgSlug: organization.slug, projectId: project.id});
   };
 
   const renderDiscardModal = ({Body, Footer, closeModal}: ModalRenderProps) => {
@@ -522,10 +537,7 @@ export function GroupActions({
           >
             {resolveCap.enabled && !isResolved && !isIgnored && (
               <CMDKAction
-                display={{
-                  label: t('Resolve'),
-                  icon: <IconCheckmark />,
-                }}
+                display={{label: t('Resolve'), icon: <IconCheckmark />}}
                 onAction={() =>
                   onUpdate({
                     status: GroupStatus.RESOLVED,
@@ -573,10 +585,7 @@ export function GroupActions({
             )}
             {stacktraceBody && (
               <CMDKAction
-                display={{
-                  label: t('Copy Stack Trace'),
-                  icon: <IconCopy />,
-                }}
+                display={{label: t('Copy Stack Trace'), icon: <IconCopy />}}
                 keywords={['stacktrace', 'exception', 'error', 'trace', 'copy']}
                 onAction={() => copyToClipboard(stacktraceBody)}
               />
@@ -658,6 +667,17 @@ export function GroupActions({
           )}
           items={[
             {
+              key: 'impact-assessment',
+              label: t('Assess impact'),
+              trailingItems: <FeatureBadge type="alpha" />,
+              hidden: !organization.features.includes('seer-impact-assessment'),
+              disabled: disabled || isAssessingImpact,
+              details: isAssessingImpact
+                ? t('Impact assessment is being started')
+                : undefined,
+              onAction: () => assessImpact(),
+            },
+            {
               key: 'mark-review',
               label: t('Mark reviewed'),
               disabled: !group.inbox || disabled,
@@ -665,11 +685,7 @@ export function GroupActions({
                 !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
               onAction: () => onUpdate({inbox: false}),
             },
-            {
-              key: bookmarkKey,
-              label: bookmarkTitle,
-              onAction: onToggleBookmark,
-            },
+            {key: bookmarkKey, label: bookmarkTitle, onAction: onToggleBookmark},
             {
               key: 'reprocess',
               label: t('Reprocess events'),

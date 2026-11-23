@@ -9,8 +9,11 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import {MissingProjectMembership} from './missingProjectMembership';
 
 describe('MissingProjectMembership', () => {
-  afterEach(() => {
+  beforeEach(() => {
     TeamStore.reset();
+  });
+
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 

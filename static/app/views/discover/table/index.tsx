@@ -17,6 +17,7 @@ import {isAPIPayloadSimilar, isFieldsSimilar} from 'sentry/utils/discover/eventV
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {Measurements} from 'sentry/utils/measurements/measurements';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -201,11 +202,7 @@ export class Table extends PureComponent<TableProps, TableState> {
 
     this.api.clear();
     this.api
-      .requestPromise(url, {
-        method: 'GET',
-        includeAllArgs: true,
-        query: apiPayload,
-      })
+      .requestPromise(url, {method: 'GET', includeAllArgs: true, query: apiPayload})
       .then(([data, _, resp]) => {
         if (this.state.tableFetchID !== tableFetchID) {
           // invariant: a different request was initiated after this request
@@ -214,10 +211,7 @@ export class Table extends PureComponent<TableProps, TableState> {
 
         const {fields, ...nonFieldsMeta} = data.meta ?? {};
         // events api uses a different response format so we need to construct tableData differently
-        const tableData = {
-          ...data,
-          meta: {...fields, ...nonFieldsMeta, fields},
-        };
+        const tableData = {...data, meta: {...fields, ...nonFieldsMeta, fields}};
 
         trackAnalytics('discover_search.success', {
           has_results: tableData.data.length > 0,
@@ -310,7 +304,7 @@ export class Table extends PureComponent<TableProps, TableState> {
             );
           }}
         </Measurements>
-        <Pagination pageLinks={pageLinks} onCursor={onCursor} />
+        <Pagination {...getPaginationProps(pageLinks)} onCursor={onCursor} />
       </Container>
     );
   }

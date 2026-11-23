@@ -9,6 +9,8 @@ import {
   makeFetchTransport,
 } from '@sentry/react';
 import cloneDeep from 'lodash/cloneDeep';
+import {useQueryState} from 'nuqs';
+import {useStore} from 'zustand';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -24,9 +26,8 @@ import type {Data} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {defined} from 'sentry/utils/defined';
-import {useLocation} from 'sentry/utils/useLocation';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -164,10 +165,7 @@ function FeedbackModalFooter({
   );
 }
 
-type BodyProps = {
-  children: React.ReactNode;
-  showSelfHostedMessage?: boolean;
-};
+type BodyProps = {children: React.ReactNode; showSelfHostedMessage?: boolean};
 
 function FeedbackModalBody({
   children: bodyChildren,
@@ -182,9 +180,7 @@ function FeedbackModalBody({
           <Alert variant="info" showIcon={false}>
             {tct(
               "You agree that any feedback you submit is subject to Sentry's [privacyPolicy:Privacy Policy] and Sentry may use such feedback without restriction or obligation.",
-              {
-                privacyPolicy: <ExternalLink href="https://sentry.io/privacy/" />,
-              }
+              {privacyPolicy: <ExternalLink href="https://sentry.io/privacy/" />}
             )}
           </Alert>
         </Alert.Container>
@@ -205,9 +201,9 @@ export function FeedbackModal<T extends Data>({
   closeModal,
   ...props
 }: FeedbackModalProps<T> & ModalRenderProps) {
-  const {organization} = useLegacyStore(OrganizationStore);
+  const organization = useStore(OrganizationStore, state => state.organization);
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
-  const location = useLocation();
+  const [projectIds] = useQueryState('project', pageFilterParsers.project);
 
   const user = useUser();
   const isSelfHosted = ConfigStore.get('isSelfHosted');
@@ -218,11 +214,11 @@ export function FeedbackModal<T extends Data>({
   );
 
   const project = useMemo(() => {
-    if (projectsLoaded && location.query.project) {
-      return projects.find(p => p.id === location.query.project);
+    if (projectsLoaded && projectIds.length === 1) {
+      return projects.find(p => p.id === projectIds[0]);
     }
     return;
-  }, [projectsLoaded, projects, location.query.project]);
+  }, [projectsLoaded, projects, projectIds]);
 
   const handleSubmit = useCallback(
     (submitEventData?: Event) => {
@@ -238,9 +234,7 @@ export function FeedbackModal<T extends Data>({
           orgAccess: organization?.access ?? [],
           projectFeatures: project?.features ?? [],
         },
-        tags: {
-          featureName: props.featureName,
-        },
+        tags: {featureName: props.featureName},
         user,
         level: 'info',
       };
@@ -254,9 +248,7 @@ export function FeedbackModal<T extends Data>({
           captureFeedback({
             message: fullMessage,
             source: props.featureName,
-            tags: {
-              feature: props.featureName,
-            },
+            tags: {feature: props.featureName},
           });
         } else {
           feedbackClient.captureEvent({
@@ -276,15 +268,10 @@ export function FeedbackModal<T extends Data>({
           captureFeedback({
             message,
             source: props.featureName,
-            tags: {
-              feature: props.featureName,
-            },
+            tags: {feature: props.featureName},
           });
         } else {
-          feedbackClient.captureEvent({
-            ...commonEventProps,
-            ...submitEventData,
-          });
+          feedbackClient.captureEvent({...commonEventProps, ...submitEventData});
         }
       }
 
@@ -359,10 +346,7 @@ export function FeedbackModal<T extends Data>({
                 autosize
                 placeholder={t('What did you expect?')}
                 onChange={event =>
-                  setState({
-                    ...state,
-                    additionalInfo: event.target.value,
-                  })
+                  setState({...state, additionalInfo: event.target.value})
                 }
               />
             </FieldGroup>

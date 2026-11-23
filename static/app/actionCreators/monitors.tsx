@@ -155,10 +155,7 @@ export async function deleteMonitorProcessingErrorByType(
           },
         }
       ),
-      {
-        method: 'DELETE',
-        query: {errortype},
-      }
+      {method: 'DELETE', query: {errortype}}
     );
     toast.dismiss();
   } catch (err: any) {
@@ -184,10 +181,7 @@ export async function deleteProjectProcessingErrorByType(
       getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/processing-errors/', {
         path: {organizationIdOrSlug: orgId, projectIdOrSlug: projectId},
       }),
-      {
-        method: 'DELETE',
-        query: {errortype},
-      }
+      {method: 'DELETE', query: {errortype}}
     );
     toast.dismiss();
   } catch (err: any) {

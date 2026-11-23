@@ -74,9 +74,7 @@ describe('IssueListBulkCommandPaletteActions', () => {
     jest.spyOn(toast, 'loading').mockClear();
     GroupStore.reset();
     jest.mocked(toast.loading).mockClear();
-    ConfigStore.loadInitialData({
-      user: UserFixture({id: '1', name: 'Test User'}),
-    } as any);
+    ConfigStore.loadInitialData({user: UserFixture({id: '1', name: 'Test User'})} as any);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,

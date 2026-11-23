@@ -8,6 +8,7 @@ const chartSelectionQueryParamSchema = z.object({
   chartIndex: z.number(),
   panelId: z.string(),
   range: z.tuple([z.number(), z.number()]),
+  yRange: z.tuple([z.number(), z.number()]).optional(),
 });
 
 export type ChartSelectionQueryParam = z.infer<typeof chartSelectionQueryParamSchema>;
@@ -17,6 +18,10 @@ const parseAsChartSelectionQueryParam = parseAsJson(chartSelectionQueryParamSche
 type ChartSelectionState = {
   chartIndex: number;
   selection: Selection;
+  /**
+   * Y-axis bounds of a heatmap region selection.
+   */
+  yRange?: [number, number];
 } | null;
 
 type ChartSelectionContextValue = {
@@ -32,7 +37,7 @@ interface ChartSelectionProviderProps {
   children: React.ReactNode;
 }
 
-const parseAsChartSelection = createParser<ChartSelectionState>({
+export const parseAsChartSelection = createParser<ChartSelectionState>({
   parse(value: string): ChartSelectionState | null {
     const parsed = parseAsChartSelectionQueryParam.parse(value);
     if (!parsed) {
@@ -41,10 +46,8 @@ const parseAsChartSelection = createParser<ChartSelectionState>({
 
     return {
       chartIndex: parsed.chartIndex,
-      selection: {
-        range: parsed.range,
-        panelId: parsed.panelId,
-      },
+      selection: {range: parsed.range, panelId: parsed.panelId},
+      yRange: parsed.yRange,
     };
   },
   serialize(state: ChartSelectionState): string {
@@ -56,6 +59,7 @@ const parseAsChartSelection = createParser<ChartSelectionState>({
       chartIndex: state.chartIndex,
       range: state.selection.range,
       panelId: state.selection.panelId,
+      yRange: state.yRange,
     };
 
     return parseAsChartSelectionQueryParam.serialize(chartSelection);
@@ -69,10 +73,7 @@ export function ChartSelectionProvider({children}: ChartSelectionProviderProps) 
   );
 
   const value = useMemo<ChartSelectionContextValue>(
-    () => ({
-      chartSelection,
-      setChartSelection,
-    }),
+    () => ({chartSelection, setChartSelection}),
     [chartSelection, setChartSelection]
   );
 

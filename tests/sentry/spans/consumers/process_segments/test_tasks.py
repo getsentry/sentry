@@ -56,7 +56,7 @@ def test_process_segment_task_filters_duplicate_spans(
     mock_process_segment: mock.MagicMock,
 ) -> None:
     """The task must run spans through dedupe before producing them."""
-    span1 = cast(CompatibleSpan, build_mock_span(project_id=1, is_segment=True, span_id="a" * 16))
+    span1 = build_mock_span(project_id=1, is_segment=True, span_id="a" * 16)
     span2 = cast(CompatibleSpan, build_mock_span(project_id=1, is_segment=False, span_id="b" * 16))
     segment_bytes = json.dumps({"spans": [span1, span2]}).encode("utf-8")
 
@@ -87,7 +87,7 @@ def test_process_segment_task_filters_duplicate_spans(
     side_effect=lambda x, **kwargs: x,
 )
 def test_process_segment_task_honors_skip_enrichment(mock_process_segment: mock.MagicMock) -> None:
-    span_data = cast(CompatibleSpan, build_mock_span(project_id=1, is_segment=True))
+    span_data = build_mock_span(project_id=1, is_segment=True)
     segment_bytes = json.dumps({"spans": [span_data], "skip_enrichment": True}).encode("utf-8")
 
     with mock.patch("sentry.spans.consumers.process_segments.tasks._snuba_items_producer"):

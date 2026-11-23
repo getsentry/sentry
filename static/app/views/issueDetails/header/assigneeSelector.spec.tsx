@@ -143,11 +143,7 @@ describe('GroupHeaderAssigneeSelector', () => {
   });
 
   it('uses assignment activity for self-assignment tooltip details', async () => {
-    const assignedUser = UserFixture({
-      id: '91',
-      email: 'frodo@sentry.io',
-      name: 'Frodo',
-    });
+    const assignedUser = UserFixture({id: '91', email: 'frodo@sentry.io', name: 'Frodo'});
     const assignedGroup = GroupFixture({
       assignedTo: {id: assignedUser.id, name: assignedUser.name, type: 'user'},
       activity: [
@@ -155,20 +151,11 @@ describe('GroupHeaderAssigneeSelector', () => {
           type: GroupActivityType.ASSIGNED,
           id: 'assignment-1',
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            assignee: assignedUser.id,
-            assigneeType: 'user',
-          },
+          data: {assignee: assignedUser.id, assigneeType: 'user'},
           user: assignedUser,
         },
       ],
-      owners: [
-        {
-          type: 'suspectCommit',
-          owner: `user:${assignedUser.id}`,
-          date_added: '',
-        },
-      ],
+      owners: [{type: 'suspectCommit', owner: `user:${assignedUser.id}`, date_added: ''}],
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
@@ -196,11 +183,7 @@ describe('GroupHeaderAssigneeSelector', () => {
   });
 
   it('shows assignment provenance from matching assignment activity', async () => {
-    const assignedUser = UserFixture({
-      id: '91',
-      email: 'frodo@sentry.io',
-      name: 'Frodo',
-    });
+    const assignedUser = UserFixture({id: '91', email: 'frodo@sentry.io', name: 'Frodo'});
     const ownershipRule = 'path:./app/components/group/* #issue-workflow';
     const assignedGroup = GroupFixture({
       assignedTo: {id: assignedUser.id, name: assignedUser.name, type: 'user'},

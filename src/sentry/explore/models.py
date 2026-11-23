@@ -18,6 +18,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.dashboard_widget import TypesClass
 from sentry.models.organization import Organization
+from sentry.search.eap.constants import QueryPriorities
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.users.models.user import User
@@ -114,6 +115,8 @@ class ExploreSavedQuery(DefaultFieldsModel):
     # This field is to be used for the discover -> explore migration. This contains the reason why any part
     # of the saved query was changed so we can display our reasonings in the UI
     changed_reason = models.JSONField(null=True, default=None)
+    # Null means normal.
+    query_priority = BoundedPositiveIntegerField(choices=QueryPriorities.as_choices(), null=True)
 
     class Meta:
         app_label = "explore"
@@ -170,7 +173,7 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
         """
         return self.filter(
             organization=organization, user_id=user_id, explore_saved_query=query
-        ).first()
+        ).first()  # noqa: S035
 
     def insert_starred_query(
         self,
@@ -357,6 +360,7 @@ class TraceItemTypes(TypesClass):
     PROCESSING_ERRORS = 7
     OCCURRENCES = 8
     REPLAYS = 9
+    ENRICHMENT_ATTRIBUTES = 10
 
     TYPES = [
         (SPANS, SupportedTraceItemType.SPANS.value),
@@ -369,6 +373,7 @@ class TraceItemTypes(TypesClass):
         (PROCESSING_ERRORS, SupportedTraceItemType.PROCESSING_ERRORS.value),
         (OCCURRENCES, SupportedTraceItemType.OCCURRENCES.value),
         (REPLAYS, SupportedTraceItemType.REPLAYS.value),
+        (ENRICHMENT_ATTRIBUTES, SupportedTraceItemType.ENRICHMENT_ATTRIBUTES.value),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 

@@ -1,11 +1,11 @@
 import {Component, createContext, useContext} from 'react';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {Flex} from '@sentry/scraps/layout';
 import type {ControlProps, SelectValue} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {FormField} from 'sentry/components/forms/formField';
 import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
 import {t} from 'sentry/locale';
@@ -188,10 +188,7 @@ export class SelectField<
                   multiple={multiple}
                   components={{Indicators: SelectFieldIndicators, ...props.components}}
                   styles={{
-                    control: (provided: any) => ({
-                      ...provided,
-                      height: 'auto',
-                    }),
+                    control: (provided: any) => ({...provided, height: 'auto'}),
                     ...props.styles,
                   }}
                   onChange={(val: any) => {

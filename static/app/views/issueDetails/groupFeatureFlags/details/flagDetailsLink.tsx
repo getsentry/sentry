@@ -21,10 +21,7 @@ export function FlagDetailsLink({flag, children}: Props) {
     <StyledLink
       to={{
         pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}${flag.key}/`,
-        query: {
-          ...location.query,
-          tab: DrawerTab.FEATURE_FLAGS,
-        },
+        query: {...location.query, tab: DrawerTab.FEATURE_FLAGS},
       }}
     >
       {children}

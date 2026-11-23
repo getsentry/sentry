@@ -40,10 +40,7 @@ function renderMockRequests({
 
   act(() => SubscriptionStore.set(organization.slug, subscription));
 
-  MockApiClient.addMockResponse({
-    url: `/customers/${organization.slug}/`,
-    body: {},
-  });
+  MockApiClient.addMockResponse({url: `/customers/${organization.slug}/`, body: {}});
 
   const requestUpdatePlan = MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/plan-upgrade-request/`,
@@ -56,26 +53,19 @@ function renderMockRequests({
 describe('ProductUnavailableCTA', () => {
   describe('with no billing access', () => {
     it('renders no alert', () => {
-      const organization = OrganizationFixture({
-        features: ['performance-view', 'session-replay'],
-      });
+      const organization = OrganizationFixture({features: ['session-replay']});
 
-      renderMockRequests({
-        organization,
-      });
+      renderMockRequests({organization});
 
       const {container} = render(<ProductUnavailableCTA organization={organization} />);
 
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('without performance and session replay', async () => {
+    it('without session replay on an ancient plan', async () => {
       const {organization} = initializeOrg();
 
-      const mockRequests = renderMockRequests({
-        isAncientPlan: true,
-        organization,
-      });
+      const mockRequests = renderMockRequests({isAncientPlan: true, organization});
 
       render(<ProductUnavailableCTA organization={organization} />);
 
@@ -83,30 +73,22 @@ describe('ProductUnavailableCTA', () => {
         await screen.findByText(/request an owner in your organization to update/i)
       ).toBeInTheDocument();
 
-      expect(screen.getByText(/use performance and session replay/i)).toBeInTheDocument();
+      expect(screen.getByText(/use session replay/i)).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: /request update/i}));
 
       await waitFor(() => {
         expect(mockRequests.requestUpdatePlan).toHaveBeenCalledWith(
           '/organizations/org-slug/plan-upgrade-request/',
-          expect.objectContaining({
-            method: 'POST',
-          })
+          expect.objectContaining({method: 'POST'})
         );
       });
     });
 
     it('without session replay', async () => {
-      const {organization} = initializeOrg({
-        organization: {
-          features: ['performance-view'],
-        },
-      });
+      const {organization} = initializeOrg({organization: {}});
 
-      const mockRequests = renderMockRequests({
-        organization,
-      });
+      const mockRequests = renderMockRequests({organization});
 
       render(<ProductUnavailableCTA organization={organization} />);
 
@@ -120,9 +102,7 @@ describe('ProductUnavailableCTA', () => {
       await waitFor(() => {
         expect(mockRequests.requestUpdatePlan).toHaveBeenCalledWith(
           `/organizations/${organization.slug}/plan-upgrade-request/`,
-          expect.objectContaining({
-            method: 'POST',
-          })
+          expect.objectContaining({method: 'POST'})
         );
       });
     });
@@ -132,34 +112,29 @@ describe('ProductUnavailableCTA', () => {
     it('renders no alert', () => {
       const organization = OrganizationFixture({
         access: ['org:billing'],
-        features: ['performance-view', 'session-replay'],
+        features: ['session-replay'],
       });
 
-      renderMockRequests({
-        organization,
-      });
+      renderMockRequests({organization});
 
       const {container} = render(<ProductUnavailableCTA organization={organization} />);
 
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('without performance and session replay', async () => {
+    it('without session replay on an ancient plan', async () => {
       const {organization} = initializeOrg({
         organization: {
           access: ['org:billing'] as any, // TODO(ts): Fix this type for organizations on a plan
         },
       });
 
-      renderMockRequests({
-        isAncientPlan: true,
-        organization,
-      });
+      renderMockRequests({isAncientPlan: true, organization});
 
       render(<ProductUnavailableCTA organization={organization} />);
 
       expect(await screen.findByText(/update your organization/i)).toBeInTheDocument();
-      expect(screen.getByText(/use performance and session replay/i)).toBeInTheDocument();
+      expect(screen.getByText(/use session replay/i)).toBeInTheDocument();
 
       expect(screen.getByRole('button', {name: /manage subscription/i})).toHaveAttribute(
         'href',
@@ -171,15 +146,11 @@ describe('ProductUnavailableCTA', () => {
       const {organization} = initializeOrg({
         organization: {
           access: ['org:billing'] as any, // TODO(ts): Fix this type for organizations on a plan
-          features: ['performance-view'],
         },
       });
 
       // can self-serve
-      renderMockRequests({
-        organization,
-        canSelfServe: true,
-      });
+      renderMockRequests({organization, canSelfServe: true});
 
       const MockUsePreviewData = jest.mocked(usePreviewData);
       const mockReservations: Reservations = {
@@ -224,10 +195,7 @@ describe('ProductUnavailableCTA', () => {
       ).toBeInTheDocument();
 
       // can not self-serve
-      renderMockRequests({
-        organization,
-        canSelfServe: false,
-      });
+      renderMockRequests({organization, canSelfServe: false});
       rerender(<ProductUnavailableCTA organization={organization} />);
       expect(
         await screen.findByRole('button', {name: /manage subscription/i})

@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {Flex} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
@@ -8,7 +9,6 @@ import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {t} from 'sentry/locale';

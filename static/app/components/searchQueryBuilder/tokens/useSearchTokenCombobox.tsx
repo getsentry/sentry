@@ -58,10 +58,7 @@ export function useSearchTokenCombobox<T>(
   const buttonRef = props.buttonRef ?? backupBtnRef;
 
   const {menuTriggerProps, menuProps} = useMenuTrigger<T>(
-    {
-      type: 'listbox',
-      isDisabled: isDisabled || isReadOnly,
-    },
+    {type: 'listbox', isDisabled: isDisabled || isReadOnly},
     state,
     buttonRef
   );

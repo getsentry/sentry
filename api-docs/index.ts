@@ -13,8 +13,9 @@ function dictToString(dict) {
 }
 
 // Extensions that only the response coverage check reads: the Python source of a
-// TypedDict field, and the marker on a recursive TypedDict cut short.
-const COVERAGE_EXTENSIONS = ['x-sentry-source', 'x-sentry-cycle'];
+// TypedDict field, the marker on a recursive TypedDict cut short, and the marker on a
+// JsonValue field.
+const COVERAGE_EXTENSIONS = ['x-sentry-source', 'x-sentry-cycle', 'x-sentry-json-value'];
 
 function stripCoverageExtensions(node: unknown) {
   if (Array.isArray(node)) {

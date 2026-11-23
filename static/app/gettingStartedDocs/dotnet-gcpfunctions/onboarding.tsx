@@ -34,6 +34,11 @@ const getInstallSnippetManual = (params: DocsParams) => `
 </ItemGroup>`;
 
 const getConfigureCSharpSnippet = () => `
+using System.Threading.Tasks;
+using Google.Cloud.Functions.Framework;
+using Google.Cloud.Functions.Hosting;
+using Microsoft.AspNetCore.Http;
+
 // Add the following line:
 [assembly: FunctionsStartup(typeof(SentryStartup))]
 
@@ -42,6 +47,7 @@ public class Function : IHttpFunction
     public Task HandleAsync(HttpContext context)
     {
         // Your function code here.
+        return Task.CompletedTask;
     }
 }`;
 
@@ -79,6 +85,7 @@ using Sentry;
 public Task HandleAsync(HttpContext context)
 {
     SentrySdk.CaptureMessage("Hello Sentry");
+    return Task.CompletedTask;
 }`;
 
 export const onboarding: OnboardingConfig = {
@@ -90,9 +97,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Install the [strong:NuGet] package with Package Manager or .NET Core CLI:',
-            {
-              strong: <strong />,
-            }
+            {strong: <strong />}
           ),
         },
         {
@@ -114,11 +119,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: t('Or, manually add the Sentry dependency into your csproj file:'),
         },
-        {
-          type: 'code',
-          language: 'xml',
-          code: getInstallSnippetManual(params),
-        },
+        {type: 'code', language: 'xml', code: getInstallSnippetManual(params)},
       ],
     },
   ],
@@ -130,16 +131,10 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Then, add Sentry to the [code:Function] class through [code:FunctionsStartup]:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: getConfigureCSharpSnippet(),
-        },
+        {type: 'code', language: 'csharp', code: getConfigureCSharpSnippet()},
         {
           type: 'text',
           text: tct(
@@ -147,11 +142,7 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'json',
-          code: getConfigureJsonSnippet(params),
-        },
+        {type: 'code', language: 'json', code: getConfigureJsonSnippet(params)},
       ],
     },
   ],
@@ -163,11 +154,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: t('To verify your setup, you can capture a message with the SDK:'),
         },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: getVerifySnippet(),
-        },
+        {type: 'code', language: 'csharp', code: getVerifySnippet()},
         logsVerify(params),
         metricsVerify(params),
       ],
@@ -199,10 +186,6 @@ export const onboarding: OnboardingConfig = {
                 code: <code />,
               }
             ),
-            tct('[link:Basic F# sample] [strong:(F#)]', {
-              link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
-              strong: <strong />,
-            }),
           ],
         },
       ],

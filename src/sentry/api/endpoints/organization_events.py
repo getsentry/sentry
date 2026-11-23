@@ -1,11 +1,10 @@
 import logging
 from collections.abc import Mapping, Sequence
 from concurrent.futures import as_completed
-from typing import Annotated, Any, TypedDict, cast
+from typing import Annotated, Any, Literal, TypedDict, cast
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
-from rest_framework import status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -122,14 +121,16 @@ class EventsMeta(TypedDict, total=False):
         dict[str, str],
         ApiDescription("Suggestions for improving the query, under the `query` and `columns` keys"),
     ]
-    datasetReason: str
+    datasetReason: Annotated[
+        str, ApiDescription("Why the query ran on a different dataset than requested, or unchanged")
+    ]
     isMetricsData: Annotated[bool, ApiDescription("Whether the results came from metrics data")]
     isMetricsExtractedData: Annotated[
         bool, ApiDescription("Whether the results came from metrics extracted on demand")
     ]
     dataset: Annotated[str, ApiDescription("Dataset that was queried")]
     discoverSplitDecision: Annotated[
-        Any,
+        Literal["error-events", "transaction-like"],
         ApiDescription(
             "Dataset the results were taken from when a Discover dashboard widget query was split between errors and transactions"
         ),
@@ -139,7 +140,12 @@ class EventsMeta(TypedDict, total=False):
         ApiDescription("Whether the query scanned the `full` data set or only a `partial` sample"),
     ]
     bytesScanned: Annotated[int, ApiDescription("Number of bytes the query scanned")]
-    routingHint: str
+    routingHint: Annotated[
+        str,
+        ApiDescription(
+            "Opaque routing hint of an EAP table query. Pass it unchanged as routing_hint when fetching item details for a row"
+        ),
+    ]
     debug_info: Annotated[
         Any,
         ApiDescription("Debug information about the query. Only present when `debug` is passed"),
@@ -250,13 +256,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
           `routing_hint` when fetching item details for a row in this response. It identifies how
           the table query was routed and is omitted when no hint is available.
         """
-        if not self.has_feature(organization, request):
-            return Response(
-                {
-                    "detail": "Discover, Performance, or Explore is required to access this endpoint."
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         referrer = request.GET.get("referrer")
         sentry_sdk.set_attribute("query.raw_referrer", referrer or "")
@@ -738,23 +737,20 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 def flex_time_data_fn(limit: int, page_token: PageToken | None) -> dict[str, Any]:
                     config = get_rpc_config()
 
-                    return cast(
-                        dict[str, Any],
-                        scoped_dataset.run_table_query(
-                            params=snuba_params,
-                            query_string=scoped_query or "",
-                            selected_columns=self.get_field_list(organization, request),
-                            equations=self.get_equation_list(organization, request),
-                            orderby=self.get_orderby(request),
-                            offset=0,  # required but not used because we're using page tokens here
-                            limit=limit,
-                            referrer=referrer,
-                            config=config,
-                            sampling_mode=snuba_params.sampling_mode,
-                            page_token=page_token,
-                            additional_queries=additional_queries,
-                            max_string_length=max_string_length,
-                        ),
+                    return scoped_dataset.run_table_query(
+                        params=snuba_params,
+                        query_string=scoped_query or "",
+                        selected_columns=self.get_field_list(organization, request),
+                        equations=self.get_equation_list(organization, request),
+                        orderby=self.get_orderby(request),
+                        offset=0,  # required but not used because we're using page tokens here
+                        limit=limit,
+                        referrer=referrer,
+                        config=config,
+                        sampling_mode=snuba_params.sampling_mode,
+                        page_token=page_token,
+                        additional_queries=additional_queries,
+                        max_string_length=max_string_length,
                     )
 
                 return EAPPageTokenPaginator(data_fn=flex_time_data_fn), EAPPageTokenCursor

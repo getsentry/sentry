@@ -10,9 +10,5 @@
   },
   "include": ["src", "test"],
   "exclude": [],
-  "references": [
-    {
-      "path": "../icons"
-    }
-  ]
+  "references": [{"path": "../icons"}]
 }

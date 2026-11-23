@@ -8,10 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useLastKnownRoute} from 'sentry/views/lastKnownRouteContextProvider';
 
-type Props = {
-  newPathPrefix: `/${string}`;
-  oldPathPrefix: `/${string}`;
-};
+type Props = {newPathPrefix: `/${string}`; oldPathPrefix: `/${string}`};
 
 function useShouldRedirect(oldPathPrefix: `/${string}`) {
   const organization = useOrganization();

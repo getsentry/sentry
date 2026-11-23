@@ -41,13 +41,12 @@ MAX_WORKFLOW_CONFIGS_PER_ORG = 50
 class SeerWorkflowConfigExtras(BaseModel):
     # The default strategy that seeded this config; unset for user-created configs.
     seeded_default: SeerWorkflowStrategy | None = None
-    # Optional user-supplied name
-    name: str | None = None
-    # The user who created this config; unset for seeded defaults and non-user callers.
-    created_by: int | None = None
     # The user who most recently updated this config through the API, or "bot" for
     # non-user callers. Unset until the first update.
     updated_by: int | Literal["bot"] | None = None
+    # Settings for the automation's trigger and action, in the shapes those classes declare.
+    trigger_settings: dict[str, Any] | None = None
+    action_settings: dict[str, Any] | None = None
 
 
 class SeerWorkflowFilters(BaseModel):
@@ -88,6 +87,8 @@ class SeerWorkflowConfig(DefaultFieldsModel):
         null=True,
     )
     strategy = models.CharField(max_length=256, choices=SeerWorkflowStrategy.choices)
+    # Deprecated and being removed: automations read and write their enabled state, name and
+    # creator on `backing_workflow`.
     enabled = models.BooleanField(default=False)
     schedule = models.CharField(
         max_length=256, choices=SeerWorkflowSchedule.choices, default=SeerWorkflowSchedule.DAILY
@@ -149,24 +150,6 @@ class SeerWorkflowConfigProject(DefaultFieldsModel):
         ]
 
     __repr__ = sane_repr("config_id", "project_id")
-
-
-@cell_silo_model
-class SeerWorkflowTriggerBinding(DefaultFieldsModel):
-    """Connect a WFE Action to an automation; a config may have multiple bindings."""
-
-    __relocation_scope__ = RelocationScope.Excluded
-
-    workflow_config = FlexibleForeignKey("seer.SeerWorkflowConfig", on_delete=models.CASCADE)
-    trigger_action = models.OneToOneField(
-        "workflow_engine.Action", on_delete=models.CASCADE, related_name="seer_workflow_binding"
-    )
-
-    class Meta:
-        app_label = "seer"
-        db_table = "seer_workflowtriggerbinding"
-
-    __repr__ = sane_repr("workflow_config_id", "trigger_action_id")
 
 
 class SeerWorkflowRunStatus(models.TextChoices):

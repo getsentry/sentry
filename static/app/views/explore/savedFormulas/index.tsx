@@ -6,12 +6,12 @@ import {Pagination} from '@sentry/scraps/pagination';
 
 import {Feature} from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {decodeScalar, decodeSorts, encodeSort} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -45,14 +45,6 @@ export default function SavedFormulasView() {
               name="breadcrumbs"
               title={{type: 'page-title', label: t('Saved Formulas')}}
             />
-            <TopBar.Slot name="feedback">
-              <FeedbackButton
-                aria-label={t('Give Feedback')}
-                tooltipProps={{title: t('Give Feedback')}}
-              >
-                {null}
-              </FeedbackButton>
-            </TopBar.Slot>
 
             <Layout.Body>
               <Layout.Main width="full">
@@ -71,7 +63,7 @@ export default function SavedFormulasView() {
                   isError={isError}
                   sort={sort}
                 />
-                <Pagination pageLinks={pageLinks} />
+                <Pagination {...getPaginationProps(pageLinks)} />
               </Layout.Main>
             </Layout.Body>
           </Stack>

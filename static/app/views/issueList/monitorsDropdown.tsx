@@ -1,32 +1,24 @@
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {useQueryStates} from 'nuqs';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t, tn} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useLocation} from 'sentry/utils/useLocation';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type Counts = {
-  counts: {
-    active: number;
-    disabled: number;
-    total: number;
-  };
-};
+type Counts = {counts: {active: number; disabled: number; total: number}};
 
 export function MonitorsDropdown() {
   const organization = useOrganization();
-  const location = useLocation();
+  const [{project, environment}] = useQueryStates(pageFilterParsers);
 
   const {data: cronsData, isPending: cronsIsPending} = useQuery({
     ...apiOptions.as<Counts>()('/organizations/$organizationIdOrSlug/monitors-count/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {
-        project: location.query.project,
-        environment: location.query.environment,
-      },
+      query: {project, environment},
       staleTime: 0,
     }),
     placeholderData: keepPreviousData,
@@ -36,10 +28,7 @@ export function MonitorsDropdown() {
   const {data: uptimeData, isPending: uptimeIsPending} = useQuery({
     ...apiOptions.as<Counts>()('/organizations/$organizationIdOrSlug/uptime-count/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {
-        project: location.query.project,
-        environment: location.query.environment,
-      },
+      query: {project, environment},
       staleTime: 0,
     }),
     placeholderData: keepPreviousData,

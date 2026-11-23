@@ -32,11 +32,14 @@ from pathlib import Path
 
 import pytest
 
-DURATIONS_FILE = Path(__file__).parent / "backend-test-durations.json"
+# Other suites, such as acceptance, pass their own durations file and piece count.
+DURATIONS_FILE = Path(
+    os.environ.get("PYTEST_DURATIONS_FILE") or Path(__file__).parent / "backend-test-durations.json"
+)
 # Full runs split files slower than 1/PIECES_PER_SHARD of a shard by test.
 # Files run in collection order, so a big file that starts late on an xdist
 # worker holds up the whole shard; this bounds how big that can be.
-PIECES_PER_SHARD = 48
+PIECES_PER_SHARD = int(os.environ.get("PYTEST_PIECES_PER_SHARD") or 48)
 # Selective shards are small (see calculate-backend-test-shards.py), so 48
 # pieces would split most files and every shard would import them. 8 still
 # keeps each piece at about half of an xdist worker's share.

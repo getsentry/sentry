@@ -32,6 +32,11 @@ def _remove_bounded_sentry_mentions(comment_body: str) -> str:
     return MARKER_PATTERN.sub(replacer, comment_body)
 
 
+def mentions_sentry(comment_body: str | None) -> bool:
+    """Whether the text mentions ``@sentry``, matched the same way commands are."""
+    return comment_body is not None and MARKER_PATTERN.search(comment_body) is not None
+
+
 def sentry_command(comment_body: str | None) -> SentryCommand | None:
     if comment_body is None:
         return None

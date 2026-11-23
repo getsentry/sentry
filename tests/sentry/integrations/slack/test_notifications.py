@@ -8,7 +8,7 @@ from sentry.integrations.slack.notifications import send_notification_as_slack
 from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.types import ExternalProviders
 from sentry.models.organization import Organization
-from sentry.notifications.additional_attachment_manager import manager
+from sentry.notifications.additional_attachment_manager import slack_attachment_manager
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import DummyNotification
 
@@ -30,7 +30,7 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
     def test_additional_attachment(self) -> None:
         with (
             patch.dict(
-                manager.attachment_generators,
+                slack_attachment_manager.attachment_generators,
                 {ExternalProviders.SLACK: additional_attachment_generator_block_kit},
             ),
         ):
@@ -100,7 +100,7 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
 
     def test_send_notification_as_slack(self) -> None:
         with patch.dict(
-            manager.attachment_generators,
+            slack_attachment_manager.attachment_generators,
             {ExternalProviders.SLACK: additional_attachment_generator_block_kit},
         ):
             with self.tasks():
@@ -119,7 +119,7 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
 
         with (
             patch.dict(
-                manager.attachment_generators,
+                slack_attachment_manager.attachment_generators,
                 {ExternalProviders.SLACK: additional_attachment_generator_block_kit},
             ),
             patch(

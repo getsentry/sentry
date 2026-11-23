@@ -219,6 +219,12 @@ class OrganizationEventPermission(OrganizationPermission):
 # additional checks to limit actions to releases
 # associated with projects people have access to
 class OrganizationReleasePermission(OrganizationPermission):
+    """
+    Includes org:ci so CI org-auth-tokens (e.g. sentry-cli) can manage releases.
+    Use only for release endpoints. Do not reuse an org:ci permission for endpoints
+    exposing data a CI token should not read.
+    """
+
     scope_map = {
         "GET": ["project:read", "project:write", "project:admin", "project:releases", "org:ci"],
         "POST": ["project:write", "project:admin", "project:releases", "org:ci"],
@@ -237,6 +243,15 @@ class OrganizationIntegrationsPermission(OrganizationPermission):
 
 
 class OrganizationIntegrationsLoosePermission(OrganizationPermission):
+    """
+    "Loose" because GET also grants org:ci, so CI org-auth-tokens (e.g. sentry-cli)
+    can call it; this was added for the repositories list. Use only for integration
+    reads that are safe for CI tokens. Do NOT reuse for endpoints returning repo or
+    source content (PR diffs, file trees, source) — or any other data a CI token
+    should not read. Prefer OrganizationIntegrationsPermission (no org:ci), or
+    SessionNoAuthTokenAuthentication for UI-only endpoints.
+    """
+
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
         "POST": ["org:read", "org:write", "org:admin", "org:integrations"],
@@ -246,6 +261,12 @@ class OrganizationIntegrationsLoosePermission(OrganizationPermission):
 
 
 class OrganizationCodeMappingsBulkPermission(OrganizationPermission):
+    """
+    Grants org:ci on GET/POST so sentry-cli can set up bulk code mappings in CI.
+    Use only for CI-driven code-mapping setup. Do not reuse an org:ci permission for
+    endpoints exposing data a CI token should not read.
+    """
+
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
         "POST": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],

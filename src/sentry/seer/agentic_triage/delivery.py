@@ -8,6 +8,9 @@ from typing import Any
 from uuid import UUID
 
 import sentry_sdk
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+)
 
 from sentry import features
 from sentry.api.serializers import EventSerializer, serialize
@@ -27,7 +30,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     bulk_read_preferences_from_sentry_db,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
-    is_seer_seat_based_tier_enabled,
+    is_seer_seat_or_token_billed_enabled,
 )
 from sentry.seer.models.agentic_triage import (
     SeerAgenticTriageRunErrorType,
@@ -148,7 +151,7 @@ def deliver_agentic_triage_result(
             seer_run__uuid=run_uuid, run__organization_id=organization_id
         )
         .select_related("run", "run__organization", "seer_run")
-        .first()
+        .first()  # noqa: S035
     )
     if shard is None:
         logger.warning(
@@ -313,8 +316,8 @@ def _process_verdicts(
 
         referrer = referrer_map[SeerAutomationSource.AGENTIC_TRIAGE]
 
-        # Rate limit only applies to legacy org plans
-        check_rate_limit = not is_seer_seat_based_tier_enabled(organization)
+        # Rate limit only applies to legacy usage-based orgs
+        check_rate_limit = not is_seer_seat_or_token_billed_enabled(organization)
 
         for group in fixable_groups:
             if check_rate_limit and is_seer_autotriggered_autofix_rate_limited_and_increment(
@@ -338,6 +341,7 @@ def _process_verdicts(
                     user_context=user_context,
                     allow_free_cohort=True,
                     single_run=single_run,
+                    billing_feature=SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
                 )
             except Exception:
                 logger.exception(

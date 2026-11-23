@@ -10,10 +10,10 @@ import {IconStar} from '@sentry/icons/star';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -261,10 +261,7 @@ export function DashboardBreadcrumbTitle({
     return (
       <TopBar.Slot
         name="breadcrumbs"
-        title={{
-          type: 'page-title',
-          label: dashboard.title,
-        }}
+        title={{type: 'page-title', label: dashboard.title}}
         items={[
           {
             type: 'link',

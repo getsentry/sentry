@@ -28,6 +28,7 @@ from sentry.web.helpers import render_to_string
 from .address import get_from_email_domain
 from .list_resolver import ListResolver
 from .manager import get_email_addresses
+from .sanitize import strip_control_chars
 from .send import send_messages
 
 logger = logging.getLogger("sentry.mail")
@@ -152,7 +153,7 @@ class MessageBuilder:
     ) -> EmailMultiAlternatives:
         headers = {**self.headers}
 
-        if options.get("mail.enable-replies") and "X-Sentry-Reply-To" in headers:
+        if settings.SENTRY_MAIL_ENABLE_REPLIES and "X-Sentry-Reply-To" in headers:
             reply_to = headers["X-Sentry-Reply-To"]
         else:
             reply_to = set(reply_to or ())
@@ -196,7 +197,7 @@ class MessageBuilder:
                 )
 
         msg = EmailMultiAlternatives(
-            subject=subject.splitlines()[0],
+            subject=strip_control_chars(subject.splitlines()[0]),
             body=self.__render_text_body(),
             from_email=self.from_email,
             to=(to,),

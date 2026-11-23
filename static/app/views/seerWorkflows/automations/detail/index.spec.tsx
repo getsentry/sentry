@@ -84,11 +84,7 @@ describe('AutomationDetail', () => {
 
   it('shows the next run for daily schedules', async () => {
     mockConfig(
-      SeerWorkflowConfigFixture({
-        id: '42',
-        strategy: 'daily_strategy',
-        schedule: 'daily',
-      })
+      SeerWorkflowConfigFixture({id: '42', strategy: 'daily_strategy', schedule: 'daily'})
     );
     renderDetail();
     expect(await screen.findByText(/Next run/)).toBeInTheDocument();
@@ -150,12 +146,14 @@ describe('AutomationDetail', () => {
     renderDetail();
     await findLoadedPage();
 
-    expect(
-      within(screen.getByRole('tab', {name: 'Configuration'})).getByRole('link')
-    ).toHaveAttribute('href', '/organizations/org-slug/seer/automations/42/');
-    expect(
-      within(screen.getByRole('tab', {name: 'Runs'})).getByRole('link')
-    ).toHaveAttribute('href', '/organizations/org-slug/seer/automations/42/runs/');
+    expect(screen.getByRole('tab', {name: 'Configuration'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/automations/42/'
+    );
+    expect(screen.getByRole('tab', {name: 'Runs'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/automations/42/runs/'
+    );
   });
 
   it.each([
@@ -230,23 +228,23 @@ describe('AutomationDetail', () => {
 
     // The refetch after pausing returns the paused config
     mockConfig(SeerWorkflowConfigFixture({id: '42', enabled: false}));
-    await userEvent.click(screen.getByRole('button', {name: 'Pause'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Disable'}));
 
     expect(updateRequest).toHaveBeenCalledWith(
       configUrl,
       expect.objectContaining({method: 'PUT', data: {enabled: false}})
     );
-    expect(await screen.findByRole('button', {name: 'Resume'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Enable'})).toBeInTheDocument();
     expect(screen.getByText('Paused')).toBeInTheDocument();
 
     mockConfig(SeerWorkflowConfigFixture({id: '42', enabled: true}));
-    await userEvent.click(screen.getByRole('button', {name: 'Resume'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Enable'}));
 
     expect(updateRequest).toHaveBeenLastCalledWith(
       configUrl,
       expect.objectContaining({method: 'PUT', data: {enabled: true}})
     );
-    expect(await screen.findByRole('button', {name: 'Pause'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Disable'})).toBeInTheDocument();
   });
 
   it('deletes the automation after confirming and returns to the list', async () => {

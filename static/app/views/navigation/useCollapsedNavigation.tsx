@@ -59,8 +59,11 @@ export function useCollapsedNavigation() {
 
   const shouldNavigationStayOpen = useCallback(() => {
     const hasKeyboardFocus = navigationParentRef.current?.querySelector(':focus-visible');
+    // Only open popups should hold the nav open, not disclosures such as the
+    // collapsible section toggles. Menu and listbox triggers set aria-haspopup,
+    // while dialog overlays only set aria-controls while they are open.
     const hasOpenMenu = navigationParentRef.current?.querySelector(
-      '[aria-expanded="true"]'
+      '[aria-expanded="true"][aria-haspopup]:not([aria-haspopup="false"]), [aria-expanded="true"][aria-controls]'
     );
     const isDragging = navigationParentRef.current?.querySelector('[data-is-dragging]');
 

@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
 
+import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import type {ChartXRangeSelectionProps} from 'sentry/components/charts/useChartXRangeSelection';
 import type {DroppedDataProps} from 'sentry/components/droppedData/types';
@@ -31,9 +32,12 @@ import type {ChartInfo} from './types';
 
 interface ChartVisualizationProps {
   chartInfo: ChartInfo;
+  annotations?: AnnotationItem[];
   chartRef?: Ref<ReactEchartsRef>;
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
   droppedData?: DroppedDataProps;
+  isDroppedDataLoading?: boolean;
+  onAnnotationClick?: (items: AnnotationItem[]) => void;
   /**
    * Overrides the plottables derived from `chartInfo`, e.g. when several
    * aggregates are plotted on the same chart.
@@ -100,26 +104,32 @@ export function useChartInfosPlottables(chartInfos: ChartInfo[]) {
 }
 
 export function ChartVisualization({
+  annotations,
   chartXRangeSelection,
   chartInfo,
   chartRef,
   droppedData,
+  isDroppedDataLoading = false,
+  onAnnotationClick,
   plottables: plottablesOverride,
   tooltipLimit,
 }: ChartVisualizationProps) {
   const defaultPlottables = useChartVisualizationPlottables(chartInfo);
   const plottables = plottablesOverride ?? defaultPlottables;
-  const previousPlottables = usePrevious(
-    plottables,
-    chartInfo.timeseriesResult.isPending
-  );
+  const isLoading =
+    chartInfo.timeseriesResult.isPending ||
+    (isDroppedDataLoading && !chartInfo.timeseriesResult.error);
+  // `usePrevious` seeds itself with the first render's value, so a chart that
+  // mounts mid-load must not seed it, or it would draw without the band.
+  const previousPlottables = usePrevious(isLoading ? [] : plottables, isLoading);
+  const previousDroppedData = usePrevious(isLoading ? undefined : droppedData, isLoading);
   const renderTooltipSeriesDetails = useIncompleteBucketTooltipDetails(
     chartInfo.series,
     chartInfo.timeseriesResult.meta?.ingestion?.completeThrough
   );
 
-  const isLoading = chartInfo.timeseriesResult.isPending;
   const activePlottables = isLoading ? previousPlottables : plottables;
+  const activeDroppedData = isLoading ? previousDroppedData : droppedData;
 
   if (isLoading && !plottablesCanBeVisualized(previousPlottables)) {
     const loadingMessage =
@@ -158,7 +168,9 @@ export function ChartVisualization({
         ref={chartRef}
         plottables={activePlottables}
         chartXRangeSelection={chartXRangeSelection}
-        droppedData={droppedData}
+        droppedData={activeDroppedData}
+        annotations={annotations}
+        onAnnotationClick={onAnnotationClick}
         renderTooltipSeriesDetails={renderTooltipSeriesDetails}
         tooltipLimit={tooltipLimit}
       />

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal, TypedDict, Union
+from typing import Annotated, Any, Literal, TypedDict
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.issues.formatting.formatter import FormattedResponse
 
 
@@ -17,19 +18,25 @@ class GithubAppPermissionsWarning(BaseModel):
     installation_url: str | None = None
 
 
-# Discriminated on `warning_type`; add new warning models to this union.
-AutofixWarning = Annotated[
-    Union[GithubAppPermissionsWarning],
-    Field(discriminator="warning_type"),
-]
+PrIterationUnfinishedAction = Literal["agent_turn", "push", "branch_moved_retry"]
+
+
+# Make this a union discriminated on `warning_type` when adding a second warning model.
+AutofixWarning = GithubAppPermissionsWarning
 
 
 class AutofixPostResponse(TypedDict):
     """Response type for the POST endpoint (default kickoff and step paths)."""
 
-    run_id: int
+    run_id: Annotated[int, ApiDescription("ID of the Autofix run in Seer")]
     # None for legacy runs predating SeerRun mirroring, which have no mirror row.
-    sentry_run_id: str | None
+    sentry_run_id: Annotated[
+        str | None, ApiDescription("ID of the run in Sentry. Null for legacy runs")
+    ]
+    feature_id: Annotated[
+        str,
+        ApiDescription('"autofix_single_run" for a single-run Autofix run, otherwise "autofix"'),
+    ]
 
 
 class AutofixHandoffResponse(TypedDict):
@@ -52,4 +59,7 @@ class AutofixStateResponse(_AutofixStateResponseOptional):
 
     # can't fold into one `total=False` class the way GroupEventDetailsFormattedResponse does:
     # `autofix` is declared here, so it would go optional too
-    autofix: dict[str, Any] | None
+    autofix: Annotated[
+        dict[str, Any] | None,
+        ApiDescription("Autofix state of the issue. Null when Autofix hasn't run"),
+    ]

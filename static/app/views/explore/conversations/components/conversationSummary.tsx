@@ -8,6 +8,7 @@ import {IconFire} from '@sentry/icons/fire';
 import {IconUser} from '@sentry/icons/user';
 
 import {Tag} from '@sentry/scraps/badge';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -15,7 +16,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
-import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -62,7 +62,7 @@ import {
   normalizeUserField,
   UserNotInstrumentedTooltip,
 } from './conversationsTable';
-import {ConversationTraceLink} from './conversationTraceLink';
+import {ConversationTraceLink, type ConversationTrace} from './conversationTraceLink';
 import {ToolTag} from './toolTag';
 
 interface ConversationSummaryProps {
@@ -127,19 +127,21 @@ export function ConversationSummary({
   });
 
   // Distinct traces the conversation spans, keyed by trace ID with a
-  // representative span ID to deep-link into the trace view.
+  // representative span to deep-link into the trace view. The span's start
+  // time lets the trace view find the trace regardless of the page's date range.
   const traces = useMemo(() => {
     if (!nodeTraceMap) {
       return [];
     }
-    const seen = new Map<string, string>();
+    const startTimestamps = new Map(nodes.map(node => [node.id, node.startTimestamp]));
+    const seen = new Map<string, ConversationTrace>();
     for (const [spanId, traceId] of nodeTraceMap) {
       if (!seen.has(traceId)) {
-        seen.set(traceId, spanId);
+        seen.set(traceId, {traceId, spanId, timestamp: startTimestamps.get(spanId)});
       }
     }
-    return Array.from(seen, ([traceId, spanId]) => ({traceId, spanId}));
-  }, [nodeTraceMap]);
+    return Array.from(seen.values());
+  }, [nodes, nodeTraceMap]);
 
   return (
     <Flex
@@ -238,7 +240,7 @@ export function ConversationSummary({
                     size="sm"
                     title={<TimeSince date={startTimestamp} disabledAbsoluteTooltip />}
                   >
-                    <DateTime date={startTimestamp} year timeZone />
+                    <DateTime date={startTimestamp} year="always" showTimezone />
                   </InfoText>
                 </Flex>
               )}
@@ -564,12 +566,7 @@ function getConversationUser(nodes: AITraceSpanNode[]): ConversationUser | null 
     const ipAddress = normalizeUserField(getStringAttr(node, SpanFields.USER_IP));
     const id = normalizeUserField(getStringAttr(node, SpanFields.USER_ID));
     if (email || username || ipAddress || id) {
-      return {
-        email,
-        username,
-        ip_address: ipAddress,
-        id,
-      };
+      return {email, username, ip_address: ipAddress, id};
     }
   }
   return null;
@@ -713,7 +710,7 @@ function CostCount({
     return <LLMCosts cost={total} />;
   }
 
-  const sortedBreakdowns = [...breakdowns].sort((a, b) => b.totalCost - a.totalCost);
+  const sortedBreakdowns = breakdowns.toSorted((a, b) => b.totalCost - a.totalCost);
   return (
     <Tooltip title={<CostBreakdownTooltip breakdowns={sortedBreakdowns} />}>
       <BreakdownValue>{formatLLMCosts(total)}</BreakdownValue>
@@ -735,7 +732,7 @@ function ModelMetricBreakdown({
   }
 
   const formatValue = metric === 'llmCalls' ? formatAbbreviatedNumber : formatLLMCosts;
-  const sortedBreakdowns = [...breakdowns].sort((a, b) => b[metric] - a[metric]);
+  const sortedBreakdowns = breakdowns.toSorted((a, b) => b[metric] - a[metric]);
 
   return (
     <Tooltip

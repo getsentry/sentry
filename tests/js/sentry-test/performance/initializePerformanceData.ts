@@ -26,14 +26,8 @@ export function initializeData(settings?: InitializeDataSettings) {
   };
   const {query, features, projects, selectedProject: project} = _settings;
 
-  const organization = OrganizationFixture({
-    features,
-  });
-  const routerLocation: {query: {project?: string}} = {
-    query: {
-      ...query,
-    },
-  };
+  const organization = OrganizationFixture({features});
+  const routerLocation: {query: {project?: string}} = {query: {...query}};
   const initialRouterConfig = {
     location: {
       pathname: `/organizations/${organization.slug}/performance/`,

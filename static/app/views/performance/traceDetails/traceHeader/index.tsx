@@ -1,6 +1,5 @@
 import {Container} from '@sentry/scraps/layout';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
@@ -34,10 +33,7 @@ export interface TraceMetadataHeaderProps {
 
 const traceViewFeedbackOptions = {
   messagePlaceholder: t('How can we make the trace view better for you?'),
-  tags: {
-    'feedback.source': 'trace-view',
-    'feedback.owner': 'performance',
-  },
+  tags: {'feedback.source': 'trace-view', 'feedback.owner': 'performance'},
 };
 
 export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
@@ -95,15 +91,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
           project={project}
           rootEventResults={props.rootEventResults}
         />
-        <TopBar.Slot name="feedback">
-          <FeedbackButton
-            feedbackOptions={traceViewFeedbackOptions}
-            aria-label={t('Give Feedback')}
-            tooltipProps={{title: t('Give Feedback')}}
-          >
-            {null}
-          </FeedbackButton>
-        </TopBar.Slot>
+        <TopBar.Slot name="feedback" feedbackOptions={traceViewFeedbackOptions} />
 
         <TraceHeaderComponents.HeaderGrid>
           <Container area="title" minWidth={0}>

@@ -9,7 +9,16 @@ interface InlineChipProps {
    */
   interactive?: boolean;
   tone?: 'accent' | 'default';
-  variant?: 'compactLeading' | 'constrained' | 'constrainedCompactLeading' | 'default';
+  /**
+   * `wrap` lets long text break across lines with the sentence around it,
+   * carrying the chip background onto each line.
+   */
+  variant?:
+    | 'compactLeading'
+    | 'constrained'
+    | 'constrainedCompactLeading'
+    | 'default'
+    | 'wrap';
 }
 
 export function InlineChip({
@@ -27,6 +36,7 @@ export function InlineChip({
   return (
     <ChipFrameElement
       data-constrained={constrained ? true : undefined}
+      data-wrap={variant === 'wrap' ? true : undefined}
       data-interactive={interactive ? true : undefined}
       data-tone={tone}
       style={{
@@ -50,12 +60,23 @@ const chipFrameStyles = (p: {theme: Theme}) => css`
   background: ${p.theme.colors.gray100};
   color: ${p.theme.tokens.content.secondary};
   font-weight: ${p.theme.font.weight.sans.regular};
+  /* Keeps the text closer to centered on the icon than the inherited 1.4. */
+  line-height: 1;
   vertical-align: middle;
   white-space: nowrap;
 
   &[data-constrained='true'] {
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  &[data-wrap='true'] {
+    display: inline;
+    padding-block: 1px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
   }
 
   &[data-interactive='true'] {

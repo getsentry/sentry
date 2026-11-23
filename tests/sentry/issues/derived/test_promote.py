@@ -10,11 +10,8 @@ from django.db.models.functions import Now
 from django.db.models.query import QuerySet
 from django.utils import timezone as django_timezone
 
-from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import (
-    SYSTEM_ACTOR,
     ActionSource,
-    GroupAction,
     GroupActionActor,
     GroupActionType,
     GroupActorType,
@@ -37,21 +34,10 @@ from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.action_log import publish_action_for_test as _publish
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.outbox import outbox_runner
 
 SOURCE = ActionSource.API
-
-
-def _publish(*, group: Group, action: GroupAction, actor: GroupActionActor = SYSTEM_ACTOR) -> None:
-    with outbox_runner():
-        publish_action(
-            action,
-            source=SOURCE,
-            group_id=group.id,
-            project=group.project,
-            actor=actor,
-        )
 
 
 @contextmanager

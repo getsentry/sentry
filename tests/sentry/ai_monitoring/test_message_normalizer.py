@@ -55,6 +55,34 @@ class TestNormalizeContentParts:
             {"role": "user", "content": "User question\nMore text"}
         ]
 
+    def test_tool_call_response_reads_response_field(self) -> None:
+        messages = json_string(
+            [
+                {
+                    "role": "tool",
+                    "parts": [
+                        {"type": "tool_call_response", "id": "tc1", "response": "rainy, 57°F"}
+                    ],
+                }
+            ]
+        )
+        assert normalize_to_messages(messages, "user") == [
+            {"role": "tool", "content": "rainy, 57°F"}
+        ]
+
+    def test_tool_call_response_falls_back_to_result_field(self) -> None:
+        messages = json_string(
+            [
+                {
+                    "role": "tool",
+                    "parts": [{"type": "tool_call_response", "id": "tc1", "result": "rainy, 57°F"}],
+                }
+            ]
+        )
+        assert normalize_to_messages(messages, "user") == [
+            {"role": "tool", "content": "rainy, 57°F"}
+        ]
+
     def test_empty_parts(self) -> None:
         messages = json_string([{"role": "user", "parts": []}])
         assert normalize_to_messages(messages, "user") is None

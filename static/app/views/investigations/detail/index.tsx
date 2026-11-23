@@ -3,11 +3,11 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconStack} from '@sentry/icons/stack';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {Stack} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';

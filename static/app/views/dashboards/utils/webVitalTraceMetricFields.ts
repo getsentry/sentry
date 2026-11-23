@@ -19,10 +19,14 @@ const WEB_VITAL_METRIC_UNITS: Record<WebVitals, DataUnit> = {
   cls: null,
 };
 
+export function webVitalMetricName(vital: WebVitals): string {
+  return `browser.web_vital.${vital}`;
+}
+
 function webVitalMetricField(aggregation: 'count' | 'p75', vital: WebVitals): string {
   return traceMetricField(
     aggregation,
-    `browser.web_vital.${vital}`,
+    webVitalMetricName(vital),
     'distribution',
     WEB_VITAL_METRIC_UNITS[vital]
   );
@@ -59,8 +63,8 @@ export function webVitalCountField(vital: WebVitals): string {
 export const WEB_VITAL_SCORE_FIELDS = ORDER.map(webVitalScoreField);
 export const WEB_VITAL_SCORE_COUNT_FIELDS = ORDER.map(webVitalScoreCountField);
 
-export const PERFORMANCE_SCORE_FIELD = 'performance_score(measurements.score.total)';
-export const OPPORTUNITY_SCORE_FIELD = 'opportunity_score(measurements.score.total)';
+export const PERFORMANCE_SCORE_FIELD = 'performance_score()';
+export const OPPORTUNITY_SCORE_FIELD = 'opportunity_score()';
 
 export function isWebVitalScoreFormula(field: string): boolean {
   return field === PERFORMANCE_SCORE_FIELD || field === OPPORTUNITY_SCORE_FIELD;

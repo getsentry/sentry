@@ -84,6 +84,7 @@ class MetricAlertNotificationDataTest(TestCase):
             text="100 events in the last minute",
             chart_url="https://chart.example.com/1.png",
             notes="Check the runbook",
+            investigation_url="https://sentry.io/organizations/example/seer/investigations/1/",
         )
 
         as_dict = original.dict()
@@ -99,8 +100,12 @@ class MetricAlertNotificationDataTest(TestCase):
         assert restored.title_link == original.title_link
         assert restored.text == original.text
         assert restored.chart_url == original.chart_url
+        assert restored.investigation_url == original.investigation_url
         assert restored.open_period_context == original.open_period_context
         assert restored.source == NotificationSource.METRIC_ALERT
+
+        as_dict.pop("investigation_url")
+        assert MetricAlertNotificationData.parse_obj(as_dict).investigation_url is None
 
     def test_chart_url_defaults_to_none(self) -> None:
         data = _make_notification_data()

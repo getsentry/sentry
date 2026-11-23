@@ -1,8 +1,7 @@
-import * as qs from 'query-string';
-
 import {Link} from '@sentry/scraps/link';
 
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import * as qs from 'sentry/utils/url/qs';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -35,10 +34,7 @@ export function TransactionCell({project, transaction, transactionMethod}: Props
     return NULL_DESCRIPTION;
   }
 
-  const pathname = generateTransactionSummaryRoute({
-    organization,
-    view,
-  });
+  const pathname = generateTransactionSummaryRoute({organization, view});
 
   const query = {
     project: projectId,

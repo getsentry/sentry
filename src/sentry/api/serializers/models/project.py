@@ -15,22 +15,19 @@ from django.utils import timezone
 from sentry_sdk import traces
 from sentry_sdk.traces import StreamedSpan
 
-from sentry import features, options, projectoptions, quotas, release_health, roles
+from sentry import features, projectoptions, quotas, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.team import get_org_roles
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import NumericId, Slug, numeric_id, slug
 from sentry.app import env
 from sentry.auth.access import Access
 from sentry.auth.principal import has_user
 from sentry.auth.superuser import is_active_superuser
 from sentry.conf.types.sentry_config import SentryMode
-from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus, StatsPeriod
+from sentry.constants import ObjectStatus, StatsPeriod
 from sentry.digests import backend as digests
-from sentry.dynamic_sampling.utils import (
-    has_custom_dynamic_sampling,
-    has_dynamic_sampling,
-    is_project_mode_sampling,
-)
+from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.features.base import ProjectFeature
 from sentry.ingest import legacy_filter_lists
 from sentry.ingest.inbound_filters import FilterTypes
@@ -38,7 +35,7 @@ from sentry.issues.highlights import HighlightPreset, get_highlight_preset_for_p
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.environment import Environment, EnvironmentProject
-from sentry.models.options.project_option import OPTION_KEYS, ProjectOption
+from sentry.models.options.project_option import EXPOSED_OPTION_KEYS, OPTION_KEYS, ProjectOption
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
@@ -309,8 +306,8 @@ class _ProjectSerializerOptionalBaseResponse(TypedDict, total=False):
 
 
 class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
-    id: Annotated[str, ApiDescription("ID of the project")]
-    slug: Annotated[str, ApiDescription("Slug of the project")]
+    id: Annotated[NumericId, ApiDescription("ID of the project")]
+    slug: Annotated[Slug, ApiDescription("Slug of the project")]
     # TODO: add deprecation about this field (not used in app)
     name: Annotated[str, ApiDescription("Name of the project")]
     platform: Annotated[str | None, ApiDescription("Platform of the project")]
@@ -396,7 +393,7 @@ class ProjectSerializerResponse(ProjectSerializerBaseResponse):
     isInternal: Annotated[
         bool, ApiDescription("Whether this is the Sentry install's own internal project")
     ]
-    isPublic: bool
+    isPublic: Annotated[bool, ApiDescription("Whether the project is public")]
     avatar: Annotated[
         SerializedAvatarFields, ApiDescription("Avatar of the project. Always a letter avatar")
     ]
@@ -675,10 +672,10 @@ class ProjectSerializer(Serializer):
         # no options specified
         option_list: list[str] = []
 
-        # must be a safe key
+        # Internal option keys are not all safe to expose.
         if self.expand_context.get("options"):
             option_list = [
-                option for option in self.expand_context["options"] if option in OPTION_KEYS
+                option for option in self.expand_context["options"] if option in EXPOSED_OPTION_KEYS
             ]
 
         queryset = ProjectOption.objects.filter(project__in=projects, key__in=option_list)
@@ -699,8 +696,8 @@ class ProjectSerializer(Serializer):
         status_label = STATUS_LABELS.get(obj.status, "unknown")
 
         context: ProjectSerializerResponse = {
-            "id": str(obj.id),
-            "slug": obj.slug,
+            "id": numeric_id(obj.id),
+            "slug": slug(obj.slug),
             "name": obj.name,  # Deprecated
             "platform": obj.platform,
             "dateCreated": obj.date_added,
@@ -777,9 +774,9 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
 
 
 class TeamResponseDict(TypedDict):
-    id: Annotated[str, ApiDescription("ID of the team")]
+    id: Annotated[NumericId, ApiDescription("ID of the team")]
     name: Annotated[str, ApiDescription("Name of the team")]
-    slug: Annotated[str, ApiDescription("Slug of the team")]
+    slug: Annotated[Slug, ApiDescription("Slug of the team")]
 
 
 class _MaybeTeam(TypedDict, total=False):
@@ -804,8 +801,8 @@ class ProjectWithTeamSerializer(ProjectSerializer):
 
         teams = {
             pt.team_id: {
-                "id": str(pt.team.id),
-                "slug": pt.team.slug,
+                "id": numeric_id(pt.team.id),
+                "slug": slug(pt.team.slug),
                 "name": pt.team.name,
             }
             for pt in project_teams
@@ -967,9 +964,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         context = OrganizationProjectResponse(
             team=attrs["teams"][0] if attrs["teams"] else None,
             teams=attrs["teams"],
-            id=str(obj.id),
+            id=numeric_id(obj.id),
             name=obj.name,
-            slug=obj.slug,
+            slug=slug(obj.slug),
             isBookmarked=attrs["is_bookmarked"],
             isMember=attrs["is_member"],
             access=sorted(attrs["access"]),
@@ -1175,13 +1172,13 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     securityToken: Annotated[
         str,
         ApiDescription(
-            "Token sent with security reports (CSP, Expect-CT, HPKP) so Sentry can verify their origin"
+            "Token sent with outbound source-scraping requests. Returns an empty string without project:write or project:admin access"
         ),
     ]
     securityTokenHeader: Annotated[
         str | None,
         ApiDescription(
-            "Name of the header carrying the security token on inbound security reports"
+            "Name of the header carrying the outbound source-scraping token. Defaults to X-Sentry-Token"
         ),
     ]
     verifySSL: Annotated[
@@ -1300,7 +1297,9 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     seerScannerAutomation: NotRequired[
         Annotated[bool, ApiDescription("Whether Seer scans new issues automatically")]
     ]
-    seerNightshiftTweaks: NotRequired[Any]
+    seerNightshiftTweaks: NotRequired[
+        Annotated[Any, ApiDescription("Experimental Seer settings with no stable shape")]
+    ]
     scmSourceContextEnabled: NotRequired[
         Annotated[
             bool,
@@ -1385,14 +1384,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
         sample_rate = None
 
-        if has_custom_dynamic_sampling(obj.organization):
-            if is_project_mode_sampling(obj.organization):
-                sample_rate = obj.get_option("sentry:target_sample_rate")
-            else:
-                sample_rate = obj.organization.get_option(
-                    "sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT
-                )
-        elif has_dynamic_sampling(obj.organization):
+        if has_dynamic_sampling(obj.organization):
             sample_rate = quotas.backend.get_blended_sample_rate(
                 organization_id=obj.organization.id
             )
@@ -1409,7 +1401,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     "digests:mail:maximum_delay", digests.maximum_delay
                 ),
                 "subjectPrefix": attrs["options"].get(
-                    "mail:subject_prefix", options.get("mail.subject-prefix")
+                    "mail:subject_prefix", settings.EMAIL_SUBJECT_PREFIX
                 ),
                 "allowedDomains": attrs["options"].get("sentry:origins", ["*"]),
                 "resolveAge": int(attrs["options"].get("sentry:resolve_age", 0)),
@@ -1422,7 +1414,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "sensitiveFields": attrs["options"].get("sentry:sensitive_fields", []),
                 "subjectTemplate": attrs["options"].get("mail:subject_template")
                 or DEFAULT_SUBJECT_TEMPLATE.template,
-                "securityToken": attrs["options"].get("sentry:token") or obj.get_security_token(),
+                "securityToken": "",
                 "securityTokenHeader": attrs["options"].get("sentry:token_header"),
                 "verifySSL": bool(attrs["options"].get("sentry:verify_ssl", False)),
                 "scrubIPAddresses": bool(attrs["options"].get("sentry:scrub_ip_address", False)),
@@ -1486,6 +1478,10 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 ),
             },
         )
+
+        access: Access | None = kwargs.get("access")
+        if access and access.has_any_project_scope(obj, ["project:write", "project:admin"]):
+            data["securityToken"] = attrs["options"].get("sentry:token") or obj.get_security_token()
 
         if has_tempest_access(obj.organization):
             data["tempestFetchScreenshots"] = attrs["options"].get(
@@ -1609,6 +1605,22 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         )
 
 
+class SharedProjectOrganizationResponse(TypedDict):
+    slug: Annotated[str, ApiDescription("Slug of the organization")]
+    name: Annotated[str, ApiDescription("Name of the organization")]
+
+
+class SharedProjectSerializerResponse(TypedDict):
+    slug: Annotated[str, ApiDescription("Slug of the project")]
+    name: Annotated[str, ApiDescription("Name of the project")]
+    color: Annotated[str, ApiDescription("Color of the project, as a hex code such as `#bf6e3f`")]
+    features: Annotated[list[str], ApiDescription("Always empty for a shared issue's project")]
+    organization: Annotated[
+        SharedProjectOrganizationResponse,
+        ApiDescription("Organization the project belongs to"),
+    ]
+
+
 class SharedProjectSerializer(Serializer):
     def serialize(
         self,
@@ -1616,7 +1628,7 @@ class SharedProjectSerializer(Serializer):
         attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser | None,
         **kwargs: object,
-    ) -> dict[str, object]:
+    ) -> SharedProjectSerializerResponse:
         return {
             "slug": obj.slug,
             "name": obj.name,

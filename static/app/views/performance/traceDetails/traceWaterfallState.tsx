@@ -6,6 +6,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
 import type {TraceQueryResult} from './traceApi/useTrace';
@@ -36,7 +37,11 @@ function TraceError({trace}: TraceWaterfallStateProps) {
   return (
     <LoadingContainer animate error>
       <ErrorTitle>{t('Woof, we failed to load your trace')}</ErrorTitle>
-      <div>{getTraceErrorMessage(trace.error?.status)}</div>
+      <div>
+        {getTraceErrorMessage(
+          trace.error instanceof RequestError ? trace.error.status : undefined
+        )}
+      </div>
     </LoadingContainer>
   );
 }
@@ -95,7 +100,7 @@ function TraceEmpty() {
             'Find similar traces in Explore using [crossEventQueryingLink: Cross Event Querying].',
             {
               crossEventQueryingLink: (
-                <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/#cross-event-querying-beta" />
+                <ExternalLink href="https://docs.sentry.io/product/trace-explorer/#cross-event-querying" />
               ),
             }
           )}

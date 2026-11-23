@@ -39,6 +39,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.team import Team
+from sentry.monitors.logic.checkin_config import get_checkin_config_id
 from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
@@ -849,6 +850,9 @@ class Fixtures:
         return MonitorIncident.objects.create(**kwargs)
 
     def create_monitor_checkin(self, **kwargs: Any) -> MonitorCheckIn:
+        if "checkin_config" not in kwargs and "checkin_config_id" not in kwargs:
+            monitor = kwargs["monitor_environment"].monitor
+            kwargs["checkin_config_id"] = get_checkin_config_id(monitor.config)
         return MonitorCheckIn.objects.create(**kwargs)
 
     def create_external_user(

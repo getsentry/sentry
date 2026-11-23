@@ -843,7 +843,9 @@ def fire_actions_for_groups(
     ) as tracker:
         for group, (group_event, start_timestamp) in group_to_groupevent.items():
             with tracker.track(str(group.id)), log_context.new_context(group_id=group.id):
-                workflow_event_data = WorkflowEventData(event=group_event, group=group)
+                workflow_event_data = WorkflowEventData(
+                    event=group_event, group=group, organization=group_event.project.organization
+                )
 
                 dcgs_for_group = groups_to_fire.get(group.id, set())
                 filtered_actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
@@ -872,11 +874,7 @@ def fire_actions_for_groups(
                         for history in workflow_fire_histories
                     }
 
-                event_id = (
-                    workflow_event_data.event.event_id
-                    if isinstance(workflow_event_data.event, GroupEvent)
-                    else workflow_event_data.event.id
-                )
+                event_id = workflow_event_data.event_id
                 logger.debug(
                     "workflow_engine.delayed_workflow.triggered_actions",
                     extra={

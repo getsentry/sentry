@@ -55,7 +55,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     after detectors have been processed.
 
     Not every workflow is user-facing. The `type` field says what the workflow is for, and the public
-    API only exposes workflows with a type in `VisibleWorkflowTypes`
+    API only exposes workflows with a type in `VISIBLE_WORKFLOW_TYPES`
     """
 
     __relocation_scope__ = RelocationScope.Organization
@@ -69,6 +69,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
         # A hidden workflow to support inbox notifications
         INBOX = "inbox"
+
+        # A Seer automation's workflow, managed through the Seer automations API instead of Alerts
+        SEER_INVESTIGATION = "seer_investigation"
 
     name = models.CharField(max_length=256)
     organization = FlexibleForeignKey("sentry.Organization")

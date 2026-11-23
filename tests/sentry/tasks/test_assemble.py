@@ -22,7 +22,6 @@ from sentry.models.artifactbundle import (
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
-    SourceFileType,
 )
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
@@ -252,7 +251,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
         blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
 
-        expected_source_file_types = [SourceFileType.MINIFIED_SOURCE, SourceFileType.SOURCE_MAP]
         expected_debug_ids = ["eb6e60f1-65ff-4f6f-adff-f1bbeded627b"]
 
         for version, dist, count in [
@@ -279,20 +277,17 @@ class AssembleArtifactsTest(BaseAssembleTest):
             assert details is None
 
             for debug_id in expected_debug_ids:
-                debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(
+                # The minified file and its source map share the debug ID, which gets one row.
+                debug_id_artifact_bundle = DebugIdArtifactBundle.objects.get(
                     organization_id=self.organization.id, debug_id=debug_id
-                ).order_by("-debug_id", "source_file_type")
-                assert len(debug_id_artifact_bundles) == 2
-                assert debug_id_artifact_bundles[0].artifact_bundle.file.size == len(bundle_file)
-                # We check if the bundle to which each debug id entry is connected has the correct bundle_id.
-                for entry in debug_id_artifact_bundles:
-                    assert (
-                        str(entry.artifact_bundle.bundle_id)
-                        == "67429b2f-1d9e-43bb-a626-771a1e37555c"
-                    )
-                # We check also if the source file types are equal.
-                for index, entry in enumerate(debug_id_artifact_bundles):
-                    assert entry.source_file_type == expected_source_file_types[index].value
+                )
+                file = debug_id_artifact_bundle.artifact_bundle.file
+                assert file is not None
+                assert file.size == len(bundle_file)
+                assert (
+                    str(debug_id_artifact_bundle.artifact_bundle.bundle_id)
+                    == "67429b2f-1d9e-43bb-a626-771a1e37555c"
+                )
 
                 release_artifact_bundle = ReleaseArtifactBundle.objects.filter(
                     organization_id=self.organization.id
@@ -317,6 +312,88 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
             )
             assert status is None
+
+    def test_project_artifact_bundle_has_debug_ids(self) -> None:
+        for fixture_path, has_debug_ids in [
+            ("artifact_bundle_debug_ids", True),
+            ("artifact_bundle", False),
+        ]:
+            with self.subTest(fixture_path=fixture_path):
+                bundle_file = self.create_artifact_bundle_zip(
+                    fixture_path=fixture_path, project=self.project.id
+                )
+                blob = FileBlob.from_file_with_organization(
+                    ContentFile(bundle_file), self.organization
+                )
+                checksum = sha1(bundle_file).hexdigest()
+
+                assemble_artifacts(
+                    org_id=self.organization.id,
+                    project_ids=[self.project.id],
+                    version="1.0",
+                    checksum=checksum,
+                    chunks=[blob.checksum],
+                )
+
+                artifact_bundle = ArtifactBundle.objects.get(file__checksum=checksum)
+                project_artifact_bundle = ProjectArtifactBundle.objects.get(
+                    artifact_bundle=artifact_bundle
+                )
+                assert project_artifact_bundle.has_debug_ids is has_debug_ids
+                assert (
+                    DebugIdArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()
+                    is has_debug_ids
+                )
+
+    def test_upload_same_bundle_id_to_new_project_has_debug_ids(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+        checksum = sha1(bundle_file).hexdigest()
+
+        for project_id in (self.project.id, other_project.id):
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[project_id],
+                version="1.0",
+                checksum=checksum,
+                chunks=[blob.checksum],
+            )
+
+        artifact_bundle = ArtifactBundle.objects.get()
+        # The second upload writes no debug-ID rows, but its archive has debug IDs.
+        links = ProjectArtifactBundle.objects.filter(artifact_bundle=artifact_bundle)
+        assert {(link.project_id, link.has_debug_ids) for link in links} == {
+            (self.project.id, True),
+            (other_project.id, True),
+        }
+
+    @override_options({"sourcemaps.artifact-bundles.date-only-on-bundle": True})
+    def test_reupload_sets_has_debug_ids_on_existing_link(self) -> None:
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+        checksum = sha1(bundle_file).hexdigest()
+
+        def upload() -> None:
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version="1.0",
+                checksum=checksum,
+                chunks=[blob.checksum],
+            )
+
+        upload()
+        # A link from before `has_debug_ids` existed has the column default.
+        ProjectArtifactBundle.objects.update(has_debug_ids=False)
+
+        upload()
+
+        assert ProjectArtifactBundle.objects.get().has_debug_ids is True
 
     @patch("sentry.tasks.assemble.ArtifactBundlePostAssembler.post_assemble")
     def test_assembled_bundle_is_deleted_if_post_assembler_error_occurs(
@@ -433,8 +510,8 @@ class AssembleArtifactsTest(BaseAssembleTest):
             debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(
                 organization_id=self.organization.id, debug_id=debug_id
             )
-            # We expect to have only two entries, since we have duplicated debug_id, file_type pairs.
-            assert len(debug_id_artifact_bundles) == 2
+            # The bundle gets one row for the debug ID, however many files have it.
+            assert len(debug_id_artifact_bundles) == 1
 
     def test_upload_multiple_artifacts_with_same_bundle_id(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
@@ -470,10 +547,8 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert len(files) == 1
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
-        # We have two entries, since we have multiple files in the artifact bundle.
-        assert len(debug_id_artifact_bundles) == 2
+        assert len(debug_id_artifact_bundles) == 1
         assert debug_id_artifact_bundles[0].date_added == expected_updated_date
-        assert debug_id_artifact_bundles[1].date_added == expected_updated_date
 
         release_artifact_bundle = ReleaseArtifactBundle.objects.filter(
             release_name="1.0", dist_name="android"
@@ -516,7 +591,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         # The rows linked to it keep the date of the first upload.
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
-        assert len(debug_id_artifact_bundles) == 2
+        assert len(debug_id_artifact_bundles) == 1
         assert {row.date_added for row in debug_id_artifact_bundles} == {first_upload}
         release_artifact_bundle = ReleaseArtifactBundle.objects.get(
             release_name="1.0", dist_name="android"
@@ -552,7 +627,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
             release_name="2.0", dist_name="android"
         ).date_added == datetime.fromisoformat("2023-05-31T11:00:00+00:00")
 
-    @override_options({"sourcemaps.artifact-bundles.assemble.redate-debug-ids-by-bundle": True})
     def test_upload_same_bundle_id_redates_debug_ids_by_bundle(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
@@ -594,7 +668,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert '"organization_id"' not in updates[0]
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
-        assert len(debug_id_artifact_bundles) == 2
+        assert len(debug_id_artifact_bundles) == 1
         assert {row.date_added for row in debug_id_artifact_bundles} == {
             datetime.fromisoformat("2023-05-31T11:00:00+00:00")
         }
@@ -714,8 +788,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert len(files) == 1
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
-        # We have two entries, since we have multiple files in the artifact bundle.
-        assert len(debug_id_artifact_bundles) == 2
+        assert len(debug_id_artifact_bundles) == 1
 
         project_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
         assert len(project_artifact_bundle) == 1
@@ -750,8 +823,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert len(files) == 1
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
-        # We have * 2 entries, since we have multiple files in the artifact bundle.
-        assert len(debug_id_artifact_bundles) == 2
+        assert len(debug_id_artifact_bundles) == 1
 
         for version, dist in combinations:
             release_artifact_bundle = ReleaseArtifactBundle.objects.filter(
@@ -789,8 +861,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert len(files) == 1
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
-        # We have two entries, since we have multiple files in the artifact bundle.
-        assert len(debug_id_artifact_bundles) == 2
+        assert len(debug_id_artifact_bundles) == 1
 
         release_artifact_bundle = ReleaseArtifactBundle.objects.filter(release_name="1.0")
         assert len(release_artifact_bundle) == 1
@@ -825,8 +896,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert len(files) == 1
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
-        # We have two entries, since we have multiple files in the artifact bundle.
-        assert len(debug_id_artifact_bundles) == 2
+        assert len(debug_id_artifact_bundles) == 1
 
         release_artifact_bundle = ReleaseArtifactBundle.objects.filter(release_name="1.0")
         assert len(release_artifact_bundle) == 1
@@ -1147,7 +1217,7 @@ class AssemblePlaceholderReleaseTest(BaseAssembleTest):
             DebugIdArtifactBundle.objects.filter(
                 debug_id=self.debug_id, artifact_bundle=artifact_bundle
             ).count()
-            == 2
+            == 1
         )
         assert ProjectArtifactBundle.objects.filter(
             project_id=self.project.id, artifact_bundle=artifact_bundle

@@ -538,6 +538,10 @@ class ObjectStatus:
         return cls._STR_TO_STATUS[status_str]
 
 
+# The names of the ObjectStatus choices, as get_status_display() returns them.
+ObjectStatusName = Literal["active", "disabled", "pending_deletion", "deletion_in_progress"]
+
+
 class SentryAppStatus:
     UNPUBLISHED = 0
     PUBLISHED = 1
@@ -599,6 +603,12 @@ class SentryAppStatus:
             cls.PUBLISH_REQUEST_INPROGRESS,
             cls.DELETION_IN_PROGRESS,
         ]
+
+
+# The names of the SentryAppStatus choices, as get_status_display() and as_str() return them.
+SentryAppStatusName = Literal[
+    "unpublished", "published", "internal", "publish_request_inprogress", "deletion_in_progress"
+]
 
 
 class SentryAppInstallationStatus:

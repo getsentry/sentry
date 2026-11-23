@@ -5,8 +5,22 @@ import {showNewSeer} from './showNewSeer';
 describe('showNewSeer', () => {
   describe('new seat-based Seer plan', () => {
     it('returns true when seat-based-seer-enabled is present', () => {
+      const organization = OrganizationFixture({features: ['seat-based-seer-enabled']});
+
+      expect(showNewSeer(organization)).toBe(true);
+    });
+  });
+
+  describe('new token-billed Seer plan', () => {
+    it('returns true when token-billed-seer-enabled is present', () => {
+      const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
+
+      expect(showNewSeer(organization)).toBe(true);
+    });
+
+    it('returns true even when seer-added is present', () => {
       const organization = OrganizationFixture({
-        features: ['seat-based-seer-enabled'],
+        features: ['token-billed-seer-enabled', 'seer-added'],
       });
 
       expect(showNewSeer(organization)).toBe(true);
@@ -15,9 +29,7 @@ describe('showNewSeer', () => {
 
   describe('old Seer plan (seer-added)', () => {
     it('returns false when seer-added is present', () => {
-      const organization = OrganizationFixture({
-        features: ['seer-added'],
-      });
+      const organization = OrganizationFixture({features: ['seer-added']});
 
       expect(showNewSeer(organization)).toBe(false);
     });
@@ -33,9 +45,7 @@ describe('showNewSeer', () => {
 
   describe('code-review-beta trial', () => {
     it('returns false when code-review-beta is present', () => {
-      const organization = OrganizationFixture({
-        features: ['code-review-beta'],
-      });
+      const organization = OrganizationFixture({features: ['code-review-beta']});
 
       expect(showNewSeer(organization)).toBe(false);
     });
@@ -51,9 +61,7 @@ describe('showNewSeer', () => {
 
   describe('seer-user-billing-launch flag', () => {
     it('returns true when seer-user-billing-launch is present', () => {
-      const organization = OrganizationFixture({
-        features: ['seer-user-billing-launch'],
-      });
+      const organization = OrganizationFixture({features: ['seer-user-billing-launch']});
 
       expect(showNewSeer(organization)).toBe(true);
     });
@@ -61,9 +69,7 @@ describe('showNewSeer', () => {
 
   describe('no relevant features', () => {
     it('returns false when no Seer-related features are present', () => {
-      const organization = OrganizationFixture({
-        features: [],
-      });
+      const organization = OrganizationFixture({features: []});
 
       expect(showNewSeer(organization)).toBe(false);
     });

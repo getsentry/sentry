@@ -24,6 +24,7 @@ from sentry.api.helpers.group_index import (
     build_query_params_from_request,
     calculate_stats_period,
     get_by_short_ids,
+    is_api_request,
     schedule_tasks_to_delete_groups,
     track_slo_response,
     update_groups_with_search_fn,
@@ -395,6 +396,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                         f"{key}={value}" for key, value in request.GET.items()
                     ),
                     query=query,
+                    is_api_token=is_api_request(request),
                 )
             )
         except Exception as e:

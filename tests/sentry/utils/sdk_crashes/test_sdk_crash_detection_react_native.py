@@ -388,11 +388,82 @@ def test_sentry_wrapped_not_detected(
             "node_modules/@sentry/core/build/cjs/instrument/fetch.js",
             False,
         ),
+        # pnpm layout — should be ignored
+        (
+            "<anonymous>",
+            "node_modules/.pnpm/@sentry+core@10.76.2/node_modules/@sentry/core/build/esm/instrument/fetch",
+            "node_modules/.pnpm/@sentry+core@10.76.2/node_modules/@sentry/core/build/esm/instrument/fetch.js",
+            False,
+        ),
+        (
+            "fetch",
+            "node_modules/.pnpm/@sentry+core@10.76.2/node_modules/@sentry/core/build/esm/instrument/fetch",
+            "node_modules/.pnpm/@sentry+core@10.76.2/node_modules/@sentry/core/build/esm/instrument/fetch.js",
+            False,
+        ),
+        # Nested @sentry/core copies — should be ignored
+        (
+            "<anonymous>",
+            "@sentry/react-native/node_modules/@sentry/core/build/cjs/instrument/fetch",
+            "node_modules/@sentry/react-native/node_modules/@sentry/core/build/cjs/instrument/fetch.js",
+            False,
+        ),
+        (
+            "fetch",
+            "@sentry/browser/node_modules/@sentry/core/build/esm/instrument/fetch",
+            "node_modules/@sentry/browser/node_modules/@sentry/core/build/esm/instrument/fetch.js",
+            False,
+        ),
+        (
+            "fetch",
+            "@sentry/react/node_modules/@sentry/core/build/esm/instrument/fetch",
+            "node_modules/@sentry/react/node_modules/@sentry/core/build/esm/instrument/fetch.js",
+            False,
+        ),
+        # Bundler-prefixed module — should be ignored
+        (
+            "<anonymous>",
+            "node_modules/@sentry/core/build/cjs/instrument/fetch",
+            "node_modules/@sentry/core/build/cjs/instrument/fetch.js",
+            False,
+        ),
+        # Older SDKs shipped the fetch instrumentation in @sentry/utils — should be ignored
+        (
+            "fetch",
+            "@sentry/utils/esm/instrument/fetch",
+            "node_modules/@sentry/utils/esm/instrument/fetch.js",
+            False,
+        ),
+        (
+            "<anonymous>",
+            "@sentry/utils/esm/instrument/fetch",
+            "node_modules/@sentry/utils/esm/instrument/fetch.js",
+            False,
+        ),
         # Different function in the same module — should be detected
         (
             "instrumentFetch",
             "@sentry/core/build/esm/instrument/fetch",
             "node_modules/@sentry/core/build/esm/instrument/fetch.js",
+            True,
+        ),
+        (
+            "instrumentFetch",
+            "node_modules/.pnpm/@sentry+core@10.76.2/node_modules/@sentry/core/build/esm/instrument/fetch",
+            "node_modules/.pnpm/@sentry+core@10.76.2/node_modules/@sentry/core/build/esm/instrument/fetch.js",
+            True,
+        ),
+        (
+            "parseFetchArgs",
+            "@sentry/react-native/node_modules/@sentry/core/build/cjs/instrument/fetch",
+            "node_modules/@sentry/react-native/node_modules/@sentry/core/build/cjs/instrument/fetch.js",
+            True,
+        ),
+        # XHR instrumentation in a pnpm layout — should be detected
+        (
+            "fetch",
+            "node_modules/.pnpm/@sentry+core@10.76.2/node_modules/@sentry/core/build/esm/instrument/xhr",
+            "node_modules/.pnpm/@sentry+core@10.76.2/node_modules/@sentry/core/build/esm/instrument/xhr.js",
             True,
         ),
         # XHR instrumentation — should be detected (not covered by the ignore pattern)
@@ -530,6 +601,61 @@ def test_supabase_instrumentation_not_detected(
                         *get_frames(),
                         frame,
                     ],
+                ),
+            ]
+        }
+    )
+
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    if detected:
+        assert mock_sdk_crash_reporter.report.call_count == 1
+    else:
+        assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@pytest.mark.parametrize(
+    ["function", "mechanism_type", "detected"],
+    [
+        # Real-world Hermes frame name for the PostgREST capture that the stack trace matcher
+        # misses.
+        ("Proxy$argument_1.apply", "auto.db.supabase.postgres", False),
+        ("Reflect.apply.then$argument_0", "auto.db.supabase.postgres", False),
+        ("Proxy$argument_1.apply", "auto.db.supabase.auth", False),
+        # A genuine crash in the Supabase integration arrives with a different mechanism
+        # and must still be detected.
+        ("Proxy$argument_1.apply", "onerror", True),
+    ],
+)
+@decorators
+def test_supabase_mechanism_not_detected(
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
+    function: str,
+    mechanism_type: str,
+    detected: bool,
+) -> None:
+    event_data = get_crash_event(
+        exception={
+            "values": [
+                get_exception(
+                    frames=[
+                        {
+                            "function": function,
+                            "filename": "@sentry/core/build/esm/integrations/supabase.js",
+                            "abs_path": "@sentry/core/build/esm/integrations/supabase.js",
+                        },
+                    ],
+                    mechanism_type=mechanism_type,
                 ),
             ]
         }

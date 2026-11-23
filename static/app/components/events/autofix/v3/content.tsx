@@ -2,18 +2,26 @@ import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconClose} from '@sentry/icons/close';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {
+  AutofixOutOfCreditsAlert,
+  getAutofixContinueAction,
+} from 'sentry/components/events/autofix/autofixCredits';
+import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
+import {
+  getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   isCodeChangesSection,
   isCodingAgentsSection,
   isLastStepPrIteration,
   isPullRequestsSection,
   isRootCauseSection,
+  isSingleRunAutofix,
   isSolutionSection,
   useExplorerAutofix,
   type AutofixSection,
@@ -21,16 +29,18 @@ import {
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {defined} from 'sentry/utils/defined';
 import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 import {AutofixStartCard} from './autofixStartCard';
 import {CodeChangesCard} from './codeChangesCard';
 import {CodingAgentsCard} from './codingAgentsCard';
-import {SeerDrawerNextStep} from './nextStep';
+import {SeerDrawerNextStep, SingleRunHandoffDropdown} from './nextStep';
 import {PullRequestsCard} from './pullRequestsCard';
 import {RootCauseCard} from './rootCauseCard';
 import {SeerEnableNotifications} from './seerEnableNotifications';
 import {SolutionCard} from './solutionCard';
+import {useIsSingleRunChatOpen, useOpenSingleRunChat} from './useToggleSingleRunChat';
 
 interface SeerDrawerContentProps {
   aiConfig: ReturnType<typeof useAiConfig>;
@@ -54,6 +64,14 @@ export function SeerDrawerContent({
     () => getOrderedAutofixSections(autofix.runState),
     [autofix.runState]
   );
+  const singleRun = isSingleRunAutofix(autofix.runState) ? autofix.runState : null;
+  const singleRunId = getAutofixRunId(singleRun);
+  const openSingleRunChat = useOpenSingleRunChat();
+  const isSingleRunChatOpen = useIsSingleRunChatOpen(singleRunId);
+  const singleRunRootCause = singleRun ? sections.find(isRootCauseSection) : undefined;
+  const singleRunHasRootCause =
+    defined(singleRunRootCause) &&
+    defined(getAutofixArtifactFromSection(singleRunRootCause));
 
   const isLoadingRun =
     autofix.isLoading || (autofix.isPolling && !autofix.runState?.blocks?.length);
@@ -66,17 +84,62 @@ export function SeerDrawerContent({
     );
   }
 
+  // One out-of-credits alert, at the top so it sits above any results. The
+  // triggers below it stay on screen, disabled.
   if (!autofix.runState && aiConfig.hasAutofix) {
-    return <AutofixStartCard autofix={autofix} group={group} />;
+    return (
+      <Stack gap="lg">
+        <AutofixOutOfCreditsAlert action="root_cause" reason="autofix-start" />
+        <AutofixStartCard autofix={autofix} group={group} />
+      </Stack>
+    );
   }
 
   return (
     <Stack gap="lg">
+      <AutofixOutOfCreditsAlert
+        action={getAutofixContinueAction({
+          isPolling: autofix.isPolling,
+          runState: autofix.runState,
+          sections,
+        })}
+        billingFeature={autofix.runState?.billing_feature}
+        reason="autofix-continue"
+      />
       <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
-      {(autofix.runState?.status === 'completed' ||
-        isLastStepPrIteration(autofix.runState)) && (
+      {!isSingleRunAutofix(autofix.runState) &&
+        (autofix.runState?.status === 'completed' ||
+          isLastStepPrIteration(autofix.runState)) && (
+          <NextStepWrap isSticky={stickyNextStep}>
+            <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
+          </NextStepWrap>
+        )}
+      {singleRun && (
         <NextStepWrap isSticky={stickyNextStep}>
-          <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
+          <Flex>
+            <ButtonBar>
+              <Button
+                variant="primary"
+                icon={<IconSeer />}
+                onClick={() =>
+                  singleRunId !== undefined && openSingleRunChat(singleRunId)
+                }
+                disabled={isSingleRunChatOpen}
+                tooltipProps={{
+                  title: isSingleRunChatOpen ? t('Chat is open') : undefined,
+                }}
+              >
+                {t('Open Autofix')}
+              </Button>
+              {singleRunHasRootCause && singleRunId !== undefined && (
+                <SingleRunHandoffDropdown
+                  autofix={autofix}
+                  group={group}
+                  runId={singleRunId}
+                />
+              )}
+            </ButtonBar>
+          </Flex>
         </NextStepWrap>
       )}
       {autofix.codingAgentErrors.map(({id, message}) => (
@@ -160,9 +223,9 @@ function SeerDrawerArtifacts({autofix, groupId, sections}: SeerDrawerArtifactsPr
  * analysis above it is still in view, then scrolls away with the rest of the
  * autofix content once the reader moves past it into the event details below.
  */
-const NextStepWrap = styled('div', {
-  shouldForwardProp: prop => prop !== 'isSticky',
-})<{isSticky?: boolean}>`
+const NextStepWrap = styled('div', {shouldForwardProp: prop => prop !== 'isSticky'})<{
+  isSticky?: boolean;
+}>`
   ${p =>
     p.isSticky &&
     css`

@@ -20,6 +20,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Project, ProjectStats} from 'sentry/types/project';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -115,7 +116,7 @@ function OrganizationProjects() {
       </Panel>
       {projectListPageLinks && (
         <Pagination
-          pageLinks={projectListPageLinks}
+          {...getPaginationProps(projectListPageLinks)}
           onCursor={nextCursor =>
             setSearchParams({cursor: nextCursor ?? null}, {history: 'push'})
           }

@@ -30,10 +30,7 @@ function workflowProjectScopeApiOptions({
     '/organizations/$organizationIdOrSlug/workflows/$workflowId/project-scope/',
     {
       path: enabled
-        ? {
-            organizationIdOrSlug: organization.slug,
-            workflowId: automationId,
-          }
+        ? {organizationIdOrSlug: organization.slug, workflowId: automationId}
         : skipToken,
       staleTime: 0,
     }
@@ -130,12 +127,7 @@ function AlertsMemberWriteSettingsLink({children}: {children?: ReactNode}) {
   const organization = useOrganization();
 
   return (
-    <Link
-      to={{
-        hash: 'alertsMemberWrite',
-        pathname: `/settings/${organization.slug}/`,
-      }}
-    >
+    <Link to={{hash: 'alertsMemberWrite', pathname: `/settings/${organization.slug}/`}}>
       {children}
     </Link>
   );

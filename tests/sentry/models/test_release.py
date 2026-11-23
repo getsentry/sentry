@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 from django.core.exceptions import ValidationError
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
@@ -47,7 +49,7 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.search.events.filter import parse_semver
 from sentry.signals import receivers_raise_on_send
-from sentry.testutils.cases import SetRefsTestCase, TestCase
+from sentry.testutils.cases import SetRefsTestCase, TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
@@ -359,8 +361,6 @@ class MergeReleasesTest(TestCase):
         assert GroupRelease.objects.get(id=group_release.id).release_id == release.id
         assert GroupRelease.objects.get(id=group_release2.id).release_id == release.id
         assert GroupRelease.objects.get(id=group_release3.id).release_id == release.id
-        assert GroupRelease.objects.get(id=group_release2.id).new_release_id == release.id
-        assert GroupRelease.objects.get(id=group_release3.id).new_release_id == release.id
 
         # GroupResolution.release
         assert GroupResolution.objects.get(id=group_resolution.id).release == release
@@ -2616,3 +2616,74 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_filter = Release.get_unused_filter(self.cutoff_date)
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release not in unused_releases
+
+
+class WorkerKilled(BaseException):
+    pass
+
+
+class SetCommitsTransactionTest(TransactionTestCase):
+    def _swap_transaction(self, statements: list[str]) -> list[str]:
+        delete_index = None
+        for index, statement in enumerate(statements):
+            if statement.startswith('DELETE FROM "sentry_releasecommit"'):
+                delete_index = index
+                break
+        assert delete_index is not None
+        begin_index = delete_index
+        while statements[begin_index] != "BEGIN":
+            begin_index -= 1
+        commit_index = delete_index
+        while statements[commit_index] != "COMMIT":
+            commit_index += 1
+        return statements[begin_index:commit_index]
+
+    def test_swap_transaction_opens_no_subtransactions(self) -> None:
+        repo = self.create_repo(project=self.project, name="example/repo")
+        groups = [self.create_group(project=self.project) for _ in range(3)]
+        messages = [f"fixes {group.qualified_short_id}" for group in groups]
+        messages += [f"commit {i}" for i in range(len(groups), 70)]
+        commit_list: list[dict[str, Any]] = [
+            {"id": f"{i:040x}", "repository": repo.name, "message": message}
+            for i, message in enumerate(messages)
+        ]
+        commit_list.append(dict(commit_list[-1]))
+        release = self.create_release(project=self.project, version="1.0")
+
+        with CaptureQueriesContext(connection) as ctx:
+            release.set_commits(commit_list)
+
+        statements = [query["sql"] for query in ctx.captured_queries]
+        swap_statements = self._swap_transaction(statements)
+        savepoints = [s for s in swap_statements if s.startswith("SAVEPOINT")]
+        commit_upserts = [
+            s for s in swap_statements if s.startswith('INSERT INTO "sentry_commit" ')
+        ]
+        assert savepoints == []
+        assert commit_upserts == []
+        orders = ReleaseCommit.objects.filter(release=release).values_list("order", flat=True)
+        assert sorted(orders) == list(range(70))
+
+    def test_commit_update_and_issue_links_commit_together(self) -> None:
+        repo = self.create_repo(project=self.project, name="example/repo")
+        group = self.create_group(project=self.project)
+        release = self.create_release(project=self.project, version="1.0")
+        sha = "a" * 40
+        self.create_commit(repo=repo, key=sha, message="placeholder")
+        commit_list = [
+            {"id": sha, "repository": repo.name, "message": f"fixes {group.qualified_short_id}"}
+        ]
+
+        with patch.object(GroupLink.objects, "create", side_effect=WorkerKilled()):
+            with pytest.raises(WorkerKilled):
+                release.set_commits([dict(data) for data in commit_list])
+
+        commit = Commit.objects.get(repository_id=repo.id, key=sha)
+        assert commit.message == "placeholder"
+        assert not GroupLink.objects.filter(linked_id=commit.id).exists()
+
+        release.set_commits([dict(data) for data in commit_list])
+
+        commit = Commit.objects.get(repository_id=repo.id, key=sha)
+        assert commit.message == f"fixes {group.qualified_short_id}"
+        assert GroupLink.objects.filter(group_id=group.id, linked_id=commit.id).exists()

@@ -6,18 +6,12 @@ describe('valueIsEqual', () => {
       {
         username: 'foo',
         teams: ['bar', 'baz'],
-        avatar: {
-          avatarType: 'gravatar',
-          avatarUuid: null,
-        },
+        avatar: {avatarType: 'gravatar', avatarUuid: null},
       },
       {
         username: 'foo',
         teams: ['bar', 'baz'],
-        avatar: {
-          avatarType: 'gravatar',
-          avatarUuid: null,
-        },
+        avatar: {avatarType: 'gravatar', avatarUuid: null},
       },
       true
     );
@@ -29,18 +23,12 @@ describe('valueIsEqual', () => {
       {
         username: 'foo',
         teams: ['bar', 'baz'],
-        avatar: {
-          avatarType: 'gravatar',
-          avatarUuid: null,
-        },
+        avatar: {avatarType: 'gravatar', avatarUuid: null},
       },
       {
         username: 'foo',
         teams: ['bar', 'baz'],
-        avatar: {
-          avatarType: 'notGravatar',
-          avatarUuid: null,
-        },
+        avatar: {avatarType: 'notGravatar', avatarUuid: null},
       },
       true
     );
@@ -49,16 +37,8 @@ describe('valueIsEqual', () => {
 
   it('should return true when objects are shallowly equal', () => {
     const isEqual = valueIsEqual(
-      {
-        username: 'foo',
-        team: 'bar',
-        avatar: 'gravatar',
-      },
-      {
-        username: 'foo',
-        team: 'bar',
-        avatar: 'gravatar',
-      },
+      {username: 'foo', team: 'bar', avatar: 'gravatar'},
+      {username: 'foo', team: 'bar', avatar: 'gravatar'},
       false
     );
     expect(isEqual).toBe(true);
@@ -66,16 +46,8 @@ describe('valueIsEqual', () => {
 
   it('should return false when objects are not shallowly equal', () => {
     const isEqual = valueIsEqual(
-      {
-        username: 'foo',
-        team: 'bar',
-        avatar: 'gravatar',
-      },
-      {
-        username: 'foo',
-        team: 'bar',
-        avatar: 'notGravatar',
-      },
+      {username: 'foo', team: 'bar', avatar: 'gravatar'},
+      {username: 'foo', team: 'bar', avatar: 'notGravatar'},
       false
     );
     expect(isEqual).toBe(false);
@@ -86,18 +58,11 @@ describe('valueIsEqual', () => {
     expect(isEqual).toBe(false);
 
     isEqual = valueIsEqual(
+      {username: 'foo', teams: ['bar', 'baz'], avatar: null},
       {
         username: 'foo',
         teams: ['bar', 'baz'],
-        avatar: null,
-      },
-      {
-        username: 'foo',
-        teams: ['bar', 'baz'],
-        avatar: {
-          avatarType: 'notGravatar',
-          avatarUuid: null,
-        },
+        avatar: {avatarType: 'notGravatar', avatarUuid: null},
       },
       true
     );

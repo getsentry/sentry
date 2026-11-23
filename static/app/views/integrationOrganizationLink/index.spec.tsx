@@ -29,10 +29,7 @@ function setupConfigStore(organization: Organization) {
       organizationUrl: `https://${organization.slug}.sentry.io`,
       sentryUrl: 'https://sentry.io',
     },
-    links: {
-      ...defaultConfig.links,
-      sentryUrl: 'https://sentry.io',
-    },
+    links: {...defaultConfig.links, sentryUrl: 'https://sentry.io'},
   };
   ConfigStore.loadInitialData(window.__initialData);
 }
@@ -42,21 +39,48 @@ function teardownConfigStore() {
   ConfigStore.loadInitialData(window.__initialData);
 }
 
+function mockVercelInstall(organization: Organization) {
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/config/integrations/`,
+    match: [MockApiClient.matchQuery({provider_key: 'vercel'})],
+    body: {providers: [VercelProviderFixture()]},
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/`,
+    match: [MockApiClient.matchQuery({include_feature_flags: 1})],
+    body: organization,
+  });
+
+  // Drive the API pipeline: initialize hands back the auto-advancing Vercel
+  // step, and advancing completes the install with the new integration.
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/pipeline/integration_pipeline/`,
+    method: 'POST',
+    match: [MockApiClient.matchData({action: 'initialize', provider: 'vercel'})],
+    body: {
+      step: 'oauth_login',
+      stepIndex: 0,
+      totalSteps: 1,
+      provider: 'vercel',
+      data: {state: 'pipeline-sig'},
+    },
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/pipeline/integration_pipeline/`,
+    method: 'POST',
+    match: [MockApiClient.matchData({state: 'pipeline-sig'})],
+    body: {status: 'complete', data: {id: '123', provider: {key: 'vercel'}}},
+  });
+}
+
 describe('IntegrationOrganizationLink', () => {
-  const org1 = OrganizationFixture({
-    slug: 'org1',
-    name: 'Organization 1',
-  });
-  const org2 = OrganizationFixture({
-    slug: 'org2',
-    name: 'Organization 2',
-  });
+  const org1 = OrganizationFixture({slug: 'org1', name: 'Organization 1'});
+  const org2 = OrganizationFixture({slug: 'org2', name: 'Organization 2'});
   let getOrgsMock: jest.Mock;
 
   const initialRouterConfig = {
-    location: {
-      pathname: '/extensions/vercel/link/',
-    },
+    location: {pathname: '/extensions/vercel/link/'},
     route: '/extensions/:integrationSlug/link/',
   };
 
@@ -91,9 +115,7 @@ describe('IntegrationOrganizationLink', () => {
       body: {providers: [VercelProviderFixture()]},
     });
 
-    render(<IntegrationOrganizationLink />, {
-      initialRouterConfig,
-    });
+    render(<IntegrationOrganizationLink />, {initialRouterConfig});
     expect(getOrgsMock).toHaveBeenCalled();
     expect(getOrgMock).toHaveBeenCalled();
 
@@ -118,9 +140,7 @@ describe('IntegrationOrganizationLink', () => {
       body: org2,
     });
 
-    render(<IntegrationOrganizationLink />, {
-      initialRouterConfig,
-    });
+    render(<IntegrationOrganizationLink />, {initialRouterConfig});
     // Select the same organization as the domain
     await selectEvent.select(await screen.findByRole('textbox'), org2.name);
     expect(testableWindowLocation.assign).not.toHaveBeenCalled();
@@ -132,39 +152,7 @@ describe('IntegrationOrganizationLink', () => {
 
   it('forwards the next param to the integration settings page after install', async () => {
     setupConfigStore(org2);
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org2.slug}/config/integrations/`,
-      match: [MockApiClient.matchQuery({provider_key: 'vercel'})],
-      body: {providers: [VercelProviderFixture()]},
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org2.slug}/`,
-      match: [MockApiClient.matchQuery({include_feature_flags: 1})],
-      body: org2,
-    });
-
-    // Drive the API pipeline: initialize hands back the auto-advancing Vercel
-    // step, and advancing completes the install with the new integration.
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org2.slug}/pipeline/integration_pipeline/`,
-      method: 'POST',
-      match: [MockApiClient.matchData({action: 'initialize', provider: 'vercel'})],
-      body: {
-        step: 'oauth_login',
-        stepIndex: 0,
-        totalSteps: 1,
-        provider: 'vercel',
-        data: {state: 'pipeline-sig'},
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org2.slug}/pipeline/integration_pipeline/`,
-      method: 'POST',
-      match: [MockApiClient.matchData({state: 'pipeline-sig'})],
-      body: {status: 'complete', data: {id: '123', provider: {key: 'vercel'}}},
-    });
+    mockVercelInstall(org2);
 
     render(<IntegrationOrganizationLink />, {
       organization: org2,
@@ -188,6 +176,38 @@ describe('IntegrationOrganizationLink', () => {
     });
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       expect.stringContaining('/settings/integrations/vercel/123/')
+    );
+  });
+
+  it('drops the next param when it is repeated', async () => {
+    setupConfigStore(org2);
+    mockVercelInstall(org2);
+
+    render(<IntegrationOrganizationLink />, {
+      organization: org2,
+      initialRouterConfig: {
+        location: {
+          pathname: '/extensions/vercel/link/',
+          query: {
+            code: 'oauth-code',
+            next: ['https://vercel.com/dashboard', 'https://example.com'],
+          },
+        },
+        route: '/extensions/:integrationSlug/link/',
+      },
+    });
+    renderGlobalModal({organization: org2});
+
+    await selectEvent.select(await screen.findByRole('textbox'), org2.name);
+    await userEvent.click(screen.getByRole('button', {name: 'Install Vercel'}));
+
+    await waitFor(() => {
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+        expect.stringContaining('/settings/integrations/vercel/123/')
+      );
+    });
+    expect(testableWindowLocation.assign).not.toHaveBeenCalledWith(
+      expect.stringContaining('next=')
     );
   });
 
@@ -215,9 +235,7 @@ describe('IntegrationOrganizationLink', () => {
 
     render(<IntegrationOrganizationLink />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/extensions/generic-provider/link/',
-        },
+        location: {pathname: '/extensions/generic-provider/link/'},
         route: '/extensions/:integrationSlug/link/',
       },
     });

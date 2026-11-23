@@ -1,9 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import {useQueryState} from 'nuqs';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {toast} from '@sentry/scraps/toast';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
 import {useMutateFeedback} from 'sentry/components/feedback/useMutateFeedback';
 import {t, tct, tn} from 'sentry/locale';
@@ -74,10 +74,7 @@ export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
         onConfirm: () => {
           if (newMailbox === GroupStatus.IGNORED) {
             // target action is marking as spam aka ignored
-            trackAnalytics('feedback.mark-spam-clicked', {
-              organization,
-              type: 'bulk',
-            });
+            trackAnalytics('feedback.mark-spam-clicked', {organization, type: 'bulk'});
           }
           toast.loading(
             tn(

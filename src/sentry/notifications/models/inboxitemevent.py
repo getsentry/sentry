@@ -49,11 +49,16 @@ class InboxItemEvent(DefaultFieldsModel):
     actor_id = BoundedBigIntegerField(null=True)
     # Metadata specific to the event type, such as the comment to link to.
     data = models.JSONField(default=dict)
+    idempotency_key = models.CharField(max_length=64)
 
     class Meta:
         app_label = "notifications"
         db_table = "notifications_inboxitemevent"
         constraints = [
+            models.UniqueConstraint(
+                fields=["inbox_item", "type", "idempotency_key"],
+                name="inboxevent_item_type_key_uniq",
+            ),
             models.CheckConstraint(
                 condition=(
                     Q(actor_type=InboxActorType.SYSTEM.value, actor_id__isnull=True)

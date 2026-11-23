@@ -10,11 +10,11 @@ interface SortConfig {
 }
 
 const SortStrategies: Record<string, (row: any) => any> = {
-  method: row => row.data.method || 'GET',
-  status: row => row.data.statusCode,
+  method: row => row.data?.method || 'GET',
+  status: row => row.data?.statusCode,
   description: row => row.description,
   op: row => row.op,
-  size: row => row.data.size ?? row.data.response?.size ?? row.data.responseBodySize,
+  size: row => row.data?.size ?? row.data?.response?.size ?? row.data?.responseBodySize,
   duration: row => row.endTimestamp - row.startTimestamp,
   startTimestamp: row => row.startTimestamp,
 };
@@ -38,12 +38,7 @@ export function useSortNetwork({items}: Opts) {
   );
 
   const sortConfig = useMemo(
-    () =>
-      ({
-        asc: sortAsc,
-        by: sortBy,
-        getValue: SortStrategies[sortBy],
-      }) as SortConfig,
+    () => ({asc: sortAsc, by: sortBy, getValue: SortStrategies[sortBy]}) as SortConfig,
     [sortAsc, sortBy]
   );
 
@@ -62,11 +57,7 @@ export function useSortNetwork({items}: Opts) {
     [sortConfig, setSortAsc, setSortBy, setDetailRow]
   );
 
-  return {
-    handleSort,
-    items: sortedItems,
-    sortConfig,
-  };
+  return {handleSort, items: sortedItems, sortConfig};
 }
 
 function sortNetwork(network: SpanFrame[], sortConfig: SortConfig): SpanFrame[] {

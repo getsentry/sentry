@@ -219,10 +219,7 @@ function AddToDashboardModal({
         query: {
           // Static widgets don't forward widget configuration to the widget builder, instead they open the widget library
           ...(shouldOpenWidgetLibrary && widgetTemplate
-            ? {
-                openWidgetTemplates: 'true',
-                widgetTemplateId: widgetTemplate.id,
-              }
+            ? {openWidgetTemplates: 'true', widgetTemplateId: widgetTemplate.id}
             : {
                 ...widgetAsQueryParams,
                 title: newWidgetTitle,
@@ -249,13 +246,13 @@ function AddToDashboardModal({
       }
 
       let newOrderBy = orderBy ?? w.queries[0]!.orderby;
-      if (!(usesTimeSeriesData(w.displayType) && w.queries[0]!.columns.length)) {
-        newOrderBy = ''; // Clear orderby if its not a top n visualization.
+      const hasGroupBy = w.queries[0]!.columns.length > 0;
+      // A time series without group-bys has no top N to sort, but table-style widgets
+      // (tables, categorical bars, etc.) still need their sort.
+      if (usesTimeSeriesData(w.displayType) && !hasGroupBy) {
+        newOrderBy = '';
       }
-      const queries = w.queries.map(query => ({
-        ...query,
-        orderby: newOrderBy,
-      }));
+      const queries = w.queries.map(query => ({...query, orderby: newOrderBy}));
 
       return {
         ...w,

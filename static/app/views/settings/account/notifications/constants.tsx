@@ -30,6 +30,7 @@ export interface DefaultSettings {
 }
 
 export const NOTIFICATION_SETTINGS_TYPES = [
+  'inbox',
   'alerts',
   'workflow',
   'deploy',
@@ -45,6 +46,7 @@ export const NOTIFICATION_SETTINGS_TYPES = [
 export type NotificationSettingsType = (typeof NOTIFICATION_SETTINGS_TYPES)[number];
 
 export const NOTIFICATION_SETTINGS_PATHNAMES: Record<NotificationSettingsType, string> = {
+  inbox: 'inbox',
   alerts: 'alerts',
   workflow: 'workflow',
   deploy: 'deploy',

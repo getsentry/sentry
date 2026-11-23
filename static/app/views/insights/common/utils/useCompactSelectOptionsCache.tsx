@@ -22,10 +22,7 @@ const DEFAULT_CACHE_KEY = 'cacheKey';
  */
 export function useCompactSelectOptionsCache<T extends Option>(
   options: T[]
-): {
-  clear: () => void;
-  options: T[];
-} {
+): {clear: () => void; options: T[]} {
   const cacheMap = useRef({[DEFAULT_CACHE_KEY]: new Map()});
   // oxlint-disable-next-line react/refs
   if (!cacheMap.current[DEFAULT_CACHE_KEY]) {

@@ -192,10 +192,6 @@ class GitlabIntegration(
                 return "configuration_error"
             if exc.code == 403:
                 return "unauthorized"
-        # Self-hosted GitLab instances sometimes return HTML login/captcha
-        # pages instead of JSON. The response parser raises ValueError.
-        if isinstance(exc, ValueError) and "not a valid response type" in str(exc).lower():
-            return "unsupported_response"
         return super().is_broken_integration_error(exc)
 
     # RepositoryIntegration methods
@@ -790,7 +786,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         # Hooks on GitLab outlive the org integration that created them, so the
         # secret has to survive a reinstall. No status filter: a disabled row still
         # owns hooks carrying its secret.
-        existing = Integration.objects.filter(provider=self.key, external_id=external_id).first()
+        existing = Integration.objects.get_or_none(provider=self.key, external_id=external_id)
         webhook_secret = existing.metadata.get("webhook_secret") if existing else None
         if not webhook_secret:
             webhook_secret = secrets.token_hex(20)

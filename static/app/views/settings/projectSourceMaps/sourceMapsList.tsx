@@ -4,17 +4,18 @@ import styled from '@emotion/styled';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconUpload} from '@sentry/icons/upload';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/codeBlock';
+import {Confirm} from '@sentry/scraps/confirm';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
-import {Confirm} from 'sentry/components/confirm';
-import {DateTime} from 'sentry/components/dateTime';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {
   getSourceMapsDocLinks,
@@ -32,18 +33,15 @@ import type {Release, SourceMapsArchive} from 'sentry/types/release';
 import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {getPaginationProps} from 'sentry/utils/pagination';
+import {isReactNativePlatform} from 'sentry/utils/platform';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {AssociatedReleases} from './associatedReleases';
 import {useDeleteDebugIdBundle} from './useDeleteDebugIdBundle';
 
-type Props = {
-  project: Project;
-};
+type Props = {project: Project};
 
 type SourceMapUpload = {
   associations: DebugIdBundleAssociation[];
@@ -136,10 +134,7 @@ function useSourceMapUploads({
   const {data: releasesData, isPending: releasesLoading} = useQuery({
     ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {
-        project: [project.id],
-        query: `release:[${releaseVersions.join(',')}]`,
-      },
+      query: {project: [project.id], query: `release:[${releaseVersions.join(',')}]`},
       staleTime: Infinity,
     }),
     retry: false,
@@ -170,36 +165,28 @@ function useSourceMapUploads({
 
 export function SourceMapsList({project}: Props) {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [queryParams, setQueryParams] = useQueryStates({
+    query: parseAsString,
+    cursor: parseAsString,
+  });
 
-  const query = decodeScalar(location.query.query);
-  const cursor = decodeScalar(location.query.cursor);
+  const query = queryParams.query || undefined;
+  const cursor = queryParams.cursor || undefined;
 
   const {
     data: sourceMapUploads,
     pageLinks,
     isPending,
     refetch,
-  } = useSourceMapUploads({
-    organization,
-    project,
-    query,
-    cursor,
-  });
+  } = useSourceMapUploads({organization, project, query, cursor});
 
-  const {mutate: deleteSourceMaps} = useDeleteDebugIdBundle({
-    onSuccess: () => refetch(),
-  });
+  const {mutate: deleteSourceMaps} = useDeleteDebugIdBundle({onSuccess: () => refetch()});
 
   const handleSearch = useCallback(
     (newQuery: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, query: newQuery},
-      });
+      setQueryParams({cursor: null, query: newQuery}, {history: 'push'});
     },
-    [navigate, location]
+    [setQueryParams]
   );
 
   const platformByProject = defined(project.platform)
@@ -214,9 +201,7 @@ export function SourceMapsList({project}: Props) {
         title={t('Source Map Uploads')}
         subtitle={tct(
           'These source map archives help Sentry identify where to look when code is minified. By providing this information, you can get better context for your stack traces when debugging. To learn more about source maps, [link: read the docs].',
-          {
-            link: <ExternalLink href={sourceMapsLinks.sourcemaps} />,
-          }
+          {link: <ExternalLink href={sourceMapsLinks.sourcemaps} />}
         )}
       />
       <SearchBarWithMarginBottom
@@ -297,7 +282,9 @@ function SourceMapsEmptyState({
             ? t('No source maps uploads matching your search')
             : t('No source maps uploaded')
         }
-        action={project.platform === 'react-native' ? <ReactNativeCallOut /> : undefined}
+        action={
+          isReactNativePlatform(project.platform) ? <ReactNativeCallOut /> : undefined
+        }
       >
         {query
           ? tct(
@@ -314,9 +301,7 @@ function SourceMapsEmptyState({
             )
           : tct(
               'Source maps allow Sentry to map your production code to your source code. See our [docs:docs] to learn more about configuring your application to upload source maps to Sentry.',
-              {
-                docs: <ExternalLink href={docsLink} />,
-              }
+              {docs: <ExternalLink href={docsLink} />}
             )}
       </EmptyMessage>
     </Panel>
@@ -377,7 +362,7 @@ function SourceMapUploadsList({
               <ItemTitle to={sourceMapUploadDetailLink(sourceMapUpload)}>
                 <IconUpload />
                 {tct('[date] ([fileCount] files)', {
-                  date: <DateTime year date={sourceMapUpload.date} />,
+                  date: <DateTime date={sourceMapUpload.date} year="always" />,
                   fileCount: sourceMapUpload.fileCount,
                 })}
               </ItemTitle>
@@ -398,7 +383,7 @@ function SourceMapUploadsList({
           </Item>
         ))}
       </Grid>
-      <Pagination pageLinks={pageLinks} />
+      <Pagination {...getPaginationProps(pageLinks)} />
     </Fragment>
   );
 }
@@ -416,11 +401,7 @@ function SourceMapUploadDetails({
 
     const visibleAssociations = showAll ? rows : rows.slice(0, 3);
     return [
-      {
-        key: 'id',
-        subject: t('Upload ID'),
-        value: sourceMapUpload.id,
-      },
+      {key: 'id', subject: t('Upload ID'), value: sourceMapUpload.id},
       {
         key: 'releases',
         subject: t('Found in Releases'),

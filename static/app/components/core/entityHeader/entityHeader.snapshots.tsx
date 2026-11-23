@@ -35,12 +35,52 @@ const props: EntityHeaderProps = {
   stats: {
     label: 'Replay stats',
     items: [
-      {type: 'text', label: 'Dead Clicks', value: 0},
-      {type: 'text', label: 'Rage Clicks', value: 2},
-      {type: 'text', label: 'Errors', value: 1},
+      {label: 'Dead Clicks', value: 0},
+      {label: 'Rage Clicks', value: 2},
+      {label: 'Errors', value: 1},
     ],
   },
 };
+
+const toolNames = [
+  'search_flights',
+  'book_hotel',
+  'get_weather',
+  'convert_currency',
+  'translate',
+  'find_restaurants',
+  'rent_car',
+  'check_visa',
+  'plan_route',
+  'send_itinerary',
+];
+
+function ToolsHeader({maxVisible}: {maxVisible?: {md: number; zero: number}}) {
+  return (
+    <EntityHeader
+      title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+      metadata={{
+        label: 'Conversation properties',
+        items: [
+          {label: 'Model', type: 'text', value: 'gpt-5', mode: 'full'},
+          {
+            label: 'Tools',
+            type: 'list',
+            mode: 'full',
+            maxVisible,
+            items: toolNames.map(name => ({
+              key: name,
+              type: 'text',
+              value: name,
+              variant: name === 'book_hotel' ? 'danger' : undefined,
+            })),
+          },
+          {label: 'Started at', type: 'text', value: '2h ago'},
+        ],
+      }}
+    />
+  );
+}
 
 describe('EntityHeader', () => {
   // The stats sit beside the title above the `lg` container breakpoint (640px)
@@ -75,14 +115,59 @@ describe('EntityHeader', () => {
           stats={{
             label: 'Replay stats',
             items: [
-              {type: 'link', label: 'Errors', value: 3, to: '/replays/1/'},
-              {type: 'text', label: 'Errors', value: 3},
+              {label: {type: 'link', content: 'Errors', to: '/replays/1/'}, value: 3},
+              {label: 'Errors', value: {type: 'link', content: 3, to: '/replays/1/'}},
+              {
+                label: {type: 'link', content: 'Errors', to: '/replays/1/'},
+                value: {type: 'link', content: 3, to: '/issues/'},
+              },
+              {
+                label: {
+                  type: 'link',
+                  content: 'Errors',
+                  to: '/replays/1/',
+                  tooltip: 'Why',
+                },
+                value: {type: 'link', content: 3, to: '/issues/', tooltip: 'Split'},
+              },
+              {label: 'Errors', value: 3},
             ],
           }}
         />
       </MemoryRouter>
     ),
     {viewport: 900, tags: {area: 'core'}}
+  );
+
+  // An empty value keeps the value's typography, so it should sit on the same
+  // baseline and row height as the populated stats beside it.
+  it.snapshot(
+    'empty stats',
+    () => (
+      <MemoryRouter>
+        <EntityHeader
+          title={props.title}
+          stats={{
+            label: 'Build stats',
+            items: [
+              {label: 'Install Size', value: '12 MB'},
+              {label: 'Cost', value: null},
+              {label: {type: 'link', content: 'Errors', to: '/replays/1/'}, value: null},
+              {label: 'Issues', value: {type: 'link', content: null, to: '/issues/'}},
+              {
+                label: 'Download Size',
+                value: {
+                  type: 'text',
+                  content: null,
+                  tooltip: 'Not reported for this platform',
+                },
+              },
+            ],
+          }}
+        />
+      </MemoryRouter>
+    ),
+    {viewport: 900, tags: {state: 'empty', area: 'core'}}
   );
 
   describe.each([480, 900])('late metadata at %s', viewport => {
@@ -99,10 +184,7 @@ describe('EntityHeader', () => {
               isLoading ? null : {label: 'Browser', type: 'text', value: 'Chrome'},
             ],
           }}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 0}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 0}]}}
         />
       ),
       isLoading => ({
@@ -111,4 +193,87 @@ describe('EntityHeader', () => {
       })
     );
   });
+
+  // Past `maxVisible` the entries collapse into "+N more"; the rest wrap onto
+  // further lines rather than overflow a narrow header, under a label that
+  // stays on the first line. The harness renders on the server, where there is
+  // no container to measure, so `maxVisible` resolves to its `zero` value at
+  // every width.
+  it.snapshot.each([480, 900])(
+    'metadata list at %s',
+    () => <ToolsHeader maxVisible={{zero: 6, md: 8}} />,
+    viewport => ({viewport, tags: {area: 'core'}})
+  );
+
+  // What "+N more" expands to. The harness cannot click, so a list with no
+  // `maxVisible` draws the same entries; beside the collapsed case at the same
+  // width, only the added lines may differ.
+  it.snapshot('metadata list expanded', () => <ToolsHeader />, {
+    viewport: 480,
+    tags: {area: 'core'},
+  });
+
+  // A value wider than the header truncates, so the pipe after it follows the
+  // text that shows rather than landing on top of it.
+  it.snapshot(
+    'long value',
+    () => (
+      <EntityHeader
+        title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+        metadata={{
+          label: 'Conversation properties',
+          items: [
+            {
+              label: 'Model',
+              type: 'text',
+              mode: 'full',
+              value: 'anthropic/claude-opus-very-long-model-identifier-2026',
+            },
+            {label: 'Started at', type: 'text', value: '2h ago'},
+          ],
+        }}
+      />
+    ),
+    {viewport: 240, tags: {area: 'core'}}
+  );
+
+  // Long parts of a property share the space and truncate, while short ones
+  // such as "id" keep their width, so no part overflows under the pipe.
+  it.snapshot(
+    'long parts',
+    () => (
+      <MemoryRouter>
+        <EntityHeader
+          title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+          metadata={{
+            label: 'Conversation properties',
+            items: [
+              {
+                label: 'Version label',
+                mode: 'full',
+                type: 'text',
+                value: 'value-of-some-length-here',
+                secondary: {label: 'build', value: 'secondary-value-long-1234567890'},
+              },
+              {
+                label: 'A very long full mode label here',
+                mode: 'full',
+                type: 'link',
+                to: '/x/',
+                value: 'a-linked-value',
+              },
+              {
+                label: 'id',
+                mode: 'full',
+                type: 'text',
+                value: 'a-long-identifier-value-0123456789',
+              },
+              {label: 'Started at', type: 'text', value: '2h ago'},
+            ],
+          }}
+        />
+      </MemoryRouter>
+    ),
+    {viewport: 240, tags: {area: 'core'}}
+  );
 });

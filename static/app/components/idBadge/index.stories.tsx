@@ -69,7 +69,6 @@ export default Storybook.story('IdBadge', story => {
       expired: false,
       id: '0',
       inviteStatus: 'approved',
-      invite_link: null,
       inviterName: null,
       isOnlyOwner: false,
       name: user.name,
@@ -111,11 +110,7 @@ export default Storybook.story('IdBadge', story => {
       email: user.email,
     };
 
-    const teamActor: Actor = {
-      type: 'team',
-      id: teams[0]!.id,
-      name: teams[0]!.name,
-    };
+    const teamActor: Actor = {type: 'team', id: teams[0]!.id, name: teams[0]!.name};
 
     return (
       <Storybook.SideBySide>

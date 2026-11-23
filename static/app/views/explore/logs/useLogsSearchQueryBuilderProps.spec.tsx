@@ -56,7 +56,6 @@ describe('useLogsSearchQueryBuilderProps', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     jest.clearAllMocks();
   });
 
@@ -79,32 +78,19 @@ describe('useLogsSearchQueryBuilderProps', () => {
       result.current.tracesItemSearchQueryBuilderProps.stringAttributes[
         'message.template'
       ]
-    ).toEqual(
-      expect.objectContaining({
-        kind: FieldKind.TAG,
-        key: 'message.template',
-      })
-    );
+    ).toEqual(expect.objectContaining({kind: FieldKind.TAG, key: 'message.template'}));
     expect(
       result.current.tracesItemSearchQueryBuilderProps.numberAttributes[
         'message.parameters.0'
       ]
     ).toEqual(
-      expect.objectContaining({
-        kind: FieldKind.MEASUREMENT,
-        key: 'message.parameters.0',
-      })
+      expect.objectContaining({kind: FieldKind.MEASUREMENT, key: 'message.parameters.0'})
     );
     expect(
       result.current.tracesItemSearchQueryBuilderProps.booleanAttributes[
         'feature.enabled'
       ]
-    ).toEqual(
-      expect.objectContaining({
-        kind: FieldKind.BOOLEAN,
-        key: 'feature.enabled',
-      })
-    );
+    ).toEqual(expect.objectContaining({kind: FieldKind.BOOLEAN, key: 'feature.enabled'}));
     expect(result.current.tracesItemSearchQueryBuilderProps.invalidFilterKeys).toEqual([
       'missing.key',
     ]);
@@ -143,10 +129,7 @@ describe('useLogsSearchQueryBuilderProps', () => {
         'tags[error.messages,array]'
       ]
     ).toEqual(
-      expect.objectContaining({
-        kind: FieldKind.ARRAY,
-        key: 'tags[error.messages,array]',
-      })
+      expect.objectContaining({kind: FieldKind.ARRAY, key: 'tags[error.messages,array]'})
     );
     expect(
       result.current.tracesItemSearchQueryBuilderProps.arraySecondaryAliases?.[
@@ -172,12 +155,7 @@ describe('useLogsSearchQueryBuilderProps', () => {
 
     expect(
       result.current.tracesItemSearchQueryBuilderProps.arrayAttributes?.['error.messages']
-    ).toEqual(
-      expect.objectContaining({
-        kind: FieldKind.ARRAY,
-        key: 'error.messages',
-      })
-    );
+    ).toEqual(expect.objectContaining({kind: FieldKind.ARRAY, key: 'error.messages'}));
   });
 
   it('does not merge validated array fields when the array flag is disabled', () => {

@@ -28,11 +28,14 @@ import type {Organization} from 'sentry/types/organization';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {toSplicedSorted} from 'sentry/utils/array/toSplicedSorted';
 import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
+import {encodeSort} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getPageUrlWithParams} from 'sentry/utils/url/getPageUrlWithParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -54,9 +57,11 @@ import {
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
+  LOGS_ANCHOR_TIMESTAMP_KEY,
   LOGS_QUERY_KEY,
   LOGS_ROW_ID_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {logsTimestampDescendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
   getScalarAttributeValue,
@@ -80,6 +85,7 @@ import {
 } from 'sentry/views/explore/logs/fieldRenderers';
 import {useLogsFrozenIsFrozen} from 'sentry/views/explore/logs/logsFrozenContext';
 import {useLogsAnalyticsPageSource} from 'sentry/views/explore/logs/logsQueryParamsProvider';
+import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {
   DetailsBody,
   DetailsContent,
@@ -110,6 +116,8 @@ import {
   getLogRowItem,
   getLogRowTimestampMillis,
   getLogSeverityLevel,
+  getLogsUrl,
+  getTimeBasedSortBy,
   isPseudoLogResponseItem,
   isRegularLogResponseItem,
   ourlogToJson,
@@ -118,6 +126,8 @@ import type {ReplayEmbeddedTableOptions} from 'sentry/views/explore/logs/utils/l
 import {
   useAddSearchFilter,
   useQueryParamsFields,
+  useQueryParamsSearch,
+  useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -133,10 +143,7 @@ type LogsRowProps = {
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
   blockRowExpanding?: boolean;
   embedded?: boolean;
-  embeddedOptions?: {
-    openWithExpandedIds?: string[];
-    replay?: ReplayEmbeddedTableOptions;
-  };
+  embeddedOptions?: {openWithExpandedIds?: string[]; replay?: ReplayEmbeddedTableOptions};
   errorRow?: TraceTree.TraceErrorIssue;
   expansionKey?: string;
   isExpanded?: boolean;
@@ -178,12 +185,7 @@ function getExploreConnectedSpansUrl({
     organization,
     selection: {
       ...selection,
-      datetime: {
-        period: '24h',
-        start: null,
-        end: null,
-        utc: selection.datetime.utc,
-      },
+      datetime: {period: '24h', start: null, end: null, utc: selection.datetime.utc},
     },
     mode: Mode.SAMPLES,
     referrer: EXPLORE_CONNECTED_SPANS_REFERRER,
@@ -283,7 +285,10 @@ export const LogRowContent = memo(function LogRowContentImpl({
   const navigate = useNavigate();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const logsPinning = useLogsPinning();
   const fields = useQueryParamsFields();
+  const search = useQueryParamsSearch();
+  const sortBys = useQueryParamsSortBys();
   const projects = useProjects();
 
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
@@ -404,11 +409,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
     sharedHoverTimeoutRef,
     timeout: prefetchTimeout,
   });
-  usePrefetchTraceItemDetailsOnMount({
-    prefetch,
-    enabled: isHighlighted,
-    isProjectReady,
-  });
+  usePrefetchTraceItemDetailsOnMount({prefetch, enabled: isHighlighted, isProjectReady});
   const [caseInsensitivity] = useCaseInsensitivity();
 
   // The table asks the API to truncate long strings for display, so the rendered
@@ -510,12 +511,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
         ? onEmbeddedRowClick
           ? {...hoverProps, onClick, isClickable: true}
           : {...hoverProps}
-        : {
-            ...hoverProps,
-            onPointerUp,
-            onTouchEnd: onPointerUp,
-            isClickable: true,
-          };
+        : {...hoverProps, onPointerUp, onTouchEnd: onPointerUp, isClickable: true};
 
   const scrollToLogMenuItems: MenuItemProps[] = onScrollToLog
     ? [
@@ -532,6 +528,53 @@ export const LogRowContent = memo(function LogRowContentImpl({
         },
       ]
     : [];
+
+  const traceId = dataRow[OurLogKnownFieldKey.TRACE_ID];
+  const traceContextQuery = traceId
+    ? MutableSearch.fromQueryObject({
+        [OurLogKnownFieldKey.TRACE_ID]: String(traceId),
+      }).formatString()
+    : undefined;
+
+  function getViewInContextMenuItem(
+    context: 'trace' | 'time',
+    query: string | undefined
+  ): MenuItemProps {
+    return {
+      key: `view-in-${context}-context`,
+      label: context === 'trace' ? t('View in trace context') : t('View in time context'),
+      externalHref: getLogsUrl({
+        organization,
+        selection,
+        query,
+        field: fields.includes(OurLogKnownFieldKey.TIMESTAMP)
+          ? fields
+          : [OurLogKnownFieldKey.TIMESTAMP, ...fields],
+        sortBy: encodeSort(getTimeBasedSortBy(sortBys) ?? logsTimestampDescendingSortBy),
+        pinnedRowIds: Array.from(
+          new Set([...(logsPinning?.getPinnedRowIds() ?? []), rowId])
+        ),
+        rowId,
+        anchorTimestamp: String(dataRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]),
+      }),
+      onAction: () => {
+        trackAnalytics('logs.table.row_viewed_in_context', {
+          context,
+          log_id: rowId,
+          organization,
+        });
+      },
+    };
+  }
+
+  const viewInContextMenuItems: MenuItemProps[] = isFrozen
+    ? []
+    : [
+        ...(search.isEmpty() ? [] : [getViewInContextMenuItem('time', undefined)]),
+        ...(traceContextQuery && search.formatString() !== traceContextQuery
+          ? [getViewInContextMenuItem('trace', traceContextQuery)]
+          : []),
+      ];
 
   const buttonSize = 'xs';
   const chevronIcon = (
@@ -702,10 +745,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
             );
 
             const discoverColumn: TableColumn<keyof OurLogsResponseItem> = {
-              column: {
-                field,
-                kind: 'field',
-              },
+              column: {field, kind: 'field'},
               name: field,
               key: field,
               isSortable: true,
@@ -745,6 +785,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
                             } else {
                               params.set(LOGS_QUERY_KEY, `id:${logId}`);
                               params.delete(LOGS_ROW_ID_KEY);
+                              params.delete(LOGS_ANCHOR_TIMESTAMP_KEY);
                             }
                           });
                           copy(url, {
@@ -765,7 +806,11 @@ export const LogRowContent = memo(function LogRowContentImpl({
                       }
                     }}
                     allowActions={ALLOWED_CELL_ACTIONS}
-                    extraMenuItems={[...(extraMenuItems ?? []), ...scrollToLogMenuItems]}
+                    extraMenuItems={[
+                      ...(extraMenuItems ?? []),
+                      ...scrollToLogMenuItems,
+                      ...viewInContextMenuItems,
+                    ]}
                     pin={pin}
                   >
                     {renderedField}
@@ -831,6 +876,9 @@ function LogRowDetails({
     project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
   });
   const projectSlug = project?.slug ?? '';
+  const useRawAttributeNames = organization.features.includes(
+    'trace-item-details-raw-attribute-names'
+  );
   const getActions = useLogAttributesTreeActions({embedded});
   const [caseInsensitivity] = useCaseInsensitivity();
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
@@ -854,6 +902,24 @@ function LogRowDetails({
   });
 
   const {data, isPending, isError} = fullLogDataResult;
+  const timestamp = dataRow[OurLogKnownFieldKey.TIMESTAMP];
+  const sortedAttributes = useMemo(() => {
+    if (!data) {
+      return [];
+    }
+    const attributes = toSplicedSorted(
+      data.attributes.filter(
+        attribute => !HiddenLogDetailFields.includes(attribute.name)
+      ),
+      {name: OurLogKnownFieldKey.TIMESTAMP, type: 'str', value: timestamp},
+      (a, b) => a.name.localeCompare(b.name)
+    );
+    return useRawAttributeNames
+      ? attributes.toSorted((a, b) =>
+          (a.rawName ?? a.name).localeCompare(b.rawName ?? b.name)
+        )
+      : attributes;
+  }, [data, timestamp, useRawAttributeNames]);
 
   const theme = useTheme();
   const logColors = getLogColors(level, theme);
@@ -863,9 +929,7 @@ function LogRowDetails({
         it[attr.name] = getScalarAttributeValue(attr);
         return it;
       },
-      {
-        [OurLogKnownFieldKey.TIMESTAMP]: dataRow[OurLogKnownFieldKey.TIMESTAMP],
-      }
+      {[OurLogKnownFieldKey.TIMESTAMP]: dataRow[OurLogKnownFieldKey.TIMESTAMP]}
     ) ?? {};
   const attributeTypes =
     data?.attributes?.reduce<Record<string, TraceItemResponseAttribute['type']>>(
@@ -927,17 +991,7 @@ function LogRowDetails({
               </DetailsBody>
               <LogAttributeTreeWrapper>
                 <AttributesTree<RendererExtra>
-                  attributes={toSplicedSorted(
-                    data.attributes.filter(
-                      attribute => !HiddenLogDetailFields.includes(attribute.name)
-                    ),
-                    {
-                      name: OurLogKnownFieldKey.TIMESTAMP,
-                      type: 'str',
-                      value: dataRow[OurLogKnownFieldKey.TIMESTAMP],
-                    },
-                    (a, b) => a.name.localeCompare(b.name)
-                  )}
+                  attributes={sortedAttributes}
                   getCustomActions={getActions}
                   getAdjustedAttributeKey={adjustAliases}
                   config={{attributeDetailsType: 'log'}}
@@ -967,10 +1021,7 @@ function LogRowDetails({
       </LogDetailTableBodyCell>
       {!isPending && data && (
         <LogDetailTableActionsCell
-          style={{
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
+          style={{alignItems: 'center', justifyContent: 'space-between'}}
         >
           <LogRowDetailsActions
             routingHint={routingHint}
@@ -993,10 +1044,7 @@ function LogRowDetailsFilterActions({filter}: {filter: MessageFilter}) {
         size="sm"
         icon={<IconAdd />}
         onClick={() => {
-          addSearchFilter({
-            key: filter.key,
-            value: filter.value,
-          });
+          addSearchFilter({key: filter.key, value: filter.value});
         }}
       >
         {t('Add to filter')}
@@ -1006,11 +1054,7 @@ function LogRowDetailsFilterActions({filter}: {filter: MessageFilter}) {
         size="sm"
         icon={<IconSubtract />}
         onClick={() => {
-          addSearchFilter({
-            key: filter.key,
-            value: filter.value,
-            negated: true,
-          });
+          addSearchFilter({key: filter.key, value: filter.value, negated: true});
         }}
       >
         {t('Exclude from filter')}
@@ -1048,8 +1092,14 @@ function LogRowDetailsActions({
 
   const {copy} = useCopyToClipboard();
 
+  const useRawAttributeNames = organization.features.includes(
+    'trace-item-details-raw-attribute-names'
+  );
   // Memoize in case we are attempting to copy large JSON objects.
-  const json = useMemo(() => ourlogToJson(data), [data]);
+  const json = useMemo(
+    () => ourlogToJson(data, useRawAttributeNames),
+    [data, useRawAttributeNames]
+  );
   let logDebugEndpoint: string | undefined;
 
   if (user.isSuperuser && projectSlug && isRegularLogResponseItem(tableDataRow)) {
@@ -1070,16 +1120,18 @@ function LogRowDetailsActions({
         query.set('routing_hint', routingHint);
       }
 
-      logDebugEndpoint = `/api/0${getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/trace-items/$itemId/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectSlug,
-            itemId: logId,
-          },
-        }
-      )}?${query}`;
+      logDebugEndpoint = resolveHostname(
+        `/api/0${getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/trace-items/$itemId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: projectSlug,
+              itemId: logId,
+            },
+          }
+        )}?${query}`
+      );
     }
   }
 
@@ -1087,15 +1139,14 @@ function LogRowDetailsActions({
     if (!json) {
       return;
     }
-    copy(json, {
-      successMessage: t('Copied!'),
-      errorMessage: t('Failed to copy'),
-    }).then(() => {
-      trackAnalytics('logs.table.row_copied_as_json', {
-        log_id: String(tableDataRow[OurLogKnownFieldKey.ID]),
-        organization,
-      });
-    });
+    copy(json, {successMessage: t('Copied!'), errorMessage: t('Failed to copy')}).then(
+      () => {
+        trackAnalytics('logs.table.row_copied_as_json', {
+          log_id: String(tableDataRow[OurLogKnownFieldKey.ID]),
+          organization,
+        });
+      }
+    );
   };
 
   return (

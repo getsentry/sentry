@@ -1,18 +1,13 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
-import moment from 'moment-timezone';
-
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
+import {ChartBandTooltipHeading} from 'sentry/components/charts/bands/chartBandTooltip';
 import {
   droppedDataLabel,
   formatDroppedShare,
   outcomeLabel,
 } from 'sentry/components/droppedData/outcomes';
 import type {DroppedDataBucket} from 'sentry/components/droppedData/types';
-import {getFormat} from 'sentry/utils/dates';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
@@ -22,22 +17,7 @@ interface Ratio {
 }
 
 function formatCountRatio(value: number, total: number): Ratio {
-  return {
-    value: formatAbbreviatedNumber(value),
-    total: formatAbbreviatedNumber(total),
-  };
-}
-
-function formatBucketRange(start: number, end: number, timezone: string): string {
-  const startMoment = moment.tz(start, timezone);
-  const endMoment = moment.tz(end, timezone);
-  const showYear = startMoment.year() !== moment().year();
-
-  const endFormat = startMoment.isSame(endMoment, 'day')
-    ? getFormat({timeOnly: true, timeZone: true})
-    : getFormat({year: showYear, timeZone: true});
-
-  return `${startMoment.format(getFormat({year: showYear}))} - ${endMoment.format(endFormat)}`;
+  return {value: formatAbbreviatedNumber(value), total: formatAbbreviatedNumber(total)};
 }
 
 function totalEventCount(bucket: DroppedDataBucket): number {
@@ -56,51 +36,34 @@ function VolumeRow({label, value, total}: Ratio & {label: string}) {
   );
 }
 
-interface DroppedDataTooltipProps {
+interface DroppedDataTooltipSectionProps {
   bucket: DroppedDataBucket;
   dataset: DiscoverDatasets;
-  timezone: string;
 }
 
-export function DroppedDataTooltip({bucket, dataset, timezone}: DroppedDataTooltipProps) {
+export function DroppedDataTooltipSection({
+  bucket,
+  dataset,
+}: DroppedDataTooltipSectionProps) {
   const totalEvents = totalEventCount(bucket);
 
   return (
-    <Fragment>
-      <TooltipBody className="tooltip-series">
-        <Flex as="header" justify="between" gap="2xl" padding="lg xl">
-          <Text bold>{droppedDataLabel(dataset)}</Text>
-          <Text bold tabular>
-            {formatDroppedShare(bucket.ratio)}
-          </Text>
-        </Flex>
-        {bucket.byOutcome.length > 0 && (
-          <Fragment>
-            <Separator orientation="horizontal" />
-            <Stack as="section" gap="md" padding="lg xl">
-              {bucket.byOutcome.map(outcome => (
-                <VolumeRow
-                  key={outcome.outcome}
-                  label={outcomeLabel(outcome.outcome)}
-                  {...formatCountRatio(outcome.count, totalEvents)}
-                />
-              ))}
-            </Stack>
-          </Fragment>
-        )}
-      </TooltipBody>
-      <Container className="tooltip-footer tooltip-footer-centered">
-        <Text size="xs" variant="muted">
-          {formatBucketRange(bucket.start, bucket.end, timezone)}
-        </Text>
-      </Container>
-      <div className="tooltip-arrow arrow-top" />
-    </Fragment>
+    <Container as="section">
+      <ChartBandTooltipHeading
+        label={droppedDataLabel(dataset)}
+        value={formatDroppedShare(bucket.ratio)}
+      />
+      {bucket.byOutcome.length > 0 && (
+        <Stack gap="md" padding="0 xl lg">
+          {bucket.byOutcome.map(outcome => (
+            <VolumeRow
+              key={outcome.outcome}
+              label={outcomeLabel(outcome.outcome)}
+              {...formatCountRatio(outcome.count, totalEvents)}
+            />
+          ))}
+        </Stack>
+      )}
+    </Container>
   );
 }
-
-const TooltipBody = styled(Container)`
-  &&& {
-    padding: 0;
-  }
-`;

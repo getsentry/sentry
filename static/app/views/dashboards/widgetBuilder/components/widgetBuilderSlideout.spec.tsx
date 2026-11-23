@@ -53,10 +53,7 @@ describe('WidgetBuilderSlideout', () => {
       statusCode: 200,
     });
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -190,9 +187,7 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
     renderGlobalModal();
 
@@ -219,9 +214,7 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     renderGlobalModal();
@@ -469,9 +462,7 @@ describe('WidgetBuilderSlideout', () => {
       expect(onSave).toHaveBeenCalledWith({
         index: 1,
         widget: expect.objectContaining({
-          thresholds: expect.objectContaining({
-            timeWindow: '1h',
-          }),
+          thresholds: expect.objectContaining({timeWindow: '1h'}),
         }),
       });
     });
@@ -535,17 +526,12 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     await userEvent.click(await screen.findByText('Add Widget'));
 
-    expect(onSave).toHaveBeenCalledWith({
-      index: undefined,
-      widget: expect.any(Object),
-    });
+    expect(onSave).toHaveBeenCalledWith({index: undefined, widget: expect.any(Object)});
   });
 
   it('should render the widget template title if templates selected', () => {
@@ -563,9 +549,7 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(screen.getByText('Widget Library')).toBeInTheDocument();
@@ -586,9 +570,7 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     screen.getByText('Widget Library');
@@ -634,9 +616,7 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={setOpenWidgetTemplates}
         />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     await userEvent.click(screen.getByText('Duration Distribution'));
@@ -694,10 +674,7 @@ describe('WidgetBuilderSlideout', () => {
           route: '/dashboards/:widgetIndex/',
           location: {
             pathname: '/dashboards/1/',
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.LINE,
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
           },
         },
       }
@@ -711,6 +688,51 @@ describe('WidgetBuilderSlideout', () => {
     ).toBeInTheDocument();
 
     expect(screen.getAllByTestId('transaction-widget-disabled-wrapper')).toHaveLength(2);
+  });
+
+  it('links to the spans dataset keeping only the page filters when editing a transaction widget', async () => {
+    const organizationWithFeature = OrganizationFixture({
+      features: [
+        'discover-saved-queries-deprecation',
+        'performance-transaction-deprecation-banner',
+      ],
+    });
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithFeature,
+        initialRouterConfig: {
+          route: '/dashboards/:widgetIndex/',
+          location: {
+            pathname: '/dashboards/1/',
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              project: ['1', '2'],
+              environment: 'prod',
+              statsPeriod: '7d',
+              utc: 'true',
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByRole('link', {name: 'spans'})).toHaveAttribute(
+      'href',
+      '/dashboards/1/?environment=prod&project=1&project=2&statsPeriod=7d&utc=true'
+    );
   });
 
   it('should not show deprecation alert when flag enabled', async () => {
@@ -733,10 +755,7 @@ describe('WidgetBuilderSlideout', () => {
           route: '/dashboards/:widgetIndex/',
           location: {
             pathname: '/dashboards/1/',
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.LINE,
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
           },
         },
       }
@@ -774,10 +793,7 @@ describe('WidgetBuilderSlideout', () => {
         initialRouterConfig: {
           location: {
             pathname: '/dashboards/',
-            query: {
-              dataset: WidgetType.ISSUE,
-              displayType: DisplayType.LINE,
-            },
+            query: {dataset: WidgetType.ISSUE, displayType: DisplayType.LINE},
           },
         },
       }
@@ -808,12 +824,7 @@ describe('WidgetBuilderSlideout', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/dashboards/',
-            query: {
-              displayType: DisplayType.TEXT,
-            },
-          },
+          location: {pathname: '/dashboards/', query: {displayType: DisplayType.TEXT}},
         },
       }
     );
@@ -840,12 +851,7 @@ describe('WidgetBuilderSlideout', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/dashboards/',
-            query: {
-              displayType: DisplayType.TEXT,
-            },
-          },
+          location: {pathname: '/dashboards/', query: {displayType: DisplayType.TEXT}},
         },
       }
     );
@@ -873,12 +879,7 @@ describe('WidgetBuilderSlideout', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/dashboards/',
-            query: {
-              displayType: DisplayType.TEXT,
-            },
-          },
+          location: {pathname: '/dashboards/', query: {displayType: DisplayType.TEXT}},
         },
       }
     );
@@ -902,9 +903,7 @@ describe('WidgetBuilderSlideout', () => {
         setOpenWidgetTemplates={jest.fn()}
       />,
       {
-        organization: OrganizationFixture({
-          features: ['tracemetrics-enabled'],
-        }),
+        organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
         initialRouterConfig: {
           location: {
             pathname: '/dashboards/',
@@ -947,9 +946,7 @@ describe('WidgetBuilderSlideout', () => {
         setOpenWidgetTemplates={jest.fn()}
       />,
       {
-        organization: OrganizationFixture({
-          features: ['tracemetrics-enabled'],
-        }),
+        organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
         initialRouterConfig: {
           location: {
             pathname: '/dashboards/',
@@ -994,9 +991,7 @@ describe('WidgetBuilderSlideout', () => {
         setOpenWidgetTemplates={jest.fn()}
       />,
       {
-        organization: OrganizationFixture({
-          features: ['tracemetrics-enabled'],
-        }),
+        organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
         initialRouterConfig: {
           location: {
             pathname: '/dashboards/',
@@ -1036,10 +1031,7 @@ describe('WidgetBuilderSlideout', () => {
         initialRouterConfig: {
           location: {
             pathname: '/dashboards/',
-            query: {
-              dataset: WidgetType.ISSUE,
-              displayType: DisplayType.LINE,
-            },
+            query: {dataset: WidgetType.ISSUE, displayType: DisplayType.LINE},
           },
         },
       }

@@ -28,7 +28,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  makeFetchSecretQueryKey,
+  makeFetchSecretOptions,
   type Secret,
 } from 'sentry/views/settings/featureFlags/changeTracking';
 
@@ -82,10 +82,7 @@ export function NewProviderForm({
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'POST',
-        data: {
-          provider: provider.toLowerCase(),
-          secret,
-        },
+        data: {provider: provider.toLowerCase(), secret},
       });
     },
     onSuccess: (_response, {secret, provider}) => {
@@ -93,7 +90,7 @@ export function NewProviderForm({
       onCreatedSecret(secret);
       setSelectedProvider(provider);
       queryClient.invalidateQueries({
-        queryKey: makeFetchSecretQueryKey({orgSlug: organization.slug}),
+        queryKey: makeFetchSecretOptions({orgSlug: organization.slug}).queryKey,
       });
     },
     onError: error => {

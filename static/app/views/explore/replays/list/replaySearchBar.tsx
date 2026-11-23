@@ -1,7 +1,8 @@
 import {useCallback, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 
-import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
+import {fetchTagValues, organizationTagsApiOptions} from 'sentry/actionCreators/tags';
 import {EMAIL_REGEX} from 'sentry/components/events/contexts/knownContext/user';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
@@ -30,14 +31,7 @@ const getReplayFieldDefinition = (key: string) => getFieldDefinition(key, 'repla
 
 function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
   return Object.fromEntries(
-    fieldKeys.map(key => [
-      key,
-      {
-        key,
-        name: key,
-        ...getReplayFieldDefinition(key),
-      },
-    ])
+    fieldKeys.map(key => [key, {key, name: key, ...getReplayFieldDefinition(key)}])
   );
 }
 
@@ -104,11 +98,7 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
       label: t('Tap Fields'),
       children: Object.keys(REPLAY_TAP_FIELDS_AS_TAGS),
     },
-    {
-      value: FieldKind.TAG,
-      label: t('Tags'),
-      children: orderedTagKeys,
-    },
+    {value: FieldKind.TAG, label: t('Tags'), children: orderedTagKeys},
   ];
 };
 
@@ -134,27 +124,22 @@ export function ReplaySearchBar(props: Props) {
     : undefined;
   const statsPeriod = pageFilters.datetime.period;
 
-  const tagQuery = useFetchOrganizationTags(
-    {
+  const {data: tags} = useQuery(
+    organizationTagsApiOptions({
       orgSlug: organization.slug,
       projectIds: projectIds.map(String),
       dataset: Dataset.REPLAYS,
-      useCache: true,
-      enabled: true,
-      keepPreviousData: false,
       start,
       end,
       statsPeriod,
-    },
-    {}
+    })
   );
   const customTags = useMemo(() => {
-    return (tagQuery.data ?? []).reduce<TagCollection>((acc, tag) => {
+    return (tags ?? []).reduce<TagCollection>((acc, tag) => {
       acc[tag.key] = {...tag, kind: FieldKind.TAG};
       return acc;
     }, {});
-  }, [tagQuery]);
-  // tagQuery.isLoading and tagQuery.isError are not used
+  }, [tags]);
 
   const filterKeys = useMemo(() => getReplayFilterKeys(customTags), [customTags]);
   const filterKeySections = useMemo(() => {
@@ -169,11 +154,7 @@ export function ReplaySearchBar(props: Props) {
         return Promise.resolve([]);
       }
 
-      const endpointParams = {
-        start,
-        end,
-        statsPeriod,
-      };
+      const endpointParams = {start, end, statsPeriod};
 
       const searchName =
         tag.key in REPLAY_TAG_ALIASES
