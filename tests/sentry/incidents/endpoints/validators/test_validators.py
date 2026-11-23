@@ -1071,6 +1071,18 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         updated_detector = update_validator.save()
         assert updated_detector.name == new_name
 
+    def test_update_with_empty_data_sources(self) -> None:
+        detector = self.create_static_detector()
+
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data={"dataSources": []}, context=self.context, partial=True
+        )
+
+        assert not update_validator.is_valid()
+        assert update_validator.errors == {
+            "dataSources": [ErrorDetail(string="This list may not be empty.", code="empty")]
+        }
+
     def test_update_enabled_ignores_subscription_outside_detector_project(self) -> None:
         detector = self.create_static_detector()
         other_project = self.create_project(organization=self.create_organization())
