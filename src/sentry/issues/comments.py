@@ -8,9 +8,7 @@ from uuid import uuid4
 from django.db import router, transaction
 from django.utils import timezone
 
-from sentry.inbox.issue import ISSUE_TEAM_MENTIONED, ISSUE_USER_MENTIONED, IssueMentionedData
-from sentry.inbox.types import SYSTEM_ACTOR as INBOX_SYSTEM_ACTOR
-from sentry.inbox.types import InboxActor
+from sentry.inbox.issue_activity import issue_activity_inbox_calls
 from sentry.integrations.tasks.create_comment import create_comment as create_external_comment
 from sentry.integrations.tasks.update_comment import update_comment as update_external_comment
 from sentry.issues.action_log import (
@@ -24,11 +22,9 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.notifications.platform.inbox import create_inbox_items
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import comment_created, comment_deleted, comment_updated
 from sentry.types.activity import ActivityType
-from sentry.types.actor import ActorType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.safe import safe_execute
@@ -105,10 +101,8 @@ def create_comment(
         assert service_account_id is not None
         data = {**data, "service_account_id": service_account_id}
         action_actor = SYSTEM_ACTOR
-        inbox_actor = INBOX_SYSTEM_ACTOR
     else:
         action_actor = GroupActionActor.user(user.id)
-        inbox_actor = InboxActor.user(user.id)
 
     with _comment_transaction(group) as group:
         duplicates = Activity.objects.filter(group=group, type=ActivityType.NOTE.value, data=data)
@@ -135,27 +129,8 @@ def create_comment(
                 user_id=user.id if user is not None else None,
                 data=data,
             )
-            mentions = data.get("mentions", [])
-            safe_execute(
-                create_inbox_items,
-                event_type=ISSUE_USER_MENTIONED,
-                subject=group,
-                data=IssueMentionedData(comment_id=note.id),
-                user_ids=[
-                    mention["id"] for mention in mentions if mention["actor_type"] == ActorType.USER
-                ],
-                actor=inbox_actor,
-            )
-            safe_execute(
-                create_inbox_items,
-                event_type=ISSUE_TEAM_MENTIONED,
-                subject=group,
-                data=IssueMentionedData(comment_id=note.id),
-                team_ids=[
-                    mention["id"] for mention in mentions if mention["actor_type"] == ActorType.TEAM
-                ],
-                actor=inbox_actor,
-            )
+            for record in issue_activity_inbox_calls(note, group):
+                safe_execute(record)
             if user is not None and not from_email:
                 _after_commit(partial(_sync_comment, note, user.id, created=True))
 
