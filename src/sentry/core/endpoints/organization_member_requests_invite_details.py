@@ -138,9 +138,11 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
         team_assignments: tuple[TeamAssignment, ...] | None = result.get("teamRoles")
 
         if result.get("orgRole"):
-            member.save_role(result["orgRole"])
+            member.role = result["orgRole"]
+            member.save()
         elif result.get("role"):
-            member.save_role(result["role"])
+            member.role = result["role"]
+            member.save()
 
         # Do not set team-roles when inviting members
         if "teamRoles" in result or "teams" in result:

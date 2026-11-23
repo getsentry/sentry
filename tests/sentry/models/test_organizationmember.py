@@ -634,16 +634,11 @@ class OrganizationMemberAsyncReplicationTest(TestCase):
         return mock_drain_shard.called
 
     def test_option_off_keeps_sync(self) -> None:
-        assert self._drains(lambda: self.member.save_role("admin"))
+        assert self._drains(lambda: self.member.update(role="admin"))
 
-    def test_non_owner_role_change_is_async(self) -> None:
+    def test_existing_member_write_is_async(self) -> None:
         with self.options({self.OPTION: True}):
-            assert not self._drains(lambda: self.member.save_role("admin"))
-
-    def test_owner_role_change_is_sync(self) -> None:
-        with self.options({self.OPTION: True}):
-            assert self._drains(lambda: self.member.save_role("owner"))
-            assert self._drains(lambda: self.member.save_role("member"))
+            assert not self._drains(lambda: self.member.update(role="admin"))
 
     def test_new_member_with_user_is_sync(self) -> None:
         user = self.create_user()
@@ -654,18 +649,14 @@ class OrganizationMemberAsyncReplicationTest(TestCase):
                 )
             )
 
-    def test_new_invite_is_async_unless_owner(self) -> None:
+    def test_new_invite_is_async(self) -> None:
         with self.options({self.OPTION: True}):
-            assert not self._drains(
-                lambda: OrganizationMember.objects.create(
-                    organization=self.org, email="invite@example.com", role="member"
+            for role in ("member", "owner"):
+                assert not self._drains(
+                    lambda: OrganizationMember.objects.create(
+                        organization=self.org, email=f"{role}-invite@example.com", role=role
+                    )
                 )
-            )
-            assert self._drains(
-                lambda: OrganizationMember.objects.create(
-                    organization=self.org, email="owner-invite@example.com", role="owner"
-                )
-            )
 
     def test_explicit_flush_wins(self) -> None:
         def save_synced() -> None:
@@ -758,7 +749,7 @@ class OrganizationMemberAsyncReplicationTest(TestCase):
         with self.options({self.OPTION: True}):
             with self.captureOnCommitCallbacks(execute=True):
                 with transaction.atomic(router.db_for_write(OrganizationMember)):
-                    self.member.save_role("admin")  # async
+                    self.member.update(role="admin")  # async
                     OrganizationMember.objects.create(  # sync
                         organization=self.org, user_id=user.id, role="member"
                     )

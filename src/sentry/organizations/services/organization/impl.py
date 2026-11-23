@@ -578,16 +578,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self, *, organization_id: int, member_id: int, attrs: OrganizationMemberUpdateArgs
     ) -> RpcOrganizationMember | None:
         member = OrganizationMember.objects.get(id=member_id)
-        with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
+        # Control reads the owner role, so changes to or from owner replicate right away.
+        top_dog = roles.get_top_dog().id
+        new_role = attrs.get("role", member.role)
+        owner_change = new_role != member.role and top_dog in (member.role, new_role)
+        with outbox_context(
+            transaction.atomic(router.db_for_write(OrganizationMember)),
+            flush=True if owner_change else None,
+        ):
             if len(attrs):
                 for k, v in attrs.items():
-                    if k != "role":
-                        setattr(member, k, v)
-                # save_role replicates owner changes right away.
-                if "role" in attrs:
-                    member.save_role(attrs["role"])
-                else:
-                    member.save()
+                    setattr(member, k, v)
+                member.save()
 
         return serialize_member(member)
 
