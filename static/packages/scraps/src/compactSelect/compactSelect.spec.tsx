@@ -5,7 +5,7 @@ import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import {useListState} from '@react-stately/list';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
-import {act, render, screen, waitFor, within} from '@testing-library/react';
+import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {expectTypeOf} from 'expect-type';
 
@@ -16,6 +16,8 @@ import {
   type OverlayTriggerIconButtonProps,
 } from '@sentry/scraps/overlayTrigger';
 import {lightTheme} from '@sentry/scraps/theme';
+
+import {stubScrollLayout} from '../../test/scrollLayout';
 
 import {ListBox} from './listBox';
 import {CompactSelect, getEscapedKey, type SelectOption} from './';
@@ -1987,68 +1989,7 @@ describe('CompactSelect', () => {
   });
 
   describe('virtualization', () => {
-    // jsdom does not lay out or scroll. Give elements a height so the list has
-    // a viewport and room to scroll, and make scrollTo move the scroll position
-    // like a browser does.
-    const stubs: Array<[typeof Element.prototype, string, PropertyDescriptor]> = [
-      [HTMLElement.prototype, 'offsetHeight', {get: () => 100}],
-      [Element.prototype, 'clientHeight', {get: () => 100}],
-      [Element.prototype, 'scrollHeight', {get: () => 50_000}],
-      [
-        Element.prototype,
-        'getBoundingClientRect',
-        {
-          // Content moves up as its scroll element scrolls, like in a browser.
-          value(this: Element) {
-            let top = 0;
-            // oxlint-disable-next-line testing-library/no-node-access
-            for (let el = this.parentElement; el; el = el.parentElement) {
-              top -= el.scrollTop;
-            }
-            return {
-              top,
-              bottom: top,
-              y: top,
-              left: 0,
-              right: 0,
-              x: 0,
-              width: 0,
-              height: 0,
-            };
-          },
-        },
-      ],
-      [
-        Element.prototype,
-        'scrollTo',
-        {
-          value(this: Element, options?: ScrollToOptions) {
-            this.scrollTop = options?.top ?? this.scrollTop;
-            this.dispatchEvent(new Event('scroll'));
-          },
-        },
-      ],
-    ];
-    const originals = stubs.map(
-      ([target, name]) =>
-        [target, name, Object.getOwnPropertyDescriptor(target, name)] as const
-    );
-
-    beforeEach(() => {
-      for (const [target, name, descriptor] of stubs) {
-        Object.defineProperty(target, name, {configurable: true, ...descriptor});
-      }
-    });
-
-    afterEach(() => {
-      for (const [target, name, descriptor] of originals) {
-        if (descriptor) {
-          Object.defineProperty(target, name, descriptor);
-        } else {
-          Reflect.deleteProperty(target, name);
-        }
-      }
-    });
+    stubScrollLayout();
 
     const options = Array.from({length: 500}, (_, i) => ({
       value: `${i}`,
@@ -2065,11 +2006,11 @@ describe('CompactSelect', () => {
     }));
 
     it.each([
-      ['list box', undefined, 'listbox', 'option'],
-      ['grid', 'grid', 'grid', 'row'],
+      ['list box', undefined, 'option'],
+      ['grid', 'grid', 'row'],
     ] as const)(
       'keeps keyboard focus on an option of a %s scrolled out of view',
-      async (_, mode, listRole, optionRole) => {
+      async (_, mode, optionRole) => {
         render(
           <CompactSelect
             mode={mode}
@@ -2086,15 +2027,11 @@ describe('CompactSelect', () => {
           expect(screen.getByRole(optionRole, {name: 'Option 0'})).toHaveFocus()
         );
 
-        // The list scrolls inside a wrapper, which has no role to query.
-        // oxlint-disable-next-line testing-library/no-node-access
-        const scroller = screen.getByRole(listRole).parentElement;
-        if (!scroller) {
-          throw new Error('The list has no scroll wrapper');
-        }
-        // userEvent cannot scroll. The scrollTo stub above fires the scroll
-        // event, like a user scrolling with the wheel or the scrollbar.
-        act(() => scroller.scrollTo({top: 10_000}));
+        // userEvent cannot scroll, so fire the event a user scrolling with the
+        // wheel or the scrollbar would.
+        fireEvent.scroll(screen.getByTestId('select-scroll-area'), {
+          target: {scrollTop: 10_000},
+        });
         await waitFor(() =>
           expect(
             screen.queryByRole(optionRole, {name: 'Option 1'})
@@ -2194,16 +2131,20 @@ describe('CompactSelect', () => {
         );
       }
 
-      // The space reserved below the mounted rows, for the rows that are not.
+      // The space reserved for the rows that are not mounted.
       async function getSpaceBelowRows(showSectionHeaders: boolean) {
         const {unmount} = render(
           <SectionedListBox showSectionHeaders={showSectionHeaders} />,
           {wrapper: ThemeWrapper}
         );
         await screen.findAllByRole('option');
-        // oxlint-disable-next-line testing-library/no-node-access -- Spacers have no accessible role.
-        const spacers = screen.getByRole('listbox').querySelectorAll('li[aria-hidden]');
-        const height = parseFloat(getComputedStyle(spacers[spacers.length - 1]!).height);
+        // Spacers are hidden from the accessibility tree.
+        const height = within(screen.getByRole('listbox'))
+          .getAllByRole('presentation', {hidden: true})
+          .reduce(
+            (total, spacer) => total + parseFloat(getComputedStyle(spacer).height),
+            0
+          );
         unmount();
         return height;
       }

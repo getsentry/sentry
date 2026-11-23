@@ -111,7 +111,7 @@ function CompositeSelect({
     <Control {...controlProps} mode={mode} size={size} disabled={disabled} items={items}>
       <FocusScope>
         <SharedScrollElementContext value={regionsElement}>
-          <RegionsWrap ref={setRegionsElement}>
+          <RegionsWrap ref={setRegionsElement} data-test-id="composite-select-regions">
             {Children.map(children, child => {
               if (!child) {
                 return null;

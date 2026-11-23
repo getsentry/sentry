@@ -117,7 +117,7 @@ describe('useVirtualCollection', () => {
   });
 
   afterEach(() => {
-    offsetHeight.mockRestore();
+    jest.restoreAllMocks();
   });
 
   it('mounts a window of rows and fills the rest of the list with spacers', () => {
@@ -236,12 +236,12 @@ describe('useVirtualCollection', () => {
   it('places the rows below content that scrolls above the list', () => {
     const contentHeight = 500;
     // jsdom does not lay out: put the list below the content.
-    const rect = jest
-      .spyOn(Element.prototype, 'getBoundingClientRect')
-      .mockImplementation(function (this: Element) {
-        const top = this.getAttribute('aria-label') === 'Rows' ? contentHeight : 0;
-        return {top, bottom: top, left: 0, right: 0, height: 0, width: 0} as DOMRect;
-      });
+    jest.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: Element
+    ) {
+      const top = this.getAttribute('aria-label') === 'Rows' ? contentHeight : 0;
+      return new DOMRect(0, top, 0, 0);
+    });
 
     render(<ListBelowContent contentHeight={contentHeight} />, {wrapper: ThemeWrapper});
 
@@ -255,7 +255,5 @@ describe('useVirtualCollection', () => {
     expect(keys).toContain('row-100');
     // Spacers stand in for the list's rows only, not the content above it.
     expect(sum(spacerHeights()) + keys.length * ROW_HEIGHT).toBe(ROW_COUNT * ROW_HEIGHT);
-
-    rect.mockRestore();
   });
 });

@@ -1,12 +1,14 @@
 import type * as React from 'react';
 import {useState} from 'react';
 import {ThemeProvider} from '@emotion/react';
-import {act, render, screen, waitFor} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import {CompositeSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {lightTheme} from '@sentry/scraps/theme';
+
+import {stubScrollLayout} from '../../test/scrollLayout';
 
 describe('CompositeSelect', () => {
   it('renders', async () => {
@@ -409,68 +411,7 @@ describe('CompositeSelect', () => {
   });
 
   describe('virtualization', () => {
-    // jsdom does not lay out or scroll. Give elements a height so the regions
-    // have a viewport and room to scroll, and make scrollTo move the scroll
-    // position like a browser does.
-    const stubs: Array<[typeof Element.prototype, string, PropertyDescriptor]> = [
-      [HTMLElement.prototype, 'offsetHeight', {get: () => 100}],
-      [Element.prototype, 'clientHeight', {get: () => 100}],
-      [Element.prototype, 'scrollHeight', {get: () => 50_000}],
-      [
-        Element.prototype,
-        'getBoundingClientRect',
-        {
-          // Content moves up as its scroll element scrolls, like in a browser.
-          value(this: Element) {
-            let top = 0;
-            // oxlint-disable-next-line testing-library/no-node-access
-            for (let el = this.parentElement; el; el = el.parentElement) {
-              top -= el.scrollTop;
-            }
-            return {
-              top,
-              bottom: top,
-              y: top,
-              left: 0,
-              right: 0,
-              x: 0,
-              width: 0,
-              height: 0,
-            };
-          },
-        },
-      ],
-      [
-        Element.prototype,
-        'scrollTo',
-        {
-          value(this: Element, options?: ScrollToOptions) {
-            this.scrollTop = options?.top ?? this.scrollTop;
-            this.dispatchEvent(new Event('scroll'));
-          },
-        },
-      ],
-    ];
-    const originals = stubs.map(
-      ([target, name]) =>
-        [target, name, Object.getOwnPropertyDescriptor(target, name)] as const
-    );
-
-    beforeEach(() => {
-      for (const [target, name, descriptor] of stubs) {
-        Object.defineProperty(target, name, {configurable: true, ...descriptor});
-      }
-    });
-
-    afterEach(() => {
-      for (const [target, name, descriptor] of originals) {
-        if (descriptor) {
-          Object.defineProperty(target, name, descriptor);
-        } else {
-          Reflect.deleteProperty(target, name);
-        }
-      }
-    });
+    stubScrollLayout();
 
     it('virtualizes a large region in the element the regions scroll in', async () => {
       render(
@@ -499,23 +440,25 @@ describe('CompositeSelect', () => {
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Open menu'}));
-      expect(await screen.findByRole('option', {name: 'Option 0'})).toBeInTheDocument();
-      expect(screen.queryByRole('option', {name: 'Option 499'})).not.toBeInTheDocument();
+      const large = await screen.findByRole('listbox', {name: 'Large'});
+      expect(within(large).getByRole('option', {name: 'Option 0'})).toBeInTheDocument();
+      expect(
+        within(large).queryByRole('option', {name: 'Option 499'})
+      ).not.toBeInTheDocument();
 
-      // The regions scroll together in the element around their scroll areas.
-      const [firstList] = screen.getAllByRole('listbox');
-      // oxlint-disable-next-line testing-library/no-node-access
-      const scroller = firstList?.parentElement?.parentElement;
-      if (!scroller) {
-        throw new Error('The regions have no scroll element');
-      }
-      // userEvent cannot scroll. The scrollTo stub above fires the scroll event.
-      act(() => scroller.scrollTo({top: 10_000}));
+      // The regions scroll together, not in their own scroll areas. userEvent
+      // cannot scroll, so fire the event a user scrolling would.
+      fireEvent.scroll(screen.getByTestId('composite-select-regions'), {
+        target: {scrollTop: 10_000},
+      });
 
       await waitFor(() =>
-        expect(screen.queryByRole('option', {name: 'Option 1'})).not.toBeInTheDocument()
+        expect(
+          within(large).queryByRole('option', {name: 'Option 0'})
+        ).not.toBeInTheDocument()
       );
-      expect(screen.getAllByRole('option').length).toBeGreaterThan(1);
+      // The small region is not virtualized, so its option stays.
+      expect(screen.getByRole('option', {name: 'Small option'})).toBeInTheDocument();
     });
   });
 });

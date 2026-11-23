@@ -126,6 +126,7 @@ function GridList<T extends ListItemBase>({
       {listItems.length !== 0 && label && <ListLabel id={labelId}>{label}</ListLabel>}
       {overlayIsOpen && (
         <ListScrollArea
+          data-test-id="select-scroll-area"
           ref={setScrollElement}
           height="100%"
           overflowY="auto"

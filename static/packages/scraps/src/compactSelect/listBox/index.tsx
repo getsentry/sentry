@@ -262,6 +262,7 @@ export function ListBox<T extends ListItemBase>({
           <ListLabel {...labelProps}>{label}</ListLabel>
         )}
         <ListScrollArea
+          data-test-id="select-scroll-area"
           height="100%"
           overflowY="auto"
           margin="xs 0"
