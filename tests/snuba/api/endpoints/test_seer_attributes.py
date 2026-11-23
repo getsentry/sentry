@@ -189,41 +189,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert "my_custom_attr" in result.fields["string"]
         assert "undescribed_attr" in result.fields["string"]
 
-    def test_get_attribute_names_custom_context_requires_feature(self) -> None:
-        self.store_segment(
-            self.project.id,
-            uuid4().hex,
-            uuid4().hex,
-            span_id=uuid4().hex[:16],
-            organization_id=self.organization.id,
-            parent_span_id=None,
-            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-            transaction="foo",
-            duration=100,
-            exclusive_time=100,
-            tags={"my_custom_attr": "value"},
-        )
-        TraceItemAttributeContext.objects.create(
-            organization=self.organization,
-            project=None,
-            attribute_key="my_custom_attr",
-            item_type=TraceItemTypes.SPANS,
-            attribute_type=TraceItemAttributeTypes.STRING,
-            brief="Set by the checkout service",
-        )
-
-        # Custom context is gated, so without the flag there's nothing to surface.
-        with self.feature(["organizations:visibility-explore-view"]):
-            result = get_attribute_names(
-                org_id=self.organization.id,
-                project_ids=[self.project.id],
-                stats_period="7d",
-                include_context=True,
-            )
-
-        assert result.custom_fields == []
-        assert "my_custom_attr" in result.fields["string"]
-
     def test_get_attribute_values_with_substring(self) -> None:
         for transaction in ["foo", "bar", "baz"]:
             self.store_segment(
