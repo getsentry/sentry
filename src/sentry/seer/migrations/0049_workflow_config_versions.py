@@ -78,22 +78,4 @@ class Migration(CheckedMigration):
             name="source",
             field=models.CharField(max_length=32, null=True),
         ),
-        migrations.AddIndex(
-            model_name="seerworkflowrun",
-            index=models.Index(
-                condition=models.Q(("status__in", ("queued", "running"))),
-                fields=["date_added"],
-                name="seer_run_active_added_idx",
-            ),
-        ),
-        migrations.AddConstraint(
-            model_name="seerworkflowrun",
-            constraint=models.UniqueConstraint(
-                condition=models.Q(
-                    ("source__in", ("cron", "manual")), ("status__in", ("queued", "running"))
-                ),
-                fields=("workflow_config",),
-                name="seer_nightshiftrun_one_active_exclusive_run",
-            ),
-        ),
     ]

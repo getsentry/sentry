@@ -91,7 +91,7 @@ class SeerWorkflowConfigResponse(TypedDict):
     outputPolicy: dict[str, Any]
     seededDefault: str | None
     # The shapes the strategy's trigger and action declare, e.g. a scheduled investigation's
-    # {cron, timezone} and {prompt} or {skill}.
+    # {cron} and {prompt} or {skill}.
     triggerSettings: dict[str, Any]
     actionSettings: dict[str, Any]
     # When the automation next runs on its schedule, or None if it doesn't run on one.
@@ -431,7 +431,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         service account created for the automation.
 
         Scheduled investigations (``scheduled_investigation``) take ``triggerSettings``
-        (``cron`` and ``timezone``) and ``actionSettings`` (a ``prompt`` or a ``skill``).
+        (``cron``) and ``actionSettings`` (a ``prompt`` or a ``skill``).
 
         The number of automations per organization is capped, and creation is rate
         limited. A create the caller isn't allowed to make returns a 403. One that is
@@ -611,8 +611,8 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
           kept, and scopes can't be added while any are.
         - ``name`` renames the config. It is trimmed and must be non-empty.
         - ``triggerSettings`` and ``actionSettings`` replace the settings the strategy's
-          trigger and action take, such as a scheduled investigation's ``cron`` and
-          ``timezone``, and its ``prompt`` or ``skill``. Like enabling, they require access
+          trigger and action take, such as a scheduled investigation's ``cron``
+          and its ``prompt`` or ``skill``. Like enabling, they require access
           to every project the config covers.
 
         An update the caller isn't allowed to make returns a 403. One the automation

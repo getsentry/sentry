@@ -209,16 +209,6 @@ class SeerWorkflowCreateTest(TestCase):
                 extras=SeerWorkflowConfigExtras(trigger_settings={"cron": "not a cron"}),
                 service_account_grant=GRANT,
             )
-        with pytest.raises(WorkflowUpdateError, match="timezone: Unknown timezone"):
-            SeerWorkflow.create(
-                organization_id=self.organization.id,
-                strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
-                scope=AllProjects(),
-                extras=SeerWorkflowConfigExtras(
-                    trigger_settings={"cron": "0 9 * * 1", "timezone": "Mars/Olympus_Mons"}
-                ),
-                service_account_grant=GRANT,
-            )
         assert not SeerWorkflowConfig.objects.exists()
 
     def test_scheduled_investigation_runs_a_prompt_or_a_skill(self) -> None:
