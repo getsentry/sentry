@@ -16,8 +16,6 @@ from typing import Any
 from django.core import signing
 from django.http import parse_cookie
 
-from sentry import options
-
 COOKIE_NAME = "sentry-force-trace-sampling"
 MAX_AGE_SECONDS = 15 * 60
 
@@ -38,8 +36,13 @@ def create_grant_token(user_id: int) -> tuple[str, int]:
 
 
 def read_grant(token: str | None) -> ForceSamplingGrant | None:
-    """Returns the grant if the token is authentic, unexpired, and the feature is enabled."""
-    if not token or not options.get("tracing.force-sampling.enabled"):
+    """
+    Returns the grant if the token is authentic and unexpired.
+
+    This runs inside `traces_sampler`, so it must not read options or the database. A query
+    there has no active span, so it starts a new root span and calls the sampler again.
+    """
+    if not token:
         return None
 
     try:
@@ -48,6 +51,10 @@ def read_grant(token: str | None) -> ForceSamplingGrant | None:
         return None
 
     return ForceSamplingGrant(user_id=payload["user_id"], expires_at_ms=payload["expires_at_ms"])
+
+
+def get_grant_remaining_ms(grant: ForceSamplingGrant) -> int:
+    return max(0, grant.expires_at_ms - int(time.time() * 1000))
 
 
 def has_valid_grant_cookie(wsgi_environ: Mapping[str, Any] | None) -> bool:

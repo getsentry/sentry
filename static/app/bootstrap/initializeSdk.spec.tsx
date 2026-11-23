@@ -72,16 +72,16 @@ describe('initializeSdk', () => {
   });
 
   describe('force trace sampling', () => {
-    const now = 1_700_000_000_000;
+    const elapsedMs = 1_000;
 
     function getSampleRate(
-      forceTraceSamplingUntil: number | null,
+      forceTraceSamplingRemainingMs: number | null,
       parentSampled?: boolean
     ) {
       initializeSdk({
         ...window.__initialData,
         apmSampling: 0.2,
-        forceTraceSamplingUntil,
+        forceTraceSamplingRemainingMs,
         sentryConfig: {allowUrls: [], dsn: '', release: '', tracePropagationTargets: []},
       });
 
@@ -95,7 +95,7 @@ describe('initializeSdk', () => {
     }
 
     beforeEach(() => {
-      jest.spyOn(Date, 'now').mockReturnValue(now);
+      jest.spyOn(performance, 'now').mockReturnValue(elapsedMs);
     });
 
     afterEach(() => {
@@ -103,15 +103,21 @@ describe('initializeSdk', () => {
     });
 
     it('samples new traces while the grant is active', () => {
-      expect(getSampleRate(now + 1)).toBe(1);
+      expect(getSampleRate(elapsedMs + 1)).toBe(1);
     });
 
     it('keeps an unsampled parent decision', () => {
-      expect(getSampleRate(now + 1, false)).toBe(0.2);
+      expect(getSampleRate(elapsedMs + 1, false)).toBe(0.2);
     });
 
     it('uses the normal rate once the grant expires', () => {
-      expect(getSampleRate(now)).toBe(0.2);
+      expect(getSampleRate(elapsedMs)).toBe(0.2);
+    });
+
+    it('ignores the wall clock', () => {
+      jest.spyOn(Date, 'now').mockReturnValue(Number.MAX_SAFE_INTEGER);
+
+      expect(getSampleRate(elapsedMs + 1)).toBe(1);
     });
 
     it('uses the normal rate without a grant', () => {

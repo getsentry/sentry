@@ -40,6 +40,7 @@ from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.authenticator import Authenticator
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import DISABLE_SSO_CHECK_FOR_LOCAL_DEV, has_completed_sso, initiate_login
+from sentry.utils.force_trace_sampling import COOKIE_NAME as FORCE_TRACE_SAMPLING_COOKIE
 from sentry.utils.settings import is_self_hosted
 from sudo.utils import grant_sudo_privileges
 
@@ -394,6 +395,12 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         response = Response()
         response.delete_cookie(settings.CSRF_COOKIE_NAME, domain=settings.CSRF_COOKIE_DOMAIN)
         response.delete_cookie(settings.SESSION_COOKIE_NAME, domain=settings.SESSION_COOKIE_DOMAIN)
+        # The sampler can't see the session, so this grant would outlive it otherwise.
+        response.delete_cookie(
+            FORCE_TRACE_SAMPLING_COOKIE,
+            path=settings.SESSION_COOKIE_PATH,
+            domain=settings.SESSION_COOKIE_DOMAIN,
+        )
 
         if referrer := request.GET.get("referrer"):
             analytics.record(

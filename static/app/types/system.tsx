@@ -173,10 +173,11 @@ export interface Config {
   validateSUForm: boolean;
   version: {build: string; current: string; latest: string; upgradeAvailable: boolean};
   /**
-   * Epoch milliseconds until which this employee's traces are force-sampled.
+   * Milliseconds of force sampling this employee had left when the page was
+   * served. Compare with `performance.now()` so a wrong clock can't change it.
    * Optional because the frontend can deploy before the backend sends it.
    */
-  forceTraceSamplingUntil?: number | null;
+  forceTraceSamplingRemainingMs?: number | null;
   intercomAppId?: string;
   partnershipAgreementPrompt?: {
     agreements: ParntershipAgreementType[];

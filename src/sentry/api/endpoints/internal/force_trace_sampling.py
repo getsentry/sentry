@@ -29,7 +29,14 @@ class ForceTraceSamplingPermission(BasePermission):
 
     def has_permission(self, request: Request, view: object) -> bool:
         user = acting_user(request.user)
-        if user is None or not user.is_staff:
+        if user is None:
+            return False
+
+        # Clearing a grant gives nothing, and someone who lost staff must still be able to.
+        if request.method == "DELETE":
+            return True
+
+        if not user.is_staff:
             return False
 
         return UserEmail.objects.filter(

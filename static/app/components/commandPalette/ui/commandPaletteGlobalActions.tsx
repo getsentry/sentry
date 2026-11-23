@@ -297,27 +297,28 @@ export function GlobalCommandPaletteActions() {
   const isSentryEmployee = useIsSentryEmployee();
   const {projects} = useProjects();
   const organizations = useStore(OrganizationsStore, state => state.organizations);
-  const {forceTraceSamplingUntil, isSelfHosted, singleOrganization} = useStore(
+  const {forceTraceSamplingRemainingMs, isSelfHosted, singleOrganization} = useStore(
     ConfigStore,
     useShallow(state => ({
-      forceTraceSamplingUntil: state.forceTraceSamplingUntil,
+      forceTraceSamplingRemainingMs: state.forceTraceSamplingRemainingMs,
       isSelfHosted: state.isSelfHosted,
       singleOrganization: state.singleOrganization,
     }))
   );
   const [hasForceSamplingExpired, setHasForceSamplingExpired] = useState(false);
-  const isForceSamplingTraces = !!forceTraceSamplingUntil && !hasForceSamplingExpired;
+  const isForceSamplingTraces =
+    !!forceTraceSamplingRemainingMs && !hasForceSamplingExpired;
 
   useEffect(() => {
-    if (!forceTraceSamplingUntil) {
+    if (!forceTraceSamplingRemainingMs) {
       return;
     }
     const timeout = setTimeout(
       () => setHasForceSamplingExpired(true),
-      Math.max(0, forceTraceSamplingUntil - Date.now())
+      Math.max(0, forceTraceSamplingRemainingMs - performance.now())
     );
     return () => clearTimeout(timeout);
-  }, [forceTraceSamplingUntil]);
+  }, [forceTraceSamplingRemainingMs]);
 
   const settingsV3 = useSettingsV3();
   const params = useParams();

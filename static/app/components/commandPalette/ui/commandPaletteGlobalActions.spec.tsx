@@ -787,7 +787,7 @@ describe('GlobalCommandPaletteActions - force trace sampling', () => {
 
   beforeEach(() => {
     mockOrgApis(organization);
-    ConfigStore.set('forceTraceSamplingUntil', null);
+    ConfigStore.set('forceTraceSamplingRemainingMs', null);
     ConfigStore.set(
       'user',
       UserFixture({
@@ -812,7 +812,7 @@ describe('GlobalCommandPaletteActions - force trace sampling', () => {
   });
 
   it('removes an active grant', async () => {
-    ConfigStore.set('forceTraceSamplingUntil', Date.now() + 60_000);
+    ConfigStore.set('forceTraceSamplingRemainingMs', performance.now() + 60_000);
     const stop = MockApiClient.addMockResponse({url, method: 'DELETE', statusCode: 204});
     renderPalette();
 

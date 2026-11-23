@@ -98,7 +98,7 @@ export function initializeSdk(config: Config) {
   const {
     apmSampling,
     customerDomain,
-    forceTraceSamplingUntil,
+    forceTraceSamplingRemainingMs,
     sentryConfig,
     userIdentity,
   } = config;
@@ -130,7 +130,7 @@ export function initializeSdk(config: Config) {
       // Keep an unsampled parent's decision so traces are never partially sampled.
       if (
         context.parentSampled !== false &&
-        Date.now() < (forceTraceSamplingUntil ?? 0)
+        performance.now() < (forceTraceSamplingRemainingMs ?? 0)
       ) {
         return 1;
       }

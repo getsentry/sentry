@@ -4,6 +4,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.token import AuthTokenType
+from sentry.utils.force_trace_sampling import COOKIE_NAME
 
 
 @control_silo_test
@@ -54,3 +55,10 @@ class LogoutTest(APITestCase):
         response = self.client.delete(url, format="json")
 
         assert response.status_code == 204, response.content
+
+    def test_clears_force_trace_sampling_grant(self) -> None:
+        self.login_as(self.create_user(email="a@example.com"))
+
+        response = self.client.delete(reverse("sentry-api-0-auth"), format="json")
+
+        assert response.cookies[COOKIE_NAME]["max-age"] == 0

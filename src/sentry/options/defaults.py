@@ -335,7 +335,8 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Lets employees force-sample their own traces. Disabling this invalidates active grants.
+# Lets employees force-sample their own traces. Disabling this stops new grants. Existing
+# grants keep sampling until they expire, within 15 minutes.
 register(
     "tracing.force-sampling.enabled",
     type=Bool,
