@@ -18,22 +18,21 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {DateTimeProvider} from '@sentry/scraps/dateTime';
+
+import type {ReplayPrefs} from 'sentry/components/replays/preferences/replayPreferences';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 import {ReplayDetailsEntityHeader} from './replayDetailsEntityHeader';
 
-const {organization, project} = initializeOrg({
-  organization: OrganizationFixture({}),
-});
+const {organization, project} = initializeOrg({organization: OrganizationFixture({})});
 
 function replayRecordFixture(replayRecord?: Partial<HydratedReplayRecord>) {
-  return ReplayRecordFixture({
-    ...replayRecord,
-    project_id: project.id,
-  });
+  return ReplayRecordFixture({...replayRecord, project_id: project.id});
 }
 
 /**
@@ -70,10 +69,6 @@ describe('ReplayDetailsEntityHeader', () => {
       body: [project],
     });
     ProjectsStore.loadInitialData([project]);
-  });
-
-  afterEach(() => {
-    ProjectsStore.reset();
   });
 
   function mockViewedBy(replayId: string) {
@@ -211,6 +206,41 @@ describe('ReplayDetailsEntityHeader', () => {
     await waitFor(() => expect(viewedBy).toHaveBeenCalled());
   });
 
+  it.each<[ReplayPrefs['timestampType'], string]>([
+    ['relative', '5min ago'],
+    ['absolute', 'Jun 8, 2025 9:05:09 PM PDT'],
+  ])(
+    'draws the start time as the %s timestamp preference asks',
+    (timestampType, text) => {
+      jest.setSystemTime(new Date('2025-06-09T04:10:09Z'));
+      const replayRecord = replayRecordFixture({
+        started_at: new Date('2025-06-09T04:05:09Z'),
+      });
+      mockViewedBy(replayRecord.id);
+      const prefs: ReplayPrefs = {
+        isSkippingInactive: true,
+        playbackSpeed: 1,
+        timestampType,
+      };
+
+      // Pending renders the header from the replay record without a full reader.
+      render(
+        <DateTimeProvider value={{timezone: 'America/Los_Angeles', clock: '12'}}>
+          <ReplayPreferencesContextProvider
+            prefsStrategy={{_prefs: prefs, get: () => prefs, set: () => {}}}
+          >
+            <ReplayDetailsEntityHeader
+              readerResult={readerResultFixture({replayRecord, isPending: true})}
+            />
+          </ReplayPreferencesContextProvider>
+        </DateTimeProvider>,
+        {organization}
+      );
+
+      expect(screen.getByText(text)).toBeInTheDocument();
+    }
+  );
+
   it('holds the stats while the reader is still pending', () => {
     const replayRecord = replayRecordFixture({count_dead_clicks: 1});
     mockViewedBy(replayRecord.id);
@@ -291,9 +321,7 @@ describe('ReplayDetailsEntityHeader', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [],
-      },
+      body: {data: []},
       headers: {
         Link: [
           '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:1:0"',
@@ -304,11 +332,7 @@ describe('ReplayDetailsEntityHeader', () => {
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/replays/${replayRecord.id}/recording-segments/`,
-      body: [
-        RRWebInitFrameEventsFixture({
-          timestamp: startedAt,
-        }),
-      ],
+      body: [RRWebInitFrameEventsFixture({timestamp: startedAt})],
       match: [(_url, options) => options.query?.cursor === '0:0:0'],
     });
 
@@ -350,9 +374,7 @@ describe('ReplayDetailsEntityHeader', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [],
-      },
+      body: {data: []},
       headers: {
         Link: [
           '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:1:0"',
@@ -364,13 +386,8 @@ describe('ReplayDetailsEntityHeader', () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/replays/${replayRecord.id}/recording-segments/`,
       body: [
-        RRWebInitFrameEventsFixture({
-          timestamp: startedAt,
-        }),
-        ReplayNavigateEventFixture({
-          startTimestamp: startedAt,
-          endTimestamp: finishedAt,
-        }),
+        RRWebInitFrameEventsFixture({timestamp: startedAt}),
+        ReplayNavigateEventFixture({startTimestamp: startedAt, endTimestamp: finishedAt}),
       ],
       match: [(_url, options) => options.query?.cursor === '0:0:0'],
     });

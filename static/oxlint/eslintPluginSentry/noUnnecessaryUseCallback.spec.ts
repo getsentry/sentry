@@ -3,12 +3,7 @@ import {RuleTester} from 'oxlint/plugins-dev';
 import {noUnnecessaryUseCallback} from './noUnnecessaryUseCallback';
 
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parserOptions: {
-      lang: 'tsx',
-      ecmaFeatures: {jsx: true},
-    },
-  },
+  languageOptions: {parserOptions: {lang: 'tsx', ecmaFeatures: {jsx: true}}},
 });
 
 ruleTester.run('no-unnecessary-use-callback', noUnnecessaryUseCallback, {
@@ -328,10 +323,7 @@ ruleTester.run('no-unnecessary-use-callback', noUnnecessaryUseCallback, {
       errors: [
         {
           messageId: 'unnecessaryUseCallback',
-          data: {
-            name: 'fn',
-            usages: 'passed to intrinsic element <button> in line 3',
-          },
+          data: {name: 'fn', usages: 'passed to intrinsic element <button> in line 3'},
           suggestions: [
             {
               messageId: 'removeUseCallback',
@@ -353,10 +345,7 @@ ruleTester.run('no-unnecessary-use-callback', noUnnecessaryUseCallback, {
       errors: [
         {
           messageId: 'unnecessaryUseCallback',
-          data: {
-            name: 'fn',
-            usages: 'passed to intrinsic element <div> in line 3',
-          },
+          data: {name: 'fn', usages: 'passed to intrinsic element <div> in line 3'},
           suggestions: [
             {
               messageId: 'removeUseCallback',
@@ -378,10 +367,7 @@ ruleTester.run('no-unnecessary-use-callback', noUnnecessaryUseCallback, {
       errors: [
         {
           messageId: 'unnecessaryUseCallback',
-          data: {
-            name: 'fn',
-            usages: 'passed to intrinsic element <input> in line 3',
-          },
+          data: {name: 'fn', usages: 'passed to intrinsic element <input> in line 3'},
           suggestions: [
             {
               messageId: 'removeUseCallback',
@@ -403,10 +389,7 @@ ruleTester.run('no-unnecessary-use-callback', noUnnecessaryUseCallback, {
       errors: [
         {
           messageId: 'unnecessaryUseCallback',
-          data: {
-            name: 'fn',
-            usages: 'passed to intrinsic element <a> in line 3',
-          },
+          data: {name: 'fn', usages: 'passed to intrinsic element <a> in line 3'},
           suggestions: [
             {
               messageId: 'removeUseCallback',
@@ -499,10 +482,7 @@ ruleTester.run('no-unnecessary-use-callback', noUnnecessaryUseCallback, {
       errors: [
         {
           messageId: 'unnecessaryUseCallback',
-          data: {
-            name: 'fn',
-            usages: 'passed to unmemoized component <Button> in line 4',
-          },
+          data: {name: 'fn', usages: 'passed to unmemoized component <Button> in line 4'},
           suggestions: [
             {
               messageId: 'removeUseCallback',
@@ -526,10 +506,7 @@ ruleTester.run('no-unnecessary-use-callback', noUnnecessaryUseCallback, {
       errors: [
         {
           messageId: 'unnecessaryUseCallback',
-          data: {
-            name: 'fn',
-            usages: 'passed to unmemoized component <Flex> in line 4',
-          },
+          data: {name: 'fn', usages: 'passed to unmemoized component <Flex> in line 4'},
           suggestions: [
             {
               messageId: 'removeUseCallback',
@@ -553,10 +530,7 @@ ruleTester.run('no-unnecessary-use-callback', noUnnecessaryUseCallback, {
       errors: [
         {
           messageId: 'unnecessaryUseCallback',
-          data: {
-            name: 'fn',
-            usages: 'passed to intrinsic element <button> in line 4',
-          },
+          data: {name: 'fn', usages: 'passed to intrinsic element <button> in line 4'},
           suggestions: [
             {
               messageId: 'removeUseCallback',
@@ -585,10 +559,7 @@ ruleTester.run('no-unnecessary-use-callback', noUnnecessaryUseCallback, {
       errors: [
         {
           messageId: 'unnecessaryUseCallback',
-          data: {
-            name: 'fn',
-            usages: 'passed to intrinsic element <button> in line 4',
-          },
+          data: {name: 'fn', usages: 'passed to intrinsic element <button> in line 4'},
           suggestions: [
             {
               messageId: 'removeUseCallback',
@@ -721,10 +692,7 @@ ruleTester.run('no-unnecessary-use-callback', noUnnecessaryUseCallback, {
       errors: [
         {
           messageId: 'unnecessaryUseCallback',
-          data: {
-            name: 'fn',
-            usages: 'passed to intrinsic element <button> in line 4',
-          },
+          data: {name: 'fn', usages: 'passed to intrinsic element <button> in line 4'},
           suggestions: [
             {
               messageId: 'removeUseCallback',
@@ -747,10 +715,7 @@ ruleTester.run('no-unnecessary-use-callback', noUnnecessaryUseCallback, {
       errors: [
         {
           messageId: 'unnecessaryUseCallback',
-          data: {
-            name: 'fn',
-            usages: 'passed to intrinsic element <button> in line 3',
-          },
+          data: {name: 'fn', usages: 'passed to intrinsic element <button> in line 3'},
           suggestions: [
             {
               messageId: 'removeUseCallback',
@@ -772,10 +737,7 @@ ruleTester.run('no-unnecessary-use-callback', noUnnecessaryUseCallback, {
       errors: [
         {
           messageId: 'unnecessaryUseCallback',
-          data: {
-            name: 'fn',
-            usages: 'passed to intrinsic element <button> in line 3',
-          },
+          data: {name: 'fn', usages: 'passed to intrinsic element <button> in line 3'},
           suggestions: [
             {
               messageId: 'removeUseCallback',
@@ -797,10 +759,7 @@ ruleTester.run('no-unnecessary-use-callback', noUnnecessaryUseCallback, {
       errors: [
         {
           messageId: 'unnecessaryUseCallback',
-          data: {
-            name: 'fn',
-            usages: 'passed to intrinsic element <button> in line 3',
-          },
+          data: {name: 'fn', usages: 'passed to intrinsic element <button> in line 3'},
           suggestions: [
             {
               messageId: 'removeUseCallback',
@@ -822,10 +781,7 @@ ruleTester.run('no-unnecessary-use-callback', noUnnecessaryUseCallback, {
       errors: [
         {
           messageId: 'unnecessaryUseCallback',
-          data: {
-            name: 'fn',
-            usages: 'passed to intrinsic element <button> in line 3',
-          },
+          data: {name: 'fn', usages: 'passed to intrinsic element <button> in line 3'},
           suggestions: [
             {
               messageId: 'removeUseCallback',
@@ -847,10 +803,7 @@ ruleTester.run('no-unnecessary-use-callback', noUnnecessaryUseCallback, {
       errors: [
         {
           messageId: 'unnecessaryUseCallback',
-          data: {
-            name: 'fn',
-            usages: 'passed to intrinsic element <button> in line 3',
-          },
+          data: {name: 'fn', usages: 'passed to intrinsic element <button> in line 3'},
           suggestions: [
             {
               messageId: 'removeUseCallback',
@@ -872,10 +825,7 @@ ruleTester.run('no-unnecessary-use-callback', noUnnecessaryUseCallback, {
       errors: [
         {
           messageId: 'unnecessaryUseCallback',
-          data: {
-            name: 'fn',
-            usages: 'passed to intrinsic element <button> in line 3',
-          },
+          data: {name: 'fn', usages: 'passed to intrinsic element <button> in line 3'},
           suggestions: [
             {
               messageId: 'removeUseCallback',
@@ -897,10 +847,7 @@ ruleTester.run('no-unnecessary-use-callback', noUnnecessaryUseCallback, {
       errors: [
         {
           messageId: 'unnecessaryUseCallback',
-          data: {
-            name: 'fn',
-            usages: 'passed to intrinsic element <button> in line 3',
-          },
+          data: {name: 'fn', usages: 'passed to intrinsic element <button> in line 3'},
           suggestions: [
             {
               messageId: 'removeUseCallback',

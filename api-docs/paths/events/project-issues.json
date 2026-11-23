@@ -2,7 +2,8 @@
   "get": {
     "tags": ["Events"],
     "description": "**Deprecated**: This endpoint has been replaced with the [Organization Issues endpoint](/api/events/list-an-organizations-issues/) which\nsupports filtering on project and additional functionality.\n\nReturn a list of issues (groups) bound to a project.  All parameters are supplied as query string parameters. \n\n A default query of ``is:unresolved`` is applied. To return results with other statuses send an new query value (i.e. ``?query=`` for all results).\n\nThe ``statsPeriod`` parameter can be used to select the timeline stats which should be present. Possible values are: ``\"\"`` (disable),``\"24h\"`` (default), ``\"14d\"``\n\nUser feedback items from the [User Feedback Widget](https://docs.sentry.io/product/user-feedback/#user-feedback-widget) are built off the issue platform, so to return a list of user feedback items for a specific project, filter for `issue.category:feedback`.",
-    "operationId": "List a Project's Issues",
+    "operationId": "listProjectIssues",
+    "summary": "List a Project's Issues",
     "deprecated": true,
     "parameters": [
       {
@@ -169,7 +170,8 @@
   "put": {
     "tags": ["Events"],
     "description": "Bulk mutate various attributes on issues.  The list of issues to modify is given through the `id` query parameter.  It is repeated for each issue that should be modified.\n\n- For non-status updates, the `id` query parameter is required.\n- For status updates, the `id` query parameter may be omitted\nfor a batch \"update all\" query.\n- To restrict a batch \"update all\" to issues with a given status,\nuse the `query` parameter, e.g. `query=is:resolved`.\n\nThe following attributes can be modified and are supplied as JSON object in the body:\n\nIf any IDs are out of scope this operation will succeed without any data mutation.",
-    "operationId": "Bulk Mutate a List of Issues",
+    "operationId": "updateProjectIssues",
+    "summary": "Bulk Mutate a List of Issues",
     "parameters": [
       {
         "name": "organization_id_or_slug",
@@ -401,7 +403,8 @@
   "delete": {
     "tags": ["Events"],
     "description": "Permanently remove the given issues. The list of issues to modify is given through the `id` query parameter.  It is repeated for each issue that should be removed.\n\nIf any IDs are out of scope this operation will succeed without any data mutation.",
-    "operationId": "Bulk Remove a List of Issues",
+    "operationId": "deleteProjectIssues",
+    "summary": "Bulk Remove a List of Issues",
     "parameters": [
       {
         "name": "organization_id_or_slug",

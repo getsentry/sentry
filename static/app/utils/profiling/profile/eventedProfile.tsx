@@ -15,10 +15,7 @@ export class EventedProfile extends Profile {
   static FromProfile(
     eventedProfile: Profiling.EventedProfile,
     frameIndex: ReturnType<typeof createFrameIndex>,
-    options: {
-      type: 'flamechart' | 'flamegraph';
-      frameFilter?: (frame: Frame) => boolean;
-    }
+    options: {type: 'flamechart' | 'flamegraph'; frameFilter?: (frame: Frame) => boolean}
   ): EventedProfile {
     assertValidProfilingUnit(eventedProfile.unit);
     const profile = new EventedProfile({

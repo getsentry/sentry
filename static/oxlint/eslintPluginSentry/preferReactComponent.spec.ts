@@ -3,11 +3,7 @@ import {RuleTester} from 'oxlint/plugins-dev';
 import {preferReactComponent} from './preferReactComponent';
 
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parserOptions: {
-      ecmaFeatures: {jsx: true},
-    },
-  },
+  languageOptions: {parserOptions: {ecmaFeatures: {jsx: true}}},
 });
 
 ruleTester.run('prefer-react-component', preferReactComponent, {
@@ -104,10 +100,7 @@ ruleTester.run('prefer-react-component', preferReactComponent, {
       name: 'JSX-returning function passed as an argument',
       code: 'function Component() { const renderItem = () => <Heading />; return <div>{items.map(renderItem)}</div>; }',
     },
-    {
-      name: 'top-level JSX',
-      code: 'const element = <Heading />;',
-    },
+    {name: 'top-level JSX', code: 'const element = <Heading />;'},
     {
       name: 'JSX-returning function passed as a prop',
       code: `

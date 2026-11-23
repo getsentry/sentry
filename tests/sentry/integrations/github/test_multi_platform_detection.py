@@ -1221,7 +1221,7 @@ class TestDetectPlatformsMultiFrameworks:
         assert "react-native" in platforms
         assert "javascript-react" not in platforms
 
-    def test_expo_detected_ahead_of_react_native(self) -> None:
+    def test_expo_detected_and_supersedes_react_native(self) -> None:
         content = json.dumps(
             {
                 "dependencies": {
@@ -1243,7 +1243,8 @@ class TestDetectPlatformsMultiFrameworks:
         result = detect_platforms_multi(client, "owner/repo")["platforms"]
 
         platforms = [r["platform"] for r in result]
-        assert platforms.index("expo") < platforms.index("react-native")
+        assert "expo" in platforms
+        assert "react-native" not in platforms
         assert "javascript-react" not in platforms
 
     def test_electron_detected(self) -> None:

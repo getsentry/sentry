@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {CursorHandler} from '@sentry/scraps/pagination';
@@ -11,7 +12,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import {DateTime} from 'sentry/components/dateTime';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {
   TimeRangeSelector,
@@ -31,16 +31,11 @@ import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useUser} from 'sentry/utils/useUser';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {retentionPrioritiesLabels} from 'sentry/views/settings/projectPerformance';
 import {projectDetectorSettingsId} from 'sentry/views/settings/projectPerformance/detectors/detectorFieldGroups';
 
-const avatarStyle = {
-  width: 36,
-  height: 36,
-  marginRight: 8,
-};
+const avatarStyle = {width: 36, height: 36, marginRight: 8};
 
 const AUDIT_LOG_COLUMNS: TableColumnConfig[] = [
   {key: 'member', width: 'auto'},
@@ -99,21 +94,12 @@ const getEventOptions = (eventTypes: string[] | null) =>
       // to filter.
       // See https://github.com/getsentry/sentry/issues/46997
       if (type.startsWith('rule.')) {
-        return {
-          label: type.replace('rule.', 'issue-alert.'),
-          value: type,
-        };
+        return {label: type.replace('rule.', 'issue-alert.'), value: type};
       }
       if (type.startsWith('alertrule.')) {
-        return {
-          label: type.replace('alertrule.', 'metric-alert.'),
-          value: type,
-        };
+        return {label: type.replace('alertrule.', 'metric-alert.'), value: type};
       }
-      return {
-        label: type,
-        value: type,
-      };
+      return {label: type, value: type};
     })
     .sort((a, b) => a.label.localeCompare(b.label));
 
@@ -283,7 +269,6 @@ export function AuditLogList({
   statsPeriod,
   utc = false,
 }: Props) {
-  const is24Hours = useUser().options?.clock24Hours;
   const organization = useOrganization();
   const hasEntries = entries && entries.length > 0;
   const ipv4Length = 15;
@@ -330,10 +315,7 @@ export function AuditLogList({
         end={end}
         relative={statsPeriod || allTime}
         onChange={onDateSelect}
-        relativeOptions={{
-          allTime,
-          ...arbitraryRelativePeriods,
-        }}
+        relativeOptions={{allTime, ...arbitraryRelativePeriods}}
         utc={utc}
         maxPickableDays={getDaysSinceDate(organization.dateCreated)}
         trigger={triggerProps => (
@@ -404,12 +386,8 @@ export function AuditLogList({
                   )}
                 </SimpleTable.RowCell>
                 <TimestampInfo>
-                  <DateTime dateOnly date={entry.dateCreated} />
-                  <DateTime
-                    timeOnly
-                    format={is24Hours ? 'HH:mm z' : 'LT z'}
-                    date={entry.dateCreated}
-                  />
+                  <DateTime date={entry.dateCreated} mode="date" />
+                  <DateTime showTimezone date={entry.dateCreated} mode="time" />
                 </TimestampInfo>
               </SimpleTable.Row>
             );

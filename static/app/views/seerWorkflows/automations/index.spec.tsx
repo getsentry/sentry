@@ -6,6 +6,7 @@ import {SeerWorkflowConfigFixture} from 'sentry-fixture/seerWorkflowConfig';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
+  cleanup,
   render,
   screen,
   userEvent,
@@ -84,12 +85,14 @@ describe('AutomationsList', () => {
           {
             id: '17',
             configId: '42',
+            configName: null,
             strategy: 'breached_metric_investigation',
             dateAdded: '2025-04-20T00:00:00Z',
             dateUpdated: '2025-04-20T00:01:00Z',
             dateCompleted: '2025-04-20T00:01:00Z',
             executions: [],
             status: 'complete',
+            trigger: null,
           },
         ],
       },
@@ -327,6 +330,7 @@ describe('AutomationsList', () => {
 describe('getNextUpdate', () => {
   afterEach(() => {
     try {
+      cleanup();
       jest.runOnlyPendingTimers();
     } finally {
       jest.useRealTimers();

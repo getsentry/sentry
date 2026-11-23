@@ -6,10 +6,7 @@ import {apiOptions} from './api/apiOptions';
 import {semverCompare} from './versions/semverCompare';
 import {useOrganization} from './useOrganization';
 
-type Opts = {
-  minVersion: string;
-  projectId: string[];
-};
+type Opts = {minVersion: string; projectId: string[]};
 
 export function useProjectSdkNeedsUpdate({
   minVersion,
@@ -50,10 +47,5 @@ export function useProjectSdkNeedsUpdate({
       sdkUpdate => semverCompare(sdkUpdate.sdkVersion || '', minVersion) === -1
     );
 
-  return {
-    isError: false,
-    isFetching: false,
-    needsUpdate,
-    data: selectedProjects,
-  };
+  return {isError: false, isFetching: false, needsUpdate, data: selectedProjects};
 }

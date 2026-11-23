@@ -11,6 +11,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {COLUMN_ALIGN_JUSTIFY} from 'sentry/components/tables/sortableHeaderCell';
 
+import {stripAnnotations} from './annotation';
 import type {MarkdownTableColumn} from './markdown';
 import {isSafeHref, isInternalHref} from './marked';
 
@@ -43,7 +44,7 @@ export function DefaultBlockquote({children}: {children: ReactNode}) {
 }
 
 export function DefaultInlineCode({children}: {children: string}) {
-  return <InlineCode variant="neutral">{children}</InlineCode>;
+  return <InlineCode variant="neutral">{stripAnnotations(children)}</InlineCode>;
 }
 
 export function DefaultLink({
@@ -73,7 +74,7 @@ export function DefaultLink({
 }
 
 export function DefaultCodeBlock({children, lang}: {children: string; lang?: string}) {
-  return <CodeBlock language={lang}>{children}</CodeBlock>;
+  return <CodeBlock language={lang}>{stripAnnotations(children)}</CodeBlock>;
 }
 
 export function DefaultHtmlBlock({html}: {html: TrustedHTML}) {
@@ -157,6 +158,10 @@ export function DefaultHorizontalRule() {
 }
 
 export function DefaultText({children}: {children: string}) {
+  return <Fragment>{children}</Fragment>;
+}
+
+export function DefaultAnnotation({children}: {children: string}) {
   return <Fragment>{children}</Fragment>;
 }
 

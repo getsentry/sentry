@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from drf_spectacular.utils import extend_schema
+from django.db.models import BooleanField, Case, QuerySet, Value, When
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -21,20 +22,23 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, Organizati
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.telemetry_classifiers.models import TelemetryClassifier
+from sentry.telemetry_classifiers.search import filter_classifiers_by_query
 from sentry.telemetry_classifiers.serializers import (
     TelemetryClassifierRequestSerializer,
     TelemetryClassifierResponse,
     TelemetryClassifierSerializer,
 )
+from sentry.telemetry_classifiers.types import TelemetryClassifierStatus
 
 
 class TelemetryClassifierPermission(OrganizationPermission):
     # Members only have org:read on the org, so writes check project:read on the classifier's
-    # project instead (in the create serializer and in the update handler).
+    # project instead (in the create serializer and in the update and delete handlers).
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],
         "PUT": ["org:read", "org:write", "org:admin"],
+        "DELETE": ["org:read", "org:write", "org:admin"],
     }
 
 
@@ -53,12 +57,24 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
+            OpenApiParameter(
+                name="query",
+                location="query",
+                required=False,
+                type=str,
+                description=(
+                    "Filter classifiers with search syntax. Supported keys are `name`, "
+                    "`attribute`, `status` and `dataset`. Free text matches the name or "
+                    "result attribute. For example, `status:enabled frustration`."
+                ),
+            ),
             CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(
                 "ListTelemetryClassifiersResponse", list[TelemetryClassifierResponse]
             ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -68,18 +84,32 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization
     ) -> Response[list[TelemetryClassifierResponse]]:
         """
-        List the telemetry classifiers defined on the projects the caller can access, newest first.
+        List the telemetry classifiers defined on the projects the caller can access, newest first with
+        disabled classifiers last.
         """
         if not features.has("organizations:classifiers-ui", organization, actor=request.user):
             return self.respond(status=404)
 
         projects = self.get_projects(request, organization)
-        queryset = TelemetryClassifier.objects.filter(project__in=projects)
+        queryset: QuerySet[TelemetryClassifier] = TelemetryClassifier.objects.filter(
+            project__in=projects
+        )
+
+        if raw_query := request.GET.get("query", "").strip():
+            queryset = filter_classifiers_by_query(queryset, raw_query)
+
+        queryset = queryset.annotate(
+            is_disabled=Case(
+                When(status=TelemetryClassifierStatus.DISABLED, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            )
+        )
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=("-date_added", "-id"),
+            order_by=("is_disabled", "-date_added", "-id"),
             paginator_cls=OffsetPaginator,
             on_results=lambda results: serialize(
                 results, request.user, serializer=TelemetryClassifierSerializer()

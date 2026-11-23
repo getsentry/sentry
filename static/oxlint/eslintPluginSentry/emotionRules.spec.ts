@@ -13,10 +13,7 @@ const ruleTester = new RuleTester({
 ruleTester.run('no-vanilla-emotion', noVanillaEmotion, {
   valid: ["import {css} from '@emotion/react';"],
   invalid: [
-    {
-      code: "import {css} from '@emotion/css';",
-      errors: [{messageId: 'vanillaEmotion'}],
-    },
+    {code: "import {css} from '@emotion/css';", errors: [{messageId: 'vanillaEmotion'}]},
   ],
 });
 
@@ -103,10 +100,7 @@ ruleTester.run('emotion-syntax-preference', emotionSyntaxPreference, {
       options: ['string'],
       errors: [{messageId: 'emptyCssProp'}],
     },
-    {
-      code: 'const element = <div css />;',
-      errors: [{messageId: 'emptyCssProp'}],
-    },
+    {code: 'const element = <div css />;', errors: [{messageId: 'emptyCssProp'}]},
     {
       code: 'const Component = styled.div`color: red;`;',
       options: ['object'],

@@ -29,8 +29,10 @@ from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
+    SeerAgentOutOfCredits,
     SeerAgentResponse,
     SeerAutofixError,
+    SeerAutofixOutOfCredits,
     SeerAutofixStopped,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
@@ -48,6 +50,7 @@ from sentry.notifications.platform.types import (
 )
 from sentry.seer.agent.client_models import RepoPRState
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
+from sentry.seer.credits import OUT_OF_CREDITS
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -74,7 +77,7 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
     AutofixStoppingPoint.ROOT_CAUSE: AutofixStageConfig(
         heading=":mag:  *Root Cause Analysis*",
         label="Fix with Seer",
-        working_text="Seer is peering into the void...",
+        working_text="Seer is peering into the void... Updates will appear in this thread.",
         completed_text="Seer's eye has seen the root cause",
     ),
     AutofixStoppingPoint.SOLUTION: AutofixStageConfig(
@@ -106,8 +109,10 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
         NotificationSource.SEER_AUTOFIX_STOPPED,
         NotificationSource.SEER_AUTOFIX_SUCCESS,
         NotificationSource.SEER_AUTOFIX_UPDATE,
+        NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS,
         NotificationSource.SEER_AGENT_RESPONSE,
         NotificationSource.SEER_AGENT_ERROR,
+        NotificationSource.SEER_AGENT_OUT_OF_CREDITS,
         NotificationSource.SEER_INVESTIGATION_STARTED,
         NotificationSource.SEER_INVESTIGATION_ERROR,
         NotificationSource.SEER_INVESTIGATION_STATUS,
@@ -142,6 +147,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             )
         elif isinstance(data, SeerAutofixUpdate):
             return cls._render_autofix_update(data, link_decorator)
+        elif isinstance(data, (SeerAutofixOutOfCredits, SeerAgentOutOfCredits)):
+            return cls._render_out_of_credits(data, link_decorator)
         elif isinstance(data, SeerAgentError):
             return cls._render_agent_error(data)
         elif isinstance(data, SeerAgentResponse):
@@ -199,6 +206,46 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 project_id=project_id,
             ),
         )
+
+    @classmethod
+    def _render_out_of_credits(
+        cls,
+        data: SeerAutofixOutOfCredits | SeerAgentOutOfCredits,
+        link_decorator: NotificationLinkDecorator,
+    ) -> SlackRenderable:
+        from sentry.integrations.slack.message_builder.routing import encode_action_id
+        from sentry.integrations.slack.message_builder.types import SlackAction
+        from sentry.models.organization import Organization
+
+        message = data.message
+        blocks: list[Block] = [SectionBlock(text=message)]
+
+        try:
+            organization = Organization.objects.get_from_cache(id=data.organization_id)
+        except Organization.DoesNotExist:
+            return SlackRenderable(blocks=blocks, text=message)
+
+        blocks.append(
+            ActionsBlock(
+                elements=[
+                    ButtonElement(
+                        text="Configure auto-reload",
+                        style="primary",
+                        url=link_decorator.decorate_url(
+                            organization.absolute_url(
+                                f"/settings/{organization.slug}/billing/overview/"
+                            )
+                        ),
+                        action_id=encode_action_id(
+                            action=SlackAction.SEER_VIEW_BILLING.value,
+                            organization_id=data.organization_id,
+                            project_id=None,
+                        ),
+                    )
+                ]
+            )
+        )
+        return SlackRenderable(blocks=blocks, text=message)
 
     @classmethod
     def _render_autofix_error(cls, data: SeerAutofixError) -> SlackRenderable:
@@ -303,16 +350,20 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
     @classmethod
     def _render_investigation_started(cls, data: SeerInvestigationStarted) -> SlackRenderable:
-        text = f"<@{data.slack_user_id}> started a Seer investigation for this alert."
+        text = (
+            f"<@{data.slack_user_id}> started a Seer investigation for this alert."
+            if data.slack_user_id
+            else "Sentry started a Seer investigation for this alert."
+        )
         return SlackRenderable(blocks=[MarkdownBlock(text=text)], text=text)
 
     @classmethod
     def render_investigation_link_button(
-        cls, data: SeerInvestigationStarted, link_decorator: NotificationLinkDecorator
+        cls, investigation_url: str, link_decorator: NotificationLinkDecorator
     ) -> ButtonElement:
         return ButtonElement(
             text="Open investigation",
-            url=link_decorator.decorate_url(data.investigation_url),
+            url=link_decorator.decorate_url(investigation_url),
             value="link_clicked",
         )
 
@@ -463,6 +514,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 return (
                     f"Updating {pr_text}..." if pr.pr_number else f"Creating a PR in {repo_text}..."
                 )
+            case "error" if pr.pr_creation_error_code == OUT_OF_CREDITS:
+                return f"Couldn't push to {pr_text}: your organization is out of Seer credits"
             case "error":
                 return f"Latest push failed for {pr_text}"
             case "completed":

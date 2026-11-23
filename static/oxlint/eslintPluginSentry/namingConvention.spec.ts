@@ -16,26 +16,11 @@ ruleTester.run('naming-convention', namingConvention, {
     'const store = class {};',
   ],
   invalid: [
-    {
-      code: 'class projectStore {}',
-      errors: [{messageId: 'typeLike'}],
-    },
-    {
-      code: 'const Store = class store {};',
-      errors: [{messageId: 'typeLike'}],
-    },
-    {
-      code: 'interface projectConfig {}',
-      errors: [{messageId: 'typeLike'}],
-    },
-    {
-      code: 'enum projectState {}',
-      errors: [{messageId: 'typeLike'}],
-    },
-    {
-      code: 'type project_config = {};',
-      errors: [{messageId: 'typeLike'}],
-    },
+    {code: 'class projectStore {}', errors: [{messageId: 'typeLike'}]},
+    {code: 'const Store = class store {};', errors: [{messageId: 'typeLike'}]},
+    {code: 'interface projectConfig {}', errors: [{messageId: 'typeLike'}]},
+    {code: 'enum projectState {}', errors: [{messageId: 'typeLike'}]},
+    {code: 'type project_config = {};', errors: [{messageId: 'typeLike'}]},
     {
       code: 'enum ProjectState { active, "pendingDeletion" }',
       errors: [{messageId: 'enumMember'}, {messageId: 'enumMember'}],
@@ -44,9 +29,6 @@ ruleTester.run('naming-convention', namingConvention, {
       code: 'enum ProjectState { [`pendingDeletion`] = 1 }',
       errors: [{messageId: 'enumMember'}],
     },
-    {
-      code: 'type ProjectConfig<value> = value;',
-      errors: [{messageId: 'typeLike'}],
-    },
+    {code: 'type ProjectConfig<value> = value;', errors: [{messageId: 'typeLike'}]},
   ],
 });

@@ -25,7 +25,6 @@ describe('TeamDetails', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    TeamStore.reset();
   });
 
   it('can request membership', async () => {

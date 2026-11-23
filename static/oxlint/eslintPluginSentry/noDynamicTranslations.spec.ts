@@ -15,14 +15,8 @@ ruleTester.run('no-dynamic-translations', noDynamicTranslations, {
     {code: 'translate(dynamicVariable)'},
   ],
   invalid: [
-    {
-      code: 't(`Hello ${name}`)',
-      errors: [{messageId: 'interpolation'}],
-    },
-    {
-      code: 't(dynamicVariable)',
-      errors: [{messageId: 'dynamic'}],
-    },
+    {code: 't(`Hello ${name}`)', errors: [{messageId: 'interpolation'}]},
+    {code: 't(dynamicVariable)', errors: [{messageId: 'dynamic'}]},
     {
       code: "tn(singular, '%s items', count)",
       errors: [{messageId: 'dynamic', data: {fnName: 'tn'}}],

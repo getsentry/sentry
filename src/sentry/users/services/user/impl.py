@@ -159,19 +159,8 @@ class DatabaseBackedUserService(UserService):
             org_query = org_query.filter(status=OrganizationStatus.ACTIVE)
         return [serialize_organization_mapping(o) for o in org_query]
 
-    def get_member_cell_names(self, *, user_id: int) -> list[str]:
-        org_ids = OrganizationMemberMapping.objects.filter(user_id=user_id).values_list(
-            "organization_id", flat=True
-        )
-        cell_query = (
-            OrganizationMapping.objects.filter(organization_id__in=org_ids)
-            .values_list("cell_name", flat=True)
-            .distinct()
-        )
-        return list(cell_query)
-
     def flush_nonce(self, *, user_id: int) -> None:
-        user = User.objects.filter(id=user_id).first()
+        user = User.objects.get_or_none(id=user_id)
         if user is not None:
             user.update(session_nonce="foo")
 
@@ -200,13 +189,13 @@ class DatabaseBackedUserService(UserService):
             social_auth__provider=provider,
             social_auth__uid=uid,
             orgmembermapping_set__organization_id=organization_id,
-        ).first()
+        ).first()  # noqa: S035
         if user is None:
             return None
         return serialize_rpc_user(user)
 
     def get_first_superuser(self) -> RpcUser | None:
-        user = User.objects.filter(is_superuser=True, is_active=True).first()
+        user = User.objects.filter(is_superuser=True, is_active=True).first()  # noqa: S035
         if user is None:
             return None
         return serialize_rpc_user(user)
@@ -304,7 +293,7 @@ class DatabaseBackedUserService(UserService):
         return results
 
     def get_user_avatar(self, *, user_id: int) -> RpcAvatar | None:
-        possible_avatar = UserAvatar.objects.filter(user_id=user_id).first()
+        possible_avatar = UserAvatar.objects.get_or_none(user_id=user_id)
 
         if not possible_avatar:
             return None

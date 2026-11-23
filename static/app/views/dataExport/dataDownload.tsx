@@ -4,13 +4,14 @@ import {IconDownload} from '@sentry/icons/download';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {ExportQueryType} from 'sentry/components/exports/useDataExport';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -46,11 +47,7 @@ type BaseDownload = {
   dateCreated: string;
   id: number;
   status: DownloadStatus;
-  user: {
-    email: string;
-    id: number;
-    username: string;
-  };
+  user: {email: string; id: number; username: string};
   dateExpired?: string;
   dateFinished?: string;
   export_format?: 'csv' | 'jsonl';
@@ -159,7 +156,9 @@ function ValidDownload({
         <LinkButton
           variant="primary"
           icon={<IconDownload />}
-          href={`/api/0/organizations/${orgSlug}/data-export/${dataExportId}/?download=true`}
+          href={resolveHostname(
+            `/api/0/organizations/${orgSlug}/data-export/${dataExportId}/?download=true`
+          )}
         >
           {t('Download %s', exportFormatLabel)}
         </LinkButton>
@@ -349,9 +348,7 @@ export default function DataDownload() {
     const mode = aggregates.length + equations.length > 0 ? Mode.AGGREGATE : Mode.SAMPLES;
 
     const groupBy = fields.map(field => ({groupBy: field}));
-    const aggregateFields = aggregates.map(aggregate => ({
-      yAxes: [aggregate],
-    }));
+    const aggregateFields = aggregates.map(aggregate => ({yAxes: [aggregate]}));
     const equationFields = equations.map(equation => ({yAxes: [equation]}));
 
     const aggregateInfo = {
@@ -360,18 +357,11 @@ export default function DataDownload() {
       field: [],
     };
 
-    const samplesInfo = {
-      mode,
-      aggregateField: [],
-      field: fields,
-    };
+    const samplesInfo = {mode, aggregateField: [], field: fields};
 
     const to = {
       pathname: `/organizations/${orgSlug}/explore/traces/`,
-      query: {
-        ...info,
-        ...(mode === Mode.AGGREGATE ? aggregateInfo : samplesInfo),
-      },
+      query: {...info, ...(mode === Mode.AGGREGATE ? aggregateInfo : samplesInfo)},
     };
 
     navigate(normalizeUrl(to));

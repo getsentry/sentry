@@ -5,7 +5,7 @@ import time
 import zlib
 from collections.abc import Generator, Iterable
 from contextlib import contextmanager
-from typing import Any, cast
+from typing import Any
 
 from redis.client import StrictRedis
 from redis.exceptions import ResponseError
@@ -207,13 +207,10 @@ class RedisBackend(Backend):
         deadline: float,
         timestamp: float,
     ) -> Iterable[tuple[bytes, float]]:
-        return cast(
-            "Iterable[tuple[bytes, float]]",
-            script(
-                [f"{namespace}:s:w"],
-                ["SCHEDULE", namespace, self.ttl, timestamp, deadline],
-                self.cluster,
-            ),
+        return script(
+            [f"{namespace}:s:w"],
+            ["SCHEDULE", namespace, self.ttl, timestamp, deadline],
+            self.cluster,
         )
 
     def schedule(self, deadline: float, timestamp: float | None = None) -> Iterable[ScheduleEntry]:

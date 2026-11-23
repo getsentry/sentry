@@ -3,11 +3,7 @@ import {RuleTester} from 'oxlint/plugins-dev';
 import {restrictJsxSlotChildren, type Options} from './restrictJsxSlotChildren';
 
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parserOptions: {
-      ecmaFeatures: {jsx: true},
-    },
-  },
+  languageOptions: {parserOptions: {ecmaFeatures: {jsx: true}}},
 });
 
 // ── Shared fixtures ──────────────────────────────────────────────────────────
@@ -30,10 +26,7 @@ const ALLOWED = [
       'MenuComponents.Alert',
     ],
   },
-  {
-    source: '@sentry/scraps/layout',
-    names: ['Flex', 'Stack', 'Grid', 'Container'],
-  },
+  {source: '@sentry/scraps/layout', names: ['Flex', 'Stack', 'Grid', 'Container']},
 ] satisfies Options['slots'][number]['allowed'];
 
 /**

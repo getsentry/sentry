@@ -306,11 +306,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
 
 describe('GlobalCommandPaletteActions - search recall', () => {
   const organization = OrganizationFixture({
-    features: [
-      'session-replay-ui',
-      'performance-view',
-      'dashboards-prebuilt-insights-dashboards',
-    ],
+    features: ['session-replay-ui', 'dashboards-prebuilt-insights-dashboards'],
   });
   const project = ProjectFixture({id: '1', slug: 'project-a', organization});
 
@@ -448,10 +444,7 @@ describe('GlobalCommandPaletteActions - search recall', () => {
   ])(
     'resolves pasted identifiers for %s',
     async ({query, lookupUrl, body, expectedOption}) => {
-      MockApiClient.addMockResponse({
-        url: lookupUrl,
-        body,
-      });
+      MockApiClient.addMockResponse({url: lookupUrl, body});
 
       renderPalette();
 
@@ -743,10 +736,11 @@ describe('GlobalCommandPaletteActions - Open my current replay session', () => {
 
   it('flushes the replay, opens it, and copies the link', async () => {
     const flush = jest.fn().mockResolvedValue(undefined);
-    jest.spyOn(Sentry, 'getReplay').mockReturnValue({
-      flush,
-      getReplayId: () => 'abc123',
-    } as unknown as ReturnType<typeof Sentry.getReplay>);
+    jest
+      .spyOn(Sentry, 'getReplay')
+      .mockReturnValue({flush, getReplayId: () => 'abc123'} as unknown as ReturnType<
+        typeof Sentry.getReplay
+      >);
 
     await selectOpenCurrentReplay();
 

@@ -20,8 +20,10 @@ from sentry.silo.util import (
     decode_proxy_timeout,
     encode_proxy_timeout,
     encode_subnet_signature,
+    encode_webhook_delivery_signature,
     trim_leading_slashes,
     verify_subnet_signature,
+    verify_webhook_delivery_signature,
 )
 
 
@@ -181,3 +183,21 @@ class SiloUtilityTest(TestCase):
         assert not _verify(identifier="incorrect-data")
         assert _encode(request_body=b"incorrect-data") != signature
         assert not _verify(request_body=b"incorrect-data")
+
+    @override_settings(SENTRY_SUBNET_SECRET=secret)
+    def test_webhook_delivery_signature_is_not_a_proxy_signature(self) -> None:
+        signature = encode_webhook_delivery_signature("/hook/", "Bearer token", b"{}")
+        assert signature is not None
+        assert verify_webhook_delivery_signature("/hook/", "Bearer token", b"{}", signature)
+        assert not verify_webhook_delivery_signature("/hook/", "Bearer other", b"{}", signature)
+        # The same fields signed as a proxy request don't pass as a delivery signature.
+        proxy_signature = encode_subnet_signature(
+            secret=self.secret,
+            base_url="",
+            path="/hook/",
+            identifier="Bearer token",
+            request_body=b"{}",
+        )
+        assert not verify_webhook_delivery_signature(
+            "/hook/", "Bearer token", b"{}", proxy_signature
+        )

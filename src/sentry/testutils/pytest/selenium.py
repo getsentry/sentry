@@ -9,7 +9,7 @@ import threading
 from collections.abc import Callable, Generator, Iterator, MutableSequence, Sequence
 from contextlib import contextmanager
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Generic, Mapping, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Generic, Literal, Mapping, TypeVar
 from urllib.parse import urlparse
 
 import pytest
@@ -18,6 +18,7 @@ from selenium.common.exceptions import (
     NoAlertPresentException,
     NoSuchElementException,
     SessionNotCreatedException,
+    StaleElementReferenceException,
     WebDriverException,
 )
 from selenium.webdriver.chrome.service import Service as ChromeService
@@ -97,9 +98,7 @@ class Browser:
         Adapted from https://stackoverflow.com/questions/41721734/take-screenshot-of-full-page-with-selenium-python-with-chromedriver/52572919#52572919
         """
 
-        return cast(
-            "int", self.driver.execute_script("return document.body.parentNode.scrollHeight")
-        )
+        return self.driver.execute_script("return document.body.parentNode.scrollHeight")
 
     def set_window_size(
         self,
@@ -174,6 +173,25 @@ class Browser:
         else:
             self.wait_until(selector)
             return self.driver.find_element(by=By.CSS_SELECTOR, value=selector)
+
+    def displayed_element(self, selector: str, timeout: int = 10) -> WebElement:
+        """
+        Get the first element matching ``selector`` that Selenium treats as displayed. This
+        method will wait for it. Animated views fade elements in from opacity 0, so an element
+        can be present before it can take input.
+        """
+
+        def find_displayed(driver: WebDriver) -> WebElement | Literal[False]:
+            for element in driver.find_elements(By.CSS_SELECTOR, selector):
+                try:
+                    if element.is_displayed():
+                        return element
+                except StaleElementReferenceException:
+                    continue
+            return False
+
+        wait = WebDriverWait(self.driver, timeout, poll_frequency=WAIT_POLL_SECONDS)
+        return wait.until(find_displayed)
 
     def elements(self, selector: str | None = None, xpath: str | None = None) -> list[WebElement]:
         """
@@ -354,9 +372,8 @@ class Browser:
         Retrieve all items in local storage
         """
 
-        return cast(
-            "dict[str, str]",
-            self.driver.execute_script("Object.fromEntries(Object.entries(window.localStorage));"),
+        return self.driver.execute_script(
+            "Object.fromEntries(Object.entries(window.localStorage));"
         )
 
     def get_local_storage_item(self, key: str) -> str | None:
@@ -364,9 +381,7 @@ class Browser:
         Retrieve key from local storage, this will fail if you use single quotes in your keys.
         """
 
-        return cast(
-            "str | None", self.driver.execute_script(f"window.localStorage.getItem('{key}')")
-        )
+        return self.driver.execute_script(f"window.localStorage.getItem('{key}')")
 
     def save_cookie(
         self,

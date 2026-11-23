@@ -1,9 +1,12 @@
-import {useCallback, useEffect, useMemo, type ReactNode} from 'react';
+import {useCallback, useEffect, useMemo, useState, type ReactNode} from 'react';
 import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
+import type {CollapsibleExpandAll} from 'sentry/components/ai/chat/collapsibleContent';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseAsUtcDateTime} from 'sentry/utils/url/parseAsUtcDateTime';
@@ -19,9 +22,13 @@ import {
   ConversationViewContent,
   type ConversationViewTab,
 } from './components/conversationView';
+import {ExpandAllButton} from './components/expandAllButton';
 import {ExportTranscriptButton} from './components/exportTranscriptButton';
 import {useConversation} from './hooks/useConversation';
-import {extractMessagesFromNodes} from './utils/conversationMessages';
+import {
+  extractMessagesFromNodes,
+  hasCapturedMessageContent,
+} from './utils/conversationMessages';
 
 function useConversationDetailQueryState() {
   return useQueryStates(
@@ -30,7 +37,7 @@ function useConversationDetailQueryState() {
       focusedTool: parseAsString,
       start: parseAsUtcDateTime,
       end: parseAsUtcDateTime,
-      tab: parseAsStringLiteral(CONVERSATION_VIEW_TABS).withDefault('transcript'),
+      tab: parseAsStringLiteral(CONVERSATION_VIEW_TABS),
     },
     {history: 'replace'}
   );
@@ -55,9 +62,43 @@ function ConversationDetailPage() {
     ...conversation,
     autoFetchAll: false,
   });
+  const [expandAll, setExpandAll] = useState<CollapsibleExpandAll | null>(null);
+  // The page stays mounted when moving to another conversation.
+  const [expandAllConversationId, setExpandAllConversationId] = useState(conversationId);
+  if (conversationId !== expandAllConversationId) {
+    setExpandAllConversationId(conversationId);
+    setExpandAll(null);
+  }
+  const toggleExpandAll = () =>
+    setExpandAll(previous => ({
+      generation: (previous?.generation ?? 0) + 1,
+      open: !previous?.open,
+    }));
 
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
   const isInitialLoading = isLoading && nodes.length === 0;
+
+  // Without an explicit tab, open the transcript only when the SDK captured
+  // messages; otherwise it holds just placeholders and the timeline is more
+  // useful. Decided once per conversation from its first page, so loading more
+  // spans never switches the tab under the user.
+  const [defaultTab, setDefaultTab] = useState<{
+    conversationId: string;
+    tab: ConversationViewTab;
+  } | null>(null);
+  if (!isInitialLoading && defaultTab?.conversationId !== conversationId) {
+    setDefaultTab({
+      conversationId,
+      tab: hasCapturedMessageContent(messages) ? 'transcript' : 'timeline',
+    });
+  }
+  // Until the first page decides the default, show neither tab, so an
+  // uncaptured conversation doesn't flash the transcript before the timeline.
+  const isDefaultTabPending =
+    !queryState.tab && defaultTab?.conversationId !== conversationId;
+  const activeTab: ConversationViewTab =
+    queryState.tab ??
+    (defaultTab?.conversationId === conversationId ? defaultTab.tab : 'transcript');
 
   const projectSlug = useMemo(
     () => nodes.find(node => node.projectSlug)?.projectSlug,
@@ -69,9 +110,7 @@ function ConversationDetailPage() {
     : undefined;
 
   useEffect(() => {
-    trackAnalytics('conversations.detail.page-view', {
-      organization,
-    });
+    trackAnalytics('conversations.detail.page-view', {organization});
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organization, conversationId]);
 
@@ -86,20 +125,23 @@ function ConversationDetailPage() {
     setQueryState({spanId: null, focusedTool: null});
   }, [setQueryState]);
 
-  const handleTabChange = (tab: ConversationViewTab) => {
-    if (tab !== queryState.tab) {
-      trackAnalytics('conversations.detail.tab-switch', {
-        organization,
-        fromTab: queryState.tab,
-        toTab: tab,
-      });
-    }
-    setQueryState({tab});
-  };
+  const handleTabChange = useCallback(
+    (tab: ConversationViewTab) => {
+      if (tab !== activeTab) {
+        trackAnalytics('conversations.detail.tab-switch', {
+          organization,
+          fromTab: activeTab,
+          toTab: tab,
+        });
+      }
+      setQueryState({tab});
+    },
+    [organization, activeTab, setQueryState]
+  );
 
   const handleViewTimeline = useCallback(() => {
-    setQueryState({tab: 'timeline'});
-  }, [setQueryState]);
+    handleTabChange('timeline');
+  }, [handleTabChange]);
 
   return (
     <ViewportConstrainedPage background="secondary">
@@ -118,26 +160,46 @@ function ConversationDetailPage() {
       </Container>
       <Stack flex={1} minHeight="0" overflow="hidden" padding="xl" gap="xl">
         <Flex flexShrink={0} align="center" justify="between" gap="md">
-          <Tabs value={queryState.tab} onChange={handleTabChange}>
-            <TabList variant="floating">
-              <TabList.Item key="transcript">{t('Transcript')}</TabList.Item>
-              <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
-            </TabList>
-          </Tabs>
-          {queryState.tab === 'transcript' && messages.length > 0 && (
-            <ExportTranscriptButton conversation={conversation} />
+          {isDefaultTabPending ? (
+            <Placeholder width="180px" height="32px" />
+          ) : (
+            <Tabs value={activeTab} onChange={handleTabChange}>
+              {({TabList}) => (
+                <TabList variant="floating">
+                  <TabList.Item key="transcript">{t('Transcript')}</TabList.Item>
+                  <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
+                </TabList>
+              )}
+            </Tabs>
+          )}
+          {activeTab === 'transcript' && messages.length > 0 && (
+            <Flex align="center" gap="sm">
+              <ExpandAllButton
+                isExpanded={expandAll?.open ?? false}
+                onToggle={toggleExpandAll}
+              />
+              <ExportTranscriptButton conversation={conversation} />
+            </Flex>
           )}
         </Flex>
         <ConversationViewContainer>
-          <ConversationViewContent
-            conversation={conversation}
-            activeTab={queryState.tab}
-            selectedSpanId={queryState.spanId}
-            onSelectSpan={handleSelectSpan}
-            onDeselectSpan={handleDeselectSpan}
-            onViewTimeline={handleViewTimeline}
-            focusedTool={queryState.focusedTool}
-          />
+          {isDefaultTabPending ? (
+            <Flex flex={1} align="center" justify="center">
+              <LoadingIndicator />
+            </Flex>
+          ) : (
+            <ConversationViewContent
+              conversation={conversation}
+              messages={messages}
+              activeTab={activeTab}
+              selectedSpanId={queryState.spanId}
+              onSelectSpan={handleSelectSpan}
+              onDeselectSpan={handleDeselectSpan}
+              onViewTimeline={handleViewTimeline}
+              focusedTool={queryState.focusedTool}
+              expandAll={expandAll}
+            />
+          )}
         </ConversationViewContainer>
       </Stack>
     </ViewportConstrainedPage>

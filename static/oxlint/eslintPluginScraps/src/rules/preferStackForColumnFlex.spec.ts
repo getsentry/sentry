@@ -3,12 +3,7 @@ import {RuleTester} from 'oxlint/plugins-dev';
 import {preferStackForColumnFlex} from './preferStackForColumnFlex';
 
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parserOptions: {
-      ecmaFeatures: {jsx: true},
-      lang: 'tsx',
-    },
-  },
+  languageOptions: {parserOptions: {ecmaFeatures: {jsx: true}, lang: 'tsx'}},
 });
 
 function invalid(name: string, code: string, output: string): RuleTester.InvalidTestCase {

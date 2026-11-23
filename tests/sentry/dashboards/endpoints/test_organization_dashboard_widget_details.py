@@ -589,6 +589,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         data = {
             "title": "Test Query",
             "displayType": "table",
+            "id": "1234",
             "widgetType": "transaction-like",
             "queries": [
                 {
@@ -735,6 +736,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         data = {
             "title": "Test Query",
             "displayType": "table",
+            "id": "1234",
             "widgetType": "transaction-like",
             "limit": 5,
             "queries": [
@@ -764,6 +766,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         data = {
             "title": "Test Query",
             "displayType": "table",
+            "id": "1234",
             "widgetType": "transaction-like",
             "limit": 5,
             "queries": [
@@ -799,6 +802,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         data = {
             "title": "Test Query",
             "displayType": "table",
+            "id": "1234",
             "widgetType": "transaction-like",
             "limit": 5,
             "queries": [
@@ -877,6 +881,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         data = {
             "title": "Test Query",
             "displayType": "table",
+            "id": "1234",
             "widgetType": "transaction-like",
             "limit": 5,
             "queries": [
@@ -917,6 +922,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         data = {
             "title": "Test Query",
             "displayType": "table",
+            "id": "1234",
             "widgetType": "transaction-like",
             "limit": 5,
             "queries": [
@@ -976,6 +982,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         data = {
             "title": "Test Query",
             "displayType": "table",
+            "id": "1234",
             "widgetType": "transaction-like",
             "limit": 5,
             "queries": [
@@ -1100,6 +1107,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         data = {
             "title": "Test Query",
             "displayType": "table",
+            "id": "1234",
             "widgetType": "transaction-like",
             "limit": 5,
             "queries": [
@@ -1430,59 +1438,57 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_new_transactions_widget_with_transactions_deprecation_flag(self) -> None:
-        with self.feature("organizations:discover-saved-queries-deprecation"):
-            data = {
-                "title": "Test Query",
-                "widgetType": "transaction-like",
-                "displayType": "table",
-                "queries": [
-                    {
-                        "name": "transaction query",
-                        "conditions": "",
-                        "fields": ["count()"],
-                        "columns": [],
-                        "aggregates": ["count()"],
-                    }
-                ],
-            }
+    def test_new_transactions_widget_is_deprecated(self) -> None:
+        data = {
+            "title": "Test Query",
+            "widgetType": "transaction-like",
+            "displayType": "table",
+            "queries": [
+                {
+                    "name": "transaction query",
+                    "conditions": "",
+                    "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
 
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
-            assert response.status_code == 400, response.data
-            assert (
-                response.data["widgetType"][0]
-                == "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
-            )
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert (
+            response.data["widgetType"][0]
+            == "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
+        )
 
-    def test_update_transaction_widget_type_with_transactions_deprecation_flag(self) -> None:
-        with self.feature("organizations:discover-saved-queries-deprecation"):
-            data = {
-                "id": "1234",
-                "title": "Test Query",
-                "widgetType": "transaction-like",
-                "displayType": "table",
-                "queries": [
-                    {
-                        "name": "transaction query",
-                        "conditions": "",
-                        "fields": ["count()"],
-                        "columns": [],
-                        "aggregates": ["count()"],
-                    }
-                ],
-            }
+    def test_update_existing_transaction_widget_is_allowed(self) -> None:
+        data = {
+            "id": "1234",
+            "title": "Test Query",
+            "widgetType": "transaction-like",
+            "displayType": "table",
+            "queries": [
+                {
+                    "name": "transaction query",
+                    "conditions": "",
+                    "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
 
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
-            # we need to allow updates to the title of existing transaction widgets
-            assert response.status_code == 200, response.data
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        # we need to allow updates to the title of existing transaction widgets
+        assert response.status_code == 200, response.data
 
     def test_widget_type_tracemetrics(self) -> None:
         data = {
@@ -1546,6 +1552,30 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "columns": [],
                     "aggregates": ["sum(value,foo,distribution,none)"],
                 },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_widget_type_tracemetrics_wheel(self) -> None:
+        data = {
+            "title": "Performance Score",
+            "widgetType": "tracemetrics",
+            "displayType": "wheel",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["performance_score()", "opportunity_score()"],
+                    "columns": ["performance_score()", "opportunity_score()"],
+                    "aggregates": [],
+                    "orderby": "",
+                }
             ],
         }
 

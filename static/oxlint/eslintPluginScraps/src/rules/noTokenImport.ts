@@ -36,10 +36,7 @@ export const noTokenImport = defineRule({
           value === '@sentry/scraps/tokens' ||
           value.startsWith('@sentry/scraps/tokens/')
         ) {
-          context.report({
-            node,
-            messageId: 'forbidden',
-          });
+          context.report({node, messageId: 'forbidden'});
         }
       },
     };

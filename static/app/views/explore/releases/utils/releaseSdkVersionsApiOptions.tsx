@@ -6,11 +6,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-export type ReleaseSdkVersion = {
-  count: number;
-  name: string;
-  version: string;
-};
+export type ReleaseSdkVersion = {count: number; name: string; version: string};
 
 export type SdkVersionRow = {
   'count()': number;

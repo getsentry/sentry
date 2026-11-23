@@ -39,11 +39,7 @@ type TIcon = {
   groups?: string[];
   keywords?: string[];
 };
-type TSection = {
-  icons: TIcon[];
-  id: string;
-  label: string;
-};
+type TSection = {icons: TIcon[]; id: string; label: string};
 
 const SECTIONS: TSection[] = [
   {
@@ -119,9 +115,7 @@ const SECTIONS: TSection[] = [
         keywords: ['experiment', 'test'],
         name: 'Lab',
         additionalProps: ['isSolid'],
-        defaultProps: {
-          isSolid: false,
-        },
+        defaultProps: {isSolid: false},
       },
       {
         id: 'lab-isSolid',
@@ -129,9 +123,7 @@ const SECTIONS: TSection[] = [
         keywords: ['experiment', 'test'],
         name: 'Lab',
         additionalProps: ['isSolid'],
-        defaultProps: {
-          isSolid: true,
-        },
+        defaultProps: {isSolid: true},
       },
       {
         id: 'broadcast',
@@ -357,10 +349,7 @@ const SECTIONS: TSection[] = [
         ],
         additionalProps: ['direction', 'isDouble'],
         name: 'Chevron',
-        defaultProps: {
-          direction: 'left',
-          isDouble: false,
-        },
+        defaultProps: {direction: 'left', isDouble: false},
       },
       {
         id: 'chevron-direction-right',
@@ -376,18 +365,14 @@ const SECTIONS: TSection[] = [
           'east',
         ],
         name: 'Chevron',
-        defaultProps: {
-          direction: 'right',
-        },
+        defaultProps: {direction: 'right'},
       },
       {
         id: 'chevron-direction-up',
         groups: ['navigation'],
         keywords: ['up', 'point', 'direct', 'move', 'arrow', 'top', 'north', 'collapse'],
         name: 'Chevron',
-        defaultProps: {
-          direction: 'up',
-        },
+        defaultProps: {direction: 'up'},
       },
       {
         id: 'chevron-direction-down',
@@ -403,9 +388,7 @@ const SECTIONS: TSection[] = [
           'expand',
         ],
         name: 'Chevron',
-        defaultProps: {
-          direction: 'down',
-        },
+        defaultProps: {direction: 'down'},
       },
       {
         id: 'chevron-isDouble-direction-left',
@@ -425,10 +408,7 @@ const SECTIONS: TSection[] = [
           'jump',
         ],
         name: 'Chevron',
-        defaultProps: {
-          isDouble: true,
-          direction: 'left',
-        },
+        defaultProps: {isDouble: true, direction: 'left'},
       },
       {
         id: 'chevron-isDouble-direction-right',
@@ -448,10 +428,7 @@ const SECTIONS: TSection[] = [
           'jump',
         ],
         name: 'Chevron',
-        defaultProps: {
-          isDouble: true,
-          direction: 'right',
-        },
+        defaultProps: {isDouble: true, direction: 'right'},
       },
       {
         id: 'chevron-isDouble-direction-up',
@@ -471,10 +448,7 @@ const SECTIONS: TSection[] = [
           'jump',
         ],
         name: 'Chevron',
-        defaultProps: {
-          isDouble: true,
-          direction: 'up',
-        },
+        defaultProps: {isDouble: true, direction: 'up'},
       },
       {
         id: 'chevron-isDouble-direction-down',
@@ -494,10 +468,7 @@ const SECTIONS: TSection[] = [
           'jump',
         ],
         name: 'Chevron',
-        defaultProps: {
-          isDouble: true,
-          direction: 'down',
-        },
+        defaultProps: {isDouble: true, direction: 'down'},
       },
       {
         id: 'arrow-direction-left',
@@ -505,36 +476,28 @@ const SECTIONS: TSection[] = [
         keywords: ['left', 'point', 'direct', 'move', 'back', 'previous', 'west'],
         additionalProps: ['direction'],
         name: 'Arrow',
-        defaultProps: {
-          direction: 'left',
-        },
+        defaultProps: {direction: 'left'},
       },
       {
         id: 'arrow-direction-right',
         groups: ['navigation'],
         keywords: ['right', 'point', 'direct', 'move', 'forward', 'next', 'east'],
         name: 'Arrow',
-        defaultProps: {
-          direction: 'right',
-        },
+        defaultProps: {direction: 'right'},
       },
       {
         id: 'arrow-direction-up',
         groups: ['navigation'],
         keywords: ['up', 'point', 'direct', 'move', 'top', 'north', 'ascend'],
         name: 'Arrow',
-        defaultProps: {
-          direction: 'up',
-        },
+        defaultProps: {direction: 'up'},
       },
       {
         id: 'arrow-direction-down',
         groups: ['navigation'],
         keywords: ['down', 'point', 'direct', 'move', 'bottom', 'south', 'descend'],
         name: 'Arrow',
-        defaultProps: {
-          direction: 'down',
-        },
+        defaultProps: {direction: 'down'},
       },
       {
         id: 'panel-direction-left',
@@ -542,9 +505,7 @@ const SECTIONS: TSection[] = [
         keywords: ['sidebar', 'footer', 'header', 'drawer', 'window', 'pane'],
         additionalProps: ['direction'],
         name: 'Panel',
-        defaultProps: {
-          direction: 'left',
-        },
+        defaultProps: {direction: 'left'},
       },
       {
         id: 'panel-direction-right',
@@ -560,9 +521,7 @@ const SECTIONS: TSection[] = [
           'east',
         ],
         name: 'Panel',
-        defaultProps: {
-          direction: 'right',
-        },
+        defaultProps: {direction: 'right'},
       },
       {
         id: 'panel-direction-up',
@@ -579,9 +538,7 @@ const SECTIONS: TSection[] = [
           'north',
         ],
         name: 'Panel',
-        defaultProps: {
-          direction: 'up',
-        },
+        defaultProps: {direction: 'up'},
       },
       {
         id: 'panel-direction-down',
@@ -598,9 +555,7 @@ const SECTIONS: TSection[] = [
           'south',
         ],
         name: 'Panel',
-        defaultProps: {
-          direction: 'down',
-        },
+        defaultProps: {direction: 'down'},
       },
       {
         id: 'slashFoward',
@@ -635,17 +590,9 @@ const SECTIONS: TSection[] = [
         keywords: ['secure', 'private', 'protected', 'key'],
         additionalProps: ['locked'],
         name: 'Lock',
-        defaultProps: {
-          locked: false,
-        },
+        defaultProps: {locked: false},
       },
-      {
-        id: 'lock-locked',
-        name: 'Lock',
-        defaultProps: {
-          locked: true,
-        },
-      },
+      {id: 'lock-locked', name: 'Lock', defaultProps: {locked: true}},
       {
         id: 'fire',
         groups: ['status'],
@@ -926,51 +873,27 @@ const SECTIONS: TSection[] = [
         keywords: ['favorite', 'star', 'mark'],
         additionalProps: ['isSolid'],
         name: 'Bookmark',
-        defaultProps: {
-          isSolid: false,
-        },
+        defaultProps: {isSolid: false},
       },
-      {
-        id: 'bookmark-isSolid',
-        name: 'Bookmark',
-        defaultProps: {
-          isSolid: true,
-        },
-      },
+      {id: 'bookmark-isSolid', name: 'Bookmark', defaultProps: {isSolid: true}},
       {
         id: 'pin',
         groups: ['action'],
         keywords: ['stick', 'attach', 'fix', 'pushpin'],
         additionalProps: ['isSolid'],
         name: 'Pin',
-        defaultProps: {
-          isSolid: false,
-        },
+        defaultProps: {isSolid: false},
       },
-      {
-        id: 'pin-isSolid',
-        name: 'Pin',
-        defaultProps: {
-          isSolid: true,
-        },
-      },
+      {id: 'pin-isSolid', name: 'Pin', defaultProps: {isSolid: true}},
       {
         id: 'star',
         groups: ['action'],
         keywords: ['favorite', 'star', 'bookmark'],
         additionalProps: ['isSolid'],
         name: 'Star',
-        defaultProps: {
-          isSolid: false,
-        },
+        defaultProps: {isSolid: false},
       },
-      {
-        id: 'star-isSolid',
-        name: 'Star',
-        defaultProps: {
-          isSolid: true,
-        },
-      },
+      {id: 'star-isSolid', name: 'Star', defaultProps: {isSolid: true}},
       {
         id: 'play',
         groups: ['action'],
@@ -1074,18 +997,14 @@ const SECTIONS: TSection[] = [
         groups: ['action'],
         keywords: ['order', 'arrange', 'organize', 'rank'],
         name: 'Sort',
-        defaultProps: {
-          rotated: false,
-        },
+        defaultProps: {rotated: false},
       },
       {
         id: 'sort',
         groups: ['action'],
         keywords: ['order', 'arrange', 'organize', 'rank'],
         name: 'Sort',
-        defaultProps: {
-          rotated: true,
-        },
+        defaultProps: {rotated: true},
       },
       {
         id: 'case',
@@ -1108,20 +1027,8 @@ const SECTIONS: TSection[] = [
         name: 'Hide',
         defaultProps: {},
       },
-      {
-        id: 'lock',
-        name: 'Lock',
-        defaultProps: {
-          locked: false,
-        },
-      },
-      {
-        id: 'lock-isSolid',
-        name: 'Lock',
-        defaultProps: {
-          locked: true,
-        },
-      },
+      {id: 'lock', name: 'Lock', defaultProps: {locked: false}},
+      {id: 'lock-isSolid', name: 'Lock', defaultProps: {locked: true}},
       {
         id: 'grabbable',
         groups: ['action'],
@@ -1178,11 +1085,7 @@ const SECTIONS: TSection[] = [
         name: 'Clock',
         defaultProps: {},
       },
-      {
-        id: 'sliders',
-        name: 'Sliders',
-        defaultProps: {},
-      },
+      {id: 'sliders', name: 'Sliders', defaultProps: {}},
       {
         id: 'fix',
         groups: ['action'],
@@ -1274,11 +1177,7 @@ const SECTIONS: TSection[] = [
         name: 'Rewind10',
         defaultProps: {},
       },
-      {
-        id: 'timer',
-        name: 'Timer',
-        defaultProps: {},
-      },
+      {id: 'timer', name: 'Timer', defaultProps: {}},
       {
         id: 'cursorArrow',
         keywords: ['pointer', 'mouse'],
@@ -1315,28 +1214,19 @@ const SECTIONS: TSection[] = [
         name: 'Focus',
         defaultProps: {isFocused: false},
       },
-      {
-        id: 'tap',
-        keywords: ['finger', 'hand', 'cursor'],
-        name: 'Tap',
-        defaultProps: {},
-      },
+      {id: 'tap', keywords: ['finger', 'hand', 'cursor'], name: 'Tap', defaultProps: {}},
       {
         id: 'thumb-direction-up',
         keywords: ['feedback', 'good', 'like', 'approve'],
         additionalProps: ['direction'],
         name: 'Thumb',
-        defaultProps: {
-          direction: 'up',
-        },
+        defaultProps: {direction: 'up'},
       },
       {
         id: 'thumb-direction-down',
         keywords: ['feedback', 'bad', 'poor', 'dislike', 'disapprove'],
         name: 'Thumb',
-        defaultProps: {
-          direction: 'down',
-        },
+        defaultProps: {direction: 'down'},
       },
     ],
   },
@@ -1350,45 +1240,13 @@ const SECTIONS: TSection[] = [
         keywords: ['line', 'plot', 'chart', 'data', 'visualization'],
         additionalProps: ['type'],
         name: 'Graph',
-        defaultProps: {
-          type: 'line',
-        },
+        defaultProps: {type: 'line'},
       },
-      {
-        id: 'graph-type-circle',
-        name: 'Graph',
-        defaultProps: {
-          type: 'circle',
-        },
-      },
-      {
-        id: 'graph-type-bar',
-        name: 'Graph',
-        defaultProps: {
-          type: 'bar',
-        },
-      },
-      {
-        id: 'graph-type-area',
-        name: 'Graph',
-        defaultProps: {
-          type: 'area',
-        },
-      },
-      {
-        id: 'graph-type-scatter',
-        name: 'Graph',
-        defaultProps: {
-          type: 'scatter',
-        },
-      },
-      {
-        id: 'graph-type-heatmap',
-        name: 'Graph',
-        defaultProps: {
-          type: 'heatmap',
-        },
-      },
+      {id: 'graph-type-circle', name: 'Graph', defaultProps: {type: 'circle'}},
+      {id: 'graph-type-bar', name: 'Graph', defaultProps: {type: 'bar'}},
+      {id: 'graph-type-area', name: 'Graph', defaultProps: {type: 'area'}},
+      {id: 'graph-type-scatter', name: 'Graph', defaultProps: {type: 'scatter'}},
+      {id: 'graph-type-heatmap', name: 'Graph', defaultProps: {type: 'heatmap'}},
       {
         id: 'stack',
         groups: ['chart'],
@@ -1410,11 +1268,7 @@ const SECTIONS: TSection[] = [
         name: 'Number',
         defaultProps: {},
       },
-      {
-        id: 'profiling',
-        name: 'Profiling',
-        defaultProps: {},
-      },
+      {id: 'profiling', name: 'Profiling', defaultProps: {}},
       {
         id: 'table',
         keywords: ['grid', 'rows', 'columns', 'data'],
@@ -1934,11 +1788,7 @@ function Section(props: CategorySectionProps) {
         </Heading>
       </Container>
       <Grid
-        columns={{
-          zero: 'repeat(2, 1fr)',
-          sm: 'repeat(3, 1fr)',
-          xl: 'repeat(4, 1fr)',
-        }}
+        columns={{zero: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', xl: 'repeat(4, 1fr)'}}
         align="center"
         gap="md"
       >
@@ -1964,10 +1814,7 @@ function IconCard(props: IconCardProps) {
     element: `<${name}${props.icon.defaultProps ? ` ${serializeProps(props.icon.defaultProps)}` : ''} />`,
   };
   snippets.all = `${snippets.import}\n\n${snippets.element}`;
-  const labels = {
-    import: 'import statement',
-    element: props.icon.id,
-  };
+  const labels = {import: 'import statement', element: props.icon.id};
   const action: keyof typeof snippets = shift ? 'import' : 'element';
 
   const {copy} = useCopyToClipboard();

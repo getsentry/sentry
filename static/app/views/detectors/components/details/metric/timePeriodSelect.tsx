@@ -3,8 +3,8 @@ import moment from 'moment-timezone';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DateTime} from '@sentry/scraps/dateTime';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
 import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {
@@ -68,8 +68,8 @@ export function MetricTimePeriodSelect({dataset, interval}: TimePeriodSelectProp
       const custom = {
         label: (
           <Fragment>
-            {t('Custom time')}: <DateTime date={moment.utc(start)} /> {' — '}
-            <DateTime date={moment.utc(end)} />
+            {t('Custom time')}: <DateTime date={moment.utc(start).toDate()} /> {' — '}
+            <DateTime date={moment.utc(end).toDate()} />
           </Fragment>
         ),
         value: CUSTOM_TIME_VALUE,

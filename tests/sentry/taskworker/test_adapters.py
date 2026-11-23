@@ -5,7 +5,7 @@ from unittest import mock
 
 import orjson
 import pytest
-from django.db import ProgrammingError, connections, transaction
+from django.db import OperationalError, ProgrammingError, connections, transaction
 from django.db.transaction import TransactionManagementError
 from django.test.utils import override_settings
 from taskbroker_client.metrics import NoOpMetricsBackend
@@ -24,7 +24,7 @@ from sentry.taskworker.adapters import (
     SentryRouter,
     ViewerContextHook,
     make_producer,
-    reset_database_connections,
+    reset_broken_database_connections,
 )
 from sentry.taskworker.runtime import app
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -292,21 +292,79 @@ class TestDatabaseConnectionResetHook(TransactionTestCase):
 
         assert connection.connection is connection_before_the_task
 
-    def test_closes_the_connection_when_the_task_fails(self) -> None:
+    def test_keeps_a_healthy_connection_open_when_the_task_fails(self) -> None:
+        connection = connections["default"]
+
         with self._task_that_raises(TaskFailed):
             Option.objects.filter(key="taskworker.test").exists()
 
-        assert connections["default"].connection is None
+            connection_during_the_task = connection.connection
 
-    def test_closes_the_connection_when_the_task_hits_the_deadline(self) -> None:
+        assert connection.connection is connection_during_the_task
+
+    def test_keeps_a_healthy_connection_open_when_the_task_hits_the_deadline_outside_a_transaction(
+        self,
+    ) -> None:
+        connection = connections["default"]
+
         with self._task_that_raises(ProcessingDeadlineExceeded):
             Option.objects.filter(key="taskworker.test").exists()
 
-        assert connections["default"].connection is None
+            connection_during_the_task = connection.connection
 
-    def test_does_not_reconnect_after_a_task_that_never_used_the_database(self) -> None:
-        with self._task_that_raises(TaskFailed):
+        assert connection.connection is connection_during_the_task
+
+    def test_keeps_a_healthy_connection_open_when_the_task_raises_an_operational_error(
+        self,
+    ) -> None:
+        connection = connections["default"]
+
+        with self._task_that_raises(OperationalError):
             Option.objects.filter(key="taskworker.test").exists()
+
+            connection_during_the_task = connection.connection
+
+        assert connection.connection is connection_during_the_task
+
+    def test_does_not_reset_after_pgbouncer_refuses_the_connection(self) -> None:
+        connection = connections["default"]
+
+        connection.close()
+
+        refused = OperationalError("no more connections allowed (max_client_conn)")
+
+        with (
+            mock.patch.object(connection, "get_new_connection", side_effect=refused),
+            mock.patch(
+                "sentry.taskworker.adapters.reset_database_connection"
+            ) as reset_database_connection,
+        ):
+            with self._task_that_raises(OperationalError):
+                with transaction.atomic(using="default"):
+                    Option.objects.filter(key="taskworker.test").exists()
+
+        reset_database_connection.assert_not_called()
+
+        assert connection.connection is None
+
+    def test_does_not_reset_again_after_a_task_left_a_rollback_pending(self) -> None:
+        with self._task_that_raises(TaskFailed):
+            self._leave_an_atomic_block_open()
+
+            transaction.set_rollback(True, using="default")
+
+        assert not connections["default"].needs_rollback
+
+        with mock.patch(
+            "sentry.taskworker.adapters.reset_database_connection"
+        ) as reset_database_connection:
+            with self._task():
+                pass
+
+        reset_database_connection.assert_not_called()
+
+    def test_does_not_connect_after_a_task_that_never_used_the_database(self) -> None:
+        connections["default"].close()
 
         with self._task():
             pass
@@ -318,7 +376,7 @@ class TestDatabaseConnectionResetHook(TransactionTestCase):
         This test triggers the bug that is fixed by the hook
         If this fails, then perhaps the hook is no longer needed
         """
-        self.addCleanup(reset_database_connections)
+        self.addCleanup(reset_broken_database_connections)
 
         with pytest.raises(ProgrammingError, match="set_session cannot be used"):
             self._hit_the_deadline_during_commit()
@@ -389,7 +447,8 @@ class TestDatabaseConnectionResetHook(TransactionTestCase):
     def test_blocks_the_deadline_alarm_only_while_resetting(self) -> None:
         connection = connections["default"]
 
-        connection.ensure_connection()
+        # close() is mocked below, so the leaked transaction needs a real reset afterwards
+        self.addCleanup(reset_broken_database_connections)
 
         alarm_blocked_on_each_close: list[bool] = []
 
@@ -400,7 +459,7 @@ class TestDatabaseConnectionResetHook(TransactionTestCase):
             connection, "close", side_effect=record_whether_the_alarm_is_blocked
         ):
             with self._task_that_raises(TaskFailed):
-                pass
+                self._leave_an_atomic_block_open()
 
         assert set(alarm_blocked_on_each_close) == {True}
 

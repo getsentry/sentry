@@ -74,12 +74,8 @@ ruleTester.run(
         \`;
       `,
       },
-      {
-        code: "const Foo = styled('div')`${p => p.active && other`color: red;`};`;",
-      },
-      {
-        code: 'const value = this.tag`${css`color: red;`};`;',
-      },
+      {code: "const Foo = styled('div')`${p => p.active && other`color: red;`};`;"},
+      {code: 'const value = this.tag`${css`color: red;`};`;'},
     ],
     invalid: [
       {

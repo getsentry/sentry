@@ -3,10 +3,7 @@ import path from 'node:path';
 
 import {defineRule} from '@oxlint/plugins';
 
-type Options = {
-  prefix?: string;
-  rootDir?: string;
-};
+type Options = {prefix?: string; rootDir?: string};
 
 export const preferRelativeChildImports = defineRule({
   meta: {
@@ -18,10 +15,7 @@ export const preferRelativeChildImports = defineRule({
     schema: [
       {
         type: 'object',
-        properties: {
-          prefix: {type: 'string'},
-          rootDir: {type: 'string'},
-        },
+        properties: {prefix: {type: 'string'}, rootDir: {type: 'string'}},
         additionalProperties: false,
       },
     ],

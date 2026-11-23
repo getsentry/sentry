@@ -14,11 +14,7 @@ const OUT_OF_RETENTION_TIMESTAMP = COMPLETE_TIMESTAMP - ONE_HOUR_IN_MS;
 function makeSeries(): TimeSeries {
   return {
     yAxis: 'count(span.duration)',
-    meta: {
-      valueType: 'integer',
-      valueUnit: null,
-      interval: ONE_HOUR_IN_MS,
-    },
+    meta: {valueType: 'integer', valueUnit: null, interval: ONE_HOUR_IN_MS},
     values: [
       {
         timestamp: OUT_OF_RETENTION_TIMESTAMP,

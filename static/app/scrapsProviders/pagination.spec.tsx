@@ -141,11 +141,7 @@ describe('Pagination', () => {
     const onCursor = jest.fn();
     const {router} = render(
       <Pagination {...getPaginationProps(pageLinks)} onCursor={onCursor} />,
-      {
-        initialRouterConfig: {
-          location: {pathname: '/items/', query: {foo: 'bar'}},
-        },
-      }
+      {initialRouterConfig: {location: {pathname: '/items/', query: {foo: 'bar'}}}}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));

@@ -3,13 +3,14 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Literal, TypedDict, cast
+from typing import Annotated, Any, Literal, TypedDict, cast
 
 from django.db import router, transaction
 from rest_framework import serializers
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.auth.access import Access
 from sentry.auth.principal import RequestPrincipal
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
@@ -354,9 +355,9 @@ def _action_detector_id(action_request: NotebookActionRequest) -> int:
 
 
 class UpdateDetectorAppliedDetails(TypedDict):
-    detectorId: str
-    detectorName: str
-    fields: list[str]
+    detectorId: Annotated[str, ApiDescription("The ID of the monitor that was changed")]
+    detectorName: Annotated[str, ApiDescription("The name of the monitor that was changed")]
+    fields: Annotated[list[str], ApiDescription("The monitor settings that were changed")]
 
 
 def _error_messages(errors: Mapping[str, Any] | Sequence[Any] | str) -> list[str]:

@@ -655,6 +655,57 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
             SnubaQueryEventType.EventType.TRACE_ITEM_METRIC
         ]
 
+    def _spans_equation_data(self, equation: str) -> dict[str, Any]:
+        return {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.EventsAnalyticsPlatform.value,
+                    "query": "span.op:gen_ai.chat",
+                    "aggregate": equation,
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+                }
+            ],
+        }
+
+    @with_feature("organizations:spans-monitor-equations")
+    def test_use_spans_equation_as_aggregate(self) -> None:
+        equation = (
+            "equation|sum(gen_ai.usage.cache_read.input_tokens) / sum(gen_ai.usage.input_tokens)"
+        )
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                **self._spans_equation_data(equation),
+                status_code=201,
+            )
+
+        assert response.data["dataSources"][0]["queryObj"]["snubaQuery"]["aggregate"] == equation
+
+        detector = Detector.objects.get(id=response.data["id"])
+        data_source = DataSource.objects.get(detector=detector)
+        query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
+        assert query_sub.status == QuerySubscription.Status.ACTIVE.value
+        assert query_sub.subscription_id is not None
+        assert query_sub.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+        assert query_sub.snuba_query.query == "span.op:gen_ai.chat"
+        assert query_sub.snuba_query.aggregate == equation
+        assert query_sub.snuba_query.event_types == [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN]
+
+    def test_use_spans_equation_as_aggregate_without_feature(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **self._spans_equation_data("equation|count() / count(span.duration)"),
+            status_code=400,
+        )
+        assert "Span monitors do not support equations" in str(response.data)
+
 
 @cell_silo_test
 class OrganizationProjectDetectorIndexMonitorPostTest(APITestCase):

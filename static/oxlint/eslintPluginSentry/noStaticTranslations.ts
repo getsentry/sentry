@@ -3,9 +3,7 @@ import {defineRule} from '@oxlint/plugins';
 export const noStaticTranslations = defineRule({
   meta: {
     type: 'problem',
-    docs: {
-      description: 'Require using ATTRIBUTE_SEARCH_METADATA[key].brief in td()',
-    },
+    docs: {description: 'Require using ATTRIBUTE_SEARCH_METADATA[key].brief in td()'},
     schema: [],
     messages: {
       forbidden:
@@ -43,10 +41,7 @@ export const noStaticTranslations = defineRule({
           }
         }
 
-        context.report({
-          node: translationArg,
-          messageId: 'forbidden',
-        });
+        context.report({node: translationArg, messageId: 'forbidden'});
       },
     };
   },

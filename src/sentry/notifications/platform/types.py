@@ -70,9 +70,11 @@ class NotificationSource(StrEnum):
     SEER_AUTOFIX_TRIGGER = "seer-autofix-trigger"
     SEER_AUTOFIX_FOOTER = "seer-autofix-footer"
     SEER_AUTOFIX_SUCCESS = "seer-autofix-success"
+    SEER_AUTOFIX_OUT_OF_CREDITS = "seer-autofix-out-of-credits"
     SEER_AGENT_RESPONSE = "seer-agent-response"
     SEER_AGENT_ERROR = "seer-agent-error"
     SEER_AGENT_WRITE_APPROVAL = "seer-agent-write-approval"
+    SEER_AGENT_OUT_OF_CREDITS = "seer-agent-out-of-credits"
     SEER_INVESTIGATION_STARTED = "seer-investigation-started"
     SEER_INVESTIGATION_ERROR = "seer-investigation-error"
     SEER_INVESTIGATION_STATUS = "seer-investigation-status"
@@ -139,9 +141,11 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.SEER_AUTOFIX_STOPPED,
         NotificationSource.SEER_AUTOFIX_SUCCESS,
         NotificationSource.SEER_AUTOFIX_UPDATE,
+        NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS,
         NotificationSource.SEER_AGENT_RESPONSE,
         NotificationSource.SEER_AGENT_ERROR,
         NotificationSource.SEER_AGENT_WRITE_APPROVAL,
+        NotificationSource.SEER_AGENT_OUT_OF_CREDITS,
         NotificationSource.SEER_INVESTIGATION_STARTED,
         NotificationSource.SEER_INVESTIGATION_ERROR,
         NotificationSource.SEER_INVESTIGATION_STATUS,

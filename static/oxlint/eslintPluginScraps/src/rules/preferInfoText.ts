@@ -43,9 +43,7 @@ const TEXT_PROPS_TO_STRIP_IN_OVERFLOW_ONLY = new Set(['ellipsis']);
 export const preferInfoText = defineRule({
   meta: {
     type: 'suggestion',
-    docs: {
-      description: 'Prefer <InfoText> over <Tooltip> wrapping text content.',
-    },
+    docs: {description: 'Prefer <InfoText> over <Tooltip> wrapping text content.'},
     hasSuggestions: true,
     schema: [],
     messages: {

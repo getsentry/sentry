@@ -42,16 +42,8 @@ describe('useLogsTimeseries', () => {
           {
             ...mockTimeSeries,
             yAxis: 'count(message)',
-            values: [
-              {
-                ...mockTimeSeries.values[0]!,
-                value: 0,
-              },
-            ],
-            meta: {
-              ...mockTimeSeries.meta,
-              dataScanned: 'partial',
-            },
+            values: [{...mockTimeSeries.values[0]!, value: 0}],
+            meta: {...mockTimeSeries.meta, dataScanned: 'partial'},
           },
         ],
       },
@@ -65,9 +57,7 @@ describe('useLogsTimeseries', () => {
 
     const mockHighAccuracyRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
-      body: {
-        timeSeries: [TimeSeriesFixture()],
-      },
+      body: {timeSeries: [TimeSeriesFixture()]},
       method: 'GET',
       match: [
         function (_url: string, options: Record<string, any>) {
@@ -88,10 +78,7 @@ describe('useLogsTimeseries', () => {
             isPending: false,
             data: [],
             routingHintsByRow: new Map(),
-            meta: {
-              fields: {},
-              units: {},
-            },
+            meta: {fields: {}, units: {}},
             isRefetching: false,
             isEmpty: true,
             fetchNextPage: () => Promise.resolve({} as any),

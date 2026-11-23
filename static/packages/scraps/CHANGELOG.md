@@ -1,5 +1,87 @@
 # Changelog
 
+## 0.5.0
+
+### New Features ✨
+
+#### Scraps
+
+- Virtualize long DropdownMenu lists by @priscilawebdev in [#130390](https://github.com/getsentry/sentry/pull/130390)
+- Add useVirtualCollection to window React Aria collections by @priscilawebdev with @sentry-junior in [#130388](https://github.com/getsentry/sentry/pull/130388)
+- Let menu option details hold links by @JoshuaKGoldberg in [#128590](https://github.com/getsentry/sentry/pull/128590)
+
+#### Settings
+
+- Simplify the settings-v3 secondary navigation header by @priscilawebdev with @sentry-junior in [#130883](https://github.com/getsentry/sentry/pull/130883)
+- Indent settings v3 navigation with a leading slot by @priscilawebdev in [#128511](https://github.com/getsentry/sentry/pull/128511)
+
+### Bug Fixes 🐛
+
+#### Drawer
+
+- Handle non-Element targets in click-outside listener by @TkDodo with @sentry in [#130329](https://github.com/getsentry/sentry/pull/130329)
+- Keep the Seer divider beneath open drawers by @priscilawebdev with @sentry-junior in [#129148](https://github.com/getsentry/sentry/pull/129148)
+
+#### Scraps
+
+- Revert the transparent button label selector change by @natemoo-re and @priscilawebdev with @sentry-junior in [#130945](https://github.com/getsentry/sentry/pull/130945)
+- Opt search inputs out of password manager autofill by @trevor-e and @claude in [#130710](https://github.com/getsentry/sentry/pull/130710)
+- Constrain DropdownMenu wrapper width by @evanpurkhiser in [#130798](https://github.com/getsentry/sentry/pull/130798)
+- Respect CodeBlock wrapping on the code element by @evanpurkhiser in [#130488](https://github.com/getsentry/sentry/pull/130488)
+- Use String coercion for density line-height tokens by @natemoo-re with @sentry in [#129849](https://github.com/getsentry/sentry/pull/129849)
+- Read link colors from the current theme by @priscilawebdev in [#129161](https://github.com/getsentry/sentry/pull/129161)
+
+#### Other
+
+- (forms) Stack FieldGroup rows in narrow containers by @natemoo-re and @JPeer264 with @sentry-junior in [#130446](https://github.com/getsentry/sentry/pull/130446)
+- (invite-members) Make the invite modal usable on mobile by @sentry-junior in [#130113](https://github.com/getsentry/sentry/pull/130113)
+- (scope) Keep internal APIs private by @natemoo-re in [#129476](https://github.com/getsentry/sentry/pull/129476)
+- (settings) Match org menu project stars to the project filter by @priscilawebdev and @claude with @sentry-junior in [#130192](https://github.com/getsentry/sentry/pull/130192)
+- (tables) Keep a resized column's handle under the pointer by @JoshuaKGoldberg in [#128521](https://github.com/getsentry/sentry/pull/128521)
+- (ui) Replace question mark icons with info icons by @TkDodo in [#130015](https://github.com/getsentry/sentry/pull/130015)
+
+### Internal Changes 🔧
+
+#### Hotkeys
+
+- Upgrade TanStack Hotkeys and drop the zoom workaround by @KevinVandy and @TkDodo in [#129309](https://github.com/getsentry/sentry/pull/129309)
+- Use TanStack Hotkeys and add devtools by @TkDodo in [#129176](https://github.com/getsentry/sentry/pull/129176)
+
+#### Scraps
+
+- Centralize pagination with navigation context by @natemoo-re in [#129534](https://github.com/getsentry/sentry/pull/129534)
+- Split DropdownMenu list into smaller modules by @priscilawebdev in [#130594](https://github.com/getsentry/sentry/pull/130594)
+- Remove CompactSelect virtualization metrics by @priscilawebdev in [#130588](https://github.com/getsentry/sentry/pull/130588)
+- Make radio group items type-safe by @TkDodo in [#130231](https://github.com/getsentry/sentry/pull/130231)
+- Extract Tabs into scraps by @TkDodo in [#130448](https://github.com/getsentry/sentry/pull/130448)
+- Make checkbox group items type-safe by @TkDodo in [#130232](https://github.com/getsentry/sentry/pull/130232)
+- Move the form system into the package by @natemoo-re with @sentry-junior in [#130251](https://github.com/getsentry/sentry/pull/130251)
+- Move component docs next to their package components by @natemoo-re with @sentry-junior in [#130087](https://github.com/getsentry/sentry/pull/130087)
+- Extract the complete modal by @TkDodo in [#129847](https://github.com/getsentry/sentry/pull/129847)
+- Extract DropdownMenu with app link behavior by @natemoo-re in [#129521](https://github.com/getsentry/sentry/pull/129521)
+- Extract PictureInPicture with app styling adapters by @natemoo-re in [#129589](https://github.com/getsentry/sentry/pull/129589)
+- Extract CompactSelect and CompositeSelect by @natemoo-re in [#129596](https://github.com/getsentry/sentry/pull/129596)
+- Extract clipboard button with app feedback by @natemoo-re and @priscilawebdev in [#129520](https://github.com/getsentry/sentry/pull/129520)
+- Replace defined helpers with null checks by @natemoo-re in [#129685](https://github.com/getsentry/sentry/pull/129685)
+- Give NumberInput and NumberDragInput their own entry by @billyvg, @claude and @TkDodo in [#127111](https://github.com/getsentry/sentry/pull/127111)
+- Isolate CodeBlock and Prism in their own entry point by @natemoo-re in [#129522](https://github.com/getsentry/sentry/pull/129522)
+- Extract legacy Select and virtual rows by @natemoo-re in [#129523](https://github.com/getsentry/sentry/pull/129523)
+- Extract drawer and slide-over panel by @TkDodo in [#129163](https://github.com/getsentry/sentry/pull/129163)
+- Move useMedia into package by @TkDodo in [#129294](https://github.com/getsentry/sentry/pull/129294)
+- Move useOnClickOutside into scraps by @TkDodo in [#129170](https://github.com/getsentry/sentry/pull/129170)
+- Replace unreachable helper with satisfies never by @TkDodo in [#129044](https://github.com/getsentry/sentry/pull/129044)
+
+#### Other
+
+- (deps) Bump sentry-javascript to 11.12.0 and rrweb to 2.46.0 by @gggritso with @sentry-junior in [#130930](https://github.com/getsentry/sentry/pull/130930)
+- (tests) Run workspace suites in isolation by @TkDodo and @natemoo-re in [#127351](https://github.com/getsentry/sentry/pull/127351)
+- (ui) Let tab links own focus and navigation by @TkDodo in [#130055](https://github.com/getsentry/sentry/pull/130055)
+
+### Other
+
+- deps(ui): Upgrade rspack to 2.3.1 and swc packages by @scttcper and @claude in [#129407](https://github.com/getsentry/sentry/pull/129407)
+- deps(ui): Upgrade oxlint to 1.90 and oxfmt to 0.75 by @scttcper and @claude in [#129397](https://github.com/getsentry/sentry/pull/129397)
+
 ## 0.4.0
 
 ### New Features ✨

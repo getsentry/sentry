@@ -321,6 +321,92 @@ class SlackNotifyActionTest(RuleTestCase):
             form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
             assert form.is_valid()
 
+    def test_only_channel_id_provided_sdk(self) -> None:
+        channel = {"name": "my-channel", "id": "C2349874"}
+        with self.mock_conversations_info(channel):
+            rule = self.get_slack_notify_rule(
+                data={
+                    "workspace": self.integration.id,
+                    "input_channel_id": "C2349874",
+                    "tags": "",
+                }
+            )
+
+            form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
+            assert form.is_valid()
+            assert form.cleaned_data["channel"] == "my-channel"
+            assert form.cleaned_data["channel_id"] == "C2349874"
+
+    def test_only_user_id_provided_sdk(self) -> None:
+        with mock_slack_response(
+            "users_info",
+            body={"ok": True, "user": {"id": "U2349874", "name": "morty"}},
+        ):
+            rule = self.get_slack_notify_rule(
+                data={
+                    "workspace": self.integration.id,
+                    "input_channel_id": "U2349874",
+                    "tags": "",
+                }
+            )
+
+            form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
+            assert form.is_valid()
+            assert form.cleaned_data["channel"] == "morty"
+            assert form.cleaned_data["channel_id"] == "U2349874"
+
+    def test_only_invalid_channel_id_provided_sdk(self) -> None:
+        with patch(
+            "slack_sdk.web.client.WebClient.conversations_info",
+            side_effect=TypedSlackApiError(
+                "", response={"ok": False, "error": "channel_not_found"}
+            ),
+        ):
+            rule = self.get_slack_notify_rule(
+                data={
+                    "workspace": self.integration.id,
+                    "input_channel_id": "C1234567",
+                    "tags": "",
+                }
+            )
+
+            form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
+            assert not form.is_valid()
+            assert "Channel not found. Invalid ID provided." in str(form.errors.values())
+
+    def test_no_channel_name_or_id_provided(self) -> None:
+        rule = self.get_slack_notify_rule(data={"workspace": self.integration.id, "tags": ""})
+
+        form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
+        assert not form.is_valid()
+        assert ["Slack: Channel name or channel ID is required."] in form.errors.values()
+
+    def test_blank_channel_name_and_no_id_provided(self) -> None:
+        rule = self.get_slack_notify_rule(
+            data={"workspace": self.integration.id, "channel": "   ", "tags": ""}
+        )
+
+        form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
+        assert not form.is_valid()
+        assert ["Slack: Channel name or channel ID is required."] in form.errors.values()
+
+    def test_only_user_id_provided_display_name_fallback_sdk(self) -> None:
+        with mock_slack_response(
+            "users_info",
+            body={"ok": True, "user": {"id": "U2349874", "profile": {"display_name": "Morty"}}},
+        ):
+            rule = self.get_slack_notify_rule(
+                data={
+                    "workspace": self.integration.id,
+                    "input_channel_id": "U2349874",
+                    "tags": "",
+                }
+            )
+
+            form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
+            assert form.is_valid()
+            assert form.cleaned_data["channel"] == "Morty"
+
     def test_invalid_channel_id_provided_sdk(self) -> None:
         with patch(
             "slack_sdk.web.client.WebClient.conversations_info",

@@ -211,7 +211,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return [summarize_member(m) for m in members]
 
     def serialize_organization(self, *, id: int, as_user: RpcUser | None = None) -> Any | None:
-        org = Organization.objects.filter(id=id).first()
+        org = Organization.objects.get_or_none(id=id)
         if org is None:
             return None
         return serialize(org, user=as_user)
@@ -372,15 +372,15 @@ class DatabaseBackedOrganizationService(OrganizationService):
         if user_id is not None:
             member = OrganizationMember.objects.filter(
                 organization_id=org.id, user_id=user_id
-            ).first()
+            ).first()  # noqa: S035
         if member is None and email is not None:
             member = first_matching_email(
                 OrganizationMember.objects.filter(organization_id=org.id), email
             )
         if member is None and organization_member_id is not None:
-            member = OrganizationMember.objects.filter(
+            member = OrganizationMember.objects.get_or_none(
                 organization_id=org.id, id=organization_member_id
-            ).first()
+            )
 
         if member is None:
             return None
@@ -540,11 +540,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 if user_id is not None:
                     org_member = OrganizationMember.objects.filter(
                         organization_id=organization_id, user_id=user_id
-                    ).first()
+                    ).first()  # noqa: S035
                 elif email is not None:
                     org_member = OrganizationMember.objects.filter(
                         organization_id=organization_id, email=email
-                    ).first()
+                    ).first()  # noqa: S035
 
                 if org_member is None:
                     org_member = OrganizationMember.objects.create(
@@ -678,11 +678,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:
         to_member: OrganizationMember | None = OrganizationMember.objects.filter(
             organization_id=organization_id, user_id=to_user_id
-        ).first()
+        ).first()  # noqa: S035
 
         from_member: OrganizationMember | None = OrganizationMember.objects.filter(
             organization_id=organization_id, user_id=from_user_id
-        ).first()
+        ).first()  # noqa: S035
 
         if from_member is None:
             return
@@ -723,9 +723,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 OrganizationMemberTeam.objects.filter(
                     organizationmember=from_member, team=team
                 ).delete()
-                to_member_team = OrganizationMemberTeam.objects.filter(
+                to_member_team = OrganizationMemberTeam.objects.get_or_none(
                     organizationmember=to_member, team=team
-                ).first()
+                )
                 if to_member_team is None:
                     OrganizationMemberTeam.objects.create(organizationmember=to_member, team=team)
 
@@ -965,7 +965,7 @@ class ControlOrganizationCheckService(OrganizationCheckService):
 
     def check_organization_by_id(self, *, id: int, only_visible: bool) -> bool:
         # See CellOrganizationCheckService below
-        org_mapping = OrganizationMapping.objects.filter(organization_id=id).first()
+        org_mapping = OrganizationMapping.objects.get_or_none(organization_id=id)
         if org_mapping is None:
             return False
         if only_visible and org_mapping.status != OrganizationStatus.ACTIVE:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
@@ -915,6 +916,20 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         truncated_text = "a" * 1497 + "..."
         assert blocks["blocks"][1]["text"]["text"] == f"```{truncated_text}```"
 
+    def test_truncates_long_title(self) -> None:
+        group = self.create_group(
+            project=self.project,
+            data={"type": "error", "metadata": {"type": "Fatal error: " + "a&b " * 1000}},
+        )
+
+        blocks = SlackIssuesMessageBuilder(group, None).build()
+
+        title_text = blocks["blocks"][0]["text"]["text"]
+        assert len(title_text) <= 3000
+        assert title_text.endswith("...*>")
+        assert "|*Fatal error: a&amp;b a&amp;b " in title_text
+        assert re.search(r"&[a-z]*\.\.\.\*>$", title_text) is None
+
     def test_escape_slack_message(self) -> None:
         group = self.create_group(
             project=self.project,
@@ -1032,7 +1047,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert not self._has_autofix_button(blocks)
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
@@ -1047,7 +1062,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         mock_check_seer_credits.assert_called_once()
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch("sentry.seer_credit.backend.check_seer_credits")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     def test_unfurl_skips_seer_credit_check(

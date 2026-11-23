@@ -272,9 +272,7 @@ function getAllowedFiles(fileName: string): Set<string> | undefined {
 export const noDefaultExports = defineRule({
   meta: {
     type: 'problem',
-    docs: {
-      description: 'Disallow default exports in files that are not lazy-imported',
-    },
+    docs: {description: 'Disallow default exports in files that are not lazy-imported'},
     fixable: 'code',
     schema: [],
     messages: {
@@ -351,10 +349,7 @@ export const noDefaultExports = defineRule({
         }
 
         default:
-          context.report({
-            node: declaration,
-            messageId: 'forbidden',
-          });
+          context.report({node: declaration, messageId: 'forbidden'});
       }
     }
 

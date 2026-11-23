@@ -16,22 +16,13 @@ describe('SeerSecondaryNavigation', () => {
       url: '/organizations/org-slug/group-search-views/starred/',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/dashboards/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/explore/all-queries/',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/broadcasts/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/assistant/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/broadcasts/', body: []});
+    MockApiClient.addMockResponse({url: '/assistant/', body: []});
   });
 
   function renderNavigation(pathname: string, org = organization) {

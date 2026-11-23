@@ -147,15 +147,8 @@ export const restrictJsxSlotChildren = defineRule({
             items: {
               type: 'object',
               properties: {
-                componentNames: {
-                  type: 'array',
-                  items: {type: 'string'},
-                },
-                propNames: {
-                  type: 'array',
-                  minItems: 1,
-                  items: {type: 'string'},
-                },
+                componentNames: {type: 'array', items: {type: 'string'}},
+                propNames: {type: 'array', minItems: 1, items: {type: 'string'}},
                 allowed: {
                   type: 'array',
                   minItems: 1,
@@ -163,11 +156,7 @@ export const restrictJsxSlotChildren = defineRule({
                     type: 'object',
                     properties: {
                       source: {type: 'string'},
-                      names: {
-                        type: 'array',
-                        minItems: 1,
-                        items: {type: 'string'},
-                      },
+                      names: {type: 'array', minItems: 1, items: {type: 'string'}},
                     },
                     required: ['source', 'names'],
                     additionalProperties: false,
@@ -183,9 +172,7 @@ export const restrictJsxSlotChildren = defineRule({
         additionalProperties: false,
       },
     ],
-    messages: {
-      forbidden: "<{{name}}> is not allowed in '{{prop}}'. Use: {{allowed}}.",
-    },
+    messages: {forbidden: "<{{name}}> is not allowed in '{{prop}}'. Use: {{allowed}}."},
   },
 
   create(context) {

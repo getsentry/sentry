@@ -29,7 +29,7 @@ interface SidebarFrameProps {
   version: SettingsVersion;
 }
 
-// The app's global stylesheet (static/less/base.less) removes the default link
+// The app's global stylesheet (static/css/base.css) removes the default link
 // underline, but SSR snapshots don't load it.
 /* oxlint-disable @sentry/scraps/no-dom-coupling -- Mirrors the app's global anchor reset, which SSR snapshots don't load. */
 const linkReset = css`

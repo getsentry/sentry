@@ -16,7 +16,11 @@ class AsyncPG(Extension):
     async def build_pool(self) -> None:
         from django.conf import settings
 
-        DB_CONF = settings.DATABASES["default"]
+        connection_name = "default"
+        if "default_replica" in settings.DATABASES:
+            connection_name = "default_replica"
+
+        DB_CONF = settings.DATABASES[connection_name]
 
         self.pool = await asyncpg.create_pool(
             user=DB_CONF["USER"],

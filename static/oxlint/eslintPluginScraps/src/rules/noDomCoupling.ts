@@ -32,9 +32,7 @@ function unwrap(node: ESTree.Node): ESTree.Node {
 export const noDomCoupling = defineRule({
   meta: {
     type: 'problem',
-    docs: {
-      description: 'Disallow selectors that depend on component or DOM structure',
-    },
+    docs: {description: 'Disallow selectors that depend on component or DOM structure'},
     schema: [],
     messages: {
       forbidden:

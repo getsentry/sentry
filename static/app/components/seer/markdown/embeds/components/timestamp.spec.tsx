@@ -1,4 +1,6 @@
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+
+import {DateTimeProvider} from '@sentry/scraps/dateTime';
 
 import {renderEmbedMarkdown} from './resourceEmbedTestUtils';
 import {Timestamp} from './timestamp';
@@ -26,5 +28,29 @@ describe('timestamp embed', () => {
     expect(renderEmbedMarkdown(Timestamp, 'timestamp', {value})).toBe(
       container.textContent
     );
+  });
+
+  it('reads a datetime without an offset as UTC', () => {
+    render(
+      <DateTimeProvider value={{timezone: 'America/Los_Angeles'}}>
+        <Timestamp
+          name="timestamp"
+          data={{value: '2025-07-15T14:30:00'}}
+          level="inline"
+        />
+      </DateTimeProvider>
+    );
+
+    expect(screen.getByText('Jul 15, 2025 7:30 AM')).toBeInTheDocument();
+  });
+
+  it('shows a calendar date without shifting it into the viewer timezone', () => {
+    render(
+      <DateTimeProvider value={{timezone: 'America/Los_Angeles'}}>
+        <Timestamp name="timestamp" data={{value: '2025-07-15'}} level="inline" />
+      </DateTimeProvider>
+    );
+
+    expect(screen.getByText('Jul 15, 2025')).toBeInTheDocument();
   });
 });

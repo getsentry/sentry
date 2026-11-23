@@ -103,10 +103,7 @@ function getObjectDefaults(pattern: ESTree.ObjectPattern) {
 function getFunctionDefaults(
   node: ESTree.ArrowFunctionExpression | ESTree.Function
 ): FunctionDefaults {
-  const defaults: FunctionDefaults = {
-    objectProperties: new Map(),
-    positional: new Map(),
-  };
+  const defaults: FunctionDefaults = {objectProperties: new Map(), positional: new Map()};
 
   const runtimeParameters = node.params.filter(
     parameter => parameter.type !== 'Identifier' || parameter.name !== 'this'
@@ -228,10 +225,7 @@ function getTypeScriptObjectDefaults(pattern: ts.ObjectBindingPattern) {
 function getTypeScriptFunctionDefaults(
   node: ts.SignatureDeclarationBase
 ): FunctionDefaults {
-  const defaults: FunctionDefaults = {
-    objectProperties: new Map(),
-    positional: new Map(),
-  };
+  const defaults: FunctionDefaults = {objectProperties: new Map(), positional: new Map()};
   let runtimeIndex = 0;
 
   for (const parameter of node.parameters) {
@@ -242,10 +236,7 @@ function getTypeScriptFunctionDefaults(
     if (parameter.initializer && ts.isIdentifier(parameter.name)) {
       const value = getTypeScriptHardcodedValue(parameter.initializer);
       if (value !== NOT_HARDCODED) {
-        defaults.positional.set(runtimeIndex, {
-          name: parameter.name.text,
-          value,
-        });
+        defaults.positional.set(runtimeIndex, {name: parameter.name.text, value});
       }
     } else if (ts.isObjectBindingPattern(parameter.name)) {
       const properties = getTypeScriptObjectDefaults(parameter.name);
@@ -643,10 +634,7 @@ function getImportedBinding(
 
   switch (definition.node.type) {
     case 'ImportDefaultSpecifier':
-      return {
-        exportName: 'default',
-        moduleSpecifier: definition.parent.source.value,
-      };
+      return {exportName: 'default', moduleSpecifier: definition.parent.source.value};
     case 'ImportSpecifier':
       return {
         exportName:
@@ -754,14 +742,8 @@ export const noRedundantDefaultArgument = defineRule({
     const importedDefaultsByVariable = new Map<Variable, FunctionDefaults | null>();
     const stableByVariable = new WeakMap<Variable, boolean>();
     let syntacticResolver: SyntacticResolver | null | undefined;
-    const calls: Array<{
-      node: ESTree.CallExpression;
-      variable: Variable;
-    }> = [];
-    const elements: Array<{
-      node: ESTree.JSXOpeningElement;
-      variable: Variable;
-    }> = [];
+    const calls: Array<{node: ESTree.CallExpression; variable: Variable}> = [];
+    const elements: Array<{node: ESTree.JSXOpeningElement; variable: Variable}> = [];
 
     function resolveVariable(
       node: ESTree.IdentifierReference | ESTree.BindingIdentifier | ESTree.JSXIdentifier

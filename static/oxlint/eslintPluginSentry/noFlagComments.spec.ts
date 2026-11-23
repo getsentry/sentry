@@ -20,38 +20,17 @@ ruleTester.run('no-flag-comments', noFlagComments, {
       code: '// ---------------------------------------------------------------------------',
       errors: [{messageId: 'noFlagComment'}],
     },
-    {
-      code: '// ---',
-      errors: [{messageId: 'noFlagComment'}],
-    },
-    {
-      code: '// ----------',
-      errors: [{messageId: 'noFlagComment'}],
-    },
+    {code: '// ---', errors: [{messageId: 'noFlagComment'}]},
+    {code: '// ----------', errors: [{messageId: 'noFlagComment'}]},
     {
       code: '// ========================================================================',
       errors: [{messageId: 'noFlagComment'}],
     },
-    {
-      code: '// ***',
-      errors: [{messageId: 'noFlagComment'}],
-    },
-    {
-      code: '// ___',
-      errors: [{messageId: 'noFlagComment'}],
-    },
-    {
-      code: '// ###',
-      errors: [{messageId: 'noFlagComment'}],
-    },
-    {
-      code: '// ~~~',
-      errors: [{messageId: 'noFlagComment'}],
-    },
-    {
-      code: '// ─────────',
-      errors: [{messageId: 'noFlagComment'}],
-    },
+    {code: '// ***', errors: [{messageId: 'noFlagComment'}]},
+    {code: '// ___', errors: [{messageId: 'noFlagComment'}]},
+    {code: '// ###', errors: [{messageId: 'noFlagComment'}]},
+    {code: '// ~~~', errors: [{messageId: 'noFlagComment'}]},
+    {code: '// ─────────', errors: [{messageId: 'noFlagComment'}]},
     {
       code: [
         '// ========================================================================',

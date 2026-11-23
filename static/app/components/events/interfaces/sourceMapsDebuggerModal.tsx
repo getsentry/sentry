@@ -1,6 +1,6 @@
 import type {PropsWithChildren, ReactNode} from 'react';
 import {Fragment, useMemo, useState} from 'react';
-import {useTheme, css} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconCircle} from '@sentry/icons/circle';
@@ -20,7 +20,7 @@ import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
@@ -39,7 +39,12 @@ import {useProjects} from 'sentry/utils/useProjects';
 
 import {sourceMapSdkDocsMap} from './crashContent/exception/utils';
 
-const SOURCE_MAP_SCRAPING_REASON_MAP = {
+type ScrapingReasonText = {explanation: string; shortName: string};
+type ScrapingReasonMap = Partial<Record<string, ScrapingReasonText>> & {
+  other: ScrapingReasonText;
+};
+
+const SOURCE_MAP_SCRAPING_REASON_MAP: ScrapingReasonMap = {
   not_found: {
     shortName: t('Not Found'),
     explanation: t('The source map could not be found at its defined location.'),
@@ -72,9 +77,9 @@ const SOURCE_MAP_SCRAPING_REASON_MAP = {
     shortName: t('Unknown'),
     explanation: t('Fetching the source map failed for an unknown reason.'),
   },
-} as const;
+};
 
-const SOURCE_FILE_SCRAPING_REASON_MAP = {
+const SOURCE_FILE_SCRAPING_REASON_MAP: ScrapingReasonMap = {
   not_found: {
     shortName: t('Not Found'),
     explanation: t('The source file could not be found at its defined location.'),
@@ -107,7 +112,7 @@ const SOURCE_FILE_SCRAPING_REASON_MAP = {
     shortName: t('Unknown'),
     explanation: t('Fetching the source file failed for an unknown reason.'),
   },
-} as const;
+};
 
 export interface FrameSourceMapDebuggerData {
   debugIdProgress: number;
@@ -188,6 +193,7 @@ export const projectPlatformToDocsMap: Record<string, string> = {
   'javascript-astro': 'astro',
   'javascript-tanstackstart-react': 'tanstackstart-react',
   'react-native': 'react-native',
+  expo: 'react-native',
 };
 
 function isReactNativeSDK({sdkName}: Pick<FrameSourceMapDebuggerData, 'sdkName'>) {
@@ -306,11 +312,7 @@ function SentryWizardCallout({
           );
         }}
       >
-        {getSourceMapsWizardSnippet({
-          isSelfHosted,
-          organization,
-          project,
-        })}
+        {getSourceMapsWizardSnippet({isSelfHosted, organization, project})}
       </InstructionCodeSnippet>
     </Fragment>
   );
@@ -610,9 +612,7 @@ export function SourceMapsDebuggerModal({
             )}
           </p>
           <h6>{t('Source Maps Setup')}</h6>
-          {isReactNativeSDK({
-            sdkName: sourceResolutionResults.sdkName,
-          }) ? (
+          {isReactNativeSDK({sdkName: sourceResolutionResults.sdkName}) ? (
             <WizardInstructionParagraph>
               {tct(
                 "For React Native projects, source maps should be generated and uploaded automatically during the build process. If they're not showing up, chances are something's off in your setup. [link:Our docs] can help you double-check.",
@@ -644,233 +644,245 @@ export function SourceMapsDebuggerModal({
               )}
             </p>
           )}
-          <Tabs<'debug-ids' | 'release' | 'fetching'>
-            value={activeTab}
-            onChange={setActiveTab}
-          >
-            <TabList>
-              <TabList.Item
-                key="debug-ids"
-                textValue={`${t('Debug IDs')} (${
-                  sourceResolutionResults.debugIdProgress
-                }/4)`}
-                hidden={hideDebugIdsTab || hideAllTabs}
-              >
-                <StyledProgressRing
-                  progressColor={
-                    activeTab === 'debug-ids'
-                      ? theme.tokens.graphics.accent.vibrant
-                      : theme.tokens.graphics.neutral.vibrant
-                  }
-                  backgroundColor={theme.tokens.background.transparent.neutral.muted}
-                  value={sourceResolutionResults.debugIdProgressPercent * 100}
-                  size={16}
-                  barWidth={4}
-                />
-                {`${t('Debug IDs')}${
-                  sourceResolutionResults.sdkDebugIdSupport === 'not-supported'
-                    ? ''
-                    : ' ' + t('(recommended)')
-                }`}
-              </TabList.Item>
-              <TabList.Item
-                key="release"
-                textValue={`${t('Releases')} (${
-                  sourceResolutionResults.releaseProgress
-                }/4)`}
-                hidden={hideReleasesTab || hideAllTabs}
-              >
-                <StyledProgressRing
-                  progressColor={
-                    activeTab === 'release'
-                      ? theme.tokens.graphics.accent.vibrant
-                      : theme.tokens.graphics.neutral.vibrant
-                  }
-                  backgroundColor={theme.tokens.background.transparent.neutral.muted}
-                  value={sourceResolutionResults.releaseProgressPercent * 100}
-                  size={16}
-                  barWidth={4}
-                />
-                {t('Releases')}
-              </TabList.Item>
-              <TabList.Item
-                key="fetching"
-                textValue={`${t('Hosting Publicly')} (${
-                  sourceResolutionResults.scrapingProgress
-                }/4)`}
-                hidden={hideHostingPubliclyTab || hideAllTabs}
-              >
-                <StyledProgressRing
-                  progressColor={
-                    activeTab === 'fetching'
-                      ? theme.tokens.graphics.accent.vibrant
-                      : theme.tokens.graphics.neutral.vibrant
-                  }
-                  backgroundColor={theme.tokens.background.transparent.neutral.muted}
-                  value={sourceResolutionResults.scrapingProgressPercent * 100}
-                  size={16}
-                  barWidth={4}
-                />
-                {t('Hosting Publicly')}
-              </TabList.Item>
-            </TabList>
-            <StyledTabPanels hideAllTabs={hideAllTabs}>
-              <TabPanels.Item key="debug-ids">
-                {hideAllTabs ? (
-                  <p>
-                    {isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
-                      ? tct(
-                          "After confirming your setup is correct, the next step is verifying your Debug IDs, which link your source files to the source maps. Let's make sure they're set up properly by running through this quick checklist:",
-                          {
-                            link: sourceMapsDocLinks.debugIds ? (
-                              <ExternalLink href={sourceMapsDocLinks.debugIds} />
-                            ) : undefined,
-                          }
-                        )
-                      : tct(
-                          "We rely on [link:Debug IDs] to link your source files to the maps, so let's make sure they're set up correctly:",
-                          {
-                            link: sourceMapsDocLinks.debugIds ? (
-                              <ExternalLink href={sourceMapsDocLinks.debugIds} />
-                            ) : undefined,
-                          }
-                        )}
-                  </p>
-                ) : (
-                  <p>
-                    {tct(
-                      '[link:Debug IDs] are a way of matching your source files to source maps. Follow all of the steps below to get a readable stack trace:',
-                      {
-                        link: defined(sourceMapsDocLinks.debugIds) ? (
-                          <ExternalLinkWithIcon href={sourceMapsDocLinks.debugIds} />
+          <Tabs value={activeTab} onChange={setActiveTab}>
+            {({TabList, TabPanels}) => (
+              <Fragment>
+                <TabList>
+                  <TabList.Item
+                    key="debug-ids"
+                    textValue={`${t('Debug IDs')} (${
+                      sourceResolutionResults.debugIdProgress
+                    }/4)`}
+                    hidden={hideDebugIdsTab || hideAllTabs}
+                  >
+                    <StyledProgressRing
+                      progressColor={
+                        activeTab === 'debug-ids'
+                          ? theme.tokens.graphics.accent.vibrant
+                          : theme.tokens.graphics.neutral.vibrant
+                      }
+                      backgroundColor={theme.tokens.background.transparent.neutral.muted}
+                      value={sourceResolutionResults.debugIdProgressPercent * 100}
+                      size={16}
+                      barWidth={4}
+                    />
+                    {`${t('Debug IDs')}${
+                      sourceResolutionResults.sdkDebugIdSupport === 'not-supported'
+                        ? ''
+                        : ' ' + t('(recommended)')
+                    }`}
+                  </TabList.Item>
+                  <TabList.Item
+                    key="release"
+                    textValue={`${t('Releases')} (${
+                      sourceResolutionResults.releaseProgress
+                    }/4)`}
+                    hidden={hideReleasesTab || hideAllTabs}
+                  >
+                    <StyledProgressRing
+                      progressColor={
+                        activeTab === 'release'
+                          ? theme.tokens.graphics.accent.vibrant
+                          : theme.tokens.graphics.neutral.vibrant
+                      }
+                      backgroundColor={theme.tokens.background.transparent.neutral.muted}
+                      value={sourceResolutionResults.releaseProgressPercent * 100}
+                      size={16}
+                      barWidth={4}
+                    />
+                    {t('Releases')}
+                  </TabList.Item>
+                  <TabList.Item
+                    key="fetching"
+                    textValue={`${t('Hosting Publicly')} (${
+                      sourceResolutionResults.scrapingProgress
+                    }/4)`}
+                    hidden={hideHostingPubliclyTab || hideAllTabs}
+                  >
+                    <StyledProgressRing
+                      progressColor={
+                        activeTab === 'fetching'
+                          ? theme.tokens.graphics.accent.vibrant
+                          : theme.tokens.graphics.neutral.vibrant
+                      }
+                      backgroundColor={theme.tokens.background.transparent.neutral.muted}
+                      value={sourceResolutionResults.scrapingProgressPercent * 100}
+                      size={16}
+                      barWidth={4}
+                    />
+                    {t('Hosting Publicly')}
+                  </TabList.Item>
+                </TabList>
+                <Container paddingTop={hideAllTabs ? undefined : 'xl'}>
+                  {layoutProps => (
+                    <TabPanels {...layoutProps}>
+                      <TabPanels.Item key="debug-ids">
+                        {hideAllTabs ? (
+                          <p>
+                            {isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
+                              ? tct(
+                                  "After confirming your setup is correct, the next step is verifying your Debug IDs, which link your source files to the source maps. Let's make sure they're set up properly by running through this quick checklist:",
+                                  {
+                                    link: sourceMapsDocLinks.debugIds ? (
+                                      <ExternalLink href={sourceMapsDocLinks.debugIds} />
+                                    ) : undefined,
+                                  }
+                                )
+                              : tct(
+                                  "We rely on [link:Debug IDs] to link your source files to the maps, so let's make sure they're set up correctly:",
+                                  {
+                                    link: sourceMapsDocLinks.debugIds ? (
+                                      <ExternalLink href={sourceMapsDocLinks.debugIds} />
+                                    ) : undefined,
+                                  }
+                                )}
+                          </p>
                         ) : (
-                          <Fragment />
-                        ),
-                      }
-                    )}
-                  </p>
-                )}
-                <CheckList>
-                  <InstalledSdkChecklistItem
-                    setActiveTab={setActiveTab}
-                    sourceResolutionResults={sourceResolutionResults}
-                  />
-                  <HasDebugIdChecklistItem
-                    shouldValidate={
-                      sourceResolutionResults.sdkDebugIdSupport === 'full' ||
-                      sourceResolutionResults.sdkDebugIdSupport === 'unofficial-sdk' ||
-                      sourceResolutionResults.eventHasDebugIds
-                    }
-                    sourceResolutionResults={sourceResolutionResults}
-                  />
-                  <UploadedSourceFileWithCorrectDebugIdChecklistItem
-                    shouldValidate={sourceResolutionResults.stackFrameDebugId !== null}
-                    sourceResolutionResults={sourceResolutionResults}
-                    projectSlug={project?.slug}
-                  />
-                  <UploadedSourceMapWithCorrectDebugIdChecklistItem
-                    shouldValidate={
-                      sourceResolutionResults.uploadedSourceFileWithCorrectDebugId
-                    }
-                    sourceResolutionResults={sourceResolutionResults}
-                    projectSlug={project?.slug}
-                  />
-                </CheckList>
-                {sourceResolutionResults.debugIdProgressPercent === 1 ? (
-                  <ChecklistDoneNote />
-                ) : (
-                  <VerifyAgainNote />
-                )}
-              </TabPanels.Item>
-              <TabPanels.Item key="release">
-                {hideAllTabs ? (
-                  <p>
-                    {isReactNativeSDK({
-                      sdkName: sourceResolutionResults.sdkName,
-                    })
-                      ? tct(
-                          "After confirming your setup is correct, the next step is to check whether your source maps are properly linked to your stack traces. This happens through [link:Releases] and artifact names, so let's make sure those are configured correctly:",
-                          {
-                            link: (
-                              <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
-                            ),
-                          }
-                        )
-                      : t(
-                          "Now, let's go through a checklist to troubleshoot why your source maps aren't showing up. Your stack trace is matched to your source code using [link:Releases] and artifact names, so let's ensure that's set up correctly:",
-                          {
-                            link: (
-                              <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
-                            ),
-                          }
+                          <p>
+                            {tct(
+                              '[link:Debug IDs] are a way of matching your source files to source maps. Follow all of the steps below to get a readable stack trace:',
+                              {
+                                link: defined(sourceMapsDocLinks.debugIds) ? (
+                                  <ExternalLinkWithIcon
+                                    href={sourceMapsDocLinks.debugIds}
+                                  />
+                                ) : (
+                                  <Fragment />
+                                ),
+                              }
+                            )}
+                          </p>
                         )}
-                  </p>
-                ) : (
-                  <p>
-                    {tct(
-                      'You can match your stack trace to your source code based on [link:Releases] and artifact names. Follow all of the steps below to get a readable stack trace:',
-                      {
-                        link: (
-                          <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
-                        ),
-                      }
-                    )}
-                  </p>
-                )}
-                <CheckList>
-                  <EventHasReleaseNameChecklistItem
-                    sourceResolutionResults={sourceResolutionResults}
-                  />
-                  <ReleaseHasUploadedArtifactsChecklistItem
-                    shouldValidate={sourceResolutionResults.release !== null}
-                    sourceResolutionResults={sourceResolutionResults}
-                  />
-                  <ReleaseSourceFileMatchingChecklistItem
-                    shouldValidate={sourceResolutionResults.releaseHasSomeArtifact}
-                    sourceResolutionResults={sourceResolutionResults}
-                  />
-                  <ReleaseSourceMapMatchingChecklistItem
-                    shouldValidate={
-                      sourceResolutionResults.sourceFileReleaseNameFetchingResult ===
-                      'found'
-                    }
-                    sourceResolutionResults={sourceResolutionResults}
-                  />
-                </CheckList>
-                {sourceResolutionResults.releaseProgressPercent === 1 ? (
-                  <ChecklistDoneNote />
-                ) : (
-                  <VerifyAgainNote />
-                )}
-              </TabPanels.Item>
-              <TabPanels.Item key="fetching">
-                <p>
-                  {tct(
-                    'Sentry will fetch your source files and source maps if you [link:host them publicly].',
-                    {
-                      link: defined(sourceMapsDocLinks.hostingPublicly) ? (
-                        <ExternalLinkWithIcon href={sourceMapsDocLinks.hostingPublicly} />
-                      ) : (
-                        <Fragment />
-                      ),
-                    }
+                        <CheckList>
+                          <InstalledSdkChecklistItem
+                            setActiveTab={setActiveTab}
+                            sourceResolutionResults={sourceResolutionResults}
+                          />
+                          <HasDebugIdChecklistItem
+                            shouldValidate={
+                              sourceResolutionResults.sdkDebugIdSupport === 'full' ||
+                              sourceResolutionResults.sdkDebugIdSupport ===
+                                'unofficial-sdk' ||
+                              sourceResolutionResults.eventHasDebugIds
+                            }
+                            sourceResolutionResults={sourceResolutionResults}
+                          />
+                          <UploadedSourceFileWithCorrectDebugIdChecklistItem
+                            shouldValidate={
+                              sourceResolutionResults.stackFrameDebugId !== null
+                            }
+                            sourceResolutionResults={sourceResolutionResults}
+                            projectSlug={project?.slug}
+                          />
+                          <UploadedSourceMapWithCorrectDebugIdChecklistItem
+                            shouldValidate={
+                              sourceResolutionResults.uploadedSourceFileWithCorrectDebugId
+                            }
+                            sourceResolutionResults={sourceResolutionResults}
+                            projectSlug={project?.slug}
+                          />
+                        </CheckList>
+                        {sourceResolutionResults.debugIdProgressPercent === 1 ? (
+                          <ChecklistDoneNote />
+                        ) : (
+                          <VerifyAgainNote />
+                        )}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="release">
+                        {hideAllTabs ? (
+                          <p>
+                            {isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
+                              ? tct(
+                                  "After confirming your setup is correct, the next step is to check whether your source maps are properly linked to your stack traces. This happens through [link:Releases] and artifact names, so let's make sure those are configured correctly:",
+                                  {
+                                    link: (
+                                      <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
+                                    ),
+                                  }
+                                )
+                              : t(
+                                  "Now, let's go through a checklist to troubleshoot why your source maps aren't showing up. Your stack trace is matched to your source code using [link:Releases] and artifact names, so let's ensure that's set up correctly:",
+                                  {
+                                    link: (
+                                      <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
+                                    ),
+                                  }
+                                )}
+                          </p>
+                        ) : (
+                          <p>
+                            {tct(
+                              'You can match your stack trace to your source code based on [link:Releases] and artifact names. Follow all of the steps below to get a readable stack trace:',
+                              {
+                                link: (
+                                  <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
+                                ),
+                              }
+                            )}
+                          </p>
+                        )}
+                        <CheckList>
+                          <EventHasReleaseNameChecklistItem
+                            sourceResolutionResults={sourceResolutionResults}
+                          />
+                          <ReleaseHasUploadedArtifactsChecklistItem
+                            shouldValidate={sourceResolutionResults.release !== null}
+                            sourceResolutionResults={sourceResolutionResults}
+                          />
+                          <ReleaseSourceFileMatchingChecklistItem
+                            shouldValidate={
+                              sourceResolutionResults.releaseHasSomeArtifact
+                            }
+                            sourceResolutionResults={sourceResolutionResults}
+                          />
+                          <ReleaseSourceMapMatchingChecklistItem
+                            shouldValidate={
+                              sourceResolutionResults.sourceFileReleaseNameFetchingResult ===
+                              'found'
+                            }
+                            sourceResolutionResults={sourceResolutionResults}
+                          />
+                        </CheckList>
+                        {sourceResolutionResults.releaseProgressPercent === 1 ? (
+                          <ChecklistDoneNote />
+                        ) : (
+                          <VerifyAgainNote />
+                        )}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="fetching">
+                        <p>
+                          {tct(
+                            'Sentry will fetch your source files and source maps if you [link:host them publicly].',
+                            {
+                              link: defined(sourceMapsDocLinks.hostingPublicly) ? (
+                                <ExternalLinkWithIcon
+                                  href={sourceMapsDocLinks.hostingPublicly}
+                                />
+                              ) : (
+                                <Fragment />
+                              ),
+                            }
+                          )}
+                        </p>
+                        <CheckList>
+                          <ScrapingSourceFileAvailableChecklistItem
+                            sourceResolutionResults={sourceResolutionResults}
+                          />
+                          <ScrapingSourceMapAvailableChecklistItem
+                            sourceResolutionResults={sourceResolutionResults}
+                          />
+                        </CheckList>
+                        {sourceResolutionResults.scrapingProgressPercent === 1 ? (
+                          <ChecklistDoneNote />
+                        ) : (
+                          <VerifyAgainNote />
+                        )}
+                      </TabPanels.Item>
+                    </TabPanels>
                   )}
-                </p>
-                <CheckList>
-                  <ScrapingSourceFileAvailableChecklistItem
-                    sourceResolutionResults={sourceResolutionResults}
-                  />
-                  <ScrapingSourceMapAvailableChecklistItem
-                    sourceResolutionResults={sourceResolutionResults}
-                  />
-                </CheckList>
-                {sourceResolutionResults.scrapingProgressPercent === 1 ? (
-                  <ChecklistDoneNote />
-                ) : (
-                  <VerifyAgainNote />
-                )}
-              </TabPanels.Item>
-            </StyledTabPanels>
+                </Container>
+              </Fragment>
+            )}
           </Tabs>
         </DebuggerSection>
       </Body>
@@ -970,9 +982,7 @@ function InstalledSdkChecklistItem({
           <p>
             {tct(
               'If upgrading the SDK is not an option for you, you can use the [link:Release] process instead.',
-              {
-                link: <Link to="" onClick={() => setActiveTab('release')} />,
-              }
+              {link: <Link to="" onClick={() => setActiveTab('release')} />}
             )}
           </p>
         </CheckListInstruction>
@@ -988,9 +998,7 @@ function InstalledSdkChecklistItem({
           <p>
             {tct(
               'The SDK you are using does not support debug IDs yet. We recommend using the [link:Release] process instead.',
-              {
-                link: <Link to="" onClick={() => setActiveTab('release')} />,
-              }
+              {link: <Link to="" onClick={() => setActiveTab('release')} />}
             )}
           </p>
         </CheckListInstruction>
@@ -1005,9 +1013,7 @@ function InstalledSdkChecklistItem({
         <p>
           {tct(
             "You are using an unofficial Sentry SDK. Please check whether this SDK already supports Debug IDs. It's possible that this SDK supports debug IDs but you may be better off using the [link:Release Name] method of uploading source maps.",
-            {
-              link: <Link to="" onClick={() => setActiveTab('release')} />,
-            }
+            {link: <Link to="" onClick={() => setActiveTab('release')} />}
           )}
         </p>
         <p>
@@ -1042,11 +1048,7 @@ type ToolUsedToUploadSourceMaps = ReturnType<typeof getToolUsedToUploadSourceMap
 
 const pluginConfig: Record<
   keyof Omit<ToolUsedToUploadSourceMaps, 'sentryCli'>,
-  {
-    configFile: string;
-    link: string;
-    name: string;
-  }
+  {configFile: string; link: string; name: string}
 > = {
   vitePlugin: {
     name: 'Vite',
@@ -1272,9 +1274,7 @@ function HasDebugIdChecklistItem({
         <p>
           {tct(
             "This event doesn't contain any Debug IDs. Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.",
-            {
-              link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />,
-            }
+            {link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />}
           )}
         </p>
       </CheckListInstruction>
@@ -1295,22 +1295,20 @@ function DebugIdMismatchMessage({
     return (
       <Fragment>
         {t(
-          "You already uploaded artifacts with Debug IDs but none of the uploaded source files had a Debug ID matching this stack frame's Debug ID"
+          "When Sentry processed this event, it did not find a file with this stack frame's Debug ID."
         )}
       </Fragment>
     );
   }
 
   return tct(
-    "You already uploaded artifacts with Debug IDs but none of the uploaded source files had a Debug ID matching this stack frame's Debug ID: [debugId]",
+    "When Sentry processed this event, it did not find a file with this stack frame's Debug ID: [debugId]",
     {
       debugId: projectSlug ? (
         <LinkButton
           to={{
             pathname: `/settings/${organization.slug}/projects/${projectSlug}/source-maps/`,
-            query: {
-              query: debugId,
-            },
+            query: {query: debugId},
           }}
           icon={<IconOpen />}
           aria-label={t('View source map Debug ID %(debugId)s in project settings', {
@@ -1338,8 +1336,8 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
 }) {
   const platform = getPlatform(sourceResolutionResults);
   const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
-  const successMessage = t('Source file with a matching Debug ID was uploaded');
-  const errorMessage = t('Missing source file with a matching Debug ID');
+  const successMessage = t('Source file with a matching Debug ID was found');
+  const errorMessage = t('No source file with a matching Debug ID was found');
 
   if (!shouldValidate) {
     return <CheckListItem status="none" title={successMessage} />;
@@ -1362,7 +1360,7 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
           </p>
           <p>
             {t(
-              'Make sure to inject Debug IDs into all of your source files and to upload all of them to Sentry.'
+              'Your project has artifacts with Debug IDs. You may have uploaded the matching source file after Sentry processed this event. Inject Debug IDs into all of your source files and upload them before you deploy. Then redeploy and capture a new event.'
             )}
           </p>
         </CheckListInstruction>
@@ -1377,9 +1375,7 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
         <p>
           {tct(
             "You didn't upload any artifacts with debug IDs yet. Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.",
-            {
-              link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />,
-            }
+            {link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />}
           )}
         </p>
         {/* TODO: Link to Uploaded Artifacts */}
@@ -1399,8 +1395,8 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
 }) {
   const platform = getPlatform(sourceResolutionResults);
   const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
-  const successMessage = t('Uploaded source map with a matching Debug ID');
-  const errorMessage = t('Missing source map with a matching Debug ID');
+  const successMessage = t('Source map with a matching Debug ID was found');
+  const errorMessage = t('No source map with a matching Debug ID was found');
 
   if (!shouldValidate) {
     return <CheckListItem status="none" title={successMessage} />;
@@ -1423,7 +1419,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
           </p>
           <p>
             {t(
-              'Make sure to inject Debug IDs into all of your source files and to upload all of them to Sentry.'
+              'Your project has artifacts with Debug IDs. You may have uploaded the matching source map after Sentry processed this event. Inject Debug IDs into all of your source files and upload the source files and source maps before you deploy. Then redeploy and capture a new event.'
             )}
           </p>
         </CheckListInstruction>
@@ -1439,9 +1435,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
         <p>
           {tct(
             "You didn't upload any artifacts with debug IDs yet. Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.",
-            {
-              link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />,
-            }
+            {link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />}
           )}
         </p>
         {/* TODO: Link to Uploaded Artifacts */}
@@ -1646,9 +1640,7 @@ function ReleaseSourceFileMatchingChecklistItem({
               )
             : tct(
                 'This event has a dist value [dist]. Please check that you uploaded your artifacts with dist [dist].',
-                {
-                  dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>,
-                }
+                {dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>}
               )}
         </p>
         {/* TODO: Link to uploaded files for this release. */}
@@ -1656,9 +1648,7 @@ function ReleaseSourceFileMatchingChecklistItem({
           <p>
             {tct(
               'If the stack frame path is changing based on runtime parameters, you can use the [link:RewriteFrames integration] to dynamically change the stack frame path.',
-              {
-                link: <ExternalLinkWithIcon href={sourceMapsDocLinks.rewriteFrames} />,
-              }
+              {link: <ExternalLinkWithIcon href={sourceMapsDocLinks.rewriteFrames} />}
             )}
           </p>
         )}
@@ -1765,9 +1755,7 @@ function ReleaseSourceMapMatchingChecklistItem({
               )
             : tct(
                 'This event has a dist value [dist]. Please check that you uploaded your sourcemaps with dist [dist].',
-                {
-                  dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>,
-                }
+                {dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>}
               )}
         </p>
         {/* TODO: Link to Uploaded Artifacts */}
@@ -1821,7 +1809,7 @@ function ScrapingSourceFileAvailableChecklistItem({
   }
 
   const failureReasonTexts =
-    (SOURCE_FILE_SCRAPING_REASON_MAP as any)[
+    SOURCE_FILE_SCRAPING_REASON_MAP[
       sourceResolutionResults.sourceFileScrapingStatus.reason
     ] ?? SOURCE_FILE_SCRAPING_REASON_MAP.other;
 
@@ -1891,7 +1879,6 @@ function ScrapingSourceMapAvailableChecklistItem({
   }
 
   const failureReasonTexts =
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     SOURCE_MAP_SCRAPING_REASON_MAP[
       sourceResolutionResults.sourceMapScrapingStatus.reason
     ] ?? SOURCE_MAP_SCRAPING_REASON_MAP.other;
@@ -1963,9 +1950,7 @@ function ChecklistDoneNote() {
         {isSelfHosted
           ? tct(
               ' If the newly captured event is still not sourcemapped, please check the logs of the [symbolicator] service of your self-hosted instance.',
-              {
-                symbolicator: <MonoBlock>symbolicator</MonoBlock>,
-              }
+              {symbolicator: <MonoBlock>symbolicator</MonoBlock>}
             )
           : ''}
       </p>
@@ -1982,14 +1967,6 @@ function SourceMapStepNotRequiredNote() {
     </CheckListInstruction>
   );
 }
-
-const StyledTabPanels = styled(TabPanels)<{hideAllTabs: boolean}>`
-  ${p =>
-    !p.hideAllTabs &&
-    css`
-      padding-top: ${p.theme.space.xl};
-    `}
-`;
 
 const CheckList = styled('ul')`
   margin: 0;

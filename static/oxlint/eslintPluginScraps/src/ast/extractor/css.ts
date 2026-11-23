@@ -12,12 +12,7 @@ type CssNode = {
   nodes?: CssNode[];
   params?: string;
   prop?: string;
-  raws?: {
-    afterName?: string;
-    before?: string;
-    between?: string;
-    params?: {raw?: string};
-  };
+  raws?: {afterName?: string; before?: string; between?: string; params?: {raw?: string}};
   selector?: string;
   source?: {
     end?: {line?: number; offset?: number};

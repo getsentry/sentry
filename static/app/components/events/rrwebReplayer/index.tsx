@@ -33,7 +33,7 @@ function RRWebReplayer({urls}: Props) {
       // list that has multiple "checkouts".
       const data: RRWebEvents[] = await Promise.all(
         urls.map(async url => {
-          const resp = await fetch(url);
+          const resp = await fetch(url, {credentials: 'include'});
           const json = await resp.json();
 
           return json.events;

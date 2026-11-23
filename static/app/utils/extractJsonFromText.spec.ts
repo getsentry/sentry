@@ -462,10 +462,7 @@ describe('extractJsonFromText', () => {
       expect(
         extractJsonFromText('2024-01-15 10:30:00 INFO User logged in successfully')
       ).toEqual([
-        {
-          type: 'text',
-          value: '2024-01-15 10:30:00 INFO User logged in successfully',
-        },
+        {type: 'text', value: '2024-01-15 10:30:00 INFO User logged in successfully'},
       ]);
     });
 

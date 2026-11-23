@@ -16,6 +16,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {
   DISTRIBUTION_SENTRY_APP_PERMISSION,
   SENTRY_APP_PERMISSIONS,
+  SERVICE_ACCOUNT_SENTRY_APP_PERMISSION,
 } from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Permissions} from 'sentry/types/integrations';
@@ -43,9 +44,7 @@ import {
 
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
 
-const schema = z.object({
-  name: z.string(),
-});
+const schema = z.object({name: z.string()});
 
 const INITIAL_PERMISSIONS: Permissions = {
   Event: 'no-access',
@@ -56,6 +55,7 @@ const INITIAL_PERMISSIONS: Permissions = {
   Organization: 'no-access',
   Alerts: 'no-access',
   Distribution: 'no-access',
+  ServiceAccount: 'no-access',
 };
 
 // Personal tokens can't be used for Distribution. The point of
@@ -80,6 +80,9 @@ export default function ApiNewToken() {
   // the organization currently in context.
   const hasGranularPermissions =
     organization?.features.includes('granular-permission-scopes-ui') ?? false;
+  const displayedPermissions = organization?.features.includes('service-accounts')
+    ? [...DISPLAYED_PERMISSIONS, SERVICE_ACCOUNT_SENTRY_APP_PERMISSION]
+    : DISPLAYED_PERMISSIONS;
 
   const handleGoBack = useCallback(
     () => navigate(normalizeUrl(API_INDEX_ROUTE)),
@@ -103,10 +106,7 @@ export default function ApiNewToken() {
       fetchMutation<NewInternalAppApiToken>({
         url: getApiUrl('/api-tokens/'),
         method: 'POST',
-        data: {
-          ...data,
-          scopes,
-        },
+        data: {...data, scopes},
       }),
     onSuccess: token => {
       toast.success(t('Created personal token.'));
@@ -147,9 +147,7 @@ export default function ApiNewToken() {
               <div>
                 {tct(
                   'For more information on how to use the web API, see our [link:documentation].',
-                  {
-                    link: <ExternalLink href="https://docs.sentry.io/api/" />,
-                  }
+                  {link: <ExternalLink href="https://docs.sentry.io/api/" />}
                 )}
               </div>
             </Stack>
@@ -184,7 +182,7 @@ export default function ApiNewToken() {
                   onChange={nextPermissions => {
                     setPermissions({...nextPermissions});
                   }}
-                  displayedPermissions={DISPLAYED_PERMISSIONS}
+                  displayedPermissions={displayedPermissions}
                 />
               )}
               <DisplayField.Row

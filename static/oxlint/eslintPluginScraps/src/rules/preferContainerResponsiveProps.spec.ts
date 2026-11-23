@@ -47,10 +47,7 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
       filename,
       code: "import {useMedia} from '@sentry/scraps/useMedia'; useMedia('(max-height: 800px)');",
     },
-    {
-      filename,
-      code: "const search = {'app.vitals.start.screen:sm': true};",
-    },
+    {filename, code: "const search = {'app.vitals.start.screen:sm': true};"},
     {
       filename: '/project/static/packages/scraps/src/layout/styles.spec.tsx',
       code: "const props = {direction: {'screen:md': 'row'}};",
@@ -91,10 +88,7 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
       filename,
       code: "import {useMedia} from '@sentry/scraps/useMedia'; useMedia(query);",
     },
-    {
-      filename,
-      code: "const sizes = {0: 'none', screen: 'md'};",
-    },
+    {filename, code: "const sizes = {0: 'none', screen: 'md'};"},
     {
       filename: '/project/static/oxlint/eslintPluginScraps/src/rules/example.spec.ts',
       code: "const props = {direction: {'screen:md': 'row'}};",

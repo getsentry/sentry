@@ -25,9 +25,7 @@ export const PageFilterBar = styled(({children, ...props}: PageFilterBarProps) =
   );
 })``;
 
-const StyledPageFilterBar = styled(Flex, {
-  shouldForwardProp: prop => prop !== 'size',
-})<{
+const StyledPageFilterBar = styled(Flex, {shouldForwardProp: prop => prop !== 'size'})<{
   listSize: number;
   condensed?: boolean;
   size?: PageFilterBarProps['size'];

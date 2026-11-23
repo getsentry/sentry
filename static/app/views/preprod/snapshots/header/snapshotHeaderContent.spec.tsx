@@ -277,10 +277,7 @@ describe('SnapshotHeaderContent query invalidation', () => {
       comparison_state: 'success',
       approval_status: 'requires_approval',
     });
-    const initialRequest = MockApiClient.addMockResponse({
-      url: API_URL,
-      body: snapshot,
-    });
+    const initialRequest = MockApiClient.addMockResponse({url: API_URL, body: snapshot});
     const approveRequest = MockApiClient.addMockResponse({
       url: APPROVE_URL,
       method: 'POST',

@@ -1,11 +1,13 @@
-import {useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
+import {useParams} from 'react-router';
 import styled from '@emotion/styled';
+import {IconIssues} from '@sentry/icons/issues';
 import {useQuery} from '@tanstack/react-query';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
-import {Heading} from '@sentry/scraps/text';
+import {Tabs} from '@sentry/scraps/tabs';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {AnsiText} from 'sentry/components/ansiText';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -13,12 +15,14 @@ import {EventMessage} from 'sentry/components/events/eventMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
@@ -28,6 +32,7 @@ import {EventDetailsHeader} from 'sentry/views/issueDetails/eventDetailsHeader';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
+import {relatedIssuesApiOptions} from 'sentry/views/issueDetails/groupRelatedIssues/relatedIssuesApiOptions';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
 import {
@@ -44,6 +49,11 @@ type InboxIssueTab = 'overview' | 'telemetry';
 
 interface InboxIssuePreviewProps {
   groupId: string;
+}
+
+export default function InboxIssuePreviewRoute() {
+  const {id} = useParams<'id'>();
+  return id ? <InboxIssuePreview groupId={id} /> : null;
 }
 
 export function InboxIssuePreview({groupId}: InboxIssuePreviewProps) {
@@ -81,29 +91,41 @@ export function InboxIssuePreview({groupId}: InboxIssuePreviewProps) {
       <Stack flex={1} containerType="inline-size">
         <InboxIssuePreviewHeader group={group} project={project} event={event} />
         <Tabs value={tab} onChange={setTab}>
-          <Container padding="0 2xl" borderBottom="primary">
-            <TabList>
-              <TabList.Item key="overview">{t('Overview')}</TabList.Item>
-              <TabList.Item key="telemetry">{t('Telemetry')}</TabList.Item>
-            </TabList>
-          </Container>
-          <FullHeightTabPanels>
-            <TabPanels.Item key="overview">
-              <InboxIssueOverview group={group} project={project} event={event} />
-            </TabPanels.Item>
-            <TabPanels.Item key="telemetry">
-              <PageFiltersContainer
-                key={project.id}
-                skipLoadLastUsed
-                skipInitializeUrlParams
-                disablePersistence
-                forceProject={project}
-                shouldForceProject
-              >
-                <InboxIssueTelemetry group={group} project={project} event={event} />
-              </PageFiltersContainer>
-            </TabPanels.Item>
-          </FullHeightTabPanels>
+          {({TabList, TabPanels}) => (
+            <Fragment>
+              <Container padding="0 2xl" borderBottom="primary">
+                <TabList>
+                  <TabList.Item key="overview">{t('Overview')}</TabList.Item>
+                  <TabList.Item key="telemetry">{t('Telemetry')}</TabList.Item>
+                </TabList>
+              </Container>
+              <Stack flex="1" height="auto" paddingTop="0">
+                {layoutProps => (
+                  <TabPanels {...layoutProps}>
+                    <TabPanels.Item key="overview">
+                      <InboxIssueOverview group={group} project={project} event={event} />
+                    </TabPanels.Item>
+                    <TabPanels.Item key="telemetry">
+                      <PageFiltersContainer
+                        key={project.id}
+                        skipLoadLastUsed
+                        skipInitializeUrlParams
+                        disablePersistence
+                        forceProject={project}
+                        shouldForceProject
+                      >
+                        <InboxIssueTelemetry
+                          group={group}
+                          project={project}
+                          event={event}
+                        />
+                      </PageFiltersContainer>
+                    </TabPanels.Item>
+                  </TabPanels>
+                )}
+              </Stack>
+            </Fragment>
+          )}
         </Tabs>
       </Stack>
     </GroupDataContextProvider>
@@ -166,6 +188,9 @@ function InboxIssuePreviewHeader({group, project, event}: InboxIssueSectionProps
 }
 
 function InboxIssueOverview({group, project, event}: InboxIssueSectionProps) {
+  const {hash} = useLocation();
+  const highlightedActivityId = hash.match(/^#activity[-=](.+)$/)?.[1];
+
   return (
     <IssueDetailsContextProvider scrollContext="pane">
       <Grid flex={1} columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, 1fr) 300px'}}>
@@ -175,6 +200,7 @@ function InboxIssueOverview({group, project, event}: InboxIssueSectionProps) {
           </Heading>
           <ActivitySection
             group={group}
+            highlightedActivityId={highlightedActivityId}
             minHeight={40}
             variant="standalone"
             placeholder={t('Add a comment. Tag users with @, or teams with #')}
@@ -214,9 +240,66 @@ function InboxIssueSidebar({group, project, event}: InboxIssueSectionProps) {
         <FirstLastSeenSection group={group} event={event} />
       </ErrorBoundary>
       <ErrorBoundary mini>
+        <SidebarField label={t('Related')}>
+          <InboxIssueRelated group={group} />
+        </SidebarField>
+      </ErrorBoundary>
+      <ErrorBoundary mini>
         <InboxIssueExternalLinks group={group} event={event} />
       </ErrorBoundary>
     </Stack>
+  );
+}
+
+const RELATED_ISSUES_SHOWN = 3;
+
+function InboxIssueRelated({group}: Pick<InboxIssueSectionProps, 'group'>) {
+  const organization = useOrganization();
+  // The limit applies to each type. The endpoint lists issues matched by more types first.
+  const {data, isPending, isError} = useQuery(
+    relatedIssuesApiOptions({
+      organization,
+      groupId: group.id,
+      limit: RELATED_ISSUES_SHOWN,
+    })
+  );
+
+  if (isPending) {
+    return <Placeholder height="60px" />;
+  }
+  if (isError) {
+    return <Text variant="muted">{t('Unable to load related issues')}</Text>;
+  }
+  if (data.data.length === 0) {
+    return <Text variant="muted">{t('No related issues')}</Text>;
+  }
+
+  return (
+    <Stack gap="md">
+      {data.data.slice(0, RELATED_ISSUES_SHOWN).map(({issue}) => (
+        <InboxIssueRelatedRow key={issue.id} issue={issue} />
+      ))}
+    </Stack>
+  );
+}
+
+function InboxIssueRelatedRow({issue}: {issue: Group}) {
+  const organization = useOrganization();
+
+  return (
+    <Flex gap="sm" align="center" minWidth={0}>
+      {linkProps => (
+        <IssueTitleLink
+          {...linkProps}
+          to={normalizeUrl(`/organizations/${organization.slug}/issues/${issue.id}/`)}
+        >
+          <IconIssues size="sm" />
+          <Text ellipsis>
+            {issue.shortId} – {issue.title}
+          </Text>
+        </IssueTitleLink>
+      )}
+    </Flex>
   );
 }
 
@@ -286,13 +369,4 @@ const IssueTitleLink = styled(Link)`
   &:hover {
     text-decoration: underline;
   }
-`;
-
-// Lets the selected panel fill the rest of the preview's height
-const FullHeightTabPanels = styled(TabPanels)`
-  flex: 1;
-  height: auto;
-  display: flex;
-  flex-direction: column;
-  padding-top: 0;
 `;

@@ -194,7 +194,7 @@ def _get_metric_alert_investigation_url(
                     status=NotebookStatus.ACTIVE,
                 )
                 .select_related("organization")
-                .first()
+                .first()  # noqa: S035
             )
             return investigation.get_absolute_url() if investigation is not None else None
     except Exception:

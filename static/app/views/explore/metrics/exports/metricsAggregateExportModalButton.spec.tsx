@@ -102,14 +102,8 @@ describe('MetricsAggregateExportModalButton', () => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        datetime: {start: null, end: null, period: '24h', utc: null},
-      })
+      PageFiltersFixture({datetime: {start: null, end: null, period: '24h', utc: null}})
     );
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it('downloads locally without a server export when all rows are loaded', async () => {

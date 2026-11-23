@@ -126,11 +126,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
 
   const transformedData = (() => {
     if (validationError) {
-      return {
-        loading: false,
-        errorMessage: validationError,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading: false, errorMessage: validationError, rawData: EMPTY_ARRAY};
     }
 
     if (releaseSorting.errorMessage) {
@@ -154,11 +150,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const timeseriesResults: WidgetTimeSeries[] = [];
@@ -198,10 +190,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     };
   })();
 
-  return {
-    ...transformedData,
-    timeseriesInterval: queryRequests[0]?.interval,
-  };
+  return {...transformedData, timeseriesInterval: queryRequests[0]?.interval};
 }
 
 export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQueryResult {
@@ -290,11 +279,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
 
   const transformedData = (() => {
     if (validationError) {
-      return {
-        loading: false,
-        errorMessage: validationError,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading: false, errorMessage: validationError, rawData: EMPTY_ARRAY};
     }
 
     if (releaseSorting.errorMessage) {
@@ -318,11 +303,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const tableResults: TableDataWithTitle[] = [];

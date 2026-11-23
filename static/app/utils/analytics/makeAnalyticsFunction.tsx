@@ -16,9 +16,7 @@ const rawTrackAnalyticsEvent: Overrides['analytics:raw-track-event'] = (data, op
 
 const hasAnalyticsDebug = () => localStorageWrapper.getItem('DEBUG_ANALYTICS') === '1';
 
-type OptionalOrg = {
-  organization: Organization | string | null;
-};
+type OptionalOrg = {organization: Organization | string | null};
 type Options = Parameters<Overrides['analytics:raw-track-event']>[1];
 
 /**
@@ -45,11 +43,7 @@ export function makeAnalyticsFunction<
     options?: Options
   ) => {
     const eventName = eventKeyToNameMap[eventKey];
-    const params = {
-      eventKey,
-      eventName,
-      ...analyticsParams,
-    };
+    const params = {eventKey, eventName, ...analyticsParams};
 
     if (hasAnalyticsDebug()) {
       // eslint-disable-next-line no-console

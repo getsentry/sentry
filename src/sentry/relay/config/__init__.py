@@ -62,6 +62,7 @@ EXPOSABLE_FEATURES = [
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
     "organizations:relay-heroku-log-drain-endpoint",
+    "organizations:relay-otel-metrics-endpoint",
     "organizations:relay-playstation-ingestion",
     "organizations:gpu-crash-symbolication",
     "organizations:browser-report-ingestion",
@@ -70,6 +71,7 @@ EXPOSABLE_FEATURES = [
     "projects:relay-minidump-uploads",
     "projects:relay-playstation-uploads",
     "projects:relay-nintendo-event-rewrite",
+    "projects:relay-unreal-crash-context-stacktrace",
     "projects:relay-upload-multipart",
     "projects:resumable-uploads",
 ]

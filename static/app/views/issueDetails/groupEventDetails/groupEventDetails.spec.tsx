@@ -125,9 +125,7 @@ const makeDefaultMockData = (
           op: 'ui.action.click',
           type: 'trace',
         },
-        profile: {
-          profiler_id: 'a0f6f14c42c36b13',
-        },
+        profile: {profiler_id: 'a0f6f14c42c36b13'},
       },
     }),
   };
@@ -183,6 +181,10 @@ const mockGroupApis = (
   replayId?: string,
   trace?: TraceTree.EAPSpan
 ) => {
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/issues/`,
+    body: [],
+  });
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/issues/1/events/',
     body: [],
@@ -261,16 +263,11 @@ const mockGroupApis = (
   });
   MockApiClient.addMockResponse({
     url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/actionable-items/`,
-    body: {
-      errors: [],
-    },
+    body: {errors: []},
   });
 
   // Sentry related mocks
-  MockApiClient.addMockResponse({
-    url: '/sentry-apps/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/sentry-apps/', body: []});
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/sentry-apps/`,
@@ -283,23 +280,14 @@ const mockGroupApis = (
     match: [MockApiClient.matchQuery({projectId: project.id})],
   });
 
-  MockApiClient.addMockResponse({
-    url: '/projects/org-slug/project-slug/',
-    body: project,
-  });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/users/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/projects/org-slug/project-slug/', body: project});
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/projects/',
     body: [project],
   });
 
-  MockApiClient.addMockResponse({
-    url: '/customers/org-slug/policies/',
-    body: {},
-  });
+  MockApiClient.addMockResponse({url: '/customers/org-slug/policies/', body: {}});
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
@@ -307,10 +295,7 @@ const mockGroupApis = (
   });
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events/`,
-    body: {
-      data: [],
-      meta: {fields: {}, units: {}},
-    },
+    body: {data: [], meta: {fields: {}, units: {}}},
   });
   MockApiClient.addMockResponse({
     url: `/projects/${organization.slug}/${project.slug}/`,
@@ -320,33 +305,18 @@ const mockGroupApis = (
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
     method: 'GET',
-    body: AutofixSetupFixture({
-      integration: {
-        ok: true,
-        reason: null,
-      },
-    }),
+    body: AutofixSetupFixture({integration: {ok: true, reason: null}}),
   });
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
-    body: {
-      steps: [],
-    },
+    body: {steps: []},
   });
 
-  MockApiClient.addMockResponse({
-    url: '/customers/org-slug/',
-    method: 'GET',
-    body: {},
-  });
+  MockApiClient.addMockResponse({url: '/customers/org-slug/', method: 'GET', body: {}});
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/profiling/chunks/`,
-    body: {
-      chunk: {
-        profiler_id: event.contexts?.profile?.profiler_id,
-      },
-    },
+    body: {chunk: {profiler_id: event.contexts?.profile?.profiler_id}},
   });
 };
 
@@ -562,9 +532,7 @@ describe('groupEventDetails', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: `/organizations/${props.organization.slug}/issues/${props.group.id}/`,
-          query: expect.objectContaining({
-            environment: 'prod',
-          }),
+          query: expect.objectContaining({environment: 'prod'}),
         })
       );
     });
@@ -588,9 +556,7 @@ describe('groupEventDetails', () => {
     expect(router.location).toEqual(
       expect.objectContaining({
         pathname: initialPathname,
-        query: expect.objectContaining({
-          environment: '',
-        }),
+        query: expect.objectContaining({environment: ''}),
       })
     );
   });
@@ -667,10 +633,7 @@ describe('groupEventDetails', () => {
         <QueryClientProvider client={queryClient}>
           <GroupEventDetailsWithProvider groupId={props.group.id} />
         </QueryClientProvider>,
-        {
-          organization: props.organization,
-          initialRouterConfig: props.initialRouterConfig,
-        }
+        {organization: props.organization, initialRouterConfig: props.initialRouterConfig}
       );
 
       expect(await screen.findByRole('button', {name: buttonName})).toBeInTheDocument();
@@ -774,13 +737,7 @@ describe('groupEventDetails', () => {
     });
     const transactionEvent = EventFixture({
       entries: [{type: EntryType.SPANS, data: []}],
-      contexts: {
-        trace: {
-          trace_id: TRACE_ID,
-          span_id: 'b0e6f15b45c36b12',
-          type: 'trace',
-        },
-      },
+      contexts: {trace: {trace_id: TRACE_ID, span_id: 'b0e6f15b45c36b12', type: 'trace'}},
     });
 
     mockGroupApis(props.organization, props.project, group, transactionEvent);
@@ -808,9 +765,7 @@ describe('groupEventDetails', () => {
       entries: [],
       occurrence: {
         evidenceDisplay: [],
-        evidenceData: {
-          templateName: 'profile',
-        },
+        evidenceData: {templateName: 'profile'},
         type: 2001,
       },
     });
@@ -965,10 +920,7 @@ describe('groupEventDetails', () => {
         props.group,
         props.event,
         undefined,
-        {
-          ...trace,
-          occurrences: [],
-        }
+        {...trace, occurrences: []}
       );
 
       render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {

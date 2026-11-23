@@ -20,9 +20,7 @@ describe('seerSettingsRoutes', () => {
     const routes = [
       translateSentryRoute({
         path: '/settings/:orgId/',
-        handle: {
-          settingsBreadcrumb: {type: 'link', label: 'Settings', to: '/settings/'},
-        },
+        handle: {settingsBreadcrumb: {type: 'link', label: 'Settings', to: '/settings/'}},
         children: [seerSettingsRoutes()],
       }),
     ];

@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence, Set
 from datetime import datetime
 from typing import Literal, NamedTuple, TypedDict
 
-from django.db.models import F, Prefetch, Q, prefetch_related_objects
+from django.db.models import Prefetch, Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema
 from pydantic import ValidationError
 from rest_framework import serializers
@@ -19,6 +19,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
+from sentry.api.utils import get_date_range_from_params
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples import seer_workflow_examples as SeerWorkflowExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -61,6 +63,11 @@ class WorkflowRunListSerializer(serializers.Serializer):
         min_value=1,
         max_value=I64_MAX,
         help_text="The workflow config ID to filter runs by. Omit to list runs across configs.",
+    )
+    status = serializers.ChoiceField(
+        required=False,
+        choices=SeerWorkflowRunStatus.choices,
+        help_text="Filter by the run's saved lifecycle status.",
     )
 
 
@@ -201,7 +208,16 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="List Seer workflow runs",
         examples=SeerWorkflowExamples.WORKFLOW_RUNS_RESPONSE,
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam, WorkflowRunListSerializer],
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            CursorQueryParam,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
+            GlobalParams.START,
+            GlobalParams.END,
+            WorkflowRunListSerializer,
+        ],
         responses={
             200: inline_sentry_response_serializer("SeerWorkflowRuns", SeerWorkflowRunsResponse),
             400: inline_sentry_response_serializer(
@@ -211,6 +227,10 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """List automation runs with their executions, newest first.
+
+        Date ranges include runs created at or after the start and before the end.
+        Supply ``start`` and ``end`` together. Timestamps without an offset use UTC.
+        Omit date filters to include the full history. Invalid filters return HTTP 400.
 
         Limited-access members see a run started by a trigger in one project (such as a
         monitor) when they can access that project. For other runs they must be able to
@@ -224,6 +244,12 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
 
         if len(request.query_params.getlist("config")) > 1:
             return Response({"detail": "Supply only one config."}, status=400)
+        try:
+            # With optional=True, omitting date filters returns (None, None) for the full run history.
+            start, end = get_date_range_from_params(request.GET, optional=True)
+        except (ValueError, OverflowError, OSError):
+            # Out-of-range numeric timestamps can fail in datetime.fromtimestamp.
+            return Response({"detail": "Date range is out of bounds."}, status=400)
         serializer = WorkflowRunListSerializer(data=request.query_params.dict())
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
@@ -232,15 +258,14 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
             organization=organization,
             workflow_config__organization=organization,
             workflow_config__strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
-        ).annotate(
-            strategy=F("workflow_config__strategy"),
-            config_extras=F("workflow_config__extras"),
-        )
+        ).select_related("workflow_config__backing_workflow")
 
-        # Filter by a config
-        config_id = serializer.validated_data.get("config")
-        if config_id is not None:
+        if config_id := serializer.validated_data.get("config"):
             runs = runs.filter(workflow_config_id=config_id)
+        if status := serializer.validated_data.get("status"):
+            runs = runs.filter(status=status)
+        if start is not None:
+            runs = runs.filter(date_added__gte=start, date_added__lt=end)
 
         # Filter by accessible projects. A run started by a trigger in one project only needs
         # access to that project; other runs need access to every project in their saved scope.
@@ -277,6 +302,7 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
             202: inline_sentry_response_serializer(
                 "SeerWorkflowRunCreate", WorkflowRunCreateResponse
             ),
+            400: RESPONSE_BAD_REQUEST,
         },
     )
     def post(self, request: Request, organization: Organization) -> Response:
@@ -293,7 +319,7 @@ def serialize_workflow_runs(
     include_investigations: bool,
     accessible_project_ids: set[int] | None = None,
 ) -> SeerWorkflowRunsResponse:
-    """Serialize runs loaded with `strategy` and `config_extras` annotations.
+    """Serialize runs loaded with their `workflow_config`.
 
     `accessible_project_ids` limits detector names to those projects; None means all.
     """
@@ -360,16 +386,18 @@ def serialize_workflow_run(
     existing_group_ids: Set[int],
     accessible_project_ids: set[int] | None,
 ) -> SeerWorkflowRunResponse:
-    """Serialize a run loaded with `strategy` and `config_extras` annotations."""
-    config_extras = getattr(run, "config_extras")
-    config_name = config_extras.get("name") if isinstance(config_extras, dict) else None
+    """Serialize a run loaded with its `workflow_config`."""
+    config = run.workflow_config
+    if config is None:
+        raise ValueError("Workflow runs are listed only for their automation")
     result: SeerWorkflowRunResponseBase = {
         "id": str(run.id),
         "configId": str(run.workflow_config_id),
-        "configName": config_name if isinstance(config_name, str) else None,
-        "strategy": getattr(run, "strategy"),
+        "configName": config.backing_workflow.name if config.backing_workflow else None,
+        "strategy": config.strategy,
         "trigger": serialize_trigger(
             run,
+            strategy=config.strategy,
             detectors=detectors,
             existing_group_ids=existing_group_ids,
             accessible_project_ids=accessible_project_ids,
@@ -396,18 +424,18 @@ def serialize_workflow_run(
 def serialize_trigger(
     run: SeerWorkflowRun,
     *,
+    strategy: str,
     detectors: Mapping[int, DetectorInfo],
     existing_group_ids: Set[int],
     accessible_project_ids: set[int] | None,
 ) -> TriggerResponse | None:
-    """Serialize the trigger of a run loaded with a `workflow_config__strategy` annotation.
+    """Serialize the trigger of a run.
 
     `detectors` maps each preloaded detector's ID to its current project and name. The
     name is only returned when the detector still belongs to the trigger's project and
     that project is in `accessible_project_ids` (None means all projects).
     `existing_group_ids` holds the preloaded IDs of trigger groups that have not been deleted.
     """
-    strategy = getattr(run, "strategy")
     if is_scheduled(strategy):
         return {"type": "cron"}
     if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION and get_path(

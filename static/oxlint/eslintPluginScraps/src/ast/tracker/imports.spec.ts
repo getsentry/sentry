@@ -32,11 +32,7 @@ const testRule = defineRule({
               data: {source: info.source, imported: info.imported},
             });
           } else {
-            context.report({
-              node,
-              messageId: 'unresolved',
-              data: {name: node.name.name},
-            });
+            context.report({node, messageId: 'unresolved', data: {name: node.name.name}});
           }
         }
       },
@@ -56,11 +52,7 @@ const testRule = defineRule({
 });
 
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parserOptions: {
-      ecmaFeatures: {jsx: true},
-    },
-  },
+  languageOptions: {parserOptions: {ecmaFeatures: {jsx: true}}},
 });
 
 ruleTester.run('createImportTracker', testRule, {
@@ -160,11 +152,7 @@ ruleTester.run('createImportTracker', testRule, {
 });
 
 const isRule = defineRule({
-  meta: {
-    type: 'problem',
-    schema: [],
-    messages: {matched: 'matched'},
-  },
+  meta: {type: 'problem', schema: [], messages: {matched: 'matched'}},
   create(context) {
     const tracker = createImportTracker(context);
     return {

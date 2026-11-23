@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useRef} from 'react';
+import {Outlet, useMatches} from 'react-router';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {
@@ -13,27 +14,30 @@ import {Button} from '@sentry/scraps/button';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {inboxItemsApiOptions, updateInboxItemsMutationOptions} from './inboxApiOptions';
 import {InboxItemList} from './inboxItemList';
-import {InboxItemPreview} from './inboxItemPreview';
 import {InboxListHeader} from './inboxListHeader';
-import type {InboxFilters, InboxItem, InboxSubject} from './types';
+import {
+  INBOX_SUBJECT_TYPES,
+  type InboxFilters,
+  type InboxItem,
+  type InboxSubjectRef,
+} from './types';
 import {useInboxFilters, type SetInboxFilters} from './useInboxFilters';
-import {getInboxSubjectFromPath, hasInboxFilters} from './utils';
+import {hasInboxFilters} from './utils';
 
 const INBOX_LIST_SIZE_STORAGE_KEY = 'universal-inbox-list-size';
 const INBOX_LIST_DEFAULT_SIZE = 480;
@@ -43,7 +47,7 @@ const INBOX_LIST_MAX_SIZE = 640;
 interface UseMarkInboxItemReadOnViewOptions {
   isPending: boolean;
   item: InboxItem | undefined;
-  subject: InboxSubject | null;
+  subject: InboxSubjectRef | null;
 }
 
 function useMarkInboxItemReadOnView({
@@ -67,7 +71,7 @@ function useMarkInboxItemReadOnView({
   const lastActivityAt = item?.lastActivityAt;
 
   useEffect(() => {
-    const subjectKey = subject ? `${subject.subjectType}:${subject.subjectId}` : null;
+    const subjectKey = subject ? `${subject.type}:${subject.id}` : null;
     if (attemptedRef.current?.subjectKey !== subjectKey) {
       attemptedRef.current = null;
     }
@@ -90,7 +94,7 @@ function useMarkInboxItemReadOnView({
 
 interface InboxListProps {
   filters: InboxFilters;
-  selectedSubject: InboxSubject | null;
+  selectedSubject: InboxSubjectRef | null;
   setFilters: SetInboxFilters;
 }
 
@@ -103,8 +107,8 @@ function InboxList({filters, setFilters, selectedSubject}: InboxListProps) {
   const selectedItem = selectedSubject
     ? items.find(
         item =>
-          item.subjectType === selectedSubject.subjectType &&
-          item.subjectId === selectedSubject.subjectId
+          item.subject.type === selectedSubject.type &&
+          item.subject.id === selectedSubject.id
       )
     : undefined;
   useMarkInboxItemReadOnView({
@@ -117,7 +121,7 @@ function InboxList({filters, setFilters, selectedSubject}: InboxListProps) {
     <ListItemCheckboxProvider
       hits={items.length}
       knownIds={items.map(item => item.id)}
-      endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
+      endpointOptions={parseQueryKey(queryOptions.queryKey).options}
     >
       <InboxListHeader filters={filters} setFilters={setFilters} />
       <Container flex={1} overflowY="auto" minHeight={0}>
@@ -125,7 +129,9 @@ function InboxList({filters, setFilters, selectedSubject}: InboxListProps) {
           query={query}
           items={items}
           filters={filters}
-          onClearFilters={() => void setFilters({subjectType: null, eventType: null})}
+          onClearFilters={() =>
+            void setFilters({subjectType: null, eventType: null, recipient: null})
+          }
           selectedItemId={selectedItem?.id ?? null}
         />
       </Container>
@@ -201,8 +207,15 @@ function InboxListBody({
 
 function InboxContent() {
   const [filters, setFilters] = useInboxFilters();
-  const {id} = useParams<{id?: string}>();
-  const location = useLocation();
+  const previewMatch = useMatches().at(-1);
+  const handle = previewMatch?.handle;
+  const subjectType =
+    handle && typeof handle === 'object' && 'inboxSubjectType' in handle
+      ? INBOX_SUBJECT_TYPES.find(type => type === handle.inboxSubjectType)
+      : undefined;
+  const subjectId = previewMatch?.params.id;
+  const selectedSubject =
+    subjectType && subjectId ? {type: subjectType, id: subjectId} : null;
   const listContainerRef = useRef<HTMLDivElement>(null);
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
     INBOX_LIST_SIZE_STORAGE_KEY,
@@ -215,8 +228,6 @@ function InboxContent() {
     maxWidth: INBOX_LIST_MAX_SIZE,
     onResizeEnd: setStoredSize,
   });
-
-  const selectedSubject = getInboxSubjectFromPath(location.pathname, id);
 
   return (
     <Grid columns="max-content minmax(0, 1fr)" flex={1} minHeight={0}>
@@ -248,15 +259,13 @@ function InboxContent() {
       </Stack>
       {/* Keyed so that selecting another item starts the preview scrolled to the top */}
       <Stack
-        key={
-          selectedSubject
-            ? `${selectedSubject.subjectType}:${selectedSubject.subjectId}`
-            : undefined
-        }
+        key={selectedSubject ? `${subjectType}:${subjectId}` : undefined}
         overflowY="auto"
         minHeight={0}
       >
-        <InboxItemPreview subject={selectedSubject} />
+        <AnalyticsArea name="inbox.preview" overrideParent>
+          <Outlet />
+        </AnalyticsArea>
       </Stack>
     </Grid>
   );
@@ -276,10 +285,7 @@ export default function Inbox() {
         title={{
           type: 'page-title',
           label: t('Inbox'),
-          trailingActions: {
-            type: 'badge',
-            element: <FeatureBadge type="alpha" />,
-          },
+          trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
         }}
       />
       <Stack flex={1} minHeight={0} background="primary" overflow="hidden" contain="size">

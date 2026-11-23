@@ -16,7 +16,6 @@ from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
-    MonitorCheckIn,
     MonitorEnvBrokenDetection,
     MonitorEnvironment,
     MonitorIncident,
@@ -56,7 +55,7 @@ class MarkOkTestCase(TestCase):
         )
 
         # OK checkin comes in
-        success_checkin = MonitorCheckIn.objects.create(
+        success_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.OK,
             date_added=now,
@@ -97,7 +96,7 @@ class MarkOkTestCase(TestCase):
         )
 
         # OK checkin comes in
-        success_checkin = MonitorCheckIn.objects.create(
+        success_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.OK,
             date_added=now,
@@ -135,7 +134,7 @@ class MarkOkTestCase(TestCase):
             environment_id=self.environment.id,
             status=MonitorStatus.ERROR,
         )
-        first_checkin = MonitorCheckIn.objects.create(
+        first_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.ERROR,
             date_added=now,
@@ -150,7 +149,7 @@ class MarkOkTestCase(TestCase):
         # Create OK check-ins
         for i in range(0, recovery_threshold - 1):
             now = now + timedelta(minutes=1)
-            checkin = MonitorCheckIn.objects.create(
+            checkin = self.create_monitor_checkin(
                 monitor_environment=monitor_environment,
                 status=CheckInStatus.OK,
                 date_added=now,
@@ -159,7 +158,7 @@ class MarkOkTestCase(TestCase):
 
         # create an in-progress check-in to make sure that we don't resolve anything
         now = now + timedelta(minutes=1)
-        checkin = MonitorCheckIn.objects.create(
+        checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.IN_PROGRESS,
             date_added=now,
@@ -181,7 +180,7 @@ class MarkOkTestCase(TestCase):
 
         # create another failed check-in to break the chain
         now = now + timedelta(minutes=1)
-        last_checkin = MonitorCheckIn.objects.create(
+        last_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.ERROR,
             date_added=now,
@@ -195,7 +194,7 @@ class MarkOkTestCase(TestCase):
         # Create enough check-ins to resolve the incident
         for i in range(0, recovery_threshold):
             now = now + timedelta(minutes=1)
-            checkin = MonitorCheckIn.objects.create(
+            checkin = self.create_monitor_checkin(
                 monitor_environment=monitor_environment,
                 status=CheckInStatus.OK,
                 date_added=now,
@@ -234,6 +233,102 @@ class MarkOkTestCase(TestCase):
             },
         ) == dict(status_change)
 
+    def test_mark_ok_below_recovery_threshold_moves_last_successful_timestamp(self) -> None:
+        now = timezone.now().replace(second=0, microsecond=0)
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            config={
+                "schedule": "* * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "recovery_threshold": 5,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.ERROR,
+        )
+        failed_checkin = self.create_monitor_checkin(
+            monitor_environment=monitor_environment,
+            status=CheckInStatus.ERROR,
+            date_added=now,
+        )
+        incident = MonitorIncident.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            starting_checkin=failed_checkin,
+            starting_timestamp=failed_checkin.date_added,
+        )
+
+        def ok_at(minutes: float) -> None:
+            checkin = self.create_monitor_checkin(
+                monitor_environment=monitor_environment,
+                status=CheckInStatus.OK,
+                date_added=now + timedelta(minutes=minutes),
+            )
+            mark_ok(checkin, checkin.date_added)
+
+        ok_at(1)
+        incident.refresh_from_db()
+        assert incident.last_successful_timestamp == now + timedelta(minutes=1)
+
+        ok_at(2)
+        incident.refresh_from_db()
+        assert incident.last_successful_timestamp == now + timedelta(minutes=2)
+
+        # An out-of-order OK check-in doesn't move it back
+        ok_at(1.5)
+        incident.refresh_from_db()
+        assert incident.resolving_checkin is None
+        assert incident.last_successful_timestamp == now + timedelta(minutes=2)
+
+    def test_mark_ok_with_stale_environment_keeps_failure(self) -> None:
+        now = timezone.now().replace(second=0, microsecond=0)
+        monitor = self.create_monitor()
+        monitor_environment = self.create_monitor_environment(
+            monitor=monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+        )
+        # Loaded before the failure, like a consumer racing the clock task.
+        stale_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+
+        missed_checkin = self.create_monitor_checkin(
+            monitor_environment=monitor_environment,
+            status=CheckInStatus.MISSED,
+            date_added=now - timedelta(minutes=2),
+        )
+        assert mark_failed(missed_checkin, failed_at=missed_checkin.date_added)
+
+        stale_ok_checkin = self.create_monitor_checkin(
+            monitor_environment=stale_environment,
+            status=CheckInStatus.OK,
+            date_added=now - timedelta(minutes=1),
+        )
+        mark_ok(stale_ok_checkin, stale_ok_checkin.date_added)
+
+        monitor_environment.refresh_from_db()
+        assert monitor_environment.status == MonitorStatus.ERROR
+        assert monitor_environment.last_checkin == stale_ok_checkin.date_added
+        incident = MonitorIncident.objects.get(monitor_environment=monitor_environment)
+        assert incident.resolving_checkin is None
+
+        ok_checkin = self.create_monitor_checkin(
+            monitor_environment=MonitorEnvironment.objects.get(id=monitor_environment.id),
+            status=CheckInStatus.OK,
+            date_added=now,
+        )
+        mark_ok(ok_checkin, now)
+
+        monitor_environment.refresh_from_db()
+        assert monitor_environment.status == MonitorStatus.OK
+        incident.refresh_from_db()
+        assert incident.resolving_checkin == ok_checkin
+
     @mock.patch("sentry.analytics.record")
     def test_mark_ok_broken_recovery(self, mock_record: MagicMock) -> None:
         now = timezone.now().replace(second=0, microsecond=0)
@@ -259,7 +354,7 @@ class MarkOkTestCase(TestCase):
             last_checkin=now - timedelta(minutes=1),
             next_checkin=now,
         )
-        checkin = MonitorCheckIn.objects.create(
+        checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.ERROR,
             date_added=timezone.now() - timedelta(days=14),
@@ -275,7 +370,7 @@ class MarkOkTestCase(TestCase):
         )
 
         # OK checkin comes in
-        success_checkin = MonitorCheckIn.objects.create(
+        success_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.OK,
             date_added=now,

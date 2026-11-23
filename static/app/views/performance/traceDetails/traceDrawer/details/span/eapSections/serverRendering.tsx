@@ -1,7 +1,8 @@
+import {useState} from 'react';
 import {IconOpen} from '@sentry/icons/open';
 import type {Location} from 'history';
 
-import {Tag} from '@sentry/scraps/badge';
+import {FeatureBadge, Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -24,6 +25,7 @@ import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/trace
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
+import {FULL_TRACE_DATA_DAYS} from 'sentry/views/performance/traceDetails/traceTypeWarnings/partialTraceDataWarning';
 
 import {useLinkedSpanTarget} from './useLinkedSpanTarget';
 
@@ -85,7 +87,9 @@ export function ServerRenderingSection(props: ServerRenderingSectionProps) {
           <BlockHeader
             title={getReusedPartTitle(sharedRender.part)}
             subtitle={t('Rendered earlier and reused')}
-            action={<RenderAction {...props} render={sharedRender} />}
+            action={
+              <RenderAction {...props} render={sharedRender} age={sharedRender.age} />
+            }
           />
           {requestBlock}
         </Stack>
@@ -116,11 +120,12 @@ function SectionTitle({type}: {type: ServerRenderingType | undefined}) {
   return (
     <Flex gap="sm" align="center">
       <TraceDrawerComponents.SectionTitleWithQuestionTooltip
-        title={t('Server Rendering')}
+        title={t('Server rendering')}
         tooltipText={t(
           'Where the server spans of this page are. A reused part has its spans in the trace that rendered it.'
         )}
       />
+      <FeatureBadge type="new" />
       {type ? <Tag variant="muted">{TYPE_LABELS[type]}</Tag> : null}
     </Flex>
   );
@@ -182,10 +187,14 @@ function BlockHeader({
 }
 
 /** "Open trace" leaves this trace, "Go to span" stays in it. */
-function RenderAction({render, ...props}: RenderActionProps & {render: ServerRender}) {
+function RenderAction({
+  render,
+  age,
+  ...props
+}: RenderActionProps & {render: ServerRender; age?: number}) {
   switch (render.location.type) {
     case 'other_trace':
-      return <OpenTraceLink {...props} link={render.location.link} />;
+      return <OpenTraceLink {...props} link={render.location.link} age={age} />;
     case 'this_trace':
       return <GoToSpanButton {...props} />;
     case 'not_sampled':
@@ -197,15 +206,19 @@ function RenderAction({render, ...props}: RenderActionProps & {render: ServerRen
 
 function OpenTraceLink({
   link,
+  age,
   ...props
-}: RenderActionProps & {link: TraceItemResponseLink}) {
-  // The link has no render time, so the trace query searches around the pageload
+}: RenderActionProps & {link: TraceItemResponseLink; age?: number}) {
+  // Without an age (older SDKs), the trace query searches around the pageload
   // start. It does not find renders much older than that.
-  const linkedSpan = useLinkedSpanTarget({
-    ...props,
-    link,
-    timestamp: props.node.value.start_timestamp,
-  });
+  const renderStart = props.node.value.start_timestamp - (age ?? 0);
+  const [nowMs] = useState(Date.now);
+  const linkedSpan = useLinkedSpanTarget({...props, link, timestamp: renderStart});
+
+  // An older trace can miss spans, also the render span.
+  if (renderStart < nowMs / 1000 - FULL_TRACE_DATA_DAYS * 24 * 60 * 60) {
+    return <Text variant="muted">{t('Older than %s days', FULL_TRACE_DATA_DAYS)}</Text>;
+  }
 
   return (
     <Link to={linkedSpan.to} onClick={linkedSpan.onClick}>

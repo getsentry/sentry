@@ -2,9 +2,7 @@ import {RuleTester} from 'oxlint/plugins-dev';
 
 import {useSemanticToken} from './useSemanticToken';
 
-const ruleTester = new RuleTester({
-  languageOptions: {parserOptions: {lang: 'tsx'}},
-});
+const ruleTester = new RuleTester({languageOptions: {parserOptions: {lang: 'tsx'}}});
 const emotion =
   "import styled from '@emotion/styled'; import {css} from '@emotion/react';\n";
 
@@ -207,18 +205,10 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
     {
       code: "import * as emotion from '@emotion/react'; const fade = emotion.keyframes`background: ${p => p.theme.tokens.content.primary};`;",
     },
-    {
-      code: 'const C = () => <div style={{background: other.tokens.content.primary}} />;',
-    },
-    {
-      code: 'const C = () => <div style={{[key]: theme.tokens.content.primary}} />;',
-    },
-    {
-      code: 'const C = () => <div style={{...theme.tokens.content}} />;',
-    },
-    {
-      code: 'const C = () => <div style={styles} css="background: red" />;',
-    },
+    {code: 'const C = () => <div style={{background: other.tokens.content.primary}} />;'},
+    {code: 'const C = () => <div style={{[key]: theme.tokens.content.primary}} />;'},
+    {code: 'const C = () => <div style={{...theme.tokens.content}} />;'},
+    {code: 'const C = () => <div style={styles} css="background: red" />;'},
     {
       code: 'const C = () => <div css={th => { return {background: th.tokens.content.primary}; }} />;',
     },
@@ -234,21 +224,15 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
     {
       code: `${emotion}const C = styled.div\`background: \${(p, q) => q.tokens.content.primary};\`;`,
     },
-    {
-      code: 'const C = () => <div style={{color: theme.background.primary}} />;',
-    },
-    {
-      code: 'const C = cfg => <div style={{background: cfg.tokens.content.primary}} />;',
-    },
+    {code: 'const C = () => <div style={{color: theme.background.primary}} />;'},
+    {code: 'const C = cfg => <div style={{background: cfg.tokens.content.primary}} />;'},
     {
       code: 'function C() { const th = other; return <div style={{background: th.tokens.content.primary}} />; }',
     },
     {
       code: 'const C = () => <div foo={{background: theme.tokens.content.primary}} css={styles} />;',
     },
-    {
-      code: 'const C = () => <div css={{[key]: theme.tokens.content.primary}} />;',
-    },
+    {code: 'const C = () => <div css={{[key]: theme.tokens.content.primary}} />;'},
     {
       code: `${emotion}const styles = css(base); const merged = merge({background: theme.tokens.content.primary});`,
     },

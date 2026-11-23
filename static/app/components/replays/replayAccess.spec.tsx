@@ -15,9 +15,7 @@ describe('ReplayAccess', () => {
   });
 
   it('renders children when hasGranularReplayPermissions is false', () => {
-    const organization = OrganizationFixture({
-      hasGranularReplayPermissions: false,
-    });
+    const organization = OrganizationFixture({hasGranularReplayPermissions: false});
 
     render(
       <ReplayAccess fallback={<div>No access</div>}>

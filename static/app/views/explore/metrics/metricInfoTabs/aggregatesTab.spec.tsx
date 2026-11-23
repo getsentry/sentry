@@ -49,9 +49,7 @@ function createWrapper({
 
 describe('AggregatesTab', () => {
   const {organization, project, setupPageFilters, setupEventsMock} =
-    initializeTraceMetricsTest({
-      orgFeatures: ['tracemetrics-enabled'],
-    });
+    initializeTraceMetricsTest({orgFeatures: ['tracemetrics-enabled']});
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -193,10 +191,7 @@ describe('AggregatesTab', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {
-        data: [],
-        meta: {fields: {}, dataScanned: 'full'},
-      },
+      body: {data: [], meta: {fields: {}, dataScanned: 'full'}},
       match: [
         MockApiClient.matchQuery({
           dataset: 'tracemetrics',

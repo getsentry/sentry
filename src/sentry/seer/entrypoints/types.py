@@ -7,6 +7,7 @@ from sentry.notebooks.models import Notebook
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.utils import CodingAgentProviderType
+from sentry.seer.credits import SeerCreditDenialReason
 from sentry.sentry_apps.event_types import SentryAppEventType
 
 
@@ -45,6 +46,18 @@ class SeerAutofixEntrypoint[CachePayloadT](Protocol):
         Called when an autofix failed to start.
 
         Example Usage: Adding a :x: reaction, sending a failure message, etc.
+        """
+        ...
+
+    def on_trigger_autofix_out_of_credits(
+        self, *, started: bool, denial_reason: SeerCreditDenialReason | None
+    ) -> None:
+        """
+        Called when the organization doesn't have enough Seer credits for the requested step.
+        `started` is False when the run itself was refused, True when a later step of a run was.
+        `denial_reason` tells a daily usage limit apart from running out of credits.
+
+        Example Usage: Sending a message with a link to add credits, etc.
         """
         ...
 
@@ -143,9 +156,9 @@ class SeerAgentEntrypoint[CachePayloadT](Protocol):
         state: SeerRunState,
     ) -> None:
         """
-        Called whenever Seer runs the AgentOnCompletionHook: when an invocation yields, and when
-        a PR push the Agent queued finishes. Treat it as a refresh: make the external service
-        match ``state``, whichever of those caused the call.
+        Called whenever Seer runs the AgentOnCompletionHook: when an invocation yields or fails,
+        and when a PR push the Agent queued finishes. Treat it as a refresh: make the external
+        service match ``state``, whichever of those caused the call.
 
         The shape of the cached payload is determined by `create_agent_cache_payload`.
 
@@ -183,7 +196,7 @@ class SeerInvestigationEntrypoint[CachePayloadT](Protocol):
 
     @staticmethod
     def on_investigation_update(
-        cache_payload: CachePayloadT, run: InvestigationOrchestrationRun
+        cache_payload: CachePayloadT | None, run: InvestigationOrchestrationRun
     ) -> None:
         """
         Called when the orchestration run of an investigation changes.
