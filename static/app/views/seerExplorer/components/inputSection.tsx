@@ -277,7 +277,7 @@ export function InputSection({
       {prLinksBar}
       <Stack gap="lg" padding="lg xl">
         {notice}
-        <Stack border="primary" radius="lg">
+        <ComposerFrame border="primary" radius="lg">
           <StyledComposer
             isWarningPlaceholder={interruptState === 'completed'}
             ref={composerRef}
@@ -295,6 +295,7 @@ export function InputSection({
             minHeight={60}
             size="md"
             data-test-id="seer-explorer-input"
+            data-seer-composer-editor=""
           />
           <Flex
             justify="end"
@@ -307,7 +308,9 @@ export function InputSection({
             data-test-id="seer-composer-toolbar"
             onClick={event => {
               if (event.target === event.currentTarget) {
-                onInputClick();
+                event.currentTarget
+                  .querySelector<HTMLButtonElement>('button:not(:disabled)')
+                  ?.focus();
               }
             }}
           >
@@ -340,7 +343,7 @@ export function InputSection({
               />
             )}
           </Flex>
-        </Stack>
+        </ComposerFrame>
       </Stack>
     </Container>
   );
@@ -356,10 +359,11 @@ const StyledComposer = styled(Composer, {
   border-bottom: 0;
   border-radius: ${p => p.theme.radius.lg} ${p => p.theme.radius.lg} 0 0;
 
-  /* Draw the focus ring inside the editor so it never covers the toolbar below. */
+  /* ComposerFrame draws the focus ring around the editor and the toolbar together. */
   &:focus,
   &:focus-visible {
-    box-shadow: inset 0 0 0 2px ${p => p.theme.tokens.focus.default};
+    box-shadow: 0 1px 0 0 ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk}
+      inset;
   }
 
   &:empty::before {
@@ -367,6 +371,14 @@ const StyledComposer = styled(Composer, {
       p.isWarningPlaceholder
         ? p.theme.tokens.content.warning
         : p.theme.tokens.content.secondary};
+  }
+`;
+
+// Keyed to the editor rather than `:focus-within`, so focusing a toolbar button
+// shows only that button's own ring.
+const ComposerFrame = styled(Stack)`
+  &:has([data-seer-composer-editor]:focus-visible) {
+    ${p => p.theme.focusRing()};
   }
 `;
 
