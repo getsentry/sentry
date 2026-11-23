@@ -86,7 +86,10 @@ export function CreateTokenModal({
   onCreated,
 }: Props) {
   const organization = useOrganization();
-  const createToken = useCreateServiceAccountToken(organization, account.id);
+  const createToken = useCreateServiceAccountToken(organization, account.id, token => {
+    closeModal();
+    onCreated(token);
+  });
   // The API rejects scopes the caller doesn't hold, even when the account has them.
   const grantableScopes = useMemo(() => {
     const callerScopes = new Set<string>(organization.access);
@@ -109,13 +112,11 @@ export function CreateTokenModal({
     validators: {onDynamic: schema},
     onSubmit: async ({value, formApi}) => {
       try {
-        const token = await createToken.mutateAsync({
+        await createToken.mutateAsync({
           name: value.name.trim(),
           scopes: value.scopeMode === 'all' ? grantableScopes : value.scopes,
           expiresAt: getExpiryDate(value.expiration)?.toISOString() ?? null,
         });
-        closeModal();
-        onCreated(token);
       } catch (error) {
         toast.error(getRequestErrorUserMessage(error, t('Unable to create token.')));
         if (error instanceof RequestError) {

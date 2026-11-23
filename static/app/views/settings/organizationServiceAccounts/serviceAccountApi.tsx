@@ -116,19 +116,23 @@ export function serviceAccountTokensApiOptions(
 
 export function useCreateServiceAccountToken(
   organization: Organization,
-  serviceAccountId: string
+  serviceAccountId: string,
+  onCreated: (token: NewServiceAccountToken) => void
 ) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: ServiceAccountTokenInput) =>
-      fetchMutation<NewServiceAccountToken>({
+    mutationFn: async (data: ServiceAccountTokenInput) => {
+      const token = await fetchMutation<NewServiceAccountToken>({
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/service-accounts/$serviceAccountId/tokens/',
           {path: {organizationIdOrSlug: organization.slug, serviceAccountId}}
         ),
         method: 'POST',
         data: {...data},
-      }),
+      });
+      // Hand the secret to the reveal flow without retaining it as mutation data.
+      onCreated(token);
+    },
     onSuccess: () =>
       queryClient.invalidateQueries(
         apiOptions.queryFilter(

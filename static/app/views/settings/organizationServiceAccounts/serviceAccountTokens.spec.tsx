@@ -1,5 +1,7 @@
+import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   render,
   renderGlobalModal,
@@ -39,8 +41,20 @@ describe('ServiceAccountTokens', () => {
   };
 
   function renderTokens(serviceAccount = account) {
-    render(<ServiceAccountTokens account={serviceAccount} />, {organization});
-    renderGlobalModal();
+    const queryClient = makeTestQueryClient();
+    render(<ServiceAccountTokens account={serviceAccount} />, {
+      organization,
+      additionalWrapper: ({children}) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      ),
+    });
+    renderGlobalModal({
+      organization,
+      additionalWrapper: ({children}) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      ),
+    });
+    return queryClient;
   }
 
   beforeEach(() => {
@@ -95,7 +109,7 @@ describe('ServiceAccountTokens', () => {
       body: {...token, token: 'sntrym_secret-value'},
     });
 
-    renderTokens();
+    const queryClient = renderTokens();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Create Token'}));
     await userEvent.type(
@@ -121,6 +135,10 @@ describe('ServiceAccountTokens', () => {
     await waitFor(() =>
       expect(screen.queryByDisplayValue('sntrym_secret-value')).not.toBeInTheDocument()
     );
+    const mutations = queryClient.getMutationCache().getAll();
+    expect(mutations).toHaveLength(1);
+    expect(mutations[0]!.state.status).toBe('success');
+    expect(mutations[0]!.state.data).toBeUndefined();
   });
 
   it('creates a token with chosen scopes and no expiration', async () => {
