@@ -6,13 +6,21 @@ service. Most tests live in tests/symbolicator/
 from __future__ import annotations
 
 import re
+import zipfile
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from copy import deepcopy
+from hashlib import sha1
+from io import BytesIO
 from typing import Any
 from unittest import mock
+from uuid import uuid4
 
 import orjson
 import pytest
 import rapidjson
+from django.core.files.base import ContentFile
+from pytest_django.live_server_helper import LiveServer
 from requests.exceptions import ConnectionError, Timeout
 
 from sentry.attachments import (
@@ -41,16 +49,19 @@ from sentry.lang.native.processing import (
     get_required_attachment_types,
     process_native_stacktraces,
 )
-from sentry.lang.native.symbolicator import SymbolicatorFunction
+from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorFunction, SymbolicatorTaskKind
 from sentry.models.eventerror import EventErrorType
+from sentry.models.files.fileblob import FileBlob
 from sentry.models.project import Project
 from sentry.objectstore import UsecaseId, get_session
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.tasks import store
+from sentry.tasks.assemble import assemble_artifacts
 from sentry.tasks.symbolication import SymbolicationTimeout, symbolicate_event
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.skips import requires_objectstore
+from sentry.testutils.skips import requires_objectstore, requires_symbolicator
 from sentry.utils.safe import get_path
 
 MINIDUMP_PLACEHOLDER = {
@@ -675,6 +686,296 @@ def test_process_javascript_flamegraph(
         assert process_native_stacktraces(symbolicator, data) is None
     symbolicator.process_js.assert_called_once()
     symbolicator.process_payload.assert_not_called()
+
+
+@django_db_all
+@pytest.mark.parametrize("parent_platform", ["javascript", "cocoa"])
+def test_javascript_flamegraph_mixed_frame_table(
+    cached_flamegraph: CachedFlamegraph, parent_platform: str
+) -> None:
+    data, payload, symbolicator = cached_flamegraph
+    data["platform"] = parent_platform
+    payload["platform"] = "javascript"
+    image = {
+        "type": "sourcemap",
+        "debug_id": "924e9c52-9cd6-4f52-9aca-e1d6968e23f2",
+        "code_file": "app:///main.jsbundle",
+    }
+    payload["debug_meta"] = {"images": [image]}
+    # The parent event's images must not replace the attachment's captured image table.
+    data["debug_meta"] = {"images": [{**image, "debug_id": "dfb0df83-9405-4a84-98cf-d0a392433bdd"}]}
+    payload["frames"] = [
+        {
+            "filename": "app:///main.jsbundle",
+            "abs_path": "app:///main.jsbundle",
+            "lineno": 1,
+            "colno": 100,
+            "platform": "javascript",
+            "in_app": True,
+        },
+        {"function": "[Native] stringify", "in_app": False},
+        {
+            "function": "a",
+            "abs_path": "app:///main.jsbundle",
+            "lineno": 1,
+            "colno": 200,
+            "platform": "javascript",
+            "in_app": True,
+        },
+        {"function": "[Native] sort", "in_app": False},
+        {
+            "function": "promise",
+            "abs_path": "app:///InternalBytecode.js",
+            "lineno": 1,
+            "colno": 300,
+            "platform": "javascript",
+            "in_app": False,
+        },
+    ]
+    payload["nodes"] = [
+        {"frame_id": 0, "sample_count": 10, "children": [1, 2, 4]},
+        {"frame_id": 1, "sample_count": 2},
+        {"frame_id": 2, "sample_count": 5, "children": [3]},
+        {"frame_id": 3, "sample_count": 3},
+        {"frame_id": 4, "sample_count": 1},
+    ]
+    payload["trees"] = [{"roots": [0], "thread_id": "123", "thread_attributed": True}]
+    original = deepcopy(payload)
+    store_attachments_for_event(
+        symbolicator.project,
+        data,
+        [CachedAttachment(type="event.flamegraph", data=orjson.dumps(payload))],
+        timeout=60,
+    )
+    symbolicator.process_js.return_value = {
+        "status": "completed",
+        "errors": [{"type": "missing_source", "abs_path": "app:///InternalBytecode.js"}],
+        "stacktraces": [
+            {
+                "frames": [
+                    {
+                        "function": "render",
+                        "abs_path": "app:///src/App.tsx",
+                        "filename": "src/App.tsx",
+                        "lineno": 10,
+                        "colno": 0,
+                        "data": {"symbolicated": True},
+                    }
+                ]
+            },
+            {
+                "frames": [
+                    {
+                        "function": "dispatch",
+                        "abs_path": "app:///node_modules/react/index.js",
+                        "filename": "node_modules/react/index.js",
+                        "lineno": 20,
+                        "colno": 4,
+                        "data": {"symbolicated": True},
+                    }
+                ]
+            },
+            {"frames": [{**payload["frames"][4], "data": {"symbolicated": False}}]},
+        ],
+    }
+    with Feature({"organizations:flamegraph-attachments": True}):
+        functions = get_native_symbolication_functions(
+            data, find_stacktraces_in_data(data), symbolicator.project
+        )
+        assert functions == [SymbolicatorFunction.native]
+        assert process_native_stacktraces(symbolicator, data) is data
+    output = orjson.loads(list(get_attachments_for_event(data))[0].load_data(symbolicator.project))
+    assert output["frames"][0] == {
+        **original["frames"][0],
+        "function": "render",
+        "abs_path": "app:///src/App.tsx",
+        "filename": "src/App.tsx",
+        "lineno": 10,
+        "colno": 0,
+        "data": {"symbolicated": True},
+    }
+    assert output["frames"][1] == original["frames"][1]
+    assert output["frames"][2] == {
+        **original["frames"][2],
+        "function": "dispatch",
+        "abs_path": "app:///node_modules/react/index.js",
+        "filename": "node_modules/react/index.js",
+        "lineno": 20,
+        "colno": 4,
+        "in_app": False,
+        "data": {"symbolicated": True},
+    }
+    assert output["frames"][3] == original["frames"][3]
+    assert output["frames"][4] == {**original["frames"][4], "data": {"symbolicated": False}}
+    assert output["nodes"] == original["nodes"]
+    assert output["trees"] == original["trees"]
+    assert output["debug_meta"] == original["debug_meta"]
+    assert "errors" not in data
+    assert symbolicator.process_js.call_args.kwargs["modules"] == [image]
+    assert symbolicator.process_js.call_args.kwargs["stacktraces"] == [
+        {
+            "frames": [
+                {
+                    "platform": "javascript",
+                    "abs_path": "app:///main.jsbundle",
+                    "lineno": 1,
+                    "colno": 100,
+                }
+            ]
+        },
+        {
+            "frames": [
+                {
+                    "platform": "javascript",
+                    "function": "a",
+                    "abs_path": "app:///main.jsbundle",
+                    "lineno": 1,
+                    "colno": 200,
+                }
+            ]
+        },
+        {
+            "frames": [
+                {
+                    "platform": "javascript",
+                    "function": "promise",
+                    "abs_path": "app:///InternalBytecode.js",
+                    "lineno": 1,
+                    "colno": 300,
+                }
+            ]
+        },
+    ]
+    symbolicator.process_payload.assert_not_called()
+
+
+@requires_symbolicator
+@django_db_all(transaction=True)
+def test_javascript_flamegraph_debug_id_source_map(
+    default_project: Project,
+    factories: type[Factories],
+    live_server: LiveServer,
+    set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
+) -> None:
+    debug_id = str(uuid4())
+    source_map = {
+        "version": 3,
+        "file": "main.jsbundle",
+        "sources": ["src/App.js", "node_modules/library/index.js"],
+        "sourcesContent": [
+            "function render() { throw new Error('app'); }",
+            "function dispatch() { throw new Error('library'); }",
+        ],
+        "names": ["render", "dispatch"],
+        "mappings": "AAAA,SAASA;ACAT,SAASC",
+    }
+    bundle = BytesIO(b"SYSB")
+    with zipfile.ZipFile(bundle, "a") as archive:
+        archive.writestr(
+            "files/main.jsbundle",
+            "function a(){throw new Error('app');}\nfunction b(){throw new Error('library');}",
+        )
+        archive.writestr("files/main.jsbundle.map", orjson.dumps(source_map))
+        archive.writestr(
+            "manifest.json",
+            orjson.dumps(
+                {
+                    "debug_id": str(uuid4()),
+                    "files": {
+                        "files/main.jsbundle": {
+                            "url": "~/main.jsbundle",
+                            "type": "minified_source",
+                            "headers": {"debug-id": debug_id, "sourcemap": "main.jsbundle.map"},
+                        },
+                        "files/main.jsbundle.map": {
+                            "url": "~/main.jsbundle.map",
+                            "type": "source_map",
+                            "headers": {"debug-id": debug_id},
+                        },
+                    },
+                }
+            ),
+        )
+    raw_bundle = bundle.getvalue()
+    blob = FileBlob.from_file_with_organization(
+        ContentFile(raw_bundle), default_project.organization
+    )
+    assemble_artifacts(
+        org_id=default_project.organization_id,
+        version="1.0",
+        project_ids=[default_project.id],
+        checksum=sha1(raw_bundle).hexdigest(),
+        chunks=[blob.checksum],
+    )
+    default_project.update_option("sentry:scrape_javascript", False)
+    payload = {
+        "version": "1",
+        "platform": "javascript",
+        "debug_meta": {
+            "images": [
+                {"type": "sourcemap", "debug_id": debug_id, "code_file": "app:///main.jsbundle"}
+            ]
+        },
+        "frames": [
+            {
+                "filename": "app:///main.jsbundle",
+                "abs_path": "app:///main.jsbundle",
+                "lineno": 1,
+                "colno": 15,
+                "in_app": True,
+            },
+            {
+                "filename": "app:///main.jsbundle",
+                "abs_path": "app:///main.jsbundle",
+                "lineno": 2,
+                "colno": 15,
+                "in_app": True,
+            },
+        ],
+        "nodes": [
+            {"frame_id": 0, "sample_count": 10, "children": [1]},
+            {"frame_id": 1, "sample_count": 5},
+        ],
+        "trees": [{"roots": [0]}],
+    }
+    data = {"platform": "cocoa", "project": default_project.id, "event_id": uuid4().hex}
+    store_attachments_for_event(
+        default_project,
+        data,
+        [CachedAttachment(type="event.flamegraph", data=orjson.dumps(payload))],
+        timeout=60,
+    )
+    symbolicator = Symbolicator(
+        SymbolicatorTaskKind(SymbolicatorFunction.native),
+        lambda: None,
+        default_project,
+        data["event_id"],
+    )
+    with (
+        Feature({"organizations:flamegraph-attachments": True}),
+        set_sentry_option("system.url-prefix", live_server.url),
+        mock.patch("sentry.auth.system.is_internal_ip", return_value=True),
+    ):
+        assert process_native_stacktraces(symbolicator, data) is data
+    output = orjson.loads(list(get_attachments_for_event(data))[0].load_data(default_project))
+    assert output["frames"][0]["function"] == "render"
+    assert output["frames"][0]["abs_path"] == "app:///src/App.js"
+    assert output["frames"][0]["filename"] == "src/App.js"
+    assert output["frames"][0]["lineno"] == 1
+    assert output["frames"][0]["colno"] == 10
+    assert output["frames"][0]["in_app"] is True
+    assert output["frames"][0]["data"]["symbolicated"] is True
+    assert output["frames"][0]["data"]["sourcemap_found_by_debug_id"] is True
+    assert output["frames"][1]["function"] == "dispatch"
+    assert output["frames"][1]["abs_path"] == "app:///node_modules/library/index.js"
+    assert output["frames"][1]["filename"] == "node_modules/library/index.js"
+    assert output["frames"][1]["lineno"] == 1
+    assert output["frames"][1]["colno"] == 10
+    assert output["frames"][1]["in_app"] is False
+    assert output["frames"][1]["data"]["symbolicated"] is True
+    assert output["frames"][1]["data"]["sourcemap_found_by_debug_id"] is True
+    assert output["nodes"] == payload["nodes"]
+    assert output["trees"] == payload["trees"]
 
 
 @django_db_all

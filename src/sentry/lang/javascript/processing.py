@@ -49,7 +49,7 @@ def _merge_frame(new_frame: Mapping[str, Any], symbolicated: Mapping[str, Any]) 
         new_frame["filename"] = symbolicated["filename"]
     if symbolicated.get("lineno"):
         new_frame["lineno"] = symbolicated["lineno"]
-    if symbolicated.get("colno"):
+    if symbolicated.get("colno") is not None:
         new_frame["colno"] = symbolicated["colno"]
     if symbolicated.get("pre_context"):
         new_frame["pre_context"] = symbolicated["pre_context"]
@@ -266,9 +266,10 @@ def merge_flamegraph_frames(
         if "data" in original:
             original["data"] = dict(original["data"])
         merged = _merge_frame(original, resolved[0])
-        in_app = is_in_app(merged)
-        if in_app is not None:
-            merged["in_app"] = in_app
+        if resolved[0].get("data", {}).get("symbolicated") is not False:
+            in_app = is_in_app(merged)
+            if in_app is not None:
+                merged["in_app"] = in_app
         output["frames"][frame_id] = merged
     output["_symbolication"] = {"status": "completed"}
     return output
