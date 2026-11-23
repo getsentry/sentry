@@ -364,9 +364,6 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
     def get_quota_message(self, quota: DetectorQuota) -> str:
         return metric_detector_quota_message(quota)
 
-    def get_quota_message(self, quota: DetectorQuota) -> str:
-        return metric_detector_quota_message(quota)
-
     def _enforce_enabled_detector_quota(self) -> None:
         quota = self.get_quota()
         if can_enable_metric_detectors(quota, 1):

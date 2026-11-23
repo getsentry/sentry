@@ -649,6 +649,10 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
             status=ObjectStatus.ACTIVE,
             enabled=False,
         )
+
+        # none of the detectors above count
+        assert get_metric_detector_quota(self.organization).count == 0
+
         self.create_detector(
             project_id=self.project.id,
             name="Enabled Detector",
