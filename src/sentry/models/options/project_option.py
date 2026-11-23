@@ -224,7 +224,12 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
                     # The write already committed. Allow unrelated commit hooks to run.
                     logger.exception(
                         "projectoption.cache_reload_failed",
-                        extra={"project_id": project_id, "using": using},
+                        extra={
+                            "project_id": project_id,
+                            "using": using,
+                            "update_reason": update_reason,
+                            "option_key": option_key,
+                        },
                     )
 
             # Register inside an atomic block so this also works when a caller
@@ -246,8 +251,25 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         # Query when the callback runs, rather than publishing a snapshot taken
         # before commit (which may include writes rolled back to a savepoint).
         cache_key = self._make_key(project_id)
-        result = self._get_values_from_database(project_id, using)
-        cache.set(cache_key, result)
+        try:
+            result = self._get_values_from_database(project_id, using)
+            cache.set(cache_key, result)
+        except Exception:
+            # Let a subsequent read recover from the database rather than stale caches.
+            self._option_cache.pop(cache_key, None)
+            try:
+                cache.delete(cache_key)
+            except Exception:
+                logger.exception(
+                    "projectoption.cache_eviction_failed",
+                    extra={
+                        "project_id": project_id,
+                        "using": using,
+                        "update_reason": update_reason,
+                        "option_key": option_key,
+                    },
+                )
+            raise
         self._option_cache[cache_key] = result
         if update_reason != "projectoption.get_all_values":
             schedule_invalidate_project_config(

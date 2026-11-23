@@ -118,7 +118,41 @@ class ProjectOptionTransactionTest(TransactionTestCase):
                 transaction.on_commit(sibling_callback, using=self.using)
 
         assert self.manager.get(project=self.project, key="foo").value == "new"
-        logger.exception.assert_called_once()
+        logger.exception.assert_called_once_with(
+            "projectoption.cache_reload_failed",
+            extra={
+                "project_id": self.project.id,
+                "using": self.using,
+                "update_reason": "projectoption.set_value",
+                "option_key": "foo",
+            },
+        )
+        sibling_callback.assert_called_once_with()
+        assert cache.get(self.cache_key) is None
+        assert self.cache_key not in self.manager._option_cache
+        assert self.project.get_option("foo") == "new"
+        assert cache.get(self.cache_key)["foo"] == "new"
+
+    def test_failed_eviction_does_not_interrupt_commit_callbacks(self) -> None:
+        sibling_callback = Mock()
+        with (
+            patch.object(
+                self.manager,
+                "_get_values_from_database",
+                side_effect=OperationalError("disconnected"),
+            ),
+            patch.object(cache, "delete", side_effect=RuntimeError("cache unavailable")),
+            patch("sentry.models.options.project_option.logger") as logger,
+        ):
+            with transaction.atomic(using=self.using):
+                self.manager.set_value(self.project, "foo", "new")
+                transaction.on_commit(sibling_callback, using=self.using)
+
+        assert self.manager.get(project=self.project, key="foo").value == "new"
+        assert [call.args[0] for call in logger.exception.call_args_list] == [
+            "projectoption.cache_eviction_failed",
+            "projectoption.cache_reload_failed",
+        ]
         sibling_callback.assert_called_once_with()
 
     def test_rollback_preserves_cached_options(self) -> None:
