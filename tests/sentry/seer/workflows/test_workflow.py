@@ -47,6 +47,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 
 GRANT = SeerServiceAccountGrant(scopes=["event:read"])
+PROMPT = {"prompt": "Check checkout latency"}
 
 
 class SeerWorkflowEnsureDefaultsTest(TestCase):
@@ -123,6 +124,7 @@ class SeerWorkflowCreateTest(TestCase):
         workflow = SeerWorkflow.create(
             organization_id=self.organization.id,
             strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+            action_settings=PROMPT,
             enabled=True,
             schedule=SeerWorkflowSchedule.DAILY,
             scope=SelectedProjects((second.id, first.id)),
@@ -159,6 +161,7 @@ class SeerWorkflowCreateTest(TestCase):
         workflow = SeerWorkflow.create(
             organization_id=self.organization.id,
             strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+            action_settings=PROMPT,
             schedule=SeerWorkflowSchedule.DAILY,
             scope=AllProjects(),
             service_account_grant=GRANT,
@@ -204,6 +207,7 @@ class SeerWorkflowCreateTest(TestCase):
             SeerWorkflow.create(
                 organization_id=self.organization.id,
                 strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+                action_settings=PROMPT,
                 scope=AllProjects(),
                 extras=SeerWorkflowConfigExtras(trigger_settings={"cron": "not a cron"}),
                 service_account_grant=GRANT,
@@ -223,9 +227,11 @@ class SeerWorkflowCreateTest(TestCase):
             assert workflow.action_settings == action_settings
 
         for action_settings, error in (
-            ({"prompt": "Check checkout latency", "skill": "agentic_triage"}, "not both"),
-            ({"skill": "unknown"}, "skill"),
-            ({"prompt": ""}, "prompt"),
+            (None, "Set a prompt or a skill"),
+            ({}, "Set a prompt or a skill"),
+            ({"prompt": "Check checkout latency", "skill": "agentic_triage"}, "valid under each"),
+            ({"skill": "unknown"}, "unknown"),
+            ({"prompt": ""}, "non-empty"),
         ):
             with pytest.raises(WorkflowUpdateError, match=error):
                 SeerWorkflow.create(
@@ -237,7 +243,7 @@ class SeerWorkflowCreateTest(TestCase):
                 )
 
     def test_metric_automation_takes_no_action_settings(self) -> None:
-        with pytest.raises(WorkflowUpdateError, match="prompt"):
+        with pytest.raises(WorkflowUpdateError, match="take no settings"):
             SeerWorkflow.create(
                 organization_id=self.organization.id,
                 strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
@@ -253,6 +259,7 @@ class SeerWorkflowCreateTest(TestCase):
             SeerWorkflow.create(
                 organization_id=self.organization.id,
                 strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+                action_settings=PROMPT,
                 schedule=SeerWorkflowSchedule.DAILY,
                 scope=SelectedProjects((self.project.id, foreign.id)),
                 service_account_grant=GRANT,
@@ -261,6 +268,7 @@ class SeerWorkflowCreateTest(TestCase):
             SeerWorkflow.create(
                 organization_id=self.organization.id,
                 strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+                action_settings=PROMPT,
                 schedule=SeerWorkflowSchedule.DAILY,
                 scope=SelectedProjects((self.project.id,)),
                 service_account_grant=SeerServiceAccountGrant(
@@ -282,6 +290,7 @@ class SeerWorkflowCreateTest(TestCase):
             SeerWorkflow.create(
                 organization_id=self.organization.id,
                 strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+                action_settings=PROMPT,
                 schedule=SeerWorkflowSchedule.DAILY,
                 scope=SelectedProjects((self.project.id,)),
                 service_account_grant=GRANT,
@@ -300,6 +309,7 @@ class SeerWorkflowServiceAccountOutboxTest(TestCase):
             return SeerWorkflow.create(
                 organization_id=self.organization.id,
                 strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+                action_settings=PROMPT,
                 schedule=SeerWorkflowSchedule.DAILY,
                 scope=SelectedProjects((self.project.id,)),
                 service_account_grant=SeerServiceAccountGrant(
@@ -345,6 +355,7 @@ class SeerWorkflowServiceAccountOutboxTest(TestCase):
             workflow = SeerWorkflow.create(
                 organization_id=organization.id,
                 strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+                action_settings=PROMPT,
                 schedule=SeerWorkflowSchedule.DAILY,
                 scope=SelectedProjects((project.id,)),
                 service_account_grant=SeerServiceAccountGrant(
@@ -768,6 +779,7 @@ class SeerWorkflowServiceAccountTest(TestCase):
             workflow = SeerWorkflow.create(
                 organization_id=self.organization.id,
                 strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+                action_settings=PROMPT,
                 schedule=SeerWorkflowSchedule.DAILY,
                 scope=SelectedProjects((self.project.id,)),
                 service_account_grant=GRANT,

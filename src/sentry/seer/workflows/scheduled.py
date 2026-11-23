@@ -10,13 +10,13 @@ from __future__ import annotations
 
 import functools
 import logging
-from collections.abc import Collection, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any, Literal, assert_never
+from typing import Any, ClassVar, Literal, assert_never
 
 from django.db.models import QuerySet
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, validator
 
 from sentry import features
 from sentry.cadence.api import (
@@ -35,6 +35,7 @@ from sentry.cadence.api import (
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
+    SeerSkill,
     SeerWorkflowConfig,
     SeerWorkflowConfigExtras,
     SeerWorkflowConfigProject,
@@ -82,21 +83,6 @@ class ScheduleSettings(BaseModel):
         if value is not None:
             cron(value)
         return value
-
-
-class ScheduledInvestigationSettings(BaseModel):
-    prompt: str | None = Field(default=None, min_length=1, max_length=4096)
-    # A prompt Seer maintains, instead of one stored on the config.
-    skill: Literal["agentic_triage"] | None = None
-
-    class Config:
-        extra = "forbid"
-
-    @root_validator
-    def prompt_or_skill(cls, values: dict[str, Any]) -> dict[str, Any]:
-        if values.get("prompt") is not None and values.get("skill") is not None:
-            raise ValueError("Set a prompt or a skill, not both")
-        return values
 
 
 class ScheduledRunInputs(BaseModel):
@@ -156,7 +142,8 @@ class ScheduleDefinition(AutomationDefinition[ScheduledRunInputs]):
     strategy = SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
     inputs_type = ScheduledRunInputs
     settings_type = ScheduleSettings
-    action_settings_type = ScheduledInvestigationSettings
+    takes_action_settings = True
+    seeded_action_settings: ClassVar[Mapping[str, Any]] = {"skill": SeerSkill.AGENTIC_TRIAGE.value}
     scoped_by: Literal["projects", "monitors"] = "projects"
 
     def setup(self, update: ConfigUpdate, workflow: Workflow) -> None:

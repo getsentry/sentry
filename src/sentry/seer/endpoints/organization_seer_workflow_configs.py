@@ -32,6 +32,7 @@ from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+    SeerSkill,
     SeerWorkflowConfig,
     SeerWorkflowConfigExtras,
     SeerWorkflowConfigProject,
@@ -63,6 +64,7 @@ from sentry.service_accounts.models import (
 )
 from sentry.service_accounts.services.service_account import RpcServiceAccount
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.workflow_engine.generated_schema_types import SeerInvestigationActionData
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +93,7 @@ class SeerWorkflowConfigResponse(TypedDict):
     filters: dict[str, Any]
     outputPolicy: dict[str, Any]
     seededDefault: str | None
-    actionSettings: dict[str, Any]
+    actionSettings: SeerInvestigationActionData
     # When the automation next runs on its schedule, or None if it doesn't run on one.
     nextRunAt: datetime | None
     dateAdded: datetime
@@ -145,6 +147,16 @@ class ServiceAccountGrantSerializer(serializers.Serializer):
         )
 
 
+class ActionSettingsSerializer(serializers.Serializer):
+    prompt = serializers.CharField(required=False, max_length=4096)
+    skill = serializers.ChoiceField(choices=[skill.value for skill in SeerSkill], required=False)
+
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
+        if ("prompt" in data) == ("skill" in data):
+            raise serializers.ValidationError("Set a prompt or a skill.")
+        return data
+
+
 class WorkflowConfigCreateSerializer(serializers.Serializer):
     strategy = serializers.ChoiceField(
         choices=sorted(s.value for s in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES)
@@ -162,7 +174,7 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
     )
     name = serializers.CharField(default=None, allow_null=True, max_length=64)
     serviceAccount = ServiceAccountGrantSerializer()
-    actionSettings = serializers.DictField(required=False)
+    actionSettings = ActionSettingsSerializer(required=False)
     # Metric automations only; their projects come from the connected monitors.
     monitorIds = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
@@ -200,7 +212,7 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
     enabled = serializers.BooleanField(required=False)
     serviceAccount = ServiceAccountGrantSerializer(required=False)
     name = serializers.CharField(required=False, max_length=64)
-    actionSettings = serializers.DictField(required=False)
+    actionSettings = ActionSettingsSerializer(required=False)
     # [] selects all environments; omitted leaves them unchanged.
     environments = serializers.ListField(
         child=serializers.CharField(max_length=64), required=False, allow_empty=True
@@ -876,7 +888,7 @@ def serialize_workflow_configs(
                     else None
                 ),
                 next_run_at=next_run_times.get(config.id),
-                action_settings=action_settings.get(config.id, {}),
+                action_settings=action_settings.get(config.id, SeerInvestigationActionData()),
             )
             for config in configs
         ]
@@ -947,7 +959,7 @@ def serialize_workflow_config(
     last_run: WorkflowConfigLastRun | None,
     service_account: SeerServiceAccountResponse | None,
     next_run_at: datetime | None,
-    action_settings: dict[str, Any],
+    action_settings: SeerInvestigationActionData,
 ) -> SeerWorkflowConfigResponse:
     filters = SeerWorkflowFilters.parse_obj(config.filters)
     monitor_ids = [m.monitor_id for m in connected_monitors]

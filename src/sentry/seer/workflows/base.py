@@ -5,11 +5,12 @@ from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Annotated, Any, Literal, NewType, Protocol
+from typing import Annotated, Any, ClassVar, Literal, NewType, Protocol
 
 from django.db import router, transaction
 from django.db.models import QuerySet
 from django.utils import timezone
+from jsonschema import ValidationError as JSONSchemaValidationError
 from pydantic import BaseModel, Field, ValidationError
 
 from sentry.constants import ObjectStatus
@@ -34,10 +35,16 @@ from sentry.service_accounts.models import (
 )
 from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.utils import json
+from sentry.workflow_engine.generated_schema_types import SeerInvestigationActionData
 from sentry.workflow_engine.models import Action, Workflow
 from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
+
+# How an action reaches its workflow: workflow -> action filter group -> action.
+_ACTION_WORKFLOW_ID = (
+    "dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow_id"
+)
 
 
 class WorkflowUpdateError(ValueError):
@@ -188,7 +195,10 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
     # What a firing hands to the automation's action; recorded in the run's snapshot.
     inputs_type: type[Inputs]
     settings_type: type[BaseModel]
-    action_settings_type: type[BaseModel] = NoSettings
+    # Whether the automation's investigation action takes a prompt or a skill, which is then
+    # required. Seeded defaults start with ``seeded_action_settings``.
+    takes_action_settings: ClassVar[bool] = False
+    seeded_action_settings: ClassVar[Mapping[str, Any] | None] = None
     scoped_by: Literal["projects", "monitors"]
 
     def projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
@@ -234,14 +244,18 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
 
     def validate_settings(self, extras: SeerWorkflowConfigExtras) -> tuple[BaseModel, BaseModel]:
         """Return the parsed trigger and action settings."""
-        return (
-            _parse_settings(self.settings_type, extras.trigger_settings),
-            _parse_settings(NoSettings, extras.action_settings),
-        )
-
-    def validate_action_settings(self, action_settings: Mapping[str, Any] | None) -> BaseModel:
-        """Parse what the automation's investigation action stores in its ``data``."""
-        return _parse_settings(self.action_settings_type, action_settings)
+        try:
+            return (
+                self.settings_type.parse_obj(extras.trigger_settings or {}),
+                NoSettings.parse_obj(extras.action_settings or {}),
+            )
+        except ValidationError as e:
+            raise WorkflowUpdateError(
+                "; ".join(
+                    f"{'.'.join(str(part) for part in error['loc'])}: {error['msg']}"
+                    for error in e.errors()
+                )
+            ) from e
 
     def has_quota_available(self, config: SeerWorkflowConfig) -> bool:
         """Allow runs until automation quota enforcement is implemented."""
@@ -375,7 +389,7 @@ class ConfigUpdate:
         try:
             return Action.objects.get(
                 type=Action.Type.SEER_INVESTIGATION,
-                dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow=self._backing_workflow(),
+                **{_ACTION_WORKFLOW_ID: self._backing_workflow().id},
             )
         except Action.DoesNotExist as e:
             raise WorkflowUpdateError("The automation has no investigation action") from e
@@ -387,11 +401,19 @@ class ConfigUpdate:
         return workflow
 
     def set_action_settings(self, action_settings: Mapping[str, Any]) -> None:
-        data = self.definition.validate_action_settings(action_settings).dict(exclude_none=True)
+        """Replace the investigation action's prompt or skill, which the action's schema checks."""
+        if not self.definition.takes_action_settings:
+            raise WorkflowUpdateError(f"{self.definition.strategy} automations take no settings")
+        if not action_settings:
+            raise WorkflowUpdateError("Set a prompt or a skill")
         action = self._investigation_action()
+        data = dict(action_settings)
         if action.data != data:
             action.data = data
-            action.save(update_fields=["data", "date_updated"])
+            try:
+                action.save(update_fields=["data", "date_updated"])
+            except JSONSchemaValidationError as e:
+                raise WorkflowUpdateError(e.message) from e
             self.mark_related_changed()
 
     def set_extras(self, extras: SeerWorkflowConfigExtras) -> None:
@@ -469,30 +491,15 @@ class ConfigUpdate:
 
 def get_config_action_settings_bulk(
     configs: Sequence[SeerWorkflowConfig],
-) -> dict[int, dict[str, Any]]:
+) -> dict[int, SeerInvestigationActionData]:
     """Return what each config's investigation action stores in its ``data``, by config ID."""
     config_ids_by_workflow_id = {
         config.backing_workflow_id: config.id
         for config in configs
         if config.backing_workflow_id is not None
     }
-    workflow_path = (
-        "dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow_id"
-    )
     actions = Action.objects.filter(
         type=Action.Type.SEER_INVESTIGATION,
-        **{f"{workflow_path}__in": config_ids_by_workflow_id},
-    ).values_list(workflow_path, "data")
+        **{f"{_ACTION_WORKFLOW_ID}__in": config_ids_by_workflow_id},
+    ).values_list(_ACTION_WORKFLOW_ID, "data")
     return {config_ids_by_workflow_id[workflow_id]: data for workflow_id, data in actions}
-
-
-def _parse_settings(model: type[BaseModel], settings: Mapping[str, Any] | None) -> BaseModel:
-    try:
-        return model.parse_obj(settings or {})
-    except ValidationError as e:
-        raise WorkflowUpdateError(
-            "; ".join(
-                f"{'.'.join(str(part) for part in error['loc'])}: {error['msg']}"
-                for error in e.errors()
-            )
-        ) from e

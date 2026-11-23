@@ -48,13 +48,11 @@ from sentry.service_accounts.services.service_account import (
     RpcServiceAccount,
     service_account_service,
 )
+from sentry.workflow_engine.generated_schema_types import SeerInvestigationActionData
 
 logger = logging.getLogger(__name__)
 
 SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,)
-SEER_DEFAULT_ACTION_SETTINGS: dict[SeerWorkflowStrategy, dict[str, Any]] = {
-    SeerWorkflowStrategy.SCHEDULED_INVESTIGATION: {"skill": "agentic_triage"},
-}
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -98,10 +96,11 @@ class SeerWorkflow:
                         exclude_none=True
                     ),
                 )
-                update = ConfigUpdate(LockedConfig(config), get_definition(strategy))
+                definition = get_definition(strategy)
+                update = ConfigUpdate(LockedConfig(config), definition)
                 update.setup_backing_workflow(name=None, created_by_id=None, enabled=False)
-                if (action_settings := SEER_DEFAULT_ACTION_SETTINGS.get(strategy)) is not None:
-                    update.set_action_settings(action_settings)
+                if definition.seeded_action_settings is not None:
+                    update.set_action_settings(definition.seeded_action_settings)
                 config.save(using=database, update_fields=sorted(update.dirty_fields))
 
     @overload
@@ -174,7 +173,6 @@ class SeerWorkflow:
         extras = extras or SeerWorkflowConfigExtras()
         definition = get_definition(strategy)
         definition.validate_settings(extras)
-        definition.validate_action_settings(action_settings)
         scopes = validate_service_account_grant(organization_id, service_account_grant)
 
         database = router.db_for_write(SeerWorkflowConfig)
@@ -216,9 +214,9 @@ class SeerWorkflow:
                 update.setup_backing_workflow(
                     name=name, created_by_id=created_by_id, enabled=enabled
                 )
+                if definition.takes_action_settings or action_settings is not None:
+                    update.set_action_settings(action_settings or {})
                 update.set_scope(scope)
-                if action_settings:
-                    update.set_action_settings(action_settings)
                 if update.dirty_fields:
                     config.save(using=database, update_fields=sorted(update.dirty_fields))
                 definition.sync(config)
@@ -251,9 +249,11 @@ class SeerWorkflow:
         return SeerWorkflowConfigExtras.parse_obj(self.get_config().extras)
 
     @property
-    def action_settings(self) -> dict[str, Any]:
+    def action_settings(self) -> SeerInvestigationActionData:
         """What the automation's investigation action runs, such as a prompt or a skill."""
-        return get_config_action_settings_bulk([self.get_config()]).get(self.config_id, {})
+        return get_config_action_settings_bulk([self.get_config()]).get(
+            self.config_id, SeerInvestigationActionData()
+        )
 
     @property
     def filters(self) -> SeerWorkflowFilters:

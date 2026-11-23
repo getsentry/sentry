@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Literal, override
 
-from sentry.seer.models.workflow import SeerWorkflowConfig
+from sentry.seer.models.workflow import SeerSkill, SeerWorkflowConfig
 from sentry.seer.workflows.base import AcceptedRun, ActionAdmission, IgnoredRun, RejectedRun
 from sentry.seer.workflows.definitions import find_definition
 from sentry.services.eventstore.models import GroupEvent
@@ -20,7 +20,6 @@ class SeerInvestigationActionHandler(ActionHandler):
     group = ActionHandler.Group.OTHER
     required_features = (FeatureGate("organizations:seer-automations"),)
     config_schema = {"type": "object", "properties": {}, "additionalProperties": False}
-    # Mirrors the strategy's ``action_settings_type``, which is what validates writes.
     data_schema = {
         "type": "object",
         "properties": {
@@ -32,10 +31,12 @@ class SeerInvestigationActionHandler(ActionHandler):
             },
             "skill": {
                 "type": "string",
-                "enum": ["agentic_triage"],
+                "enum": [skill.value for skill in SeerSkill],
                 "description": "Seer skill the investigation runs, instead of a prompt",
             },
         },
+        # A prompt, a skill, or neither for automations whose investigation needs no settings.
+        "oneOf": [{"required": ["prompt"]}, {"required": ["skill"]}, {"maxProperties": 0}],
         "additionalProperties": False,
     }
 
