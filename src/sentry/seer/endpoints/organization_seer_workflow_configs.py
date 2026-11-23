@@ -29,7 +29,8 @@ from sentry.auth.principal import acting_user_id
 from sentry.cadence.api import ScheduledTriggerType, get_schedules
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS, ObjectStatus
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.utils.channel import get_slack_channel_name
+from sentry.integrations.slack.sdk_client import SlackInstallationUnavailable
+from sentry.integrations.slack.utils.channel import get_slack_channel_id, get_slack_channel_name
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -160,24 +161,100 @@ class ServiceAccountGrantSerializer(serializers.Serializer):
 
 class SlackChannelSerializer(serializers.Serializer):
     integrationId = serializers.IntegerField(min_value=1, max_value=2**63 - 1)
-    channelId = serializers.CharField(max_length=255)
+    channelId = serializers.CharField(max_length=255, required=False)
+    channelName = serializers.CharField(max_length=255, required=False)
+
+    def validate_channelName(self, value: str) -> str:
+        name = value.removeprefix("#")
+        if not name:
+            raise ValidationError("Enter a Slack channel name.")
+        return name
+
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
+        if "channelId" not in data and "channelName" not in data:
+            raise ValidationError("Provide channelId or channelName.")
+        return data
 
 
 class WorkflowConfigSerializer(serializers.Serializer):
+    serviceAccount = ServiceAccountGrantSerializer()
     slackChannel = SlackChannelSerializer(required=False, allow_null=True)
+    # [-1] selects all projects.
+    projectIds = serializers.ListField(
+        child=serializers.IntegerField(min_value=ALL_ACCESS_PROJECT_ID),
+        required=False,
+        allow_empty=True,
+    )
+    # Metric automations select projects through their connected monitors.
+    monitorIds = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        required=False,
+        allow_empty=True,
+    )
 
-    def resolve_slack_channel(self, data: dict[str, Any], strategy: str) -> None:
-        channel = data.get("slackChannel")
-        if channel is None:
-            return
-        if strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-            raise ValidationError(
-                {
-                    "slackChannel": {
-                        "non_field_errors": ["Only metric automations support Slack channels."]
+    def validate_projectIds(self, value: list[int]) -> list[int]:
+        if ALL_ACCESS_PROJECT_ID in value and value != [ALL_ACCESS_PROJECT_ID]:
+            raise serializers.ValidationError("[-1] cannot be combined with project IDs.")
+        return value
+
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
+        organization = self.context["organization"]
+        request = self.context["request"]
+        view = self.context["view"]
+
+        config: SeerWorkflowConfig | None = self.instance
+        strategy = config.strategy if config is not None else data["strategy"]
+
+        if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+            if "projectIds" in data:
+                raise ValidationError(
+                    {
+                        "projectIds": "Metric automation projects are selected by connecting monitors."
                     }
-                }
-            )
+                )
+            monitor_ids = data.get("monitorIds", [])
+            project_ids = get_monitor_project_ids(monitor_ids, organization)
+        else:
+            project_ids = data.get("projectIds", [])
+
+        denied = _check_project_access(
+            project_ids,
+            request=request,
+            organization=organization,
+            endpoint=view,
+        )
+        if denied is not None:
+            raise PermissionDenied(detail=denied)
+
+        if grant := data.get("serviceAccount"):
+            check_can_grant_service_account(grant, request, organization, view)
+
+        if channel := data.get("slackChannel"):
+            if strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+                raise ValidationError(
+                    {
+                        "slackChannel": {
+                            "non_field_errors": ["Only metric automations support Slack channels."]
+                        }
+                    }
+                )
+
+            # A name lookup schedules a Slack message. Authorize the existing scope
+            # before contacting Slack. PUT also rechecks it under the update lock.
+            if config is not None:
+                denied = _check_project_access(
+                    get_definition(strategy).project_ids(config),
+                    request=request,
+                    organization=organization,
+                    endpoint=view,
+                )
+                if denied is not None:
+                    raise PermissionDenied(detail=denied)
+            data["slackChannel"] = self.resolve_slack_channel(channel)
+
+        return data
+
+    def resolve_slack_channel(self, channel: dict[str, Any]) -> SlackChannel:
         organization = self.context["organization"]
         integration_id = channel["integrationId"]
         integration_context = integration_service.organization_context(
@@ -192,14 +269,36 @@ class WorkflowConfigSerializer(serializers.Serializer):
             raise ValidationError(
                 {"slackChannel": {"integrationId": ["Choose an available Slack workspace."]}}
             )
-        channel_id = channel["channelId"]
+
+        channel_id = channel.get("channelId")
+        channel_name = channel.get("channelName")
         try:
+            if channel_id is None:
+                channel_id = get_slack_channel_id(
+                    integration_id=integration_id, channel_name=channel["channelName"]
+                )
             name = get_slack_channel_name(integration_id=integration_id, channel_id=channel_id)
+        except SlackInstallationUnavailable as exc:
+            raise ValidationError(
+                {"slackChannel": {"integrationId": ["Choose an available Slack workspace."]}}
+            ) from exc
         except (DjangoValidationError, IntegrationError, OSError) as exc:
+            if "channelId" not in channel:
+                raise ValidationError(
+                    {
+                        "slackChannel": {
+                            "channelName": ["Could not resolve this name. Retry with channelId."]
+                        }
+                    }
+                ) from exc
             raise ValidationError(
                 {"slackChannel": {"channelId": ["Could not resolve this Slack channel."]}}
             ) from exc
-        data["slackChannel"] = SlackChannel(integration_id, channel_id, name)
+        if channel_name is not None and channel_name != name:
+            raise ValidationError(
+                {"slackChannel": {"channelName": ["The name does not match the resolved channel."]}}
+            )
+        return SlackChannel(integration_id, channel_id, name)
 
 
 class WorkflowConfigCreateSerializer(WorkflowConfigSerializer):
@@ -211,34 +310,10 @@ class WorkflowConfigCreateSerializer(WorkflowConfigSerializer):
     environments = serializers.ListField(
         child=serializers.CharField(max_length=64), default=list, allow_empty=True
     )
-    # [-1] selects all projects; omitted means no projects.
-    projectIds = serializers.ListField(
-        child=serializers.IntegerField(min_value=ALL_ACCESS_PROJECT_ID),
-        required=False,
-        allow_empty=True,
-    )
     name = serializers.CharField(default=None, allow_null=True, max_length=64)
-    serviceAccount = ServiceAccountGrantSerializer()
-    # Metric automations only; their projects come from the connected monitors.
-    monitorIds = serializers.ListField(
-        child=serializers.IntegerField(min_value=1),
-        required=False,
-        allow_empty=True,
-    )
-
-    def validate_projectIds(self, value: list[int]) -> list[int]:
-        if ALL_ACCESS_PROJECT_ID in value and value != [ALL_ACCESS_PROJECT_ID]:
-            raise serializers.ValidationError("[-1] cannot be combined with project IDs.")
-        return value
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         if data["strategy"] == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-            if "projectIds" in data:
-                raise serializers.ValidationError(
-                    {
-                        "projectIds": "Metric automation projects are selected by connecting monitors."
-                    }
-                )
             if "schedule" in data:
                 raise serializers.ValidationError(
                     {
@@ -249,42 +324,28 @@ class WorkflowConfigCreateSerializer(WorkflowConfigSerializer):
             raise serializers.ValidationError(
                 {"monitorIds": "This automation type does not support monitor selection."}
             )
-        self.resolve_slack_channel(data, data["strategy"])
-        return data
+        return super().validate(data)
 
 
 class WorkflowConfigUpdateSerializer(WorkflowConfigSerializer):
     enabled = serializers.BooleanField(required=False)
-    serviceAccount = ServiceAccountGrantSerializer(required=False)
     name = serializers.CharField(required=False, max_length=64)
     # [] selects all environments; omitted leaves them unchanged.
     environments = serializers.ListField(
         child=serializers.CharField(max_length=64), required=False, allow_empty=True
     )
-    projectIds = serializers.ListField(
-        child=serializers.IntegerField(min_value=ALL_ACCESS_PROJECT_ID),
-        required=False,
-        allow_empty=True,
-    )
 
-    monitorIds = serializers.ListField(
-        child=serializers.IntegerField(min_value=1),
-        required=False,
-        allow_empty=True,
-    )
-
-    def validate_projectIds(self, value: list[int]) -> list[int]:
-        if ALL_ACCESS_PROJECT_ID in value and value != [ALL_ACCESS_PROJECT_ID]:
-            raise serializers.ValidationError("[-1] cannot be combined with project IDs.")
-        return value
+    def get_fields(self) -> dict[str, serializers.Field[Any, Any, Any, Any]]:
+        fields = super().get_fields()
+        fields["serviceAccount"].required = False
+        return fields
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         if not data:
             raise serializers.ValidationError("Send fields to update.")
         if "projectIds" in data and "monitorIds" in data:
             raise serializers.ValidationError("Send at most one of projectIds or monitorIds.")
-        self.resolve_slack_channel(data, self.context["strategy"])
-        return data
+        return super().validate(data)
 
 
 @dataclass(frozen=True)
@@ -479,7 +540,8 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         Metric automations (``breached_metric_investigation``) take ``monitorIds``
         instead of ``projectIds``; their projects come from the connected monitors, and
         the caller needs read access to each monitor's project. To post the standard breach
-        notification, pass e.g. ``"slackChannel": {"integrationId": "123", "channelId": "C123"}``.
+        notification, pass e.g. ``"slackChannel": {"integrationId": "123", "channelName": "#on-call"}``.
+        You can also supply ``channelId`` alone or with a matching ``channelName``.
 
         ``serviceAccount`` sets the scopes and projects investigations run with, on a
         service account created for the automation.
@@ -493,7 +555,8 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
             raise NotFound
 
         serializer = WorkflowConfigCreateSerializer(
-            data=request.data, context={"organization": organization}
+            data=request.data,
+            context={"organization": organization, "request": request, "view": self},
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -502,22 +565,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 
         project_ids: list[int] = data.get("projectIds") or []
         monitor_ids: list[int] = data.get("monitorIds") or []
-        if strategy is SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-            denied = _check_project_access(
-                get_monitor_project_ids(monitor_ids, organization),
-                request=request,
-                organization=organization,
-                endpoint=self,
-            )
-        else:
-            denied = _check_project_access(
-                project_ids, request=request, organization=organization, endpoint=self
-            )
-        if denied is not None:
-            raise PermissionDenied(detail=denied)
-
         grant: SeerServiceAccountGrant = data["serviceAccount"]
-        check_can_grant_service_account(grant, request, organization, self)
         try:
             if strategy is SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
                 workflow = SeerWorkflow.create(
@@ -651,6 +699,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         - ``monitorIds`` replaces the monitors of a metric automation and is rejected
           for other strategies.
         - Set ``slackChannel`` to replace a metric workflow's destination, or null to clear it.
+          Supply ``integrationId`` and either ``channelId``, ``channelName``, or both.
           Omitting the field preserves it. Like enabling or pausing, writing the destination
           requires access to every project the config covers.
         - Enabling or pausing requires access to every project the config covers.
@@ -680,7 +729,9 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         workflow = SeerWorkflow(config_id=config.id, organization_id=organization.id)
 
         serializer = WorkflowConfigUpdateSerializer(
-            data=request.data, context={"organization": organization, "strategy": config.strategy}
+            instance=config,
+            data=request.data,
+            context={"organization": organization, "request": request, "view": self},
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -698,23 +749,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 {"detail": "This automation type does not support monitor selection."}, status=400
             )
 
-        if project_ids or monitor_ids:
-            request_project_ids = (
-                get_monitor_project_ids(monitor_ids, organization) if monitor_ids else project_ids
-            )
-            assert request_project_ids is not None
-            denied = _check_project_access(
-                request_project_ids,
-                request=request,
-                organization=organization,
-                endpoint=self,
-            )
-            if denied is not None:
-                raise PermissionDenied(detail=denied)
-
         grant: SeerServiceAccountGrant | None = serializer.validated_data.get("serviceAccount")
-        if grant is not None:
-            check_can_grant_service_account(grant, request, organization, self)
         channel_supplied = "slackChannel" in serializer.validated_data
         applied_grant: SeerServiceAccountGrant | None = None
 

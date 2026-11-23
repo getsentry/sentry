@@ -6,7 +6,11 @@ from slack_sdk.errors import SlackApiError
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC, SlackSdkClient
+from sentry.integrations.slack.sdk_client import (
+    SLACK_DATADOG_METRIC,
+    SlackInstallationUnavailable,
+    SlackSdkClient,
+)
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
@@ -24,21 +28,21 @@ class SlackClientTest(TestCase):
         )
 
     def test_no_integration_found_error(self) -> None:
-        with pytest.raises(ValueError):
+        with pytest.raises(SlackInstallationUnavailable):
             SlackSdkClient(integration_id=2)
 
     def test_inactive_integration_error(self) -> None:
         with assume_test_silo_mode_of(Integration):
             self.integration.update(status=ObjectStatus.DISABLED)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(SlackInstallationUnavailable):
             SlackSdkClient(self.integration.id)
 
     def test_no_access_token_error(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.update(metadata={})
 
-        with pytest.raises(ValueError):
+        with pytest.raises(SlackInstallationUnavailable):
             SlackSdkClient(integration_id=self.integration.id)
 
     @patch("sentry.integrations.slack.sdk_client.metrics")

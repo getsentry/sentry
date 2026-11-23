@@ -91,6 +91,10 @@ class MetaClass(type):
         return cls
 
 
+class SlackInstallationUnavailable(ValueError):
+    """The Slack client could not load an active installation with an access token."""
+
+
 class SlackSdkClient(WebClient, metaclass=MetaClass):
     def __init__(self, integration_id: int):
         self.integration_id = integration_id
@@ -113,11 +117,13 @@ class SlackSdkClient(WebClient, metaclass=MetaClass):
             )
 
         if integration is None:
-            raise ValueError(f"Integration with id {integration_id} not found")
+            raise SlackInstallationUnavailable(f"Integration with id {integration_id} not found")
 
         access_token = integration.metadata.get("access_token")
         if not access_token:
-            raise ValueError(f"Missing token for integration with id {integration_id}")
+            raise SlackInstallationUnavailable(
+                f"Missing token for integration with id {integration_id}"
+            )
 
         # TODO: missing from old SlackClient: verify_ssl, logging_context
         super().__init__(token=access_token)

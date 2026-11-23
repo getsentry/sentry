@@ -227,6 +227,17 @@ def _get_channel_info(
     return results
 
 
+def get_slack_channel_id(*, integration_id: int, channel_name: str) -> str:
+    """Look up a channel in one workspace without falling back to a user search."""
+    try:
+        channel_id = check_for_channel(SlackSdkClient(integration_id=integration_id), channel_name)
+    except SlackApiError as exc:
+        raise ValidationError("Could not look up the Slack channel by name.") from exc
+    if channel_id is None:
+        raise ValidationError("Slack channel not found.")
+    return channel_id
+
+
 def get_slack_channel_name(*, integration_id: int, channel_id: str) -> str:
     """Resolve a public or private channel, excluding archived channels and DMs."""
     channel = _get_channel_info(integration_id=integration_id, input_channel_id=channel_id).get(
