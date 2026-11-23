@@ -121,18 +121,21 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         "title": "Seer Investigation Workflow Schema",
         "properties": {
             **config_schema["properties"],
-            "cron": {
-                "description": "Cron expression for when the workflow runs, evaluated in timezone",
-                "type": "string",
-                "minLength": 1,
+            "crons": {
+                "description": "Cron expressions for when the workflow runs, evaluated in timezone",
+                "type": "array",
+                "items": {"type": "string", "minLength": 1},
+                "minItems": 1,
+                # Cadence holds one cron per trigger for now.
+                "maxItems": 1,
             },
             "timezone": {
-                "description": "IANA timezone name the cron is evaluated in; UTC if unset",
+                "description": "IANA timezone name the crons are evaluated in; UTC if unset",
                 "type": "string",
                 "minLength": 1,
             },
         },
-        "dependentRequired": {"timezone": ["cron"]},
+        "dependentRequired": {"timezone": ["crons"]},
     }
 
     __repr__ = sane_repr("organization_id")

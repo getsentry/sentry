@@ -138,7 +138,7 @@ class WorkflowTest(BaseWorkflowTest):
 
 class WorkflowConfigSchemaTest(TestCase):
     def test_seer_investigation_workflow_accepts_a_cron(self) -> None:
-        config = {"frequency": 0, "cron": "0 9 * * 1-5", "timezone": "America/New_York"}
+        config = {"frequency": 0, "crons": ["0 9 * * 1-5"], "timezone": "America/New_York"}
         workflow = self.create_workflow(
             organization=self.organization, type=Workflow.Type.SEER_INVESTIGATION, config=config
         )
@@ -148,7 +148,15 @@ class WorkflowConfigSchemaTest(TestCase):
 
     def test_alert_workflow_rejects_a_cron(self) -> None:
         with pytest.raises(JSONSchemaValidationError):
-            self.create_workflow(organization=self.organization, config={"cron": "0 9 * * *"})
+            self.create_workflow(organization=self.organization, config={"crons": ["0 9 * * *"]})
+
+    def test_seer_investigation_workflow_rejects_more_than_one_cron(self) -> None:
+        with pytest.raises(JSONSchemaValidationError):
+            self.create_workflow(
+                organization=self.organization,
+                type=Workflow.Type.SEER_INVESTIGATION,
+                config={"crons": ["0 1 * * 1", "11 3 * * 4"]},
+            )
 
     def test_seer_investigation_workflow_rejects_unknown_keys(self) -> None:
         with pytest.raises(JSONSchemaValidationError):
