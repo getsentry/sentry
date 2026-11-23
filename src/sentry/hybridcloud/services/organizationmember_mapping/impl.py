@@ -53,7 +53,8 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
 
         try:
             with outbox_context(
-                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
+                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping)),
+                flush=False,
             ):
                 orm_mapping = (
                     self._find_organization_member(
@@ -85,7 +86,8 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                     orm_mapping = existing
 
             with outbox_context(
-                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
+                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping)),
+                flush=False,
             ):
                 apply_update(orm_mapping)
 
