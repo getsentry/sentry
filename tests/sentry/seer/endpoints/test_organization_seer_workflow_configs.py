@@ -515,11 +515,14 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             self.organization.slug,
             config.id,
             method="put",
-            triggerSettings={"cron": "0 9 * * 1"},
+            triggerSettings={"cron": "0 9 * * 1", "timezone": "America/New_York"},
             actionSettings={"prompt": "Check checkout latency"},
         )
 
-        assert response.data["triggerSettings"] == {"cron": "0 9 * * 1"}
+        assert response.data["triggerSettings"] == {
+            "cron": "0 9 * * 1",
+            "timezone": "America/New_York",
+        }
         assert response.data["actionSettings"] == {"prompt": "Check checkout latency"}
         config.refresh_from_db()
         assert config.extras["trigger_settings"] == response.data["triggerSettings"]
@@ -1489,12 +1492,15 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             self.organization.slug,
             strategy="scheduled_investigation",
             projectIds=[self.project.id],
-            triggerSettings={"cron": "0 9 * * 1"},
+            triggerSettings={"cron": "0 9 * * 1", "timezone": "America/New_York"},
             actionSettings={"prompt": "Check checkout latency"},
             status_code=201,
         )
 
-        assert response.data["triggerSettings"] == {"cron": "0 9 * * 1"}
+        assert response.data["triggerSettings"] == {
+            "cron": "0 9 * * 1",
+            "timezone": "America/New_York",
+        }
         assert response.data["actionSettings"] == {"prompt": "Check checkout latency"}
 
     def test_all_projects(self) -> None:
