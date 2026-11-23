@@ -32,6 +32,11 @@ export interface BreadcrumbItemPageTitleProps {
    */
   labelTooltip?: React.ReactNode;
   /**
+   * Pass `'cap'` for all-caps labels, like an issue short-id, so they center on the
+   * leading graphic.
+   */
+  labelTrim?: 'cap';
+  /**
    * Decorative 16×16 leading graphic — a `ProjectsBadge`, avatar, or icon.
    * Rendered aria-hidden inside a fixed-size slot; the label carries the meaning.
    */
@@ -45,6 +50,7 @@ export interface BreadcrumbItemPageTitleProps {
 export function BreadcrumbItemPageTitle({
   label,
   labelTooltip,
+  labelTrim,
   leadingGraphic,
   pagination,
   trailingActions,
@@ -106,7 +112,13 @@ export function BreadcrumbItemPageTitle({
       <Container minWidth={0}>
         {containerProps => (
           <Heading as="h1" variant="inherit" {...containerProps}>
-            <InfoText title={labelTooltip} ellipsis bold variant="inherit">
+            <InfoText
+              title={labelTooltip}
+              ellipsis
+              bold
+              variant="inherit"
+              trim={labelTrim}
+            >
               {label}
             </InfoText>
           </Heading>

@@ -50,6 +50,7 @@ export function useIssueIdBreadcrumbItem({project, group}: ShortIdBreadcrumbProp
   return {
     type: 'page-title',
     label: group.shortId,
+    labelTrim: 'cap',
     leadingGraphic: (
       <ProjectsBadge
         projectPlatforms={project.platform ? [project.platform] : ['default']}

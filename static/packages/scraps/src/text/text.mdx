@@ -245,6 +245,17 @@ Handle text overflow with the `ellipsis` prop to truncate long text with an elli
 </Text>
 ```
 
+### All-caps text
+
+The default trim keeps room for lowercase letters and descenders, so all-caps text like an issue ID sits a little high next to an icon. Pass `trim="cap"` to trim to the cap height and baseline instead.
+
+```jsx
+<Flex align="center" gap="xs">
+  <IconIssues size="sm" />
+  <Text trim="cap">PROJECT-1A</Text>
+</Flex>
+```
+
 ## Wrapping
 
 Use the `textWrap` prop to control how the text wraps, and the `wordBreak` prop to control where the text is split during wrapping.
