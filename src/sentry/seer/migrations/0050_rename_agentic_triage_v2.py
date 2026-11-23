@@ -18,7 +18,6 @@ def rename_agentic_triage_v2(apps: StateApps, schema_editor: BaseDatabaseSchemaE
         config.strategy = NEW_STRATEGY
         if config.extras.get("seeded_default") == OLD_STRATEGY:
             config.extras["seeded_default"] = NEW_STRATEGY
-            # The seeded default ran the agentic triage prompt, which is now a Seer skill.
             if not config.extras.get("action_settings"):
                 config.extras["action_settings"] = AGENTIC_TRIAGE_ACTION_SETTINGS
         config.save(update_fields=["strategy", "extras"])

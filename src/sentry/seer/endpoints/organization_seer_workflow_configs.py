@@ -90,8 +90,6 @@ class SeerWorkflowConfigResponse(TypedDict):
     filters: dict[str, Any]
     outputPolicy: dict[str, Any]
     seededDefault: str | None
-    # The shapes the strategy's trigger and action declare, e.g. a scheduled investigation's
-    # {cron} and {prompt} or {skill}.
     triggerSettings: dict[str, Any]
     actionSettings: dict[str, Any]
     # When the automation next runs on its schedule, or None if it doesn't run on one.
