@@ -354,7 +354,7 @@ class SlackAutofixEntrypoint(
             install=self.install,
             thread=self.thread,
             data=SeerAutofixOutOfCredits(
-                organization_id=self.organization_id, denial_reason=denial_reason
+                organization_id=self.organization_id, started=started, denial_reason=denial_reason
             ),
             ephemeral_user_id=self.slack_request.user_id,
         )
