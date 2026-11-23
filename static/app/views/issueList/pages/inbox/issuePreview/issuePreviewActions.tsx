@@ -82,9 +82,7 @@ function CopyAsMarkdownDropdown({
     if (trace) {
       markdown += `\n\n## In the trace\n\n${trace}`;
     }
-    void copy(markdown, {
-      successMessage: t('Copied issue to clipboard as Markdown'),
-    });
+    void copy(markdown, {successMessage: t('Copied issue to clipboard as Markdown')});
   }
 
   const analyticsParams = {

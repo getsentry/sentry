@@ -973,7 +973,7 @@ class TestTriggerAutofixAgentAttemptMetric(TestCase):
             }
         ]
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
@@ -1144,12 +1144,7 @@ class TestBuildRepoPins(TestCase):
         }
 
 
-@with_feature(
-    {
-        "organizations:seer-token-based-billing-onboarding": True,
-        "organizations:token-billed-seer-enabled": True,
-    }
-)
+@with_feature("organizations:token-billed-seer-enabled")
 class TestBuildRepoPinsEventMatchedRepos(TestCase, SnubaTestCase):
     @patch("sentry.scm.factory.new")
     def test_pins_repo_matching_the_event_past_the_limit(self, mock_scm_new: MagicMock) -> None:
@@ -1875,7 +1870,7 @@ class TestTriggerPushChanges(TestCase):
                 referrer=AutofixReferrer.UNKNOWN,
             )
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
@@ -1899,10 +1894,7 @@ class TestTriggerPushChanges(TestCase):
     ) -> None:
         self._push(
             mock_post,
-            features={
-                "organizations:seer-credit-checks": True,
-                "organizations:token-billed-seer-enabled": True,
-            },
+            features={"organizations:token-billed-seer-enabled": True},
             billing_feature=SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
         )
 

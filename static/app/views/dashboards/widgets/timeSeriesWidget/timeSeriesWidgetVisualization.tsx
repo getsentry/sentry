@@ -12,14 +12,16 @@ import unescape from 'lodash/unescape';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
-import type {BandBucket} from 'sentry/components/charts/bands/bandShapes';
+import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
+import {BAND_Y_AXIS, type BandBucket} from 'sentry/components/charts/bands/bandShapes';
 import {useBandTooltips} from 'sentry/components/charts/bands/bandTooltip';
 import {mergeChartBands} from 'sentry/components/charts/bands/mergeChartBands';
-import {useReleaseBand} from 'sentry/components/charts/bands/useReleaseBand';
+import {useAnnotationBand} from 'sentry/components/charts/bands/useAnnotationBand';
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import type {LegendItem} from 'sentry/components/charts/chartLegend';
 import {ChartLegend} from 'sentry/components/charts/chartLegend';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
+import {useAnnotationMarkers} from 'sentry/components/charts/markers/useAnnotationMarkers';
 import {
   useChartXRangeSelection,
   type ChartXRangeSelectionProps,
@@ -84,6 +86,13 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
   plottables: Plottable[];
 
   /**
+   * Releases, flag changes, and other annotations, drawn as a band under the
+   * plot that marks each chart bucket with annotations. Buckets with a severe
+   * annotation also get a marker on the plot.
+   */
+  annotations?: AnnotationItem[];
+
+  /**
    * Sets the range of the Y axis.
    *
    * - `auto`: The Y axis starts at 0, and ends at the maximum value of the data.
@@ -122,6 +131,11 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
+
+  /**
+   * Called with the annotations of a bucket when it's clicked in the annotations band.
+   */
+  onAnnotationClick?: (items: AnnotationItem[]) => void;
 
   /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
@@ -234,7 +248,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const location = useLocation();
   const hasReleaseBubbles =
     props.showReleaseAs !== 'none' && props.showReleaseAs === 'bubble';
-  const hasReleaseBand = props.showReleaseAs === 'band';
 
   // Local legend selection state used when the parent doesn't manage it
   const [localLegendSelection, setLocalLegendSelection] = useState<
@@ -254,10 +267,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     onDataZoom,
     onChartReady: onChartReadyZoom,
     ...chartZoomProps
-  } = useChartZoom({
-    disabled: props.disableZoom,
-    saveOnZoom: true,
-  });
+  } = useChartZoom({disabled: props.disableZoom, saveOnZoom: true});
 
   const {brush, onBrushEnd, onBrushStart, toolBox, ActionMenu} = useChartXRangeSelection({
     chartRef,
@@ -467,10 +477,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const bubbleReleases = useMemo(
     () =>
       hasReleaseBubbles
-        ? props.releases?.map(({timestamp, version}) => ({
-            date: timestamp,
-            version,
-          }))
+        ? props.releases?.map(({timestamp, version}) => ({date: timestamp, version}))
         : [],
     [hasReleaseBubbles, props.releases]
   );
@@ -499,23 +506,37 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     'offset' in releaseBubbleXAxis ? releaseBubbleXAxis.offset : 0;
   const releaseGridBottom = 'bottom' in releaseBubbleGrid ? releaseBubbleGrid.bottom : 0;
 
+  const hasAnnotations = (props.annotations?.length ?? 0) > 0;
   const bandBuckets = useMemo(
-    () => (hasReleaseBand ? getBandBuckets(props.plottables) : []),
-    [hasReleaseBand, props.plottables]
+    () => (hasAnnotations ? getBandBuckets(props.plottables) : []),
+    [hasAnnotations, props.plottables]
   );
-  const releaseBand = useReleaseBand({
+  const annotationBand = useAnnotationBand({
     buckets: bandBuckets,
-    releases: hasReleaseBand ? props.releases : undefined,
+    items: props.annotations,
+    onClick: props.onAnnotationClick,
   });
+  const annotationMarkers = useAnnotationMarkers({
+    buckets: bandBuckets,
+    chartRef,
+    items: props.annotations,
+    utc,
+  });
+  const annotationMarkerSeries = annotationMarkers
+    ? {...annotationMarkers, yAxisIndex: yAxes.length}
+    : null;
+  if (annotationMarkerSeries) {
+    yAxes.push(BAND_Y_AXIS);
+  }
 
   const droppedDataBand = useDroppedDataBand({droppedData: props.droppedData});
-  const bands = useBandTooltips([droppedDataBand, releaseBand], {chartRef, utc});
+  const bands = useBandTooltips([droppedDataBand, annotationBand], {chartRef, utc});
 
   const showYAxisProp = props.showYAxis ?? 'auto';
   const showYAxis = showYAxisProp === 'auto';
 
   const releaseSeries =
-    props.releases && props.showReleaseAs !== 'none' && !hasReleaseBand
+    props.releases && props.showReleaseAs !== 'none'
       ? hasReleaseBubbles
         ? releaseBubbleSeries
         : createReleaseSeriesOptions(
@@ -605,10 +626,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
               {customValues: customTicks, showMinLabel: true, showMaxLabel: true}
             : {}),
         },
-        axisTick: {
-          show: true,
-          ...(hasCustomTicks ? {customValues: customTicks} : {}),
-        },
+        axisTick: {show: true, ...(hasCustomTicks ? {customValues: customTicks} : {})},
         // When customValues are provided, suppress auto-tick generation
         // so ECharts only renders our timezone-aligned ticks.
         splitNumber: hasCustomTicks ? 0 : X_AXIS_SPLIT_NUMBER,
@@ -707,11 +725,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       typeof releaseLegendSeries.name === 'string' ? releaseLegendSeries.name : '';
     const releaseColor =
       typeof releaseLegendSeries.color === 'string' ? releaseLegendSeries.color : '';
-    chartLegendItems.push({
-      name: releaseName,
-      label: releaseName,
-      color: releaseColor,
-    });
+    chartLegendItems.push({name: releaseName, label: releaseName, color: releaseColor});
   }
 
   // ECharts needs every known legend item to be present in the selection state.
@@ -724,7 +738,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     {}
   );
 
-  const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
+  const allSeries = [
+    ...seriesFromPlottables,
+    releaseSeries,
+    annotationMarkerSeries,
+  ].filter(defined);
 
   const runHandler = (
     batch: {dataIndex: number; seriesIndex?: number},
@@ -830,9 +848,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           tooltip={{
             appendToBody: true,
             trigger: 'axis',
-            axisPointer: {
-              type: 'cross',
-            },
+            axisPointer: {type: 'cross'},
             formatter: formatTooltip,
           }}
           xAxis={band.xAxis}
@@ -871,10 +887,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
  */
 function getPlottableEventDataIndex(
   series: SeriesOption[],
-  event: {
-    dataIndex: number;
-    seriesIndex?: number;
-  },
+  event: {dataIndex: number; seriesIndex?: number},
   affectedRange: Range<Plottable>
 ): number {
   const {dataIndex, seriesIndex} = event;

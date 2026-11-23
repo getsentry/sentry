@@ -3,8 +3,9 @@ import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
 import {BAND_Z} from 'sentry/components/charts/bands/bandShapes';
-import {RELEASE_BAND_SERIES_ID} from 'sentry/components/charts/bands/useReleaseBand';
+import {ANNOTATION_BAND_SERIES_ID} from 'sentry/components/charts/bands/useAnnotationBand';
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import {DROPPED_DATA_SERIES_ID} from 'sentry/components/droppedData/band/useDroppedDataBand';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -33,6 +34,15 @@ const releases = [
   {
     version: 'ui@0.1.2',
     timestamp: new Date(sampleThroughputTimeSeries.values[2]!.timestamp).toISOString(),
+  },
+];
+
+const annotations: AnnotationItem[] = [
+  {
+    id: 'release:ui@0.1.2',
+    kind: 'release',
+    start: sampleThroughputTimeSeries.values[2]!.timestamp,
+    title: 'ui@0.1.2',
   },
 ];
 
@@ -66,24 +76,17 @@ describe('TimeSeriesWidgetVisualization', () => {
     expect(screen.queryByRole('option', {name: 'Releases'})).not.toBeInTheDocument();
   });
 
-  it('draws releases as a band aligned to the chart buckets', () => {
+  it('draws annotations as a band aligned to the chart buckets', () => {
     render(
-      <TimeSeriesWidgetVisualization
-        plottables={plottables}
-        releases={releases}
-        showReleaseAs="band"
-      />
+      <TimeSeriesWidgetVisualization plottables={plottables} annotations={annotations} />
     );
 
     const {series} = jest.mocked(BaseChart).mock.calls.at(-1)![0];
-    const releaseBand = series?.find(({id}) => id === RELEASE_BAND_SERIES_ID);
+    const annotationBand = series?.find(({id}) => id === ANNOTATION_BAND_SERIES_ID);
 
-    expect(releaseBand?.data).toEqual(
+    expect(annotationBand?.data).toEqual(
       sampleThroughputTimeSeries.values.map(({timestamp}, index) =>
-        expect.objectContaining({
-          start: timestamp,
-          releases: index === 2 ? releases : [],
-        })
+        expect.objectContaining({start: timestamp, items: index === 2 ? annotations : []})
       )
     );
     expect(series?.find(({name}) => name === 'Releases')).toBeUndefined();
@@ -95,8 +98,7 @@ describe('TimeSeriesWidgetVisualization', () => {
     render(
       <TimeSeriesWidgetVisualization
         plottables={plottables}
-        releases={releases}
-        showReleaseAs="band"
+        annotations={annotations}
         droppedData={{
           dataset: DiscoverDatasets.SPANS,
           droppedEvents: [OutcomeRowFixture({start, count: 10})],
@@ -109,20 +111,19 @@ describe('TimeSeriesWidgetVisualization', () => {
     expect(series).toEqual(
       expect.arrayContaining([
         expect.objectContaining({id: DROPPED_DATA_SERIES_ID, z: BAND_Z}),
-        expect.objectContaining({id: RELEASE_BAND_SERIES_ID, z: BAND_Z}),
+        expect.objectContaining({id: ANNOTATION_BAND_SERIES_ID, z: BAND_Z}),
       ])
     );
   });
 
-  it('shows the same tooltip on the release and dropped data bands for a bucket', async () => {
+  it('shows the same tooltip on the annotation and dropped data bands for a bucket', async () => {
     const {timestamp: start} = sampleThroughputTimeSeries.values[2]!;
     const end = start + sampleThroughputTimeSeries.meta.interval;
 
     render(
       <TimeSeriesWidgetVisualization
         plottables={plottables}
-        releases={releases}
-        showReleaseAs="band"
+        annotations={annotations}
         droppedData={{
           dataset: DiscoverDatasets.SPANS,
           droppedEvents: [OutcomeRowFixture({start, end, count: 10})],
@@ -138,11 +139,11 @@ describe('TimeSeriesWidgetVisualization', () => {
       return act(() => formatter({dataIndex} as CallbackDataParams));
     }
 
-    const fromReleases = await hoverBand(RELEASE_BAND_SERIES_ID, 2);
+    const fromAnnotations = await hoverBand(ANNOTATION_BAND_SERIES_ID, 2);
     const fromDroppedData = await hoverBand(DROPPED_DATA_SERIES_ID, 0);
 
-    expect(fromReleases).toBe(fromDroppedData);
-    expect(fromReleases).toContain('Dropped Spans');
-    expect(fromReleases).toContain('Releases');
+    expect(fromAnnotations).toBe(fromDroppedData);
+    expect(fromAnnotations).toContain('Dropped Spans');
+    expect(fromAnnotations).toContain('Releases');
   });
 });

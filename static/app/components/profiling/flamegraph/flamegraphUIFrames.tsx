@@ -67,14 +67,7 @@ export function FlamegraphUIFrames({
 
     const renderer = initializeFlamegraphRenderer(
       [UIFramesRendererWebGL, UIFramesRenderer2D],
-      [
-        uiFramesCanvasRef,
-        uiFrames,
-        flamegraphTheme,
-        {
-          draw_border: true,
-        },
-      ]
+      [uiFramesCanvasRef, uiFrames, flamegraphTheme, {draw_border: true}]
     );
 
     if (renderer === null) {
@@ -189,10 +182,7 @@ export function FlamegraphUIFrames({
     canvas: uiFramesCanvasRef,
   });
 
-  useInteractionViewCheckPoint({
-    view: uiFramesView,
-    lastInteraction,
-  });
+  useInteractionViewCheckPoint({view: uiFramesView, lastInteraction});
 
   useEffect(() => {
     window.addEventListener('mouseup', onMapCanvasMouseUp);

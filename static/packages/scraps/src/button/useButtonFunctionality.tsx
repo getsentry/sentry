@@ -19,8 +19,5 @@ export function useButtonFunctionality(props: ButtonProps | LinkButtonProps) {
   // Let's use props to determine which to serve up, so we don't have to think about it.
   // *Note* you must still handle tabindex manually.
 
-  return {
-    hasChildren,
-    accessibleLabel,
-  };
+  return {hasChildren, accessibleLabel};
 }

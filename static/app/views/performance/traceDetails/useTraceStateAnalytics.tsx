@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 
-import {getRelativeDate} from 'sentry/components/timeSince';
+import {getRelativeDate} from '@sentry/scraps/relativeTime';
+
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -69,7 +70,7 @@ export function useTraceStateAnalytics({
       const traceTimestamp =
         traceNode.space?.[0] ?? (timestamp ? timestamp * 1000 : null);
       const traceAge = defined(traceTimestamp)
-        ? getRelativeDate(traceTimestamp, 'ago')
+        ? getRelativeDate(traceTimestamp, {suffix: 'ago', prefix: ''})
         : 'unknown';
       const issuesCount = traceNode.uniqueIssues.length;
 

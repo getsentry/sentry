@@ -24,6 +24,7 @@ from sentry.timeseries_annotations.models import (
     AnnotationScope,
     AnnotationType,
     IntervalType,
+    Severity,
     TimeseriesAnnotation,
 )
 
@@ -50,10 +51,19 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
         # caller still sees org-wide rows, never another project's.
         project_ids = [p.id for p in self.get_projects(request, organization)]
         queryset = (
-            TimeseriesAnnotation.objects.filter(organization_id=organization.id)
+            TimeseriesAnnotation.objects.within_retention(organization)
+            .filter(organization_id=organization.id)
             .filter(_window_overlap(start, end))
             .filter(Q(project_id__in=project_ids) | Q(project_id__isnull=True))
         )
+
+        # Environment-level annotations are scoped like projects: a request filtering by
+        # environment still sees org-wide (null environment) rows, never another env's.
+        environments = self.get_environments(request, organization)
+        if environments:
+            queryset = queryset.filter(
+                Q(environment_id__in=[e.id for e in environments]) | Q(environment_id__isnull=True)
+            )
 
         scopes = _parse_labels(request.GET.getlist("scope"), AnnotationScope, "scope")
         if scopes:
@@ -64,6 +74,10 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
         )
         if types:
             queryset = queryset.filter(annotation_type__in=types)
+
+        severities = _parse_labels(request.GET.getlist("severity"), Severity, "severity")
+        if severities:
+            queryset = queryset.filter(severity__in=severities)
 
         # Client-side bucketing is correct only when the window fits one page; once results span
         # pages it undercounts. Server-side bucketing to come.
@@ -96,7 +110,7 @@ def _window_overlap(start: datetime, end: datetime) -> Q:
 
 
 def _parse_labels(
-    labels: Iterable[str], enum_cls: type[AnnotationScope | AnnotationType], param: str
+    labels: Iterable[str], enum_cls: type[AnnotationScope | AnnotationType | Severity], param: str
 ) -> list[int]:
     by_label = {label: value for value, label in enum_cls.as_choices()}
     try:

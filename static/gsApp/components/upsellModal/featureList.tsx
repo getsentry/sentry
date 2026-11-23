@@ -54,11 +54,7 @@ export function FeatureList({
   );
 }
 
-type CountdownRingProps = {
-  id: string;
-  theme: Theme;
-  totalTime: number;
-};
+type CountdownRingProps = {id: string; theme: Theme; totalTime: number};
 
 /**
  * Countdown ring is used to show a countdown ring to the right of the header

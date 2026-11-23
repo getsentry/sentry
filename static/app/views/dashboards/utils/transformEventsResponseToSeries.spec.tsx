@@ -26,14 +26,8 @@ describe('transformEventsResponseToSeries', () => {
     expect(transformEventsResponseToSeries(rawData, widgetQuery)).toEqual([
       {
         data: [
-          {
-            name: 1737731713000,
-            value: 17,
-          },
-          {
-            name: 1737731773000,
-            value: 23,
-          },
+          {name: 1737731713000, value: 17},
+          {name: 1737731773000, value: 23},
         ],
         seriesName: 'count()',
       },
@@ -67,27 +61,15 @@ describe('transformEventsResponseToSeries', () => {
     expect(transformEventsResponseToSeries(rawData, widgetQuery)).toEqual([
       {
         data: [
-          {
-            name: 1737731713000,
-            value: 12.4,
-          },
-          {
-            name: 1737731773000,
-            value: 18.7,
-          },
+          {name: 1737731713000, value: 12.4},
+          {name: 1737731773000, value: 18.7},
         ],
         seriesName: 'avg(transaction.duration)',
       },
       {
         data: [
-          {
-            name: 1737731713000,
-            value: 17,
-          },
-          {
-            name: 1737731773000,
-            value: 22,
-          },
+          {name: 1737731713000, value: 17},
+          {name: 1737731773000, value: 22},
         ],
         seriesName: 'count()',
       },
@@ -137,53 +119,29 @@ describe('transformEventsResponseToSeries', () => {
     expect(transformEventsResponseToSeries(rawData, widgetQuery)).toEqual([
       {
         data: [
-          {
-            name: 1737731713000,
-            value: 17,
-          },
-          {
-            name: 1737731773000,
-            value: 22,
-          },
+          {name: 1737731713000, value: 17},
+          {name: 1737731773000, value: 22},
         ],
         seriesName: 'dev : count()',
       },
       {
         data: [
-          {
-            name: 1737731713000,
-            value: 12.4,
-          },
-          {
-            name: 1737731773000,
-            value: 18.7,
-          },
+          {name: 1737731713000, value: 12.4},
+          {name: 1737731773000, value: 18.7},
         ],
         seriesName: 'dev : avg(transaction.duration)',
       },
       {
         data: [
-          {
-            name: 1737731713000,
-            value: 170,
-          },
-          {
-            name: 1737731773000,
-            value: 220,
-          },
+          {name: 1737731713000, value: 170},
+          {name: 1737731773000, value: 220},
         ],
         seriesName: 'prod : count()',
       },
       {
         data: [
-          {
-            name: 1737731713000,
-            value: 124,
-          },
-          {
-            name: 1737731773000,
-            value: 187,
-          },
+          {name: 1737731713000, value: 124},
+          {name: 1737731773000, value: 187},
         ],
         seriesName: 'prod : avg(transaction.duration)',
       },

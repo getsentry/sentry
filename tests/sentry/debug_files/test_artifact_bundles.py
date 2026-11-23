@@ -29,7 +29,6 @@ from sentry.models.artifactbundle import (
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
-    SourceFileType,
 )
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.project import Project
@@ -994,15 +993,12 @@ class GetArtifactBundlesContainingDebugIdTest(TestCase):
             date_added=date_added,
         )
         for debug_id in debug_ids:
-            # A minified file and its source map share a debug ID.
-            for source_file_type in (SourceFileType.MINIFIED_SOURCE, SourceFileType.SOURCE_MAP):
-                DebugIdArtifactBundle.objects.create(
-                    organization_id=project.organization_id,
-                    debug_id=debug_id,
-                    artifact_bundle=artifact_bundle,
-                    source_file_type=source_file_type.value,
-                    date_added=date_added,
-                )
+            DebugIdArtifactBundle.objects.create(
+                organization_id=project.organization_id,
+                debug_id=debug_id,
+                artifact_bundle=artifact_bundle,
+                date_added=date_added,
+            )
         return artifact_bundle
 
     def lookup(self) -> tuple[set[int], list[set[str]]]:
@@ -1104,8 +1100,11 @@ class GetArtifactBundlesContainingDebugIdTest(TestCase):
 
     @override_options({"sourcemaps.artifact-bundles.debug-id-lookup.max-rows": 1})
     def test_debug_id_with_more_rows_joins_all_tables(self) -> None:
-        # The bundle has two rows for the debug ID, one more than we read.
+        # Another project's bundle adds a second row for the debug ID, one more than we read.
         bundle = self.create_bundle((self.debug_id,))
+        self.create_bundle(
+            (self.debug_id,), project=self.create_project(organization=self.create_organization())
+        )
 
         with patch("sentry.debug_files.artifact_bundles.metrics") as metrics:
             assert self.lookup() == (
@@ -1155,7 +1154,6 @@ class RenewArtifactBundleTest(TestCase):
             organization_id=self.organization.id,
             debug_id=uuid.uuid4(),
             artifact_bundle=self.artifact_bundle,
-            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
             date_added=self.old_date,
         )
         ArtifactBundleIndex.objects.create(

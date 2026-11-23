@@ -30,10 +30,7 @@ export const ORGANIZATION: OrganizationSummary = {
   metricAlertsThreadFlag: false,
   name: 'Test Organization',
   require2FA: false,
-  status: {
-    id: 'active',
-    name: 'Active',
-  },
+  status: {id: 'active', name: 'Active'},
   links: {
     organizationUrl: 'https://sentry.io/test-organization',
     regionUrl: 'https://sentry.io/test-organization',
@@ -56,15 +53,10 @@ export const TEAM: Team = {
   memberCount: 1,
   isPending: false,
   teamRole: 'member',
-  flags: {
-    'idp:provisioned': false,
-  },
+  flags: {'idp:provisioned': false},
 };
 
-export const PROJECT = {
-  id: '1',
-  slug: 'test-project',
-};
+export const PROJECT = {id: '1', slug: 'test-project'};
 
 export const SENTRY_APP = {
   uuid: '1',

@@ -873,6 +873,12 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
         return config
 
 
+def _invalid_quote(text: str) -> InvalidSearchQuery:
+    return InvalidSearchQuery(
+        f"Invalid quote at '{text}': quotes must enclose text or be escaped. To match text with spaces, quote the whole value, wildcards included, such as `key:\"*foo bar*\"`"
+    )
+
+
 class SearchVisitor(NodeVisitor[list[QueryToken]]):
     # `tuple[...]` is used for the typing of `children` because there isn't
     # a way to represent positional-heterogenous lists -- but they are
@@ -977,7 +983,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
     def _validate_boolean_support(self) -> None:
         if not self.config.allow_boolean:
             raise InvalidSearchQuery(
-                'Boolean statements containing "OR" or "AND" are not supported in this search'
+                'Boolean statements containing "OR" or "AND" are not supported in this search. To match any of several values for one key, use a list, such as `key:[foo, bar]`'
             )
 
     def visit_free_text_unquoted(self, node: Node, children: object) -> str | None:
@@ -1850,15 +1856,11 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         value = node.text
         idx = value.find('"')
         if idx == 0:
-            raise InvalidSearchQuery(
-                f"Invalid quote at '{node.text}': quotes must enclose text or be escaped."
-            )
+            raise _invalid_quote(node.text)
 
         while idx != -1:
             if value[idx - 1] != "\\":
-                raise InvalidSearchQuery(
-                    f"Invalid quote at '{node.text}': quotes must enclose text or be escaped."
-                )
+                raise _invalid_quote(node.text)
 
             value = value[idx + 1 :]
             idx = value.find('"')

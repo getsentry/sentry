@@ -28,10 +28,9 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.supabase.client import (
+    SUPABASE_API_URL,
     SUPABASE_AUTHORIZATION_ERROR,
     SUPABASE_AUTHORIZE_URL,
-    SUPABASE_MCP_RESOURCE,
-    SUPABASE_MCP_URL,
     SupabaseClient,
     exchange_authorization_code,
     validate_supabase_access_token,
@@ -55,13 +54,13 @@ SUPABASE_REDIRECT_URL = "/extensions/supabase/setup/"
 
 metadata = IntegrationMetadata(
     description=(
-        "Connect your Supabase organization so Seer can investigate logs and security and "
-        "performance advisors across its projects. The connection is read-only and shared "
+        "Connect your Supabase organization so Seer can read project logs and current "
+        "infrastructure and database metrics. The connection is read-only and shared "
         "with your Sentry organization."
     ),
     features=[
         FeatureDescription(
-            "Give Seer access to logs and advisors across your Supabase organization's projects.",
+            "Give Seer access to project logs and current infrastructure and database metrics.",
             IntegrationFeatures.SEER_CONTEXT,
         )
     ],
@@ -95,7 +94,6 @@ class SupabaseOAuthApiStep:
                 "redirect_uri": absolute_uri(SUPABASE_REDIRECT_URL),
                 "code_challenge": challenge.decode(),
                 "code_challenge_method": "S256",
-                "resource": SUPABASE_MCP_RESOURCE,
             }
         )
         return {"oauthUrl": f"{SUPABASE_AUTHORIZE_URL}?{params}"}
@@ -146,7 +144,7 @@ class SupabaseIntegration(IntegrationInstallation):
             "configure_integration": {
                 "instructions": [
                     _(
-                        "Seer can read logs and advisors across this Supabase organization's "
+                        "Seer can read logs and current metrics across this Supabase organization's "
                         "projects. Reconnect Supabase to update its authorization."
                     )
                 ]
@@ -166,12 +164,15 @@ class SupabaseIntegration(IntegrationInstallation):
 
 class SupabaseIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.SUPABASE.value
-    name = "Supabase for Seer"
     metadata = metadata
     integration_cls = SupabaseIntegration
     features = frozenset([IntegrationFeatures.SEER_CONTEXT])
     requires_feature_flag = True
     allow_multiple = False
+
+    @property
+    def name(self) -> str:
+        return "Supabase for Seer"
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [SupabaseOAuthApiStep()]
@@ -229,7 +230,7 @@ class SupabaseOrgMonitoringProvider(OrgMonitoringProvider):
         return [
             HeaderAuthConnectionData(
                 provider_key=self.provider_key,
-                url=SUPABASE_MCP_URL,
+                url=SUPABASE_API_URL,
                 encrypted_auth_headers={"Authorization": encrypted_header},
                 identity_id=None,
                 integration_id=integration.id,

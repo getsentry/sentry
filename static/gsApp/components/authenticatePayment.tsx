@@ -72,12 +72,7 @@ export function AuthenticatePayment({
       fetchMutation<{paid: boolean; failureCode?: string | null}>({
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/payments/$paymentId/confirm/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              paymentId: invoiceGuid,
-            },
-          }
+          {path: {organizationIdOrSlug: organization.slug, paymentId: invoiceGuid}}
         ),
         method: 'POST',
         data: {paymentIntentId},

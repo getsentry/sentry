@@ -66,10 +66,7 @@ function useIssueDetailsTourModal() {
 
     let cancelled = false;
     const dismissTour = () => {
-      mutateAssistant({
-        guide: ISSUE_DETAILS_TOUR_GUIDE_KEY,
-        status: 'dismissed',
-      });
+      mutateAssistant({guide: ISSUE_DETAILS_TOUR_GUIDE_KEY, status: 'dismissed'});
       endTour();
       trackAnalytics('issue_details.tour.skipped', {organization});
     };

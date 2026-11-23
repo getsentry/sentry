@@ -18,7 +18,6 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import (
     get_token_based_billing_repo_filter,
     is_seer_seat_based_tier_enabled,
-    is_seer_token_based_billing_onboarding_enabled,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -65,7 +64,7 @@ def is_code_review_enabled(organization: Organization) -> bool:
 def is_autofix_enabled(organization: Organization) -> bool:
     """Check if any active project in the organization has a repo for autofix/RCA: a usable linked
     repo under token-based billing, otherwise a repo picked in Seer settings."""
-    if is_seer_token_based_billing_onboarding_enabled(organization):
+    if features.has("organizations:token-billed-seer-enabled", organization):
         return ProjectRepository.objects.filter(
             get_token_based_billing_repo_filter(organization, prefix="repository__"),
             project__organization_id=organization.id,

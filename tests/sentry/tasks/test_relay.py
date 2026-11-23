@@ -155,7 +155,7 @@ def test_debounce(
         schedule_build_project_config(public_key=cast(str, default_projectkey.public_key))
 
     assert len(tasks) == 1
-    assert tasks[0]["public_key"] == cast(str, default_projectkey.public_key)
+    assert tasks[0]["public_key"] == default_projectkey.public_key
 
 
 @django_db_all
@@ -177,7 +177,7 @@ def test_generate(
     assert cfg["publicKeys"] == [
         {
             "isEnabled": True,
-            "publicKey": cast(str, default_projectkey.public_key),
+            "publicKey": default_projectkey.public_key,
             "numericId": default_projectkey.id,
         }
     ]

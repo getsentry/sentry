@@ -201,10 +201,7 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
   }
 
   const sorts: [ValidSort, ValidSort] = [
-    {
-      field: 'is_starred_transaction' satisfies SpanProperty,
-      kind: 'desc',
-    },
+    {field: 'is_starred_transaction' satisfies SpanProperty, kind: 'desc'},
     decodeSorts(sort).find(isAValidSort) ?? DEFAULT_SORT,
   ];
 
@@ -284,9 +281,7 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
 }
 
 function MobileOverviewPageWithProviders() {
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.SPANS],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.SPANS]});
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
   const useEap = useInsightsEap();
   return (

@@ -1,8 +1,6 @@
 import styled from '@emotion/styled';
 
-type Props = {
-  noMargin?: boolean;
-};
+type Props = {noMargin?: boolean};
 
 export const TextBlock = styled('div')<Props>`
   line-height: 1.5;

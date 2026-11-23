@@ -54,9 +54,7 @@ describe('SuspectCommits', () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
-      body: {
-        committers: [committers[0]],
-      },
+      body: {committers: [committers[0]]},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
@@ -82,9 +80,7 @@ describe('SuspectCommits', () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
-      body: {
-        committers,
-      },
+      body: {committers},
     });
     render(
       <SuspectCommits projectSlug={project.slug} eventId={event.id} group={group} />

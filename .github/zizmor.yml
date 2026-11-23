@@ -1,0 +1,34 @@
+# Config for zizmor (https://docs.zizmor.sh), the GitHub Actions linter run by
+# prek. Each ignore below is a finding we accept on purpose; say why when you
+# add one.
+rules:
+  dangerous-triggers:
+    ignore:
+      # Runs on pull_request_target so the label can trigger a revert with the
+      # fast-revert app's token. It checks out the base branch, never PR code.
+      - fast-revert.yml
+      # Uploads snapshots that frontend-snapshots produced for fork PRs, which
+      # needs secrets that pull_request runs don't get. It only downloads the
+      # artifact and doesn't run code from it.
+      - frontend-snapshots-upload.yml
+      # Dispatches getsentry CI for every PR, including forks. It checks out the
+      # base branch and only reads the PR through the API.
+      - getsentry-dispatch.yml
+      # Labels fork PRs, which needs a write token. It checks out the base
+      # branch and only reads the changed file list.
+      - label-pullrequest.yml
+      # Handles PR comment commands. It reads the PR through the API and
+      # doesn't check out PR code.
+      - sentry-pull-request-bot.yml
+  cache-poisoning:
+    ignore:
+      # These run on master and release branches and restore dependency and
+      # build caches for speed. They don't publish artifacts built from a cache,
+      # and PR runs can't write to the master cache scope.
+      - acceptance.yml
+      - self-hosted.yml
+  dependabot-cooldown:
+    ignore:
+      # We want version bumps as soon as they're published instead of waiting
+      # for a cooldown.
+      - dependabot.yml

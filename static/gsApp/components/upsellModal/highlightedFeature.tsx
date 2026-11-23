@@ -11,11 +11,7 @@ import {displayPlanName, isTrial} from 'getsentry/utils/billing';
 
 import type {Feature} from './types';
 
-type Props = {
-  feature: Feature;
-  organization: Organization;
-  subscription: Subscription;
-};
+type Props = {feature: Feature; organization: Organization; subscription: Subscription};
 
 const IMAGE_SIZE = {height: 'auto', width: '540px'};
 

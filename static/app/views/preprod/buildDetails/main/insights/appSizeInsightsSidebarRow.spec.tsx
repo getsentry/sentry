@@ -187,9 +187,7 @@ describe('AppSizeInsightsSidebarRow', () => {
   });
 
   it('hides file count button when there are no files', () => {
-    const insightWithNoFiles = ProcessedInsightFixture({
-      files: [],
-    });
+    const insightWithNoFiles = ProcessedInsightFixture({files: []});
 
     render(
       <AppSizeInsightsSidebarRow
@@ -214,10 +212,7 @@ describe('AppSizeInsightsSidebarRow', () => {
           percentage: 40,
           data: {
             fileType: 'regular' as const,
-            originalFile: {
-              file_path: 'large-file.js',
-              total_savings: 2147483648,
-            },
+            originalFile: {file_path: 'large-file.js', total_savings: 2147483648},
           },
         },
       ],
@@ -246,10 +241,7 @@ describe('AppSizeInsightsSidebarRow', () => {
           percentage: 0.05,
           data: {
             fileType: 'regular' as const,
-            originalFile: {
-              file_path: 'tiny-file.js',
-              total_savings: 100,
-            },
+            originalFile: {file_path: 'tiny-file.js', total_savings: 100},
           },
         },
       ],

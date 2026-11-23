@@ -5,7 +5,7 @@ import logging
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Literal, TypedDict, cast
+from typing import Any, Literal, TypedDict
 from urllib.parse import urlparse
 
 from django.db.models import Prefetch
@@ -130,7 +130,7 @@ def _unfurl_dashboards(
     unfurls = {}
 
     for link in links:
-        args = cast(DashboardsUnfurlArgs, link.args)
+        args = link.args
         org_slug = args["org_slug"]
         org = orgs_by_slug.get(org_slug)
 

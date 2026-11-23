@@ -25,9 +25,7 @@ export function AutofixGithubCopilotPurchaseModal({
         <Text as="p">
           {tct(
             'Your GitHub account does not have an active GitHub Copilot license. To use Copilot as a coding agent, you will need an active [link:Copilot subscription].',
-            {
-              link: <ExternalLink href={GITHUB_COPILOT_URL} />,
-            }
+            {link: <ExternalLink href={GITHUB_COPILOT_URL} />}
           )}
         </Text>
       </Body>

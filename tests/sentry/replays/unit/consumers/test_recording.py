@@ -1,14 +1,13 @@
 import zlib
-from collections.abc import Callable
-from typing import Any, cast
+from typing import Any
 from unittest import mock
 
 import msgpack
 import pytest
 from google.api_core.exceptions import BadGateway, InternalServerError
 
-_InternalServerError = cast("Callable[[str], InternalServerError]", InternalServerError)
-_BadGateway = cast("Callable[[str], BadGateway]", BadGateway)
+_InternalServerError = InternalServerError
+_BadGateway = BadGateway
 
 from sentry import options
 from sentry.replays.consumers.recording import (

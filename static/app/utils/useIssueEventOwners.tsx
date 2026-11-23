@@ -18,11 +18,7 @@ const makeCommittersApiOptions = (
   apiOptions.as<EventOwners>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/owners/',
     {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        projectIdOrSlug: projectSlug,
-        eventId,
-      },
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug, eventId},
       staleTime: Infinity,
     }
   );

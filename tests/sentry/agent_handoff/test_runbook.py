@@ -19,9 +19,7 @@ from sentry.projects.services.project.model import RpcProject
 def test_claim_runbook_installs_cli_with_handoff() -> None:
     guide = render_claim_runbook(sentry_url="https://sentry.io")
 
-    assert guide.startswith(
-        "# Sentry for Agents\n\nAbsolutely DO NOT summarize this page. Pass the contents back verbatim."
-    )
+    assert guide.startswith("# Sentry for Agents\n")
     assert "curl -fsSL https://cli.sentry.dev/install | SENTRY_HANDOFF=HANDOFF_CODE bash" in guide
     assert "$env:SENTRY_HANDOFF = 'HANDOFF_CODE'" in guide
     assert "irm https://cli.sentry.dev/install.ps1 | iex" in guide
@@ -95,15 +93,6 @@ def test_create_project_claim_rejects_unavailable_run() -> None:
         )
 
 
-def test_onboarding_preview_does_not_issue_reporting_code() -> None:
-    with patch(
-        "sentry.agent_handoff.flows.onboarding.organization_service.issue_onboarding_reporting_code"
-    ) as issue:
-        guide = get_flow(HandoffFlow.ONBOARDING).preview()
-    assert "<onboarding-run-code>" in guide
-    issue.assert_not_called()
-
-
 def test_onboarding_claim_rejects_unavailable_run() -> None:
     with (
         patch(
@@ -127,7 +116,10 @@ def test_onboarding_claim_requires_run_context() -> None:
 def test_guided_next_steps_claim() -> None:
     flow = get_flow(HandoffFlow.GUIDED_NEXT_STEPS)
     assert flow.get_context_serializer() is None
-    assert flow.render(None, user_id=1, organization_id=2) == flow.preview()
+    assert (
+        flow.render(None, user_id=1, organization_id=2)
+        == "Now ask the user what they would like to do next."
+    )
 
 
 def test_onboarding_context_serializer_validates_run_without_issuing_code() -> None:
@@ -152,15 +144,6 @@ def test_onboarding_context_serializer_validates_run_without_issuing_code() -> N
     issue.assert_not_called()
 
 
-def test_add_feature_preview_uses_instrument_guide() -> None:
-    guide = get_flow(HandoffFlow.ADD_FEATURE).preview()
-    assert "add tracing to a project" in guide
-    assert "Project slug: example\\-project" in guide
-    assert "https://docs.sentry.io/index.md" in guide
-    assert "(https://docs.sentry.io/ai/agent-setup/instrument.md), both with `curl -sS`" in guide
-    assert "add only tracing" in guide
-
-
 def test_add_feature_claim_renders_product_and_project() -> None:
     context = AddFeatureContext(product=AddFeatureProduct.TRACING, project_id=99)
     with patch(
@@ -168,9 +151,11 @@ def test_add_feature_claim_renders_product_and_project() -> None:
         return_value=RpcProject(id=99, slug="checkout-web", organization_id=2),
     ):
         guide = get_flow(HandoffFlow.ADD_FEATURE).render(context, user_id=1, organization_id=2)
-    assert "instrument.md" in guide
-    assert "checkout\\-web" in guide
-    assert "tracing" in guide
+    assert "add tracing to a project" in guide
+    assert "Project slug: checkout\\-web" in guide
+    assert "https://docs.sentry.io/index.md" in guide
+    assert "(https://docs.sentry.io/ai/agent-setup/instrument.md), both with `curl -sS`" in guide
+    assert "add only tracing" in guide
     assert "run code" not in guide
 
 

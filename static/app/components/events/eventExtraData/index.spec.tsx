@@ -81,10 +81,7 @@ describe('EventExtraData', () => {
           clientIP: '127.0.0.1',
           version: '3.16.1',
           name: 'raven-js',
-          upstream: {
-            url: 'https://docs.sentry.io/clients/javascript/',
-            isNewer: '\n',
-          },
+          upstream: {url: 'https://docs.sentry.io/clients/javascript/', isNewer: '\n'},
         },
       },
       _meta: {
@@ -95,12 +92,7 @@ describe('EventExtraData', () => {
                 rem: [['organization:2', 's', 0, 0]],
                 len: 49,
                 chunks: [
-                  {
-                    type: 'redaction',
-                    text: '',
-                    rule_id: 'organization:2',
-                    remark: 's',
-                  },
+                  {type: 'redaction', text: '', rule_id: 'organization:2', remark: 's'},
                 ],
               },
             },
@@ -109,12 +101,7 @@ describe('EventExtraData', () => {
                 rem: [['organization:2', 's', 0, 0]],
                 len: 17,
                 chunks: [
-                  {
-                    type: 'redaction',
-                    text: '',
-                    rule_id: 'organization:2',
-                    remark: 's',
-                  },
+                  {type: 'redaction', text: '', rule_id: 'organization:2', remark: 's'},
                 ],
               },
             },
@@ -123,12 +110,7 @@ describe('EventExtraData', () => {
                 rem: [['organization:2', 's', 0, 0]],
                 len: 12,
                 chunks: [
-                  {
-                    type: 'redaction',
-                    text: '',
-                    rule_id: 'organization:2',
-                    remark: 's',
-                  },
+                  {type: 'redaction', text: '', rule_id: 'organization:2', remark: 's'},
                 ],
               },
             },
@@ -137,12 +119,7 @@ describe('EventExtraData', () => {
                 rem: [['organization:2', 's', 0, 0]],
                 len: 8,
                 chunks: [
-                  {
-                    type: 'redaction',
-                    text: '',
-                    rule_id: 'organization:2',
-                    remark: 's',
-                  },
+                  {type: 'redaction', text: '', rule_id: 'organization:2', remark: 's'},
                 ],
               },
             },
@@ -151,12 +128,7 @@ describe('EventExtraData', () => {
                 rem: [['organization:2', 's', 0, 0]],
                 len: 30,
                 chunks: [
-                  {
-                    type: 'redaction',
-                    text: '',
-                    rule_id: 'organization:2',
-                    remark: 's',
-                  },
+                  {type: 'redaction', text: '', rule_id: 'organization:2', remark: 's'},
                 ],
               },
             },
@@ -165,12 +137,7 @@ describe('EventExtraData', () => {
                 rem: [['organization:2', 's', 0, 0]],
                 len: 8,
                 chunks: [
-                  {
-                    type: 'redaction',
-                    text: '',
-                    rule_id: 'organization:2',
-                    remark: 's',
-                  },
+                  {type: 'redaction', text: '', rule_id: 'organization:2', remark: 's'},
                 ],
               },
             },
@@ -179,12 +146,7 @@ describe('EventExtraData', () => {
                 rem: [['organization:2', 's', 0, 0]],
                 len: 18,
                 chunks: [
-                  {
-                    type: 'redaction',
-                    text: '',
-                    rule_id: 'organization:2',
-                    remark: 's',
-                  },
+                  {type: 'redaction', text: '', rule_id: 'organization:2', remark: 's'},
                 ],
               },
             },
@@ -193,12 +155,7 @@ describe('EventExtraData', () => {
                 rem: [['organization:2', 's', 0, 0]],
                 len: 8,
                 chunks: [
-                  {
-                    type: 'redaction',
-                    text: '',
-                    rule_id: 'organization:2',
-                    remark: 's',
-                  },
+                  {type: 'redaction', text: '', rule_id: 'organization:2', remark: 's'},
                 ],
               },
             },
@@ -207,12 +164,7 @@ describe('EventExtraData', () => {
                 rem: [['organization:2', 's', 0, 0]],
                 len: 26,
                 chunks: [
-                  {
-                    type: 'redaction',
-                    text: '',
-                    rule_id: 'organization:2',
-                    remark: 's',
-                  },
+                  {type: 'redaction', text: '', rule_id: 'organization:2', remark: 's'},
                 ],
               },
             },
@@ -221,18 +173,11 @@ describe('EventExtraData', () => {
                 rem: [['organization:2', 's', 0, 0]],
                 len: 8,
                 chunks: [
-                  {
-                    type: 'redaction',
-                    text: '',
-                    rule_id: 'organization:2',
-                    remark: 's',
-                  },
+                  {type: 'redaction', text: '', rule_id: 'organization:2', remark: 's'},
                 ],
               },
             },
-            '': {
-              len: 14,
-            },
+            '': {len: 14},
           },
         },
       },

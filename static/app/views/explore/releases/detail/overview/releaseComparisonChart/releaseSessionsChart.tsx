@@ -638,9 +638,7 @@ class ReleaseSessionsChart extends Component<Props> {
     const legend = {
       right: 10,
       top: 0,
-      textStyle: {
-        padding: [2, 0, 0, 0],
-      },
+      textStyle: {padding: [2, 0, 0, 0]},
       data: [...(series ?? []), ...(previousSeries ?? [])].map(s => s.seriesName),
     };
 
@@ -669,12 +667,7 @@ class ReleaseSessionsChart extends Component<Props> {
               series={[...(series ?? []), ...(markLines ?? [])]}
               previousPeriod={previousSeries ?? []}
               {...zoomRenderProps}
-              grid={{
-                left: '10px',
-                right: '10px',
-                top: '70px',
-                bottom: '0px',
-              }}
+              grid={{left: '10px', right: '10px', top: '70px', bottom: '0px'}}
               minutesThresholdToDisplaySeconds={MINUTES_THRESHOLD_TO_DISPLAY_SECONDS}
               yAxis={this.getYAxis()}
               tooltip={{valueFormatter: this.formatTooltipValue}}

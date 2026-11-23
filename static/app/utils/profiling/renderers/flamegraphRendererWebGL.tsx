@@ -56,12 +56,7 @@ export class FlamegraphRendererWebGL extends FlamegraphRenderer {
     a_color: number | null;
     a_is_search_result: number | null;
     a_position: number | null;
-  } = {
-    a_position: null,
-    a_color: null,
-    a_bounds: null,
-    a_is_search_result: null,
-  };
+  } = {a_position: null, a_color: null, a_bounds: null, a_is_search_result: null};
 
   uniforms: {
     u_border_width: WebGLUniformLocation | null;

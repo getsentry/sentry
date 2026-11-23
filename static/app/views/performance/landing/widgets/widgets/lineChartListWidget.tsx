@@ -11,7 +11,7 @@ import {getInterval} from 'sentry/components/charts/utils';
 import {Count} from 'sentry/components/count';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {Truncate} from 'sentry/components/truncate';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -90,7 +90,6 @@ type ComponentData = React.ComponentProps<
 const slowList = [
   PerformanceWidgetSetting.SLOW_HTTP_OPS,
   PerformanceWidgetSetting.SLOW_DB_OPS,
-  PerformanceWidgetSetting.SLOW_BROWSER_OPS,
   PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
 ];
 
@@ -212,10 +211,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
           // Change data set to spans
           eventView.dataset = spanDataset;
-          extraQueryParams = {
-            ...extraQueryParams,
-            ...spanQueryParams,
-          };
+          extraQueryParams = {...extraQueryParams, ...spanQueryParams};
 
           // Update query
           const mutableSearch = new MutableSearch(eventView.query);
@@ -241,10 +237,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
           // Change data set to spans
           eventView.dataset = spanDataset;
-          extraQueryParams = {
-            ...extraQueryParams,
-            ...spanQueryParams,
-          };
+          extraQueryParams = {...extraQueryParams, ...spanQueryParams};
 
           // Update query
           const mutableSearch = new MutableSearch(eventView.query);
@@ -269,10 +262,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
           // Change data set to spans
           eventView.dataset = spanDataset;
-          extraQueryParams = {
-            ...extraQueryParams,
-            ...spanQueryParams,
-          };
+          extraQueryParams = {...extraQueryParams, ...spanQueryParams};
 
           // Update query
           const mutableSearch = new MutableSearch(eventView.query);
@@ -295,10 +285,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
           // Change data set to spans
           eventView.dataset = spanDataset;
-          extraQueryParams = {
-            ...extraQueryParams,
-            ...spanQueryParams,
-          };
+          extraQueryParams = {...extraQueryParams, ...spanQueryParams};
 
           // Update query
           const mutableSearch = MutableSearch.fromQueryObject(BASE_FILTERS);
@@ -307,10 +294,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           eventView.query = mutableSearch.formatString();
         } else if (isSlowestType || isFramesType) {
           eventView.additionalConditions.setFilterValues('count()', ['>1']);
-          extraQueryParams = {
-            ...extraQueryParams,
-            ...metricsQueryParams,
-          };
+          extraQueryParams = {...extraQueryParams, ...metricsQueryParams};
           eventView.dataset = metricsDataset;
           eventView.fields = [
             {field: 'transaction'},
@@ -511,10 +495,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
           if (useEap) {
             eventView.dataset = DiscoverDatasets.SPANS;
-            extraQueryParams = {
-              ...extraQueryParams,
-              ...spanQueryParams,
-            };
+            extraQueryParams = {...extraQueryParams, ...spanQueryParams};
           }
 
           return (
@@ -543,10 +524,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     [props.chartSetting, selectedListIndex, mepSetting.memoizationKey]
   );
 
-  const Queries = {
-    list: listQuery,
-    chart: chartQuery,
-  };
+  const Queries = {list: listQuery, chart: chartQuery};
 
   const assembleAccordionItems = (provided: ComponentData) =>
     getItems(provided).map(item => ({
@@ -576,9 +554,6 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       } else if (props.chartSetting === PerformanceWidgetSetting.SLOW_DB_OPS) {
         additionalQuery.breakdown = 'db';
         additionalQuery.display = 'latency';
-      } else if (props.chartSetting === PerformanceWidgetSetting.SLOW_BROWSER_OPS) {
-        additionalQuery.breakdown = 'browser';
-        additionalQuery.display = 'latency';
       } else if (props.chartSetting === PerformanceWidgetSetting.SLOW_RESOURCE_OPS) {
         additionalQuery.breakdown = 'resource';
         additionalQuery.display = 'latency';
@@ -586,10 +561,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
       const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
       const transactionTarget = isUnparameterizedRow
-        ? createUnnamedTransactionsDiscoverTarget({
-            organization,
-            location,
-          })
+        ? createUnnamedTransactionsDiscoverTarget({organization, location})
         : transactionSummaryRouteWithQuery({
             organization: props.organization,
             projectID: listItem['project.id'] as string,
@@ -602,7 +574,6 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       const fieldString = field;
 
       const valueMap = {
-        [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: listItem.failure_count,
         [PerformanceWidgetSetting.MOST_RELATED_ISSUES]: listItem.issue,
         slowest: getPerformanceDuration(listItem[fieldString] as number),
       };
@@ -626,31 +597,6 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     {rightValue}
                   </Link>
                 </Tooltip>
-              </RightAlignedCell>
-              {!props.withStaticFilters && (
-                <ListClose
-                  setSelectListIndex={setSelectListIndex}
-                  onClick={() =>
-                    excludeTransaction(listItem.transaction!, {
-                      eventView: props.eventView,
-                      location,
-                      navigate,
-                    })
-                  }
-                />
-              )}
-            </Fragment>
-          );
-        case PerformanceWidgetSetting.MOST_RELATED_ERRORS:
-          return (
-            <Fragment key={listItemKey}>
-              <GrowLink to={transactionTarget}>
-                <Truncate value={transaction} maxLength={40} />
-              </GrowLink>
-              <RightAlignedCell>
-                {tct('[count] errors', {
-                  count: <Count value={rightValue!} />,
-                })}
               </RightAlignedCell>
               {!props.withStaticFilters && (
                 <ListClose

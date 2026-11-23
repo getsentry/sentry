@@ -24,7 +24,6 @@ import type {
   ErrorFrame,
   fullSnapshotEvent,
   incrementalSnapshotEvent,
-  MemoryFrame,
   OptionFrame,
   RawReplayError,
   RecordingFrame,
@@ -43,6 +42,7 @@ import {
   isDeadClick,
   isDeadRageClick,
   isMetaFrame,
+  isMemoryFrame,
   isPaintFrame,
   isSlowClickFrame,
   isTouchEndFrame,
@@ -205,6 +205,9 @@ function removeDuplicateNavCrumbs(
   return otherBreadcrumbFrames.concat(uniqueNavCrumbs);
 }
 
+const MISSING_META_ERROR = 'Missing Meta Frame';
+const MISSING_FULL_SNAPSHOT_ERROR = 'Missing Full Snapshot Frame';
+
 export class ReplayReader {
   static factory({
     attachments,
@@ -346,14 +349,8 @@ export class ReplayReader {
       frame => frame.type === EventType.FullSnapshot
     );
     if (firstMeta && firstSnapshot && firstMeta.timestamp > startTimestampMs) {
-      this._sortedRRWebEvents.unshift({
-        ...firstSnapshot,
-        timestamp: startTimestampMs,
-      });
-      this._sortedRRWebEvents.unshift({
-        ...firstMeta,
-        timestamp: startTimestampMs,
-      });
+      this._sortedRRWebEvents.unshift({...firstSnapshot, timestamp: startTimestampMs});
+      this._sortedRRWebEvents.unshift({...firstMeta, timestamp: startTimestampMs});
     }
 
     this._sortedRRWebEvents.push(recordingEndFrame(this._replayRecord));
@@ -467,10 +464,7 @@ export class ReplayReader {
       const updateVideoFrameOffsets = <T extends {offsetMs: number}>(frames: T[]) => {
         const offset = clipStartTimestampMs - this._replayRecord.started_at.getTime();
 
-        return frames.map(frame => ({
-          ...frame,
-          offsetMs: frame.offsetMs - offset,
-        }));
+        return frames.map(frame => ({...frame, offsetMs: frame.offsetMs - offset}));
       };
 
       this._errors = updateVideoFrameOffsets(
@@ -549,16 +543,33 @@ export class ReplayReader {
         : null,
       this.getRRWebFrames().some(frame => frame.type === EventType.Meta)
         ? null
-        : 'Missing Meta Frame',
+        : MISSING_META_ERROR,
       this.isVideoReplay() ||
       this.getRRWebFrames().some(frame => frame.type === EventType.FullSnapshot)
         ? null
-        : 'Missing Full Snapshot Frame',
+        : MISSING_FULL_SNAPSHOT_ERROR,
     ].filter(defined);
   });
   hasProcessingErrors = () => {
     return this.processingErrors().length;
   };
+
+  /**
+   * Processing errors only break the player. The other tabs read breadcrumbs,
+   * spans, and errors, so the page stays useful while any of those exist.
+   */
+  hasTimelineData = memoize(
+    () =>
+      this.getRRWebFrames().some(frame => frame.type !== EventType.Custom) ||
+      this._sortedBreadcrumbFrames.some(frame => frame.category !== 'replay.init') ||
+      this._sortedSpanFrames.length > 0 ||
+      this._errors.length > 0
+  );
+
+  isMissingFullSnapshot = () =>
+    this.processingErrors().includes(MISSING_FULL_SNAPSHOT_ERROR);
+
+  isMissingMeta = () => this.processingErrors().includes(MISSING_META_ERROR);
 
   domQuery = () => {
     if (this._replayerQuery) {
@@ -668,18 +679,13 @@ export class ReplayReader {
                   type: NodeType.Element,
                   id: 2,
                   tagName: 'html',
-                  attributes: {
-                    lang: 'en',
-                  },
+                  attributes: {lang: 'en'},
                   childNodes: [],
                 },
               ],
               id: 0,
             },
-            initialOffset: {
-              top: 0,
-              left: 0,
-            },
+            initialOffset: {top: 0, left: 0},
           },
           timestamp: e.timestamp,
         });
@@ -714,24 +720,11 @@ export class ReplayReader {
               ...e.data,
               adds: e.data.adds.map(add => {
                 if (add.node.type === 3 && add.node.isStyle) {
-                  return {
-                    ...add,
-                    node: {
-                      ...add.node,
-                      textContent: '',
-                    },
-                  };
+                  return {...add, node: {...add.node, textContent: ''}};
                 }
 
                 if (add.node.type === 2 && add.node.tagName === 'style') {
-                  return {
-                    ...add,
-                    node: {
-                      ...add.node,
-                      attributes: {},
-                      childNodes: [],
-                    },
-                  };
+                  return {...add, node: {...add.node, attributes: {}, childNodes: []}};
                 }
 
                 return add;
@@ -805,9 +798,7 @@ export class ReplayReader {
     ].sort(sortFrames)
   );
 
-  getMemoryFrames = memoize(() =>
-    this._sortedSpanFrames.filter((frame): frame is MemoryFrame => frame.op === 'memory')
-  );
+  getMemoryFrames = memoize(() => this._sortedSpanFrames.filter(isMemoryFrame));
 
   getCustomFrames = memoize(() =>
     this._sortedBreadcrumbFrames.filter(
