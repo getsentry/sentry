@@ -68,7 +68,6 @@ interface TaskCardProps {
   columns?: GridProps['columns'];
   description?: React.ReactNode;
   onClick?: (e: React.MouseEvent) => void;
-  padding?: GridProps['padding'];
 }
 
 function TaskCard({
@@ -79,7 +78,6 @@ function TaskCard({
   onClick,
   className,
   columns = '22px minmax(0, 1fr) max-content',
-  padding = 'md 0',
 }: TaskCardProps) {
   return (
     <TaskCardWrapper
@@ -87,7 +85,7 @@ function TaskCard({
       columns={columns}
       gap="lg"
       radius="md"
-      padding={padding}
+      padding="md"
       role={onClick ? 'button' : undefined}
       onClick={onClick}
       className={className}
@@ -279,7 +277,6 @@ function Task({task, hidePanel}: TaskProps) {
       >
         <TaskCard
           columns="subgrid"
-          padding="md 0 md md"
           icon={<TaskStatusIcon status={task.status} tooltipText={iconTooltipText} />}
           description={task.description}
           title={<strong>{<s>{task.title}</s>}</strong>}
@@ -292,7 +289,6 @@ function Task({task, hidePanel}: TaskProps) {
     <TaskWrapper>
       <TaskCard
         columns="subgrid"
-        padding="md 0 md md"
         onClick={handleClick}
         icon={
           task.skippable ? (
@@ -312,7 +308,7 @@ function Task({task, hidePanel}: TaskProps) {
         description={task.description}
         title={<strong>{task.title}</strong>}
         actions={
-          <Flex justify="center" align="center" width="20px" height="100%">
+          <Flex justify="center" align="center" width="24px" height="100%">
             <IconChevron direction="right" size="xs" variant="muted" />
           </Flex>
         }
@@ -454,7 +450,6 @@ function TaskGroup({
   return (
     <Stack paddingBottom="0" gap="md">
       <TaskGroupHeader
-        padding="md"
         title={<strong>{title}</strong>}
         description={
           tasks.length > 1
