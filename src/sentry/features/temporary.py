@@ -129,8 +129,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:explore-multi-aggregate-charts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Limit Explore search bar key suggestions to attributes on items matching the current query
     manager.add("organizations:explore-search-attribute-intersection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable returning the migrated discover queries in explore saved queries
-    manager.add("organizations:expose-migrated-discover-queries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable organization investigation notebooks.
     manager.add("organizations:investigations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable starting investigations from Slack metric alerts. Needs investigations too.
