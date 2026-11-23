@@ -49,7 +49,11 @@ export function useInvestigationTitle(investigation: InvestigationDetail) {
     isTitleGenerationActive(titleGenerationQuery.data?.status)
       ? titleGenerationQuery.data?.preview
       : null;
-  const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
+  const displayedTitle =
+    draftTitle ??
+    investigation.workflowReport?.titlePreview ??
+    generatedTitlePreview ??
+    investigation.title;
 
   useEffect(() => {
     const status = titleGenerationQuery.data?.status;

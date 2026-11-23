@@ -69,7 +69,10 @@ import {
 } from 'sentry/views/investigations/api';
 import {shouldPollInvestigationBlocks} from 'sentry/views/investigations/detail/block';
 import {shouldPollInvestigationRun} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
-import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
+import {
+  getSeerStatusBlock,
+  getWorkflowStatusBlock,
+} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 import type {
   InvestigationDetail,
@@ -692,11 +695,22 @@ function SeerInvestigationSection({
     onError: () => toast.error(t('Unable to launch investigation.')),
   });
 
+  const betaId = candidate?.workflowInvestigationId;
+  const beta = useQuery({
+    ...getInvestigationDetailQueryOptions(organization.slug, betaId ?? 'disabled'),
+    enabled: Boolean(betaId),
+    select: response => response.json.workflowReport,
+    refetchInterval: query =>
+      query.state.data?.json.workflowReport?.active ? INVESTIGATION_POLL_INTERVAL : false,
+  });
+
   const launchV2Mutation = useLaunchInvestigationMutation(
     organization.slug,
     {
-      onSuccess: notebook =>
-        navigate(getInvestigationPath(organization.slug, notebook.id)),
+      onSuccess: notebook => {
+        void queryClient.invalidateQueries({queryKey: candidateOptions.queryKey});
+        navigate(getInvestigationPath(organization.slug, notebook.id));
+      },
       onError: () =>
         toast.error(t('Unable to launch the v2 investigation. Please try again.')),
     },
@@ -719,15 +733,24 @@ function SeerInvestigationSection({
     return null;
   }
 
-  const betaButton = organization.features.includes('investigations-v2') && (
-    <Button
-      size={statusBlock ? 'sm' : 'md'}
-      busy={launchV2Mutation.isPending}
-      onClick={() => launchV2Mutation.mutate(source)}
-    >
-      {t('Investigation with v2 (beta)')}
-    </Button>
-  );
+  const betaButton =
+    organization.features.includes('investigations-v2') &&
+    (betaId ? (
+      <LinkButton
+        size={statusBlock ? 'sm' : 'md'}
+        to={getInvestigationPath(organization.slug, betaId)}
+      >
+        {t('View investigation with v2 (beta)')}
+      </LinkButton>
+    ) : (
+      <Button
+        size={statusBlock ? 'sm' : 'md'}
+        busy={launchV2Mutation.isPending}
+        onClick={() => launchV2Mutation.mutate(source)}
+      >
+        {t('Investigation with v2 (beta)')}
+      </Button>
+    ));
 
   return (
     <FoldSection
@@ -744,6 +767,9 @@ function SeerInvestigationSection({
         <Placeholder height="40px" width="160px" />
       ) : (
         <Stack gap="xl">
+          {beta.data?.active && (
+            <SeerStatusBlock {...getWorkflowStatusBlock(beta.data, beta.dataUpdatedAt)} />
+          )}
           {statusBlock ? (
             <SeerStatusBlock
               {...statusBlock}

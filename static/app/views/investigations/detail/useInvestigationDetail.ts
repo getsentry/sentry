@@ -46,6 +46,7 @@ export function useInvestigationDetail(investigationId: string) {
         : false;
     },
     refetchOnWindowFocus: query =>
+      query.state.data?.json.workflowReport?.active ||
       query.state.data?.json.actionRequests?.some(shouldRefreshOnFocus)
         ? 'always'
         : false,

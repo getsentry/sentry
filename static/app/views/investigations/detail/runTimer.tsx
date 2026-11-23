@@ -85,35 +85,23 @@ export function InvestigationRunStatus({
   );
 }
 
-export function WorkflowRunStatus({report}: {report: WorkflowReport}) {
-  const states = {
-    pending: [t('Queued'), 'running'],
-    running: [t('Running…'), 'running'],
-    awaiting_input: [t('Awaiting input'), 'awaitingInput'],
-    failed: [t('Failed'), 'failed'],
-    cancelled: [t('Cancelled'), 'cancelled'],
-    succeeded: [t('Completed'), 'complete'],
-  } satisfies Record<
-    NonNullable<WorkflowReport['status']>,
-    [string, keyof typeof STATUS_TAG_VARIANT]
-  >;
-  const status = report.status ?? (report.active ? 'running' : null);
-  if (!status) {
-    return null;
-  }
-  const [label, variant] = states[status];
-  return (
-    <InvestigationRunStatus variant={variant} label={label}>
-      {typeof report.elapsedSeconds === 'number' && (
-        <LiveDuration
-          key={`${report.runId}:${report.elapsedSeconds}:${report.active}`}
-          seconds={report.elapsedSeconds}
-          active={report.active}
-          label={t('Investigation elapsed time')}
-        />
-      )}
-    </InvestigationRunStatus>
-  );
+export function WorkflowRunTimer({report}: {report: WorkflowReport}) {
+  const elapsed = report.queued
+    ? report.elapsedSeconds
+    : (report.activeSeconds ?? report.elapsedSeconds);
+  const ticking =
+    report.queued ||
+    (typeof report.activeSeconds === 'number'
+      ? report.clockRunning === true
+      : report.active);
+  return typeof elapsed === 'number' ? (
+    <LiveDuration
+      key={`${report.runId}:${elapsed}:${ticking}`}
+      seconds={elapsed}
+      active={ticking}
+      label={t('Investigation elapsed time')}
+    />
+  ) : null;
 }
 
 function LiveDuration({

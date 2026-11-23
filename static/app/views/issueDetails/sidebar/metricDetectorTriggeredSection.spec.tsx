@@ -631,6 +631,31 @@ describe('MetricDetectorTriggeredSection', () => {
     );
   });
 
+  it('reopens the existing beta notebook directly', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/notebooks/7654/',
+      body: {workflowReport: null},
+    });
+    const organization = OrganizationFixture({
+      features: ['investigations', 'investigations-v2'],
+      openMembership: true,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'investigate', workflowInvestigationId: '7654'}]},
+    });
+    const {router} = render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+    await userEvent.click(await screen.findByText('View investigation with v2 (beta)'));
+    await waitFor(() =>
+      expect(router.location.pathname).toBe(
+        '/organizations/org-slug/seer/investigations/7654/'
+      )
+    );
+  });
+
   it('hides the investigation section for a closed-membership organization', () => {
     const organization = OrganizationFixture({
       slug: 'org-slug',

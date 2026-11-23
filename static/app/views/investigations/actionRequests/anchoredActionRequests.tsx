@@ -1,5 +1,7 @@
 import {Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
+import {t} from 'sentry/locale';
 import type {
   InvestigationActionRequest,
   InvestigationActionRequestAnchor,
@@ -17,6 +19,7 @@ type AnchoredActionRequestsProps = {
   investigationId: string;
   getLabel?: (anchor: InvestigationActionRequestAnchor | null) => React.ReactNode;
   runProcessing?: boolean;
+  showRecommendationHeading?: boolean;
   source?: InvestigationDetail['source'];
 };
 
@@ -25,6 +28,7 @@ export function AnchoredActionRequests({
   getLabel,
   investigationId,
   runProcessing,
+  showRecommendationHeading,
   source,
 }: AnchoredActionRequestsProps) {
   const shown = getShownActionRequests(actionRequests);
@@ -34,6 +38,11 @@ export function AnchoredActionRequests({
 
   return (
     <Stack gap="xl">
+      {showRecommendationHeading && (
+        <Heading as="h2" size="lg">
+          {shown.length === 1 ? t('Recommended action') : t('Recommended actions')}
+        </Heading>
+      )}
       {shown.map(actionRequest => (
         <ActionRequestCard
           key={actionRequest.id}

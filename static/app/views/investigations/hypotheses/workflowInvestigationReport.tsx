@@ -1,25 +1,35 @@
-import {Fragment, type ComponentProps} from 'react';
+import type {ComponentProps} from 'react';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t} from 'sentry/locale';
 import {HYPOTHESES_ELEMENT_ID} from 'sentry/views/investigations/detail/outline';
+import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 import type {WorkflowReport} from 'sentry/views/investigations/types';
 
-import {HypothesisList} from './hypothesisList';
+import {HypothesisList, HypothesisListPlaceholder} from './hypothesisList';
 import {HypothesesPanel} from './investigationHypotheses';
+import {WorkflowControls} from './workflowControls';
 
 export function WorkflowInvestigationReport({
+  notebookId,
   report,
+  statusBlock,
   getActions,
   onAskSeerAboutHypotheses,
 }: {
+  notebookId: string;
   report: WorkflowReport;
+  statusBlock: ComponentProps<typeof SeerStatusBlock>;
   getActions?: ComponentProps<typeof HypothesisList>['getActions'];
   onAskSeerAboutHypotheses?: (hypotheses: WorkflowReport['hypotheses']) => void;
 }) {
   return (
-    <Fragment>
-      {(report.summary || report.activity.length > 0) && (
+    <Stack gap="3xl">
+      {statusBlock.variant !== 'complete' && <SeerStatusBlock {...statusBlock} />}
+      {report.canCommand && <WorkflowControls report={report} notebookId={notebookId} />}
+      {!report.awaitingHypotheses && (report.summary || report.activity.length > 0) && (
         <details>
           <summary>{t('Broad scan')}</summary>
           {report.summary && <p>{report.summary}</p>}
@@ -28,27 +38,37 @@ export function WorkflowInvestigationReport({
           ))}
         </details>
       )}
-      {report.hypotheses.length > 0 && (
+      {(report.hypotheses.length > 0 || report.awaitingHypotheses) && (
         <section id={HYPOTHESES_ELEMENT_ID}>
           <HypothesesPanel
             key={report.runId}
             hypotheses={report.hypotheses}
             defaultExpanded={
-              report.active && report.hypotheses.some(h => !h.agentVerdict)
+              report.status !== 'succeeded' &&
+              !['reporting', 'metadata'].includes(report.phase ?? '') &&
+              (report.active ||
+                report.status === 'failed' ||
+                report.status === 'cancelled')
             }
             onAskSeer={
-              onAskSeerAboutHypotheses &&
-              (() => onAskSeerAboutHypotheses(report.hypotheses))
+              report.hypotheses.length > 0 && onAskSeerAboutHypotheses
+                ? () => onAskSeerAboutHypotheses(report.hypotheses)
+                : undefined
             }
           >
-            <HypothesisList
-              hypotheses={report.hypotheses}
-              getActions={getActions}
-              showFindings
-            />
+            {report.hypotheses.length ? (
+              <HypothesisList
+                hypotheses={report.hypotheses}
+                getActions={getActions}
+                primaryHypothesisId={report.primaryHypothesisId ?? undefined}
+                showFindings
+              />
+            ) : (
+              <HypothesisListPlaceholder />
+            )}
           </HypothesesPanel>
         </section>
       )}
-    </Fragment>
+    </Stack>
   );
 }

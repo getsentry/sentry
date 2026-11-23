@@ -76,7 +76,10 @@ export function getInvestigationLLMContext(
       orchestration?.status ??
       investigation.orchestration?.status ??
       investigation.workflowReport?.status,
-    runPhase: orchestration?.phase ?? investigation.orchestration?.phase,
+    runPhase:
+      orchestration?.phase ??
+      investigation.orchestration?.phase ??
+      investigation.workflowReport?.phase,
   };
 }
 

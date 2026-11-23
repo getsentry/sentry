@@ -51,6 +51,7 @@ export type InvestigationListItem = {
   orchestration?: InvestigationOrchestrationSummary | null;
   titleGeneration?: {status: 'pending' | 'running' | 'completed' | 'failed' | null};
   trigger?: InvestigationTrigger | null;
+  workflowStatus?: WorkflowReport['status'];
 };
 
 // Expand this response type as the detail UI begins consuming additional fields.
@@ -171,7 +172,22 @@ export type WorkflowReport = {
   hypothesisBlockKeys: string[];
   runId: string;
   summary: string | null;
+  activeSeconds?: number | null;
+  awaitingHypotheses?: boolean;
+  canCommand?: boolean;
+  canSteer?: boolean;
+  clockRunning?: boolean;
+  currentActivity?: Array<
+    InvestigationToolActivity | {id: string; kind: 'thought'; text: string}
+  >;
   elapsedSeconds?: number | null;
+  error?: string | null;
+  nextStepStatus?: string | null;
+  pendingInputs?: Array<{inputId: string; nodeId: string; questions: string[]}>;
+  phase?: InvestigationOrchestrationPhase;
+  primaryHypothesisId?: string | null;
+  queued?: boolean;
+  reportReady?: boolean;
   status?:
     | 'pending'
     | 'running'
@@ -179,6 +195,7 @@ export type WorkflowReport = {
     | 'succeeded'
     | 'failed'
     | 'cancelled';
+  titlePreview?: string | null;
 };
 
 export type InvestigationDetail = InvestigationListItem & {
@@ -216,10 +233,11 @@ export type ManualInvestigationSource = {
   timeRange?: {end: string; start: string};
 };
 
-export type InvestigationCandidate =
+export type InvestigationCandidate = (
   | {status: 'investigate'}
   | {status: 'unavailable'}
-  | {investigationId: string; status: 'view'};
+  | {investigationId: string; status: 'view'}
+) & {workflowInvestigationId?: string};
 
 // The orchestration projection: the whole live state of an agentic run, which
 // Seer pushes as one JSON blob on every orchestration event and Sentry serves

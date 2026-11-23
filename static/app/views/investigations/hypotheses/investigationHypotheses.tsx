@@ -327,6 +327,7 @@ export function InvestigationHypotheses({
             <HypothesisList
               hypotheses={projection.hypotheses}
               primaryHypothesisId={projection.report.primaryHypothesisId}
+              showFindings
               getActions={getActions}
             />
           ) : (

@@ -6,6 +6,7 @@ import {
 import type {
   InvestigationOrchestration,
   InvestigationToolActivity,
+  WorkflowReport,
 } from 'sentry/views/investigations/types';
 
 import type {SeerStatusBlockVariant} from './seerStatusBlock';
@@ -121,7 +122,9 @@ function inFlightLast(lists: SeerStatusActivity[][]): SeerStatusActivity[] {
  * still ran, and the tally is "how much work stands behind this", not "how much
  * of it succeeded".
  */
-function countCompletedChecks(projection: InvestigationOrchestration): number {
+function countCompletedChecks(
+  projection: Pick<InvestigationOrchestration, 'hypotheses'>
+): number {
   return projection.hypotheses.reduce(
     (total, hypothesis) =>
       total +
@@ -138,7 +141,9 @@ function countCompletedChecks(projection: InvestigationOrchestration): number {
  * Absent until there is something to count, which is why the early running
  * states render without it rather than claiming "0 possible causes".
  */
-function getMeta(projection: InvestigationOrchestration): string | undefined {
+function getMeta(
+  projection: Pick<InvestigationOrchestration, 'hypotheses'>
+): string | undefined {
   const causeCount = projection.hypotheses.length;
   if (causeCount === 0) {
     return undefined;
@@ -162,24 +167,6 @@ function getFailureMessage(projection: InvestigationOrchestration): string | und
 }
 
 /**
- * What the status block should say for a run that is still moving.
- *
- * The phase is the only thing that separates these: `status` is `processing`
- * for all of them. They are all the same `running` variant — the agent is
- * working and the viewer has nothing to do — so only the words change.
- */
-function getRunningContent(
-  projection: InvestigationOrchestration,
-  receivedAt: number | undefined
-): SeerStatusBlockContent {
-  return {
-    ...getRunningCopy(projection),
-    toolActivity: getToolActivity(projection),
-    startTime: getStartTime(projection, receivedAt),
-  };
-}
-
-/**
  * When the run started working, on this browser's clock: its active time as of
  * the snapshot, counted back from when the snapshot arrived. Only differences on
  * each clock are used, so a browser whose clock disagrees with the server's
@@ -197,7 +184,9 @@ function getStartTime(
 }
 
 /** The words for a running run; the tool calls and clock are added by the caller. */
-function getRunningCopy(projection: InvestigationOrchestration): SeerStatusBlockContent {
+function getRunningCopy(
+  projection: Pick<InvestigationOrchestration, 'phase' | 'hypotheses'>
+): SeerStatusBlockContent {
   const causeCount = projection.hypotheses.length;
 
   switch (projection.phase) {
@@ -262,7 +251,7 @@ function getRunningCopy(projection: InvestigationOrchestration): SeerStatusBlock
 }
 
 function getCompleteContent(
-  projection: InvestigationOrchestration
+  projection: Pick<InvestigationOrchestration, 'hypotheses'>
 ): SeerStatusBlockContent {
   return {
     variant: 'complete',
@@ -292,6 +281,55 @@ export function getSeerStatusBlock(
   projection: InvestigationOrchestration,
   receivedAt?: number
 ): SeerStatusBlockContent | null {
+  if (projection.status === 'processing' && isOnlyNextStepPending(projection)) {
+    return getCompleteContent(projection);
+  }
+  return statusContent(
+    projection,
+    projection.pendingInput?.prompt,
+    getFailureMessage(projection),
+    getToolActivity(projection),
+    getStartTime(projection, receivedAt)
+  );
+}
+
+export function getWorkflowStatusBlock(report: WorkflowReport, receivedAt?: number) {
+  const status = report.status ?? (report.active ? 'running' : 'succeeded');
+  if (report.reportReady && status === 'running') {
+    return getCompleteContent(report);
+  }
+  if (status === 'pending' || report.queued) {
+    return {
+      variant: 'running',
+      title: t('Waiting for a worker'),
+      showThinking: false,
+      statusLabel: t('Queued'),
+    } as const;
+  }
+  const startTime =
+    receivedAt !== undefined && typeof report.elapsedSeconds === 'number'
+      ? new Date(receivedAt - report.elapsedSeconds * 1000)
+      : undefined;
+  return statusContent(
+    {
+      status: status === 'succeeded' ? 'completed' : status,
+      phase: report.phase ?? 'workflow',
+      hypotheses: report.hypotheses,
+    },
+    undefined,
+    report.error ?? undefined,
+    report.currentActivity,
+    startTime
+  );
+}
+
+function statusContent(
+  projection: Pick<InvestigationOrchestration, 'status' | 'phase' | 'hypotheses'>,
+  prompt?: string,
+  error?: string,
+  toolActivity?: SeerStatusActivity[],
+  startTime?: Date
+): SeerStatusBlockContent {
   switch (projection.status) {
     // Stopped, but recoverably, and the only state that asks for something
     // back. The agent's own prompt is far more specific than anything that
@@ -300,18 +338,14 @@ export function getSeerStatusBlock(
       return {
         variant: 'awaitingInput',
         title: t('Seer needs more information to continue'),
-        description:
-          projection.pendingInput?.prompt ||
-          t('Seer is waiting on input before it can carry on.'),
+        description: prompt || t('Seer is waiting on input before it can carry on.'),
         statusLabel: t('Awaiting input'),
       };
     case 'failed':
       return {
         variant: 'failed',
         title: t("Seer couldn't finish this investigation"),
-        description:
-          getFailureMessage(projection) ??
-          t('Checks that had already finished are saved.'),
+        description: error ?? t('Checks that had already finished are saved.'),
         statusLabel: t('Failed'),
       };
     case 'cancelled':
@@ -323,16 +357,7 @@ export function getSeerStatusBlock(
       };
     case 'completed':
       return getCompleteContent(projection);
-    case 'processing':
-      return isOnlyNextStepPending(projection)
-        ? getCompleteContent(projection)
-        : getRunningContent(projection, receivedAt);
-    case 'pending':
-      return getRunningContent(projection, receivedAt);
     default:
-      // An unrecognized status is still a run in progress as far as the viewer
-      // is concerned — Seer can add one before this code knows the name, and a
-      // missing block reads as "nothing is happening", which is worse.
-      return getRunningContent(projection, receivedAt);
+      return {...getRunningCopy(projection), toolActivity, startTime};
   }
 }
