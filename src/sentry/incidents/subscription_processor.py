@@ -151,7 +151,6 @@ class SubscriptionProcessor:
                 organization_id=self.subscription.project.organization.id,
                 project_ids=[self.subscription.project_id],
                 comparison_delta=comparison_delta,
-                alert_rule_id=None,
             )
 
         return evaluation_value

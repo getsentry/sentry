@@ -117,7 +117,6 @@ def get_eap_aggregation_value(
     organization_id: int,
     start: datetime,
     end: datetime,
-    alert_rule_id: int | None = None,
 ) -> float | None:
     baseline_value: None | float = None
     try:
@@ -144,7 +143,6 @@ def get_eap_aggregation_value(
         logger.info(
             "EAP comparison query has an invalid search query",
             extra={
-                "alert_rule_id": alert_rule_id,
                 "subscription_id": subscription_update.get("subscription_id"),
                 "organization_id": organization_id,
             },
@@ -154,7 +152,6 @@ def get_eap_aggregation_value(
         logger.exception(
             "Failed to run RPC comparison query",
             extra={
-                "alert_rule_id": alert_rule_id,
                 "subscription_id": subscription_update.get("subscription_id"),
                 "organization_id": organization_id,
             },
@@ -171,7 +168,6 @@ def get_aggregation_value(
     organization_id: int,
     start: datetime,
     end: datetime,
-    alert_rule_id: int | None = None,
 ) -> float | None:
     baseline_value: None | float = None
     try:
@@ -213,7 +209,6 @@ def get_aggregation_value(
         logger.exception(
             "Failed to run comparison query",
             extra={
-                "alert_rule_id": alert_rule_id,
                 "subscription_id": subscription_update.get("subscription_id"),
                 "organization_id": organization_id,
             },
@@ -228,7 +223,6 @@ def get_comparison_aggregation_value(
     organization_id: int,
     project_ids: list[int],
     comparison_delta: int | None = None,
-    alert_rule_id: int | None = None,
 ) -> float | None:
     # NOTE (mifu67): we create this helper because we also use it in the new detector processing flow
     evaluation_value = get_aggregation_value_helper(subscription_update)
@@ -256,7 +250,6 @@ def get_comparison_aggregation_value(
             organization_id,
             start,
             end,
-            alert_rule_id,
         )
 
     else:
@@ -268,7 +261,6 @@ def get_comparison_aggregation_value(
             organization_id,
             start,
             end,
-            alert_rule_id,
         )
 
     if not baseline_value:
