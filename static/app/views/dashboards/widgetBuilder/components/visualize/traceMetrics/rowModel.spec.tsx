@@ -82,14 +82,14 @@ describe('rowModel', () => {
       expect(getHiddenAggregates(rows)).toEqual([]);
     });
 
-    it('gives repeated uses of a shared aggregate distinct labels', () => {
+    it('points every use of a shared aggregate at the first row', () => {
       const rows = rowsFromFields([
         fn(SUM_FOO),
         fn(SUM_FOO),
         eq(`${SUM_FOO} + ${SUM_FOO}`),
       ]);
 
-      expect(rows[2]).toMatchObject({expression: 'A + B'});
+      expect(rows[2]).toMatchObject({expression: 'A + A'});
     });
 
     it('leaves functions without a metric as text', () => {
@@ -171,11 +171,8 @@ describe('rowModel', () => {
     });
 
     it('does not touch the equation when a row changes aggregate', () => {
-      const rows = rowsFromFields([
-        fn(SUM_FOO),
-        fn(SUM_FOO),
-        eq(`${SUM_FOO} + ${SUM_FOO}`),
-      ]);
+      let rows = rowsFromFields([fn(SUM_FOO), fn(SUM_FOO), eq('')]);
+      rows = setEquationExpression(rows, rows[2]!.id, 'A + B');
 
       const edited = setRowField(rows, metric(rows, 'B').id, fn(COUNT_FOO));
 
@@ -273,7 +270,7 @@ describe('rowModel', () => {
 
       const hidden = setRowVisible(rows, metric(rows, 'B').id, false);
 
-      expect(hidden[2]).toMatchObject({expression: 'A + B'});
+      expect(hidden[2]).toMatchObject({expression: 'A + A'});
       expect(fieldsFromRows(hidden)).toEqual([
         fn(SUM_FOO),
         eq(`${SUM_FOO} + ${SUM_FOO}`),
@@ -393,11 +390,8 @@ describe('rowModel', () => {
     });
 
     it('keeps a hidden row that shares its aggregate with a visible row', () => {
-      const rows = rowsFromFields([
-        fn(SUM_FOO),
-        fn(SUM_FOO),
-        eq(`${SUM_FOO} / ${SUM_FOO}`),
-      ]);
+      let rows = rowsFromFields([fn(SUM_FOO), fn(SUM_FOO), eq('')]);
+      rows = setEquationExpression(rows, rows[2]!.id, 'A / B');
       const hidden = setRowVisible(rows, metric(rows, 'A').id, false);
 
       // A display type switch round-trips the saved shape.
@@ -410,11 +404,8 @@ describe('rowModel', () => {
     });
 
     it('does not let a new visible field claim a hidden row', () => {
-      const rows = rowsFromFields([
-        fn(SUM_FOO),
-        fn(SUM_FOO),
-        eq(`${SUM_FOO} / ${SUM_FOO}`),
-      ]);
+      let rows = rowsFromFields([fn(SUM_FOO), fn(SUM_FOO), eq('')]);
+      rows = setEquationExpression(rows, rows[2]!.id, 'A / B');
       const hidden = setRowVisible(rows, metric(rows, 'A').id, false);
 
       // Something outside the list added another sum(foo).

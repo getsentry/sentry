@@ -189,35 +189,28 @@ function resolveExpression(
 }
 
 /**
- * Saved form to label form. When several rows share an aggregate, each
- * repeated use takes the next such label in turn, so `x + x` with rows A and
- * B both on `x` reads as `A + B`. Functions without a row stay as text.
+ * Saved form to label form. An aggregate takes the first row that provides
+ * it, as in Explore, so `x + x` with rows A and B both on `x` reads as
+ * `A + A`. Functions without a row stay as text.
  */
 function unresolveExpression(
   expression: string,
   referenceMap: Record<string, string>
 ): string {
-  const labelsByKey = new Map<string, string[]>();
+  const labelByKey = new Map<string, string>();
   for (const [label, aggregate] of Object.entries(referenceMap)) {
     const key = getAggregateKey(aggregate);
-    labelsByKey.set(key, [...(labelsByKey.get(key) ?? []), label]);
+    if (!labelByKey.has(key)) {
+      labelByKey.set(key, label);
+    }
   }
 
-  const uses = new Map<string, number>();
   return tokenizeExpression(expression)
-    .map(token => {
-      if (!isTokenFunction(token)) {
-        return token.text;
-      }
-      const key = getAggregateKey(token.text);
-      const labels = labelsByKey.get(key);
-      if (!labels?.length) {
-        return token.text;
-      }
-      const n = uses.get(key) ?? 0;
-      uses.set(key, n + 1);
-      return labels[n % labels.length]!;
-    })
+    .map(token =>
+      isTokenFunction(token)
+        ? (labelByKey.get(getAggregateKey(token.text)) ?? token.text)
+        : token.text
+    )
     .filter(text => text.length > 0)
     .join(' ');
 }
