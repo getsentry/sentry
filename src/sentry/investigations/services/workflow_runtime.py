@@ -20,6 +20,7 @@ from sentry.investigations.services.orchestration import (
 from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook, NotebookSourceType, NotebookWorkflowRun
 from sentry.notebooks.services import NotebookSourceNotFound, NotebookValidationError
+from sentry.notebooks.services.action_requests import sync_snapshot_action_requests
 from sentry.notebooks.services.workflow import open_workflow_notebook
 from sentry.viewer_context import ActorId, ActorType
 
@@ -224,6 +225,8 @@ def create_run(
                     ) from exc
                 except NotebookValidationError as exc:
                     raise serializers.ValidationError(exc.errors) from exc
+                if previous_binding:
+                    sync_snapshot_action_requests(notebook, [], workflow_run=previous_binding)
                 if previous_binding and not previous_binding.preserve_title:
                     # Carry title ownership across a retry. A user rename sets preserve_title
                     # on the original binding, including during an unfinished first attempt.

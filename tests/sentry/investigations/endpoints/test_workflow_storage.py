@@ -205,6 +205,10 @@ class WorkflowStorageTest(APITestCase):
             == 200
         )
         parent = WorkflowRun.objects.get(uuid=self.run_id)
+        binding = NotebookWorkflowRun.objects.get(run_id=self.run_id)
+        old_suggestion = self.create_notebook_action_request(
+            notebook=binding.notebook, workflow_run=binding, key="check-the-threshold"
+        )
         self.payload["destination"] = {
             "projectIds": [],
             "notebookId": parent.checkpoint["notebook_id"],
@@ -219,6 +223,8 @@ class WorkflowStorageTest(APITestCase):
             response = self.client.post(url, self.payload, format="json", **self.system)
             assert response.status_code == expected, response.data
             if expected == 200:
+                old_suggestion.refresh_from_db()
+                assert old_suggestion.state == "superseded"
                 assert not NotebookWorkflowRun.objects.get(run_id=run_id).preserve_title
                 assert not self.client.post(url, self.payload, format="json", **self.system).data[
                     "created"
