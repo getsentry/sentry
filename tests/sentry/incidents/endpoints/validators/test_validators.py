@@ -649,6 +649,13 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
             status=ObjectStatus.ACTIVE,
             enabled=False,
         )
+        self.create_detector(
+            project_id=self.project.id,
+            name="Enabled Detector",
+            type=MetricIssue.slug,
+            status=ObjectStatus.ACTIVE,
+            enabled=True,
+        )
 
         # none of the detectors above count
         assert get_metric_detector_quota(self.organization).count == 0
@@ -1124,6 +1131,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
     @mock.patch("sentry.quotas.backend.get_metric_detector_limit", return_value=3)
     @with_feature("organizations:workflow-engine-metric-detector-limit")
     def test_enablement_request_rejected_at_limit(self, mock_get_limit: mock.MagicMock) -> None:
+        self.create_static_detector()
         self.create_static_detector()
         self.create_static_detector()
         disabled = self.create_static_detector()
