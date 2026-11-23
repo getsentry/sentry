@@ -41,11 +41,24 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         assert response.status_code == 404
 
     @with_feature("organizations:seer-public-rpc")
-    def test_unknown_method_returns_404(self) -> None:
-        """Test that unknown method names return 404"""
+    @patch("sentry.seer.endpoints.organization_seer_rpc.sentry_sdk.capture_exception")
+    def test_unknown_method_returns_404(self, mock_capture: MagicMock) -> None:
+        """Test that unknown method names return 404 without reporting an error"""
         path = self._get_path("unknown_method")
         response = self.client.post(path, data={"args": {}}, format="json")
         assert response.status_code == 404
+        mock_capture.assert_not_called()
+
+    @with_feature("organizations:seer-public-rpc")
+    @patch("sentry.seer.endpoints.organization_seer_rpc.sentry_sdk.capture_exception")
+    def test_internal_only_method_returns_404(self, mock_capture: MagicMock) -> None:
+        """Internal Seer RPC write methods are not exposed to organization members"""
+        path = self._get_path("deliver_investigation_event")
+        response = self.client.post(
+            path, data={"args": {"org_id": self.organization.id, "event": {}}}, format="json"
+        )
+        assert response.status_code == 404
+        mock_capture.assert_not_called()
 
     @with_feature("organizations:seer-public-rpc")
     def test_org_level_method_get_organization_slug(self) -> None:

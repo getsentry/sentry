@@ -358,7 +358,8 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
         try:
             result = self._dispatch_to_local_method(request, method_name, arguments, organization)
         except RpcResolutionException as e:
-            sentry_sdk.capture_exception()
+            # Seer's local-dev proxy client treats a 404 as "not exposed here" and falls back,
+            # so an unknown or internal-only method is a caller error, not a server error.
             raise NotFound from e
         except SerializableFunctionValueException as e:
             sentry_sdk.capture_exception()
