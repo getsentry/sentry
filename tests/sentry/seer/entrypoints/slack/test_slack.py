@@ -447,7 +447,7 @@ class SlackAutofixEntrypointTest(TestCase):
         ep.on_trigger_autofix_out_of_credits(started=True, denial_reason="daily_cap_exceeded")
         blocks = str(mock_send_threaded_ephemeral_message.call_args.kwargs["renderable"]["blocks"])
         assert AUTOFIX_DAILY_LIMIT_MESSAGE in blocks
-        assert "Configure billing" in blocks
+        assert "Configure auto-reload" in blocks
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     @patch(
@@ -479,7 +479,7 @@ class SlackAutofixEntrypointTest(TestCase):
 
         blocks = str(mock_send_threaded_message.call_args.kwargs["renderable"]["blocks"])
         assert AUTOFIX_DAILY_LIMIT_MESSAGE in blocks
-        assert "Configure billing" in blocks
+        assert "Configure auto-reload" in blocks
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     @patch(
