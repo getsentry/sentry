@@ -201,9 +201,7 @@ export function getMenuOptions(
 ) {
   const menuOptions: MenuItemProps[] = [];
 
-  const disableTransactionEdit =
-    organization.features.includes('discover-saved-queries-deprecation') &&
-    widget.widgetType === WidgetType.TRANSACTIONS;
+  const disableTransactionEdit = widget.widgetType === WidgetType.TRANSACTIONS;
 
   const prebuiltDashboardMessages = isPrebuiltDashboard
     ? {

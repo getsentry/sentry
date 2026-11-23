@@ -50,7 +50,7 @@ from sentry.service_accounts.services.service_account import (
 
 logger = logging.getLogger(__name__)
 
-SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,)
+SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -121,7 +121,7 @@ class SeerWorkflow:
         cls,
         *,
         organization_id: int,
-        strategy: Literal[SeerWorkflowStrategy.AGENTIC_TRIAGE_V2],
+        strategy: Literal[SeerWorkflowStrategy.SCHEDULED_INVESTIGATION],
         enabled: bool = ...,
         schedule: SeerWorkflowSchedule = ...,
         scope: ProjectSelection,

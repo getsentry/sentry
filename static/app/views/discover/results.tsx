@@ -89,7 +89,6 @@ import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
-import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
@@ -1228,9 +1227,7 @@ function SaveQueryButton({
     location,
     savedQuery?.queryDataset
   );
-  const deprecatingTransactionsDataset =
-    currentDataset === DiscoverDatasets.TRANSACTIONS &&
-    organization.features.includes('discover-saved-queries-deprecation');
+  const deprecatingTransactionsDataset = currentDataset === DiscoverDatasets.TRANSACTIONS;
   const tracesUrl = getExploreUrl({organization, query: 'is_transaction:true'});
 
   const handleCreate = async ({name, starred}: {name: string; starred?: boolean}) => {
@@ -1313,32 +1310,18 @@ function SaveQueryButton({
     },
   });
 
-  const shouldHideCreateAlert =
-    currentDataset === DiscoverDatasets.TRANSACTIONS &&
-    (deprecateTransactionAlerts(organization) ||
-      organization.features.includes('discover-saved-queries-deprecation'));
-
-  if (!shouldHideCreateAlert) {
-    let alertType: MetricAlertType | undefined;
-    let alertEventView = eventView;
-    if (hasDatasetSelector(organization)) {
-      if (currentDataset === DiscoverDatasets.ERRORS) {
-        alertType = 'num_errors';
-      } else if (currentDataset === DiscoverDatasets.TRANSACTIONS) {
-        alertType = 'throughput';
-        alertEventView = eventView.clone();
-        alertEventView.query = eventView.query
-          ? `(${eventView.query}) AND (event.type:transaction)`
-          : 'event.type:transaction';
-      }
-    }
+  if (!deprecatingTransactionsDataset) {
+    const alertType: MetricAlertType | undefined =
+      hasDatasetSelector(organization) && currentDataset === DiscoverDatasets.ERRORS
+        ? 'num_errors'
+        : undefined;
 
     const canCreateAlert = canCreateAlerts(organization, projects);
     items.push({
       ...getSaveAsAlertMenuItem({
         to: getCreateAlertFromViewUrl({
           projects,
-          eventView: alertEventView,
+          eventView,
           organization,
           referrer: 'discover',
           alertType,

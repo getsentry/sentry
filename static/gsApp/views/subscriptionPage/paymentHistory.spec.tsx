@@ -138,6 +138,7 @@ describe('Subscription > PaymentHistory', () => {
     const organization = OrganizationFixture({
       slug: 'dogz-rule',
       access: ['org:billing'],
+      features: ['token-billed-seer-enabled'],
     });
     const subscription = SubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, subscription);
@@ -150,6 +151,7 @@ describe('Subscription > PaymentHistory', () => {
           amountBilled: 12000,
           amountRefunded: 2000,
           receipt: {url: 'https://example.com/receipt.pdf'},
+          receiptType: 'seer_token',
         }),
       ],
     });
@@ -163,12 +165,19 @@ describe('Subscription > PaymentHistory', () => {
       within(table)
         .getAllByRole('columnheader')
         .map(header => header.textContent)
-    ).toEqual(['Date', 'Amount', 'Status', 'Receipt ID', '']);
+    ).toEqual(['Date', 'Type', 'Amount', 'Status', 'Receipt ID', '']);
     expect(
       within(row)
         .getAllByRole('cell')
         .map(cell => cell.textContent)
-    ).toEqual(['Jun 25, 2018', '$120$20 refunded', 'Refunded', '1a2c3b4d5e6f', '']);
+    ).toEqual([
+      'Jun 25, 2018',
+      'Seer auto-reload',
+      '$120$20 refunded',
+      'Refunded',
+      '1a2c3b4d5e6f',
+      '',
+    ]);
     expect(within(row).getByRole('link', {name: 'Jun 25, 2018'})).toHaveAttribute(
       'href',
       '/settings/dogz-rule/billing/receipts/1a2c3b4d5e6f/'
@@ -177,6 +186,51 @@ describe('Subscription > PaymentHistory', () => {
       'href',
       'https://example.com/receipt.pdf'
     );
+  });
+
+  it('labels pay-as-you-go receipts', async () => {
+    const organization = OrganizationFixture({
+      slug: 'dogz-rule',
+      access: ['org:billing'],
+      features: ['token-billed-seer-enabled'],
+    });
+    const subscription = SubscriptionFixture({organization, plan: 'am3_team'});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/`,
+      method: 'GET',
+      body: [InvoiceFixture({receiptType: 'payg'})],
+    });
+
+    render(<PaymentHistory />, {organization});
+
+    const paygRow = await screen.findByRole('row', {name: /^Jun 25, 2018/});
+    expect(within(paygRow).getByText('Pay-as-you-go')).toBeInTheDocument();
+  });
+
+  it('leaves out the receipt type without token-billed Seer', async () => {
+    const organization = OrganizationFixture({
+      slug: 'dogz-rule',
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({organization});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/`,
+      method: 'GET',
+      body: [InvoiceFixture({receiptType: 'seer_token'})],
+    });
+
+    render(<PaymentHistory />, {organization});
+
+    const table = await screen.findByRole('table', {name: 'Receipts'});
+    await within(table).findByRole('row', {name: /^Jun 25, 2018/});
+    expect(
+      within(table).queryByRole('columnheader', {name: 'Type'})
+    ).not.toBeInTheDocument();
+    expect(within(table).queryByText('Seer auto-reload')).not.toBeInTheDocument();
   });
 
   it('retries loading receipts when the request fails', async () => {

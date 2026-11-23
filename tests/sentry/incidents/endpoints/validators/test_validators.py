@@ -667,7 +667,6 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
             validator.save()
         mock_log.assert_called_once()
 
-    @with_feature("organizations:discover-saved-queries-deprecation")
     def test_transaction_dataset_deprecation_transactions(self) -> None:
         data = {
             **self.valid_data,
@@ -691,7 +690,6 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
         ):
             validator.save()
 
-    @with_feature("organizations:discover-saved-queries-deprecation")
     def test_transaction_dataset_deprecation_multiple_data_sources(self) -> None:
         data = {
             **self.valid_data,
@@ -1813,9 +1811,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         snuba_query = query_sub.snuba_query
         assert snuba_query.query == "test query"
 
-    @with_feature("organizations:discover-saved-queries-deprecation")
     def test_update_allowed_even_with_deprecated_dataset(self) -> None:
-        # Updates should be allowed even when the feature flag is enabled
         # The deprecation only applies to creation, not updates
         validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid(), validator.errors
@@ -1868,12 +1864,9 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
             instance=detector, data=update_data, context=self.context, partial=True
         )
         assert update_validator.is_valid(), update_validator.errors
-        with (
-            self.assertRaisesMessage(
-                ValidationError,
-                expected_message="Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
-            ),
-            with_feature("organizations:discover-saved-queries-deprecation"),
+        with self.assertRaisesMessage(
+            ValidationError,
+            expected_message="Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
         ):
             update_validator.save()
 

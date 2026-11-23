@@ -70,6 +70,7 @@ export type TeamInsightsEventParameters = {
       | 'subscribed'
       | 'shared'
       | 'discarded'
+      | 'add_inbound_filter'
       | 'open_in_discover'
       | 'assign'
       | GroupStatus;
