@@ -1433,18 +1433,34 @@ describe('EntityHeader', () => {
             type: 'list',
             items: [
               {key: 'a', type: 'text', value: 'staging', tooltip: 'Pre-release'},
-              {
-                key: 'b',
-                type: 'date',
-                date,
-                // @ts-expect-error: a date entry takes no tooltip either.
-                tooltip: 'When it shipped',
-              },
+              // @ts-expect-error: a date entry takes no tooltip either.
+              {key: 'b', type: 'date', date, tooltip: 'When it shipped'},
             ],
           },
         ]);
 
         expect(screen.getByText('Chrome')).toBeInTheDocument();
+      });
+
+      it('takes no tooltip on a date through a spread or a declared object', () => {
+        // @ts-expect-error: a spread cannot carry a tooltip past the check.
+        const spread: EntityHeaderMetadataItemProps = {
+          label: 'Started at',
+          type: 'date',
+          date,
+          ...{tooltip: 'When the session began'},
+        };
+        const declared = {
+          label: 'Last seen',
+          type: 'date' as const,
+          date,
+          tooltip: 'When it was last seen',
+        };
+        // @ts-expect-error: a declared object cannot either.
+        const fromDeclared: EntityHeaderMetadataItemProps = declared;
+        renderItems([spread, fromDeclared]);
+
+        expect(screen.getByText('Started at')).toBeInTheDocument();
       });
 
       it('takes data, not nodes', () => {
@@ -1471,6 +1487,12 @@ describe('EntityHeader', () => {
         expect(screen.queryByText('today')).not.toBeInTheDocument();
         expect(warn).toHaveBeenCalledWith(expect.stringContaining('"Node Started at"'));
         expect(warn).toHaveBeenCalledWith(expect.stringContaining('"Nested Started at"'));
+        // A qualifier that slips past is left out on its own.
+        expect(screen.getByText('Chrome')).toBeInTheDocument();
+        expect(screen.queryByText('144')).not.toBeInTheDocument();
+        expect(warn).toHaveBeenCalledWith(
+          'EntityHeader metadata item "Browser" has an empty or invalid secondary value and it was left out.'
+        );
         warn.mockRestore();
       });
     });
@@ -2082,6 +2104,9 @@ describe('EntityHeader', () => {
         ['a date with an empty date', {type: 'date', date: ''}],
         ['a date that does not parse', {type: 'date', date: 'not a date'}],
         ['an invalid Date', {type: 'date', date: new Date(NaN), format: 'relative'}],
+        ['a date with no offset', {type: 'date', date: '2025-06-09T04:05:09'}],
+        ['a date with no time', {type: 'date', date: '2025-06-08', format: 'relative'}],
+        ['an RFC 2822 date', {type: 'date', date: 'Mon, 09 Jun 2025 04:05:09 GMT'}],
       ])(
         'leaves out an item that is %s, with no dangling pipe before it',
         (name, item) => {
@@ -2115,6 +2140,29 @@ describe('EntityHeader', () => {
         const list = screen.getByRole('list', {name: 'Deploys'});
         expect(within(list).getAllByRole('listitem')).toHaveLength(1);
         expect(warn).toHaveBeenCalledWith(expect.stringContaining('entry of "Deploys"'));
+      });
+
+      it('leaves out date entries the date formatter cannot read', () => {
+        const row = renderRow([
+          {
+            label: 'Releases',
+            type: 'list',
+            items: [
+              {key: 'a', type: 'date', date: '2025-06-09T04:05:09'},
+              {key: 'b', type: 'date', date: '2025-06-08', format: 'relative'},
+              {key: 'c', type: 'date', date: 'Mon, 09 Jun 2025 04:05:09 GMT'},
+              {key: 'd', type: 'date', date: new Date('2025-06-09T04:05:09Z')},
+              {key: 'e', type: 'date', date: '2025-06-09T04:05:09Z'},
+              {key: 'f', type: 'date', date: '2025-06-09T04:05:09+02:00'},
+            ],
+          },
+        ]);
+
+        const list = screen.getByRole('list', {name: 'Releases'});
+        expect(within(list).getAllByRole('listitem')).toHaveLength(3);
+        expect(row).not.toHaveTextContent('Invalid date');
+        expect(pipesIn(row)).toHaveLength(0);
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('entry of "Releases"'));
       });
 
       it('warns once per label in development', () => {

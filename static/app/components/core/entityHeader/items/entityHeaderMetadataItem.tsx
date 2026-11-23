@@ -6,7 +6,7 @@ import type {DistributedOmit} from 'type-fest';
 
 import type {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
-import {DateTime} from '@sentry/scraps/dateTime';
+import {DateTime, parseDate} from '@sentry/scraps/dateTime';
 import {
   METADATA_ROW_HEIGHT,
   METADATA_TEXT_HEIGHT,
@@ -97,6 +97,12 @@ type EntityHeaderMetadataValueProps = EntityHeaderMetadataItemShared &
          * @default 'absolute'
          */
         format?: 'absolute' | 'relative';
+        // Banned outright, so an object declared before it is passed, which
+        // skips the excess property check, cannot carry them in.
+        secondary?: never;
+        tooltip?: never;
+        value?: never;
+        variant?: never;
       }
     | (EntityHeaderMetadataValueQualifiers & {
         type: 'link';
@@ -153,14 +159,28 @@ export type EntityHeaderMetadataItemProps =
   | EntityHeaderMetadataValueProps
   | EntityHeaderMetadataListProps;
 
+function isNonBlankString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '';
+}
+
 /**
- * Whether the value draws nothing, so it is left out like a `null` item.
+ * Whether the value draws nothing, so it is left out like a `null` item. A
+ * date is checked with the parser that draws it, so one it cannot read is
+ * left out rather than drawn as "Invalid date".
  */
 function isEmptyValue(entry: MetadataValueData) {
   if (entry.type === 'date') {
-    return !entry.date || Number.isNaN(new Date(entry.date).getTime());
+    return parseDate(entry.date, 'UTC') === null;
   }
-  return typeof entry.value !== 'string' || entry.value.trim() === '';
+  return !isNonBlankString(entry.value);
+}
+
+/**
+ * The qualifier, if it is text to draw. One that is not is left out on its
+ * own, and the value still renders.
+ */
+function getSecondary(entry: MetadataValueData) {
+  return isNonBlankString(entry.secondary?.value) ? entry.secondary : undefined;
 }
 
 /**
@@ -173,7 +193,7 @@ export function hasMetadataContent(item: EntityHeaderMetadataItemProps) {
     : !isEmptyValue(item);
 }
 
-const warnedEmptyValueNames = new Set<string>();
+const warnedMessages = new Set<string>();
 
 /**
  * An empty value usually comes from mapping over data with a missing name. It
@@ -183,23 +203,29 @@ export function warnOnEmptyMetadataValues(item: EntityHeaderMetadataItemProps): 
   if (process.env.NODE_ENV === 'production') {
     return;
   }
-  const names =
+  const named: Array<[MetadataValueData, string]> =
     item.type === 'list'
-      ? item.items
-          .filter(isEmptyValue)
-          .map(entry =>
-            entry.label ? `item "${entry.label}"` : `entry of "${item.label}"`
-          )
-      : isEmptyValue(item)
-        ? [`item "${item.label}"`]
-        : [];
-  for (const name of names) {
-    if (warnedEmptyValueNames.has(name)) {
+      ? item.items.map(entry => [
+          entry,
+          entry.label ? `item "${entry.label}"` : `entry of "${item.label}"`,
+        ])
+      : [[item, `item "${item.label}"`]];
+  const messages = named.flatMap(([entry, name]) =>
+    isEmptyValue(entry)
+      ? [`EntityHeader metadata ${name} has an empty value and was left out.`]
+      : entry.secondary && !getSecondary(entry)
+        ? [
+            `EntityHeader metadata ${name} has an empty or invalid secondary value and it was left out.`,
+          ]
+        : []
+  );
+  for (const message of messages) {
+    if (warnedMessages.has(message)) {
       continue;
     }
-    warnedEmptyValueNames.add(name);
+    warnedMessages.add(message);
     // eslint-disable-next-line no-console
-    console.warn(`EntityHeader metadata ${name} has an empty value and was left out.`);
+    console.warn(message);
   }
 }
 
@@ -346,7 +372,7 @@ function MetadataDisplayValue({value: props}: {value: MetadataValueData}) {
 
 function MetadataValue({value: props}: {value: MetadataValueData}) {
   const {label, mode = 'compact'} = props;
-  const secondary = props.type === 'date' ? undefined : props.secondary;
+  const secondary = getSecondary(props);
   // A link names itself from `label`; text and dates need the label beside it.
   const needsOwnLabel = Boolean(label) && (props.type !== 'link' || mode === 'full');
   const secondaryLabel = secondary
