@@ -1,15 +1,13 @@
-import {Fragment, useState, type PointerEventHandler} from 'react';
+import {Fragment, useId, useState, type PointerEventHandler} from 'react';
 import {css, ThemeProvider, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconSettings} from '@sentry/icons/settings';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {InfoText} from '@sentry/scraps/info';
-import {Container} from '@sentry/scraps/layout';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {InfoText, InfoTip} from '@sentry/scraps/info';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {darkTheme} from '@sentry/scraps/theme';
 
@@ -19,56 +17,51 @@ import {getHandoffGuideUrl, getHandoffPrompt} from './handoffPrompt';
 import {AgentHandoffFlow, type AgentHandoffContext} from './types';
 import {useHandoffPromptInteractions} from './useHandoffPromptInteractions';
 
-export function getHandoffPreviewUrl(sentryUrl: string): string {
-  return new URL('/agent-handoff.md', sentryUrl).href;
-}
-
-interface HandoffAdvancedMenuProps {
+interface HandoffIpPinningCheckboxProps {
   disabled: boolean;
   onToggle: () => void;
   useIpPinning: boolean;
 }
 
-export function HandoffAdvancedMenu({
+export function HandoffIpPinningCheckbox({
   disabled,
   useIpPinning,
   onToggle,
-}: HandoffAdvancedMenuProps) {
+}: HandoffIpPinningCheckboxProps) {
+  const checkboxId = useId();
+  const descriptionId = useId();
+
   return (
-    <DropdownMenu
-      items={[
-        {
-          key: 'ip-pinning',
-          label: t('Use IP pinning'),
-          details: t(
-            'Restricts the handoff code to your current IP address. Turn this off when your agent runs on a different network.'
-          ),
-          textValue: t('Use IP pinning'),
-          disabled,
-          isSelected: useIpPinning,
-          onAction: onToggle,
-        },
-      ]}
-      maxWidth={360}
-      position="bottom-end"
-      shouldApplyMinWidth={false}
-      size="xs"
-      usePortal
-      trigger={triggerProps => (
-        <OverlayTrigger.Button
-          {...triggerProps}
-          aria-label={t('Advanced options')}
-          icon={<IconSettings />}
-          showChevron={false}
-          size="xs"
-          variant="transparent"
-        >
-          {t('Advanced')}
-        </OverlayTrigger.Button>
-      )}
-    />
+    <Flex align="start" gap="md">
+      <Checkbox
+        id={checkboxId}
+        aria-describedby={descriptionId}
+        checked={useIpPinning}
+        disabled={disabled}
+        onChange={onToggle}
+      />
+      <Stack gap="sm">
+        <Flex align="center" gap="xs">
+          <Text as="label" htmlFor={checkboxId} size="md">
+            {t('Only allow this network')}
+          </Text>
+          <InfoTip
+            size="xs"
+            title={t('Keeps your secret token safe if the prompt leaks.')}
+          />
+        </Flex>
+        <IpPinningDescription id={descriptionId} size="sm" variant="muted">
+          {t('Uncheck if your agent runs in the cloud, or you use iCloud Private Relay.')}
+        </IpPinningDescription>
+      </Stack>
+    </Flex>
   );
 }
+
+// Help text reads best a little looser than the largest density token (1.4).
+const IpPinningDescription = styled(Text)`
+  line-height: 1.5;
+`;
 
 interface HandoffPromptAlertsProps {
   error: Error | null;
