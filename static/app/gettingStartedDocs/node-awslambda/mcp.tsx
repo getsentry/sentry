@@ -1,5 +1,3 @@
 import {getNodeMcpOnboarding} from 'sentry/gettingStartedDocs/node/utils';
 
-export const mcp = getNodeMcpOnboarding({
-  packageName: '@sentry/aws-serverless',
-});
+export const mcp = getNodeMcpOnboarding({packageName: '@sentry/aws-serverless'});

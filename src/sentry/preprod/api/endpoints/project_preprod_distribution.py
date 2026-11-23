@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
 
 from pydantic import BaseModel
 from rest_framework.request import Request
@@ -44,7 +43,7 @@ class ProjectPreprodDistributionEndpoint(PreprodArtifactEndpoint):
         head_artifact_id: int,
         head_artifact: PreprodArtifact,
     ) -> Response:
-        put: PutDistribution = parse_request_with_pydantic(request, cast(Any, PutDistribution))
+        put: PutDistribution = parse_request_with_pydantic(request, PutDistribution)
 
         head_artifact.installable_app_error_code = put.error_code
         head_artifact.installable_app_error_message = put.error_message

@@ -112,9 +112,7 @@ export function MetricsFieldFixture(
     groups: [
       {
         by: {},
-        totals: {
-          [field]: 51292.95404741901,
-        },
+        totals: {[field]: 51292.95404741901},
         series: {
           [field]: [
             443.6200417187068, 471.7512262596214, 632.5356294251225, 538.6063865509535,
@@ -230,10 +228,7 @@ export function MetricsSessionUserCountByStatusByReleaseFixture(): SessionApiRes
     groups: [
       {
         by: {'session.status': 'crashed', release: '1'},
-        totals: {
-          'session.all': 34,
-          'count_unique(sentry.sessions.user)': 1,
-        },
+        totals: {'session.all': 34, 'count_unique(sentry.sessions.user)': 1},
         series: {
           'session.all': [0, 0, 0, 0, 0, 0, 0, 0, 0, 23, 11, 0, 0, 0],
           'count_unique(sentry.sessions.user)': [
@@ -243,10 +238,7 @@ export function MetricsSessionUserCountByStatusByReleaseFixture(): SessionApiRes
       },
       {
         by: {'session.status': 'abnormal', release: '1'},
-        totals: {
-          'session.all': 1,
-          'count_unique(sentry.sessions.user)': 1,
-        },
+        totals: {'session.all': 1, 'count_unique(sentry.sessions.user)': 1},
         series: {
           'session.all': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           'count_unique(sentry.sessions.user)': [
@@ -256,10 +248,7 @@ export function MetricsSessionUserCountByStatusByReleaseFixture(): SessionApiRes
       },
       {
         by: {'session.status': 'errored', release: '1'},
-        totals: {
-          'session.all': 451,
-          'count_unique(sentry.sessions.user)': 2,
-        },
+        totals: {'session.all': 451, 'count_unique(sentry.sessions.user)': 2},
         series: {
           'session.all': [0, 0, 0, 0, 0, 37, 0, 0, 0, 335, 79, 0, 0, 0],
           'count_unique(sentry.sessions.user)': [
@@ -269,10 +258,7 @@ export function MetricsSessionUserCountByStatusByReleaseFixture(): SessionApiRes
       },
       {
         by: {'session.status': 'healthy', release: '1'},
-        totals: {
-          'session.all': 5058,
-          'count_unique(sentry.sessions.user)': 3,
-        },
+        totals: {'session.all': 5058, 'count_unique(sentry.sessions.user)': 3},
         series: {
           'session.all': [0, 0, 0, 0, 0, 2503, 661, 0, 0, 1464, 430, 0, 0, 0],
           'count_unique(sentry.sessions.user)': [
@@ -282,10 +268,7 @@ export function MetricsSessionUserCountByStatusByReleaseFixture(): SessionApiRes
       },
       {
         by: {'session.status': 'crashed', release: '2'},
-        totals: {
-          'session.all': 35,
-          'count_unique(sentry.sessions.user)': 2,
-        },
+        totals: {'session.all': 35, 'count_unique(sentry.sessions.user)': 2},
         series: {
           'session.all': [1, 0, 0, 0, 0, 0, 0, 0, 0, 23, 11, 0, 0, 0],
           'count_unique(sentry.sessions.user)': [
@@ -295,10 +278,7 @@ export function MetricsSessionUserCountByStatusByReleaseFixture(): SessionApiRes
       },
       {
         by: {'session.status': 'abnormal', release: '2'},
-        totals: {
-          'session.all': 1,
-          'count_unique(sentry.sessions.user)': 1,
-        },
+        totals: {'session.all': 1, 'count_unique(sentry.sessions.user)': 1},
         series: {
           'session.all': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           'count_unique(sentry.sessions.user)': [
@@ -308,10 +288,7 @@ export function MetricsSessionUserCountByStatusByReleaseFixture(): SessionApiRes
       },
       {
         by: {'session.status': 'errored', release: '2'},
-        totals: {
-          'session.all': 452,
-          'count_unique(sentry.sessions.user)': 1,
-        },
+        totals: {'session.all': 452, 'count_unique(sentry.sessions.user)': 1},
         series: {
           'session.all': [1, 0, 0, 0, 0, 37, 0, 0, 0, 335, 79, 0, 0, 0],
           'count_unique(sentry.sessions.user)': [
@@ -321,10 +298,7 @@ export function MetricsSessionUserCountByStatusByReleaseFixture(): SessionApiRes
       },
       {
         by: {'session.status': 'healthy', release: '2'},
-        totals: {
-          'session.all': 5059,
-          'count_unique(sentry.sessions.user)': 10,
-        },
+        totals: {'session.all': 5059, 'count_unique(sentry.sessions.user)': 10},
         series: {
           'session.all': [1, 0, 0, 0, 0, 2503, 661, 0, 0, 1464, 430, 0, 0, 0],
           'count_unique(sentry.sessions.user)': [

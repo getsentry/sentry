@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from abc import ABC
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any, NoReturn, cast
+from typing import TYPE_CHECKING, Any, NoReturn
 from urllib.parse import ParseResult
 
 from django.urls import reverse
@@ -445,10 +445,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
     def create_comment(self, issue_id: str, user_id: int, group_note: Activity) -> dict[str, Any]:
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
-        return cast(
-            "dict[str, Any]",
-            self.get_client().update_work_item(issue_id, comment=quoted_comment),
-        )
+        return self.get_client().update_work_item(issue_id, comment=quoted_comment)
 
     def create_comment_attribution(self, user_id: int, comment_text: str) -> str:
         # VSTS uses markdown or xml

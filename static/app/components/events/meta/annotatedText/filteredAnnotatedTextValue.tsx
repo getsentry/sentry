@@ -12,10 +12,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {getTooltipText} from './utils';
 import {ValueElement} from './valueElement';
 
-type Props = {
-  meta: Partial<Meta>;
-  value: React.ReactNode;
-};
+type Props = {meta: Partial<Meta>; value: React.ReactNode};
 
 export function FilteredAnnotatedTextValue({value, meta}: Props) {
   const organization = useOrganization();
@@ -30,11 +27,7 @@ export function FilteredAnnotatedTextValue({value, meta}: Props) {
   // That property is not normally available in the store
   const {data: projectDetails} = useDetailedProject(
     {orgSlug: organization.slug, projectSlug: currentProject?.slug ?? ''},
-    {
-      retry: false,
-      enabled: !!currentProject?.slug,
-      notifyOnChangeProps: ['data'],
-    }
+    {retry: false, enabled: !!currentProject?.slug, notifyOnChangeProps: ['data']}
   );
 
   const tooltipText = useMemo(() => {

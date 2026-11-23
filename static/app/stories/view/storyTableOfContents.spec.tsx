@@ -10,11 +10,13 @@ import {StoryContextProvider} from './useStory';
 
 describe('StoryTableOfContents', () => {
   beforeEach(() => {
-    jest.spyOn(window, 'MutationObserver').mockImplementation(() => ({
-      observe: jest.fn(),
-      disconnect: jest.fn(),
-      takeRecords: () => [],
-    }));
+    jest
+      .spyOn(window, 'MutationObserver')
+      .mockImplementation(() => ({
+        observe: jest.fn(),
+        disconnect: jest.fn(),
+        takeRecords: () => [],
+      }));
   });
   it('uses compiled IDs for both the contents and heading copy links', () => {
     render(

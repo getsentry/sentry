@@ -48,11 +48,7 @@ describe('Seer monitor embed', () => {
 
   it('renders the query and thresholds for a metric monitor', async () => {
     renderMonitor(
-      MetricDetectorFixture({
-        id: '3',
-        name: 'Request volume',
-        latestGroup: null,
-      })
+      MetricDetectorFixture({id: '3', name: 'Request volume', latestGroup: null})
     );
 
     expect(await screen.findByText('Rules')).toBeInTheDocument();

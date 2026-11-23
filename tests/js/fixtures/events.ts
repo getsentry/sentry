@@ -25,14 +25,8 @@ export function DetailedEventsFixture(): Event[] {
         {value: 'Mac OS X 10.12.5', key: 'os'},
         {value: 'Mac OS X', key: 'os.name'},
         {value: 'd5241c9d9d2bcda918c7af72f07cea1e39a096ac', key: 'release'},
-        {
-          value: 'app/components/assigneeSelector in assignedTo',
-          key: 'transaction',
-        },
-        {
-          value: 'http://localhost:8000/sentry/internal/issues/227/grouping/',
-          key: 'url',
-        },
+        {value: 'app/components/assigneeSelector in assignedTo', key: 'transaction'},
+        {value: 'http://localhost:8000/sentry/internal/issues/227/grouping/', key: 'url'},
         {value: 'id:1', key: 'user'},
       ],
       contexts: {
@@ -64,10 +58,7 @@ export function DetailedEventsFixture(): Event[] {
       title: "TypeError: Cannot read property 'assignedTo' of undefined",
       message:
         "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
-      sdk: {
-        version: '3.16.1',
-        name: 'raven-js',
-      },
+      sdk: {version: '3.16.1', name: 'raven-js'},
       type: EventOrGroupType.ERROR,
       id: '904',
       size: 21896,
@@ -90,14 +81,8 @@ export function DetailedEventsFixture(): Event[] {
         {value: 'Mac OS X 10.12.5', key: 'os'},
         {value: 'Mac OS X', key: 'os.name'},
         {value: 'd5241c9d9d2bcda918c7af72f07cea1e39a096ac', key: 'release'},
-        {
-          value: 'app/components/assigneeSelector in assignedTo',
-          key: 'transaction',
-        },
-        {
-          value: 'http://localhost:8000/sentry/internal/issues/227/grouping/',
-          key: 'url',
-        },
+        {value: 'app/components/assigneeSelector in assignedTo', key: 'transaction'},
+        {value: 'http://localhost:8000/sentry/internal/issues/227/grouping/', key: 'url'},
         {value: 'id:1', key: 'user'},
       ],
       contexts: {
@@ -129,10 +114,7 @@ export function DetailedEventsFixture(): Event[] {
       title: "TypeError: Cannot read property 'assignedTo' of undefined",
       message:
         "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
-      sdk: {
-        version: '3.16.1',
-        name: 'raven-js',
-      },
+      sdk: {version: '3.16.1', name: 'raven-js'},
       type: EventOrGroupType.ERROR,
       id: '905',
       size: 21896,

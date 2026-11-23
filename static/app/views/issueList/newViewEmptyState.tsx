@@ -3,17 +3,14 @@ import {useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {Panel} from 'sentry/components/panels/panel';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type SearchSuggestion = {
-  label: string;
-  query: string;
-};
+type SearchSuggestion = {label: string; query: string};
 
 const RECOMMENDED_SEARCHES: SearchSuggestion[] = [
   {label: t('Prioritized'), query: 'is:unresolved issue.priority:[high, medium]'},

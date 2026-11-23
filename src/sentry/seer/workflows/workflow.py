@@ -50,7 +50,7 @@ from sentry.service_accounts.services.service_account import (
 
 logger = logging.getLogger(__name__)
 
-SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,)
+SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -121,7 +121,7 @@ class SeerWorkflow:
         cls,
         *,
         organization_id: int,
-        strategy: Literal[SeerWorkflowStrategy.AGENTIC_TRIAGE_V2],
+        strategy: Literal[SeerWorkflowStrategy.SCHEDULED_INVESTIGATION],
         enabled: bool = ...,
         schedule: SeerWorkflowSchedule = ...,
         scope: ProjectSelection,
@@ -275,7 +275,7 @@ class SeerWorkflow:
         return counts["selected"] > 0 and counts["selected"] == counts["total"]
 
     def delete(self) -> None:
-        """Delete the config with its project links, runs, trigger bindings, and service account."""
+        """Delete the config with its project links, runs, and service account."""
         self._delete_service_account()
         with lock_config(self.organization_id, self.config_id) as config:
             get_definition(config.strategy).teardown(config)

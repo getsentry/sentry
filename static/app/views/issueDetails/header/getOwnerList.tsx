@@ -73,12 +73,7 @@ type SuggestedAssignee = Actor & {
   suggestedReasonText?: React.ReactNode;
 };
 
-type AssignableTeam = {
-  display: string;
-  email: string;
-  id: string;
-  team: Team;
-};
+type AssignableTeam = {display: string; email: string; id: string; team: Team};
 
 /**
  * Combine the owners Sentry recorded against the group — suspect commit authors

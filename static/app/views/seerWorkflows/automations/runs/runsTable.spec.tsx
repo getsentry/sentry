@@ -1,6 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import type {SeerAutomationRun} from 'sentry/views/seerWorkflows/types';
@@ -121,9 +128,7 @@ describe('RunsTable', () => {
         runs: [
           makeRun({
             executions: [
-              makeExecution({
-                outputs: [makeInvestigation('2307', 'Latency spike')],
-              }),
+              makeExecution({outputs: [makeInvestigation('2307', 'Latency spike')]}),
             ],
           }),
         ],
@@ -382,6 +387,7 @@ describe('RunsTable', () => {
 
     afterEach(() => {
       try {
+        cleanup();
         act(() => {
           jest.runOnlyPendingTimers();
         });

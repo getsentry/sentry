@@ -51,9 +51,7 @@ export function SetupIntentForm(props: SetupIntentFormProps) {
         elements,
         clientSecret: intentData.clientSecret,
         redirect: 'if_required', // if the payment method requires redirects, we redirect to the return_url on completion
-        confirmParams: {
-          return_url: window.location.href,
-        },
+        confirmParams: {return_url: window.location.href},
       });
       if (result.error) {
         throw new Error(result.error.message ?? t('Setup failed.'));
@@ -64,10 +62,7 @@ export function SetupIntentForm(props: SetupIntentFormProps) {
         url: getApiUrl('/customers/$organizationIdOrSlug/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        data: {
-          paymentMethod: result.setupIntent.payment_method,
-          ftcConsentLocation,
-        },
+        data: {paymentMethod: result.setupIntent.payment_method, ftcConsentLocation},
       });
     },
     onSuccess: (data: Subscription) => {

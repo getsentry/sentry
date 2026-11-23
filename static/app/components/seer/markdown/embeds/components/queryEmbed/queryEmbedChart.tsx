@@ -165,13 +165,7 @@ export function QueryEmbedChart({
 
   return (
     <ChartContent
-      data={{
-        title,
-        visualization: 'line',
-        x_axis: 'time',
-        y_axis_unit: unit,
-        series,
-      }}
+      data={{title, visualization: 'line', x_axis: 'time', y_axis_unit: unit, series}}
       showHeader={false}
     />
   );

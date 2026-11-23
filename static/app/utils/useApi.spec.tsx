@@ -19,9 +19,7 @@ describe('useApi', () => {
   });
 
   it('does not cancel inflights when persistInFlight is true', () => {
-    const {result, unmount} = renderHook(useApi, {
-      initialProps: {persistInFlight: true},
-    });
+    const {result, unmount} = renderHook(useApi, {initialProps: {persistInFlight: true}});
 
     jest.spyOn(result.current, 'clear');
     unmount();

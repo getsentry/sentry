@@ -33,9 +33,7 @@ import {LogsTabContent} from './logsTab';
 
 export default function LogsContent() {
   const organization = useOrganization();
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.LOG_BYTE],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.LOG_BYTE]});
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   const onboardingProject = useOnboardingProject({property: 'hasLogs'});
@@ -95,10 +93,7 @@ const LogsPageStack = styled(Stack)`
 
 const logsFeedbackOptions = {
   messagePlaceholder: t('How can we make logs work better for you?'),
-  tags: {
-    'feedback.source': 'logs-listing',
-    'feedback.owner': 'performance',
-  },
+  tags: {'feedback.source': 'logs-listing', 'feedback.owner': 'performance'},
 };
 
 function LogsHeader() {
@@ -135,7 +130,7 @@ function LogsHeader() {
             type: 'page-title',
             label: title || t('Logs'),
             labelTooltip: (
-              <DocumentationHint docsUrl="https://docs.sentry.io/product/explore/logs/">
+              <DocumentationHint docsUrl="https://docs.sentry.io/product/logs/">
                 {t(
                   'Detailed structured logs, linked to errors and traces, for debugging and investigation.'
                 )}

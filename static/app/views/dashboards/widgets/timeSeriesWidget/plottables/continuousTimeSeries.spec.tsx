@@ -10,11 +10,7 @@ describe('ContinuousTimeSeries', () => {
     it.each([
       {alias: undefined, groupBy: undefined, expectedLabel: 'avg(span.duration)'},
       {alias: 'Duration', groupBy: undefined, expectedLabel: 'Duration'},
-      {
-        alias: undefined,
-        groupBy: [{key: 'span.op', value: 'db'}],
-        expectedLabel: 'db',
-      },
+      {alias: undefined, groupBy: [{key: 'span.op', value: 'db'}], expectedLabel: 'db'},
     ])('keeps $expectedLabel separate from transformations', config => {
       const series = TimeSeriesFixture({
         yAxis: 'avg(span.duration)',
@@ -38,9 +34,7 @@ describe('ContinuousTimeSeries', () => {
     });
 
     it('marks empty series as empty', () => {
-      const timeSeries = TimeSeriesFixture({
-        values: [],
-      });
+      const timeSeries = TimeSeriesFixture({values: []});
 
       const plottable = new Dots(timeSeries);
 
@@ -87,9 +81,7 @@ describe('ContinuousTimeSeries', () => {
 
   describe('start/end', () => {
     it('sets start and end to null if there is not data', () => {
-      const timeSeries = TimeSeriesFixture({
-        values: [],
-      });
+      const timeSeries = TimeSeriesFixture({values: []});
 
       const plottable = new Dots(timeSeries);
 
@@ -164,6 +156,16 @@ describe('ContinuousTimeSeries', () => {
         ],
       });
       expect(new Dots(timeSeries).confidence).toBe('low');
+    });
+
+    it('counts extrapolated points with null confidence as low confidence', () => {
+      const timeSeries = TimeSeriesFixture({
+        values: [
+          {timestamp: 1, value: 1, sampleRate: 0.5, confidence: 'high'},
+          {timestamp: 2, value: 2, sampleRate: 0.01, confidence: null},
+        ],
+      });
+      expect(new Dots(timeSeries).confidence).toBe('mixed');
     });
 
     it('ignores points without a value', () => {

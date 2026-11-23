@@ -189,13 +189,7 @@ export default function TeamNotificationSettings() {
       fetchMutation({
         url: getApiUrl(
           '/teams/$organizationIdOrSlug/$teamIdOrSlug/external-teams/$externalTeamId/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              teamIdOrSlug,
-              externalTeamId,
-            },
-          }
+          {path: {organizationIdOrSlug: organization.slug, teamIdOrSlug, externalTeamId}}
         ),
         method: 'DELETE',
       }),

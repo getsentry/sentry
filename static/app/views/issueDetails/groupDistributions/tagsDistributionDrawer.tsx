@@ -50,10 +50,7 @@ export function TagsDistributionDrawer({
               search={search}
               onChange={value => {
                 setSearch(value);
-                trackAnalytics('tags.drawer.action', {
-                  control: 'search',
-                  organization,
-                });
+                trackAnalytics('tags.drawer.action', {control: 'search', organization});
               }}
             />
           }

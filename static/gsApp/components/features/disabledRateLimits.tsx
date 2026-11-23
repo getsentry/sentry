@@ -14,10 +14,7 @@ import {LearnMoreButton} from 'getsentry/components/features/learnMoreButton';
 import PlanFeature from 'getsentry/components/features/planFeature';
 import {displayPlanName} from 'getsentry/utils/billing';
 
-type Props = {
-  features: string[];
-  organization: Organization;
-};
+type Props = {features: string[]; organization: Organization};
 
 function DisabledAlert({organization, features}: Props) {
   return (
@@ -43,10 +40,7 @@ function DisabledAlert({organization, features}: Props) {
               icon={<IconBusiness />}
               data-test-id="rate-limit-upsell"
               onClick={() =>
-                openUpsellModal({
-                  organization,
-                  source: 'feature.rate_limits',
-                })
+                openUpsellModal({organization, source: 'feature.rate_limits'})
               }
             >
               {t('Learn More')}
@@ -75,10 +69,7 @@ type OverrideProps = Parameters<Overrides['feature-disabled:rate-limits']>[0];
 
 export function DisabledRateLimits(props: OverrideProps) {
   if (typeof props.children === 'function') {
-    return props.children({
-      ...props,
-      renderDisabled: DisabledAlert,
-    });
+    return props.children({...props, renderDisabled: DisabledAlert});
   }
   return props.children;
 }

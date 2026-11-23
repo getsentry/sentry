@@ -37,6 +37,21 @@ const BILLING_MESSAGE: Record<SeerOutOfCreditsReason, string> = {
   ),
 };
 
+// Billing members who already have auto-reload on. It reloads every few minutes
+// and can fail to charge, so an org can still run out. The designs' copy asks
+// them to turn auto-reload on, so this keeps only its first sentence.
+const BILLING_AUTO_RELOAD_ON_MESSAGE: Record<SeerOutOfCreditsReason, string> = {
+  'agent-chat': t(
+    'Your organization does not have enough credits left for you to message Seer.'
+  ),
+  'autofix-start': t(
+    'Your organization does not have enough credits to start an Autofix run.'
+  ),
+  'autofix-continue': t(
+    'Your organization does not have enough credits to continue your Autofix run.'
+  ),
+};
+
 // Members, from the designs' member flow. "Contact Admin" says who to ask, so
 // the chat copy stops at its first sentence.
 const MEMBER_MESSAGE: Record<SeerOutOfCreditsReason, string> = {
@@ -97,7 +112,7 @@ const DAILY_LIMIT_MESSAGE: Record<
  * When the daily usage limit resets. Billing counts a day's spend by its UTC
  * date, so it resets at the next midnight UTC.
  */
-function getDailyLimitResetsAt(): Date {
+export function getDailyLimitResetsAt(): Date {
   const now = new Date();
   return new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)
@@ -108,7 +123,9 @@ function getSeerOutOfCreditsMessage({
   reason,
   escalation,
   isDailyLimitReached,
+  autoReloadEnabled,
 }: {
+  autoReloadEnabled: boolean;
   escalation: SeerOutOfCreditsEscalation;
   isDailyLimitReached: boolean;
   reason: SeerOutOfCreditsReason;
@@ -119,7 +136,9 @@ function getSeerOutOfCreditsMessage({
     ];
   }
   if (escalation === 'configure') {
-    return BILLING_MESSAGE[reason];
+    return autoReloadEnabled
+      ? BILLING_AUTO_RELOAD_ON_MESSAGE[reason]
+      : BILLING_MESSAGE[reason];
   }
   return escalation === 'request' ? MEMBER_MESSAGE[reason] : CONTACT_MESSAGE[reason];
 }
@@ -130,11 +149,15 @@ export interface SeerOutOfCreditsNoticeProps extends Omit<
 > {
   escalation: SeerOutOfCreditsEscalation;
   /**
-   * Auto-reload is on. It reloads credits as they run low, so running out
-   * anyway means the org hit its daily usage limit. Only billing members can
-   * read it.
+   * Auto-reload is on, so the copy doesn't ask to turn it on. Only billing
+   * members can read it.
    */
   autoReloadEnabled?: boolean;
+  /**
+   * The only sign of the daily usage limit. Auto-reload ignores the limit, and
+   * the credit check reports running out before it checks the limit, so neither
+   * auto-reload's settings nor `not_enough_credits` say the org hit it.
+   */
   denialReason?: SeerCreditDenialReason | null;
   /**
    * The viewer already emailed their admins, so "Contact Admin" shows
@@ -163,20 +186,24 @@ export function SeerOutOfCreditsNotice({
   size,
   variant = 'warning',
   escalation,
-  autoReloadEnabled,
+  autoReloadEnabled = false,
   ...actionProps
 }: SeerOutOfCreditsNoticeProps) {
   const NoticeAlert = variant === 'muted' ? MutedAlert : Alert;
   // The chat has room for a full-size button; Autofix's spots are tighter.
   const buttonSize = size ?? (reason === 'agent-chat' ? 'md' : 'sm');
-  const isDailyLimitReached =
-    denialReason === 'daily_cap_exceeded' || !!autoReloadEnabled;
+  const isDailyLimitReached = denialReason === 'daily_cap_exceeded';
 
   return (
     <NoticeAlert variant={variant} data-test-id="seer-out-of-credits">
       <Stack gap="md" align="start">
         <Text>
-          {getSeerOutOfCreditsMessage({reason, escalation, isDailyLimitReached})}
+          {getSeerOutOfCreditsMessage({
+            reason,
+            escalation,
+            isDailyLimitReached,
+            autoReloadEnabled,
+          })}
         </Text>
         {isDailyLimitReached && (
           <Text>
@@ -191,7 +218,7 @@ export function SeerOutOfCreditsNotice({
           // the chat when it's off; otherwise they configure it, which is also
           // where the daily usage limit is set.
           configureLabel={
-            reason === 'agent-chat' && !isDailyLimitReached
+            reason === 'agent-chat' && !isDailyLimitReached && !autoReloadEnabled
               ? t('Turn on auto-reload')
               : t('Configure auto-reload')
           }
@@ -226,10 +253,7 @@ function SeerOutOfCreditsAction({
   onRequestCredits,
   isRequestingCredits,
   hasRequestedCredits,
-}: {
-  configureLabel: string;
-  size: ButtonProps['size'];
-} & Pick<
+}: {configureLabel: string; size: ButtonProps['size']} & Pick<
   SeerOutOfCreditsNoticeProps,
   | 'escalation'
   | 'onConfigureAutoReload'
@@ -245,26 +269,49 @@ function SeerOutOfCreditsAction({
     );
   }
 
-  if (escalation === 'request' && hasRequestedCredits) {
+  if (escalation === 'request' && onRequestCredits) {
     return (
-      <Button size={size} icon={<IconMail />} disabled>
+      <SeerContactAdminButton
+        size={size}
+        onRequestCredits={onRequestCredits}
+        isRequestingCredits={isRequestingCredits}
+        hasRequestedCredits={hasRequestedCredits}
+      />
+    );
+  }
+
+  return null;
+}
+
+/**
+ * "Contact Admin" emails the org's admins to ask for Seer credits, and shows
+ * "Admins emailed" once the viewer has.
+ */
+export function SeerContactAdminButton({
+  onRequestCredits,
+  isRequestingCredits,
+  hasRequestedCredits,
+  ...buttonProps
+}: Pick<ButtonProps, 'size' | 'variant'> &
+  Pick<SeerOutOfCreditsNoticeProps, 'isRequestingCredits' | 'hasRequestedCredits'> & {
+    onRequestCredits: () => void;
+  }) {
+  if (hasRequestedCredits) {
+    return (
+      <Button {...buttonProps} icon={<IconMail />} disabled>
         {t('Admins emailed')}
       </Button>
     );
   }
 
-  if (escalation === 'request' && onRequestCredits) {
-    return (
-      <Button
-        size={size}
-        icon={<IconMail />}
-        busy={isRequestingCredits}
-        onClick={onRequestCredits}
-      >
-        {t('Contact Admin')}
-      </Button>
-    );
-  }
-
-  return null;
+  return (
+    <Button
+      {...buttonProps}
+      icon={<IconMail />}
+      busy={isRequestingCredits}
+      onClick={onRequestCredits}
+    >
+      {t('Contact Admin')}
+    </Button>
+  );
 }

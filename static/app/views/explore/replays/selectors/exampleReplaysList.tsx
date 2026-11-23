@@ -8,7 +8,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ReplayBadge} from 'sentry/components/replays/replayBadge';
 import {t} from 'sentry/locale';
@@ -130,10 +130,7 @@ function ReplayListItem({
   return (
     <Link
       to={{
-        pathname: makeReplaysPathname({
-          path: `/${replay.id}/`,
-          organization,
-        }),
+        pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
         query: {
           referrer,
           ...linkEventView.generateQueryStringObject(),

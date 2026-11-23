@@ -20,7 +20,6 @@ export function WelcomeAgentSetup(props: WelcomeAgentSetupProps) {
   return (
     <AgenticSetup
       {...props}
-      layered
       feedbackSource="onboarding-agent-setup"
       issueLinkReferrer="onboarding-agentic-first-issue"
     />

@@ -59,13 +59,7 @@ const PATHS_TABLE: PrebuiltWidget = {
       orderby: '-count()',
     },
   ],
-  layout: {
-    x: 0,
-    y: 7,
-    w: 6,
-    h: 3,
-    minH: TABLE_MIN_HEIGHT,
-  },
+  layout: {x: 0, y: 7, w: 6, h: 3, minH: TABLE_MIN_HEIGHT},
 };
 
 const COMMANDS_TABLE: PrebuiltWidget = {
@@ -105,13 +99,7 @@ const COMMANDS_TABLE: PrebuiltWidget = {
       orderby: '-count()',
     },
   ],
-  layout: {
-    x: 0,
-    y: 10,
-    w: 6,
-    h: 3,
-    minH: TABLE_MIN_HEIGHT,
-  },
+  layout: {x: 0, y: 10, w: 6, h: 3, minH: TABLE_MIN_HEIGHT},
 };
 
 const JOBS_TABLE: PrebuiltWidget = {
@@ -153,13 +141,7 @@ const JOBS_TABLE: PrebuiltWidget = {
       orderby: '-count()',
     },
   ],
-  layout: {
-    x: 0,
-    y: 13,
-    w: 6,
-    h: 3,
-    minH: TABLE_MIN_HEIGHT,
-  },
+  layout: {x: 0, y: 13, w: 6, h: 3, minH: TABLE_MIN_HEIGHT},
 };
 
 export const LARAVEL_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {

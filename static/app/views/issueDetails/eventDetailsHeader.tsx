@@ -83,15 +83,8 @@ export function EventDetailsHeader({
     if (event) {
       // Since detector details are identical across the issue but only provided at the event level,
       // we need to persist the details in state to prevent breakage when an event is unloaded.
-      const detectorDetails = getDetectorDetails({
-        event,
-        organization,
-        project,
-      });
-      dispatch({
-        type: 'UPDATE_DETECTOR_DETAILS',
-        detectorDetails,
-      });
+      const detectorDetails = getDetectorDetails({event, organization, project});
+      dispatch({type: 'UPDATE_DETECTOR_DETAILS', detectorDetails});
     }
   }, [event, organization, project, dispatch]);
 
@@ -115,9 +108,7 @@ export function EventDetailsHeader({
         gap="lg"
         background="secondary"
         paddingTop="lg"
-        style={{
-          paddingInline: `var(--issue-details-inset, ${theme.space['2xl']})`,
-        }}
+        style={{paddingInline: `var(--issue-details-inset, ${theme.space['2xl']})`}}
       >
         {issueTypeConfig.header.filterBar.enabled && (
           <TourElement<IssueDetailsTour>
@@ -135,10 +126,7 @@ export function EventDetailsHeader({
                   <Grid
                     width="100%"
                     gap="sm"
-                    columns={{
-                      zero: '1fr',
-                      xl: 'auto minmax(100px, 1fr) auto',
-                    }}
+                    columns={{zero: '1fr', xl: 'auto minmax(100px, 1fr) auto'}}
                     rows={`minmax(${theme.form.md.height}, auto)`}
                   >
                     <Container justifySelf={{zero: 'stretch', sm: 'start'}}>
@@ -199,9 +187,7 @@ export function EventDetailsHeader({
                           trigger={triggerProps => (
                             <TimeRangeSelectTrigger
                               {...triggerProps}
-                              style={{
-                                padding: `${theme.space.md} ${theme.space.lg}`,
-                              }}
+                              style={{padding: `${theme.space.md} ${theme.space.lg}`}}
                             >
                               {period === defaultStatsPeriod &&
                               !defaultStatsPeriod.isMaxRetention &&
@@ -293,9 +279,7 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
   const isFixedEnvironment = issueTypeConfig.header.filterBar.fixedEnvironment;
 
   const theme = useTheme();
-  const style = {
-    padding: `${theme.space.md} ${theme.space.lg}`,
-  };
+  const style = {padding: `${theme.space.md} ${theme.space.lg}`};
 
   if (isFixedEnvironment) {
     const detectorEnvironment =

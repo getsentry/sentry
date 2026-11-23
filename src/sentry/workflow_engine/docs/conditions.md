@@ -405,7 +405,7 @@ Required handler contract from [`DataConditionHandler`](../types.py):
 | `group`                             | Set the top-level Detector/Workflow control placement exposed to the UI                                 |
 | `evaluate_value(value, comparison)` | Return a `DataConditionResult`; raise `DataConditionEvaluationException` for a known evaluation failure |
 | `comparison_json_schema`            | Define accepted stored/API comparison JSON                                                              |
-| `condition_result_schema`           | Define accepted stored/API result JSON; the inherited `{}` is permissive                                |
+| `condition_result_schema`           | Define accepted stored/API result JSON; workflow trigger and action filter bases require a boolean      |
 | `subgroup`                          | Optional UI-only categorization within the top-level group; it does not affect evaluation               |
 | `label_template` or `render_label`  | Needed when the condition must render through legacy rule-shaped APIs                                   |
 | `validate_comparison`               | Override for organization-scoped or cross-field validation that JSON Schema cannot express              |
@@ -465,8 +465,11 @@ the buffered condition cannot fire.
 
 Once registered, the handler appears in
 [`OrganizationDataConditionIndexEndpoint`](../endpoints/organization_data_condition_index.py)
-under its `group`, unless it is in `LEGACY_CONDITIONS`. The endpoint exposes the type,
-group, optional subgroup, and comparison schema.
+under its `group`, unless it is in `LEGACY_CONDITIONS` or sets `is_internal = True`.
+The endpoint exposes the type, group, optional subgroup, and comparison schema.
+
+Internal conditions also reject API configuration, including group reuse by ID.
+Provision them through model saves, which still validate the comparison schema.
 
 Stored conditions serialize through
 [`DataConditionSerializer`](../endpoints/serializers/data_condition_serializer.py).
