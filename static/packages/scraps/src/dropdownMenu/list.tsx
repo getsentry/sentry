@@ -30,6 +30,7 @@ import {useOverlay} from '@sentry/scraps/useOverlay';
 import {
   DEFAULT_VIRTUALIZE_THRESHOLD,
   flattenSections,
+  getWidestKey,
   VirtualRows,
   type VirtualRowProps,
 } from '@sentry/scraps/useVirtualCollection';
@@ -377,14 +378,7 @@ function DropdownMenuList({
   // The menu sizes its width to its rows. Keep the item with the longest label
   // mounted, so a virtualized menu does not widen while scrolling.
   const widestKey = useMemo(
-    () =>
-      virtualized
-        ? items.reduce<Node<MenuItemProps> | undefined>(
-            (widest, node) =>
-              !widest || node.textValue.length > widest.textValue.length ? node : widest,
-            undefined
-          )?.key
-        : undefined,
+    () => (virtualized ? getWidestKey(items) : undefined),
     [items, virtualized]
   );
   // The width a virtualized menu keeps until it closes, see `DropdownMenuRows`.

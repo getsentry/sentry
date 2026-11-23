@@ -1,4 +1,3 @@
-import type * as React from 'react';
 //
 // Styled components used by both ListBox and GridList
 //
@@ -12,10 +11,6 @@ import {SectionSeparator as MenuSectionSeparator} from '@sentry/scraps/menu';
 export const ListWrap = styled('ul')`
   margin: 0;
   padding: ${p => p.theme.space.xs} 0;
-
-  > [data-section-separator]:first-of-type {
-    display: none;
-  }
 
   /* Add 1px to top padding if preceded by menu header, to account for the header's
   shadow border */
@@ -50,11 +45,10 @@ export const ListWrap = styled('ul')`
     outline: none;
   }
 
-  /* The first section follows a hidden separator in a headerless menu. */
-  [data-menu-has-header='false']
-    &:first-of-type
-    li[role='presentation']:nth-of-type(2)
-    > [data-section-header] {
+  /* Remove the first section header's top padding in a headerless menu. Only the
+  first section has no separator, so its header is the only one that comes first
+  in its row. */
+  [data-menu-has-header='false'] &:first-of-type [data-section-header]:first-child {
     padding-top: 0;
   }
 `;
@@ -116,15 +110,15 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   }
 `;
 
-export function SectionSeparator(props: React.HTMLAttributes<HTMLLIElement>) {
+/** Height (px) of `SectionSeparator`. */
+export const SECTION_SEPARATOR_HEIGHT = 8;
+
+export function SectionSeparator() {
   return (
     <Stack
-      as="li"
-      data-section-separator
       justify="center"
-      height="8px"
+      height={`${SECTION_SEPARATOR_HEIGHT}px`}
       padding="0 lg 0 xl"
-      {...props}
       role="presentation"
     >
       <MenuSectionSeparator />

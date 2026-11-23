@@ -1,9 +1,9 @@
-import {Fragment, useContext, useId, useMemo} from 'react';
-import {useSeparator} from '@react-aria/separator';
+import type * as React from 'react';
+import {useId} from 'react';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import {SelectFilterContext} from '@sentry/scraps/compactSelect/selectFilterContext';
+import type {SectionRowLayout} from '@sentry/scraps/compactSelect/selectRows';
 import {SectionSeparator} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {SectionToggle} from '@sentry/scraps/compactSelect/utils';
@@ -13,13 +13,19 @@ import {
   SectionLabel,
   SectionList,
 } from '@sentry/scraps/menu';
-
-import {GridListOption, type GridListOptionProps} from './option';
+import type {VirtualRowProps} from '@sentry/scraps/useVirtualCollection';
 
 interface GridListSectionProps<T extends ListItemBase> {
+  /** The section's options, rendered inside its group. */
+  children: React.ReactNode;
+  layout: SectionRowLayout;
   listState: ListState<T>;
   node: Node<T>;
-  size: GridListOptionProps<T>['size'];
+  /**
+   * Measurement props for the section's own row when the list is virtualized.
+   * The row holds the separator and header above the section's options.
+   */
+  rowProps?: VirtualRowProps;
 }
 
 /**
@@ -27,36 +33,27 @@ interface GridListSectionProps<T extends ListItemBase> {
  * inside). https://react-spectrum.adobe.com/react-aria/useGridList.html
  */
 export function GridListSection<T extends ListItemBase>({
+  children,
+  layout,
   node,
   listState,
-  size,
+  rowProps,
 }: GridListSectionProps<T>) {
   const titleId = useId();
-  const {separatorProps} = useSeparator({elementType: 'li'});
-
-  const showToggleAllButton =
-    listState.selectionManager.selectionMode === 'multiple' &&
-    node.value?.showToggleAllButton;
-
-  const hiddenOptions = useContext(SelectFilterContext);
-  const childNodes = useMemo(
-    () => [...node.childNodes].filter(child => !hiddenOptions.has(child.key)),
-    [node.childNodes, hiddenOptions]
-  );
 
   return (
-    <Fragment>
-      <SectionSeparator {...separatorProps} />
-      <SectionGroup
-        role="rowgroup"
-        {...(node['aria-label']
-          ? {'aria-label': node['aria-label']}
-          : {'aria-labelledby': titleId})}
-      >
-        {(node.rendered || showToggleAllButton) && (
+    <SectionGroup
+      role="rowgroup"
+      {...(node['aria-label']
+        ? {'aria-label': node['aria-label']}
+        : {'aria-labelledby': titleId})}
+    >
+      <div {...rowProps}>
+        {layout.separator && <SectionSeparator />}
+        {layout.header && (
           <SectionHeader
             trailingAction={
-              showToggleAllButton ? (
+              layout.toggleAllButton ? (
                 <SectionToggle item={node} listState={listState} />
               ) : null
             }
@@ -68,17 +65,8 @@ export function GridListSection<T extends ListItemBase>({
             )}
           </SectionHeader>
         )}
-        <SectionList>
-          {childNodes.map(child => (
-            <GridListOption
-              key={child.key}
-              node={child}
-              listState={listState}
-              size={size}
-            />
-          ))}
-        </SectionList>
-      </SectionGroup>
-    </Fragment>
+      </div>
+      <SectionList>{children}</SectionList>
+    </SectionGroup>
   );
 }

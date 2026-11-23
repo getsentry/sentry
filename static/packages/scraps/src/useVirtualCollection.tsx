@@ -47,6 +47,21 @@ export function flattenSections<T>(
 }
 
 /**
+ * Key of the item with the longest label, to pass as `widestKey`. Sections are
+ * skipped.
+ */
+export function getWidestKey<T>(nodes: ReadonlyArray<Node<T>>): Key | undefined {
+  return nodes.reduce<Node<T> | undefined>(
+    (widest, node) =>
+      node.type !== 'section' &&
+      (!widest || node.textValue.length > widest.textValue.length)
+        ? node
+        : widest,
+    undefined
+  )?.key;
+}
+
+/**
  * Reports the scroll element's size like the default, but never taller than the
  * window. A menu's list is capped by the space its overlay is positioned in,
  * which is only known after its first render. Until then the list can be as

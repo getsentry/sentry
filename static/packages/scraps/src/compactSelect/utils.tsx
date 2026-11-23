@@ -24,6 +24,21 @@ import type {
 } from './types';
 
 /**
+ * The top-level nodes of a list's collection that are not hidden. A section is
+ * hidden when all of its options are.
+ */
+export function getVisibleListItems<T>(
+  collection: Iterable<Node<T>>,
+  hiddenOptions: ReadonlySet<SelectKey>
+): Array<Node<T>> {
+  return [...collection].filter(node =>
+    node.type === 'section'
+      ? ![...node.childNodes].every(child => hiddenOptions.has(child.key))
+      : !hiddenOptions.has(node.key)
+  );
+}
+
+/**
  * Whether any visible option has custom leading items, so options without them
  * should reserve matching space to keep labels aligned.
  */
