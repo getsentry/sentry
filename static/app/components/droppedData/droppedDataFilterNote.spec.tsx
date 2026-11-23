@@ -29,9 +29,7 @@ describe('DroppedDataFilterNote', () => {
     setEnvironments([]);
     render(<DroppedDataFilterNote dataset={DiscoverDatasets.SPANS} hasUserQuery />);
 
-    expect(
-      screen.getByText('Dropped spans are not filtered by search')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Dropped spans ignore filters')).toBeInTheDocument();
   });
 
   it('notes the environment when only an environment is set', () => {
@@ -40,9 +38,7 @@ describe('DroppedDataFilterNote', () => {
       <DroppedDataFilterNote dataset={DiscoverDatasets.SPANS} hasUserQuery={false} />
     );
 
-    expect(
-      screen.getByText('Dropped spans are not filtered by environment')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Dropped spans ignore the environment')).toBeInTheDocument();
   });
 
   it('notes both when a search and an environment are set', () => {
@@ -50,7 +46,7 @@ describe('DroppedDataFilterNote', () => {
     render(<DroppedDataFilterNote dataset={DiscoverDatasets.SPANS} hasUserQuery />);
 
     expect(
-      screen.getByText('Dropped spans are not filtered by search or environment')
+      screen.getByText('Dropped spans ignore filters and environment')
     ).toBeInTheDocument();
   });
 
@@ -64,9 +60,7 @@ describe('DroppedDataFilterNote', () => {
       />
     );
 
-    expect(
-      screen.getByText('Dropped spans are not filtered by environment')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Dropped spans ignore the environment')).toBeInTheDocument();
   });
 
   it.each([
@@ -77,8 +71,6 @@ describe('DroppedDataFilterNote', () => {
     setEnvironments([]);
     render(<DroppedDataFilterNote dataset={dataset} hasUserQuery />);
 
-    expect(
-      screen.getByText(`Dropped ${noun} are not filtered by search`)
-    ).toBeInTheDocument();
+    expect(screen.getByText(`Dropped ${noun} ignore filters`)).toBeInTheDocument();
   });
 });

@@ -819,23 +819,19 @@ describe('ExploreCharts', () => {
     it('notes that dropped spans ignore the search while the layer is on', async () => {
       renderCharts({droppedEvents: [OutcomeRowFixture()], query: 'span.op:db'});
 
-      expect(
-        await screen.findByText('Dropped spans are not filtered by search')
-      ).toBeInTheDocument();
+      expect(await screen.findByText('Dropped spans ignore filters')).toBeInTheDocument();
 
       await userEvent.click(screen.getByLabelText('Chart layers'));
       await userEvent.click(screen.getByRole('option', {name: 'Dropped Spans'}));
 
-      expect(
-        screen.queryByText('Dropped spans are not filtered by search')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('Dropped spans ignore filters')).not.toBeInTheDocument();
     });
 
     it('omits the filter note without a search or environment', async () => {
       renderCharts({droppedEvents: [OutcomeRowFixture()]});
 
       expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
-      expect(screen.queryByText(/are not filtered by/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/^Dropped spans ignore/)).not.toBeInTheDocument();
     });
 
     it('hides the Layers control without the feature flag', async () => {
@@ -877,7 +873,7 @@ describe('ExploreCharts', () => {
         'aria-disabled',
         'true'
       );
-      expect(screen.queryByText(/are not filtered by/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/^Dropped spans ignore/)).not.toBeInTheDocument();
     });
 
     it('shows the Layers control when a drop ratio is below 5%', async () => {

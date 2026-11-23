@@ -381,6 +381,14 @@ function DataWidgetViewerModal(props: Props) {
     interval: widgetInterval,
     enabled: canUseTimeseriesVisualization,
   });
+  const hasUserQuery =
+    widget.queries.some(query => query.conditions) ||
+    dashboardFiltersToString(dashboardFilters, widget.widgetType).trim() !== '';
+  const {environments} = modalSelection;
+  const droppedDataFilterNote =
+    chartLayers.droppedData.filterNote && (hasUserQuery || environments.length > 0)
+      ? {...chartLayers.droppedData.filterNote, environments, hasUserQuery}
+      : undefined;
 
   // Create Table widget
   const tableWidget = {
@@ -642,6 +650,7 @@ function DataWidgetViewerModal(props: Props) {
               widgetInterval={widgetInterval}
               showReleases={chartLayers.showReleases}
               droppedData={chartLayers.droppedData.band}
+              droppedDataFilterNote={droppedDataFilterNote}
               isDroppedDataLoading={chartLayers.droppedData.isLoading}
               layerControl={chartLayers.layerControl}
             />

@@ -3,6 +3,7 @@ import type {Location} from 'history';
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {MetricsTotalCountByReleaseIn24h} from 'sentry-fixture/metrics';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
@@ -254,6 +255,58 @@ describe('Modals -> DataWidgetViewerModal', () => {
       'aria-selected',
       'false'
     );
+  });
+
+  it('notes that dropped data ignores the filters and environment', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-dropped/',
+      body: {
+        droppedEvents: [OutcomeRowFixture({count: 10})],
+        acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 90})],
+        meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+      },
+    });
+    const widget = WidgetFixture({
+      title: 'Spans Widget',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          name: '',
+          conditions: 'span.op:db',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    });
+
+    await renderModal({
+      initialData: {
+        ...initialData,
+        organization: OrganizationFixture({
+          features: [
+            'discover-query',
+            'explore-data-fidelity-annotations',
+            'dashboards-data-fidelity-annotations',
+          ],
+        }),
+      },
+      widget,
+    });
+
+    expect(
+      await screen.findByText('Dropped spans ignore filters and environment')
+    ).toBeInTheDocument();
   });
 
   describe('Errors Widgets', () => {
