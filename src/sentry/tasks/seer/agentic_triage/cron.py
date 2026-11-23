@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import functools
 import logging
 import time
 from collections.abc import Mapping, Sequence
@@ -33,8 +34,10 @@ from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
 )
 from sentry.seer.autofix.utils import (
+    AgenticTriageCohort,
     AutofixStoppingPoint,
     bulk_read_preferences_from_sentry_db,
+    get_agentic_triage_cohort,
     is_free_cohort_org,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_seat_or_token_billed_enabled,
@@ -90,6 +93,8 @@ PER_ORG_FEATURE_NAMES = [
 # scheduled runs stay with the orgs that already had them before the switch.
 TOKEN_BILLING_CUTOFF = datetime(2026, 12, 8, tzinfo=UTC)
 TOKEN_BILLING_PRIOR_RUN_WINDOW = timedelta(days=30)
+
+COHORT_GATING_FEATURE = "organizations:seer-agentic-triage-cohort-gating"
 
 
 class SeerAgenticTriageRunOptions(TypedDict):
@@ -350,12 +355,40 @@ def run_agentic_triage_for_org(
         {"organization_id": organization.id, "organization_slug": organization.slug}
     )
 
-    # Free-cohort orgs receive Agentic triage without a subscription.
-    has_seer_quota = is_free_cohort_org(organization) or quotas.backend.check_seer_quota(
-        org_id=organization.id,
-        data_category=DataCategory.SEER_AUTOFIX,
+    @functools.cache
+    def has_autofix_quota() -> bool:
+        return quotas.backend.check_seer_quota(
+            org_id=organization.id,
+            data_category=DataCategory.SEER_AUTOFIX,
+        )
+
+    is_scheduled = schedule_id is not None
+    cohort_gating = features.has(COHORT_GATING_FEATURE, organization)
+    cohort = get_agentic_triage_cohort(organization) if cohort_gating or is_scheduled else None
+    token_billed = is_scheduled and features.has(
+        "organizations:token-billed-seer-enabled", organization
     )
-    if not has_seer_quota and schedule_id is not None:
+
+    if cohort_gating:
+        # After the move to token billing, only orgs in a pre-migration cohort keep
+        # scheduled runs; the quota check passes for every token-billed org.
+        has_seer_quota = cohort is not None or has_autofix_quota()
+        scheduled_run_allowed = not token_billed or cohort is not None
+    else:
+        # Free-cohort orgs receive Agentic triage without a subscription.
+        has_seer_quota = is_free_cohort_org(organization) or has_autofix_quota()
+        scheduled_run_allowed = not token_billed or _had_scheduled_run_before_token_billing(
+            organization
+        )
+        if is_scheduled:
+            _record_cohort_gating_shadow(
+                organization,
+                cohort=cohort,
+                admitted=has_seer_quota and scheduled_run_allowed,
+                admitted_by_cohort=cohort is not None or (not token_billed and has_autofix_quota()),
+            )
+
+    if not has_seer_quota and is_scheduled:
         existing_run = SeerWorkflowRun.objects.filter(
             organization=organization,
             workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
@@ -368,13 +401,11 @@ def run_agentic_triage_for_org(
             logger.info("night_shift.no_seer_quota", extra={"organization_id": organization.id})
             return None
 
-    if (
-        schedule_id is not None
-        and features.has("organizations:token-billed-seer-enabled", organization)
-        and not _had_scheduled_run_before_token_billing(organization)
-    ):
+    if not scheduled_run_allowed:
         logger.info(
-            "night_shift.token_billed_without_prior_runs",
+            "night_shift.token_billed_without_cohort"
+            if cohort_gating
+            else "night_shift.token_billed_without_prior_runs",
             extra={"organization_id": organization.id},
         )
         return None
@@ -439,6 +470,33 @@ def _had_scheduled_run_before_token_billing(organization: Organization) -> bool:
         date_added__gte=TOKEN_BILLING_CUTOFF - TOKEN_BILLING_PRIOR_RUN_WINDOW,
         date_added__lt=TOKEN_BILLING_CUTOFF,
     ).exists()
+
+
+def _record_cohort_gating_shadow(
+    organization: Organization,
+    *,
+    cohort: AgenticTriageCohort | None,
+    admitted: bool,
+    admitted_by_cohort: bool,
+) -> None:
+    sentry_sdk.metrics.count(
+        "night_shift.cohort_gating.shadow",
+        1,
+        attributes={
+            "admitted": admitted,
+            "admitted_by_cohort": admitted_by_cohort,
+            "cohort": cohort.value if cohort is not None else "none",
+        },
+    )
+    if admitted != admitted_by_cohort:
+        logger.info(
+            "night_shift.cohort_gating.shadow_mismatch",
+            extra={
+                "organization_id": organization.id,
+                "admitted": admitted,
+                "admitted_by_cohort": admitted_by_cohort,
+            },
+        )
 
 
 def _is_agentic_triage_enabled(organization: Organization) -> bool:
@@ -659,12 +717,24 @@ def _get_eligible_orgs_from_batch(
         if not eligible:
             return []
 
-    if options.get("seer.night_shift.enable_for_legacy_orgs"):
+    gating_result = features.batch_has_for_organizations(COHORT_GATING_FEATURE, eligible) or {}
+    cohort_gated = {
+        org.id for org in eligible if gating_result.get(f"organization:{org.id}", False)
+    }
+    legacy_orgs_enabled = options.get("seer.night_shift.enable_for_legacy_orgs")
+    if legacy_orgs_enabled and not cohort_gated:
         return eligible
 
     paid_eligible: list[Organization] = []
     free_cohort_eligible: list[Organization] = []
     for org in eligible:
+        if org.id in cohort_gated:
+            if _is_eligible_with_cohort_gating(org, legacy_orgs_enabled=legacy_orgs_enabled):
+                paid_eligible.append(org)
+            continue
+        if legacy_orgs_enabled:
+            paid_eligible.append(org)
+            continue
         has_seat_based_seer = all(features.has(f, org) for f in PER_ORG_FEATURE_NAMES)
         if has_seat_based_seer or features.has("organizations:token-billed-seer-enabled", org):
             paid_eligible.append(org)
@@ -672,6 +742,16 @@ def _get_eligible_orgs_from_batch(
             free_cohort_eligible.append(org)
 
     return paid_eligible + free_cohort_eligible
+
+
+def _is_eligible_with_cohort_gating(
+    organization: Organization, *, legacy_orgs_enabled: bool
+) -> bool:
+    if get_agentic_triage_cohort(organization) is not None:
+        return True
+    if features.has("organizations:token-billed-seer-enabled", organization):
+        return False
+    return legacy_orgs_enabled or all(features.has(f, organization) for f in PER_ORG_FEATURE_NAMES)
 
 
 def _update_run_extras(
