@@ -39,7 +39,6 @@ from sentry.explore.endpoints.bases import (
 from sentry.explore.endpoints.serializers import ExploreSavedQuerySerializer
 from sentry.explore.models import (
     ExploreSavedQuery,
-    ExploreSavedQueryDataset,
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryStarred,
 )
@@ -398,11 +397,6 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         # enforces this via `check_object_permissions`; without this filter the list endpoint
         # would leak the body of queries belonging to projects the caller has no access to.
         queryset = filter_to_accessible_explore_queries(request, queryset)
-
-        if not features.has(
-            "organizations:expose-migrated-discover-queries", organization, actor=request.user
-        ):
-            queryset = queryset.exclude(dataset=ExploreSavedQueryDataset.SEGMENT_SPANS)
 
         query = request.query_params.get("query")
         if query:

@@ -1745,9 +1745,7 @@ class ExploreSavedQueriesTest(APITestCase):
             },
         }
 
-    def test_get_with_migration_feature_flag(self) -> None:
-        self.features_with_migration = {"organizations:expose-migrated-discover-queries": True}
-        self.features_with_migration.update(self.features)
+    def test_get_includes_segment_spans_queries(self) -> None:
         model = ExploreSavedQuery.objects.create(
             organization=self.org,
             created_by_id=self.user.id,
@@ -1765,20 +1763,14 @@ class ExploreSavedQueriesTest(APITestCase):
             last_visited=before_now(),
         )
 
-        with self.feature(self.features_with_migration):
-            response_with_flag = self.client.get(self.url, data={"sortBy": ["name"]})
-
-        assert response_with_flag.status_code == 200, response_with_flag.content
-        assert len(response_with_flag.data) == 7
-
-        assert response_with_flag.data[6]["name"] == "Z - Segment span query"
-        assert response_with_flag.data[6]["dataset"] == "segment_spans"
-
         with self.feature(self.features):
-            response_without_flag = self.client.get(self.url)
+            response = self.client.get(self.url, data={"sortBy": ["name"]})
 
-        assert response_without_flag.status_code == 200, response_without_flag.content
-        assert len(response_without_flag.data) == 6
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 7
+
+        assert response.data[6]["name"] == "Z - Segment span query"
+        assert response.data[6]["dataset"] == "segment_spans"
 
     def test_post_metrics_dataset_with_metric_field(self) -> None:
         with self.feature(self.features):
