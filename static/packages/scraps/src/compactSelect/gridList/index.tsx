@@ -125,7 +125,12 @@ function GridList<T extends ListItemBase>({
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel id={labelId}>{label}</ListLabel>}
       {overlayIsOpen && (
-        <ListScrollArea ref={setScrollElement}>
+        <ListScrollArea
+          ref={setScrollElement}
+          height="100%"
+          overflowY="auto"
+          margin="xs 0"
+        >
           <ListWrap
             {...mergedProps}
             aria-rowcount={rowCount}

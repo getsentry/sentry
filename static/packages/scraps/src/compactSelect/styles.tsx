@@ -5,7 +5,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {SectionSeparator as MenuSectionSeparator} from '@sentry/scraps/menu';
 
 export const ListWrap = styled('ul')`
@@ -36,11 +36,7 @@ export const ListWrap = styled('ul')`
  * of the scroll area, so the virtualizer places them without being told the
  * inset, and the inset stays visible while the rows scroll.
  */
-export const ListScrollArea = styled('div')`
-  height: 100%;
-  overflow-y: auto;
-  margin: ${p => p.theme.space.xs} 0;
-
+export const ListScrollArea = styled(Container)`
   &:has(> ${ListWrap}:empty) {
     margin: 0;
   }
