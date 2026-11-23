@@ -21,11 +21,7 @@ export const sessionReplay: OnboardingConfig<PlatformOptions> = {
             link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/session-replay/',
           }),
         },
-        ...getSetupConfiguration({
-          params,
-          showExtraStep: false,
-          showDescription: false,
-        }),
+        ...getSetupConfiguration({params, showExtraStep: false, showDescription: false}),
         tracePropagationBlock,
       ],
     },

@@ -23,20 +23,13 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Logs for Flutter are supported in SDK version [code:9.0.0] or higher. You can update your [pubspec:pubspec.yaml] to the matching version:',
-            {
-              code: <code />,
-              pubspec: <code />,
-            }
+            {code: <code />, pubspec: <code />}
           ),
         },
         {
           type: 'code',
           tabs: [
-            {
-              label: 'YAML',
-              language: 'yaml',
-              code: getManualInstallSnippet(params),
-            },
+            {label: 'YAML', language: 'yaml', code: getManualInstallSnippet(params)},
           ],
         },
         {
@@ -61,9 +54,7 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'To enable logging, you need to initialize the SDK with the [code:enableLogs] option set to [code:true].',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

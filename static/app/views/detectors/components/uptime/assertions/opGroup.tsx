@@ -157,10 +157,7 @@ export function AssertionOpGroup({
   };
 
   const handleGroupTypeChange = (newType: UptimeOpType.AND | UptimeOpType.OR) => {
-    const newGroupOp: UptimeGroupOp = {
-      ...groupOp,
-      op: newType,
-    };
+    const newGroupOp: UptimeGroupOp = {...groupOp, op: newType};
     onChange(
       isNegated ? {id: notId, op: UptimeOpType.NOT, operand: newGroupOp} : newGroupOp
     );
@@ -173,10 +170,7 @@ export function AssertionOpGroup({
   const triggerLabel = getGroupOpLabel(groupOp, isNegated);
 
   const {attributes, setNodeRef, setActivatorNodeRef, listeners, isDragging} =
-    useDraggable({
-      id: groupOp.id,
-      data: value,
-    });
+    useDraggable({id: groupOp.id, data: value});
 
   const innerDroppableDisabled = !root && (isDragging || !!disableDropping);
 

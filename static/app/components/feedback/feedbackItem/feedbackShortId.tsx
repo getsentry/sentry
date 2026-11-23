@@ -45,10 +45,7 @@ export function FeedbackShortId({className, feedbackItem, style}: Props) {
   // or other options are passed, which breaks the copy-paste.
   const feedbackUrl =
     window.location.origin +
-    makeFeedbackPathname({
-      path: '/',
-      organization,
-    }) +
+    makeFeedbackPathname({path: '/', organization}) +
     qs.stringifyUrl({
       url: '?',
       query: {
@@ -89,9 +86,7 @@ export function FeedbackShortId({className, feedbackItem, style}: Props) {
             key: 'copy-url',
             label: t('Copy Feedback URL'),
             onAction: () =>
-              copy(feedbackUrl, {
-                successMessage: t('Copied Feedback URL to clipboard'),
-              }),
+              copy(feedbackUrl, {successMessage: t('Copied Feedback URL to clipboard')}),
           },
           {
             key: 'copy-short-id',

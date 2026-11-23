@@ -47,10 +47,7 @@ export function SizeCompareItemDiffTable({
   disableHideSmallChanges,
 }: SizeCompareItemDiffTableProps) {
   // Sort by diff initially
-  const [sort, setSort] = useState<DiffTableSort>({
-    field: 'size_diff',
-    kind: 'desc',
-  });
+  const [sort, setSort] = useState<DiffTableSort>({field: 'size_diff', kind: 'desc'});
 
   const [currentPage, setCurrentPage] = useState(0);
 

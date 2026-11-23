@@ -57,9 +57,7 @@ function ProjectSelectStep({
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      projectId: autoSelectedProjectId,
-    },
+    defaultValues: {projectId: autoSelectedProjectId},
     validators: {onDynamic: projectSchema},
     onSubmit: ({value}) => {
       advance({projectId: Number(value.projectId)});
@@ -163,11 +161,7 @@ function CloudFormationStep({
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      accountNumber: '',
-      region: '',
-      awsExternalId: defaultExternalId,
-    },
+    defaultValues: {accountNumber: '', region: '', awsExternalId: defaultExternalId},
     validators: {onDynamic: cloudFormationSchema},
     onSubmit: ({value}) => advance(value),
   });
@@ -378,7 +372,9 @@ function InstrumentationStep({
         onClick={() => setEnabled(prev => ({...prev, [fn.name]: !prev[fn.name]}))}
       >
         <Container
-          border={failure ? 'danger' : isSelected ? 'accent' : 'secondary'}
+          border={
+            failure ? 'danger.vibrant' : isSelected ? 'accent.vibrant' : 'secondary'
+          }
           radius="md"
           padding="md"
         >

@@ -25,10 +25,7 @@ export default function InstallPage() {
     ...apiOptions.as<BuildDetailsApiResponse>()(
       '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          headArtifactId: artifactId,
-        },
+        path: {organizationIdOrSlug: organization.slug, headArtifactId: artifactId},
         staleTime: 0,
       }
     ),

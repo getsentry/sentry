@@ -17,7 +17,7 @@ import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
 import {GroupMetaRow} from 'sentry/components/groupMetaRow';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -434,11 +434,7 @@ export function StreamGroup({
 
     return {
       pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
-      query: {
-        referrer,
-        ...commonQuery,
-        query: filteredQuery,
-      },
+      query: {referrer, ...commonQuery, query: filteredQuery},
     };
   };
 
@@ -563,13 +559,7 @@ export function StreamGroup({
 
     navigate(
       normalizeUrl(
-        createIssueLink({
-          data: group,
-          organization,
-          referrer,
-          location,
-          query,
-        })
+        createIssueLink({data: group, organization, referrer, location, query})
       )
     );
   };

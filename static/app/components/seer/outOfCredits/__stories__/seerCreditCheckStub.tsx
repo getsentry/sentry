@@ -1,6 +1,7 @@
 import {useState, type ReactNode} from 'react';
 import {QueryClient, QueryClientProvider, skipToken} from '@tanstack/react-query';
 
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -18,7 +19,7 @@ class CreditCheckQueryClient extends QueryClient {
 
   override defaultQueryOptions: QueryClient['defaultQueryOptions'] = options => {
     const defaulted = super.defaultQueryOptions(options);
-    const url = String(defaulted.queryKey[0]);
+    const url = safeParseQueryKey(defaulted.queryKey)?.url ?? '';
     if (defaulted.queryFn === skipToken || !url.includes('/seer/credit-check/')) {
       return defaulted;
     }

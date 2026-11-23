@@ -244,9 +244,7 @@ describe('InstallationConfigStep', () => {
 
     await waitFor(() => {
       expect(advance).toHaveBeenCalledWith(
-        expect.objectContaining({
-          url: 'https://gitlab.example.com',
-        })
+        expect.objectContaining({url: 'https://gitlab.example.com'})
       );
     });
   });
@@ -254,10 +252,7 @@ describe('InstallationConfigStep', () => {
   it('shows busy state when isAdvancing is true', async () => {
     render(
       <InstallationConfigStep
-        {...makeStepProps({
-          stepData: {setupValues: []},
-          isAdvancing: true,
-        })}
+        {...makeStepProps({stepData: {setupValues: []}, isAdvancing: true})}
       />
     );
 
@@ -288,9 +283,7 @@ describe('GitLabOAuthLoginStep', () => {
   it('renders the OAuth login step for GitLab', () => {
     render(
       <GitLabOAuthLoginStep
-        {...makeStepProps({
-          stepData: {oauthUrl: 'https://gitlab.com/oauth/authorize'},
-        })}
+        {...makeStepProps({stepData: {oauthUrl: 'https://gitlab.com/oauth/authorize'}})}
       />
     );
 
@@ -319,10 +312,7 @@ describe('GitLabOAuthLoginStep', () => {
       },
     });
 
-    expect(advance).toHaveBeenCalledWith({
-      code: 'auth-code-123',
-      state: 'state-xyz',
-    });
+    expect(advance).toHaveBeenCalledWith({code: 'auth-code-123', state: 'state-xyz'});
   });
 
   it('shows busy state when isAdvancing is true', () => {

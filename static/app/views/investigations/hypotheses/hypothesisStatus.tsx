@@ -20,10 +20,7 @@ function hasRun(step: InvestigationVerificationStep): boolean {
 
 type HypothesisStatusVariant = 'accent' | 'success' | 'warning' | 'danger' | 'muted';
 
-type HypothesisStatusDisplay = {
-  label: string;
-  variant: HypothesisStatusVariant;
-};
+type HypothesisStatusDisplay = {label: string; variant: HypothesisStatusVariant};
 
 /**
  * The label and colour of the status beside the hypothesis number.
@@ -111,9 +108,7 @@ export function getHypothesisCardBorder(
   return status === 'pending' || status === 'investigating' ? 'solid' : 'dashed';
 }
 
-type HypothesisStatusProps = {
-  hypothesis: InvestigationHypothesis;
-};
+type HypothesisStatusProps = {hypothesis: InvestigationHypothesis};
 
 export function HypothesisStatus({hypothesis}: HypothesisStatusProps) {
   const {label, variant} = getHypothesisStatusDisplay(hypothesis);

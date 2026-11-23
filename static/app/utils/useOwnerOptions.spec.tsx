@@ -12,32 +12,19 @@ describe('useOwnerOptions', () => {
 
   it('includes members and teams', () => {
     const {result} = renderHook(useOwnerOptions, {
-      initialProps: {
-        teams: mockTeams,
-        members: mockUsers,
-      },
+      initialProps: {teams: mockTeams, members: mockUsers},
     });
 
     expect(result.current).toEqual([
       {
         label: 'My Teams',
         options: [
-          {
-            label: '#team-slug',
-            value: 'team:1',
-            leadingItems: expect.anything(),
-          },
+          {label: '#team-slug', value: 'team:1', leadingItems: expect.anything()},
         ],
       },
       {
         label: 'Members',
-        options: [
-          {
-            label: 'Foo Bar',
-            value: 'user:1',
-            leadingItems: expect.anything(),
-          },
-        ],
+        options: [{label: 'Foo Bar', value: 'user:1', leadingItems: expect.anything()}],
       },
       {label: 'Other Teams', options: []},
       {label: 'Disabled Teams', options: []},
@@ -50,33 +37,20 @@ describe('useOwnerOptions', () => {
       TeamFixture({id: '2', slug: 'other-team', isMember: false}),
     ];
 
-    const {result} = renderHook(useOwnerOptions, {
-      initialProps: {teams},
-    });
+    const {result} = renderHook(useOwnerOptions, {initialProps: {teams}});
 
     expect(result.current).toEqual([
       {
         label: 'My Teams',
         options: [
-          {
-            label: '#team-slug',
-            value: 'team:1',
-            leadingItems: expect.anything(),
-          },
+          {label: '#team-slug', value: 'team:1', leadingItems: expect.anything()},
         ],
       },
-      {
-        label: 'Members',
-        options: [],
-      },
+      {label: 'Members', options: []},
       {
         label: 'Other Teams',
         options: [
-          {
-            label: '#other-team',
-            value: 'team:2',
-            leadingItems: expect.anything(),
-          },
+          {label: '#other-team', value: 'team:2', leadingItems: expect.anything()},
         ],
       },
       {label: 'Disabled Teams', options: []},
@@ -97,35 +71,19 @@ describe('useOwnerOptions', () => {
     const teams = [teamWithProject1, teamWithProject2, teamWithoutProject];
 
     const {result} = renderHook(useOwnerOptions, {
-      initialProps: {
-        memberOfProjectSlugs: [project1.slug, project2.slug],
-        teams,
-      },
+      initialProps: {memberOfProjectSlugs: [project1.slug, project2.slug], teams},
     });
 
     expect(result.current).toEqual([
       {
         label: 'My Teams',
-        options: [
-          {
-            label: '#my-team',
-            value: 'team:1',
-            leadingItems: expect.anything(),
-          },
-        ],
+        options: [{label: '#my-team', value: 'team:1', leadingItems: expect.anything()}],
       },
-      {
-        label: 'Members',
-        options: [],
-      },
+      {label: 'Members', options: []},
       {
         label: 'Other Teams',
         options: [
-          {
-            label: '#other-team',
-            value: 'team:2',
-            leadingItems: expect.anything(),
-          },
+          {label: '#other-team', value: 'team:2', leadingItems: expect.anything()},
         ],
       },
       {

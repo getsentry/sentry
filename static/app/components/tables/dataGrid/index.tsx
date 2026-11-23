@@ -10,7 +10,7 @@ import {
   type TableColumnConfig,
 } from '@sentry/scraps/table';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
@@ -132,10 +132,7 @@ export function DataGrid<
   );
 
   const onColumnResize = (columnIndex: number, width: number) => {
-    props.grid.onResizeColumn?.(columnIndex, {
-      ...props.columnOrder[columnIndex]!,
-      width,
-    });
+    props.grid.onResizeColumn?.(columnIndex, {...props.columnOrder[columnIndex]!, width});
   };
 
   const renderBody = () => {

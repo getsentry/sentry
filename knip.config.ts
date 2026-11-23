@@ -36,10 +36,7 @@ const scopedJest = {
 
 // Shared Oxlint plugins belong to the root workspace. Analyze package wrappers
 // as development entries without assigning the shared plugin list to each package.
-const scopedOxlint = {
-  config: [],
-  entry: ['oxlint.config.ts'],
-};
+const scopedOxlint = {config: [], entry: ['oxlint.config.ts']};
 
 const frontendWorkspace = {
   jest: scopedJest,
@@ -90,6 +87,7 @@ const config: KnipConfig = {
       entry: [
         ...productionEntryPoints.map(entry => `${entry}!`),
         ...frontendWorkspace.entry,
+        'views/dashboards/widgetBuilder/components/visualize/traceMetrics/rowModel.ts!',
         '**/__mocks__/**/*.{js,ts,tsx}',
         '**/*.snapshots.tsx',
         '**/*.stories.{js,ts,tsx}',
@@ -111,9 +109,7 @@ const config: KnipConfig = {
         '**/*.mdx',
       ],
     },
-    'static/gsAdmin': {
-      ...frontendWorkspace,
-    },
+    'static/gsAdmin': {...frontendWorkspace},
     'tests/js': {
       jest: {
         config: ['jest.config.mjs', 'jest.config.ci.mjs', 'jest.config.snapshots.ts'],
@@ -144,13 +140,8 @@ const config: KnipConfig = {
         '!{test,scripts}/**!',
       ],
     },
-    'static/packages/search-syntax': {
-      jest: scopedJest,
-      oxlint: scopedOxlint,
-    },
-    'static/oxlint/eslintPluginScraps': {
-      jest: scopedJest,
-    },
+    'static/packages/search-syntax': {jest: scopedJest, oxlint: scopedOxlint},
+    'static/oxlint/eslintPluginScraps': {jest: scopedJest},
     'static/oxlint/eslintPluginSentry': {
       jest: scopedJest,
       // RuleTester resolves these cross-file fixtures by filename.
@@ -158,18 +149,10 @@ const config: KnipConfig = {
     },
   },
   ignoreExportsUsedInFile: isProductionMode,
-  cycles: {
-    dynamicImports: false,
-  },
-  rules: {
-    binaries: 'off',
-    enumMembers: 'off',
-    cycles: 'error',
-  },
+  cycles: {dynamicImports: false},
+  rules: {binaries: 'off', enumMembers: 'off', cycles: 'error'},
   include: ['nsExports', 'nsTypes'],
-  mdx: {
-    config: 'tsconfig.mdx.json',
-  },
+  mdx: {config: 'tsconfig.mdx.json'},
   treatConfigHintsAsErrors: true,
   treatTagHintsAsErrors: true,
 };

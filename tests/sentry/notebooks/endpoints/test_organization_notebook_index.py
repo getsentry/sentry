@@ -424,7 +424,7 @@ class OrganizationNotebookIndexTest(APITestCase):
         breached = self.create_notebook(organization=self.organization, title="Breached")
         self.link_to_automation_run(breached)
         triage = self.create_notebook(organization=self.organization, title="Triage")
-        self.link_to_automation_run(triage, SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
+        self.link_to_automation_run(triage, SeerWorkflowStrategy.SCHEDULED_INVESTIGATION)
         # An automation reusing an investigation a user started doesn't make it automation-triggered.
         reused = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Reused"
@@ -436,14 +436,16 @@ class OrganizationNotebookIndexTest(APITestCase):
         assert self.list_titles(trigger="user") == ["Mine", "Reused", "Theirs"]
         assert self.list_titles(trigger="automation") == ["Breached", "Triage"]
         assert self.list_titles(strategy="breached_metric_investigation") == ["Breached"]
-        assert self.list_titles(trigger="automation", strategy="agentic_triage_v2") == ["Triage"]
+        assert self.list_titles(trigger="automation", strategy="scheduled_investigation") == [
+            "Triage"
+        ]
         assert len(self.list_titles()) == 6
 
     def test_automation_trigger_uses_the_first_run_in_this_organization(self) -> None:
         notebook = self.create_notebook(organization=self.organization, title="Breached")
         other_organization = self.create_organization()
         other_config = Factories.create_seer_workflow_config(
-            other_organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+            other_organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
         )
         Factories.create_seer_workflow_output_link(
             Factories.create_seer_workflow_run_execution(
@@ -452,10 +454,10 @@ class OrganizationNotebookIndexTest(APITestCase):
             notebook=notebook,
         )
         self.link_to_automation_run(notebook)
-        self.link_to_automation_run(notebook, SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
+        self.link_to_automation_run(notebook, SeerWorkflowStrategy.SCHEDULED_INVESTIGATION)
 
         assert self.list_titles(strategy="breached_metric_investigation") == ["Breached"]
-        assert self.list_titles(strategy="agentic_triage_v2") == []
+        assert self.list_titles(strategy="scheduled_investigation") == []
 
     def test_list_filters_by_run_status(self) -> None:
         for title, run_status in (

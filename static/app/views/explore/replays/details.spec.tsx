@@ -37,9 +37,7 @@ const defaultReaderResult = {
   projectSlug: ProjectFixture().slug,
   replay: null,
   replayId: 'test-replay-id',
-  replayRecord: ReplayRecordFixture({
-    id: 'test-replay-id',
-  }),
+  replayRecord: ReplayRecordFixture({id: 'test-replay-id'}),
   status: 'success' as const,
 };
 
@@ -61,10 +59,7 @@ describe('ReplayDetails', () => {
   const user = UserFixture({id: '1'});
 
   const initialRouterConfig = {
-    location: {
-      pathname: '/organizations/org-slug/replays/test-replay-id/',
-      query: {},
-    },
+    location: {pathname: '/organizations/org-slug/replays/test-replay-id/', query: {}},
     route: '/organizations/:orgId/replays/:replaySlug/',
   };
 
@@ -122,9 +117,7 @@ describe('ReplayDetails', () => {
   });
 
   it('should render replay details when user has access', () => {
-    const organization = OrganizationFixture({
-      features: ['session-replay'],
-    });
+    const organization = OrganizationFixture({features: ['session-replay']});
 
     render(<ReplayDetails />, {
       organization,
@@ -146,9 +139,7 @@ describe('ReplayDetails', () => {
     renderDetails();
 
     expect(
-      screen.getByRole('button', {
-        name: 'Previous replay based on search query',
-      })
+      screen.getByRole('button', {name: 'Previous replay based on search query'})
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', {name: 'Next replay based on search query'})
@@ -171,9 +162,7 @@ describe('ReplayDetails', () => {
     expect(within(menu).getByRole('menuitem', {name: 'Configure Replay'})).toBeVisible();
 
     expect(
-      screen.queryByRole('button', {
-        name: 'Copy link to replay at current timestamp',
-      })
+      screen.queryByRole('button', {name: 'Copy link to replay at current timestamp'})
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('group', {name: 'Sentry Employee Features'})
@@ -213,9 +202,7 @@ describe('ReplayDetails', () => {
 
     await openReplayActions();
     await userEvent.click(
-      screen.getByRole('menuitemradio', {
-        name: 'Copy replay ID to clipboard',
-      })
+      screen.getByRole('menuitemradio', {name: 'Copy replay ID to clipboard'})
     );
 
     expect(writeText).toHaveBeenCalledWith('test-replay-id');
@@ -226,19 +213,13 @@ describe('ReplayDetails', () => {
     renderDetails();
     await openReplayActions();
 
-    const section = screen.getByRole('group', {
-      name: 'Sentry Employee Features',
-    });
+    const section = screen.getByRole('group', {name: 'Sentry Employee Features'});
 
     expect(
-      within(section).getByRole('menuitemradio', {
-        name: 'Download Replay Record',
-      })
+      within(section).getByRole('menuitemradio', {name: 'Download Replay Record'})
     ).toBeVisible();
     expect(
-      within(section).getByRole('menuitemradio', {
-        name: /Sentry Replay Debugger/,
-      })
+      within(section).getByRole('menuitemradio', {name: /Sentry Replay Debugger/})
     ).toBeVisible();
     expect(
       within(section).queryByRole('menuitemradio', {name: 'Download JSON'})
@@ -291,12 +272,7 @@ describe('ReplayDetails', () => {
         fetching: false,
         replayRecord,
       });
-      return {
-        ...defaultReaderResult,
-        replay,
-        replayId: replaySlug,
-        replayRecord,
-      };
+      return {...defaultReaderResult, replay, replayId: replaySlug, replayRecord};
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replays/other-replay-id/',
@@ -376,17 +352,13 @@ describe('ReplayDetails', () => {
     {
       name: 'no full snapshot',
       attachments: () =>
-        RRWebInitFrameEventsFixture({
-          timestamp: new Date('2023-12-25T00:00:00'),
-        }),
+        RRWebInitFrameEventsFixture({timestamp: new Date('2023-12-25T00:00:00')}),
       heading: 'No Screen Recording',
     },
     {
       name: 'no meta frame',
       attachments: () => [
-        RRWebFullSnapshotFrameEventFixture({
-          timestamp: new Date('2023-12-25T00:00:00'),
-        }),
+        RRWebFullSnapshotFrameEventFixture({timestamp: new Date('2023-12-25T00:00:00')}),
       ],
       heading: 'Recording Cannot Be Played',
     },
@@ -424,10 +396,7 @@ describe('ReplayDetails', () => {
       replayAccessMembers: [999], // User ID 1 is not in this list
     });
 
-    render(<ReplayDetails />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<ReplayDetails />, {organization, initialRouterConfig});
 
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
     // Should not fetch replay data when user doesn't have access

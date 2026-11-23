@@ -65,7 +65,7 @@ from sentry.seer.entrypoints.types import (
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access
-from sentry.sentry_apps.event_types import INTERNAL_SEER_EVENT_TYPES, SentryAppEventType
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -357,12 +357,14 @@ class SeerAutofixOperator[CachePayloadT]:
                     self.entrypoint.on_trigger_autofix_error(error=error)
                 lifecycle.record_failure(failure_reason=error)
                 return
-            except SeerOutOfCreditsException:
+            except SeerOutOfCreditsException as e:
                 with SeerOperatorEventLifecycleMetric(
                     interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_OUT_OF_CREDITS,
                     entrypoint_key=self.entrypoint.key,
                 ).capture():
-                    self.entrypoint.on_trigger_autofix_out_of_credits(started=run_id is not None)
+                    self.entrypoint.on_trigger_autofix_out_of_credits(
+                        started=run_id is not None, denial_reason=e.denial_reason
+                    )
                 lifecycle.record_halt(halt_reason="not_enough_seer_credits")
                 return
             except Exception as e:
@@ -951,7 +953,7 @@ def process_autofix_updates(
 
         if (
             event_type not in SEER_EVENT_TO_ACTIVITY_TYPE
-            and event_type not in INTERNAL_SEER_EVENT_TYPES
+            and event_type != SentryAppEventType.SEER_ERRORED
         ):
             lifecycle.record_halt(halt_reason="skipped")
             return

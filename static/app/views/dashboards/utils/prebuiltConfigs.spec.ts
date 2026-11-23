@@ -50,10 +50,7 @@ describe('getPrebuiltDashboardConfig', () => {
   const defaultConfig = PREBUILT_DASHBOARDS[PrebuiltDashboardId.WEB_VITALS];
   const variantConfig = {...defaultConfig, title: 'Web Vitals (variant)'};
   const variants = {
-    [PrebuiltDashboardId.WEB_VITALS]: {
-      feature: 'some-feature',
-      config: variantConfig,
-    },
+    [PrebuiltDashboardId.WEB_VITALS]: {feature: 'some-feature', config: variantConfig},
   };
 
   it('returns the default config when there is no variant', () => {

@@ -22,9 +22,7 @@ export function useDeleteDetectorMutation() {
         method: 'DELETE',
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: allDetectorListsQueryKey(org),
-      });
+      queryClient.invalidateQueries({queryKey: allDetectorListsQueryKey(org)});
       toast.success(t('Monitor deleted.'));
     },
     onError: error => {

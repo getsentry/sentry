@@ -366,9 +366,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/explore/metrics/',
-          query: {
-            metric: [metricQuery],
-          },
+          query: {metric: [metricQuery]},
         },
       },
     });
@@ -539,9 +537,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/explore/metrics/',
-          query: {
-            metric: ['foo', 'bar'].map(canonicalMetricQueryParam),
-          },
+          query: {metric: ['foo', 'bar'].map(canonicalMetricQueryParam)},
         },
       },
     });
@@ -1136,9 +1132,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
     it('duplicates the last metric when adding with equations', async () => {
       const {result, router} = renderHookWithProviders(useAddMetricQuery, {
         additionalWrapper: Wrapper,
-        organization: OrganizationFixture({
-          features: ['tracemetrics-enabled'],
-        }),
+        organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/metrics/',
@@ -1203,9 +1197,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
     it('adds equations to the end of the list', async () => {
       const {result, router} = renderHookWithProviders(useAddMetricQuery, {
         additionalWrapper: Wrapper,
-        organization: OrganizationFixture({
-          features: ['tracemetrics-enabled'],
-        }),
+        organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/metrics/',
@@ -1235,9 +1227,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
             },
           },
         },
-        initialProps: {
-          type: 'equation',
-        },
+        initialProps: {type: 'equation'},
       });
 
       act(() => result.current());
@@ -1279,9 +1269,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
     it('adds metric before equation with independent label sequences', () => {
       const {result} = renderHookWithProviders(useAddMetricQuery, {
         additionalWrapper: Wrapper,
-        organization: OrganizationFixture({
-          features: ['tracemetrics-enabled'],
-        }),
+        organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/metrics/',
@@ -1320,9 +1308,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
     it('increments the equation label from the last equation label counter', () => {
       const {result} = renderHookWithProviders(useAddMetricQuery, {
         additionalWrapper: Wrapper,
-        organization: OrganizationFixture({
-          features: ['tracemetrics-enabled'],
-        }),
+        organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/metrics/',
@@ -1348,9 +1334,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
             },
           },
         },
-        initialProps: {
-          type: 'equation',
-        },
+        initialProps: {type: 'equation'},
       });
 
       act(() => result.current());

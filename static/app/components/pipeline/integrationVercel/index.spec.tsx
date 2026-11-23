@@ -13,10 +13,7 @@ describe('VercelInstallStep', () => {
     const advance = jest.fn();
     render(
       <VercelInstallStep
-        {...makeStepProps({
-          stepData: {state: 'pipeline-sig'},
-          advance,
-        })}
+        {...makeStepProps({stepData: {state: 'pipeline-sig'}, advance})}
       />
     );
 

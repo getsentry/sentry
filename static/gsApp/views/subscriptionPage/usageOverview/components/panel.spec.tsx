@@ -32,9 +32,7 @@ describe('ProductBreakdownPanel', () => {
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/onboarding-check/`,
-      body: {
-        isSeerConfigured: true,
-      },
+      body: {isSeerConfigured: true},
     });
   });
 
@@ -118,12 +116,8 @@ describe('ProductBreakdownPanel', () => {
     subscription.onDemandBudgets = {
       enabled: true,
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      budgets: {
-        errors: 100_00,
-      },
-      usedSpends: {
-        errors: 10_00,
-      },
+      budgets: {errors: 100_00},
+      usedSpends: {errors: 10_00},
     };
     render(
       <ProductBreakdownPanel
@@ -282,16 +276,11 @@ describe('ProductBreakdownPanel', () => {
   });
 
   it('renders setup CTA for Seer', async () => {
-    subscription.addOns!.seer = {
-      ...subscription.addOns?.seer!,
-      enabled: true,
-    };
+    subscription.addOns!.seer = {...subscription.addOns?.seer!, enabled: true};
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/onboarding-check/`,
-      body: {
-        isSeerConfigured: false,
-      },
+      body: {isSeerConfigured: false},
     });
     render(
       <ProductBreakdownPanel
@@ -307,16 +296,11 @@ describe('ProductBreakdownPanel', () => {
   });
 
   it('does not render setup CTA for Seer when already setup', async () => {
-    subscription.addOns!.seer = {
-      ...subscription.addOns?.seer!,
-      enabled: true,
-    };
+    subscription.addOns!.seer = {...subscription.addOns?.seer!, enabled: true};
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/onboarding-check/`,
-      body: {
-        isSeerConfigured: true,
-      },
+      body: {isSeerConfigured: true},
     });
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-seats/current/`,
@@ -340,9 +324,7 @@ describe('ProductBreakdownPanel', () => {
   it('does not render setup CTA for Seer when not yet enabled', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/onboarding-check/`,
-      body: {
-        isSeerConfigured: false,
-      },
+      body: {isSeerConfigured: false},
     });
     render(
       <ProductBreakdownPanel
@@ -359,10 +341,7 @@ describe('ProductBreakdownPanel', () => {
   });
 
   it('does not render setup CTA for non-Seer', async () => {
-    subscription.addOns!.seer = {
-      ...subscription.addOns?.seer!,
-      enabled: true,
-    };
+    subscription.addOns!.seer = {...subscription.addOns?.seer!, enabled: true};
     subscription.addOns!.legacySeer = {
       ...subscription.addOns?.legacySeer!,
       enabled: true, // for testing purposes but you'd never have both IRL
@@ -370,9 +349,7 @@ describe('ProductBreakdownPanel', () => {
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/onboarding-check/`,
-      body: {
-        isSeerConfigured: false,
-      },
+      body: {isSeerConfigured: false},
     });
     render(
       <ProductBreakdownPanel
@@ -526,10 +503,7 @@ describe('ProductBreakdownPanel', () => {
       prepaid: 1,
       reserved: 0,
     });
-    subscription.addOns!.seer = {
-      ...subscription.addOns!.seer!,
-      enabled: true,
-    };
+    subscription.addOns!.seer = {...subscription.addOns!.seer!, enabled: true};
     render(
       <ProductBreakdownPanel
         subscription={subscription}
@@ -605,10 +579,7 @@ describe('ProductBreakdownPanel', () => {
       prepaid: 3,
       reserved: 2,
     });
-    enterpriseSubscription.addOns!.seer = {
-      ...subscription.addOns!.seer!,
-      enabled: true,
-    };
+    enterpriseSubscription.addOns!.seer = {...subscription.addOns!.seer!, enabled: true};
     SubscriptionStore.set(organization.slug, enterpriseSubscription);
     render(
       <ProductBreakdownPanel
@@ -641,10 +612,7 @@ describe('ProductBreakdownPanel', () => {
       body: [],
       match: [MockApiClient.matchQuery({billingMetric: DataCategory.SEER_USER})],
     });
-    subscription.addOns!.seer = {
-      ...subscription.addOns!.seer!,
-      enabled: true,
-    };
+    subscription.addOns!.seer = {...subscription.addOns!.seer!, enabled: true};
     subscription.categories.seerUsers = undefined;
     render(
       <ProductBreakdownPanel

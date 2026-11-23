@@ -56,9 +56,5 @@ export function useFullscreen<Element extends HTMLElement>({
     [enter, exit]
   );
 
-  return {
-    enter,
-    exit,
-    toggle,
-  };
+  return {enter, exit, toggle};
 }

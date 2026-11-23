@@ -16,9 +16,7 @@ export type AvatarUser = {
   // Compatibility shim with EventUser serializer
   ipAddress?: string;
   lastSeen?: string;
-  options?: {
-    avatarType: Avatar['avatarType'];
-  };
+  options?: {avatarType: Avatar['avatarType']};
 };
 
 export enum StacktraceOrder {
@@ -30,11 +28,7 @@ export enum StacktraceOrder {
 export interface User extends Omit<AvatarUser, 'options'> {
   canReset2fa: boolean;
   dateJoined: string;
-  emails: Array<{
-    email: string;
-    id: string;
-    is_verified: boolean;
-  }>;
+  emails: Array<{email: string; id: string; is_verified: boolean}>;
   flags: {newsletter_consent_prompt: boolean};
   has2fa: boolean;
   hasPasswordAuth: boolean;
@@ -63,11 +57,7 @@ export interface User extends Omit<AvatarUser, 'options'> {
 
 // XXX(epurkhiser): we should understand how this is diff from User['emails]
 // above
-export type UserEmail = {
-  email: string;
-  isPrimary: boolean;
-  isVerified: boolean;
-};
+export type UserEmail = {email: string; isPrimary: boolean; isVerified: boolean};
 
 /**
  * API tokens and Api Applications.

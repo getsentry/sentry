@@ -1,5 +1,1 @@
-{
-  "options": {
-    "str_option": "from file b"
-  }
-}
+{"options": {"str_option": "from file b"}}

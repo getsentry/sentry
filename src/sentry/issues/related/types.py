@@ -17,6 +17,9 @@ class RelationType(StrEnum):
     SAME_TRACE = "same_trace"
     CONTRIBUTING = "contributing"
     SAME_TITLE = "same_title"
+    SAME_SUPERGROUP = "same_supergroup"
+    # Fills the response's investigations, not data
+    INVESTIGATIONS = "investigations"
 
 
 class RelationTypeStatus(StrEnum):
@@ -152,8 +155,49 @@ class SameTitleMeta(RelationTypeMeta):
     ]
 
 
+class RelatedSupergroup(TypedDict):
+    id: Annotated[str, ApiDescription("The supergroup's ID")]
+    title: Annotated[str, ApiDescription("What the supergroup's issues have in common, from Seer")]
+
+
+class SameSupergroupMeta(RelationTypeMeta):
+    supergroup: NotRequired[
+        Annotated[
+            RelatedSupergroup,
+            ApiDescription("The issue's supergroup. Missing when the issue isn't in one"),
+        ]
+    ]
+
+
+class InvestigationsMeta(RelationTypeMeta):
+    """The investigations type's entry in meta.types. It has no fields of its own."""
+
+
 # Any type's entry in meta.types: the union of every RelationTypeMeta subclass.
-AnyRelationTypeMeta = SimilarStacktraceMeta | SameTraceMeta | ContributingMeta | SameTitleMeta
+AnyRelationTypeMeta = (
+    SimilarStacktraceMeta
+    | SameTraceMeta
+    | ContributingMeta
+    | SameTitleMeta
+    | SameSupergroupMeta
+    | InvestigationsMeta
+)
+
+
+class InvestigationSummary(TypedDict):
+    id: Annotated[str, ApiDescription("The investigation's ID")]
+    title: Annotated[str, ApiDescription("The investigation's title")]
+
+
+class RelatedInvestigation(TypedDict):
+    investigation: Annotated[InvestigationSummary, ApiDescription("The investigation")]
+    hypothesisStatement: Annotated[
+        str, ApiDescription("The investigation's hypothesis whose evidence named this issue")
+    ]
+    reason: Annotated[
+        str | None,
+        ApiDescription("Why Seer found this issue relevant, or null when it gave no reason"),
+    ]
 
 
 @dataclass(frozen=True)
@@ -162,6 +206,8 @@ class RelationTypeResult:
     meta: AnyRelationTypeMeta
     # Group ID to relation, in the order found (dicts keep insertion order).
     relations: dict[int, RelatedIssueRelation] = field(default_factory=dict)
+    # Only the investigations type fills this
+    investigations: list[RelatedInvestigation] = field(default_factory=list)
 
 
 class RelatedIssuesMeta(TypedDict):
@@ -175,5 +221,12 @@ class RelatedIssuesResponse(TypedDict):
     data: Annotated[
         list[RelatedIssue],
         ApiDescription("Related issues, those matched by more types first"),
+    ]
+    investigations: Annotated[
+        list[RelatedInvestigation],
+        ApiDescription(
+            "Seer investigations that linked this issue, most recently linked first. Empty unless "
+            "the investigations type ran"
+        ),
     ]
     meta: RelatedIssuesMeta

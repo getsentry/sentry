@@ -203,9 +203,7 @@ function getActivityItemContent({
 
   switch (activity.type) {
     case GroupActivityType.NOTE:
-      return {
-        title: getActivityNoteAuthor(activity),
-      };
+      return {title: getActivityNoteAuthor(activity)};
     case GroupActivityType.SET_RESOLVED: {
       const integrationChip = getIntegrationChip({data: activity.data, organization});
       return {
@@ -280,9 +278,7 @@ function getActivityItemContent({
             })
           : t('Pull request closed'),
         details: pullRequest
-          ? tct('on [provider]', {
-              provider: getPullRequestProvider(pullRequest),
-            })
+          ? tct('on [provider]', {provider: getPullRequestProvider(pullRequest)})
           : null,
       };
     }
@@ -295,9 +291,7 @@ function getActivityItemContent({
             })
           : t('Pull request reopened'),
         details: pullRequest
-          ? tct('on [provider]', {
-              provider: getPullRequestProvider(pullRequest),
-            })
+          ? tct('on [provider]', {provider: getPullRequestProvider(pullRequest)})
           : null,
       };
     }
@@ -310,9 +304,7 @@ function getActivityItemContent({
             })
           : t('Pull request merged'),
         details: pullRequest
-          ? tct('on [provider]', {
-              provider: getPullRequestProvider(pullRequest),
-            })
+          ? tct('on [provider]', {provider: getPullRequestProvider(pullRequest)})
           : null,
       };
     }
@@ -325,9 +317,7 @@ function getActivityItemContent({
             })
           : t('Pull request unlinked'),
         details: pullRequest
-          ? tct('on [provider]', {
-              provider: getPullRequestProvider(pullRequest),
-            })
+          ? tct('on [provider]', {provider: getPullRequestProvider(pullRequest)})
           : null,
       };
     }
@@ -359,13 +349,9 @@ function getActivityItemContent({
         details: getArchiveDetails(activity.data, issueCategory),
       };
     case GroupActivityType.SET_PUBLIC:
-      return {
-        title: t('Made public'),
-      };
+      return {title: t('Made public')};
     case GroupActivityType.SET_PRIVATE:
-      return {
-        title: t('Made private'),
-      };
+      return {title: t('Made private')};
     case GroupActivityType.SET_REGRESSION: {
       const {data} = activity;
       const comparison =
@@ -489,9 +475,7 @@ function getActivityItemContent({
     case GroupActivityType.ASSIGNED:
       return getAssignedActivityItem({activity});
     case GroupActivityType.UNASSIGNED:
-      return {
-        title: t('Unassigned'),
-      };
+      return {title: t('Unassigned')};
     case GroupActivityType.REPROCESS:
       return {
         title: t('Reprocessed'),
@@ -506,9 +490,7 @@ function getActivityItemContent({
         }),
       };
     case GroupActivityType.MARK_REVIEWED:
-      return {
-        title: t('Reviewed'),
-      };
+      return {title: t('Reviewed')};
     case GroupActivityType.AUTO_SET_ONGOING:
       return {
         title: t('Became ongoing'),
@@ -517,23 +499,13 @@ function getActivityItemContent({
           : null,
       };
     case GroupActivityType.SET_ESCALATING:
-      return {
-        title: t('Escalated'),
-        details: getEscalatingDetails(activity.data),
-      };
+      return {title: t('Escalated'), details: getEscalatingDetails(activity.data)};
     case GroupActivityType.SET_PRIORITY:
-      return {
-        title: t('Priority set'),
-        details: getPriorityDetails(activity.data),
-      };
+      return {title: t('Priority set'), details: getPriorityDetails(activity.data)};
     case GroupActivityType.DELETED_ATTACHMENT:
-      return {
-        title: t('Deleted an attachment'),
-      };
+      return {title: t('Deleted an attachment')};
     case GroupActivityType.SEER_RCA_STARTED:
-      return {
-        title: t('Root cause analysis started'),
-      };
+      return {title: t('Root cause analysis started')};
     case GroupActivityType.SEER_RCA_COMPLETED:
       return {
         title: t('Root cause found'),
@@ -542,9 +514,7 @@ function getActivityItemContent({
           : null,
       };
     case GroupActivityType.SEER_SOLUTION_STARTED:
-      return {
-        title: t('Plan started'),
-      };
+      return {title: t('Plan started')};
     case GroupActivityType.SEER_SOLUTION_COMPLETED:
       return {
         title: t('Plan created'),
@@ -553,9 +523,7 @@ function getActivityItemContent({
           : null,
       };
     case GroupActivityType.SEER_CODING_STARTED:
-      return {
-        title: t('Code changes started'),
-      };
+      return {title: t('Code changes started')};
     case GroupActivityType.SEER_CODING_COMPLETED:
       return {
         title: t('Code changes suggested'),
@@ -572,9 +540,7 @@ function getActivityItemContent({
             })
           : t('Pull request created'),
         details: pullRequest
-          ? tct('on [provider]', {
-              provider: getProviderName(pullRequest.provider),
-            })
+          ? tct('on [provider]', {provider: getProviderName(pullRequest.provider)})
           : null,
       };
     }
@@ -587,9 +553,7 @@ function getActivityItemContent({
             })
           : t('Pull request ready for review'),
         details: pullRequest
-          ? tct('on [provider]', {
-              provider: getProviderName(pullRequest.provider),
-            })
+          ? tct('on [provider]', {provider: getProviderName(pullRequest.provider)})
           : null,
       };
     }
@@ -611,10 +575,7 @@ function getActivityItemContent({
       }
       if (seerActivityDuration) {
         details = details
-          ? tct('[details] in [duration]', {
-              details,
-              duration: seerActivityDuration,
-            })
+          ? tct('[details] in [duration]', {details, duration: seerActivityDuration})
           : tct('in [duration]', {duration: seerActivityDuration});
       }
 
@@ -656,9 +617,7 @@ function getActivityItemContent({
       }
       return {
         title: t('Impact assessed'),
-        details: tct('as [impact]', {
-          impact: <ImpactChip level={level} score={score} />,
-        }),
+        details: tct('as [impact]', {impact: <ImpactChip level={level} score={score} />}),
       };
     }
     case GroupActivityType.INVESTIGATION_LINKED: {
@@ -678,7 +637,5 @@ function getActivityItemContent({
     contexts: {activity: activityContext},
   });
 
-  return {
-    title: t('Activity'),
-  };
+  return {title: t('Activity')};
 }

@@ -761,15 +761,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             "organizations:on-demand-metrics-extraction-widgets", organization
         )
 
-        if (
-            features.has(
-                "organizations:discover-saved-queries-deprecation",
-                self.context["organization"],
-                actor=self.context["request"].user,
-            )
-            and not data.get("id")
-            and data.get("widget_type") == DashboardWidgetTypes.TRANSACTION_LIKE
-        ):
+        if not data.get("id") and data.get("widget_type") == DashboardWidgetTypes.TRANSACTION_LIKE:
             raise serializers.ValidationError(
                 {
                     "widget_type": "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
@@ -1159,14 +1151,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         widget_errors: list[dict[str, Any]] = [{} for _ in widgets]
         for widget_index, widget in enumerate(widgets):
             queries = widget.get("queries", [])
-            queries = cast("list[dict[str, Any]]", queries)
             query_errors: list[dict[str, Any] | list[Any]] = [{} for _ in queries]
             for query_index, data in enumerate(queries):
                 if "aggregates" not in data and "transformations" not in data:
                     continue
-                query = existing_queries.get(
-                    (cast("int | None", widget.get("id")), cast("int | None", data.get("id")))
-                )
+                query = existing_queries.get((widget.get("id"), data.get("id")))
                 try:
                     validate_transformation_indices(
                         data.get("transformations", query.transformations if query else None) or {},
@@ -1400,13 +1389,12 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             description=widget_data.get("description", None),
             thresholds=widget_data.get("thresholds", None),
             interval=widget_data.get("interval", "5m"),
-            widget_type=cast(
-                "int",
+            widget_type=(
                 None
                 if is_text_widget
-                else widget_data.get("widget_type", DashboardWidgetTypes.ERROR_EVENTS),
+                else widget_data.get("widget_type", DashboardWidgetTypes.ERROR_EVENTS)
             ),
-            discover_widget_split=cast("int", widget_data.get("discover_widget_split", None)),
+            discover_widget_split=widget_data.get("discover_widget_split", None),
             limit=widget_data.get("limit", None),
             detail={
                 "layout": widget_data.get("layout"),

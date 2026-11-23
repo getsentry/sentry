@@ -13,14 +13,7 @@ export function AgenticProgressRunFixture(
     runStatus: 'active',
     schemaVersion: 1,
     sequence: 0,
-    stages: [
-      {
-        eventNote: null,
-        extra: null,
-        stage: 'connect_mcp',
-        status: null,
-      },
-    ],
+    stages: [{eventNote: null, extra: null, stage: 'connect_mcp', status: null}],
     updatedAt: '2026-08-13T14:01:28.298407Z',
     onboardingCode: 'Lg1iSt2qeQ',
     ...params,

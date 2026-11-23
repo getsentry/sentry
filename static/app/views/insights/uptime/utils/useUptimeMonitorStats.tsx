@@ -36,10 +36,7 @@ export function useUptimeMonitorStats({detectorIds, timeWindowConfig}: Options) 
   return useQuery({
     ...apiOptions.as<Result>()('/organizations/$organizationIdOrSlug/uptime-stats/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {
-        uptimeDetectorId: detectorIds,
-        ...selectionQuery,
-      },
+      query: {uptimeDetectorId: detectorIds, ...selectionQuery},
       staleTime: 0,
     }),
     enabled: rollupConfig.totalBuckets > 0,

@@ -108,6 +108,7 @@ export function InvestigationCommentFixture(
       ip_address: '127.0.0.1',
     },
     body: 'A comment',
+    mentions: [],
     dateCreated: '2026-01-01T00:00:00Z',
     dateUpdated: '2026-01-01T00:00:00Z',
     ...overrides,
@@ -213,11 +214,7 @@ export function InvestigationExecutionDetailFixture(
 export function InvestigationTitleGenerationFixture(
   overrides: Partial<InvestigationTitleGeneration> = {}
 ): InvestigationTitleGeneration {
-  return {
-    status: 'completed',
-    preview: null,
-    ...overrides,
-  };
+  return {status: 'completed', preview: null, ...overrides};
 }
 
 export function InvestigationActionRequestFixture(
@@ -467,10 +464,7 @@ export function InvestigationAwaitingInputExecutionFixture(
     status: 'awaiting_input',
     blocks: [
       InvestigationTranscriptBlockFixture({
-        message: {
-          role: 'assistant',
-          content: 'I need one more detail before finishing.',
-        },
+        message: {role: 'assistant', content: 'I need one more detail before finishing.'},
       }),
     ],
     pendingUserInput: {

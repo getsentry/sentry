@@ -4,6 +4,7 @@ from unittest import mock
 
 import responses
 from django.test import override_settings
+from rest_framework.response import Response
 from rest_framework.test import APIClient
 
 from sentry import audit_log
@@ -31,6 +32,7 @@ from sentry.workflow_engine.models import (
     WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.typings.notification_action import ActionTarget, ActionType
 from tests.sentry.workflow_engine.test_base import (
     BaseWorkflowTest,
@@ -799,7 +801,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
 
     def _assert_create_rejected_without_writes(
         self, data: dict[str, Any], status_code: int = 403
-    ) -> None:
+    ) -> Response:
         model_counts = self._workflow_creation_model_counts()
         workflow_data = {
             **self.valid_workflow,
@@ -823,13 +825,14 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             **data,
         }
 
-        self.get_error_response(
+        response = self.get_error_response(
             self.organization.slug,
             raw_data=workflow_data,
             status_code=status_code,
         )
 
         assert self._workflow_creation_model_counts() == model_counts
+        return response
 
     def test_create_rejects_client_action_id(self) -> None:
         self._assert_create_rejected_without_writes(
@@ -851,6 +854,40 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             },
             status_code=400,
         )
+
+    def test_create_rejects_internal_trigger(self) -> None:
+        handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
+        with mock.patch.object(handler, "is_internal", True):
+            self._assert_create_rejected_without_writes(
+                {"triggers": {"logicType": "any-short", "conditions": self.basic_trigger}},
+                status_code=400,
+            )
+
+    def test_create_rejects_internal_action_filter(self) -> None:
+        handler = condition_handler_registry.get(Condition.ISSUE_OCCURRENCES)
+        with mock.patch.object(handler, "is_internal", True):
+            response = self._assert_create_rejected_without_writes(
+                {
+                    "actionFilters": [
+                        {"logicType": "any", "conditions": self.basic_condition, "actions": []}
+                    ]
+                },
+                status_code=400,
+            )
+        assert "Internal conditions cannot be configured through the API." in str(
+            response.data["actionFilters"]
+        )
+
+    def test_create_rejects_internal_group_reference(self) -> None:
+        group = self.create_data_condition_group()
+        self.create_data_condition(
+            condition_group=group, type=Condition.FIRST_SEEN_EVENT, comparison=True
+        )
+        handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
+        with mock.patch.object(handler, "is_internal", True):
+            self._assert_create_rejected_without_writes(
+                {"triggers": {"id": group.id, "logicType": "any-short"}}, status_code=400
+            )
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.workflow.create_audit_entry")
     def test_create_workflow__basic(self, mock_audit: mock.MagicMock) -> None:
@@ -1008,6 +1045,39 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
 
         assert response.data["triggers"]["conditions"][0]["conditionResult"] is True
         assert response.data["actionFilters"][0]["conditions"][0]["conditionResult"] is True
+
+    def test_create_workflow__rejects_object_condition_result_in_triggers(self) -> None:
+        self.valid_workflow["triggers"] = {
+            "logicType": "any-short",
+            "conditions": [
+                {"type": Condition.EVERY_EVENT.value, "comparison": True, "conditionResult": {}}
+            ],
+        }
+        counts_before = self._workflow_creation_model_counts()
+
+        response = self.get_error_response(
+            self.organization.slug, raw_data=self.valid_workflow, status_code=400
+        )
+
+        assert "must be a boolean" in str(response.data)
+        assert self._workflow_creation_model_counts() == counts_before
+
+    def test_create_workflow__rejects_object_condition_result_in_action_filters(self) -> None:
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [{**self.basic_condition[0], "conditionResult": {}}],
+                "actions": [],
+            }
+        ]
+        counts_before = self._workflow_creation_model_counts()
+
+        response = self.get_error_response(
+            self.organization.slug, raw_data=self.valid_workflow, status_code=400
+        )
+
+        assert "must be a boolean" in str(response.data)
+        assert self._workflow_creation_model_counts() == counts_before
 
     def test_create_workflow__with_triggers_invalid_logic_type(self) -> None:
         self.valid_workflow["triggers"] = {

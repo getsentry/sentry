@@ -13,16 +13,10 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 const consentChoiceSchema = z.enum(['true', 'false']);
-const schema = z.object({
-  beacon: z.object({record_cpu_ram_usage: consentChoiceSchema}),
-});
-const defaultValues: z.infer<typeof schema> = {
-  beacon: {record_cpu_ram_usage: 'true'},
-};
+const schema = z.object({beacon: z.object({record_cpu_ram_usage: consentChoiceSchema})});
+const defaultValues: z.infer<typeof schema> = {beacon: {record_cpu_ram_usage: 'true'}};
 
-type Props = {
-  onSubmitSuccess?: () => void;
-};
+type Props = {onSubmitSuccess?: () => void};
 
 function BeaconConsent({onSubmitSuccess}: Props) {
   const mutation = useMutation({

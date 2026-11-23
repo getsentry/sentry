@@ -14,9 +14,7 @@ export function useWelcomeAnalyticsEffect({showAgentSetup}: {showAgentSetup: boo
   useEffect(() => {
     trackAnalytics('onboarding.scm_welcome_step_viewed', {organization});
     if (showAgentSetup) {
-      trackAnalytics('onboarding.scm_welcome_agentic_setup_viewed', {
-        organization,
-      });
+      trackAnalytics('onboarding.scm_welcome_agentic_setup_viewed', {organization});
     }
   }, [organization, showAgentSetup]);
 
