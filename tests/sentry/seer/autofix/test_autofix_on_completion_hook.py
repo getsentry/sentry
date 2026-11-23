@@ -2251,6 +2251,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 repo_name="test-repo",
                 pr_creation_status="error",
                 pr_creation_error_code="out_of_credits",
+                credit_denial_reason="daily_cap_exceeded",
             )
         }
 
@@ -2269,6 +2270,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                     "sentry_run_id": str(seer_run.uuid),
                     "group_id": self.group.id,
                     "failure_reason": "out_of_credits",
+                    "denial_reason": "daily_cap_exceeded",
                 },
                 "organization_id": self.organization.id,
             }
@@ -2277,7 +2279,12 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
             resource_name="seer",
             event_name="errored",
             organization_id=self.organization.id,
-            payload=mock_process.call_args.kwargs["kwargs"]["event_payload"],
+            payload={
+                "run_id": 123,
+                "sentry_run_id": str(seer_run.uuid),
+                "group_id": self.group.id,
+                "failure_reason": "out_of_credits",
+            },
         )
 
     @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")

@@ -31,7 +31,7 @@ from sentry.seer.agent.client_models import (
 )
 from sentry.seer.autofix.single_run import single_run_stopping_point
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
-from sentry.seer.credits import OUT_OF_CREDITS
+from sentry.seer.credits import OUT_OF_CREDITS, SeerCreditDenialReason, get_run_denial_reason
 from sentry.seer.endpoints.agent_request import (
     AgentApprovalRequestSerializer,
 )
@@ -347,11 +347,15 @@ class SlackAutofixEntrypoint(
             ephemeral_user_id=self.slack_request.user_id,
         )
 
-    def on_trigger_autofix_out_of_credits(self, *, started: bool) -> None:
+    def on_trigger_autofix_out_of_credits(
+        self, *, started: bool, denial_reason: SeerCreditDenialReason | None
+    ) -> None:
         send_thread_update(
             install=self.install,
             thread=self.thread,
-            data=SeerAutofixOutOfCredits(organization_id=self.organization_id),
+            data=SeerAutofixOutOfCredits(
+                organization_id=self.organization_id, denial_reason=denial_reason
+            ),
             ephemeral_user_id=self.slack_request.user_id,
         )
 
@@ -441,7 +445,8 @@ class SlackAutofixEntrypoint(
                     )
                 elif event_payload.get("failure_reason") == OUT_OF_CREDITS:
                     message = SeerAutofixOutOfCredits(
-                        organization_id=cache_payload["organization_id"]
+                        organization_id=cache_payload["organization_id"],
+                        denial_reason=event_payload.get("denial_reason"),
                     )
                 else:
                     message = SeerAutofixError(
@@ -741,7 +746,10 @@ class SlackAgentEntrypoint(
                 else send_thread_update(
                     install=install,
                     thread=thread,
-                    data=SeerAgentOutOfCredits(organization_id=organization_id),
+                    data=SeerAgentOutOfCredits(
+                        organization_id=organization_id,
+                        denial_reason=get_run_denial_reason(state),
+                    ),
                 )
             )
             if message_ts:
@@ -889,7 +897,9 @@ def _next_agent_reply(
         key = _out_of_credits_key(state)
         if key in replies:
             return None
-        return key, SeerAgentOutOfCredits(organization_id=organization_id)
+        return key, SeerAgentOutOfCredits(
+            organization_id=organization_id, denial_reason=get_run_denial_reason(state)
+        )
     else:
         turn = next((turn for turn in reversed(state.get_turns()) if turn.answer), None)
         if turn is None or turn.answer is None:
