@@ -1,5 +1,4 @@
 import type * as React from 'react';
-import {useMemo} from 'react';
 import type {ListState} from '@react-stately/list';
 import type {Key, Node, SelectionMode} from '@react-types/shared';
 
@@ -88,21 +87,18 @@ export function SelectRows<T extends ListItemBase>({
   size,
   virtualized,
 }: SelectRowsProps<T>) {
-  const positions = useMemo(
-    () => (virtualized ? getVisibleOptionPositions(listItems, hiddenOptions) : undefined),
-    [virtualized, listItems, hiddenOptions]
-  );
+  const positions = virtualized
+    ? getVisibleOptionPositions(listItems, hiddenOptions)
+    : undefined;
 
   // The overlay sizes its width to the rows. Keep the visible option with the
   // longest label mounted, so a virtualized list does not change width as other
   // options scroll into view.
-  const widestKey = useMemo(
-    () =>
-      virtualized ? getWidestKey(flattenSections(listItems, hiddenOptions)) : undefined,
-    [virtualized, listItems, hiddenOptions]
-  );
+  const widestKey = virtualized
+    ? getWidestKey(flattenSections(listItems, hiddenOptions))
+    : undefined;
 
-  const scrollRef = useMemo(() => ({current: scrollElement}), [scrollElement]);
+  const scrollRef = {current: scrollElement};
 
   const getSectionLayout = (section: Node<T>): SectionRowLayout => {
     const toggleAllButton =

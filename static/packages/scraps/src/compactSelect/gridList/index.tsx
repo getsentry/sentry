@@ -114,11 +114,9 @@ function GridList<T extends ListItemBase>({
     [listItems, hiddenOptions]
   );
   // Screen readers cannot count the rows of a virtualized grid from the DOM.
-  const rowCount = useMemo(
-    () =>
-      virtualized ? getVisibleOptionPositions(listItems, hiddenOptions).size : undefined,
-    [virtualized, listItems, hiddenOptions]
-  );
+  const rowCount = virtualized
+    ? getVisibleOptionPositions(listItems, hiddenOptions).size
+    : undefined;
 
   const mergedProps = mergeProps(gridProps, props);
 
