@@ -133,6 +133,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                 "minLength": 1,
             },
         },
+        "dependentRequired": {"timezone": ["cron"]},
     }
 
     __repr__ = sane_repr("organization_id")
