@@ -14,6 +14,26 @@ const CONTAINER_PROPERTIES = new Set([
   'border-radius',
   'background-color',
 ]);
+const MARGIN_PROPERTIES = new Set([
+  'margin',
+  'margin-top',
+  'margin-right',
+  'margin-bottom',
+  'margin-left',
+]);
+const SPACING_PROPERTIES = new Set([
+  ...MARGIN_PROPERTIES,
+  'padding',
+  'padding-top',
+  'padding-right',
+  'padding-bottom',
+  'padding-left',
+  'gap',
+  'row-gap',
+  'column-gap',
+  'align-items',
+  'justify-content',
+]);
 const LAYOUT_ELEMENTS = new Set([
   'article',
   'aside',
@@ -167,6 +187,22 @@ function stylePrimitive(
   return undefined;
 }
 
+/**
+ * True when every declaration is in `properties`. Auto, negative, and unknown
+ * margins are excluded because layout primitives cannot express them.
+ */
+function onlySets(declarations: Declarations, properties: ReadonlySet<string>): boolean {
+  return (
+    declarations.size > 0 &&
+    [...declarations].every(
+      ([property, value]) =>
+        properties.has(property) &&
+        value !== null &&
+        !(MARGIN_PROPERTIES.has(property) && /auto|-/.test(value))
+    )
+  );
+}
+
 function staticValue(node: ESTree.Node): string | null {
   if (
     node.type === 'Literal' &&
@@ -208,8 +244,7 @@ export const preferPrimitives = defineRule({
   meta: {
     type: 'suggestion',
     docs: {
-      description:
-        'Prefer current Scraps primitives at intrinsic Emotion and JSX style sites.',
+      description: 'Prefer current Scraps primitives at Emotion and JSX style sites.',
     },
     schema: [],
     messages: {
@@ -219,6 +254,8 @@ export const preferPrimitives = defineRule({
         "Use Button from '@sentry/scraps/button'. Preserve form behavior explicitly: Button defaults to type='button', while native buttons may submit.",
       preferHeading:
         "Use Heading from '@sentry/scraps/text' with as='{{element}}' to preserve the heading level. Choose size and typography tokens explicitly.",
+      preferLayoutProps:
+        "Set spacing with layout primitive props from '@sentry/scraps/layout', such as gap and padding, instead of styled().",
     },
   },
   create(context) {
@@ -392,6 +429,13 @@ export const preferPrimitives = defineRule({
       style: ESTree.Node | undefined
     ) {
       const styled = getStyledCallInfo(node, importTracker);
+      if (styled?.kind === 'component') {
+        const declarations = style && styleDeclarations(style);
+        if (declarations && onlySets(declarations, SPACING_PROPERTIES)) {
+          context.report({node, messageId: 'preferLayoutProps'});
+        }
+        return;
+      }
       if (styled?.kind !== 'element') {
         return;
       }
@@ -431,6 +475,11 @@ export const preferPrimitives = defineRule({
           const primitive = stylePrimitive(declarations, elements);
           if (primitive) {
             report(node, primitive);
+          } else if (
+            [...elements].every(element => LAYOUT_ELEMENTS.has(element)) &&
+            onlySets(declarations, MARGIN_PROPERTIES)
+          ) {
+            context.report({node, messageId: 'preferLayoutProps'});
           }
         }
       },
