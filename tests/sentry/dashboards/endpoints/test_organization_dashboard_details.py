@@ -1225,6 +1225,38 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400, response.data
         assert "queries" in response.data["widgets"][0], response.data
 
+    def test_put_tracemetrics_line_chart_allows_equation_with_aggregate_when_unified(
+        self,
+    ) -> None:
+        data: dict[str, Any] = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Metrics Equation",
+                    "displayType": "line",
+                    "widgetType": "tracemetrics",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": [
+                                "avg(value,metric_name,gauge,none)",
+                                "equation|sum(value,metric_name,counter,none) / 100",
+                            ],
+                            "columns": [],
+                            "aggregates": [
+                                "avg(value,metric_name,gauge,none)",
+                                "equation|sum(value,metric_name,counter,none) / 100",
+                            ],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        with self.feature(["organizations:dashboards-trace-metrics-unified-visualize"]):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
     def test_add_widget_with_field_aliases(self) -> None:
         data: dict[str, Any] = {
             "title": "First dashboard",
