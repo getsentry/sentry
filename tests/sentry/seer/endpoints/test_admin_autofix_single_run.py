@@ -8,7 +8,14 @@ from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
 )
 
 from sentry.eventstream.base import GroupState
+from sentry.incidents.grouptype import MetricIssueDetectorHandler
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+from sentry.incidents.utils.types import (
+    AnomalyDetectionProcessedSubscriptionUpdate,
+    MetricDetectorProcessedSubscriptionUpdate,
+    PercentDetectorProcessedSubscriptionUpdate,
+    StaticDetectorProcessedSubscriptionUpdate,
+)
 from sentry.investigations.services.breached_metrics import resolve_breached_metric_sources
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import get_latest_open_period
@@ -177,6 +184,25 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
         with patch("sentry.api.permissions.is_active_staff", return_value=True):
             return super().get_response(*args, **params)
 
+    def trigger_breach_and_get_synthetic_subscription_update(
+        self,
+    ) -> MetricDetectorProcessedSubscriptionUpdate:
+        """Create a synthetic breach and return the update in the packet sent to the handler."""
+        with (
+            patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream"),
+            patch.object(
+                MetricIssueDetectorHandler,
+                "_create_occurrence",
+                autospec=True,
+                side_effect=MetricIssueDetectorHandler._create_occurrence,
+            ) as create_occurrence_spy,
+        ):
+            self.get_success_response(
+                organizationId=self.organization.id, monitorId=self.detector.id, status_code=201
+            )
+        # Args are (`self`, `evaluation`, `data_packet`, `value`)
+        return create_occurrence_spy.call_args.args[2].packet
+
     @patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_staff_without_membership_can_create_fresh_issues(self, publish: MagicMock) -> None:
         state = self.create_detector_state(
@@ -277,6 +303,32 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
                 organizationId=self.organization.id, monitorId=self.detector.id, status_code=201
             )
         publish.assert_called_once()
+
+    def test_static_monitor_packet_type(self) -> None:
+        self.detector.update(config={"detection_type": AlertRuleDetectionType.STATIC.value})
+        synthetic_subscription_update = self.trigger_breach_and_get_synthetic_subscription_update()
+        assert type(synthetic_subscription_update) is StaticDetectorProcessedSubscriptionUpdate
+
+    def test_percent_monitor_packet_type(self) -> None:
+        self.detector.update(
+            config={
+                "detection_type": AlertRuleDetectionType.PERCENT.value,
+                "comparison_delta": 3600,
+            }
+        )
+        synthetic_subscription_update = self.trigger_breach_and_get_synthetic_subscription_update()
+        assert type(synthetic_subscription_update) is PercentDetectorProcessedSubscriptionUpdate
+        value = synthetic_subscription_update.values["value"]
+        assert synthetic_subscription_update.values == {"value": value}
+
+    def test_anomaly_monitor_packet_type(self) -> None:
+        self.detector.update(config={"detection_type": AlertRuleDetectionType.DYNAMIC.value})
+        self.critical_detector_trigger.update(
+            type=Condition.ANOMALY_DETECTION,
+            comparison={"sensitivity": "high", "seasonality": "auto", "threshold_type": 0},
+        )
+        synthetic_subscription_update = self.trigger_breach_and_get_synthetic_subscription_update()
+        assert type(synthetic_subscription_update) is AnomalyDetectionProcessedSubscriptionUpdate
 
     @patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_dispatches_through_connected_workflows(self, publish: MagicMock) -> None:
