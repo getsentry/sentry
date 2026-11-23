@@ -437,6 +437,16 @@ family:native function:"__*[[]Sentry*"                            -app -group
 # Projects shipping their own class called "SentryFoo" can then easily override this in their
 # own grouping enhancers.
 family:native function:"?[[]Sentry*"                              -app -group
+# Swift SDK symbols, including normalized closure and initializer names. Unqualified names
+# are limited to known SDK types so application types such as SentrySetupInteractor stay in-app.
+family:native function:"Sentry.*"                                 -app -group
+family:native function:"* Sentry.*"                               -app -group
+family:native function:"SentrySDK.*"                              -app -group
+family:native function:"* SentrySDK.*"                            -app -group
+family:native function:"SentryDefaultThreadInspector.*"           -app -group
+family:native function:"* SentryDefaultThreadInspector.*"         -app -group
+family:native function:"SentrySRDefaultBreadcrumbConverter.*"     -app -group
+family:native function:"* SentrySRDefaultBreadcrumbConverter.*"   -app -group
 
 # Mark Dart Flutter Android stacktraces in-app by default, further not in-app rules are applied afterwards below
 family:native stack.package:/data/app/** stack.abs_path:**/*.dart +app
