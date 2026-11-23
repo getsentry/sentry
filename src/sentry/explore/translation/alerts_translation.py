@@ -3,7 +3,6 @@ import logging
 import sentry_sdk
 from django.db import router
 
-from sentry import features
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
@@ -86,9 +85,7 @@ def _verify_event_types(snuba_query: SnubaQuery) -> bool:
     return False
 
 
-def translate_detector_and_update_subscription_in_snuba(
-    snuba_query: SnubaQuery, bypass_flag_check: bool = False
-) -> None:
+def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery) -> None:
     if not _verify_event_types(snuba_query):
         logger.info(
             "Skipping roll forward for query with invalid event types",
@@ -113,11 +110,6 @@ def translate_detector_and_update_subscription_in_snuba(
     except DataSource.DoesNotExist as e:
         logger.info("Data source not found for snuba query %s", snuba_query.id)
         sentry_sdk.capture_exception(e)
-        return
-    if not bypass_flag_check and not features.has(
-        "organizations:migrate-transaction-alerts-to-spans", data_source.organization
-    ):
-        logger.info("Feature flag not enabled")
         return
 
     detectors = data_source.detectors.all()
@@ -255,9 +247,7 @@ def translate_detector_and_update_subscription_in_snuba(
     return
 
 
-def rollback_detector_query_and_update_subscription_in_snuba(
-    snuba_query: SnubaQuery, bypass_flag_check: bool = False
-) -> None:
+def rollback_detector_query_and_update_subscription_in_snuba(snuba_query: SnubaQuery) -> None:
     # querying for updating as well just in case the subscription gets stuck in updating
     query_subscription_qs = QuerySubscription.objects.filter(
         snuba_query_id=snuba_query.id,
@@ -276,12 +266,6 @@ def rollback_detector_query_and_update_subscription_in_snuba(
     except DataSource.DoesNotExist as e:
         logger.info("Data source not found for snuba query %s", snuba_query.id)
         sentry_sdk.capture_exception(e)
-        return
-
-    if not bypass_flag_check and not features.has(
-        "organizations:migrate-transaction-alerts-to-spans", data_source.organization
-    ):
-        logger.info("Feature flag not enabled")
         return
 
     snapshot = snuba_query.query_snapshot

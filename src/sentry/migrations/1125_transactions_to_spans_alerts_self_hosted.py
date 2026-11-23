@@ -80,7 +80,7 @@ def migrate_transactions_to_spans_alerts_self_hosted(
 
     for snuba_query in RangeQuerySetWrapper(qs):
         try:
-            translate_detector_and_update_subscription_in_snuba(snuba_query, bypass_flag_check=True)
+            translate_detector_and_update_subscription_in_snuba(snuba_query)
         except Exception as e:
             sentry_sdk.capture_exception(e)
             logger.info("Error migrating transactions to spans alerts self hosted: %s", e)
