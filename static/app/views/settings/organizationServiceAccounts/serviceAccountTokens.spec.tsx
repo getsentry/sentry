@@ -58,6 +58,26 @@ describe('ServiceAccountTokens', () => {
     expect(screen.getAllByText('Never')).toHaveLength(2);
   });
 
+  it('shows the scope count when the account has fewer scopes than the token', async () => {
+    MockApiClient.addMockResponse({url: tokensUrl, body: [token]});
+
+    renderTokens({...account, scopes: []});
+
+    expect(await screen.findByText('1 scope')).toBeInTheDocument();
+    expect(screen.queryByText('Same as account')).not.toBeInTheDocument();
+  });
+
+  it('shows same as account for matching scopes in a different order', async () => {
+    MockApiClient.addMockResponse({
+      url: tokensUrl,
+      body: [{...token, scopes: account.scopes.toReversed()}],
+    });
+
+    renderTokens();
+
+    expect(await screen.findByText('Same as account')).toBeInTheDocument();
+  });
+
   it('shows an empty state', async () => {
     MockApiClient.addMockResponse({url: tokensUrl, body: []});
 

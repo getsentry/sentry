@@ -63,7 +63,9 @@ function TokenScopes({
       ))}
     </Stack>
   );
-  const hasAccountScopes = accountScopes.every(scope => token.scopes.includes(scope));
+  const hasAccountScopes =
+    accountScopes.length === token.scopes.length &&
+    accountScopes.every(scope => token.scopes.includes(scope));
   return (
     <InfoText title={scopeList}>
       {hasAccountScopes
