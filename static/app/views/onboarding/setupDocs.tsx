@@ -12,17 +12,17 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OtherPlatformsInfo} from 'sentry/views/projectInstall/otherPlatformsInfo';
 
 import {FirstEventFooter} from './components/firstEventFooter';
 import {SetupIntroduction} from './components/setupIntroduction';
 import type {StepProps} from './types';
+import {useLeaveOnboarding} from './useLeaveOnboarding';
 
 export function SetupDocs({recentCreatedProject: project, genBackButton}: StepProps) {
   const organization = useOrganization();
-  const navigate = useNavigate();
+  const leaveOnboarding = useLeaveOnboarding();
   const {setSelectedFeatures} = useOnboardingContext();
   const [products] = useQueryState('product', parseAsStringArray);
 
@@ -64,7 +64,6 @@ export function SetupDocs({recentCreatedProject: project, genBackButton}: StepPr
       <FirstEventFooter
         project={project}
         organization={organization}
-        isLast
         leading={genBackButton?.()}
         onClickSetupLater={() => {
           trackAnalytics('onboarding.scm_setup_platform_later_clicked', {
@@ -73,12 +72,13 @@ export function SetupDocs({recentCreatedProject: project, genBackButton}: StepPr
             project_id: project.id,
           });
 
-          navigate(
-            normalizeUrl({
+          leaveOnboarding({
+            to: normalizeUrl({
               pathname: `/organizations/${organization.slug}/issues/`,
               query: {project: project.id, referrer: 'onboarding-setup-docs'},
-            })
-          );
+            }),
+            sidebarSource: 'targeted_onboarding_first_event_footer_skip',
+          });
         }}
       />
     </Fragment>
