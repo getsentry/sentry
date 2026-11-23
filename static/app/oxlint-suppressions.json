@@ -2475,9 +2475,6 @@
   "views/seerExplorer/components/chat/toolUse.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 3}
   },
-  "views/seerExplorer/components/explorerMenu.tsx": {
-    "@sentry/scraps/prefer-primitives": {"count": 2}
-  },
   "views/seerExplorer/components/fileDiffViewer.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 1},
     "@sentry/scraps/prefer-primitives": {"count": 3}
