@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import TypeVar
 
 from django.conf import settings
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
@@ -42,8 +41,6 @@ REDIS_TTL = int(timedelta(days=7).total_seconds())
 # ToDo(ahmed): This is still experimental. If we decide that it makes sense to keep this
 #  functionality, then maybe we should move this to constants
 CRASH_RATE_ALERT_MINIMUM_THRESHOLD: int | None = None
-
-T = TypeVar("T")
 
 
 class SubscriptionProcessor:
