@@ -191,7 +191,9 @@ def _create_synthetic_subscription_update(
         return PercentDetectorProcessedSubscriptionUpdate(
             entity=entity,
             subscription_id=subscription_id,
-            values={"value": value},
+            # For percent detectors, `value` is defined as current as a percentage of the baseline
+            # (value = (current/baseline)*100), so we pick easy raw values that make the math work
+            values={"value": value, "current": value, "baseline": 100},
             timestamp=timestamp,
         )
     else:  # Process of elimination - must be a static detector

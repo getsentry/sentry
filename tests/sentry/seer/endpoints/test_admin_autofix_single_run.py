@@ -319,7 +319,11 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
         synthetic_subscription_update = self.trigger_breach_and_get_synthetic_subscription_update()
         assert type(synthetic_subscription_update) is PercentDetectorProcessedSubscriptionUpdate
         value = synthetic_subscription_update.values["value"]
-        assert synthetic_subscription_update.values == {"value": value}
+        assert synthetic_subscription_update.values == {
+            "value": value,
+            "current": value,
+            "baseline": 100,
+        }
 
     def test_anomaly_monitor_packet_type(self) -> None:
         self.detector.update(config={"detection_type": AlertRuleDetectionType.DYNAMIC.value})

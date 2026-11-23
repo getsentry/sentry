@@ -27,7 +27,9 @@ class StaticDetectorEvaluationValues(TypedDict):
 
 
 class PercentDetectorEvaluationValues(TypedDict):
-    value: float
+    value: float  # `current` as a percentage of `baseline`
+    current: float
+    baseline: float
 
 
 class AnomalyDetectionEvaluationValues(TypedDict):
