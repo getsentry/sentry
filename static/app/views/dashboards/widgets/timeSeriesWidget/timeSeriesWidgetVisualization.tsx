@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeRefs} from '@react-aria/utils';
+import {IconWarning} from '@sentry/icons/warning';
 import * as Sentry from '@sentry/react';
 import type {SeriesOption, XAXisComponentOption, YAXisComponentOption} from 'echarts';
 import type {
@@ -11,6 +12,7 @@ import sum from 'lodash/sum';
 import unescape from 'lodash/unescape';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {useRenderToString} from '@sentry/scraps/renderToString';
 
 import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
 import {BAND_Y_AXIS, type BandBucket} from 'sentry/components/charts/bands/bandShapes';
@@ -42,6 +44,7 @@ import type {
   ReactEchartsRef,
 } from 'sentry/types/echarts';
 import {escape} from 'sentry/utils';
+import {toArray} from 'sentry/utils/array/toArray';
 import {getUserTimezone} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
@@ -247,6 +250,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     props.pageFilters?.datetime || pageFilters.selection.datetime;
 
   const theme = useTheme();
+  const renderToString = useRenderToString();
   const navigate = useNavigate();
   const location = useLocation();
   const hasReleaseBubbles =
@@ -383,6 +387,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       }
     }
 
+    const hasLowConfidence = toArray(deDupedParams).some(param =>
+      isLowConfidenceDataPoint(param.data)
+    );
+    const warningIcon = hasLowConfidence ? renderToString(<IconWarning size="xs" />) : '';
+
     return getFormatter({
       isGroupedByDate: true,
       showTimeInTooltip: true,
@@ -446,11 +455,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         );
 
         if (isLowConfidenceDataPoint(valueFormatterParams.data)) {
-          return `${formattedValue} <span style="color: ${theme.tokens.content.warning}">${escape(t('(Low confidence)'))}</span>`;
+          return `<span style="display: inline-flex; align-items: center; gap: ${theme.space.xs}">${warningIcon}${formattedValue}</span>`;
         }
 
         return formattedValue;
       },
+      renderHeader: seriesParams =>
+        seriesParams.some(param => isLowConfidenceDataPoint(param.data))
+          ? `<div class="tooltip-header">${warningIcon}${escape(t('Low confidence'))}</div>`
+          : '',
       renderSeriesDetails: props.renderTooltipSeriesDetails,
       limit: props.tooltipLimit,
       truncate: false,
