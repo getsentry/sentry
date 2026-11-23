@@ -5,6 +5,7 @@ from typing import Any
 from uuid import UUID
 
 from django.db import router, transaction
+from django.db.models import Case, DateTimeField, Value, When
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import APIException
@@ -14,6 +15,8 @@ from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook
 from sentry.notebooks.services import NotebookValidationError
 from sentry.notebooks.services.workflow import open_workflow_notebook
+
+PAUSED_RECOVERY_INTERVAL = timedelta(hours=1)
 
 
 class StaleWorkflow(APIException):
@@ -55,7 +58,7 @@ def save_nodes(run: WorkflowRun, values: list[dict[str, Any]]) -> None:
             raise serializers.ValidationError("Wrong workflow for node.")
         due = node.validated_data["next_check_at"]
         if value["status"] == "awaiting_input" and due is None and not value["state"].get("error"):
-            due = timezone.now() + timedelta(minutes=1)
+            due = timezone.now() + PAUSED_RECOVERY_INTERVAL
         if due and value.get("lease_expires_at"):
             due = max(due, serializers.DateTimeField().to_internal_value(value["lease_expires_at"]))
         WorkflowNodeRun.objects.update_or_create(
@@ -254,7 +257,15 @@ def reserve_due_nodes(*, run: WorkflowRun | None = None) -> dict[int, list[str]]
             ]
         )
         WorkflowNodeRun.objects.filter(pk__in=[pk for pk, _, _ in rows]).update(
-            next_check_at=now + timedelta(minutes=1)
+            next_check_at=Case(
+                When(
+                    checkpoint__status="awaiting_input",
+                    checkpoint__next_check_at=None,
+                    then=Value(now + PAUSED_RECOVERY_INTERVAL),
+                ),
+                default=Value(now + timedelta(minutes=1)),
+                output_field=DateTimeField(),
+            )
         )
         for _, org, node in rows:
             batches.setdefault(org, []).append(str(node))
