@@ -1,5 +1,7 @@
 import {useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconIssues} from '@sentry/icons/issues';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -11,8 +13,9 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
-import {ProgressState} from 'sentry/types/group';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -29,12 +32,14 @@ import {
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {isCommentEdited} from 'sentry/views/investigations/comments/utils';
 import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/block';
+import {getInvestigationSource} from 'sentry/views/investigations/source';
 import type {
   InvestigationActionRequest,
   InvestigationComment,
   InvestigationDetail,
 } from 'sentry/views/investigations/types';
 import {getActorName} from 'sentry/views/investigations/utils';
+import {InlineChip} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/inlineChip';
 import {
   ActivityLineContent,
   ActivityLineHeadline,
@@ -42,6 +47,7 @@ import {
   ActivityLineRow,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {ActivityProgressMarker} from 'sentry/views/issueDetails/activitySection/activityLineItem/progressMarker/progressMarker';
+import {getStrategyLabel} from 'sentry/views/seerWorkflows/strategies';
 
 export function InvestigationActivity({
   investigation,
@@ -118,18 +124,7 @@ export function InvestigationActivity({
               </Text>
             </ActivityLineRow>
           ) : null}
-          <ActivityLineRow as="li">
-            <Grid column={1} row={1} flow="column" autoColumns="22px" gap="sm">
-              <ActivityProgressMarker
-                state={ProgressState.IDENTIFIED}
-                label={t('Created')}
-              />
-            </Grid>
-            <ActivityLineHeadline
-              title={t('Investigation first created')}
-              timestamp={<TimeSince date={investigation.dateCreated} />}
-            />
-          </ActivityLineRow>
+          <StartedRow investigation={investigation} />
         </ActivityList>
       )}
     </Stack>
@@ -163,6 +158,107 @@ function getActivityEntries(
     }
   }
   return entries.sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+}
+
+/**
+ * The first entry, naming what started the investigation: the person who
+ * created it, the automation that did, or the issue it was started from.
+ */
+function StartedRow({investigation}: {investigation: InvestigationDetail}) {
+  const organization = useOrganization();
+  const currentUser = useUser();
+  const {trigger, createdBy} = investigation;
+  const source = getInvestigationSource(investigation);
+  const isOwnInvestigation = createdBy === currentUser.id;
+  const {data: members} = useMembers({
+    ids: createdBy ? [createdBy] : [],
+    enabled: !trigger && !isOwnInvestigation,
+  });
+  const user =
+    trigger?.type === 'user'
+      ? trigger.user
+      : isOwnInvestigation
+        ? currentUser
+        : members?.find(member => member.id === createdBy);
+
+  // Whoever or whatever started it is a reference, so it uses the issue
+  // activity feed's inline chips, and the row keeps the timeline dot.
+  // Only service accounts create investigations without createdBy, so a
+  // person's investigation never credits its source issue, even while their
+  // member lookup is pending or after it fails.
+  const startedFromSource = !createdBy && source.groupId;
+  const word = <StartedWord />;
+  let details: React.ReactNode = null;
+  if (user) {
+    details = tct('[word:by] [actor]', {
+      word,
+      actor: (
+        <InlineChip variant="constrainedCompactLeading">
+          <UserAvatar user={user} size={16} />
+          <ChipLabel>{getActorName(user)}</ChipLabel>
+        </InlineChip>
+      ),
+    });
+  } else if (trigger?.type === 'automation') {
+    details = tct('[word:by] [automation] [suffix:automation]', {
+      word,
+      suffix: word,
+      automation: (
+        <InlineChip variant="constrained">
+          <ChipLabel>
+            {trigger.automation.name ?? getStrategyLabel(trigger.automation.strategy)}
+          </ChipLabel>
+        </InlineChip>
+      ),
+    });
+  } else if (startedFromSource) {
+    details = tct('[word:from] [source]', {
+      word,
+      source: (
+        <ChipLink
+          to={normalizeUrl(
+            `/organizations/${organization.slug}/issues/${source.groupId}/`
+          )}
+        >
+          <InlineChip interactive tone="accent" variant="constrainedCompactLeading">
+            <IconIssues size="xs" />
+            <ChipLabel>{source.monitorName ?? t('an issue')}</ChipLabel>
+          </InlineChip>
+        </ChipLink>
+      ),
+    });
+  }
+
+  return (
+    <ActivityLineRow as="li">
+      <Grid column={1} row={1} flow="column" autoColumns="22px" gap="sm">
+        <ActivityProgressMarker state="activity" label={t('Started')} />
+      </Grid>
+      {/* Each word and chip is its own flex item, so they center on the
+          marker. In ActivityLineHeadline's sentence the chips sit lower than
+          the text and the names sit high in their chips. */}
+      <Flex
+        column={2}
+        row={1}
+        align="center"
+        wrap="wrap"
+        gap="xs"
+        minHeight="22px"
+        minWidth={0}
+      >
+        <StartedText bold density="comfortable">
+          {t('Investigation started')}
+        </StartedText>{' '}
+        {details}{' '}
+        <StartedText variant="muted" density="comfortable">
+          &bull;
+        </StartedText>{' '}
+        <StartedText variant="muted" density="comfortable" wrap="nowrap">
+          <TimeSince date={investigation.dateCreated} />
+        </StartedText>
+      </Flex>
+    </ActivityLineRow>
+  );
 }
 
 function AppliedActionRow({
@@ -318,4 +414,32 @@ const ActivityList = styled(ActivityLineList)`
   margin: 0;
   padding: 0;
   list-style: none;
+`;
+
+// Rubik's capitals sit above the middle of its line box. Trimming the text to
+// its cap height lets flex centering line it up with avatars, icons, and chips.
+const capHeightTrim = css`
+  text-box: trim-both cap alphabetic;
+`;
+
+const StartedText = styled(Text)`
+  ${capHeightTrim};
+`;
+
+// tct passes the translated word as children.
+function StartedWord({children}: {children?: React.ReactNode}) {
+  return (
+    <StartedText variant="muted" density="comfortable">
+      {children}
+    </StartedText>
+  );
+}
+
+const ChipLabel = styled('span')`
+  ${capHeightTrim};
+`;
+
+const ChipLink = styled(Link)`
+  display: flex;
+  min-width: 0;
 `;
