@@ -209,16 +209,18 @@ def test_process_native_flamegraph(cached_flamegraph: CachedFlamegraph) -> None:
     with (
         Feature({"organizations:flamegraph-attachments": True}),
         mock.patch("sentry.utils.metrics.incr") as incr,
-        mock.patch("sentry.utils.metrics.distribution") as distribution,
+        mock.patch("sentry.lang.native.flamegraphs.traces.get_current_span") as get_current_span,
     ):
         result = process_native_stacktraces(symbolicator, data)
     incr.assert_any_call("process.native.flamegraph.received")
     incr.assert_any_call("process.native.flamegraph.processed")
-    distribution.assert_any_call(
-        "process.native.flamegraph.size", len(orjson.dumps(payload)), unit="byte"
+    get_current_span.return_value.set_attributes.assert_called_once_with(
+        {
+            "flamegraph.size": len(orjson.dumps(payload)),
+            "flamegraph.frames": 2,
+            "flamegraph.nodes": 3,
+        }
     )
-    distribution.assert_any_call("process.native.flamegraph.frames", 2)
-    distribution.assert_any_call("process.native.flamegraph.nodes", 3)
     symbolicator.process_payload.assert_called_once()
     request = symbolicator.process_payload.call_args.kwargs
     assert request["platform"] == "cocoa"
