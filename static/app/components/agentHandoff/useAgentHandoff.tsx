@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 
@@ -63,22 +63,32 @@ function clipboardError() {
 
 /**
  * Mints short-lived handoff codes and copies a prompt containing them without exposing
- * the code in the UI. Valid codes are cached until their context changes or they approach
- * expiration, and concurrent copy requests share the same operation. Call copyPrompt
- * directly from the user gesture that authorizes clipboard access.
+ * the code in the UI. Valid codes are cached until the window regains focus, their
+ * context changes, or they approach expiration. Concurrent copies share one operation.
+ * Call copyPrompt from the user gesture that authorizes clipboard access.
  */
 export function useAgentHandoff<Flow extends AgentHandoffFlow>(
   flow: Flow,
   context: AgentHandoffContext<Flow> | null
 ) {
   const organization = useOrganization();
-  const handoff = useRef<CachedHandoff<Flow> | null>(null);
+  const handoffCache = useRef<{handoff: CachedHandoff<Flow> | null}>({handoff: null});
   const copyOperation = useRef<Promise<string> | null>(null);
   const mutation = useMutation({
     gcTime: 0,
     retry: false,
     mutationFn: (operation: Promise<string>) => operation,
   });
+
+  useEffect(() => {
+    function clearHandoffCache() {
+      // A mint started before refocus can finish its copy without repopulating this cache.
+      handoffCache.current = {handoff: null};
+    }
+
+    window.addEventListener('focus', clearHandoffCache);
+    return () => window.removeEventListener('focus', clearHandoffCache);
+  }, []);
 
   async function getPrompt(options: HandoffPromptOptions<Flow>): Promise<PreparedPrompt> {
     const promptContext: PromptContext<Flow> = {
@@ -87,7 +97,8 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
       organizationSlug: organization.slug,
     };
 
-    const cachedHandoff = handoff.current;
+    const cache = handoffCache.current;
+    const cachedHandoff = cache.handoff;
     if (cachedHandoff && !isHandoffStale(cachedHandoff, promptContext)) {
       return {
         handoffId: cachedHandoff.handoffId,
@@ -107,7 +118,7 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
           disableIpPinning: options.disableIpPinning,
         },
       });
-      handoff.current = {...minted, ...promptContext};
+      cache.handoff = {...minted, ...promptContext};
 
       return {
         handoffId: minted.handoffId,
