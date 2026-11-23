@@ -50,7 +50,7 @@ class NotebookBlock(DefaultFieldsModel):
     )
 
     # The source is the executed query or evidence reference supplied with this widget.
-    embed = models.JSONField(null=True)
+    embed: models.Field[dict[str, Any] | None, dict[str, Any] | None] = models.JSONField(null=True)
     embed_source = models.TextField(null=True)
     embed_summary = models.TextField(null=True)
 

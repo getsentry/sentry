@@ -42,6 +42,33 @@ class NotebookProject(DefaultFieldsModel):
         ]
 
 
+class WorkflowEvidenceScope(models.TextChoices):
+    NONE = "none"
+    PROJECTS = "projects"
+    ORGANIZATION = "organization"
+
+
+@cell_silo_model
+class NotebookEvidenceProject(DefaultFieldsModel):
+    """A project whose evidence was published in this notebook."""
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    notebook = FlexibleForeignKey(
+        "notebooks.Notebook", on_delete=models.CASCADE, related_name="evidence_project_links"
+    )
+    # Retain the link when a project disappears: its evidence is still in the notebook.
+    project = FlexibleForeignKey("sentry.Project", null=True, on_delete=models.SET_NULL)
+
+    class Meta:
+        app_label = "notebooks"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["notebook", "project"], name="notebook_unique_evidence_project"
+            )
+        ]
+
+
 @cell_silo_model
 class NotebookFavoriteUser(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
@@ -77,9 +104,11 @@ class Notebook(DefaultFieldsModel):
     )
 
     title = models.CharField(max_length=255)
-    # The scope of evidence published here. An empty list represents organization-wide evidence.
-    workflow_project_ids: models.Field[list[int] | None, list[int] | None] = models.JSONField(
-        null=True
+    workflow_evidence_scope = models.CharField(
+        max_length=16,
+        choices=WorkflowEvidenceScope.choices,
+        default=WorkflowEvidenceScope.NONE,
+        db_default=WorkflowEvidenceScope.NONE,
     )
     status = models.CharField(
         max_length=32,
@@ -167,6 +196,20 @@ class Notebook(DefaultFieldsModel):
         return actor_id_from_references(
             user_id=self.created_by_id, service_account_id=self.created_by_service_account_id
         )
+
+    def workflow_evidence_project_ids(self) -> list[int] | None:
+        """None means no workflow evidence; an empty list requires access to all projects."""
+        if self.workflow_evidence_scope == WorkflowEvidenceScope.NONE:
+            return None
+        if self.workflow_evidence_scope == WorkflowEvidenceScope.ORGANIZATION:
+            return []
+        ids = self.evidence_project_links.values_list("project_id", flat=True)
+        projects = []
+        for project_id in ids:
+            if project_id is None:
+                return []
+            projects.append(project_id)
+        return projects
 
     def get_absolute_url(self) -> str:
         organization = self.organization
