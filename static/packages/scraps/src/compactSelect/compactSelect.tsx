@@ -187,7 +187,6 @@ export function CompactSelect<Value extends SelectKey>({
       mode={mode}
       size={size}
       items={allItemsWithKey}
-      isOptionDisabled={isOptionDisabled}
       value={value}
       clearable={clearable}
       onClear={({overlayState}) => {

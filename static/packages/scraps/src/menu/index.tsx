@@ -19,7 +19,7 @@ export {
 
 export type {ListItemProps, MenuItemTrailingAction} from './menu';
 
-export {ControlContext} from './controlContext';
+export {ControlContext, type SearchSubmitTarget} from './controlContext';
 export {DropdownButton, type DropdownButtonProps} from './dropdownButton';
 export type {SelectValue} from './selectValue';
 export type * from './selectTypes';
