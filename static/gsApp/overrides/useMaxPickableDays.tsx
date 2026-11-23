@@ -80,8 +80,7 @@ function getMaxPickableDaysBySubscription(
       };
     }
     case DataCategory.TRACE_METRICS: {
-      // Downsampled retention for trace metrics may be removed, so only flagged
-      // orgs get a range longer than 30 days.
+      // Only flagged orgs get a range longer than 30 days.
       const maxPickableDays = organization.features.includes('tracemetrics-90-day-range')
         ? 90
         : 30;
