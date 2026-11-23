@@ -90,8 +90,6 @@ class SeerWorkflowConfigResponse(TypedDict):
     filters: dict[str, Any]
     outputPolicy: dict[str, Any]
     seededDefault: str | None
-    triggerSettings: dict[str, Any]
-    actionSettings: dict[str, Any]
     # When the automation next runs on its schedule, or None if it doesn't run on one.
     nextRunAt: datetime | None
     dateAdded: datetime
@@ -162,8 +160,6 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
     )
     name = serializers.CharField(default=None, allow_null=True, max_length=64)
     serviceAccount = ServiceAccountGrantSerializer()
-    triggerSettings = serializers.DictField(required=False)
-    actionSettings = serializers.DictField(required=False)
     # Metric automations only; their projects come from the connected monitors.
     monitorIds = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
@@ -201,8 +197,6 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
     enabled = serializers.BooleanField(required=False)
     serviceAccount = ServiceAccountGrantSerializer(required=False)
     name = serializers.CharField(required=False, max_length=64)
-    triggerSettings = serializers.DictField(required=False)
-    actionSettings = serializers.DictField(required=False)
     # [] selects all environments; omitted leaves them unchanged.
     environments = serializers.ListField(
         child=serializers.CharField(max_length=64), required=False, allow_empty=True
@@ -428,9 +422,6 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         ``serviceAccount`` sets the scopes and projects investigations run with, on a
         service account created for the automation.
 
-        Scheduled investigations (``scheduled_investigation``) take ``triggerSettings``
-        (``cron``) and ``actionSettings`` (a ``prompt`` or a ``skill``).
-
         The number of automations per organization is capped, and creation is rate
         limited. A create the caller isn't allowed to make returns a 403. One that is
         rejected, such as reaching the cap, returns a 400 with a generic detail. Returns
@@ -463,10 +454,6 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 
         grant: SeerServiceAccountGrant = data["serviceAccount"]
         check_can_grant_service_account(grant, request, organization, self)
-        extras = SeerWorkflowConfigExtras(
-            trigger_settings=data.get("triggerSettings"),
-            action_settings=data.get("actionSettings"),
-        )
         try:
             if strategy is SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
                 workflow = SeerWorkflow.create(
@@ -477,7 +464,6 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                     environments=data["environments"],
                     name=data.get("name"),
                     created_by_id=acting_user_id(request.user),
-                    extras=extras,
                     service_account_grant=grant,
                 )
             elif strategy is SeerWorkflowStrategy.SCHEDULED_INVESTIGATION:
@@ -494,7 +480,6 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                     environments=data["environments"],
                     name=data.get("name"),
                     created_by_id=acting_user_id(request.user),
-                    extras=extras,
                     service_account_grant=grant,
                 )
             else:
@@ -608,10 +593,6 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
           account. Like ``projectIds``, the account's projects the caller can't access are
           kept, and scopes can't be added while any are.
         - ``name`` renames the config. It is trimmed and must be non-empty.
-        - ``triggerSettings`` and ``actionSettings`` replace the settings the strategy's
-          trigger and action take, such as a scheduled investigation's ``cron``
-          and its ``prompt`` or ``skill``. Like enabling, they require access
-          to every project the config covers.
 
         An update the caller isn't allowed to make returns a 403. One the automation
         rejects returns a 400 with a generic detail. Returns the updated config in the
@@ -640,14 +621,6 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         name: str | None = serializer.validated_data.get("name")
         # None means not sent; an empty list selects all environments.
         environments: list[str] | None = serializer.validated_data.get("environments")
-        trigger_settings: dict[str, Any] | None = serializer.validated_data.get("triggerSettings")
-        action_settings: dict[str, Any] | None = serializer.validated_data.get("actionSettings")
-        changes_behavior = (
-            enabled is not None
-            or environments is not None
-            or trigger_settings is not None
-            or action_settings is not None
-        )
 
         # Checks that depend only on the request run before taking the lock.
         if monitor_ids is not None and get_definition(config.strategy).scoped_by != "monitors":
@@ -683,7 +656,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     update.config.filters
                 ).all_projects
 
-                if changes_behavior:
+                if enabled is not None or environments is not None:
                     denied = _check_project_access(
                         (
                             [ALL_ACCESS_PROJECT_ID]
@@ -765,12 +738,6 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
 
                 if name is not None:
                     update.set_name(name)
-
-                if trigger_settings is not None:
-                    update.set_trigger_settings(trigger_settings)
-
-                if action_settings is not None:
-                    update.set_action_settings(action_settings)
 
                 if update.changed:
                     user_id = acting_user_id(request.user)
@@ -960,7 +927,6 @@ def serialize_workflow_config(
     service_account: SeerServiceAccountResponse | None,
     next_run_at: datetime | None,
 ) -> SeerWorkflowConfigResponse:
-    extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
     filters = SeerWorkflowFilters.parse_obj(config.filters)
     monitor_ids = [m.monitor_id for m in connected_monitors]
     if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
@@ -989,9 +955,7 @@ def serialize_workflow_config(
             snake_to_camel_case,
         ),
         "outputPolicy": config.output_policy,
-        "seededDefault": extras.seeded_default,
-        "triggerSettings": extras.trigger_settings or {},
-        "actionSettings": extras.action_settings or {},
+        "seededDefault": SeerWorkflowConfigExtras.parse_obj(config.extras).seeded_default,
         "nextRunAt": next_run_at,
         "dateAdded": config.date_added,
         "dateUpdated": config.date_updated,
@@ -1004,6 +968,7 @@ def serialize_workflow_config(
         result["name"] = workflow.name
         if workflow.created_by_id is not None:
             result["createdBy"] = str(workflow.created_by_id)
+    extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
     if extras.updated_by is not None:
         result["updatedBy"] = str(extras.updated_by)
     return result
