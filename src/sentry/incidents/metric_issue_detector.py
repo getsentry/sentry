@@ -286,9 +286,16 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         if not isinstance(config, dict):
             raise serializers.ValidationError({"config": ["`config` must be an object."]})
 
-        # Ensure that all percent-type detectors have a lookback (`comparison_delta`) value and that
-        # no other detector types do
         detection_type = config.get("detection_type")
+        self._validate_comparison_delta(detection_type, config)
+
+    def _validate_comparison_delta(
+        self, detection_type: AlertRuleDetectionType, config: dict[str, Any]
+    ) -> None:
+        """
+        Ensure that all percent-type detectors have a lookback (`comparison_delta`) value and that
+        no other detector types do
+        """
         has_comparison_delta = config.get("comparison_delta") is not None
         if detection_type == AlertRuleDetectionType.PERCENT and not has_comparison_delta:
             raise serializers.ValidationError(
