@@ -31,6 +31,11 @@ type ServiceAccountProjectAccess = ProjectSelection;
 
 const PROJECT_COLUMNS: TableColumnConfig[] = [
   {key: 'project', width: 'minmax(0, 1fr)'},
+  {key: 'action', width: 'auto'},
+];
+
+const PROJECT_COLUMNS_WITH_REASON: TableColumnConfig[] = [
+  {key: 'project', width: 'minmax(0, 1fr)'},
   {key: 'reason', width: 'minmax(0, 1fr)'},
   {key: 'action', width: 'auto'},
 ];
@@ -118,16 +123,11 @@ export function getPermissionLevel(
 
 export function ServiceAccountSummary({
   access,
-  isMonitorScoped = false,
   scopeProjects,
   scopes,
 }: {
   access: ServiceAccountProjectAccess;
   scopes: string[];
-  /**
-   * Whether the scope comes from connected monitors, which changes the wording
-   */
-  isMonitorScoped?: boolean;
   /**
    * Projects the automation is scoped to, which are always granted
    */
@@ -140,7 +140,7 @@ export function ServiceAccountSummary({
   if (access.allProjects || scopeProjects?.allProjects) {
     projects = t('All projects');
   } else if (projectCount === 0) {
-    projects = isMonitorScoped ? t('Connected monitor projects') : t('No projects');
+    projects = t('No projects');
   }
   const permissions = tn(
     '%s permission',
@@ -195,6 +195,7 @@ export function ProjectSelector({
   value,
   scopeProjects,
   isMonitorScoped = false,
+  showReason = true,
   disabled,
   emptyMessage,
   onChange,
@@ -212,6 +213,10 @@ export function ProjectSelector({
    * projects here.
    */
   scopeProjects?: ProjectSelection;
+  /**
+   * Whether to show why each project is included
+   */
+  showReason?: boolean;
 }) {
   const {projects} = useProjects();
   // Only global roles can grant all projects, or narrow an account that has them
@@ -294,11 +299,13 @@ export function ProjectSelector({
       )}
       {!allProjects && (
         <SimpleTable
-          columns={PROJECT_COLUMNS}
+          columns={showReason ? PROJECT_COLUMNS_WITH_REASON : PROJECT_COLUMNS}
           header={
             <SimpleTable.HeaderRow>
               <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>{t('Included because')}</SimpleTable.HeaderCell>
+              {showReason && (
+                <SimpleTable.HeaderCell>{t('Included because')}</SimpleTable.HeaderCell>
+              )}
               <SimpleTable.HeaderCell />
             </SimpleTable.HeaderRow>
           }
@@ -309,11 +316,13 @@ export function ProjectSelector({
               <SimpleTable.RowCell>
                 <ProjectBadge project={project} avatarSize={16} disableLink />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell>
-                <Text size="sm" variant="muted">
-                  {isLocked(project.id) ? scopeReason : t('Added manually')}
-                </Text>
-              </SimpleTable.RowCell>
+              {showReason && (
+                <SimpleTable.RowCell>
+                  <Text size="sm" variant="muted">
+                    {isLocked(project.id) ? scopeReason : t('Added manually')}
+                  </Text>
+                </SimpleTable.RowCell>
+              )}
               <SimpleTable.RowCell justify="end">
                 {isLocked(project.id) ? (
                   <Button

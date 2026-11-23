@@ -278,6 +278,7 @@ export function AgenticTriageForm(
                       {() => (
                         <ProjectSelector
                           value={field.state.value}
+                          showReason={false}
                           disabled={readOnly}
                           onChange={next => {
                             // A project leaves the grant when it leaves the scope

@@ -349,7 +349,6 @@ export function MetricAutomationForm(props: Props) {
                     <ServiceAccountSummary
                       access={serviceAccountProjects}
                       scopeProjects={getMonitorScopeProjects(connectedMonitors)}
-                      isMonitorScoped
                       scopes={scopes}
                     />
                   </Disclosure.Title>
