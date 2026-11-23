@@ -18,7 +18,7 @@ from sentry.investigations.services.workflow_client import forward_workflow_requ
 from sentry.investigations.services.workflow_runtime import public_snapshot
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import OrganizationNotebooksBaseEndpoint, user_id
-from sentry.notebooks.models import NotebookWorkflowRun
+from sentry.notebooks.models import NotebookSourceType, NotebookWorkflowRun
 
 RUN_ID = OpenApiParameter(
     name="run_id",
@@ -104,7 +104,9 @@ class OrganizationWorkflowCommandsEndpoint(WorkflowEndpoint):
     publish_status = {"POST": ApiPublishStatus.PRIVATE}
 
     @extend_schema(
-        parameters=[RUN_ID], request=WorkflowCommandRequest, responses={200: OpenApiTypes.OBJECT}
+        parameters=[RUN_ID],
+        request=WorkflowCommandRequest,
+        responses={200: OpenApiTypes.OBJECT, 409: constants.RESPONSE_CONFLICT},
     )
     def post(self, request: Request, organization: Organization, run_id: str) -> Response:
         """Send a command to a workflow run owned by the current user."""
@@ -120,10 +122,17 @@ class OrganizationWorkflowCommandsEndpoint(WorkflowEndpoint):
             )
             binding = (
                 NotebookWorkflowRun.objects.select_related("notebook")
-                .filter(organization=organization, run_id__in=owned.values("uuid"))
+                .filter(
+                    organization=organization,
+                    run_id__in=owned.values("uuid"),
+                    notebook__source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
+                )
                 .get_or_none()
             )
-            if binding and (source := rebuild_orchestration_source(binding.notebook)):
+            if binding:
+                source = rebuild_orchestration_source(binding.notebook)
+                if source is None:
+                    return Response({"detail": "The source monitor is unavailable."}, status=409)
                 payload["source"] = source
         return forward_workflow_request(
             "POST", f"/runs/{UUID(str(run_id))}/commands", operation="commands", data=payload

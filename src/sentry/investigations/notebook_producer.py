@@ -36,7 +36,12 @@ from sentry.notebooks.endpoints.serializers.action_request import (
 from sentry.notebooks.endpoints.serializers.notebook import (
     NotebookOrchestrationSerializerResponse,
 )
-from sentry.notebooks.models import Notebook, NotebookActionRequest, NotebookWorkflowRun
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookActionRequest,
+    NotebookSourceType,
+    NotebookWorkflowRun,
+)
 from sentry.notebooks.services.action_kinds.base import (
     ApplyErrorCode,
     ApplyFailed,
@@ -194,7 +199,19 @@ class WorkflowProducerRun(NotebookProducerRun):
             if item["status"] == "accepted" and item["command"] == command:
                 return UUID(key)
         key = uuid4()
-        source = rebuild_orchestration_source(self.notebook)
+        source = None
+        if (
+            self.notebook.source_type == NotebookSourceType.METRIC_OPEN_PERIOD
+            and self.run.definition.get("name") == "breached_metrics"
+        ):
+            source = rebuild_orchestration_source(self.notebook)
+            if source is None:
+                raise ApplyFailed(
+                    {
+                        "detail": "The source monitor is unavailable.",
+                        "code": ApplyErrorCode.NOT_RETRYABLE,
+                    }
+                )
         followups[str(key)] = {
             "status": "accepted",
             "command": command,

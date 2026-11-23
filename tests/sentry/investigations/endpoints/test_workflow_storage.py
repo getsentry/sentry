@@ -219,6 +219,7 @@ class WorkflowStorageTest(APITestCase):
             response = self.client.post(url, self.payload, format="json", **self.system)
             assert response.status_code == expected, response.data
             if expected == 200:
+                assert not NotebookWorkflowRun.objects.get(run_id=run_id).preserve_title
                 assert not self.client.post(url, self.payload, format="json", **self.system).data[
                     "created"
                 ]
