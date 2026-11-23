@@ -38,7 +38,6 @@ function useModalStore() {
       modalId: state.modalId,
       renderer: state.renderer,
       options: state.options,
-      triggerElement: state.triggerElement,
     }))
   );
   return {...store, visible: selectIsModalOpen(store)};
@@ -66,7 +65,7 @@ export function GlobalModal() {
 }
 
 function ModalHost({portal}: {portal: HTMLDivElement}) {
-  const {modalId, renderer, options, visible, triggerElement} = useModalStore();
+  const {modalId, renderer, options, visible} = useModalStore();
   const {location, modal} = useOverlayContext();
   const getAppElement = modal?.getAppElement;
   const Boundary = modal?.boundaryComponent ?? DefaultModalBoundary;
@@ -105,6 +104,7 @@ function ModalHost({portal}: {portal: HTMLDivElement}) {
   // container queries instead of inheriting the app's breakpoint.
   const portalRef = useRef(portal);
   const focusTrap = useRef<FocusTrap | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     focusTrap.current = createFocusTrap(portal, {
@@ -123,42 +123,85 @@ function ModalHost({portal}: {portal: HTMLDivElement}) {
     };
   }, [portal]);
 
+  // Re-activate the trap for each modal so a replacement modal gets initial focus.
   useEffect(() => {
+    const trap = focusTrap.current;
+    if (!visible || !trap) {
+      return;
+    }
+    trap.activate();
+    return () => {
+      trap.deactivate({returnFocus: false});
+    };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- modalId re-runs it per modal.
+  }, [visible, modalId]);
+
+  // Runs only when the modal opens or closes. A modal that replaces another one
+  // keeps the scroll lock and returns focus to what opened the first modal.
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+    const {triggerElement} = modalStore.getState();
     const root = getAppElement?.();
     const previousAriaHidden = root?.getAttribute('aria-hidden');
     let restoreBackground = () => {};
 
-    const reset = () => {
-      scrollLock.release();
-      restoreBackground();
-      focusTrap.current?.deactivate({returnFocus: false});
-      document.removeEventListener('keydown', handleEscapeClose);
-      triggerElement?.focus();
-    };
-
-    if (visible) {
-      scrollLock.acquire();
-      if (root) {
-        root.setAttribute('aria-hidden', 'true');
-        restoreBackground = () => {
-          if (previousAriaHidden === null || previousAriaHidden === undefined) {
-            root.removeAttribute('aria-hidden');
-          } else {
-            root.setAttribute('aria-hidden', previousAriaHidden);
-          }
-        };
-      } else if (!getAppElement) {
-        restoreBackground = ariaHideOutside([portal]);
-      }
-      focusTrap.current?.activate();
-
-      document.addEventListener('keydown', handleEscapeClose);
-    } else {
-      reset();
+    scrollLock.acquire();
+    if (root) {
+      root.setAttribute('aria-hidden', 'true');
+      restoreBackground = () => {
+        if (previousAriaHidden === null || previousAriaHidden === undefined) {
+          root.removeAttribute('aria-hidden');
+        } else {
+          root.setAttribute('aria-hidden', previousAriaHidden);
+        }
+      };
+    } else if (!getAppElement) {
+      restoreBackground = ariaHideOutside([portal]);
     }
 
-    return reset;
-  }, [portal, handleEscapeClose, visible, scrollLock, triggerElement, getAppElement]);
+    return () => {
+      scrollLock.release();
+      restoreBackground();
+      // Scroll is already restored, so focusing must not scroll the page again.
+      triggerElement?.focus({preventScroll: true});
+    };
+  }, [portal, visible, scrollLock, getAppElement]);
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+    document.addEventListener('keydown', handleEscapeClose);
+    return () => document.removeEventListener('keydown', handleEscapeClose);
+  }, [visible, handleEscapeClose]);
+
+  // The overlay is fixed, so it is sized to the layout viewport. The on-screen
+  // keyboard and pinch zoom only shrink the visual viewport, which would leave
+  // the dialog's footer under the keyboard or off screen. Track the visible area.
+  useLayoutEffect(() => {
+    const viewport = window.visualViewport;
+    const container = containerRef.current;
+    if (!visible || !viewport || !container) {
+      return;
+    }
+    const fitToVisualViewport = () => {
+      container.style.setProperty('top', `${viewport.offsetTop}px`);
+      container.style.setProperty('height', `${viewport.height}px`);
+      container.style.setProperty('bottom', 'auto');
+    };
+    fitToVisualViewport();
+    viewport.addEventListener('resize', fitToVisualViewport);
+    viewport.addEventListener('scroll', fitToVisualViewport);
+    return () => {
+      viewport.removeEventListener('resize', fitToVisualViewport);
+      viewport.removeEventListener('scroll', fitToVisualViewport);
+      for (const property of ['top', 'height', 'bottom']) {
+        container.style.removeProperty(property);
+      }
+    };
+  }, [visible]);
 
   const pathname = location?.pathname;
   // A modal can open before this host mounts. Keep it open on mount and close
@@ -176,7 +219,6 @@ function ModalHost({portal}: {portal: HTMLDivElement}) {
   const allowBackdropClickClose =
     closeEvents === 'all' || closeEvents === 'backdrop-click';
 
-  const containerRef = useRef<HTMLDivElement>(null);
   const clickClose = (e: React.MouseEvent) =>
     containerRef.current === e.target &&
     allowBackdropClickClose &&
@@ -218,6 +260,7 @@ function ModalHost({portal}: {portal: HTMLDivElement}) {
         overflowY="auto"
         css={css`
           z-index: ${theme.zIndex.modal};
+          overscroll-behavior: contain;
         `}
         style={{pointerEvents: visible ? 'auto' : 'none'}}
         onClick={backdrop ? clickClose : undefined}

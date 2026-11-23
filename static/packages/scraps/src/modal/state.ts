@@ -40,6 +40,15 @@ export function openModal(renderer: ModalRenderer, options: ModalOptions = {}) {
     typeof document !== 'undefined' && document.activeElement instanceof HTMLElement
       ? document.activeElement
       : null;
+  // Close the on-screen keyboard before the page is locked, so the dialog is
+  // laid out for the full viewport instead of the area above the keyboard.
+  if (
+    triggerElement instanceof HTMLInputElement ||
+    triggerElement instanceof HTMLTextAreaElement ||
+    triggerElement?.isContentEditable
+  ) {
+    triggerElement.blur();
+  }
   modalStore.setState(state => ({
     modalId: state.modalId + 1,
     renderer,

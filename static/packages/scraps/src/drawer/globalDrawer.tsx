@@ -157,7 +157,10 @@ export function GlobalDrawer({children}: GlobalDrawerProps) {
   const scrollLock = useScrollLock(document.body);
   const openDrawer = useCallback<DrawerContextType['openDrawer']>(
     (renderer, options, callerId) => {
-      if (options.mode !== 'passive') {
+      // A passive drawer can replace a drawer that locked the page.
+      if (options.mode === 'passive') {
+        scrollLock.release();
+      } else {
         scrollLock.acquire();
       }
       overwriteDrawerConfig({renderer, options, callerId});

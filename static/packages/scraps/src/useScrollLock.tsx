@@ -32,15 +32,21 @@ class Lock {
           paddingRight: document.body.style.paddingRight,
         };
 
-        // Measure scrollbar width before fixing body removes it.
-        const scrollbarWidth = window.innerWidth - document.body.clientWidth;
         const existingPaddingRight =
           Number.parseFloat(getComputedStyle(document.body).paddingRight) || 0;
+        // Fixing the body removes the root scrollbar, so the width it gives back
+        // is the scrollbar width. Measure layout widths: on iOS, innerWidth
+        // follows the pinch-zoomed visual viewport instead.
+        const widthBeforeLock = document.documentElement.clientWidth;
         document.body.style.position = 'fixed';
         document.body.style.top = `-${this.scroll.y}px`;
         document.body.style.left = '0';
         document.body.style.right = '0';
         document.body.style.width = '100%';
+        const scrollbarWidth = Math.max(
+          0,
+          document.documentElement.clientWidth - widthBeforeLock
+        );
         document.documentElement.style.setProperty(
           '--scrollbar-size',
           `${scrollbarWidth}px`
@@ -66,12 +72,10 @@ class Lock {
         document.body.style.width = this.initialBodyStyles.width;
         document.body.style.paddingRight = this.initialBodyStyles.paddingRight;
         document.documentElement.style.removeProperty('--scrollbar-size');
-        const {x, y} = this.scroll;
-        requestAnimationFrame(() => {
-          if (this.acquiredBy.size === 0) {
-            window.scrollTo(x, y);
-          }
-        });
+        // Restore in the same task. scrollTo forces layout with the restored
+        // styles, and an acquire right after this release (one modal replacing
+        // another) must read the restored scroll position, not the pinned 0.
+        window.scrollTo(this.scroll.x, this.scroll.y);
         this.initialBodyStyles = null;
       }
 
@@ -87,7 +91,7 @@ class Lock {
   }
 }
 
-const LockMap = new Map<HTMLElement, Lock>();
+const LockMap = new WeakMap<HTMLElement, Lock>();
 
 export function useScrollLock(container: HTMLElement) {
   const id = useId();
@@ -103,15 +107,12 @@ export function useScrollLock(container: HTMLElement) {
     return globalLock;
   }, [container]);
 
+  // Keep the Lock in LockMap after release. Other mounted hooks still hold this
+  // instance, and a second Lock for the same container would save and restore
+  // its styles independently, leaving the page stuck or unlocked.
   useEffect(() => {
-    return () => {
-      lock.release(id);
-
-      if (!lock.held()) {
-        LockMap.delete(container);
-      }
-    };
-  }, [container, lock, id]);
+    return () => lock.release(id);
+  }, [lock, id]);
 
   return useMemo(() => {
     return {
