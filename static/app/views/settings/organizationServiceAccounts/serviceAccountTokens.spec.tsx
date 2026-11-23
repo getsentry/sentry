@@ -192,11 +192,44 @@ describe('ServiceAccountTokens', () => {
       await screen.findByRole('button', {name: 'Revoke GitHub Actions: prod'})
     );
     expect(
-      await screen.findByText(/Anything using sntrym_\*+a1b2 stops working right away/)
+      await screen.findByText(/Revocation may take a short time to take effect/)
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Revoke Token'}));
 
     await waitFor(() => expect(revokeRequest).toHaveBeenCalled());
+  });
+
+  it('removes a revoked token on a later cursor page', async () => {
+    MockApiClient.addMockResponse({
+      url: tokensUrl,
+      body: [{...token, id: '4', name: 'First page token'}],
+      headers: {
+        Link: `<${tokensUrl}?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"`,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: tokensUrl,
+      match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
+      body: [token],
+    });
+    MockApiClient.addMockResponse({url: `${tokensUrl}5/`, method: 'DELETE'});
+
+    renderTokens();
+
+    await screen.findByText('First page token');
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Revoke GitHub Actions: prod'})
+    );
+    MockApiClient.addMockResponse({
+      url: tokensUrl,
+      match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
+      body: [],
+    });
+    await userEvent.click(await screen.findByRole('button', {name: 'Revoke Token'}));
+
+    expect(await screen.findByText('No tokens yet')).toBeInTheDocument();
+    expect(screen.queryByText('GitHub Actions: prod')).not.toBeInTheDocument();
   });
 
   it("can't manage tokens of an account owned by a Seer automation", async () => {

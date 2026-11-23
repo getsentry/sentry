@@ -122,7 +122,7 @@ export function ServiceAccountTokens({account}: {account: ServiceAccount}) {
     openConfirmModal({
       header: t('Revoke %s?', token.name),
       message: t(
-        'Anything using %s stops working right away. You can’t undo this.',
+        'Revoke %s? Revocation may take a short time to take effect. You can’t undo this.',
         tokenPreview(token.tokenLastCharacters, SERVICE_ACCOUNT_TOKEN_PREFIX)
       ),
       confirmText: t('Revoke Token'),

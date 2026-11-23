@@ -130,9 +130,12 @@ export function useCreateServiceAccountToken(
         data: {...data},
       }),
     onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: serviceAccountTokensApiOptions(organization, serviceAccountId).queryKey,
-      }),
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter(
+          '/organizations/$organizationIdOrSlug/service-accounts/$serviceAccountId/tokens/',
+          {path: {organizationIdOrSlug: organization.slug, serviceAccountId}}
+        )
+      ),
   });
 }
 
@@ -151,8 +154,11 @@ export function useRevokeServiceAccountToken(
         method: 'DELETE',
       }),
     onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: serviceAccountTokensApiOptions(organization, serviceAccountId).queryKey,
-      }),
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter(
+          '/organizations/$organizationIdOrSlug/service-accounts/$serviceAccountId/tokens/',
+          {path: {organizationIdOrSlug: organization.slug, serviceAccountId}}
+        )
+      ),
   });
 }
