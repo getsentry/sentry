@@ -10,8 +10,10 @@ _InternalServerError = InternalServerError
 _BadGateway = BadGateway
 
 from sentry import options
+from sentry.models.project import Project
 from sentry.replays.consumers.recording import (
     DropSilently,
+    InvalidRecording,
     commit_message,
     decompress_segment,
     parse_headers,
@@ -185,19 +187,75 @@ def test_parse_headers_invalid_json() -> None:
 
 
 def test_parse_headers_compressed_header() -> None:
-    """A compressed segment in the header slot is dropped and counted, not reported as an error."""
+    """A compressed segment in the header slot is an invalid recording, not a UnicodeDecodeError."""
     recording = b"x\x9c\xed]\x8f\xe38v" + b"\n" + zlib.compress(b"[]")
+    with pytest.raises(InvalidRecording) as exc_info:
+        parse_headers(recording)
+
+    assert exc_info.value.reason == "invalid_headers_json"
+
+
+@django_db_all
+def test_process_message_compressed_header_reports_context(default_project: Project) -> None:
+    """A dropped invalid recording is counted and logged with what we know about its sender."""
+    replay_event = {
+        "platform": "javascript",
+        "environment": "production",
+        "release": "1.0.0",
+        "replay_type": "buffer",
+        "segment_id": 3,
+        "sdk": {"name": "sentry.javascript.react", "version": "10.0.0"},
+        "contexts": {
+            "browser": {"name": "Firefox", "version": "140.0"},
+            "os": {"name": "Windows", "version": ">=10"},
+        },
+    }
+    message = {
+        "type": "replay_recording_not_chunked",
+        "org_id": default_project.organization_id,
+        "project_id": default_project.id,
+        "replay_id": "1",
+        "received": 2,
+        "retention_days": 30,
+        "payload": b"x\x9c\xed]\x8f\xe38v" + b"\n" + zlib.compress(b"[]"),
+        "key_id": 1,
+        "replay_event": json.dumps(replay_event).encode(),
+        "replay_video": b"",
+        "version": 0,
+    }
+
     with (
         mock.patch("sentry.replays.consumers.recording.sentry_sdk.metrics.count") as count,
+        mock.patch("sentry.replays.consumers.recording.sdk_logger") as sdk_logger,
         mock.patch("sentry.replays.consumers.recording.logger") as logger,
     ):
-        with pytest.raises(DropSilently):
-            parse_headers(recording)
+        assert process_message(make_kafka_message(message)) is None
 
     count.assert_called_once_with(
         "replays.consumer.recording.invalid", 1, attributes={"reason": "invalid_headers_json"}
     )
     logger.exception.assert_not_called()
+    sdk_logger.warning.assert_called_once()
+    assert sdk_logger.warning.call_args.kwargs["attributes"] == {
+        "reason": "invalid_headers_json",
+        "org_id": default_project.organization_id,
+        "project_id": default_project.id,
+        "key_id": 1,
+        "replay_id": "1",
+        "payload_size": 19,
+        "payload_prefix": "789ced5d8fe33876",
+        "project_slug": default_project.slug,
+        "org_slug": default_project.organization.slug,
+        "sdk_name": "sentry.javascript.react",
+        "sdk_version": "10.0.0",
+        "platform": "javascript",
+        "environment": "production",
+        "release": "1.0.0",
+        "replay_type": "buffer",
+        "replay_event_segment_id": 3,
+        "browser": {"name": "Firefox", "version": "140.0"},
+        "os": {"name": "Windows", "version": ">=10"},
+    }
 
 
 def test_parse_headers_missing_segment_id() -> None:
@@ -332,6 +390,7 @@ def test_parse_recording_event_with_replay_event() -> None:
     assert result == expected
 
 
+@django_db_all
 def test_parse_recording_event_missing_payload() -> None:
     """Test that missing payload cause DropSilently"""
     message = {
@@ -365,6 +424,7 @@ def test_parse_recording_event_invalid_compression() -> None:
         parse_recording_event(msgpack.packb(message))
 
 
+@django_db_all
 def test_parse_recording_event_invalid_headers() -> None:
     """Test that invalid headers in payload causes DropSilently"""
     message = {
@@ -562,6 +622,7 @@ def test_process_message_invalid_recording_json() -> None:
     assert process_message(kafka_message) is None
 
 
+@django_db_all
 def test_process_message_invalid_headers() -> None:
     """Test "process_message" function with invalid headers."""
     message = {
@@ -582,6 +643,7 @@ def test_process_message_invalid_headers() -> None:
     assert process_message(kafka_message) is None
 
 
+@django_db_all
 def test_process_message_malformed_headers() -> None:
     """Test "process_message" function with malformed headers."""
     message = {
@@ -602,6 +664,7 @@ def test_process_message_malformed_headers() -> None:
     assert process_message(kafka_message) is None
 
 
+@django_db_all
 def test_process_message_malformed_headers_invalid_unicode_codepoint() -> None:
     """Test "process_message" function with malformed unicode codepoint in headers."""
     message = {
@@ -622,6 +685,7 @@ def test_process_message_malformed_headers_invalid_unicode_codepoint() -> None:
     assert process_message(kafka_message) is None
 
 
+@django_db_all
 def test_process_message_no_headers() -> None:
     """Test "process_message" function with no headers."""
     message = {
