@@ -110,7 +110,6 @@ class OrganizationAgentHandoffTest(APITestCase):
                 self.organization.slug,
                 flow="onboarding",
                 context={"runId": "a" * 32},
-                disableIpPinning=True,
                 status_code=201,
             )
         assert_last_analytics_event(
@@ -120,7 +119,6 @@ class OrganizationAgentHandoffTest(APITestCase):
                 user_id=self.user.id,
                 organization_id=self.organization.id,
                 flow=HandoffFlow.ONBOARDING.value,
-                ip_pinning=True,
             ),
         )
 
@@ -134,7 +132,6 @@ class OrganizationAgentHandoffTest(APITestCase):
                 user_id=self.user.id,
                 organization_id=self.organization.id,
                 flow=HandoffFlow.GUIDED_NEXT_STEPS.value,
-                ip_pinning=True,
             ),
         )
 
@@ -292,21 +289,6 @@ class OrganizationAgentHandoffTest(APITestCase):
         handoff = consume_handoff(response.data["code"])
         assert handoff is not None
         assert handoff.ip_address == "192.0.2.1"
-
-    def test_accepts_legacy_ip_pinning_option(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, disableIpPinning=True, status_code=201
-        )
-        handoff = consume_handoff(response.data["code"])
-        assert handoff is not None
-        assert handoff.ip_address == "127.0.0.1"
-        assert not handoff.disable_ip_pinning
-
-    def test_rejects_invalid_disable_ip_pinning(self) -> None:
-        response = self.get_error_response(
-            self.organization.slug, disableIpPinning="invalid", status_code=400
-        )
-        assert "disableIpPinning" in response.data
 
     def test_select_add_feature_flow(self) -> None:
         with patch(

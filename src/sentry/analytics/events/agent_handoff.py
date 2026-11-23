@@ -7,7 +7,6 @@ class AgentHandoffPromptCreatedEvent(analytics.Event):
     user_id: int
     organization_id: int
     flow: str
-    ip_pinning: bool
 
 
 @analytics.eventclass("agent_handoff.claimed")

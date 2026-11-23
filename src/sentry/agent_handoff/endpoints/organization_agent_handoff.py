@@ -55,12 +55,10 @@ HANDOFF_SCOPES = (
 class AgentHandoffRequest(TypedDict):
     flow: str
     context: HandoffContext
-    disable_ip_pinning: bool
 
 
 class AgentHandoffRequestSerializer(CamelSnakeSerializer[AgentHandoffRequest]):
     flow = serializers.ChoiceField(choices=list(HandoffFlow), default=HandoffFlow.GUIDED_NEXT_STEPS)
-    disable_ip_pinning = serializers.BooleanField(default=False)
 
     # DRF reserves Serializer.context for rendering metadata.
     def get_fields(self) -> dict[str, serializers.Field[Any, Any, Any, Any]]:
@@ -187,7 +185,6 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
                 user_id=user.id,
                 organization_id=organization.id,
                 flow=flow.value,
-                ip_pinning=True,
             )
         )
         return Response(data, status=201)
