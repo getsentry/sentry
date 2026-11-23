@@ -155,45 +155,6 @@ class SeerWorkflowConfigProject(DefaultFieldsModel):
     __repr__ = sane_repr("config_id", "project_id")
 
 
-class WorkflowConfigVersionSnapshot(BaseModel):
-    """The parts of a config that change what its runs do, as of one version."""
-
-    trigger_settings: dict[str, Any]
-    action_settings: dict[str, Any]
-    filters: dict[str, Any]
-    output_policy: dict[str, Any]
-
-    class Config:
-        allow_mutation = False
-
-
-@cell_silo_model
-class SeerWorkflowConfigVersion(DefaultFieldsModel):
-    """One saved version of a config's trigger and action settings, filters and outputs."""
-
-    __relocation_scope__ = RelocationScope.Organization
-
-    config = FlexibleForeignKey(
-        "seer.SeerWorkflowConfig", on_delete=models.CASCADE, related_name="versions"
-    )
-    version = BoundedPositiveIntegerField()
-    # Shape: WorkflowConfigVersionSnapshot.
-    snapshot = models.JSONField()
-    # The user who saved this version; null for seeded defaults and non-user callers.
-    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
-
-    class Meta:
-        app_label = "seer"
-        db_table = "seer_workflowconfigversion"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["config", "version"], name="seer_workflowconfigversion_config_version_uniq"
-            ),
-        ]
-
-    __repr__ = sane_repr("config_id", "version")
-
-
 class SeerWorkflowRunStatus(models.TextChoices):
     QUEUED = "queued"
     RUNNING = "running"
@@ -275,8 +236,6 @@ class SeerWorkflowRun(DefaultFieldsModel):
     status = models.CharField(max_length=256, choices=SeerWorkflowRunStatus.choices, null=True)
     # Null for historical runs recorded before sources were tracked.
     source = models.CharField(max_length=32, choices=SeerWorkflowRunSource.choices, null=True)
-    # The SeerWorkflowConfigVersion.version the run used. Null for historical runs.
-    config_version = BoundedPositiveIntegerField(null=True)
     date_completed = models.DateTimeField(null=True)
     # Shape: SeerWorkflowRunExtras.
     extras = models.JSONField(db_default={}, default=dict)
