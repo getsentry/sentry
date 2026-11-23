@@ -28,9 +28,10 @@ from sentry.auth.system import is_system_auth
 from sentry.middleware import is_frontend_request
 from sentry.seer.agent_token import is_agent_auth
 from sentry.utils import metrics
+from sentry.utils.auth import is_user_from_viewer_context
 from sentry.utils.http import SEER_REFERRER_HEADER, get_mcp_client_family, is_mcp_request
 from sentry.utils.sdk import get_transaction_name_from_request
-from sentry.viewer_context import ActorType
+from sentry.viewer_context import ActorType, get_viewer_context
 
 ATTRIBUTION_SPAN_OP = "api.attribution"
 
@@ -187,6 +188,10 @@ def get_actor_type(request: Request) -> ActorType:
     request: a service account token sent by sentry-cli is a ``service_account``
     actor and a ``cli`` client.
     """
+    # A user loaded from a signed viewer context keeps that context's actor, e.g. an
+    # agent acting for the user, as `sentry.auth.principal._authenticate` does.
+    if is_user_from_viewer_context(request) and (ctx := get_viewer_context()) is not None:
+        return ctx.actor.type
     actor = resolve_actor(getattr(request, "user", None), getattr(request, "auth", None))
     return actor.type if actor is not None else ActorType.UNKNOWN
 
