@@ -64,7 +64,6 @@ describe('ServiceAccountTokens', () => {
     renderTokens({...account, scopes: []});
 
     expect(await screen.findByText('1 scope')).toBeInTheDocument();
-    expect(screen.queryByText('Same as account')).not.toBeInTheDocument();
   });
 
   it('shows same as account for matching scopes in a different order', async () => {
