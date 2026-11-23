@@ -4,6 +4,7 @@ import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
+import type {CollapsibleExpandAll} from 'sentry/components/ai/chat/collapsibleContent';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -21,6 +22,7 @@ import {
   ConversationViewContent,
   type ConversationViewTab,
 } from './components/conversationView';
+import {ExpandAllButton} from './components/expandAllButton';
 import {ExportTranscriptButton} from './components/exportTranscriptButton';
 import {useConversation} from './hooks/useConversation';
 import {
@@ -60,6 +62,18 @@ function ConversationDetailPage() {
     ...conversation,
     autoFetchAll: false,
   });
+  const [expandAll, setExpandAll] = useState<CollapsibleExpandAll | null>(null);
+  // The page stays mounted when moving to another conversation.
+  const [expandAllConversationId, setExpandAllConversationId] = useState(conversationId);
+  if (conversationId !== expandAllConversationId) {
+    setExpandAllConversationId(conversationId);
+    setExpandAll(null);
+  }
+  const toggleExpandAll = () =>
+    setExpandAll(previous => ({
+      generation: (previous?.generation ?? 0) + 1,
+      open: !previous?.open,
+    }));
 
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
   const isInitialLoading = isLoading && nodes.length === 0;
@@ -159,7 +173,13 @@ function ConversationDetailPage() {
             </Tabs>
           )}
           {activeTab === 'transcript' && messages.length > 0 && (
-            <ExportTranscriptButton conversation={conversation} />
+            <Flex align="center" gap="sm">
+              <ExpandAllButton
+                isExpanded={expandAll?.open ?? false}
+                onToggle={toggleExpandAll}
+              />
+              <ExportTranscriptButton conversation={conversation} />
+            </Flex>
           )}
         </Flex>
         <ConversationViewContainer>
@@ -177,6 +197,7 @@ function ConversationDetailPage() {
               onDeselectSpan={handleDeselectSpan}
               onViewTimeline={handleViewTimeline}
               focusedTool={queryState.focusedTool}
+              expandAll={expandAll}
             />
           )}
         </ConversationViewContainer>

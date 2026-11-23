@@ -6,6 +6,7 @@ import type {DistributedOmit} from 'type-fest';
 
 import type {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {DateTime, parseDate} from '@sentry/scraps/dateTime';
 import {
   METADATA_ROW_HEIGHT,
   METADATA_TEXT_HEIGHT,
@@ -19,8 +20,13 @@ import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {Placeholder} from 'sentry/components/placeholder';
+import {TimeSince} from 'sentry/components/timeSince';
 
-import type {EntityHeaderTextBehavior, EntityHeaderTextVariant} from './entityHeaderText';
+import type {
+  EntityHeaderTextBehavior,
+  EntityHeaderTextTypography,
+  EntityHeaderTextVariant,
+} from './entityHeaderText';
 import {EntityHeaderText, toLinkDestination} from './entityHeaderText';
 
 interface EntityHeaderMetadataItemShared {
@@ -55,7 +61,7 @@ interface EntityHeaderMetadataValueQualifiers {
    * child and composes with the parent's: "version" under "Browser" is read
    * "Browser version". A property needing a third value is two properties.
    */
-  secondary?: {label: string; value: React.ReactNode};
+  secondary?: {label: string; value: string};
   /**
    * Explains the value on hover or focus, underlined to signal it.
    */
@@ -63,17 +69,42 @@ interface EntityHeaderMetadataValueQualifiers {
 }
 
 type EntityHeaderMetadataValueProps = EntityHeaderMetadataItemShared &
-  EntityHeaderMetadataValueQualifiers &
   (
-    | {
+    | (EntityHeaderMetadataValueQualifiers & {
         type: 'text';
-        value: React.ReactNode;
+        /**
+         * Data, not a node, so the header draws every value the same way.
+         */
+        value: string;
         /**
          * Colours the value, to call out a problem or a state.
          */
         variant?: EntityHeaderTextVariant;
+      })
+    | {
+        /**
+         * A date, drawn in the header's one format rather than formatted by
+         * the caller. A missing or unparseable `date` is an empty value.
+         */
+        date: string | Date;
+        type: 'date';
+        /**
+         * - `absolute`: "Jun 8, 2025 9:05:09 PM PDT", following the viewer's 12
+         *   or 24 hour preference.
+         * - `relative`: "5min ago", with the absolute time in every timezone in
+         *   its tooltip, headed by the item's `label`.
+         *
+         * @default 'absolute'
+         */
+        format?: 'absolute' | 'relative';
+        // Banned outright, so an object declared before it is passed, which
+        // skips the excess property check, cannot carry them in.
+        secondary?: never;
+        tooltip?: never;
+        value?: never;
+        variant?: never;
       }
-    | ({
+    | (EntityHeaderMetadataValueQualifiers & {
         type: 'link';
         /**
          * Text, not a node: the link is named from it and `label` together, so
@@ -84,7 +115,7 @@ type EntityHeaderMetadataValueProps = EntityHeaderMetadataItemShared &
   );
 
 /**
- * A text or link value whose `label` may be left out, as a list's entries
+ * A text, date or link value whose `label` may be left out, as a list's entries
  * may be.
  */
 type MetadataValueData = DistributedOmit<EntityHeaderMetadataValueProps, 'label'> & {
@@ -97,7 +128,7 @@ type MetadataValueData = DistributedOmit<EntityHeaderMetadataValueProps, 'label'
 };
 
 /**
- * One entry of a list: a text or link value, keyed. A list cannot hold a
+ * One entry of a list: a text, date or link value, keyed. A list cannot hold a
  * list.
  */
 export type EntityHeaderMetadataListEntry = MetadataValueData & {key: string};
@@ -129,56 +160,61 @@ export type EntityHeaderMetadataItemProps =
   | EntityHeaderMetadataListProps;
 
 /**
- * Whether the value draws nothing, so it is left out like a `null` item. A
- * component value is never empty.
+ * A value that draws: its text is not blank, its qualifier is text or gone,
+ * and a date is already parsed, so renderers neither check it nor parse a
+ * string again.
  */
-function isEmptyValue({value}: MetadataValueData) {
-  return (
-    value === null ||
-    value === undefined ||
-    value === false ||
-    (typeof value === 'string' && value.trim() === '')
-  );
+type ResolvedMetadataValue =
+  | Exclude<MetadataValueData, {type: 'date'}>
+  | (Omit<Extract<MetadataValueData, {type: 'date'}>, 'date'> & {date: Date});
+
+type ResolvedMetadataListProps = Omit<EntityHeaderMetadataListProps, 'items'> & {
+  items: Array<ResolvedMetadataValue & {key: string}>;
+};
+
+export type ResolvedMetadataItem = ResolvedMetadataValue | ResolvedMetadataListProps;
+
+// The types say `string`, but data mapped from an API can still put a node or
+// `null` here, and `.trim()` would throw on it.
+function isDrawableValue(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '';
 }
 
 /**
- * Whether the item draws anything. A list with no non-empty entries draws
- * nothing.
+ * A value that draws nothing usually comes from mapping over data with a
+ * missing name. It is left out like a `null` item. A date is parsed with the
+ * parser that both renderers use, so one it cannot read is left out rather
+ * than drawn as "Invalid date", and the parsed instant is what they draw.
  */
-export function hasMetadataContent(item: EntityHeaderMetadataItemProps) {
-  return item.type === 'list'
-    ? item.items.some(entry => !isEmptyValue(entry))
-    : !isEmptyValue(item);
+function resolveMetadataValue(entry: MetadataValueData): ResolvedMetadataValue | null {
+  if (entry.type === 'date') {
+    const parsed = parseDate(entry.date, 'UTC');
+    return parsed === null ? null : {...entry, date: new Date(parsed.epochMilliseconds)};
+  }
+  if (!isDrawableValue(entry.value)) {
+    return null;
+  }
+  if (entry.secondary && !isDrawableValue(entry.secondary.value)) {
+    return {...entry, secondary: undefined};
+  }
+  return entry;
 }
 
-const warnedEmptyValueNames = new Set<string>();
-
 /**
- * An empty value usually comes from mapping over data with a missing name. It
- * is left out, but the caller should not rely on that.
+ * The item as it draws, or `null` if it draws nothing. A list keeps only the
+ * entries that draw, and draws nothing without one.
  */
-export function warnOnEmptyMetadataValues(item: EntityHeaderMetadataItemProps): void {
-  if (process.env.NODE_ENV === 'production') {
-    return;
+export function resolveMetadataItem(
+  item: EntityHeaderMetadataItemProps
+): ResolvedMetadataItem | null {
+  if (item.type !== 'list') {
+    return resolveMetadataValue(item);
   }
-  const names =
-    item.type === 'list'
-      ? item.items
-          .filter(isEmptyValue)
-          .map(entry =>
-            entry.label ? `item "${entry.label}"` : `entry of "${item.label}"`
-          )
-      : isEmptyValue(item)
-        ? [`item "${item.label}"`]
-        : [];
-  for (const name of names) {
-    if (warnedEmptyValueNames.has(name)) {
-      continue;
-    }
-    warnedEmptyValueNames.add(name);
-    // eslint-disable-next-line no-console
-    console.warn(`EntityHeader metadata ${name} has an empty value and was left out.`);
-  }
+  const items = item.items.flatMap(entry => {
+    const resolved = resolveMetadataValue(entry);
+    return resolved ? [{...resolved, key: entry.key}] : [];
+  });
+  return items.length > 0 ? {...item, items} : null;
 }
 
 /**
@@ -267,20 +303,65 @@ export function EntityHeaderMetadataItemSkeleton({
   );
 }
 
-function MetadataValue({value: props}: {value: MetadataValueData}) {
-  const {label, mode = 'compact', secondary} = props;
-  const isLink = props.type === 'link';
-  // A link names itself from `label`; text needs the label beside it.
-  const needsOwnLabel = Boolean(label) && (!isLink || mode === 'full');
+const VALUE_STYLES = {
+  size: 'md',
+  density: 'comfortable',
+  ellipsis: true,
+} as const satisfies EntityHeaderTextTypography;
+
+interface MetadataRelativeDateProps {
+  date: Date;
+  label?: string;
+}
+
+// The render prop puts the value's styles on `TimeSince`'s own trigger, so it
+// truncates without a clipping wrapper cutting off its focus ring.
+function MetadataRelativeDate({date, label}: MetadataRelativeDateProps) {
+  return (
+    <Text {...VALUE_STYLES}>
+      {textProps => (
+        <TimeSince
+          {...textProps}
+          date={date}
+          unitStyle="short"
+          tooltipShowSeconds
+          tooltipPrefix={label}
+        />
+      )}
+    </Text>
+  );
+}
+
+function MetadataDisplayValue({value: props}: {value: ResolvedMetadataValue}) {
+  if (props.type === 'date') {
+    return props.format === 'relative' ? (
+      <MetadataRelativeDate date={props.date} label={props.label} />
+    ) : (
+      <EntityHeaderText {...VALUE_STYLES} behavior={{type: 'text'}}>
+        <DateTime date={props.date} year="always" precision="second" showTimezone />
+      </EntityHeaderText>
+    );
+  }
   const behavior: EntityHeaderTextBehavior =
     props.type === 'link'
       ? {
           type: 'link',
           ...toLinkDestination(props),
-          'aria-label': label ? `${label} ${props.value}` : undefined,
+          'aria-label': props.label ? `${props.label} ${props.value}` : undefined,
           tooltip: props.tooltip,
         }
       : {type: 'text', variant: props.variant, tooltip: props.tooltip};
+  return (
+    <EntityHeaderText {...VALUE_STYLES} behavior={behavior}>
+      {props.value}
+    </EntityHeaderText>
+  );
+}
+
+function MetadataValue({value: props}: {value: ResolvedMetadataValue}) {
+  const {label, mode = 'compact', secondary} = props;
+  // A link names itself from `label`; text and dates need the label beside it.
+  const needsOwnLabel = Boolean(label) && (props.type !== 'link' || mode === 'full');
   const secondaryLabel = secondary
     ? label
       ? `${label} ${secondary.label}`
@@ -303,12 +384,7 @@ function MetadataValue({value: props}: {value: MetadataValueData}) {
         ) : (
           <VisuallyHidden>{label}</VisuallyHidden>
         ))}
-      <EntityHeaderText
-        behavior={behavior}
-        styles={{size: 'md', density: 'comfortable', ellipsis: true}}
-      >
-        {props.value}
-      </EntityHeaderText>
+      <MetadataDisplayValue value={props} />
       {secondary && (
         <Fragment>
           {/*
@@ -333,7 +409,7 @@ function MetadataValue({value: props}: {value: MetadataValueData}) {
 }
 
 interface MetadataEntryProps {
-  entry: MetadataValueData;
+  entry: ResolvedMetadataValue;
   /**
    * Set on a list's first visible entry, which starts the property: it
    * carries the list's graphic and label. The graphic keeps its fixed box,
@@ -378,16 +454,14 @@ function MetadataEntry({
 }
 
 function MetadataList({
-  items: allItems,
+  items,
   maxVisible,
   label,
   leadingGraphic,
   trailing,
   mode = 'compact',
-}: EntityHeaderMetadataListProps & {trailing: React.ReactNode}) {
+}: ResolvedMetadataListProps & {trailing: React.ReactNode}) {
   const {t} = useTranslation();
-  // Before the cut, so "+N more" counts only entries that draw something.
-  const items = allItems.filter(entry => !isEmptyValue(entry));
   const cut = useResponsivePropValue(maxVisible) ?? items.length;
   // Where the list was cut when "+N more" was pressed; null while collapsed.
   // Kept rather than re-read from `cut`, so a later resize neither collapses
@@ -473,18 +547,8 @@ function MetadataList({
 
 export function EntityHeaderMetadataItem({
   trailing,
-  isLoading = false,
   ...props
-}: EntityHeaderMetadataItemProps & {trailing: React.ReactNode; isLoading?: boolean}) {
-  if (isLoading) {
-    return (
-      <EntityHeaderMetadataItemSkeleton
-        hasGraphic={Boolean(props.leadingGraphic)}
-        trailing={trailing}
-      />
-    );
-  }
-
+}: ResolvedMetadataItem & {trailing: React.ReactNode}) {
   if (props.type === 'list') {
     return <MetadataList {...props} trailing={trailing} />;
   }

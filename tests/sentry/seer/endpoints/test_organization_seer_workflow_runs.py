@@ -749,7 +749,6 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             "group_id": group_id,
             "group_short_id": "BACKEND-1A",
             "project_id": project_id,
-            "binding_id": 1,
             "workflow_id": 1,
             "action_id": 1,
         }

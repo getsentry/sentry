@@ -44,6 +44,10 @@ describe('ServiceAccountDetails', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([ProjectFixture({id: '1', slug: 'frontend'})]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/service-accounts/10/tokens/`,
+      body: [],
+    });
   });
 
   it('shows the account and the access each resource has', async () => {
