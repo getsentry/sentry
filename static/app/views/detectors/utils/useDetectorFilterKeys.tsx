@@ -7,10 +7,7 @@ import {useAssignedSearchValues} from 'sentry/utils/membersAndTeams/useAssignedS
 
 const DETECTOR_FILTER_KEYS: Record<
   string,
-  {
-    fieldDefinition: FieldDefinition;
-    predefined?: boolean;
-  }
+  {fieldDefinition: FieldDefinition; predefined?: boolean}
 > = {
   name: {
     fieldDefinition: {
@@ -75,8 +72,5 @@ export function useDetectorFilterKeys({excludeKeys}: UseDetectorFilterKeysOption
     return DETECTOR_FILTER_KEYS[key]?.fieldDefinition ?? null;
   }, []);
 
-  return {
-    filterKeys,
-    getFieldDefinition,
-  };
+  return {filterKeys, getFieldDefinition};
 }

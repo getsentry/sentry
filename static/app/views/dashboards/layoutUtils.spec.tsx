@@ -214,10 +214,7 @@ describe('Dashboards > Utils', () => {
   describe('assignDefaultLayout', () => {
     it('clamps existing oversized layouts', () => {
       const widgets = [
-        {
-          displayType: DisplayType.LINE,
-          layout: {x: 0, y: 0, w: 12, h: 2, minH: 2},
-        },
+        {displayType: DisplayType.LINE, layout: {x: 0, y: 0, w: 12, h: 2, minH: 2}},
       ];
       const result = assignDefaultLayout(widgets, [0, 0, 0, 0, 0, 0]);
       expect(result[0]!.layout).toEqual({x: 0, y: 0, w: 6, h: 2, minH: 2});

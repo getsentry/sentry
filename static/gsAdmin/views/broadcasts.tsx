@@ -41,9 +41,7 @@ export function Broadcasts() {
   const hasPermission = ConfigStore.get('user').permissions.has('broadcasts.admin');
 
   const handleNewBroadcast = () => {
-    openModal(deps => <CreateBroadcastModal {...deps} />, {
-      closeEvents: 'escape-key',
-    });
+    openModal(deps => <CreateBroadcastModal {...deps} />, {closeEvents: 'escape-key'});
   };
 
   return (

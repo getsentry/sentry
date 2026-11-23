@@ -13,9 +13,7 @@ export function useOrganizationDetails({
     ...apiOptions.as<Organization>()('/organizations/$organizationIdOrSlug/', {
       path: organization ? {organizationIdOrSlug: organization.slug} : skipToken,
       host: organization?.region.url,
-      query: {
-        include_feature_flags: 1,
-      },
+      query: {include_feature_flags: 1},
       staleTime: 0,
     }),
     retry: false,

@@ -150,6 +150,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:inbound-filters-preview", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Let custom inbound filters match on the environment. Needs inbound-filters-v2 too.
     manager.add("organizations:inbound-filters-environment-condition", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Let custom inbound filters match on the browser name and version. Needs inbound-filters-v2 too.
+    manager.add("organizations:inbound-filters-browser-condition", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Double write the legacy inbound filter lists into custom filter rows for this org, ahead of the per-list stage option.
     manager.add("organizations:inbound-filters-legacy-double-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Serve the legacy IP address list to Relay as a generic filter instead of the native clientIps setting.
@@ -227,8 +229,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:onboarding-scm-project-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Write newly created debug files exclusively to Objectstore without creating a File.
     manager.add("organizations:objectstore-debugfiles-exclusive-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
-    # Double-write newly created debug files to Objectstore.
-    manager.add("organizations:objectstore-debugfiles-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Enable large ownership rule file size limit
     manager.add("organizations:ownership-size-limit-large", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable xlarge ownership rule file size limit
@@ -259,6 +259,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:spans-monitor-equations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the Heroku log drain endpoint in relay
     manager.add("organizations:relay-heroku-log-drain-endpoint", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enables the OTLP metrics endpoint in relay
+    manager.add("organizations:relay-otel-metrics-endpoint", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables the playstation ingestion in relay
     manager.add("organizations:relay-playstation-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable granular permission scopes (e.g. dashboard:read/write) on API endpoints.
@@ -298,6 +300,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Relay git fetches and pushes for coding jobs through Sentry's git endpoint, with the org's integration credentials
     manager.add("organizations:scm-git-endpoint", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Repair renamed GitHub and GitHub Enterprise repositories during sync.
+    manager.add("organizations:scm-repo-sync-renames", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Seer Agent panel for AI-powered data exploration
     manager.add("organizations:seer-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the Seer Automations UI and APIs
@@ -310,6 +314,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-explorer-index", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer agentic triage scheduled autofix
     manager.add("organizations:seer-night-shift", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # If enabled use agentic triage 'cohort' to decide if AT a) is enabled b) the PR comment c) the settings UI to show for Autofix.
+    # See long comment on `get_agentic_triage_cohort`.
+    manager.add("organizations:seer-agentic-triage-cohort-gating", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:seer-workflows-monitor-cleanup", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Capture Agentic triage training data for the fixability model
     manager.add("organizations:seer-fixability-training-data", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -349,8 +356,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-agent-enable-assisted-query-code-mode", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Explorer Impact assessments
     manager.add("organizations:seer-impact-assessment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable browser notifications for autofix runs
-    manager.add("organizations:autofix-browser-notifications", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show the "Open in Seer Agent (debug)" button in the autofix drawer
     manager.add("organizations:autofix-seer-agent-debug", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # On green CI: mark ready for review and request review from the triggering user.
@@ -432,6 +437,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:universal-inbox", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Collect inbox events independently of the inbox UI.
     manager.add("organizations:universal-inbox-recording", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
+    # Pilot a new primary navigation hover behavior, rolled out separately from the universal inbox.
+    manager.add("organizations:nav-peek", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Serve Autofix on its own /issues/<id>/autofix/ page instead of the issue details drawer.
     # Not for self-hosted yet. Roll this out to specific organizations; do not change the
     # default here and do not add it to SENTRY_FEATURES, either of which would turn it on
@@ -506,12 +513,16 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:ourlogs-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable regular expression searches in logs
     manager.add("organizations:ourlogs-regex-searches", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Let trace metrics date pickers go back 90 days instead of 30, for individual orgs only
+    manager.add("organizations:tracemetrics-90-day-range", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable table support for the trace metrics dataset in dashboards
     manager.add("organizations:tracemetrics-dashboard-table", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics product (known internally as tracemetrics) in UI and backend
     manager.add("organizations:tracemetrics-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics product to be ingested via Relay
     manager.add("organizations:tracemetrics-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable querying OTLP histogram trace metrics by their buckets
+    manager.add("organizations:tracemetrics-otlp-histograms", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable showing expansion config (and expanded variables) in the UI
     manager.add("organizations:explore-automatic-json-expansion-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics showing pii scrubbing
@@ -584,6 +595,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
 
     # Enable lightweight RCA clustering write path (generate embeddings on new issues)
     manager.add("organizations:supergroups-lightweight-rca-clustering-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Return issues in the same supergroup from the related issues endpoint (type=same_supergroup)
+    manager.add("organizations:related-issues-supergroups", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     manager.add("projects:workflow-engine-performance-detectors", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 

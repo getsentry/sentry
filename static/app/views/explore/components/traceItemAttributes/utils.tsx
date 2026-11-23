@@ -10,10 +10,7 @@ export function prettifyAttributeName(name: string) {
 }
 
 export function getAttributeItem(field: string, value: string | number | null) {
-  return {
-    fieldKey: field,
-    value,
-  };
+  return {fieldKey: field, value};
 }
 
 /**

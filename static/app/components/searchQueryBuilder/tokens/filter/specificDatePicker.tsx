@@ -117,11 +117,7 @@ export function SpecificDatePicker({
               onChange={newDate => {
                 if (newDate instanceof Date) {
                   handleSelectDateTime(
-                    createDateStringFromSelection({
-                      date: newDate,
-                      time,
-                      utc,
-                    })
+                    createDateStringFromSelection({date: newDate, time, utc})
                   );
                 }
               }}
@@ -141,10 +137,7 @@ export function SpecificDatePicker({
                       );
                     } else {
                       handleSelectDateTime(
-                        createDateStringFromSelection({
-                          date: internalDate,
-                          utc: true,
-                        })
+                        createDateStringFromSelection({date: internalDate, utc: true})
                       );
                     }
                   }}

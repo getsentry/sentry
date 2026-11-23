@@ -4,9 +4,7 @@ import {useModal} from '@sentry/scraps/modal';
 import {AddToOrgModal, RemoveFromOrgModal} from 'admin/components/addOrRemoveOrgModal';
 import {CustomerGrid} from 'admin/components/customerGrid';
 
-type Props = {
-  userId: string;
-};
+type Props = {userId: string};
 
 export function UserCustomers({userId}: Props) {
   const {openModal} = useModal();
@@ -43,9 +41,7 @@ export function UserCustomers({userId}: Props) {
             variant="primary"
             size="sm"
             onClick={openAddToOrgModal}
-            style={{
-              marginRight: 8,
-            }}
+            style={{marginRight: 8}}
           >
             Add to Org
           </Button>

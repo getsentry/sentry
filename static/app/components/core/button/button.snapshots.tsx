@@ -70,9 +70,7 @@ describe('Button', () => {
             </Button>
           </Wrapper>
         ),
-        {
-          tags: {variant: String(variant), size: String(size), area: 'core'},
-        }
+        {tags: {variant: String(variant), size: String(size), area: 'core'}}
       );
 
       it.snapshot(
@@ -84,9 +82,7 @@ describe('Button', () => {
             </Button>
           </Wrapper>
         ),
-        {
-          tags: {variant: String(variant), size: String(size), area: 'core'},
-        }
+        {tags: {variant: String(variant), size: String(size), area: 'core'}}
       );
 
       it.snapshot(
@@ -96,9 +92,7 @@ describe('Button', () => {
             <Button variant={variant} size={size} icon={<IconEdit />} aria-label="Edit" />
           </Wrapper>
         ),
-        {
-          tags: {variant: String(variant), size: String(size), area: 'core'},
-        }
+        {tags: {variant: String(variant), size: String(size), area: 'core'}}
       );
     });
   });

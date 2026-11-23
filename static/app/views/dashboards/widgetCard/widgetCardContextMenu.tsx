@@ -21,7 +21,11 @@ import * as qs from 'sentry/utils/url/qs';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import type {
+  DashboardFilters,
+  DashboardQueryPriority,
+  Widget,
+} from 'sentry/views/dashboards/types';
 import {
   DashboardWidgetSource,
   PREBUILT_DASHBOARD_LABEL,
@@ -77,9 +81,7 @@ export const useTransactionsDeprecationWarning = ({
 
   return tct(
     'Transaction based widgets will soon be migrated to spans widgets. To see what your query could look like, open it in [explore:Explore].',
-    {
-      explore: <Link to={exploreUrl} />,
-    }
+    {explore: <Link to={exploreUrl} />}
   );
 };
 
@@ -153,9 +155,7 @@ export const useDroppedColumnsWarning = (widget: Widget): React.JSX.Element | nu
         <StyledText as="p">
           {tct(
             'This widget looks different because it was migrated to the spans dataset and [columns] is not supported.',
-            {
-              columns: allWarnings.join(', '),
-            }
+            {columns: allWarnings.join(', ')}
           )}
         </StyledText>
       </div>
@@ -196,13 +196,12 @@ export function getMenuOptions(
   onDuplicate?: () => void,
   onEdit?: () => void,
   timeseriesResults?: WidgetTimeSeries[],
-  onAskSeer?: () => void
+  onAskSeer?: () => void,
+  queryPriority?: DashboardQueryPriority
 ) {
   const menuOptions: MenuItemProps[] = [];
 
-  const disableTransactionEdit =
-    organization.features.includes('discover-saved-queries-deprecation') &&
-    widget.widgetType === WidgetType.TRANSACTIONS;
+  const disableTransactionEdit = widget.widgetType === WidgetType.TRANSACTIONS;
 
   const prebuiltDashboardMessages = isPrebuiltDashboard
     ? {
@@ -257,11 +256,7 @@ export function getMenuOptions(
             organization,
             widget_type: widget.displayType,
           });
-          openDashboardWidgetQuerySelectorModal({
-            organization,
-            widget,
-            dashboardFilters,
-          });
+          openDashboardWidgetQuerySelectorModal({organization, widget, dashboardFilters});
         },
       });
     }
@@ -290,7 +285,8 @@ export function getMenuOptions(
             widget.queries.some(q => q.aggregates.length > 0)
               ? Mode.AGGREGATE
               : Mode.SAMPLES,
-            getReferrer(widget.displayType)
+            getReferrer(widget.displayType),
+            queryPriority
           ) ?? undefined),
     });
   }
@@ -369,7 +365,13 @@ export function getMenuOptions(
     menuOptions.push({
       key: 'open-in-metrics',
       label: t('Open in Explore'),
-      to: getWidgetMetricsUrl(widget, dashboardFilters, selection, organization),
+      to: getWidgetMetricsUrl(
+        widget,
+        dashboardFilters,
+        selection,
+        organization,
+        queryPriority
+      ),
       onAction: () => {
         trackAnalytics('dashboards_views.open_in_metrics.opened', {
           organization,
@@ -395,11 +397,7 @@ export function getMenuOptions(
   }
 
   if (onAskSeer) {
-    menuOptions.push({
-      key: 'ask-seer',
-      label: t('Ask Seer'),
-      onAction: onAskSeer,
-    });
+    menuOptions.push({key: 'ask-seer', label: t('Ask Seer'), onAction: onAskSeer});
   }
 
   menuOptions.push({
@@ -414,14 +412,7 @@ export function getMenuOptions(
         organization,
         location,
         selection,
-        widgets: [
-          {
-            ...widget,
-            id: undefined,
-            dashboardId: undefined,
-            layout: undefined,
-          },
-        ],
+        widgets: [{...widget, id: undefined, dashboardId: undefined, layout: undefined}],
         actions: ['add-and-stay-on-current-page', 'open-in-widget-builder'],
         source: DashboardWidgetSource.DASHBOARDS,
       });

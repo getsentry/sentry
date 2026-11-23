@@ -6,10 +6,7 @@ export function FeatureListFixture(): Record<string, Feature> {
       name: 'On-Demand Events',
       description: 'Pay per-event if you exhaust your included monthly capacity',
     },
-    'sso-basic': {
-      name: 'Basic SSO',
-      description: 'Single Sign-On via GitHub or Google.',
-    },
+    'sso-basic': {name: 'Basic SSO', description: 'Single Sign-On via GitHub or Google.'},
     'sso-saml2': {
       name: 'Single Sign-on',
       description:

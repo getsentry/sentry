@@ -4,7 +4,7 @@ import os
 import time
 from datetime import timedelta
 from hashlib import sha1
-from typing import IO, TYPE_CHECKING, Any, TypeVar, cast
+from typing import IO, TYPE_CHECKING, Any, TypeVar
 
 from django.conf import settings
 from django.core.files.storage import Storage
@@ -89,7 +89,7 @@ def get_storage(
     except KeyError:
         pass
 
-    storage = cast("type[Storage]", import_string(backend))
+    storage = import_string(backend)
     return storage(**options)
 
 
@@ -102,7 +102,7 @@ def get_relocation_storage(config: dict[str, Any] | None = None) -> Storage:
     except KeyError:
         pass
 
-    storage = cast("type[Storage]", import_string(backend))
+    storage = import_string(backend)
     return storage(**relocation)
 
 
@@ -115,7 +115,7 @@ def get_profiles_storage(config: dict[str, Any] | None = None) -> Storage:
     except KeyError:
         pass
 
-    storage = cast("type[Storage]", import_string(backend))
+    storage = import_string(backend)
     return storage(**profiles)
 
 

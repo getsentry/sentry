@@ -68,7 +68,8 @@ def process_incr(
 
     if model:
         sentry_sdk.set_tag("model", model._meta.model_name)
-        sentry_sdk.set_attribute("model", model._meta.model_name)
+        if model._meta.model_name is not None:
+            sentry_sdk.set_attribute("model", model._meta.model_name)
 
     buffer.backend.process(
         model=model,
@@ -90,6 +91,7 @@ def buffer_incr(
     from sentry import buffer
 
     sentry_sdk.set_tag("model", model._meta.model_name)
-    sentry_sdk.set_attribute("model", model._meta.model_name)
+    if model._meta.model_name is not None:
+        sentry_sdk.set_attribute("model", model._meta.model_name)
 
     buffer.backend.incr(model, columns, filters, extra=extra, signal_only=signal_only)

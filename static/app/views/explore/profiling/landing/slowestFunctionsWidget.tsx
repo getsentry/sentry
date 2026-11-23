@@ -121,10 +121,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   const handleCursor = useCallback(
     (cursor: string | undefined) => {
       const {pathname, query} = location;
-      navigate({
-        pathname,
-        query: {...query, [cursorName]: cursor},
-      });
+      navigate({pathname, query: {...query, [cursorName]: cursor}});
     },
     [cursorName, location, navigate]
   );
@@ -142,10 +139,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
       ? functionsFields
       : [...functionsFields, sortFunction],
     referrer: 'api.profiling.suspect-functions.list',
-    sort: {
-      key: sortFunction,
-      order: 'desc',
-    },
+    sort: {key: sortFunction, order: 'desc'},
     query: userQuery,
     limit: MAX_FUNCTIONS,
     cursor: slowFnCursor,
@@ -175,10 +169,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   const totalsQuery = useProfileFunctions<TotalsField>({
     fields: totalsFields,
     referrer: 'api.profiling.suspect-functions.totals',
-    sort: {
-      key: 'sum()',
-      order: 'desc',
-    },
+    sort: {key: 'sum()', order: 'desc'},
     query: userQuery,
     limit: MAX_FUNCTIONS,
     projects,
@@ -230,10 +221,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
                     setExpandedIndex(0);
                     const newQuery = omit(location.query, [cursorName]);
                     navigate(
-                      {
-                        pathname: location.pathname,
-                        query: newQuery,
-                      },
+                      {pathname: location.pathname, query: newQuery},
                       {replace: true}
                     );
                   }}
@@ -344,11 +332,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
 
   const frame = useMemo(() => {
     return new Frame(
-      {
-        key: 0,
-        name: func.function as string,
-        package: func.package as string,
-      },
+      {key: 0, name: func.function as string, package: func.package as string},
       // Ensures that the frame runs through the normalization code path
       project?.platform && /node|javascript/.test(project.platform)
         ? project.platform
@@ -372,11 +356,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
       .map(values => (Array.isArray(values) ? values : []))
       .flatMap((example, i) => {
         const timestamp = (
-          <TimeSince
-            unitStyle="extraShort"
-            date={timestamps[i]! * 1000}
-            tooltipShowSeconds
-          />
+          <TimeSince unitStyle="narrow" date={timestamps[i]! * 1000} tooltipShowSeconds />
         );
         return example.slice(0, 1).map(profileRef => {
           const targetId = getProfileTargetId(profileRef);
@@ -501,10 +481,7 @@ function FunctionChart<F extends BreakdownFunction>({
     return [
       {
         data: timestamps.map((timestamp, i) => {
-          return {
-            name: timestamp * 1000,
-            value: rawData.values[i]!,
-          };
+          return {name: timestamp * 1000, value: rawData.values[i]!};
         }),
         seriesName: breakdownFunction,
       },
@@ -514,24 +491,15 @@ function FunctionChart<F extends BreakdownFunction>({
   const chartOptions = useMemo(() => {
     return {
       height: 150,
-      grid: {
-        top: '10px',
-        bottom: '10px',
-        left: '10px',
-        right: '10px',
-      },
+      grid: {top: '10px', bottom: '10px', left: '10px', right: '10px'},
       yAxis: {
         axisLabel: {
           color: theme.tokens.content.secondary,
           formatter: (value: number) => axisLabelFormatter(value, 'duration'),
         },
       },
-      xAxis: {
-        type: 'time' as const,
-      },
-      tooltip: {
-        valueFormatter: (value: number) => tooltipFormatter(value, 'duration'),
-      },
+      xAxis: {type: 'time' as const},
+      tooltip: {valueFormatter: (value: number) => tooltipFormatter(value, 'duration')},
     };
   }, [theme.tokens.content.secondary]);
 
@@ -581,30 +549,12 @@ const totalsFields = ['project.id', 'sum()'] as const;
 type TotalsField = (typeof totalsFields)[number];
 
 const WIDGET_SORTING_OPTIONS: Array<SelectOption<SortOption>> = [
-  {
-    label: t('total self time spent'),
-    value: 'sum()' as const,
-  },
-  {
-    label: t('average self time spent'),
-    value: 'avg()' as const,
-  },
-  {
-    label: t('p50 self time spent'),
-    value: 'p50()' as const,
-  },
-  {
-    label: t('p75 self time spent'),
-    value: 'p75()' as const,
-  },
-  {
-    label: t('p95 self time spent'),
-    value: 'p95()' as const,
-  },
-  {
-    label: t('p99 self time spent'),
-    value: 'p99()' as const,
-  },
+  {label: t('total self time spent'), value: 'sum()' as const},
+  {label: t('average self time spent'), value: 'avg()' as const},
+  {label: t('p50 self time spent'), value: 'p50()' as const},
+  {label: t('p75 self time spent'), value: 'p75()' as const},
+  {label: t('p95 self time spent'), value: 'p95()' as const},
+  {label: t('p99 self time spent'), value: 'p99()' as const},
 ];
 
 const StyledPagination = styled(Pagination)`

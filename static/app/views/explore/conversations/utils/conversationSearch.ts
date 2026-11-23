@@ -13,22 +13,14 @@ const CONVERSATION_FIELD_DEFINITIONS: Record<string, FieldDefinition> =
   Object.fromEntries(
     Object.values(CONVERSATION_FIELDS).map(({key, valueType, description}) => [
       key,
-      {
-        kind: FieldKind.FIELD,
-        valueType,
-        desc: description,
-      },
+      {kind: FieldKind.FIELD, valueType, desc: description},
     ])
   );
 
 const CONVERSATION_FILTER_KEYS: TagCollection = Object.fromEntries(
   Object.values(CONVERSATION_FIELDS).map(({key}) => [
     key,
-    {
-      key,
-      name: key,
-      kind: FieldKind.MEASUREMENT,
-    },
+    {key, name: key, kind: FieldKind.MEASUREMENT},
   ])
 );
 
@@ -45,10 +37,7 @@ export const CONVERSATION_SEARCH_QUERY_BUILDER_PROPS = {
   disableRecentSearches: true,
   replaceRawSearchKeys: ['gen_ai.conversation.id', 'gen_ai.input.messages'],
   matchKeySuggestions: [
-    {
-      key: 'gen_ai.conversation.id',
-      valuePattern: /^[0-9a-fA-F]{8,32}$/,
-    },
+    {key: 'gen_ai.conversation.id', valuePattern: /^[0-9a-fA-F]{8,32}$/},
     {key: 'gen_ai.conversation.id', valuePattern: /^resp_/},
     {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
     {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
@@ -68,10 +57,7 @@ export function withConversationFields(providerProps: SpanSearchProviderProps) {
   const {fieldDefinitionGetter} = providerProps;
   return {
     ...providerProps,
-    filterKeys: {
-      ...providerProps.filterKeys,
-      ...CONVERSATION_FILTER_KEYS,
-    },
+    filterKeys: {...providerProps.filterKeys, ...CONVERSATION_FILTER_KEYS},
     filterKeySections: [
       {
         value: 'conversation',

@@ -58,9 +58,7 @@ export function getPolarityRating(
   return 'neutral';
 }
 
-export const ColorizedRating = styled('div')<{
-  rating: Rating;
-}>`
+export const ColorizedRating = styled('div')<{rating: Rating}>`
   color: ${p =>
     p.rating === 'good'
       ? p.theme.tokens.content.success

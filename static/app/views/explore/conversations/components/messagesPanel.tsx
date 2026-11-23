@@ -1,4 +1,4 @@
-import {Fragment, memo, useMemo} from 'react';
+import {memo, useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,18 +12,25 @@ import {
   AssistantMessageBlock,
   UserMessageBlock,
 } from 'sentry/components/ai/chat/messageBlock';
-import {TURN_META_WIDTH, TurnMeta} from 'sentry/components/ai/chat/turnMeta';
+import {
+  TURN_META_WIDTH,
+  TurnMeta,
+  TurnMetaValue,
+} from 'sentry/components/ai/chat/turnMeta';
 import {Count} from 'sentry/components/count';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useSelectionOpenState} from 'sentry/views/explore/conversations/hooks/useSelectionOpenState';
 import {
+  callContainsNode,
   type ConversationMessage,
   extractMessagesFromNodes,
+  getConversationSystemPrompt,
   NOT_REPORTED,
+  someMessageDeep,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ScrubbedText} from 'sentry/views/insights/pages/agents/components/scrubbedText';
@@ -44,6 +51,7 @@ import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDraw
 
 import {ConversationMissingMessagesAlert} from './conversationMissingMessagesAlert';
 import {MessageToolCalls} from './messageToolCalls';
+import {SubAgentRow, type RenderTranscriptMessages} from './subAgentRow';
 import {ToolTag} from './toolTag';
 import {TranscriptSpanRow} from './transcriptSpanRow';
 
@@ -52,6 +60,11 @@ interface MessagesPanelProps {
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeId: string | null;
   isLoading?: boolean;
+  /**
+   * The transcript of `nodes`, for a caller that already built it. Built here
+   * when omitted.
+   */
+  messages?: ConversationMessage[];
   /**
    * Switches the conversation view to the Timeline tab. Surfaced from the
    * empty transcript state when a conversation has no inference spans.
@@ -68,20 +81,13 @@ export function MessagesPanel({
   onSelectNode,
   onViewTimeline,
   isLoading,
+  messages: messagesProp,
 }: MessagesPanelProps) {
-  const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
-
-  // Detect XML once per list so selection re-renders don't re-parse every message.
-  const hasXmlByMessageId = useMemo(() => {
-    const map = new Map<string, boolean>();
-    for (const message of messages) {
-      map.set(
-        message.id,
-        detectAIContentType(message.content).type === 'markdown-with-xml'
-      );
-    }
-    return map;
-  }, [messages]);
+  const messages = useMemo(
+    () => messagesProp ?? extractMessagesFromNodes(nodes),
+    [messagesProp, nodes]
+  );
+  const systemPrompt = useMemo(() => getConversationSystemPrompt(nodes), [nodes]);
 
   const nodeMap = useMemo(() => {
     const map = new Map<string, AITraceSpanNode>();
@@ -105,126 +111,223 @@ export function MessagesPanel({
     );
   }
 
-  const hasNotReportedContent = messages.some(
+  const hasNotReportedContent = someMessageDeep(
+    messages,
     message => message.content === NOT_REPORTED
   );
 
   return (
     <PanelContainer>
       {hasNotReportedContent && <NotReportedAlert nodes={nodes} />}
-      <Stack gap="0" width="100%">
-        {messages.map(message => {
-          const hasXmlTags = hasXmlByMessageId.get(message.id) ?? false;
-
-          if (message.role === 'user') {
-            return (
-              <UserTurn
-                key={message.id}
-                content={message.content}
-                hasXmlTags={hasXmlTags}
-              />
-            );
-          }
-
-          if (message.role === 'embedding') {
-            return (
-              <EmbeddingTurn
-                key={message.id}
-                message={message}
-                isSelected={message.nodeId === selectedNodeId}
-              />
-            );
-          }
-
-          if (message.role === 'evaluation') {
-            return (
-              <EvaluationTurn
-                key={message.id}
-                message={message}
-                node={nodeMap.get(message.nodeId)}
-                isSelected={message.nodeId === selectedNodeId}
-                onSelectNode={onSelectNode}
-              />
-            );
-          }
-
-          if (message.role === 'extraction') {
-            return (
-              <ExtractionTurn
-                key={message.id}
-                message={message}
-                node={nodeMap.get(message.nodeId)}
-                isSelected={message.nodeId === selectedNodeId}
-                onSelectNode={onSelectNode}
-              />
-            );
-          }
-
-          if (message.role === 'memory') {
-            return (
-              <MemoryTurn
-                key={message.id}
-                message={message}
-                node={nodeMap.get(message.nodeId)}
-                isSelected={message.nodeId === selectedNodeId}
-                onSelectNode={onSelectNode}
-              />
-            );
-          }
-
-          // Pass each turn only the selection state that concerns it, rather
-          // than the shared `selectedNodeId`. A turn's props stay referentially
-          // stable when the selection moves to an unrelated turn, so once these
-          // rows are memoized only the turns that gain/lose selection re-render.
-          const isSelected = message.nodeId === selectedNodeId;
-          const selectedToolCallId = message.toolCalls?.some(
-            tool => tool.nodeId === selectedNodeId
-          )
-            ? selectedNodeId
-            : null;
-
-          return (
-            <AssistantTurn
-              key={message.id}
-              message={message}
-              hasXmlTags={hasXmlTags}
-              isSelected={isSelected}
-              selectedToolCallId={selectedToolCallId}
-              nodeMap={nodeMap}
-              onSelectNode={onSelectNode}
-            />
-          );
-        })}
-      </Stack>
+      {systemPrompt && (
+        <MessageRow from="assistant" density="line">
+          <SystemPromptSection systemPrompt={systemPrompt} />
+        </MessageRow>
+      )}
+      <TranscriptMessages
+        messages={messages}
+        nodeMap={nodeMap}
+        selectedNodeId={selectedNodeId}
+        onSelectNode={onSelectNode}
+      />
     </PanelContainer>
   );
 }
+
+interface TranscriptMessagesProps {
+  messages: ConversationMessage[];
+  nodeMap: Map<string, AITraceSpanNode>;
+  onSelectNode: (node: AITraceSpanNode) => void;
+  selectedNodeId: string | null;
+  /** Rendered inside a sub-agent row, which already provides the row gutter. */
+  nested?: boolean;
+}
+
+/**
+ * The transcript's message list. Also renders a sub-agent's own transcript
+ * inside its expanded row.
+ */
+function TranscriptMessages({
+  messages,
+  nodeMap,
+  selectedNodeId,
+  onSelectNode,
+  nested = false,
+}: TranscriptMessagesProps) {
+  // Detect XML once per list so selection re-renders don't re-parse every message.
+  const hasXmlByMessageId = useMemo(() => {
+    const map = new Map<string, boolean>();
+    for (const message of messages) {
+      map.set(
+        message.id,
+        detectAIContentType(message.content).type === 'markdown-with-xml'
+      );
+    }
+    return map;
+  }, [messages]);
+
+  // Depends only on stable props: callers pass the selection scoped to them, so
+  // memoized turns keep bailing out when the selection moves elsewhere.
+  const renderNestedMessages = useCallback<RenderTranscriptMessages>(
+    (nestedMessages, nestedSelectedNodeId) => (
+      <TranscriptMessages
+        nested
+        messages={nestedMessages}
+        nodeMap={nodeMap}
+        selectedNodeId={nestedSelectedNodeId}
+        onSelectNode={onSelectNode}
+      />
+    ),
+    [nodeMap, onSelectNode]
+  );
+
+  const List = nested ? NestedMessageList : Stack;
+
+  return (
+    <List gap="0" width="100%">
+      {messages.map(message => {
+        const hasXmlTags = hasXmlByMessageId.get(message.id) ?? false;
+
+        if (message.role === 'user') {
+          return (
+            <UserTurn
+              key={message.id}
+              nodeId={message.nodeId}
+              content={message.content}
+              hasXmlTags={hasXmlTags}
+            />
+          );
+        }
+
+        if (message.role === 'embedding') {
+          return (
+            <EmbeddingTurn
+              key={message.id}
+              message={message}
+              isSelected={message.nodeId === selectedNodeId}
+            />
+          );
+        }
+
+        if (message.role === 'evaluation') {
+          return (
+            <EvaluationTurn
+              key={message.id}
+              message={message}
+              node={nodeMap.get(message.nodeId)}
+              isSelected={message.nodeId === selectedNodeId}
+              onSelectNode={onSelectNode}
+            />
+          );
+        }
+
+        if (message.role === 'extraction') {
+          return (
+            <ExtractionTurn
+              key={message.id}
+              message={message}
+              node={nodeMap.get(message.nodeId)}
+              isSelected={message.nodeId === selectedNodeId}
+              onSelectNode={onSelectNode}
+            />
+          );
+        }
+
+        if (message.role === 'memory') {
+          return (
+            <MemoryTurn
+              key={message.id}
+              message={message}
+              node={nodeMap.get(message.nodeId)}
+              isSelected={message.nodeId === selectedNodeId}
+              onSelectNode={onSelectNode}
+            />
+          );
+        }
+
+        if (message.subAgent) {
+          return (
+            <MessageRow
+              key={message.id}
+              from="assistant"
+              density="line"
+              data-node-id={message.nodeId}
+            >
+              <SubAgentRow
+                call={message.subAgent}
+                nodeMap={nodeMap}
+                selectedNodeId={selectedNodeId}
+                renderMessages={renderNestedMessages}
+              />
+            </MessageRow>
+          );
+        }
+
+        // Pass each turn only the selection state that concerns it, rather
+        // than the shared `selectedNodeId`. A turn's props stay referentially
+        // stable when the selection moves to an unrelated turn, so once these
+        // rows are memoized only the turns that gain/lose selection re-render.
+        const isSelected = message.nodeId === selectedNodeId;
+        const selectedToolCallId =
+          selectedNodeId !== null &&
+          message.toolCalls?.some(call => callContainsNode(call, selectedNodeId))
+            ? selectedNodeId
+            : null;
+
+        return (
+          <AssistantTurn
+            key={message.id}
+            message={message}
+            hasXmlTags={hasXmlTags}
+            isSelected={isSelected}
+            selectedToolCallId={selectedToolCallId}
+            nodeMap={nodeMap}
+            onSelectNode={onSelectNode}
+            renderMessages={renderNestedMessages}
+          />
+        );
+      })}
+    </List>
+  );
+}
+
+// Rows inside a sub-agent row cancel their own horizontal gutter (`MessageRow`'s
+// `xl` padding): the sub-agent row's indent already provides it, and doubling it
+// pushes nested bubbles inward and the meta column out of line with the rows
+// around it. Layout props can't express a negative margin, hence the styled
+// wrapper.
+const NestedMessageList = styled(Stack)`
+  margin: 0 -${p => p.theme.space.xl};
+`;
 
 // User turns carry no selection state, so their props never change on a
 // selection change — memoized, they render once and always bail out after.
 const UserTurn = memo(function UserTurnImpl({
   content,
   hasXmlTags,
+  nodeId,
 }: {
   content: string;
   hasXmlTags: boolean;
+  nodeId: string;
 }) {
-  if (content === NOT_REPORTED) {
-    return (
-      <UserMessageBlock>
-        <MessageText align="left" variant="muted">
-          {content}
-        </MessageText>
-      </UserMessageBlock>
-    );
-  }
-
   return (
-    <UserMessageBlock expand={hasXmlTags}>
-      <MessageText align="left">
-        <AIContentRenderer text={content} inline autoCollapseLimit={10} />
-      </MessageText>
-    </UserMessageBlock>
+    // Search finds the span a transcript block renders by its data-node-id.
+    <Container display="contents" data-node-id={nodeId}>
+      {content === NOT_REPORTED ? (
+        <UserMessageBlock>
+          <MessageText align="left" variant="muted">
+            {content}
+          </MessageText>
+        </UserMessageBlock>
+      ) : (
+        <UserMessageBlock expand={hasXmlTags}>
+          <MessageText align="left">
+            <AIContentRenderer text={content} inline autoCollapseLimit={10} />
+          </MessageText>
+        </UserMessageBlock>
+      )}
+    </Container>
   );
 });
 
@@ -234,10 +337,11 @@ interface AssistantTurnProps {
   message: ConversationMessage;
   nodeMap: Map<string, AITraceSpanNode>;
   onSelectNode: (node: AITraceSpanNode) => void;
+  renderMessages: RenderTranscriptMessages;
   /**
-   * The selected node id when it belongs to one of this turn's tool calls,
-   * otherwise null. Scoping it to the turn keeps the prop stable for turns
-   * unaffected by a selection change.
+   * The selected node id when it belongs to one of this turn's calls (or a
+   * span inside a sub-agent call), otherwise null. Scoping it to the turn keeps
+   * the prop stable for turns unaffected by a selection change.
    */
   selectedToolCallId: string | null;
 }
@@ -252,9 +356,16 @@ const AssistantTurn = memo(function AssistantTurnImpl({
   selectedToolCallId,
   nodeMap,
   onSelectNode,
+  renderMessages,
 }: AssistantTurnProps) {
   const organization = useOrganization();
+  const theme = useTheme();
   const generationNode = nodeMap.get(message.nodeId);
+  // Without a bubble, the turn's first row shows the selection instead.
+  const isRowSelected = isSelected && message.content === '';
+  const selectedRowStyle = isRowSelected
+    ? {outline: `2px solid ${theme.tokens.focus.default}`, outlineOffset: '-2px'}
+    : undefined;
   // Spans often report `gen_ai.cost.total_tokens` as 0 when the API omits cost;
   // treat that as absent so we don't show `<$0.01`, matching the timeline.
   const cost = generationNode
@@ -272,25 +383,33 @@ const AssistantTurn = memo(function AssistantTurnImpl({
   };
 
   return (
-    <Fragment>
+    <Container display="contents" data-node-id={message.nodeId}>
       {message.toolCalls && message.toolCalls.length > 0 && (
-        <MessageRow from="assistant" density="compact">
+        <MessageRow from="assistant" density="line">
           <MessageToolCalls
             toolCalls={message.toolCalls}
             selectedToolCallId={selectedToolCallId}
             nodeMap={nodeMap}
             onSelectNode={onSelectNode}
+            renderMessages={renderMessages}
           />
         </MessageRow>
       )}
       {message.reasoning && (
-        <MessageRow from="assistant" density="compact">
-          {/* A reasoning-only turn (no assistant bubble to hang meta on) surfaces
-           * the turn's cost/duration in the thinking row's own meta column. */}
-          <ReasoningSection
-            reasoning={message.reasoning}
-            meta={message.content === '' && hasMeta ? meta : undefined}
-          />
+        <MessageRow from="assistant" density="line">
+          <Container
+            width="100%"
+            radius="xs"
+            data-selected={isRowSelected}
+            style={selectedRowStyle}
+          >
+            {/* A reasoning-only turn (no assistant bubble to hang meta on) surfaces
+             * the turn's cost/duration in the thinking row's own meta column. */}
+            <ReasoningSection
+              reasoning={message.reasoning}
+              meta={message.content === '' && hasMeta ? meta : undefined}
+            />
+          </Container>
         </MessageRow>
       )}
       {message.content === '' ? (
@@ -300,8 +419,14 @@ const AssistantTurn = memo(function AssistantTurnImpl({
         // meta itself, so skip this fallback then.
         hasMeta &&
         !message.reasoning && (
-          <MessageRow from="assistant" density="compact">
-            <Flex justify="end" width="100%">
+          <MessageRow from="assistant" density="line">
+            <Flex
+              justify="end"
+              width="100%"
+              radius="xs"
+              data-selected={isRowSelected}
+              style={selectedRowStyle}
+            >
               {meta}
             </Flex>
           </MessageRow>
@@ -324,7 +449,7 @@ const AssistantTurn = memo(function AssistantTurnImpl({
           </MessageText>
         </AssistantMessageBlock>
       )}
-    </Fragment>
+    </Container>
   );
 });
 
@@ -333,18 +458,12 @@ function AssistantMeta({cost, duration}: {cost?: number; duration?: number}) {
     <TurnMeta
       metric={
         cost === undefined || cost <= 0 ? null : (
-          <Text size="xs" variant="muted" tabular align="right">
+          <TurnMetaValue>
             <LLMCosts cost={cost} />
-          </Text>
+          </TurnMetaValue>
         )
       }
-      duration={
-        duration === undefined || duration <= 0 ? null : (
-          <Text size="xs" variant="muted" tabular align="right">
-            {getDuration(duration, 2, true)}
-          </Text>
-        )
-      }
+      duration={duration}
     />
   );
 }
@@ -363,11 +482,12 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
   const organization = useOrganization();
   const input = message.embeddingInput ?? '';
   const tokens = message.embeddingTokens;
+  const [isOpen, setIsOpen] = useSelectionOpenState(isSelected ? message.nodeId : null);
 
   return (
-    <MessageRow from="assistant" density="compact">
+    <MessageRow from="assistant" density="line" data-node-id={message.nodeId}>
       <CollapsibleChatRow
-        defaultOpen={isSelected}
+        open={isOpen}
         title={
           <Text
             size="sm"
@@ -382,26 +502,21 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
           <TurnMeta
             metric={
               tokens === undefined || tokens <= 0 ? null : (
-                <Text size="xs" variant="muted" tabular align="right">
+                <TurnMetaValue>
                   <Count value={tokens} /> {t('tokens')}
-                </Text>
+                </TurnMetaValue>
               )
             }
-            duration={
-              message.duration === undefined || message.duration <= 0 ? null : (
-                <Text size="xs" variant="muted" tabular align="right">
-                  {getDuration(message.duration, 2, true)}
-                </Text>
-              )
-            }
+            duration={message.duration}
           />
         }
-        onToggle={open =>
+        onOpenChange={open => {
+          setIsOpen(open);
           trackAnalytics('conversations.detail.expand-embedding', {
             organization,
             expanded: open,
-          })
-        }
+          });
+        }}
       >
         <Flex>
           <Container paddingTop="xs" paddingBottom="xs" flex="1" minWidth={0}>
@@ -451,7 +566,7 @@ const EvaluationTurn = memo(function EvaluationTurnImpl({
   };
 
   return (
-    <MessageRow from="assistant" density="compact">
+    <MessageRow from="assistant" density="line" data-node-id={message.nodeId}>
       <TranscriptSpanRow
         node={node}
         isSelected={isSelected}
@@ -497,7 +612,7 @@ const ExtractionTurn = memo(function ExtractionTurnImpl({
   };
 
   return (
-    <MessageRow from="assistant" density="compact">
+    <MessageRow from="assistant" density="line" data-node-id={message.nodeId}>
       <TranscriptSpanRow
         node={node}
         isSelected={isSelected}
@@ -537,7 +652,7 @@ const MemoryTurn = memo(function MemoryTurnImpl({
   };
 
   return (
-    <MessageRow from="assistant" density="compact">
+    <MessageRow from="assistant" density="line" data-node-id={message.nodeId}>
       <TranscriptSpanRow
         node={node}
         isSelected={isSelected}
@@ -584,7 +699,7 @@ function ReasoningSection({
           {t('Thinking...')} {isOpen ? null : <ScrubbedText>{reasoning}</ScrubbedText>}
         </Text>
       )}
-      onToggle={open =>
+      onOpenChange={open =>
         trackAnalytics('conversations.detail.expand-thinking', {
           organization,
           expanded: open,
@@ -604,6 +719,43 @@ function ReasoningSection({
     </CollapsibleChatRow>
   );
 }
+
+// Collapsed by default: system prompts are long. Memoized since its only prop
+// is a string, so selection changes never re-render the (possibly long) prompt.
+const SystemPromptSection = memo(function SystemPromptSectionImpl({
+  systemPrompt,
+}: {
+  systemPrompt: string;
+}) {
+  const organization = useOrganization();
+
+  return (
+    <CollapsibleChatRow
+      title={isOpen => (
+        <Text size="sm" variant="muted" ellipsis monospace>
+          {t('System prompt')}{' '}
+          {isOpen ? null : <ScrubbedText>{systemPrompt}</ScrubbedText>}
+        </Text>
+      )}
+      onOpenChange={open =>
+        trackAnalytics('conversations.detail.expand-system-prompt', {
+          organization,
+          expanded: open,
+        })
+      }
+    >
+      <Flex>
+        <Container paddingTop="xs" paddingBottom="xs" flex="1" minWidth={0}>
+          {/* Rendered like the span's Input tab: a boxed block that keeps the
+           * prompt's line breaks, with a Pretty/Raw toggle. Not clipped, since
+           * expanding the row already asked to see the whole prompt. */}
+          <AIContentRenderer text={systemPrompt} clip={false} autoCollapseLimit={10} />
+        </Container>
+        <Container width={TURN_META_WIDTH} flexShrink={0} />
+      </Flex>
+    </CollapsibleChatRow>
+  );
+});
 
 /**
  * Links to the docs for the conversation's platform, since the transcript was
@@ -667,9 +819,7 @@ function EmptyNotice({children}: {children: React.ReactNode}) {
  */
 export function MessagesPanelSkeleton() {
   const theme = useTheme();
-  const invertedPlaceholderStyle = {
-    backgroundColor: theme.tokens.background.primary,
-  };
+  const invertedPlaceholderStyle = {backgroundColor: theme.tokens.background.primary};
 
   return (
     <PanelContainer>

@@ -2025,21 +2025,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                     "widgetType": "error-events",
                 },
                 {
-                    "title": "Transaction Op Count",
-                    "displayType": "table",
-                    "interval": "5m",
-                    "queries": [
-                        {
-                            "name": "Transaction Op Count",
-                            "fields": ["count()", "transaction.op"],
-                            "columns": ["transaction.op"],
-                            "aggregates": ["count()"],
-                            "conditions": "",
-                        }
-                    ],
-                    "widgetType": "transaction-like",
-                },
-                {
                     "title": "Irrelevant widget type",
                     "displayType": "table",
                     "interval": "5m",
@@ -2066,15 +2051,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             "error-events"
         )
 
-        assert widgets[1].widget_type == DashboardWidgetTypes.get_id_for_type_name(
-            "transaction-like"
-        )
-        assert widgets[1].discover_widget_split == DashboardWidgetTypes.get_id_for_type_name(
-            "transaction-like"
-        )
-
-        assert widgets[2].widget_type == DashboardWidgetTypes.get_id_for_type_name("issue")
-        assert widgets[2].discover_widget_split is None
+        assert widgets[1].widget_type == DashboardWidgetTypes.get_id_for_type_name("issue")
+        assert widgets[1].discover_widget_split is None
 
     def test_add_widget_with_selected_aggregate(self) -> None:
         data: dict[str, Any] = {

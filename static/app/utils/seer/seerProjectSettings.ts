@@ -10,6 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -39,6 +40,15 @@ export const seerProjectSettingsSchema = z.object({
   stoppingPoint: z.enum(['off', 'root_cause', 'solution', 'code_changes', 'open_pr']),
   prIteration: z.boolean(),
 });
+
+/**
+ * Matches the org's seer projects settings lists for every filter and page size.
+ */
+export function allSeerProjectsSettingsFilter(organization: Organization) {
+  return apiOptions.queryFilter('/organizations/$organizationIdOrSlug/seer/projects/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
+}
 
 export function getSeerProjectSettingsQueryOptions({
   organization,
@@ -105,7 +115,7 @@ export function getMutateSeerProjectSettingsOptions({
   knownAgents?: AgentIntegration[];
 }) {
   const queryKey = getSeerProjectSettingsQueryOptions({organization, project}).queryKey;
-  const [url] = queryKey;
+  const url = parseQueryKey(queryKey).url;
 
   return mutationOptions({
     mutationKey: getSeerProjectSettingsMutationKey(organization.slug, project.slug),
@@ -129,27 +139,15 @@ export function getMutateSeerProjectSettingsOptions({
         url,
         data: {
           ...rest,
-          ...(!isOff &&
-            stoppingPoint !== undefined && {
-              stoppingPoint,
-            }),
+          ...(!isOff && stoppingPoint !== undefined && {stoppingPoint}),
           ...agentObj,
           ...(tuning !== undefined && {automationTuning: tuning}),
         },
       });
     },
     onMutate: async data => {
-      const infiniteQueryKey = getInfiniteSeerProjectsSettingsQueryOptions({
-        organization,
-        query: {},
-      }).queryKey;
-      const [infiniteUrl] = infiniteQueryKey;
-
       await queryClient.cancelQueries({queryKey});
-      await queryClient.cancelQueries({
-        queryKey: [infiniteUrl],
-        exact: false,
-      });
+      await queryClient.cancelQueries(allSeerProjectsSettingsFilter(organization));
 
       const previousData = queryClient.getQueryData(queryKey);
 
@@ -185,7 +183,7 @@ export function getMutateSeerProjectSettingsOptions({
       );
 
       queryClient.setQueriesData(
-        {queryKey: [infiniteUrl], exact: false},
+        allSeerProjectsSettingsFilter(organization),
         (prev: InfiniteData<ApiResponse<SeerProjectSettingResponse[]>> | undefined) => {
           if (prev) {
             return {
@@ -202,26 +200,15 @@ export function getMutateSeerProjectSettingsOptions({
         }
       );
 
-      return {previousData, infiniteUrl};
+      return {previousData};
     },
     onError: (_error, _data, context) => {
       queryClient.setQueryData(queryKey, context?.previousData);
-      if (context?.infiniteUrl) {
-        queryClient.invalidateQueries({
-          queryKey: [context.infiniteUrl],
-          exact: false,
-        });
-      }
+      queryClient.invalidateQueries(allSeerProjectsSettingsFilter(organization));
     },
     onSettled: () => {
-      const infiniteQueryKey = getInfiniteSeerProjectsSettingsQueryOptions({
-        organization,
-        query: {},
-      }).queryKey;
-      const [infiniteUrl] = infiniteQueryKey;
-
       queryClient.invalidateQueries({queryKey});
-      queryClient.invalidateQueries({queryKey: [infiniteUrl], exact: false});
+      queryClient.invalidateQueries(allSeerProjectsSettingsFilter(organization));
     },
   });
 }
@@ -248,18 +235,12 @@ export function getMutateSeerProjectsSettingsOptions({
     organization,
     query: {},
   }).queryKey;
-  const [infiniteUrl] = infiniteQueryKey;
+  const infiniteUrl = parseQueryKey(infiniteQueryKey).url;
 
-  const singleProjectPrefix = `/projects/${encodeURIComponent(organization.slug)}/`;
-  const singleProjectSuffix = '/seer/settings/';
-  const isSingleProjectSettingsQuery = (queryKey: readonly unknown[]) => {
-    const url = queryKey[0];
-    return (
-      typeof url === 'string' &&
-      url.startsWith(singleProjectPrefix) &&
-      url.endsWith(singleProjectSuffix)
-    );
-  };
+  const singleProjectSettingsFilter = apiOptions.queryFilter(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/settings/*',
+    {path: {organizationIdOrSlug: organization.slug}}
+  );
 
   return mutationOptions({
     mutationFn: (data: SeerBulkEditVariables) => {
@@ -283,20 +264,15 @@ export function getMutateSeerProjectsSettingsOptions({
         data: {
           ...rest,
           query: selectedIds === 'all' ? query : `id:[${selectedIds.join(',')}]`,
-          ...(!isOff &&
-            stoppingPoint !== undefined && {
-              stoppingPoint,
-            }),
+          ...(!isOff && stoppingPoint !== undefined && {stoppingPoint}),
           ...agentObj,
           ...(tuning !== undefined && {automationTuning: tuning}),
         } satisfies SeerBulkProjectSettingUpdatePayload,
       });
     },
     onMutate: async data => {
-      await queryClient.cancelQueries({queryKey: [infiniteUrl], exact: false});
-      await queryClient.cancelQueries({
-        predicate: q => isSingleProjectSettingsQuery(q.queryKey),
-      });
+      await queryClient.cancelQueries(allSeerProjectsSettingsFilter(organization));
+      await queryClient.cancelQueries(singleProjectSettingsFilter);
 
       const jsonUpdates: Partial<SeerProjectSettingResponse> = {};
       if (data.agentOption !== undefined) {
@@ -320,7 +296,7 @@ export function getMutateSeerProjectsSettingsOptions({
         data.selectedIds === 'all' || data.selectedIds.includes(item.projectId);
 
       queryClient.setQueriesData(
-        {queryKey: [infiniteUrl], exact: false},
+        allSeerProjectsSettingsFilter(organization),
         (prev: InfiniteData<ApiResponse<SeerProjectSettingResponse[]>> | undefined) => {
           if (prev) {
             return {
@@ -339,7 +315,7 @@ export function getMutateSeerProjectsSettingsOptions({
 
       if (data.selectedIds === 'all') {
         queryClient.setQueriesData(
-          {predicate: q => isSingleProjectSettingsQuery(q.queryKey)},
+          singleProjectSettingsFilter,
           (prev: ApiResponse<SeerProjectSettingResponse> | undefined) => {
             if (prev) {
               return {...prev, json: {...prev.json, ...jsonUpdates}};
@@ -370,16 +346,12 @@ export function getMutateSeerProjectsSettingsOptions({
       }
     },
     onError: () => {
-      queryClient.invalidateQueries({queryKey: [infiniteUrl], exact: false});
-      queryClient.invalidateQueries({
-        predicate: q => isSingleProjectSettingsQuery(q.queryKey),
-      });
+      queryClient.invalidateQueries(allSeerProjectsSettingsFilter(organization));
+      queryClient.invalidateQueries(singleProjectSettingsFilter);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({queryKey: [infiniteUrl], exact: false});
-      queryClient.invalidateQueries({
-        predicate: q => isSingleProjectSettingsQuery(q.queryKey),
-      });
+      queryClient.invalidateQueries(allSeerProjectsSettingsFilter(organization));
+      queryClient.invalidateQueries(singleProjectSettingsFilter);
     },
   });
 }

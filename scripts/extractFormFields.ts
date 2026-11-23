@@ -4,7 +4,6 @@
  * Static analysis script to extract form field definitions from useScrapsForm usage
  * Parses TypeScript/TSX files to find <form.AppField> components and extract metadata
  */
-import {execFileSync} from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -287,12 +286,7 @@ class FormFieldExtractor {
       return null;
     }
 
-    return {
-      name: nameAttr,
-      formId,
-      route,
-      ...fieldMetadata,
-    };
+    return {name: nameAttr, formId, route, ...fieldMetadata};
   }
 
   private extractFieldMetadata(
@@ -518,6 +512,19 @@ class FormFieldExtractor {
   }
 }
 
+function printRegistry(source: string, fileName: string): string {
+  const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest);
+  // Normalize quotes in the string expressions copied from application code.
+  const printer = ts.createPrinter(
+    {newLine: ts.NewLineKind.LineFeed},
+    {
+      substituteNode: (_hint, node) =>
+        ts.isStringLiteral(node) ? ts.factory.createStringLiteral(node.text) : node,
+    }
+  );
+  return printer.printFile(file);
+}
+
 function generateRegistryFile(fields: ExtractedField[], outputPath: string): void {
   // Dedupe fields by formId.name (last one wins for same key)
   const fieldMap = new Map<string, ExtractedField & {route: string}>();
@@ -566,8 +573,15 @@ ${registryEntries}
 };
 `;
 
-  fs.writeFileSync(outputPath, registryContent, 'utf-8');
-  execFileSync('pnpm', ['oxfmt', outputPath], {stdio: 'ignore'});
+  const output = printRegistry(registryContent, outputPath);
+  if (
+    fs.existsSync(outputPath) &&
+    printRegistry(fs.readFileSync(outputPath, 'utf8'), outputPath) === output
+  ) {
+    console.log(`Form field registry is up to date in ${outputPath}`);
+    return;
+  }
+  fs.writeFileSync(outputPath, output, 'utf8');
   console.log(`✅ Generated ${dedupedFields.length} field definitions in ${outputPath}`);
 }
 

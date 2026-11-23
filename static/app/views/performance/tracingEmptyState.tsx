@@ -32,7 +32,6 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useEventWaiter} from 'sentry/utils/useEventWaiter';
@@ -43,16 +42,14 @@ import {traceAnalytics} from './traceDetails/traceAnalytics';
 
 const TRACING_BENEFITS = [
   t('See related errors, logs, replays, and metrics alongside each trace'),
-  t(
-    'Find slow services and operations in the trace view and spot where a problem originated'
-  ),
+  t('Find slow services and operations, and where problems start'),
   t('Inspect model calls and tool calls in AI agents'),
 ];
 
 const TRACING_AGENT_STEPS = [
-  t('Install or update the Sentry SDK with tracing support'),
-  t('Configure the tracing sample rate and SDK options'),
-  t('Send a test request and verify traces appear in Sentry'),
+  t('Install or update the Sentry SDK with tracing'),
+  t('Set the sample rate and SDK options'),
+  t('Send a test request and check traces in Sentry'),
 ];
 
 const PLATFORM_DOCS_URL = 'https://docs.sentry.io/platforms/';
@@ -64,12 +61,21 @@ const serializeTraceRedirect = createSerializer({
   guidedStep: parseAsInteger,
 });
 
-function TakeMeToTraceButton({traceId}: {traceId: string | undefined}) {
+function TakeMeToTraceButton({
+  traceId,
+  projectId,
+}: {
+  projectId: string;
+  traceId: string | undefined;
+}) {
   return (
     <Button
       variant="primary"
       busy={!traceId}
       tooltipProps={{title: traceId ? undefined : t('Processing trace\u2026')}}
+      analyticsEventKey="product_empty_state.view_data_clicked"
+      analyticsEventName="Product Empty State: View Data Clicked"
+      analyticsParams={{product: 'tracing', project_id: projectId}}
       onClick={() => {
         testableWindowLocation.assign(
           serializeTraceRedirect(`${window.location.pathname}${window.location.search}`, {
@@ -189,10 +195,7 @@ function TracingManualSetup({
   return <ManualSetupSteps project={project} steps={tracingSteps} />;
 }
 
-type Props = {
-  organization: Organization;
-  project: Project;
-};
+type Props = {organization: Organization; project: Project};
 
 export function TracingEmptyState({organization, project}: Props) {
   const noPerformanceSupport = doesNotSupportPerformance(project);
@@ -262,7 +265,7 @@ export function TracingEmptyState({organization, project}: Props) {
   const footer = (
     <Flex align="center" justify="between" gap="md">
       {received ? <EventReceivedIndicator /> : <EventWaitingIndicator />}
-      {received && <TakeMeToTraceButton traceId={traceId} />}
+      {received && <TakeMeToTraceButton traceId={traceId} projectId={project.id} />}
     </Flex>
   );
 
@@ -298,14 +301,6 @@ export function TracingEmptyState({organization, project}: Props) {
             projectKeyId={projectKeyId}
           />
         }
-        onPromptCopied={_handoffId => {
-          trackAnalytics('onboarding.ai_prompt_copied', {
-            organization,
-            platform: project.platform ?? 'unknown',
-            product: 'traces',
-            source: 'prompt',
-          });
-        }}
         footer={footer}
       />
     </Container>

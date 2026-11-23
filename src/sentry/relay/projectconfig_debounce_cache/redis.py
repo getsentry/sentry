@@ -11,7 +11,7 @@ REDIS_CACHE_TIMEOUT = 3600  # 1 hr
 
 class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
     def __init__(self, **options: object) -> None:
-        self._key_prefix = cast(str, options.pop("key_prefix", "relayconfig-debounce"))
+        self._key_prefix = options.pop("key_prefix", "relayconfig-debounce")
         self._debounce_ttl = cast(int, options.pop("debounce_ttl", REDIS_CACHE_TIMEOUT))
         _, self.cluster, options = get_dynamic_cluster_from_options(
             "SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS", options, decode_responses=True

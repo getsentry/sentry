@@ -21,7 +21,7 @@ from collections.abc import (
 from contextlib import contextmanager
 from dataclasses import dataclass
 from threading import local
-from typing import TYPE_CHECKING, Any, NoReturn, Self, TypeVar, cast
+from typing import TYPE_CHECKING, Any, NoReturn, Self, TypeVar
 
 import django.urls
 import pydantic
@@ -367,7 +367,7 @@ class RpcService(abc.ABC):
             for service_method in cls._get_abstract_rpc_methods()
         }
         remote_service_class = type(f"{cls.__name__}__RemoteDelegate", (cls,), overrides)
-        return cast(RpcService, remote_service_class())
+        return remote_service_class()
 
     @classmethod
     def create_delegation(cls, use_test_client: bool | None = None) -> Self:

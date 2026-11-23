@@ -70,9 +70,7 @@ describe('ConversationTraceLink', () => {
 
   it('falls back to the page date range when a trace has no timestamp', () => {
     PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        datetime: {period: '30d', start: null, end: null, utc: null},
-      })
+      PageFiltersFixture({datetime: {period: '30d', start: null, end: null, utc: null}})
     );
 
     render(

@@ -24,10 +24,7 @@ export function useUpdateProjectSeerPreferences(project: Project) {
       queryClient.setQueryData(queryKey, {
         ...previousPrefs,
         json: {
-          preference: {
-            ...(previousPrefs.json.preference ?? null),
-            ...preference,
-          },
+          preference: {...(previousPrefs.json.preference ?? null), ...preference},
           code_mapping_repos: previousPrefs.json.code_mapping_repos,
         },
       });

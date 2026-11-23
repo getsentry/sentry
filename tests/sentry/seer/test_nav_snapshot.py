@@ -9,6 +9,7 @@ from sentry.seer import nav_snapshot
 from sentry.seer.nav_snapshot import (
     describe_condition,
     get_nav_snapshot,
+    nav_summary,
     resolve_condition,
     visible_nav_links,
 )
@@ -24,6 +25,22 @@ def test_get_nav_snapshot() -> None:
     for entry in snapshot["entries"]:
         assert entry["crumbs"]
         assert entry["path"].startswith("/")
+    assert snapshot["summary"]["sections"]
+
+
+def test_nav_summary_evaluates_flags_for_the_org() -> None:
+    summary = {
+        "sections": {"explore": ["Explore", "Logs"]},
+        "prebuilt_dashboards": ["Queries"],
+        "explore_tabs": ["Aggregates"],
+        "flags": ["ourlogs-enabled", "profiling"],
+    }
+    with mock.patch.object(nav_snapshot, "_SNAPSHOT", {"summary": summary}):
+        result = nav_summary({"ourlogs-enabled"})
+    assert result.sections == {"explore": ["Explore", "Logs"]}
+    assert result.prebuilt_dashboards == ["Queries"]
+    assert result.explore_tabs == ["Aggregates"]
+    assert result.flags == {"ourlogs-enabled": True, "profiling": False}
 
 
 def _snapshot(*entries: dict[str, Any]) -> Any:

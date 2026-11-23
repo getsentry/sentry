@@ -120,10 +120,7 @@ describe('useScmProjectCreation', () => {
     ProjectsStore.loadInitialData([createdProject]);
     const onSuccess = jest.fn();
     const {result} = renderCreation({
-      createdProject: {
-        slug: createdProject.slug,
-        messagingSelection: undefined,
-      },
+      createdProject: {slug: createdProject.slug, messagingSelection: undefined},
     });
 
     await act(() =>
@@ -373,10 +370,7 @@ describe('useScmProjectCreation', () => {
 
   describe('messaging destination', () => {
     const savedSelection = {provider: 'slack', integrationId: '15', channel: '#alerts'};
-    const existing = {
-      slug: createdProject.slug,
-      messagingSelection: savedSelection,
-    };
+    const existing = {slug: createdProject.slug, messagingSelection: savedSelection};
     const detector = IssueStreamDetectorFixture({
       id: 'detector-1',
       projectId: createdProject.id,
@@ -457,10 +451,7 @@ describe('useScmProjectCreation', () => {
       const [oldDelete, sharedDelete, handMadeDelete] = deleteRequests;
       const onCreatedProjectChange = jest.fn();
       const onSuccess = jest.fn();
-      const {result} = renderCreation({
-        createdProject: existing,
-        onCreatedProjectChange,
-      });
+      const {result} = renderCreation({createdProject: existing, onCreatedProjectChange});
       const stagedSelection = {...savedSelection, channel: '#ops'};
 
       await act(() =>
@@ -548,10 +539,7 @@ describe('useScmProjectCreation', () => {
       });
       const onCreatedProjectChange = jest.fn();
       const onSuccess = jest.fn();
-      const {result} = renderCreation({
-        createdProject: existing,
-        onCreatedProjectChange,
-      });
+      const {result} = renderCreation({createdProject: existing, onCreatedProjectChange});
 
       await act(() =>
         result.current.createOrReuseProject({

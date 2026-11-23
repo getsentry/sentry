@@ -7,9 +7,7 @@ import {FiltersGrid} from 'sentry/views/explore/replays/detail/filtersGrid';
 
 import {type useBreadcrumbFilters} from './useBreadcrumbFilters';
 
-type Props = {
-  frames: undefined | unknown[];
-} & ReturnType<typeof useBreadcrumbFilters>;
+type Props = {frames: undefined | unknown[]} & ReturnType<typeof useBreadcrumbFilters>;
 
 export function BreadcrumbFilters({
   frames,

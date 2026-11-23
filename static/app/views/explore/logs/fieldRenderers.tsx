@@ -6,11 +6,11 @@ import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration/duration';
 import {useStacktraceLink} from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import {ALL_DATE_TIME_QUERY_KEYS} from 'sentry/components/pageFilters/constants';
@@ -165,6 +165,9 @@ function TimestampRenderer(props: LogFieldRendererProps) {
     ? new Date(Number(String(preciseTimestamp).slice(0, -6))) // Truncate last 6 digits (nanoseconds)
     : props.item.value;
 
+  if (timestampToUse === null) {
+    return null;
+  }
   return (
     <LogTimestamp align={props.extra.align}>
       <LogsTimestampTooltip
@@ -173,7 +176,7 @@ function TimestampRenderer(props: LogFieldRendererProps) {
         isTraceItemDetailsPending={props.extra.isTraceItemDetailsPending}
         shouldRender={props.extra.shouldRenderHoverElements}
       >
-        <DateTime seconds milliseconds date={timestampToUse} />
+        <DateTime date={timestampToUse} precision="millisecond" showTimezone={false} />
       </LogsTimestampTooltip>
     </LogTimestamp>
   );
@@ -182,7 +185,7 @@ function TimestampRenderer(props: LogFieldRendererProps) {
 function InternalIngestedAtRenderer(props: LogFieldRendererProps) {
   const ingestedAt =
     props.extra.attributes[OurLogKnownFieldKey.INTERNAL_ONLY_INGESTED_AT];
-  return <DateTime seconds milliseconds date={new Date(Number(ingestedAt))} />;
+  return <DateTime date={new Date(Number(ingestedAt))} precision="millisecond" />;
 }
 
 function RelativeTimestampRenderer(props: LogFieldRendererProps) {
@@ -247,10 +250,7 @@ function CodePathRenderer(props: LogFieldRendererProps) {
   const sdkVersion = props.extra.attributes?.[OurLogKnownFieldKey.SDK_VERSION];
   const sdk =
     typeof sdkVersion === 'string' && typeof sdkName === 'string'
-      ? {
-          name: sdkName,
-          version: sdkVersion,
-        }
+      ? {name: sdkName, version: sdkVersion}
       : undefined;
   const filename = props.item.value;
 
@@ -264,10 +264,7 @@ function CodePathRenderer(props: LogFieldRendererProps) {
   });
   const {data: codeLink} = useStacktraceLink(
     {
-      event: {
-        release,
-        sdk,
-      },
+      event: {release, sdk},
       frame: {
         function: typeof codeFunctionName === 'string' ? codeFunctionName : undefined,
         lineNo: codeLineNumber ? +codeLineNumber : undefined,
@@ -276,9 +273,7 @@ function CodePathRenderer(props: LogFieldRendererProps) {
       orgSlug: props.extra.organization.slug,
       projectSlug: props.extra.projectSlug ?? '',
     },
-    {
-      enabled: shouldLoad && !!props.extra.projectSlug && !!release,
-    }
+    {enabled: shouldLoad && !!props.extra.projectSlug && !!release}
   );
 
   return (
@@ -332,10 +327,7 @@ function useLazyLoadAttributeOnHover(hoverTimeout: number, props: LogFieldRender
   }, []);
 
   return {
-    wrapperProps: {
-      onMouseEnter: handleMouseEnter,
-      onMouseLeave: handleMouseLeave,
-    },
+    wrapperProps: {onMouseEnter: handleMouseEnter, onMouseLeave: handleMouseLeave},
     shouldLoad,
   };
 }
@@ -653,9 +645,7 @@ function BasicDiscoverRenderer(props: LogFieldRendererProps) {
   return (
     <LogBasicRendererContainer align={align}>
       {basicRenderer(
-        {
-          [props.item.fieldKey]: castValue,
-        },
+        {[props.item.fieldKey]: castValue},
         {
           unit: logMeta.units[props.item.fieldKey] ?? undefined,
           ...props.extra,
@@ -724,9 +714,7 @@ const fullFieldToExistingField: Record<OurLogFieldKey, string> = {
 
 // Meta returned from TraceItemDetails is empty, in which case we can provide our own meta to map known fields to their types to get the basic rendering working.
 const logFieldBasicMetas: EventsMetaType = {
-  fields: {
-    [OurLogKnownFieldKey.PAYLOAD_SIZE]: 'size',
-  },
+  fields: {[OurLogKnownFieldKey.PAYLOAD_SIZE]: 'size'},
   units: {
     [OurLogKnownFieldKey.PAYLOAD_SIZE]: 'byte', // SIZE_UNITS
   },

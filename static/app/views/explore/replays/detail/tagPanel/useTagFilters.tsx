@@ -5,9 +5,7 @@ import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersIn
 import {filterItems} from 'sentry/views/explore/replays/detail/utils';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
-type Options = {
-  tags: ReplayRecord['tags'];
-};
+type Options = {tags: ReplayRecord['tags']};
 
 type Return = {
   items: ReplayRecord['tags'];
@@ -50,9 +48,5 @@ export function useTagFilters({tags}: Options): Return {
     }
   });
 
-  return {
-    items,
-    searchTerm,
-    setSearchTerm,
-  };
+  return {items, searchTerm, setSearchTerm};
 }
