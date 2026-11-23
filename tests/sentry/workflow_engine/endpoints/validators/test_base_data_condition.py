@@ -177,10 +177,37 @@ class TestBooleanConditionResult(TestCase):
         assert validator.validated_data["condition_result"] is False
 
     def test_workflow_trigger__non_boolean_rejected(self) -> None:
-        for condition_result in ("yes", "True", 1, 75, None, {"value": True}):
+        for condition_result in ("yes", "True", 1, 75, None, {}, {"value": True}):
             validator = self._validator(Condition.FIRST_SEEN_EVENT, True, condition_result)
             assert validator.is_valid() is False, condition_result
             assert "conditionResult" in validator.errors
+
+    def test_every_event__empty_object_rejected(self) -> None:
+        validator = self._validator(Condition.EVERY_EVENT, True, {})
+        assert validator.is_valid() is False
+        assert "conditionResult" in validator.errors
+
+    def test_action_filter__empty_object_rejected(self) -> None:
+        validator = self._validator(Condition.ISSUE_OCCURRENCES, {"value": 1}, {})
+        assert validator.is_valid() is False
+        assert "conditionResult" in validator.errors
+
+    def test_workflow_handlers__condition_result_schema_is_boolean(self) -> None:
+        workflow_groups = {
+            DataConditionHandler.Group.WORKFLOW_TRIGGER,
+            DataConditionHandler.Group.ACTION_FILTER,
+        }
+        handlers = [
+            (condition_type, handler)
+            for condition_type, handler in condition_handler_registry.registrations.items()
+            if handler.group in workflow_groups
+        ]
+        assert handlers
+        assert [
+            condition_type
+            for condition_type, handler in handlers
+            if handler.condition_result_schema != {"type": "boolean"}
+        ] == []
 
     def test_detector_condition__priority_level_kept(self) -> None:
         validator = self._validator(Condition.GREATER, 10, 75)
