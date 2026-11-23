@@ -13,7 +13,6 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
-from sentry.inbox.types import SYSTEM_ACTOR, InboxActor
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.issues.derived.features import FIRST_ASSIGNMENT_ACTION_ID
 from sentry.issues.derived.framework import DerivedDataError
@@ -149,11 +148,10 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         force_autoassign: bool = False,
         assignment_source: AssignmentSource | None = None,
     ) -> GroupAssignmentState:
-        from sentry.inbox.issue import ISSUE_TEAM_ASSIGNED, ISSUE_USER_ASSIGNED, IssueAssignedData
+        from sentry.inbox.issue_activity import issue_activity_inbox_calls
         from sentry.integrations.utils.sync import sync_group_assignee_outbound
-        from sentry.models.activity import Activity, ActivityIntegration
+        from sentry.models.activity import Activity
         from sentry.models.groupsubscription import GroupSubscription
-        from sentry.notifications.platform.inbox import create_inbox_items
         from sentry.users.models.user import User as UserModel
         from sentry.users.services.user import RpcUser
 
@@ -234,29 +232,8 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
                 user=acting_user,
                 data=data,
             )
-            integration = extra.get("integration") if extra is not None else None
-            try:
-                inbox_assignment_source = (
-                    ActivityIntegration(integration) if integration is not None else None
-                )
-            except ValueError:
-                logger.exception("groupassignee.inbox.invalid_integration")
-            else:
-                is_team = assignee_type == "team"
-                safe_execute(
-                    create_inbox_items,
-                    event_type=ISSUE_TEAM_ASSIGNED if is_team else ISSUE_USER_ASSIGNED,
-                    subject=group,
-                    data=IssueAssignedData(
-                        assignment_source=inbox_assignment_source,
-                        activity_id=activity.id,
-                    ),
-                    user_ids=[] if is_team else [assigned_to.id],
-                    team_ids=[assigned_to.id] if is_team else [],
-                    actor=InboxActor.user(acting_user.id)
-                    if acting_user is not None
-                    else SYSTEM_ACTOR,
-                )
+            for record in issue_activity_inbox_calls(activity, group):
+                safe_execute(record)
             record_group_history(group, GroupHistoryStatus.ASSIGNED, actor=acting_user)
 
             GroupOwner.invalidate_assignee_exists_cache(group.id)
