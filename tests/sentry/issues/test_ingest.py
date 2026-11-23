@@ -15,7 +15,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue, MetricIssueDetectorHandler
 from sentry.incidents.utils.types import (
     MetricDetectorDataPacket,
-    ProcessedSubscriptionUpdate,
+    StaticDetectorProcessedSubscriptionUpdate,
 )
 from sentry.issues.grouptype import (
     FeedbackGroup,
@@ -292,7 +292,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         # Create event
         event = self.store_event(data={}, project_id=self.project.id)
 
-        query_subscription_update: ProcessedSubscriptionUpdate = ProcessedSubscriptionUpdate(
+        query_subscription_update = StaticDetectorProcessedSubscriptionUpdate(
             entity="events",
             subscription_id=str(query_subscription.id),
             values={"value": 15},

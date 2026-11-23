@@ -30,7 +30,7 @@ from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTIO
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
 from sentry.incidents.utils.types import (
     MetricDetectorDataPacket,
-    ProcessedSubscriptionUpdate,
+    StaticDetectorProcessedSubscriptionUpdate,
 )
 from sentry.investigations.services.breached_metrics import code_mode_dataset
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -168,7 +168,8 @@ def create_synthetic_breach(context: SyntheticBreachContext) -> tuple[Group, str
     value = synthetic_value(context.condition)
     packet = MetricDetectorDataPacket(
         source_id=str(context.subscription.id),
-        packet=ProcessedSubscriptionUpdate(
+        # TODO: Split this up by detection type
+        packet=StaticDetectorProcessedSubscriptionUpdate(
             entity="admin-synthetic-metric-breach",
             subscription_id=str(context.subscription.id),
             values={"value": value},

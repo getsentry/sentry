@@ -18,8 +18,9 @@ from sentry.incidents.utils.types import (
     AnomalyDetectionProcessedSubscriptionUpdate,
     MetricDetectorDataPacket,
     MetricDetectorProcessedSubscriptionUpdate,
-    ProcessedSubscriptionUpdate,
+    PercentDetectorProcessedSubscriptionUpdate,
     QuerySubscriptionUpdate,
+    StaticDetectorProcessedSubscriptionUpdate,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -195,7 +196,7 @@ class SubscriptionProcessor:
         processed_subscription_update: MetricDetectorProcessedSubscriptionUpdate
 
         if detection_type == AlertRuleDetectionType.STATIC.value:
-            processed_subscription_update = ProcessedSubscriptionUpdate(
+            processed_subscription_update = StaticDetectorProcessedSubscriptionUpdate(
                 entity=entity,
                 subscription_id=self.snuba_subscription_id,
                 values={"value": extracted_value},
@@ -216,7 +217,7 @@ class SubscriptionProcessor:
             if percent_value is None:
                 return None
 
-            processed_subscription_update = ProcessedSubscriptionUpdate(
+            processed_subscription_update = PercentDetectorProcessedSubscriptionUpdate(
                 entity=entity,
                 subscription_id=self.snuba_subscription_id,
                 values={"value": percent_value},

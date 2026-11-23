@@ -11,7 +11,10 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.incidents.utils.types import ProcessedSubscriptionUpdate, StaticDetectorDataPacket
+from sentry.incidents.utils.types import (
+    StaticDetectorDataPacket,
+    StaticDetectorProcessedSubscriptionUpdate,
+)
 from sentry.integrations.services.integration.service import integration_service
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -287,7 +290,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
                 snuba_query=snuba_query,
             )
 
-        subscription_update = ProcessedSubscriptionUpdate(
+        subscription_update = StaticDetectorProcessedSubscriptionUpdate(
             subscription_id=str(query_subscription.id),
             values={"value": 1},
             timestamp=datetime.now(UTC),

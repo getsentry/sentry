@@ -5,7 +5,10 @@ from sentry.incidents.utils.constants import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
     INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
 )
-from sentry.incidents.utils.types import ProcessedSubscriptionUpdate, StaticDetectorDataPacket
+from sentry.incidents.utils.types import (
+    StaticDetectorDataPacket,
+    StaticDetectorProcessedSubscriptionUpdate,
+)
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.snuba.dataset import Dataset
@@ -79,7 +82,7 @@ class BaseMetricIssueTest(TestCase):
     ) -> StaticDetectorDataPacket:
         # XXX: the timestamp here is just used as a dedupe value, so we can avoid using freeze_time
         # by providing a large timedelta
-        packet = ProcessedSubscriptionUpdate(
+        packet = StaticDetectorProcessedSubscriptionUpdate(
             entity="entity",
             subscription_id=str(self.query_subscription.id),
             values={"value": value},

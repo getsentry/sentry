@@ -22,7 +22,11 @@ class QuerySubscriptionUpdate(TypedDict):
     timestamp: datetime
 
 
-class SubscriptionUpdateValues(TypedDict):
+class StaticDetectorEvaluationValues(TypedDict):
+    value: float
+
+
+class PercentDetectorEvaluationValues(TypedDict):
     value: float
 
 
@@ -34,29 +38,49 @@ class AnomalyDetectionEvaluationValues(TypedDict):
 
 
 @dataclass
-class ProcessedSubscriptionUpdate:
+class MetricDetectorProcessedSubscriptionUpdateBase[ValuesType]:
+    """
+    A processed subscription update, ready to be sent to a metric detector. Subclassed by detection
+    type, so the detector handler can tell them apart.
+    """
+
     entity: str
     subscription_id: str
-    values: SubscriptionUpdateValues
+    values: ValuesType
     timestamp: datetime
 
 
 @dataclass
-class AnomalyDetectionProcessedSubscriptionUpdate:
-    entity: str
-    subscription_id: str
-    values: AnomalyDetectionEvaluationValues
-    timestamp: datetime
+class StaticDetectorProcessedSubscriptionUpdate(
+    MetricDetectorProcessedSubscriptionUpdateBase[StaticDetectorEvaluationValues]
+):
+    pass
+
+
+@dataclass
+class PercentDetectorProcessedSubscriptionUpdate(
+    MetricDetectorProcessedSubscriptionUpdateBase[PercentDetectorEvaluationValues]
+):
+    pass
+
+
+@dataclass
+class AnomalyDetectionProcessedSubscriptionUpdate(
+    MetricDetectorProcessedSubscriptionUpdateBase[AnomalyDetectionEvaluationValues]
+):
+    pass
 
 
 MetricDetectorProcessedSubscriptionUpdate = (
-    ProcessedSubscriptionUpdate | AnomalyDetectionProcessedSubscriptionUpdate
+    StaticDetectorProcessedSubscriptionUpdate
+    | PercentDetectorProcessedSubscriptionUpdate
+    | AnomalyDetectionProcessedSubscriptionUpdate
 )
 
 
 MetricDetectorDataPacket = DataPacket[MetricDetectorProcessedSubscriptionUpdate]
-StaticDetectorDataPacket = DataPacket[ProcessedSubscriptionUpdate]
-PercentDetectorDataPacket = DataPacket[ProcessedSubscriptionUpdate]
+StaticDetectorDataPacket = DataPacket[StaticDetectorProcessedSubscriptionUpdate]
+PercentDetectorDataPacket = DataPacket[PercentDetectorProcessedSubscriptionUpdate]
 AnomalyDetectionDataPacket = DataPacket[AnomalyDetectionProcessedSubscriptionUpdate]
 
 
