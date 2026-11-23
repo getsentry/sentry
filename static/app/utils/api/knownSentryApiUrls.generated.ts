@@ -204,6 +204,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/investigation-workflows/runs/'
   | '/organizations/$organizationIdOrSlug/investigation-workflows/runs/$runId/'
   | '/organizations/$organizationIdOrSlug/investigation-workflows/runs/$runId/commands/'
+  | '/organizations/$organizationIdOrSlug/investigation-workflows/storage/$key/'
   | '/organizations/$organizationIdOrSlug/investigations/'
   | '/organizations/$organizationIdOrSlug/investigations/$notebookId/orchestration/'
   | '/organizations/$organizationIdOrSlug/investigations/$notebookId/orchestration/commands/'
