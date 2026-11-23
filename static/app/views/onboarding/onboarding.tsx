@@ -379,6 +379,7 @@ export function OnboardingWithoutContext() {
         minHeight="60px"
         align="center"
         top={0}
+        background="primary"
         style={{zIndex: 100}}
       >
         <LogoSentry showWordmark={false} height="24px" />
