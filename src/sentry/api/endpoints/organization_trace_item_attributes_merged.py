@@ -180,9 +180,6 @@ def list_merged_attributes(
 
     include_internal = is_active_superuser(request) or is_active_staff(request)
     include_internal_convention_attributes = request.user.is_staff or request.user.is_superuser
-    include_custom_context = include_context and features.has(
-        "organizations:data-browsing-attribute-context", organization, actor=request.user
-    )
     max_attributes = options.get("explore.trace-items.keys.max")
 
     tasks = []
@@ -232,7 +229,7 @@ def list_merged_attributes(
             result_attributes, _ = future.result()
             attributes_by_dataset[dataset].extend(result_attributes)
 
-    if include_custom_context:
+    if include_context:
         project_ids = [project.id for project in snuba_params.projects]
         for dataset, attributes in attributes_by_dataset.items():
             attach_custom_attribute_context(

@@ -92,12 +92,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             exclusive_time=100,
         )
 
-        with self.feature(
-            [
-                "organizations:visibility-explore-view",
-                "organizations:data-browsing-attribute-context",
-            ]
-        ):
+        with self.feature("organizations:visibility-explore-view"):
             result = get_attribute_names(
                 org_id=self.organization.id,
                 project_ids=[self.project.id],
@@ -167,12 +162,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             examples=["visa", "amex"],
         )
 
-        with self.feature(
-            [
-                "organizations:visibility-explore-view",
-                "organizations:data-browsing-attribute-context",
-            ]
-        ):
+        with self.feature("organizations:visibility-explore-view"):
             result = get_attribute_names(
                 org_id=self.organization.id,
                 project_ids=[self.project.id],

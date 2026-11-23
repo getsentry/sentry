@@ -5,7 +5,6 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -157,12 +156,6 @@ class OrganizationTraceItemMetricContextEndpoint(OrganizationTraceItemAttributes
         context is created and `200` when existing context is updated.
         """
         if not self.has_feature(organization, request):
-            return Response(status=404)
-
-        # Custom context is gated; sentry conventions context is served separately.
-        if not features.has(
-            "organizations:data-browsing-attribute-context", organization, actor=request.user
-        ):
             return Response(status=404)
 
         serializer = OrganizationTraceItemMetricContextPutSerializer(data=request.data)

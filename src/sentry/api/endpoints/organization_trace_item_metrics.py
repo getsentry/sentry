@@ -5,7 +5,6 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -77,8 +76,7 @@ class OrganizationTraceItemMetricsSerializer(serializers.Serializer[Never]):
     # Seer tools) remain distinguishable in query analytics. Falls back to the
     # endpoint default when absent or not a recognized referrer.
     referrer = serializers.CharField(required=False)
-    # Restrict results to metrics that have authored context. Gated behind the
-    # data-browsing-attribute-context feature (a no-op without it).
+    # Restrict results to metrics that have authored context.
     contextOnly = serializers.BooleanField(required=False, default=False, source="context_only")
 
     def validate_sort(self, value: str) -> str:
@@ -119,9 +117,7 @@ EXPAND_QUERY_PARAM = OpenApiParameter(
     enum=["context"],
     description=(
         "Optional fields to expand. Pass `context` to include each metric's authored "
-        "context (brief and details), which describes what the metric measures. "
-        "Requires the `data-browsing-attribute-context` feature; without it the "
-        "`context` field is omitted."
+        "context (brief and details), which describes what the metric measures."
     ),
 )
 
@@ -133,8 +129,7 @@ CONTEXT_ONLY_QUERY_PARAM = OpenApiParameter(
     description=(
         "Return only metrics that have authored context, and include that context in the "
         "response. Use this to discover the metrics that are described well enough to query "
-        "confidently. Requires the `data-browsing-attribute-context` feature; without it this "
-        "is a no-op."
+        "confidently."
     ),
 )
 
@@ -203,16 +198,9 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
             referrer = Referrer.API_EXPLORE_TRACEMETRICS_METRICS_LIST.value
 
         query_string = serialized.get("query", "")
-        # Authored context lives in TraceItemAttributeValueContext and is gated
-        # behind the feature; conventions don't apply to custom metrics.
-        has_context_feature = features.has(
-            "organizations:data-browsing-attribute-context", organization, actor=request.user
-        )
         # context_only restricts results to metrics that have authored context.
-        context_only = serialized.get("context_only", False) and has_context_feature
-        include_context = has_context_feature and (
-            "context" in serialized.get("expand", set()) or context_only
-        )
+        context_only = serialized.get("context_only", False)
+        include_context = "context" in serialized.get("expand", set()) or context_only
 
         if context_only:
             context_names = list(

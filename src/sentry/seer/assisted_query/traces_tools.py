@@ -188,7 +188,7 @@ def get_attribute_names(
             query_params["start"] = start
             query_params["end"] = end
         # Request per-attribute context from the public endpoint via its `expand`
-        # query param (gated behind the data-browsing-attribute-context feature).
+        # query param.
         if include_context:
             query_params["expand"] = "context"
 

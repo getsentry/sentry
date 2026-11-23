@@ -856,16 +856,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         debug = request.user.is_superuser and request.GET.get("debug", False)
         debug_infos: list[dict[str, Any]] = []
 
-        # Expand the sentry conventions context when explicitly requested via
-        # `expand=context`. The conventions metadata is static with no data
-        # implications, so it isn't gated.
+        # Expand both the sentry conventions context and the custom (user-authored)
+        # context when explicitly requested via `expand=context`.
         include_context = "context" in serialized.get("expand", set())
-
-        # Custom (user-authored) context is gated behind the
-        # data-browsing-attribute-context feature, unlike conventions context.
-        include_custom_context = include_context and features.has(
-            "organizations:data-browsing-attribute-context", organization, actor=request.user
-        )
 
         def data_fn(offset: int, limit: int) -> list[TraceItemAttributeKey]:
             futures = []
@@ -898,7 +891,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 if result_debug_info is not None:
                     debug_infos.append(result_debug_info)
             # Attach once all types are in, so the lookup is one query per page.
-            if include_custom_context:
+            if include_context:
                 attach_custom_attribute_context(
                     attributes,
                     organization,
