@@ -967,11 +967,7 @@ describe('DetectorEdit', () => {
       });
     });
 
-    it('shows transactions dataset when editing existing transactions detector even with deprecation flag enabled', async () => {
-      const organizationWithDeprecation = OrganizationFixture({
-        features: ['visibility-explore-view', 'discover-saved-queries-deprecation'],
-      });
-
+    it('shows transactions dataset when editing existing transactions detector', async () => {
       const existingTransactionsDetector = MetricDetectorFixture({
         id: '123',
         name: 'Transactions Detector',
@@ -995,21 +991,16 @@ describe('DetectorEdit', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: `/organizations/${organizationWithDeprecation.slug}/detectors/123/`,
+        url: `/organizations/${organization.slug}/detectors/123/`,
         body: existingTransactionsDetector,
       });
 
       const editRouterConfig = {
         route: '/organizations/:orgId/monitors/:detectorId/edit/',
-        location: {
-          pathname: `/organizations/${organizationWithDeprecation.slug}/monitors/123/edit/`,
-        },
+        location: {pathname: `/organizations/${organization.slug}/monitors/123/edit/`},
       };
 
-      render(<DetectorEdit />, {
-        organization: organizationWithDeprecation,
-        initialRouterConfig: editRouterConfig,
-      });
+      render(<DetectorEdit />, {organization, initialRouterConfig: editRouterConfig});
 
       // Wait for the detector to load
       await screen.findAllByText('Transactions Detector');

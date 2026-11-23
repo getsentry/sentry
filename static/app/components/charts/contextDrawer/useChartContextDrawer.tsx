@@ -4,6 +4,7 @@ import {createLoader, parseAsString, useQueryStates} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
+import type {AnnotationKind} from 'sentry/components/charts/annotations/types';
 import {buildAskSeerPrompt} from 'sentry/components/droppedData/drawer/askSeer';
 import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
 import type {ReasonRow} from 'sentry/components/droppedData/outcomeSections';
@@ -15,30 +16,40 @@ import {DiscoverDatasetToUrlParam} from 'sentry/utils/discover/types';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
+import {ANNOTATION_FLAGS_CURSOR} from './annotationsPanel';
 import {
   CHART_CONTEXT_TAB_PARSERS,
   ChartContextDrawer,
-  type ChartContextTab,
+  type ChartContextDrawerTarget,
 } from './chartContextDrawer';
 
 const CHART_CONTEXT_DRAWER_PARSERS = {
   droppedData: parseAsString,
   ...CHART_CONTEXT_TAB_PARSERS,
+  [ReleasesDrawerFields.LIST_CURSOR]: parseAsString,
+  [ANNOTATION_FLAGS_CURSOR]: parseAsString,
 };
 
 const loadDroppedDataQuery = createLoader(CHART_CONTEXT_DRAWER_PARSERS);
 
 interface UseChartContextDrawerOptions {
   source: DroppedDataAnalyticsSource;
+  annotationKinds?: readonly AnnotationKind[];
   enabled?: boolean;
   showAnnotationTabs?: boolean;
 }
 
 export function useChartContextDrawer(
   {dataset, interval, projects}: UseDroppedDataParams,
-  {source, enabled = true, showAnnotationTabs = false}: UseChartContextDrawerOptions
+  {
+    source,
+    annotationKinds,
+    enabled = true,
+    showAnnotationTabs = false,
+  }: UseChartContextDrawerOptions
 ) {
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, isAnyDrawerOpen} = useDrawer();
@@ -48,7 +59,7 @@ export function useChartContextDrawer(
   const paramValue = DiscoverDatasetToUrlParam[dataset];
   const [{droppedData}, setDrawerQuery] = useQueryStates(CHART_CONTEXT_DRAWER_PARSERS);
   const isDrawerInUrl = droppedData === paramValue;
-  const renderedQueryRef = useRef({interval, projects});
+  const renderedQueryRef = useRef({interval, projects, annotationKinds});
 
   const {openSeerExplorer} = useSeerExplorerContext();
   const openSeerExplorerRef = useRef(openSeerExplorer);
@@ -80,7 +91,7 @@ export function useChartContextDrawer(
     if (!enabled || !isDrawerInUrl) {
       return;
     }
-    const query = {interval, projects};
+    const query = {interval, projects, annotationKinds};
     const isStale = isDrawerOpen && !isEqual(renderedQueryRef.current, query);
     if (isAnyDrawerOpen && !isStale) {
       return;
@@ -93,6 +104,7 @@ export function useChartContextDrawer(
           interval={interval}
           projects={projects}
           source={source}
+          annotationKinds={annotationKinds}
           onAskSeer={onAskSeer}
           showAnnotationTabs={showAnnotationTabs}
         />
@@ -107,7 +119,13 @@ export function useChartContextDrawer(
           loadDroppedDataQuery(nextLocation.search ?? '').droppedData !== paramValue,
         onClose: () => {
           void setDrawerQuery(
-            {droppedData: null, contextTab: null},
+            {
+              droppedData: null,
+              contextTab: null,
+              contextSection: null,
+              [ReleasesDrawerFields.LIST_CURSOR]: null,
+              [ANNOTATION_FLAGS_CURSOR]: null,
+            },
             {history: 'replace'}
           );
         },
@@ -124,6 +142,7 @@ export function useChartContextDrawer(
     interval,
     projects,
     source,
+    annotationKinds,
     onAskSeer,
     showAnnotationTabs,
     pathname,
@@ -131,7 +150,7 @@ export function useChartContextDrawer(
   ]);
 
   return useCallback(
-    (tab: ChartContextTab = 'dropped-data') => {
+    ({tab = 'dropped-data', section}: ChartContextDrawerTarget = {}) => {
       if (tab === 'dropped-data') {
         trackAnalytics('explore.dropped_data.drawer_opened', {
           organization,
@@ -144,10 +163,15 @@ export function useChartContextDrawer(
           dataset,
           source,
           tab,
+          section,
         });
       }
       void setDrawerQuery(
-        {droppedData: paramValue, contextTab: tab === 'dropped-data' ? null : tab},
+        {
+          droppedData: paramValue,
+          contextTab: tab === 'dropped-data' ? null : tab,
+          contextSection: section ?? null,
+        },
         {history: 'push'}
       );
     },

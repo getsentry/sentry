@@ -9,12 +9,13 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, NotRequired, TypedDict, cast
+from typing import Any, NotRequired, TypedDict
 
 from django.db import router, transaction
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -52,6 +53,7 @@ from sentry.service_accounts.endpoints.organization_service_accounts import (
     SERVICE_ACCOUNT_ID,
     ServiceAccountPermission,
     ServiceAccountScopedEndpointBase,
+    hidden_project_ids,
 )
 from sentry.service_accounts.models import MAX_NAME_LENGTH, ServiceAccount, ServiceAccountToken
 from sentry.service_accounts.tokens import generate_token, stored_token_fields
@@ -61,6 +63,10 @@ from sentry.utils.security.orgauthtoken_token import SystemUrlPrefixMissingExcep
 logger = logging.getLogger(__name__)
 
 DEFAULT_TOKEN_LIFETIME = timedelta(days=30)
+
+HIDDEN_PROJECTS_ERROR = (
+    "You can't create a token for a service account that has projects you can't access."
+)
 
 TOKEN_ID = OpenApiParameter(
     name="token_id",
@@ -231,13 +237,19 @@ class OrganizationServiceAccountTokenIndexEndpoint(ServiceAccountTokenEndpointBa
         Create a token that acts as the service account. The response includes the token
         in `token`. It's the only time the token is returned.
         """
+        # The token reaches every project the account does, so the caller must too.
+        if not request.access.has_global_access and (
+            service_account.all_projects or hidden_project_ids(request.access, service_account)
+        ):
+            raise PermissionDenied(HIDDEN_PROJECTS_ERROR)
+
         serializer = ServiceAccountTokenCreateSerializer(
             data=request.data,
             context={"service_account": service_account, "access": request.access},
         )
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
-        data = cast(ServiceAccountTokenCreateRequestData, serializer.validated_data)
+        data = serializer.validated_data
 
         cell_name = OrganizationMapping.objects.get(organization_id=organization.id).cell_name
         try:

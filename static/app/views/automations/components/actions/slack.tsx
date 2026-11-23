@@ -33,12 +33,12 @@ export function SlackDetails({
       logo: ActionMetadata[ActionType.SLACK]?.icon,
       workspace: integrationName,
       channel: action.config.targetDisplay || action.config.targetIdentifier,
-      tagsAndNotes: SlackTagsAndNotes(action),
+      tagsAndNotes: <SlackTagsAndNotes action={action} />,
     }
   );
 }
 
-function SlackTagsAndNotes(action: Action) {
+function SlackTagsAndNotes({action}: {action: Action}) {
   const notes = action.data.notes;
   const tags = action.data.tags;
 

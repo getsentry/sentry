@@ -145,6 +145,27 @@ class MsTeamsRequestParserTest(TestCase):
             assert len(responses.calls) == 0
             assert_no_webhook_payloads()
 
+    @patch("sentry.middleware.integrations.parsers.msteams.sentry_sdk.capture_exception")
+    def test_request_data_empty_body_is_not_reported(self, mock_capture: Any) -> None:
+        request = self.factory.get(reverse("sentry-integration-msteams-configure"))
+        parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
+
+        assert parser.request_data == {}
+        assert mock_capture.call_count == 0
+
+    @patch("sentry.middleware.integrations.parsers.msteams.sentry_sdk.capture_exception")
+    def test_request_data_malformed_body_is_reported(self, mock_capture: Any) -> None:
+        request = self.factory.post(
+            self.path,
+            data=b"{not json",
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+            content_type="application/json",
+        )
+        parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
+
+        assert parser.request_data == {}
+        assert mock_capture.call_count == 1
+
     def test_get_integration_from_request(self) -> None:
         CARD_ACTION_RESPONSE = self.generate_card_response(self.integration.id)
 

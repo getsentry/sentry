@@ -1,9 +1,20 @@
+import {t} from 'sentry/locale';
+
 type TimeseriesAnnotationType =
   | 'inbound_filter_change'
   | 'infrastructure_change'
   | 'sdk_update'
   | 'sentry_outage'
   | 'custom';
+
+export const TIMESERIES_ANNOTATION_TYPE_LABELS: Record<TimeseriesAnnotationType, string> =
+  {
+    inbound_filter_change: t('Inbound filter change'),
+    infrastructure_change: t('Infrastructure change'),
+    sdk_update: t('SDK update'),
+    sentry_outage: t('Sentry outage'),
+    custom: t('Custom'),
+  };
 
 type TimeseriesAnnotationScope =
   | 'global'
@@ -36,4 +47,14 @@ export interface TimeseriesAnnotation {
   severity: TimeseriesAnnotationSeverity;
   startTimestamp: string;
   tags: Record<string, unknown> | null;
+}
+
+export function timeseriesAnnotationEnd({
+  intervalType,
+  endTimestamp,
+}: TimeseriesAnnotation): number | 'ongoing' | undefined {
+  if (endTimestamp) {
+    return new Date(endTimestamp).getTime();
+  }
+  return intervalType === 'range' ? 'ongoing' : undefined;
 }

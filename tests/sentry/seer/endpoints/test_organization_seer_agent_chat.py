@@ -16,7 +16,6 @@ from sentry.seer.agent.client_models import (
     UsageAccumulator,
 )
 from sentry.seer.agent.client_utils import snapshot_to_markdown
-from sentry.seer.autofix.feature.dispatch import SINGLE_RUN_LEGACY_PLAN_DETAIL
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.prompt_redaction import AUTOFIX_PROMPT_PLACEHOLDER
 from sentry.seer.endpoints.organization_seer_agent_chat import SeerAgentChatSerializer
@@ -272,9 +271,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
     @with_feature("organizations:ask-seer-scm-connect-prompt")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_scm_connect_prompt_with_flag_and_integrations_scope(
-        self, mock_client_class: MagicMock
-    ) -> None:
+    def test_scm_connect_prompt_with_flag(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
         mock_client_class.return_value = mock_client
@@ -286,9 +283,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
     @with_feature("organizations:ask-seer-scm-connect-prompt")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_scm_connect_prompt_requires_integrations_scope(
-        self, mock_client_class: MagicMock
-    ) -> None:
+    def test_scm_connect_prompt_for_members(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
         mock_client_class.return_value = mock_client
@@ -299,7 +294,47 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         response = self.client.post(self.url, {"query": "hi"}, format="json")
 
         assert response.status_code == 200
-        assert mock_client_class.call_args.kwargs["enable_scm_connect_prompt"] is False
+        assert mock_client_class.call_args.kwargs["enable_scm_connect_prompt"] is True
+
+    @with_feature("organizations:ask-seer-scm-connect-prompt")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_scm_connect_prompt_refuses_org_ci_user_token(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:ci"])
+
+        response = self.client.post(
+            self.url,
+            {"query": "hi"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+
+        assert response.status_code == 403
+        mock_client_class.assert_not_called()
+
+    @with_feature("organizations:ask-seer-scm-connect-prompt")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_scm_connect_prompt_refuses_org_ci_org_auth_token(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        token = generate_token(self.organization.slug, "")
+        self.create_org_auth_token(
+            name="org-auth-token",
+            token_hashed=hash_token(token),
+            organization_id=self.organization.id,
+            scope_list=["org:ci"],
+        )
+
+        response = self.client.post(
+            self.url,
+            {"query": "hi"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+
+        assert response.status_code == 403
+        mock_client_class.assert_not_called()
 
     @with_feature("organizations:ask-seer-create-pr")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
@@ -643,19 +678,6 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
                     "code": "seer_out_of_credits",
                     "denialReason": expected,
                 }
-
-    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_reply_to_single_run_on_legacy_seer_plan_is_403(
-        self, mock_client_class: MagicMock
-    ) -> None:
-        run = self._single_run(user_id=self.user.id)
-
-        response = self.client.post(
-            f"{self.url}{run.seer_run_state_id}/", {"query": "make a code fix"}, format="json"
-        )
-
-        assert response.status_code == 403
-        assert response.data["detail"] == SINGLE_RUN_LEGACY_PLAN_DETAIL
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")

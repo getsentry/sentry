@@ -160,6 +160,12 @@ class SeerWorkflowRunStatus(models.TextChoices):
     REJECTED = "rejected"
 
 
+class SeerWorkflowRunSource(models.TextChoices):
+    CRON = "cron"
+    MANUAL = "manual"
+    EVENT = "event"
+
+
 class SeerWorkflowExecutionStatus(models.TextChoices):
     QUEUED = "queued"
     RUNNING = "running"
@@ -225,6 +231,8 @@ class SeerWorkflowRun(DefaultFieldsModel):
     trigger_key = models.CharField(max_length=256, null=True, db_column="schedule_id")
     # Null for historical runs that have not adopted the shared lifecycle.
     status = models.CharField(max_length=256, choices=SeerWorkflowRunStatus.choices, null=True)
+    # Null for historical runs recorded before sources were tracked.
+    source = models.CharField(max_length=256, choices=SeerWorkflowRunSource.choices, null=True)
     date_completed = models.DateTimeField(null=True)
     # Shape: SeerWorkflowRunExtras.
     extras = models.JSONField(db_default={}, default=dict)

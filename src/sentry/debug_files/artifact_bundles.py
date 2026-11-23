@@ -7,9 +7,10 @@ from typing import Any
 import orjson
 import sentry_sdk
 from django.conf import settings
-from django.db import router
+from django.db import IntegrityError, router
 from django.db.models import Count, Exists, OuterRef
 from django.utils import timezone
+from objectstore_client import ObjectNotFound
 from sentry_redis_tools.clients import RedisCluster
 from sentry_sdk import traces
 
@@ -22,6 +23,7 @@ from sentry.models.artifactbundle import (
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
+    artifact_bundle_retention,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -158,7 +160,7 @@ def index_urls_in_bundle(
 
     # We first open up the bundle and extract all the things we want to index from it.
     archive = existing_archive or ArtifactBundleArchive(
-        artifact_bundle.file.getfile(), build_memory_map=False
+        artifact_bundle.get_file(), build_memory_map=False
     )
     urls_to_index = []
     skipped_urls = 0
@@ -184,38 +186,46 @@ def index_urls_in_bundle(
 
     # We want to start a transaction for each bundle, so that in case of failures we keep consistency at the
     # bundle level, and we also have to retry only the failed bundle in the future and not all the bundles.
-    with atomic_transaction(
-        using=(
-            router.db_for_write(ArtifactBundle),
-            router.db_for_write(ArtifactBundleIndex),
-        )
-    ):
-        # Since we use read committed isolation, the value we read here can change after query execution,
-        # but we have this check in place for analytics purposes.
-        bundle_was_indexed = ArtifactBundle.objects.filter(
-            id=artifact_bundle.id,
-            indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value,
-        ).exists()
-        # If the bundle was already indexed, we will skip insertion into the database.
-        if bundle_was_indexed:
-            metrics.incr("artifact_bundle_indexing.bundle_was_already_indexed")
-            return
+    try:
+        with atomic_transaction(
+            using=(
+                router.db_for_write(ArtifactBundle),
+                router.db_for_write(ArtifactBundleIndex),
+            )
+        ):
+            # Since we use read committed isolation, the value we read here can change after query execution,
+            # but we have this check in place for analytics purposes.
+            bundle_was_indexed = ArtifactBundle.objects.filter(
+                id=artifact_bundle.id,
+                indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value,
+            ).exists()
+            # If the bundle was already indexed, we will skip insertion into the database.
+            if bundle_was_indexed:
+                metrics.incr("artifact_bundle_indexing.bundle_was_already_indexed")
+                return
 
-        # Insert the index
-        # NOTE: The django ORM by default tries to batch *all* the inserts into a single query,
-        # which is not quite that efficient. We want to have a fixed batch size,
-        # which will result in a fixed number of unique `INSERT` queries.
-        ArtifactBundleIndex.objects.bulk_create(urls_to_index, batch_size=50)
+            # Insert the index
+            # NOTE: The django ORM by default tries to batch *all* the inserts into a single query,
+            # which is not quite that efficient. We want to have a fixed batch size,
+            # which will result in a fixed number of unique `INSERT` queries.
+            ArtifactBundleIndex.objects.bulk_create(urls_to_index, batch_size=50)
 
-        # Mark the bundle as indexed
-        ArtifactBundle.objects.filter(id=artifact_bundle.id).update(
-            indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value
-        )
+            # Mark the bundle as indexed
+            ArtifactBundle.objects.filter(id=artifact_bundle.id).update(
+                indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value
+            )
+    except IntegrityError:
+        # An upload of the same bundle can delete this one as a duplicate. The foreign key is
+        # deferred, so that only raises on commit.
+        if ArtifactBundle.objects.filter(id=artifact_bundle.id).exists():
+            raise
+        metrics.incr("artifact_bundle_indexing.bundle_deleted_during_indexing")
+        return
 
-        metrics.incr("artifact_bundle_indexing.bundles_indexed")
-        metrics.incr("artifact_bundle_indexing.urls_indexed", len(urls_to_index))
-        if skipped_urls:
-            metrics.incr("artifact_bundle_indexing.urls_skipped", skipped_urls)
+    metrics.incr("artifact_bundle_indexing.bundles_indexed")
+    metrics.incr("artifact_bundle_indexing.urls_indexed", len(urls_to_index))
+    if skipped_urls:
+        metrics.incr("artifact_bundle_indexing.urls_skipped", skipped_urls)
 
 
 # ===== Renewal of Artifact Bundles =====
@@ -241,6 +251,26 @@ def maybe_renew_artifact_bundles(used_artifact_bundles: dict[int, datetime]) -> 
 @traces.trace
 def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now: datetime) -> None:
     metrics.incr("artifact_bundle_renewal.need_renewal")
+    query = ArtifactBundle.objects.filter(id=artifact_bundle_id, date_added__lte=threshold_date)
+    bundle = query.get_or_none()
+    if bundle is None:
+        return
+
+    # Do network I/O before the transaction. Only advance the database timestamp after
+    # Objectstore has extended the expiry, so a failed request is retried on the next access.
+    if bundle.storage_path is not None:
+        try:
+            # Use `at` to align the deadline with the `date_added` we write below.
+            # A retried `from_now` would push it further out.
+            bundle.get_objectstore_session().extend_expiry(
+                bundle.storage_path, at=now + artifact_bundle_retention()
+            )
+        except ObjectNotFound:
+            return
+        except Exception:
+            logger.exception("artifact_bundle.objectstore_renewal_failed")
+            return
+
     # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
     with atomic_transaction(
         using=(
@@ -251,11 +281,8 @@ def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now
             router.db_for_write(ArtifactBundleIndex),
         )
     ):
-        # We check again for the date_added condition in order to achieve consistency, this is done because
-        # the `can_be_renewed` call is using a time which differs from the one of the actual update in the db.
-        updated_rows_count = ArtifactBundle.objects.filter(
-            id=artifact_bundle_id, date_added__lte=threshold_date
-        ).update(date_added=now)
+        # Assembly and other renewals refresh date_added, so recheck the age on update.
+        updated_rows_count = query.update(date_added=now)
         # We want to make cascading queries only if there were actual changes in the db. Nothing reads `date_added`
         # from the rows linked to the bundle, so with `date-only-on-bundle` they aren't renewed, which spares
         # rewriting every URL index and debug-ID row of the bundle.

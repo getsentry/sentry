@@ -25,7 +25,9 @@ describe('OrganizationDropdown', () => {
 
   beforeEach(() => {
     ProjectsStore.reset();
+    OrganizationsStore.init();
     ConfigStore.set('user', UserFixture());
+    ConfigStore.set('features', new Set());
   });
 
   it('displays org info and links', async () => {
@@ -427,6 +429,31 @@ describe('OrganizationDropdown', () => {
       'href',
       '/organizations/org-2/issues/'
     );
+  });
+
+  it('offers to create an organization when the user only has one', async () => {
+    OrganizationsStore.load([organization]);
+    ConfigStore.set('features', new Set(['organizations:create']));
+
+    render(<OrganizationDropdown />, {organization});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+    await userEvent.hover(screen.getByText('Switch Organization'));
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Create a new organization'})
+    ).toHaveAttribute('href', '/organizations/new/');
+  });
+
+  it('hides Switch Organization when there is nothing to switch to or create', async () => {
+    OrganizationsStore.load([organization]);
+
+    render(<OrganizationDropdown />, {organization});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+
+    expect(screen.getByRole('menuitemradio', {name: 'Members'})).toBeInTheDocument();
+    expect(screen.queryByText('Switch Organization')).not.toBeInTheDocument();
   });
 
   it('Shows inactive orgs in their own section', async () => {
