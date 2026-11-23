@@ -509,9 +509,23 @@ class DebugFilesEndpoint(ProjectEndpoint):
                     content_type__icontains=known_file_format
                 )
 
-            queryset = ProjectDebugFile.objects.filter(query_q & q).select_related("file")
+            queryset = (
+                ProjectDebugFile.objects.filter(query_q & q)
+                .select_related("file")
+                .annotate(
+                    lookup_method=Value(None, output_field=TextField()),
+                    lookup_id=Value(None, output_field=TextField()),
+                )
+            )
         else:
-            queryset = ProjectDebugFile.objects.filter(q).select_related("file")
+            queryset = (
+                ProjectDebugFile.objects.filter(q)
+                .select_related("file")
+                .annotate(
+                    lookup_method=Value(None, output_field=TextField()),
+                    lookup_id=Value(None, output_field=TextField()),
+                )
+            )
 
         def on_results(
             difs: Sequence[ProjectDebugFile],
@@ -524,13 +538,14 @@ class DebugFilesEndpoint(ProjectEndpoint):
             # and method ("default", "stored_legacy", or "computed_legacy"; see `debug_id_ueries`).
             for d in difs:
                 try:
-                    metrics.incr(
-                        "debug_files.lookup.success",
-                        tags={"method": d.lookup_method, "id": d.lookup_id},
-                    )
+                    lookup_method = d.lookup_method  # type: ignore[attr-defined]
+                    lookup_id = d.lookup_id  # type: ignore[attr-defined]
+                    if lookup_method and lookup_id:
+                        metrics.incr(
+                            "debug_files.lookup.success",
+                            tags={"method": lookup_method, "id": lookup_id},
+                        )
                 except AttributeError:
-                    # A file not having these fields is not a problem. This happens if no explicit debug/code ID
-                    # was passed in the query. In such cases we simply don't emit a metric.
                     pass
 
             serialized: list[DebugFileSerializerResponse] = serialize(difs, request.user)
