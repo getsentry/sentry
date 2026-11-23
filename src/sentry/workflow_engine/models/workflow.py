@@ -118,10 +118,15 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     # Seer investigation workflows can also run on a cron schedule.
     seer_investigation_config_schema = {
-        **config_schema,
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "title": "Seer Investigation Workflow Schema",
+        "type": "object",
         "properties": {
-            **config_schema["properties"],
+            "frequency": {
+                "description": "How often the workflow should fire for a Group (minutes)",
+                "type": "integer",
+                "minimum": 0,
+            },
             "cron": {
                 "description": "Cron expression for when the workflow runs, evaluated in timezone",
                 "type": "string",
@@ -134,6 +139,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             },
         },
         "dependentRequired": {"timezone": ["cron"]},
+        "additionalProperties": False,
     }
 
     __repr__ = sane_repr("organization_id")
