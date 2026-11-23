@@ -63,7 +63,7 @@ from sentry.snuba.enrichment_attributes_rpc import EnrichmentAttributes
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.query_sources import QuerySource
-from sentry.snuba.referrer import Referrer, is_valid_referrer
+from sentry.snuba.referrer import Referrer, resolve_client_referrer
 from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
@@ -513,10 +513,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
             referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
-        elif referrer is None or not referrer:
-            referrer = Referrer.API_ORGANIZATION_EVENTS.value
-        elif not is_valid_referrer(referrer):
-            referrer = Referrer.API_ORGANIZATION_EVENTS.value
+        else:
+            referrer = resolve_client_referrer(referrer, Referrer.API_ORGANIZATION_EVENTS.value)
 
         sentry_sdk.set_tag("query.referrer", referrer)
         sentry_sdk.set_attribute("query.referrer", referrer)
