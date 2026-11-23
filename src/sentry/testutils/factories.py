@@ -703,8 +703,12 @@ class Factories:
         role: str | None = None,
     ) -> OrganizationMemberTeam:
         if member is None:
+            if user is not None:
+                user_id = user.id
+            else:
+                user_id = None
             member, created = OrganizationMember.objects.get_or_create(
-                user_id=user.id if user else None,
+                user_id=user_id,
                 organization=team.organization,
                 defaults={"role": "member"},
             )
