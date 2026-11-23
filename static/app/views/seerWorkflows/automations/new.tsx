@@ -19,7 +19,7 @@ import {
 } from 'sentry/views/seerWorkflows/utils';
 
 import {AgenticTriageForm} from './agenticTriageForm';
-import {FormSection} from './formComponents';
+import {FormSection} from './baseForm';
 import {MetricAutomationForm} from './metricAutomationForm';
 
 const STRATEGIES = [
@@ -30,6 +30,13 @@ const STRATEGIES = [
 const strategyParser = parseAsStringLiteral(STRATEGIES)
   .withDefault('breached_metric_investigation')
   .withOptions({clearOnDefault: false});
+
+function getSubtitle(strategy: (typeof STRATEGIES)[number]): string {
+  if (strategy === 'agentic_triage_v2') {
+    return t('Configure Seer to periodically investigate your issues.');
+  }
+  return t('Connect metric monitors so Seer can investigate what caused a breach.');
+}
 
 export default function NewAutomationPage() {
   const organization = useOrganization();
@@ -62,11 +69,7 @@ export default function NewAutomationPage() {
             </Heading>
             <Tag variant="muted">{STRATEGY_META[strategy].label}</Tag>
           </Flex>
-          {strategy === 'breached_metric_investigation' && (
-            <Text variant="muted">
-              {t('Connect metric monitors so Seer can investigate what caused a breach.')}
-            </Text>
-          )}
+          <Text variant="muted">{getSubtitle(strategy)}</Text>
         </Stack>
         <Container maxWidth="960px" width="100%" containerType="inline-size">
           <FormSection title={t('Strategy')}>

@@ -6,7 +6,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {t} from 'sentry/locale';
 import {AgenticTriageForm} from 'sentry/views/seerWorkflows/automations/agenticTriageForm';
-import type {AutomationFormHandle} from 'sentry/views/seerWorkflows/automations/formComponents';
+import type {AutomationFormHandle} from 'sentry/views/seerWorkflows/automations/baseForm';
 import {MetricAutomationForm} from 'sentry/views/seerWorkflows/automations/metricAutomationForm';
 import type {SeerWorkflowConfigResponse} from 'sentry/views/seerWorkflows/types';
 

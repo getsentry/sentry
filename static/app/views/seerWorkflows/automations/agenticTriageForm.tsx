@@ -1,4 +1,4 @@
-import {useEffect, useImperativeHandle, type RefObject} from 'react';
+import {useEffect, useImperativeHandle} from 'react';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -17,6 +17,7 @@ import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {t} from 'sentry/locale';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -25,14 +26,17 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
-import type {SeerWorkflowConfigResponse} from 'sentry/views/seerWorkflows/types';
 import {
   getAutomationDetailPath,
   getAutomationsPath,
 } from 'sentry/views/seerWorkflows/utils';
 
 import {useCreateConfig, useUpdateConfig} from './hooks/configs';
-import {FormSection, type AutomationFormHandle} from './formComponents';
+import {
+  FormSection,
+  type CreateAutomationFormProps,
+  type EditAutomationFormProps,
+} from './baseForm';
 import {
   DEFAULT_SERVICE_ACCOUNT_SCOPES,
   getServiceAccountProjectIds,
@@ -79,40 +83,9 @@ const ENVIRONMENTS = ['production', 'staging', 'development'];
  */
 const ALL_ENVIRONMENTS = '__all__';
 
-/**
- * Stands for every project in a config's project list
- */
-const ALL_PROJECTS_ID = -1;
-
-type Props =
-  | {mode: 'create'}
-  | {
-      config: SeerWorkflowConfigResponse;
-      /**
-       * Lets a submit button outside the form target it
-       */
-      formId: string;
-      /**
-       * Exposes the form's reset so callers outside the form can discard changes
-       */
-      formRef: RefObject<AutomationFormHandle | null>;
-      mode: 'edit';
-      /**
-       * Name edited outside the form, in the page header
-       */
-      name: string;
-      onSaved: () => void;
-      /**
-       * Prevents editing until the user starts configuring
-       */
-      readOnly: boolean;
-      /**
-       * Reports whether any field differs from its saved value
-       */
-      setFormHasChanges: (hasChanges: boolean) => void;
-    };
-
-export function AgenticTriageForm(props: Props) {
+export function AgenticTriageForm(
+  props: CreateAutomationFormProps | EditAutomationFormProps
+) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const serviceAccount = props.mode === 'edit' ? props.config.serviceAccount : null;
@@ -151,7 +124,7 @@ export function AgenticTriageForm(props: Props) {
   const saveConfig = async (value: z.infer<ReturnType<typeof getSchema>>) => {
     const fields = {
       projectIds: value.projects.allProjects
-        ? [ALL_PROJECTS_ID]
+        ? [ALL_ACCESS_PROJECTS]
         : value.projects.projectIds.map(Number),
       serviceAccount: {
         scopes: value.scopes,
@@ -473,6 +446,6 @@ export function AgenticTriageForm(props: Props) {
 }
 
 function getProjectSelection(projectIds: number[]): ProjectSelection {
-  const allProjects = projectIds.includes(ALL_PROJECTS_ID);
+  const allProjects = projectIds.includes(ALL_ACCESS_PROJECTS);
   return {allProjects, projectIds: allProjects ? [] : projectIds.map(String)};
 }

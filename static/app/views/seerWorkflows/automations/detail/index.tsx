@@ -34,7 +34,7 @@ import {
   getNextUpdate,
   type AutomationConfig,
 } from 'sentry/views/seerWorkflows/automations';
-import type {AutomationFormHandle} from 'sentry/views/seerWorkflows/automations/formComponents';
+import type {AutomationFormHandle} from 'sentry/views/seerWorkflows/automations/baseForm';
 import {
   useDeleteConfig,
   useFetchConfigs,

@@ -31,11 +31,6 @@ type ServiceAccountProjectAccess = ProjectSelection;
 
 const PROJECT_COLUMNS: TableColumnConfig[] = [
   {key: 'project', width: 'minmax(0, 1fr)'},
-  {key: 'action', width: 'auto'},
-];
-
-const PROJECT_COLUMNS_WITH_REASON: TableColumnConfig[] = [
-  {key: 'project', width: 'minmax(0, 1fr)'},
   {key: 'reason', width: 'minmax(0, 1fr)'},
   {key: 'action', width: 'auto'},
 ];
@@ -191,8 +186,7 @@ export function useHasAllProjectsAccess(): boolean {
 
 /**
  * Picks all projects or a list of them. Projects of the given monitors or
- * automation scope are always included and can't be removed; omit both for a
- * plain project list.
+ * automation scope are always included and can't be removed.
  */
 export function ProjectSelector({
   value,
@@ -230,7 +224,7 @@ export function ProjectSelector({
   const isLocked = (projectId: string) =>
     monitorCounts.has(projectId) || scopeIds.has(projectId);
   const lockedCount = new Set([...monitorCounts.keys(), ...scopeIds]).size;
-  const showReason = monitors !== undefined || scopeProjectIds !== undefined;
+  const hasLockSource = monitors !== undefined || scopeProjectIds !== undefined;
   const grantedIds = new Set(
     getServiceAccountProjectIds(value, monitors, scopeProjectIds)
   );
@@ -271,7 +265,7 @@ export function ProjectSelector({
       {!allProjects && (
         <Flex align="center" justify="between" gap="md">
           <Text size="sm" variant="muted">
-            {showReason
+            {hasLockSource
               ? `${tn('%s project', '%s projects', granted.length)} · ${
                   monitors
                     ? t('%s from connected monitors', lockedCount)
@@ -305,13 +299,11 @@ export function ProjectSelector({
       )}
       {!allProjects && (
         <SimpleTable
-          columns={showReason ? PROJECT_COLUMNS_WITH_REASON : PROJECT_COLUMNS}
+          columns={PROJECT_COLUMNS}
           header={
             <SimpleTable.HeaderRow>
               <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
-              {showReason && (
-                <SimpleTable.HeaderCell>{t('Included because')}</SimpleTable.HeaderCell>
-              )}
+              <SimpleTable.HeaderCell>{t('Included because')}</SimpleTable.HeaderCell>
               <SimpleTable.HeaderCell />
             </SimpleTable.HeaderRow>
           }
@@ -330,13 +322,11 @@ export function ProjectSelector({
                 <SimpleTable.RowCell>
                   <ProjectBadge project={project} avatarSize={16} disableLink />
                 </SimpleTable.RowCell>
-                {showReason && (
-                  <SimpleTable.RowCell>
-                    <Text size="sm" variant="muted">
-                      {reason}
-                    </Text>
-                  </SimpleTable.RowCell>
-                )}
+                <SimpleTable.RowCell>
+                  <Text size="sm" variant="muted">
+                    {reason}
+                  </Text>
+                </SimpleTable.RowCell>
                 <SimpleTable.RowCell justify="end">
                   {isLocked(project.id) ? (
                     <Button

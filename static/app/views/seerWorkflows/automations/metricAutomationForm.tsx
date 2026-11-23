@@ -1,4 +1,4 @@
-import {useEffect, useImperativeHandle, type RefObject} from 'react';
+import {useEffect, useImperativeHandle} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 import {IconClose} from '@sentry/icons/close';
 import {IconFire} from '@sentry/icons/fire';
@@ -34,7 +34,6 @@ import {
   allDetectorListsQueryKey,
   detectorListApiOptions,
 } from 'sentry/views/detectors/hooks';
-import type {SeerWorkflowConfigResponse} from 'sentry/views/seerWorkflows/types';
 import {
   AUTO_REFRESH_INTERVAL,
   getAutomationDetailPath,
@@ -42,8 +41,12 @@ import {
 } from 'sentry/views/seerWorkflows/utils';
 
 import {useCreateConfig, useUpdateConfig} from './hooks/configs';
+import {
+  FormSection,
+  type CreateAutomationFormProps,
+  type EditAutomationFormProps,
+} from './baseForm';
 import {ConnectMonitorsDrawer} from './connectMonitorsDrawer';
-import {FormSection, type AutomationFormHandle} from './formComponents';
 import {MonitorTable} from './monitorTable';
 import {
   DEFAULT_SERVICE_ACCOUNT_SCOPES,
@@ -68,36 +71,13 @@ const schema = z.object({
 });
 
 type Props =
-  | {mode: 'create'}
-  | {
-      config: SeerWorkflowConfigResponse;
-      /**
-       * Lets a submit button outside the form target it
-       */
-      formId: string;
-      /**
-       * Exposes the form's reset so callers outside the form can discard changes
-       */
-      formRef: RefObject<AutomationFormHandle | null>;
-      mode: 'edit';
-      /**
-       * Name edited outside the form, in the page header
-       */
-      name: string;
-      onSaved: () => void;
-      /**
-       * Prevents editing until the user starts configuring
-       */
-      readOnly: boolean;
-      /**
-       * Reports whether any field differs from its saved value
-       */
-      setFormHasChanges: (hasChanges: boolean) => void;
+  | CreateAutomationFormProps
+  | (EditAutomationFormProps & {
       /**
        * Disables save while monitors are loading
        */
       setMonitorsPending: (pending: boolean) => void;
-    };
+    });
 
 export function MetricAutomationForm(props: Props) {
   const organization = useOrganization();
