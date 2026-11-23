@@ -22,7 +22,18 @@ from sentry.workflow_engine.models import Action, DataConditionGroup, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowType
+from sentry.workflow_engine.types import (
+    DetectorPriorityLevel,
+    FeatureGate,
+    WorkflowEngineAPIOperation,
+    WorkflowSettings,
+    WorkflowType,
+)
+from tests.sentry.workflow_engine.endpoints.test_helpers import (
+    GATE_FEATURE,
+    GET_AND_PUT_ONLY_AVAILABILITY,
+    override_workflow_api_availability,
+)
 
 pytestmark = [requires_snuba]
 
@@ -199,6 +210,59 @@ class TestDetectorSerializer(TestCase):
         self.create_detector_workflow(detector=detector, workflow=hidden_workflow)
 
         result = serialize(detector)
+
+        assert result["workflowIds"] == [str(alert_workflow.id)]
+
+    def test_serialize_includes_workflow_types_open_for_list(self) -> None:
+        detector = self.create_detector(
+            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
+        )
+
+        inbox_workflow = self.create_workflow(
+            organization_id=self.organization.id, type=Workflow.Type.INBOX
+        )
+
+        self.create_detector_workflow(detector=detector, workflow=inbox_workflow)
+
+        with override_workflow_api_availability(
+            Workflow.Type.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
+        ):
+            result = serialize(detector)
+
+        assert result["workflowIds"] == [str(inbox_workflow.id)]
+
+    def test_serialize_hides_readable_workflow_types_closed_for_list(self) -> None:
+        detector = self.create_detector(
+            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
+        )
+
+        inbox_workflow = self.create_workflow(
+            organization_id=self.organization.id, type=Workflow.Type.INBOX
+        )
+
+        self.create_detector_workflow(detector=detector, workflow=inbox_workflow)
+
+        with override_workflow_api_availability(Workflow.Type.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
+            result = serialize(detector)
+
+        assert result["workflowIds"] == []
+
+    def test_serialize_resolves_list_feature_gates_for_the_detector_organization(self) -> None:
+        detector = self.create_detector(
+            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
+        )
+
+        alert_workflow = self.create_workflow(organization_id=self.organization.id)
+
+        self.create_detector_workflow(detector=detector, workflow=alert_workflow)
+
+        with (
+            self.feature({GATE_FEATURE: [self.organization.slug]}),
+            override_workflow_api_availability(
+                Workflow.Type.ALERT, {WorkflowEngineAPIOperation.LIST: FeatureGate(GATE_FEATURE)}
+            ),
+        ):
+            result = serialize(detector, self.user)
 
         assert result["workflowIds"] == [str(alert_workflow.id)]
 

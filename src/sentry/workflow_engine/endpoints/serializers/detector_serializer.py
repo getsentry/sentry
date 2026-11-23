@@ -16,6 +16,8 @@ from sentry.apidocs.descriptions import ApiDescription, ApiSchema
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.types.actor import Actor
 from sentry.workflow_engine.endpoints.serializers.data_source_serializer import (
     DataSourceSerializerResponse,
@@ -24,6 +26,7 @@ from sentry.workflow_engine.endpoints.serializers.response_schemas import detect
 from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     TriggerSerializerResponse,
 )
+from sentry.workflow_engine.endpoints.utils.workflow_filters import get_excluded_workflow_types
 from sentry.workflow_engine.generated_schema_types import DetectorConfigResponse
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
@@ -33,8 +36,7 @@ from sentry.workflow_engine.models import (
     DetectorGroup,
     DetectorWorkflow,
 )
-from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
-from sentry.workflow_engine.types import DetectorType
+from sentry.workflow_engine.types import DetectorType, WorkflowEngineAPIOperation
 
 
 class DetectorSerializerResponseOptional(TypedDict, total=False):
@@ -82,12 +84,26 @@ class DetectorSerializerResponse(DetectorSerializerResponseOptional):
     enabled: Annotated[bool, ApiDescription("Whether the monitor is enabled")]
 
 
+def _get_detector_organization(detector: Detector) -> Organization:
+    if detector.project_id is None:
+        organization_id = detector.config["organization_id"]
+    else:
+        organization_id = Project.objects.get_from_cache(id=detector.project_id).organization_id
+
+    return Organization.objects.get_from_cache(id=organization_id)
+
+
 @register(Detector)
 class DetectorSerializer(Serializer[DetectorSerializerResponse]):
     def get_attrs(
         self, item_list: Sequence[Detector], user: Any, **kwargs: Any
     ) -> MutableMapping[Detector, dict[str, Any]]:
         attrs: MutableMapping[Detector, dict[str, Any]] = defaultdict(dict)
+
+        if not item_list:
+            return attrs
+
+        organization = _get_detector_organization(item_list[0])
 
         dsd_list = list(
             DataSourceDetector.objects.filter(detector__in=item_list).select_related("data_source")
@@ -117,10 +133,17 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
 
         workflows_map = defaultdict(list)
 
-        # Ensure the workflow_ids belonging to hidden workflows are not included
-        detector_workflows = DetectorWorkflow.objects.filter(
-            detector__in=item_list, workflow__type__in=VISIBLE_WORKFLOW_TYPES
-        ).values_list("detector_id", "workflow_id")
+        # Ensure the workflow_ids belonging to workflow types without LIST permissions
+        # are omitted from the response
+        excluded_workflow_types = get_excluded_workflow_types(
+            WorkflowEngineAPIOperation.LIST, organization, actor=user
+        )
+
+        detector_workflows = (
+            DetectorWorkflow.objects.filter(detector__in=item_list)
+            .exclude(workflow__type__in=excluded_workflow_types)
+            .values_list("detector_id", "workflow_id")
+        )
 
         for detector_id, workflow_id in detector_workflows:
             workflows_map[detector_id].append(str(workflow_id))

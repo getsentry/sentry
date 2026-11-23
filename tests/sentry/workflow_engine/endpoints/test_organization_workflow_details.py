@@ -33,8 +33,12 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import WorkflowType
+from sentry.workflow_engine.types import WorkflowEngineAPIOperation, WorkflowSettings, WorkflowType
 from sentry.workflow_engine.typings.notification_action import ActionTarget, ActionType
+from tests.sentry.workflow_engine.endpoints.test_helpers import (
+    GET_AND_PUT_ONLY_AVAILABILITY,
+    override_workflow_api_availability,
+)
 from tests.sentry.workflow_engine.test_base import (
     BaseWorkflowTest,
     MockActionValidatorTranslator,
@@ -74,6 +78,16 @@ class OrganizationWorkflowIndexGetTest(OrganizationWorkflowDetailsBaseTest):
         )
 
         self.get_error_response(self.organization.slug, hidden_workflow.id, status_code=404)
+
+    def test_type_open_for_get_is_returned(self) -> None:
+        inbox_workflow = self.create_workflow(
+            organization_id=self.organization.id, type=Workflow.Type.INBOX
+        )
+
+        with override_workflow_api_availability(Workflow.Type.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
+            response = self.get_success_response(self.organization.slug, inbox_workflow.id)
+
+        assert response.data == serialize(inbox_workflow)
 
     def test_all_projects_workflow(self) -> None:
         workflow = self.create_workflow(organization_id=self.organization.id)
@@ -248,6 +262,38 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             {"name": "teamId", "value": "1"},
             {"name": "assigneeId", "value": "3"},
         ]
+
+    def test_type_open_for_put_is_updated(self) -> None:
+        self.workflow.update(type=Workflow.Type.INBOX)
+
+        with override_workflow_api_availability(Workflow.Type.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
+            self.get_success_response(
+                self.organization.slug,
+                self.workflow.id,
+                raw_data={**self.valid_workflow, "name": "Updated Workflow"},
+            )
+
+        self.workflow.refresh_from_db()
+
+        assert self.workflow.name == "Updated Workflow"
+
+        assert self.workflow.type == Workflow.Type.INBOX
+
+    def test_type_closed_for_put_is_not_found(self) -> None:
+        with override_workflow_api_availability(
+            Workflow.Type.ALERT,
+            {**WorkflowSettings.DEFAULT_API_AVAILABILITY, WorkflowEngineAPIOperation.PUT: False},
+        ):
+            self.get_error_response(
+                self.organization.slug,
+                self.workflow.id,
+                raw_data={**self.valid_workflow, "name": "Updated Workflow"},
+                status_code=404,
+            )
+
+        self.workflow.refresh_from_db()
+
+        assert self.workflow.name == "Test Workflow"
 
     def test_team_admin_can_update_project_scoped_workflow(self) -> None:
         detector = self.create_detector(project=self.project)
@@ -1832,6 +1878,18 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         hidden_workflow.refresh_from_db()
 
         assert hidden_workflow.status == ObjectStatus.ACTIVE
+
+    def test_readable_type_closed_for_delete_is_not_found(self) -> None:
+        inbox_workflow = self.create_workflow(
+            organization_id=self.organization.id, type=Workflow.Type.INBOX
+        )
+
+        with override_workflow_api_availability(Workflow.Type.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
+            self.get_error_response(self.organization.slug, inbox_workflow.id, status_code=404)
+
+        inbox_workflow.refresh_from_db()
+
+        assert inbox_workflow.status == ObjectStatus.ACTIVE
 
     def test_team_admin_can_delete_project_scoped_workflow(self) -> None:
         detector = self.create_detector(project=self.project)
