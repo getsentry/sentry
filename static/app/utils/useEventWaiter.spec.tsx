@@ -92,12 +92,7 @@ describe('useEventWaiter', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () =>
-        useEventWaiter({
-          eventType: 'error',
-          organization: org,
-          project,
-        }),
+      () => useEventWaiter({eventType: 'error', organization: org, project}),
       {organization: org}
     );
 
