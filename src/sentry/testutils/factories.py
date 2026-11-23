@@ -52,7 +52,7 @@ from sentry.explore.models import (
     ParamItemTypes,
 )
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, ControlOutbox, outbox_context
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.incidents.grouptype import MetricIssue
@@ -666,6 +666,17 @@ class Factories:
         kwargs["inviter_id"] = inviter_id
 
         om = OrganizationMember.objects.create(**kwargs)
+
+        if user_id is not None:
+            # The member's user_email and user_is_active reach the cell through this drain
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                pending_user_outboxes = list(
+                    ControlOutbox.objects.filter(
+                        shard_scope=OutboxScope.USER_SCOPE, shard_identifier=user_id
+                    )
+                )
+            for outbox in pending_user_outboxes:
+                outbox.drain_shard()
 
         if team_roles:
             for team, role in team_roles:
