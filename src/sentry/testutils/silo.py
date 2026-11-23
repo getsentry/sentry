@@ -593,7 +593,7 @@ def validate_no_cross_silo_deletions(
     from sentry import deletions
     from sentry.deletions.base import BaseDeletionTask
     from sentry.incidents.grouptype import MetricIssue
-    from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+    from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
     from sentry.workflow_engine.models import DataSource, Detector
 
     # hack for datasource registry, needs type

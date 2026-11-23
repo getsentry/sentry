@@ -5,7 +5,7 @@ from django.db import router
 
 from sentry import features
 from sentry.explore.translation.alerts_translation import _get_old_query_info
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import (
     QuerySubscription,

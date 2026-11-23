@@ -14,11 +14,11 @@ from sentry.incidents.subscription_processor import (
     SubscriptionProcessor,
     store_detector_last_update,
 )
-from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.incidents.utils.types import (
+from sentry.incidents.utils.constants import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-    QuerySubscriptionUpdate,
+    INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
 )
+from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription

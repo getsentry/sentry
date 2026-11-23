@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.notebooks.models import Notebook, NotebookSourceType

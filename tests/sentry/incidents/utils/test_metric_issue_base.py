@@ -1,11 +1,11 @@
 from datetime import UTC, datetime, timedelta
 
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.incidents.utils.types import (
+from sentry.incidents.utils.constants import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-    ProcessedSubscriptionUpdate,
+    INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
 )
+from sentry.incidents.utils.types import ProcessedSubscriptionUpdate
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.snuba.dataset import Dataset

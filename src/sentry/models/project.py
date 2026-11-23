@@ -513,7 +513,7 @@ class Project(Model):
 
     def transfer_to(self, organization: Organization) -> None:
         from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
-        from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
         from sentry.integrations.base import INTEGRATION_TYPE_TO_PROVIDER, IntegrationDomain
         from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.integrations.models.repository_project_path_config import (

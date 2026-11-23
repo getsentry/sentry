@@ -15,8 +15,8 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model
 from sentry.db.models.manager.base import BaseManager
 from sentry.deletions.base import ModelRelation
+from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.incidents.utils.subscription_limits import get_max_metric_alert_subscriptions
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DataSourceTypeHandler
 

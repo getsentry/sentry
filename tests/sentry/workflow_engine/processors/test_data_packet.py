@@ -1,4 +1,4 @@
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.workflow_engine.processors.data_packet import process_data_packet
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest

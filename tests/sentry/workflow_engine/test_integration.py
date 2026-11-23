@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from sentry.eventstream.types import EventStreamEventType
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.group import Group
 from sentry.services.eventstore.models import Event

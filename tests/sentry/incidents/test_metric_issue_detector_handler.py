@@ -6,10 +6,8 @@ from uuid import UUID
 from sentry.api.serializers import serialize
 from sentry.incidents.grouptype import MetricIssue, MetricIssueDetectorHandler
 from sentry.incidents.typings.metric_issue_evidence import MetricIssueOccurrenceResponse
-from sentry.incidents.utils.types import (
-    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-    ProcessedSubscriptionUpdate,
-)
+from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.incidents.utils.types import ProcessedSubscriptionUpdate
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset

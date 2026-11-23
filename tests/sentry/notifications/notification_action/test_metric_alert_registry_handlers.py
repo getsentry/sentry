@@ -10,12 +10,7 @@ import pytest
 from django.utils import timezone
 
 from sentry.db.models import NodeData
-from sentry.incidents.grouptype import (
-    MetricIssue,
-    MetricIssueEvidenceData,
-    StoredAnomalyDetectionResult,
-    StoredMetricResult,
-)
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleSensitivity,
@@ -27,6 +22,11 @@ from sentry.incidents.typings.metric_detector import (
     MetricIssueContext,
     NotificationContext,
     OpenPeriodContext,
+)
+from sentry.incidents.utils.types import (
+    MetricIssueEvidenceData,
+    StoredAnomalyDetectionResult,
+    StoredMetricResult,
 )
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity

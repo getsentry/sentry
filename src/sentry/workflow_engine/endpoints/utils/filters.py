@@ -7,8 +7,8 @@ from django.db.models.functions import Cast
 
 from sentry.api.event_search import SearchFilter
 from sentry.db.models.query import in_iexact
+from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.incidents.utils.subscription_limits import get_disallowed_metric_datasets
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.organization import Organization
 from sentry.snuba.models import QuerySubscription
 from sentry.workflow_engine.endpoints.utils.detector_filters import (

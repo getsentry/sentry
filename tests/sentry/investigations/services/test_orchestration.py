@@ -10,7 +10,7 @@ from rest_framework.exceptions import PermissionDenied
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.services.breached_metrics import resolve_investigation_source
 from sentry.investigations.services.orchestration import (

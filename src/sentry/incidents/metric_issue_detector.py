@@ -14,8 +14,8 @@ from sentry.incidents.logic import (
     get_alert_resolution,
 )
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.seer.anomaly_detection.delete_rule import delete_data_in_seer_for_detector

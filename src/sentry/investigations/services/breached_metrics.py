@@ -11,7 +11,7 @@ from sentry.constants import ObjectStatus
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
