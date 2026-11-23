@@ -226,19 +226,20 @@ class SeerWorkflowCreateTest(TestCase):
             )
             assert workflow.action_settings == action_settings
 
-        for action_settings, error in (
+        invalid: tuple[tuple[dict[str, str] | None, str], ...] = (
             (None, "Set a prompt or a skill"),
             ({}, "Set a prompt or a skill"),
             ({"prompt": "Check checkout latency", "skill": "agentic_triage"}, "valid under each"),
             ({"skill": "unknown"}, "unknown"),
             ({"prompt": ""}, "non-empty"),
-        ):
+        )
+        for invalid_settings, error in invalid:
             with pytest.raises(WorkflowUpdateError, match=error):
                 SeerWorkflow.create(
                     organization_id=self.organization.id,
                     strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
                     scope=AllProjects(),
-                    action_settings=action_settings,
+                    action_settings=invalid_settings,
                     service_account_grant=GRANT,
                 )
 

@@ -1555,11 +1555,12 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         assert response.data["actionSettings"] == {"prompt": "Check checkout latency"}
 
     def test_scheduled_investigation_requires_a_prompt_or_a_skill(self) -> None:
-        for settings in (
+        invalid: list[dict[str, Any]] = [
             {},
             {"actionSettings": {}},
             {"actionSettings": {**PROMPT, "skill": "agentic_triage"}},
-        ):
+        ]
+        for settings in invalid:
             self.get_error_response(
                 self.organization.slug,
                 strategy="scheduled_investigation",
