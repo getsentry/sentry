@@ -1,7 +1,14 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
@@ -9,7 +16,10 @@ import ServiceAccountDetails from './serviceAccountDetails';
 import ServiceAccountsLayout from './serviceAccountsLayout';
 
 describe('ServiceAccountDetails', () => {
-  const organization = OrganizationFixture({features: ['service-accounts']});
+  const organization = OrganizationFixture({
+    features: ['service-accounts'],
+    access: [...OrganizationFixture().access, 'service_account:write'],
+  });
   const account = {
     id: '10',
     name: 'github-actions-deploy',
@@ -70,5 +80,48 @@ describe('ServiceAccountDetails', () => {
       screen.getByText(/the page you are looking for was not found/i)
     ).toBeInTheDocument();
     expect(request).not.toHaveBeenCalled();
+  });
+
+  it('deletes the account after typing its name', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/service-accounts/10/`,
+      body: account,
+    });
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/service-accounts/10/`,
+      method: 'DELETE',
+    });
+
+    const {router} = renderDetails();
+    renderGlobalModal();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Delete'}));
+    await userEvent.type(screen.getByRole('textbox'), 'github-actions-deploy');
+    await userEvent.click(screen.getByRole('button', {name: 'Delete Service Account'}));
+
+    await waitFor(() =>
+      expect(router.location.pathname).toBe(
+        `/settings/${organization.slug}/service-accounts/`
+      )
+    );
+    expect(deleteRequest).toHaveBeenCalled();
+  });
+
+  it("can't edit or delete an account owned by a Seer automation", async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/service-accounts/10/`,
+      body: {...account, ownerKind: 'seer_workflow_config'},
+    });
+
+    renderDetails();
+
+    expect(await screen.findByRole('button', {name: 'Edit'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Delete'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });

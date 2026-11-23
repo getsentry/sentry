@@ -56,9 +56,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     closeSeerExplorerDrawer,
     toggleSeerExplorerDrawer,
     isOpen: isDrawerOpen,
-  } = useSeerExplorerDrawer({
-    onClose: () => setLastViewedAt(Date.now()),
-  });
+  } = useSeerExplorerDrawer({onClose: () => setLastViewedAt(Date.now())});
 
   // Sidebar (split-panel) state. Open state lives in sessionStorage, like the
   // run id, so a reload keeps the same chat open while new tabs start closed.
@@ -438,10 +436,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     [openSeerExplorer]
   );
 
-  useSeerExplorerDeepLink({
-    callback: deepLinkCallback,
-    enabled: !isOpen && !isPoppedOut,
-  });
+  useSeerExplorerDeepLink({callback: deepLinkCallback, enabled: !isOpen && !isPoppedOut});
 
   // Links opened with `explorerRunId` keep it in the URL and follow session switches.
   useSyncSeerExplorerRunIdToUrl(runId);

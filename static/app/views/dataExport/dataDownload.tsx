@@ -47,11 +47,7 @@ type BaseDownload = {
   dateCreated: string;
   id: number;
   status: DownloadStatus;
-  user: {
-    email: string;
-    id: number;
-    username: string;
-  };
+  user: {email: string; id: number; username: string};
   dateExpired?: string;
   dateFinished?: string;
   export_format?: 'csv' | 'jsonl';
@@ -352,9 +348,7 @@ export default function DataDownload() {
     const mode = aggregates.length + equations.length > 0 ? Mode.AGGREGATE : Mode.SAMPLES;
 
     const groupBy = fields.map(field => ({groupBy: field}));
-    const aggregateFields = aggregates.map(aggregate => ({
-      yAxes: [aggregate],
-    }));
+    const aggregateFields = aggregates.map(aggregate => ({yAxes: [aggregate]}));
     const equationFields = equations.map(equation => ({yAxes: [equation]}));
 
     const aggregateInfo = {
@@ -363,18 +357,11 @@ export default function DataDownload() {
       field: [],
     };
 
-    const samplesInfo = {
-      mode,
-      aggregateField: [],
-      field: fields,
-    };
+    const samplesInfo = {mode, aggregateField: [], field: fields};
 
     const to = {
       pathname: `/organizations/${orgSlug}/explore/traces/`,
-      query: {
-        ...info,
-        ...(mode === Mode.AGGREGATE ? aggregateInfo : samplesInfo),
-      },
+      query: {...info, ...(mode === Mode.AGGREGATE ? aggregateInfo : samplesInfo)},
     };
 
     navigate(normalizeUrl(to));

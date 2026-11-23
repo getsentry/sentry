@@ -25,11 +25,7 @@ interface MessageRowProps extends React.HTMLAttributes<HTMLDivElement> {
   density?: MessageRowDensity;
 }
 
-const DENSITY_PADDING = {
-  default: 'xl',
-  compact: 'md xl',
-  line: '2xs xl',
-} as const;
+const DENSITY_PADDING = {default: 'xl', compact: 'md xl', line: '2xs xl'} as const;
 
 /**
  * The full-width row that positions a single message turn within a conversation.

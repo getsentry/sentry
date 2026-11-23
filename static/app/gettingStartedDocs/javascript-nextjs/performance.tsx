@@ -15,15 +15,8 @@ export const performance: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: t('Install the Next.js SDK using our installation wizard:'),
-        },
-        {
-          type: 'code',
-          language: 'bash',
-          code: getInstallSnippet(params),
-        },
+        {type: 'text', text: t('Install the Next.js SDK using our installation wizard:')},
+        {type: 'code', language: 'bash', code: getInstallSnippet(params)},
       ],
     },
   ],

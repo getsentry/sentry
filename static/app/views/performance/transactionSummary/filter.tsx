@@ -88,7 +88,5 @@ export function decodeFilterFromLocation(location: Location) {
 }
 
 export function filterToLocationQuery(option: SpanOperationBreakdownFilter | undefined) {
-  return {
-    breakdown: option,
-  };
+  return {breakdown: option};
 }

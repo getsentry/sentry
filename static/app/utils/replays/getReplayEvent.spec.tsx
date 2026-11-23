@@ -5,9 +5,7 @@ import {getNextReplayFrame, getPrevReplayFrame} from './getReplayEvent';
 import {hydrateBreadcrumbs} from './hydrateBreadcrumbs';
 
 const frames = hydrateBreadcrumbs(
-  ReplayRecordFixture({
-    started_at: new Date('2022-05-04T19:41:30.00Z'),
-  }),
+  ReplayRecordFixture({started_at: new Date('2022-05-04T19:41:30.00Z')}),
   [
     ReplayClickFrameFixture({
       timestamp: new Date('2022-05-04T19:41:32.002Z'),
@@ -36,10 +34,7 @@ const CURRENT_OFFSET_MS = frames[0]!.offsetMs + 15000;
 
 describe('getNextReplayFrame', () => {
   it('should return the next crumb', () => {
-    const result = getNextReplayFrame({
-      frames,
-      targetOffsetMs: CURRENT_OFFSET_MS,
-    });
+    const result = getNextReplayFrame({frames, targetOffsetMs: CURRENT_OFFSET_MS});
 
     expect(result).toEqual(frames[1]);
   });
@@ -55,38 +50,26 @@ describe('getNextReplayFrame', () => {
   });
 
   it('should return undefined when there are no crumbs', () => {
-    const result = getNextReplayFrame({
-      frames: [],
-      targetOffsetMs: CURRENT_OFFSET_MS,
-    });
+    const result = getNextReplayFrame({frames: [], targetOffsetMs: CURRENT_OFFSET_MS});
 
     expect(result).toBeUndefined();
   });
 
   it('should return the first crumb when the timestamp is earlier than any crumbs', () => {
-    const result = getNextReplayFrame({
-      frames,
-      targetOffsetMs: -1,
-    });
+    const result = getNextReplayFrame({frames, targetOffsetMs: -1});
 
     expect(result).toEqual(frames[0]);
   });
 
   it('should return undefined when the timestamp is later than any crumbs', () => {
-    const result = getNextReplayFrame({
-      frames,
-      targetOffsetMs: 99999999999,
-    });
+    const result = getNextReplayFrame({frames, targetOffsetMs: 99999999999});
 
     expect(result).toBeUndefined();
   });
 
   it('should return the next frame when a timestamp exactly matches', () => {
     const exactTime = frames[1]!.offsetMs;
-    const result = getNextReplayFrame({
-      frames,
-      targetOffsetMs: exactTime,
-    });
+    const result = getNextReplayFrame({frames, targetOffsetMs: exactTime});
 
     expect(result).toEqual(frames[2]);
   });
@@ -105,10 +88,7 @@ describe('getNextReplayFrame', () => {
 
 describe('getPrevReplayFrame', () => {
   it('should return the previous crumb', () => {
-    const result = getPrevReplayFrame({
-      frames,
-      targetOffsetMs: CURRENT_OFFSET_MS,
-    });
+    const result = getPrevReplayFrame({frames, targetOffsetMs: CURRENT_OFFSET_MS});
 
     expect(result).toEqual(frames[0]);
   });
@@ -124,38 +104,26 @@ describe('getPrevReplayFrame', () => {
   });
 
   it('should return undefined when there are no crumbs', () => {
-    const result = getPrevReplayFrame({
-      frames: [],
-      targetOffsetMs: CURRENT_OFFSET_MS,
-    });
+    const result = getPrevReplayFrame({frames: [], targetOffsetMs: CURRENT_OFFSET_MS});
 
     expect(result).toBeUndefined();
   });
 
   it('should return undefined when the timestamp is earlier than any crumbs', () => {
-    const result = getPrevReplayFrame({
-      frames,
-      targetOffsetMs: -1,
-    });
+    const result = getPrevReplayFrame({frames, targetOffsetMs: -1});
 
     expect(result).toBeUndefined();
   });
 
   it('should return the last crumb if timestamp is later than any crumb', () => {
-    const result = getPrevReplayFrame({
-      frames,
-      targetOffsetMs: 99999999999,
-    });
+    const result = getPrevReplayFrame({frames, targetOffsetMs: 99999999999});
 
     expect(result).toEqual(frames[4]);
   });
 
   it('should return the prev frame if timestamp exactly matches', () => {
     const exactTime = frames[1]!.offsetMs;
-    const result = getPrevReplayFrame({
-      frames,
-      targetOffsetMs: exactTime,
-    });
+    const result = getPrevReplayFrame({frames, targetOffsetMs: exactTime});
 
     expect(result).toEqual(frames[0]);
   });

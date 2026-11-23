@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useQueryStates} from 'nuqs';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {openConfirmModal} from '@sentry/scraps/confirm';
@@ -14,15 +15,14 @@ import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {userDisplayName} from 'sentry/utils/formatters';
-import {encodeSort} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDeleteFormula} from 'sentry/views/explore/hooks/useDeleteFormula';
 import type {
   FormulaDataset,
   SavedFormula,
 } from 'sentry/views/explore/hooks/useGetSavedFormulas';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 
 import {stripNamePrefix} from './formulaBuilder/draft';
 import {buildTokenMap, FormulaToken, FormulaTokens} from './formulaTokens';
@@ -52,18 +52,13 @@ type Props = {
 };
 
 export function SavedFormulasTable({formulas, isError, isPending, sort}: Props) {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [, setQueryParams] = useQueryStates(
+    {sort: parseAsSort, cursor: parseAsScalar},
+    {history: 'push'}
+  );
 
   function handleSort(field: string) {
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        sort: encodeSort(getNextSort(field, sort, 'asc')),
-        cursor: undefined,
-      },
-    });
+    void setQueryParams({sort: getNextSort(field, sort, 'asc'), cursor: null});
   }
 
   return (

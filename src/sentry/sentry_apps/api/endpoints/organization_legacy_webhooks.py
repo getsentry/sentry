@@ -1,5 +1,3 @@
-from typing import cast
-
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -39,5 +37,5 @@ class OrganizationLegacyWebhooksEndpoint(OrganizationEndpoint):
                 }
             )
 
-        result.sort(key=lambda x: cast(str, x["projectSlug"]))
+        result.sort(key=lambda x: x["projectSlug"])
         return Response({"projects": result})

@@ -14,20 +14,12 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
-type Props = ModalRenderProps & {
-  onSubmit: (user: User) => void;
-  user: User;
-};
+type Props = ModalRenderProps & {onSubmit: (user: User) => void; user: User};
 
 const userPermissionsSchema = z.object({
   isStaff: z.boolean(),
   isSuperuser: z.boolean(),
-  permissionChoices: z.array(
-    z.object({
-      permission: z.string(),
-      enabled: z.boolean(),
-    })
-  ),
+  permissionChoices: z.array(z.object({permission: z.string(), enabled: z.boolean()})),
 });
 
 export function UserPermissionsModal({

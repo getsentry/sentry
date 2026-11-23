@@ -108,9 +108,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install the [strong:NuGet] package:', {
-            strong: <strong />,
-          }),
+          text: tct('Install the [strong:NuGet] package:', {strong: <strong />}),
         },
         {
           type: 'code',
@@ -120,11 +118,7 @@ export const onboarding: OnboardingConfig = {
               language: 'shell',
               code: getInstallSnippetXamarinForms(params),
             },
-            {
-              label: 'Xamarin',
-              language: 'shell',
-              code: getInstallSnippetXamarin(params),
-            },
+            {label: 'Xamarin', language: 'shell', code: getInstallSnippetXamarin(params)},
           ],
         },
       ],
@@ -138,59 +132,32 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Initialize the SDK as early as possible, like in the constructor of the [code:App], and Add [code:SentryXamarinFormsIntegration] as a new Integration to [code:SentryXamarinOptions] if you are going to run your app with Xamarin Forms:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'subheader',
-          text: t('Android'),
-        },
+        {type: 'subheader', text: t('Android')},
         {
           type: 'text',
-          text: tct('Initialize the SDK on your [code:MainActivity].', {
-            code: <code />,
-          }),
+          text: tct('Initialize the SDK on your [code:MainActivity].', {code: <code />}),
         },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: getConfigureSnippetAndroid(params),
-        },
-        {
-          type: 'subheader',
-          text: t('iOS'),
-        },
+        {type: 'code', language: 'csharp', code: getConfigureSnippetAndroid(params)},
+        {type: 'subheader', text: t('iOS')},
         {
           type: 'text',
           text: tct('Initialize the SDK on your [code:AppDelegate.cs].', {
             code: <code />,
           }),
         },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: getConfigureSnippetIOS(params),
-        },
-        {
-          type: 'subheader',
-          text: t('UWP'),
-        },
+        {type: 'code', language: 'csharp', code: getConfigureSnippetIOS(params)},
+        {type: 'subheader', text: t('UWP')},
         {
           type: 'text',
           text: [
-            tct('Initialize the SDK on [code:App.xaml.cs].', {
-              code: <code />,
-            }),
+            tct('Initialize the SDK on [code:App.xaml.cs].', {code: <code />}),
             t("NOTE: It's recommended to not setup the CacheDirectory for UWP."),
           ],
         },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: getConfigureSnippetUWP(params),
-        },
+        {type: 'code', language: 'csharp', code: getConfigureSnippetUWP(params)},
       ],
     },
   ],
@@ -224,11 +191,7 @@ export const onboarding: OnboardingConfig = {
             'You can measure the performance of your code by capturing transactions and spans.'
           ),
         },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: getPerformanceInstrumentationSnippet(),
-        },
+        {type: 'code', language: 'csharp', code: getPerformanceInstrumentationSnippet()},
         {
           type: 'text',
           text: tct(

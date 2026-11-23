@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Any, cast
+from typing import Any
 from unittest.mock import Mock, patch
 from uuid import UUID, uuid4
 
@@ -68,14 +68,11 @@ class SeerRunMirrorMixin:
     def seer_run_mirror(self, seer_run_state_id: int) -> SeerRun:
         """A SeerRun mirror standing in for a run Seer already accepted."""
 
-        return cast(
-            "SeerRun",
-            self.create_seer_run(  # type: ignore[attr-defined]
-                organization=self.organization,  # type: ignore[attr-defined]
-                type=SeerRunType.INVESTIGATION,
-                seer_run_state_id=seer_run_state_id,
-                mirror_status=SeerRunMirrorStatus.LIVE,
-            ),
+        return self.create_seer_run(  # type: ignore[attr-defined]
+            organization=self.organization,  # type: ignore[attr-defined]
+            type=SeerRunType.INVESTIGATION,
+            seer_run_state_id=seer_run_state_id,
+            mirror_status=SeerRunMirrorStatus.LIVE,
         )
 
 

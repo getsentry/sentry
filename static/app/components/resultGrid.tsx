@@ -76,11 +76,7 @@ function Filter({name, queryKey, options, path, value}: FilterProps) {
   );
 }
 
-type SortByProps = {
-  options: Option[];
-  path: string;
-  value: string;
-};
+type SortByProps = {options: Option[]; path: string; value: string};
 
 function SortBy({options, path, value}: SortByProps) {
   const location = useLocation();
@@ -108,10 +104,7 @@ function SortBy({options, path, value}: SortByProps) {
   );
 }
 
-type FilterDescriptor = {
-  name: string;
-  options: Option[];
-};
+type FilterDescriptor = {name: string; options: Option[]};
 
 export type ResultGridColumn = {
   key: string;
@@ -384,10 +377,7 @@ const IDLE_REGIONS: Pick<Results, 'pendingRegions' | 'regionCursors' | 'regionEr
   regionErrors: [],
 };
 
-type RegionSelection = {
-  allRegions: boolean;
-  cell: Cell | undefined;
-};
+type RegionSelection = {allRegions: boolean; cell: Cell | undefined};
 
 type RegionProbe = {
   missingExactMatch: boolean;
@@ -634,10 +624,7 @@ export function ResultGrid({
       ? cells.find(c => c.locality_url === regionUrl)
       : undefined;
     const allRegions = allowAllRegions && !requestedCell;
-    return {
-      allRegions,
-      cell: allRegions ? undefined : (requestedCell ?? cells[0]),
-    };
+    return {allRegions, cell: allRegions ? undefined : (requestedCell ?? cells[0])};
   });
   const {allRegions, cell} = region;
 

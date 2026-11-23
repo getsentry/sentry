@@ -27,9 +27,7 @@ const defaultProviderProps = {
   searchSource: 'test',
 };
 
-const feedbackIntegration = {
-  createForm: jest.fn(),
-} as unknown as FeedbackIntegration;
+const feedbackIntegration = {createForm: jest.fn()} as unknown as FeedbackIntegration;
 
 function FeedbackProvider({children}: {children: React.ReactNode}) {
   return (
@@ -56,9 +54,7 @@ function renderPollingComboBox(
     typeof AskSeerPollingComboBox
   >['fallbackMutationOptions']
 ) {
-  const {organization} = initializeOrg({
-    organization: {hideAiFeatures: false},
-  });
+  const {organization} = initializeOrg({organization: {hideAiFeatures: false}});
 
   render(
     <SearchQueryBuilderProvider {...defaultProviderProps}>
@@ -131,18 +127,14 @@ describe('AskSeerPollingComboBox results', () => {
     const {organization} = renderPollingComboBox(false);
 
     await submitQuery();
-    const regenerateButton = await screen.findByRole('button', {
-      name: 'Generate again',
-    });
+    const regenerateButton = await screen.findByRole('button', {name: 'Generate again'});
     expect(regenerateButton).toBeEnabled();
     expect(screen.getByText('Filter')).toBeInTheDocument();
     expect(
       screen.queryByText('Do any of these look right to you?')
     ).not.toBeInTheDocument();
 
-    const input = screen.getByRole('combobox', {
-      name: 'Ask Seer with Natural Language',
-    });
+    const input = screen.getByRole('combobox', {name: 'Ask Seer with Natural Language'});
     await userEvent.clear(input);
     expect(regenerateButton).toBeEnabled();
 
@@ -181,9 +173,7 @@ describe('AskSeerPollingComboBox results', () => {
     await waitFor(() =>
       expect(startRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/search-agent/start/',
-        expect.objectContaining({
-          data: expect.objectContaining({referrer: 'search_bar'}),
-        })
+        expect.objectContaining({data: expect.objectContaining({referrer: 'search_bar'})})
       )
     );
   });
@@ -234,11 +224,7 @@ describe('AskSeerPollingComboBox results', () => {
         },
       },
     });
-    const {organization} = initializeOrg({
-      organization: {
-        hideAiFeatures: false,
-      },
-    });
+    const {organization} = initializeOrg({organization: {hideAiFeatures: false}});
 
     function TestComponent() {
       const [query, setQuery] = useState('');
@@ -297,13 +283,7 @@ describe('AskSeerPollingComboBox error state', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/search-agent/state/123/',
-      body: {
-        session: {
-          status: 'error',
-          current_step: null,
-          completed_steps: [],
-        },
-      },
+      body: {session: {status: 'error', current_step: null, completed_steps: []}},
     });
     renderPollingComboBox();
 

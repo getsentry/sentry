@@ -19,12 +19,7 @@ function parseMetricsUrl(url: string) {
 describe('getWidgetMetricsUrl', () => {
   const organization = OrganizationFixture({slug: 'test-org'});
   const selection: PageFilters = {
-    datetime: {
-      start: null,
-      end: null,
-      period: '14d',
-      utc: null,
-    },
+    datetime: {start: null, end: null, period: '14d', utc: null},
     environments: ['production'],
     projects: [1, 2],
   };
@@ -252,9 +247,7 @@ describe('getWidgetMetricsUrl', () => {
         ],
       };
 
-      const dashboardFilters: DashboardFilters = {
-        release: ['v1.0.0'],
-      };
+      const dashboardFilters: DashboardFilters = {release: ['v1.0.0']};
 
       const url = getWidgetMetricsUrl(widget, dashboardFilters, selection, organization);
       const {params} = parseMetricsUrl(url);
@@ -690,9 +683,7 @@ describe('getWidgetMetricsUrl', () => {
         ],
       };
 
-      const dashboardFilters: DashboardFilters = {
-        release: ['v1.0.0'],
-      };
+      const dashboardFilters: DashboardFilters = {release: ['v1.0.0']};
 
       const url = getWidgetMetricsUrl(widget, dashboardFilters, selection, organization);
       const {params} = parseMetricsUrl(url);

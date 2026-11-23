@@ -17,7 +17,6 @@ import {useReplayCountForTransaction} from 'sentry/utils/replayCount/useReplayCo
 import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
@@ -26,7 +25,6 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {TopBar} from 'sentry/views/navigation/topBar';
 import {getTransactionSummaryParentCrumbs} from 'sentry/views/performance/breadcrumb';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
@@ -122,9 +120,7 @@ export function TransactionHeader({
   );
 
   function handleCreateAlertSuccess() {
-    trackAnalytics('performance_views.summary.create_alert_clicked', {
-      organization,
-    });
+    trackAnalytics('performance_views.summary.create_alert_clicked', {organization});
   }
 
   const project = projects.find(p => p.id === projectId);
@@ -147,11 +143,7 @@ export function TransactionHeader({
   });
 
   const renderTabList = (TabList: TabsComponents<Tab>['TabList']) => (
-    <TabList
-      outerWrapStyles={{
-        gridColumn: '1 / -1',
-      }}
-    >
+    <TabList outerWrapStyles={{gridColumn: '1 / -1'}}>
       <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
       <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
       <TabList.Item key={Tab.REPLAYS} textValue={t('Replays')} hidden={!hasSessionReplay}>
@@ -176,18 +168,11 @@ export function TransactionHeader({
         ),
       },
       hideDefaultTabs: true,
-      tabs: {
-        onTabChange,
-        renderTabList,
-        value: currentTab,
-      },
+      tabs: {onTabChange, renderTabList, value: currentTab},
       breadcrumbs: getTransactionSummaryParentCrumbs({
         location,
         organization,
-        transaction: {
-          name: transactionName,
-          project: projectId,
-        },
+        transaction: {name: transactionName, project: projectId},
         view,
       }).map(({label, to}) => ({type: 'link' as const, label, to})),
       headerActions: (
@@ -240,24 +225,7 @@ export function TransactionHeader({
         transactionName={transactionName}
         onChangeThreshold={onChangeThreshold}
       />
-      <TopBar.Slot name="actions">
-        {deprecateTransactionAlerts(organization) ? null : (
-          <CreateAlertFromViewButton
-            eventView={eventView}
-            organization={organization}
-            projects={projects}
-            onClick={handleCreateAlertSuccess}
-            referrer="performance"
-            alertType="trans_duration"
-            aria-label={t('Create Alert')}
-          />
-        )}
-      </TopBar.Slot>
-      <HeaderTabList
-        outerWrapStyles={{
-          gridColumn: '1 / -1',
-        }}
-      >
+      <HeaderTabList outerWrapStyles={{gridColumn: '1 / -1'}}>
         <HeaderTabList.Item key={Tab.TRANSACTION_SUMMARY}>
           {t('Overview')}
         </HeaderTabList.Item>

@@ -36,12 +36,7 @@ export function EventTagsTree({tags, projectSlug, event, config}: EventTagsTreeP
   const tagTree = useMemo(
     () =>
       buildKeyValueTree(
-        tags.map(tag => ({
-          key: tag.key,
-          value: tag.value,
-          meta: tag.meta,
-          original: tag,
-        }))
+        tags.map(tag => ({key: tag.key, value: tag.value, meta: tag.meta, original: tag}))
       ),
     [tags]
   );

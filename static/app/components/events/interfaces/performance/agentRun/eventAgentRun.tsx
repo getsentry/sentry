@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -13,6 +13,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
+import {
+  buildAiSpanTree,
+  getTreeDescendants,
+  getVisibleTreeNodes,
+  getDefaultExpanded,
+} from 'sentry/views/insights/pages/agents/utils/aiSpanTree';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {getTraceLinkForIssue} from 'sentry/views/performance/traceDetails/issuesTraceWaterfallOverlay';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
@@ -31,10 +37,7 @@ function useAgentActivityLink(event: Event) {
       const traceTarget = getTraceTargetFromEvent(
         event,
         organization,
-        {
-          ...location,
-          query: {groupId: event.groupID, referrer: location.query.referrer},
-        },
+        {...location, query: {groupId: event.groupID, referrer: location.query.referrer}},
         TraceViewSources.ISSUE_DETAILS
       );
       if (typeof traceTarget === 'string') {
@@ -51,24 +54,48 @@ function useAgentActivityLink(event: Event) {
 
 const SURROUNDING_STEPS = 3;
 
+const MAX_DEFAULT_DEPTH = 2;
+
 /**
- * Keeps the steps around the failing one, like the trace preview does around an error.
+ * Keeps the rows around the failing step, like the trace preview does around an
+ * error. Counts rows as they first appear, so a collapsed sub-agent is one row,
+ * and keeps the spans inside collapsed rows so expanding one shows its steps.
  */
 function getVisibleSteps(nodes: AITraceSpanNode[], failingNode: AITraceSpanNode) {
-  const index = nodes.findIndex(node => node.id === failingNode.id);
+  const tree = buildAiSpanTree(nodes);
+  const failingTreeNode = tree.byId.get(failingNode.id);
+  const isExpanded = getDefaultExpanded(MAX_DEFAULT_DEPTH, failingTreeNode);
+  const rows = getVisibleTreeNodes(tree, isExpanded);
+
+  const index = failingTreeNode ? rows.indexOf(failingTreeNode) : -1;
   let start = Math.max(0, index - SURROUNDING_STEPS);
-  let end = Math.min(nodes.length, index + SURROUNDING_STEPS + 1);
-  // Hiding a single step saves no space, so show it instead.
+  let end = Math.min(rows.length, index + SURROUNDING_STEPS + 1);
+  // Hiding a single row saves no space, so show it instead.
   if (start === 1) {
     start = 0;
   }
-  if (nodes.length - end === 1) {
-    end = nodes.length;
+  if (rows.length - end === 1) {
+    end = rows.length;
   }
+
+  const visibleNodeIds = new Set<string>();
+  for (const row of rows.slice(start, end)) {
+    visibleNodeIds.add(row.node.id);
+    if (!isExpanded(row)) {
+      for (const descendant of getTreeDescendants(row)) {
+        visibleNodeIds.add(descendant.node.id);
+      }
+    }
+  }
+
+  // The window is a contiguous run of the depth-first list, so every step before
+  // its first row is hidden above it, and the rest below it.
+  const firstRow = rows[start];
+  const hiddenBefore = firstRow ? tree.list.indexOf(firstRow) : 0;
   return {
-    steps: nodes.slice(start, end),
-    hiddenBefore: start,
-    hiddenAfter: nodes.length - end,
+    visibleNodeIds,
+    hiddenBefore,
+    hiddenAfter: tree.list.length - hiddenBefore - visibleNodeIds.size,
   };
 }
 
@@ -88,8 +115,8 @@ function HiddenStepsRow({
   return (
     <Container
       padding="sm md"
-      borderBottom={position === 'top' ? 'muted' : undefined}
-      borderTop={position === 'bottom' ? 'muted' : undefined}
+      borderBottom={position === 'top' ? 'secondary' : undefined}
+      borderTop={position === 'bottom' ? 'secondary' : undefined}
     >
       <Text size="sm" variant="muted">
         <Link
@@ -148,7 +175,10 @@ export function EventAgentActivity({
   const navigate = useNavigate();
   const getAgentActivityLink = useAgentActivityLink(event);
 
-  const {steps, hiddenBefore, hiddenAfter} = getVisibleSteps(nodes, failingNode);
+  const {visibleNodeIds, hiddenBefore, hiddenAfter} = useMemo(
+    () => getVisibleSteps(nodes, failingNode),
+    [nodes, failingNode]
+  );
   const fullActivityLink = getAgentActivityLink(failingNode.id);
 
   return (
@@ -156,7 +186,9 @@ export function EventAgentActivity({
       <HiddenStepsRow count={hiddenBefore} position="top" to={fullActivityLink} />
       <Container padding="xs">
         <AiSpanTimeline
-          nodes={steps}
+          nodes={nodes}
+          visibleNodeIds={visibleNodeIds}
+          maxDefaultDepth={MAX_DEFAULT_DEPTH}
           selectedNodeKey={failingNode.id}
           onSelectNode={node => {
             trackAnalytics('issue_details.agent_run.step_clicked', {

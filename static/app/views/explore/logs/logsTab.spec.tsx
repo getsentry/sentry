@@ -156,9 +156,7 @@ describe('LogsTabContent', () => {
       datasetReason: 'unchanged',
       dataset: 'ourlogs',
       dataScanned: 'full',
-      accuracy: {
-        confidence: [{}, {}],
-      },
+      accuracy: {confidence: [{}, {}]},
     },
     confidence: [{}, {}],
   };
@@ -177,9 +175,7 @@ describe('LogsTabContent', () => {
     eventsTimeSeriesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
-      body: {
-        timeSeries: [TimeSeriesFixture()],
-      },
+      body: {timeSeries: [TimeSeriesFixture()]},
     });
 
     MockApiClient.addMockResponse({
@@ -266,12 +262,7 @@ describe('LogsTabContent', () => {
           projectIds: [project.id],
           projectSlugs: [project.slug],
           projectSelectionMode: 'explicit',
-          currentSelectedDateRange: {
-            period: '14d',
-            start: null,
-            end: null,
-            utc: null,
-          },
+          currentSelectedDateRange: {period: '14d', start: null, end: null, utc: null},
         })
       );
     });
@@ -520,9 +511,7 @@ describe('LogsTabContent', () => {
     });
     expect(eventTableMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events/`,
-      expect.objectContaining({
-        query: expect.objectContaining({sort: 'timestamp'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({sort: 'timestamp'})})
     );
   });
 
@@ -531,18 +520,8 @@ describe('LogsTabContent', () => {
       dataset: [],
       environment: [],
       field: [
-        {
-          attrType: 'number',
-          error: null,
-          name: 'custom.duration',
-          valid: true,
-        },
-        {
-          attrType: 'boolean',
-          error: null,
-          name: 'custom.enabled',
-          valid: true,
-        },
+        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
+        {attrType: 'boolean', error: null, name: 'custom.enabled', valid: true},
         {
           attrType: null,
           error: 'unknown attribute',
@@ -619,12 +598,7 @@ describe('LogsTabContent', () => {
       dataset: [],
       environment: [],
       field: [
-        {
-          attrType: 'number',
-          error: null,
-          name: 'custom.duration',
-          valid: true,
-        },
+        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
         {
           attrType: null,
           error: 'unknown attribute',
@@ -697,12 +671,7 @@ describe('LogsTabContent', () => {
       dataset: [],
       environment: [],
       field: [
-        {
-          attrType: 'number',
-          error: null,
-          name: 'custom.duration',
-          valid: true,
-        },
+        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
         {
           attrType: null,
           error: 'unknown attribute',
@@ -805,11 +774,7 @@ describe('LogsTabContent', () => {
   it('leaves the aggregate fields alone when switching to aggregates while ungrouped', async () => {
     const {router} = render(
       <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
-      {
-        initialRouterConfig,
-        organization,
-        additionalWrapper: ProviderWrapper,
-      }
+      {initialRouterConfig, organization, additionalWrapper: ProviderWrapper}
     );
 
     await userEvent.click(screen.getByRole('tab', {name: 'Aggregates'}));
@@ -879,9 +844,7 @@ describe('LogsTabContent', () => {
 
     expect(eventTableMock).toHaveBeenCalled();
 
-    const caseInsensitiveBtn = await screen.findByRole('button', {
-      name: 'Ignore case',
-    });
+    const caseInsensitiveBtn = await screen.findByRole('button', {name: 'Ignore case'});
     await userEvent.click(caseInsensitiveBtn);
 
     expect(eventTableMock).toHaveBeenCalledWith(
@@ -952,9 +915,7 @@ describe('LogsTabContent', () => {
       organization,
       additionalWrapper: ProviderWrapper,
     });
-    const refreshButton = await screen.findByRole('button', {
-      name: 'Refresh',
-    });
+    const refreshButton = await screen.findByRole('button', {name: 'Refresh'});
     expect(refreshButton).toBeDisabled();
   });
 
@@ -999,10 +960,7 @@ describe('LogsTabContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {
-        data: [],
-        meta: {fields: {}, units: {}, dataScanned: 'partial'},
-      },
+      body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'partial'}},
     });
 
     render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
@@ -1022,10 +980,7 @@ describe('LogsTabContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {
-        data: [],
-        meta: {fields: {}, units: {}, dataScanned: 'partial'},
-      },
+      body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'partial'}},
     });
     const timestampSortRouterConfig = structuredClone(initialRouterConfig);
     timestampSortRouterConfig.location.query[LOGS_FIELDS_KEY] = ['timestamp', 'message'];
@@ -1102,10 +1057,7 @@ describe('LogsTabContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {
-        data: [],
-        meta: {fields: {}, units: {}, dataScanned: 'full'},
-      },
+      body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'full'}},
     });
     const autorefreshEnabledRouterConfig = structuredClone(initialRouterConfig);
     autorefreshEnabledRouterConfig.location.query[LOGS_FIELDS_KEY] = [

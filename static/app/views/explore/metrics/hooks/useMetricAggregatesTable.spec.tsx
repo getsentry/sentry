@@ -21,13 +21,7 @@ describe('useMetricAggregatesTable', () => {
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
     const mockNormalRequestUrl = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-        meta: {
-          dataScanned: 'partial',
-          fields: {},
-        },
-      },
+      body: {data: [], meta: {dataScanned: 'partial', fields: {}}},
       method: 'GET',
       match: [
         function (_url: string, options: Record<string, any>) {
@@ -46,10 +40,7 @@ describe('useMetricAggregatesTable', () => {
     });
     renderHookWithProviders(useMetricAggregatesTable, {
       initialProps: {
-        traceMetric: {
-          name: 'test metric',
-          type: 'counter',
-        },
+        traceMetric: {name: 'test metric', type: 'counter'},
         limit: 100,
         enabled: true,
       },
@@ -60,9 +51,7 @@ describe('useMetricAggregatesTable', () => {
     expect(mockNormalRequestUrl).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
-        query: expect.objectContaining({
-          sampling: SAMPLING_MODE.NORMAL,
-        }),
+        query: expect.objectContaining({sampling: SAMPLING_MODE.NORMAL}),
       })
     );
 
@@ -72,9 +61,7 @@ describe('useMetricAggregatesTable', () => {
     expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
-        query: expect.objectContaining({
-          sampling: SAMPLING_MODE.HIGH_ACCURACY,
-        }),
+        query: expect.objectContaining({sampling: SAMPLING_MODE.HIGH_ACCURACY}),
       })
     );
   });
@@ -98,10 +85,7 @@ describe('useMetricAggregatesTable', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{id: '1'}],
-        meta: {fields: {}},
-      },
+      body: {data: [{id: '1'}], meta: {fields: {}}},
       method: 'GET',
     });
 
@@ -162,10 +146,7 @@ describe('useMetricAggregatesTable', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{id: '1'}],
-        meta: {fields: {}},
-      },
+      body: {data: [{id: '1'}], meta: {fields: {}}},
       method: 'GET',
     });
 

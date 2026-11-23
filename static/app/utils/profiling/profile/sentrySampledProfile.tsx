@@ -15,10 +15,7 @@ export class SentrySampledProfile extends Profile {
   static FromProfile(
     sampledProfile: Profiling.SentrySampledProfile,
     frameIndex: ReturnType<typeof createSentrySampleProfileFrameIndex>,
-    options: {
-      type: 'flamechart' | 'flamegraph';
-      frameFilter?: (frame: Frame) => boolean;
-    }
+    options: {type: 'flamechart' | 'flamegraph'; frameFilter?: (frame: Frame) => boolean}
   ): Profile {
     const weightedSamples: WeightedSample[] = sampledProfile.profile.samples.map(
       (sample, i) => {

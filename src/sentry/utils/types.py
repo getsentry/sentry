@@ -53,7 +53,7 @@ class Type(typing.Generic[T]):
         raise InvalidTypeError(f"{value!r} is not a valid {self!r}")
 
     def convert(self, value: TAny) -> T | None:
-        return typing.cast("T | None", value)
+        return value
 
     def _default(self) -> T:
         return self.default

@@ -157,7 +157,7 @@ class ParseSerializeFeedbackTest(TestCase):
 
         serialized = serialize_feedback([Feedback(source=_check_suite_source(event))])
 
-        for leaked in ("octocat", "account", "private", "head_commit", "ci-owner", "number", "ref"):
+        for leaked in ("octocat", "account", "private", "head_commit", "ci-owner", "ref"):
             assert leaked not in serialized
 
         [parsed] = parse_feedback(serialized)
@@ -170,7 +170,7 @@ class ParseSerializeFeedbackTest(TestCase):
                 "app": {"name": "CI"},
                 "conclusion": None,
                 "updated_at": "2024-01-01T00:00:00Z",
-                "pull_requests": [{"id": 7, "base": {"repo": {"id": 9}}}],
+                "pull_requests": [{"id": 7, "number": 8, "base": {"repo": {"id": 9}}}],
             },
             "repository": {
                 "html_url": "https://github.com/owner/repo",

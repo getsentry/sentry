@@ -94,3 +94,10 @@ it('keeps the end date when a bucket spans matching days in different months', (
     'Jan 1 12:00 AM — Feb 1 12:00 AM (UTC)'
   );
 });
+
+it('formats the timezone when the bucket size is not a number', () => {
+  const start = Date.UTC(2025, 0, 1);
+  expect(defaultFormatAxisLabel(start, true, true, true, false, NaN)).toBe(
+    'Jan 1, 2025 12:00 AM UTC'
+  );
+});

@@ -210,11 +210,7 @@ export function Am1BackendOverviewPage({
     trackAnalytics('performance.domains.backend.search', {organization});
 
     setSearchParams(
-      {
-        cursor: null,
-        query: String(searchQuery).trim() || null,
-        isDefaultQuery: false,
-      },
+      {cursor: null, query: String(searchQuery).trim() || null, isDefaultQuery: false},
       {history: 'push'}
     );
   }

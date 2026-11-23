@@ -385,10 +385,7 @@ describe('EventedProfile - flamegraph', () => {
     const profile = EventedProfile.FromProfile(
       trace,
       createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
-      {
-        type: 'flamegraph',
-        frameFilter: frame => frame.name === 'f0',
-      }
+      {type: 'flamegraph', frameFilter: frame => frame.name === 'f0'}
     );
 
     expect(profile.callTree.frame).toBe(Frame.Root);

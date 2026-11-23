@@ -27,14 +27,11 @@ export function useDismissable(bannerKey: string) {
   return [value === 'true', dismiss] as const;
 }
 
-type BannerWrapperProps = {
-  backgroundComponent?: React.ReactNode;
-  backgroundImg?: string;
-};
+type BannerWrapperProps = {backgroundComponent?: React.ReactNode; backgroundImg?: string};
 
-const BannerFlex = styled(Flex, {
-  shouldForwardProp: prop => prop !== 'backgroundImg',
-})<{backgroundImg?: string}>`
+const BannerFlex = styled(Flex, {shouldForwardProp: prop => prop !== 'backgroundImg'})<{
+  backgroundImg?: string;
+}>`
   background-color: ${p => (p.backgroundImg ? 'transparent' : p.theme.colors.gray800)};
   background-image: ${p => (p.backgroundImg ? `url(${p.backgroundImg})` : 'none')};
   background-position: center;

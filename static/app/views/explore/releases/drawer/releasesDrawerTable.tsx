@@ -35,6 +35,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {getReleaseNewIssuesUrl} from 'sentry/views/explore/releases/utils';
+import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
 import {cleanReleaseCursors, ReleasesDrawerFields} from './utils';
 
@@ -47,8 +48,9 @@ type ReleaseHealthItem = {
 };
 
 interface Props extends PageFilters {
-  onMouseOutRelease: (release: string) => void;
-  onMouseOverRelease: (release: string) => void;
+  onMouseOutRelease?: (release: string) => void;
+  onMouseOverRelease?: (release: string) => void;
+  releaseDrawerSource?: string;
 }
 
 type ReleaseHealthGridItem = Pick<ReleaseHealthItem, 'date' | 'release' | 'error_count'>;
@@ -72,6 +74,7 @@ export function ReleasesDrawerTable({
   projects,
   onMouseOverRelease,
   onMouseOutRelease,
+  releaseDrawerSource,
 }: Props) {
   const theme = useTheme();
   const location = useLocation();
@@ -108,11 +111,7 @@ export function ReleasesDrawerTable({
   const renderBodyCell = useCallback(
     (column: Column, dataRow: ReleaseHealthItem) => {
       const meta: EventsMetaType = {
-        fields: {
-          release: 'string',
-          date: 'date',
-          error_count: 'integer',
-        },
+        fields: {release: 'string', date: 'date', error_count: 'integer'},
         units: {},
       };
 
@@ -122,18 +121,27 @@ export function ReleasesDrawerTable({
         return (
           <ReleaseLink
             onMouseOver={() => {
-              onMouseOverRelease(dataRow.release);
+              onMouseOverRelease?.(dataRow.release);
             }}
             onMouseOut={() => {
-              onMouseOutRelease(dataRow.release);
+              onMouseOutRelease?.(dataRow.release);
             }}
-            to={{
-              query: {
-                ...cleanReleaseCursors(location.query),
-                [ReleasesDrawerFields.RELEASE]: value,
-                [ReleasesDrawerFields.RELEASE_PROJECT_ID]: dataRow.project_id,
-              },
-            }}
+            to={
+              releaseDrawerSource
+                ? makeReleaseDrawerPathname({
+                    location,
+                    release: value,
+                    projectId: String(dataRow.project_id),
+                    source: releaseDrawerSource,
+                  })
+                : {
+                    query: {
+                      ...cleanReleaseCursors(location.query),
+                      [ReleasesDrawerFields.RELEASE]: value,
+                      [ReleasesDrawerFields.RELEASE_PROJECT_ID]: dataRow.project_id,
+                    },
+                  }
+            }
           >
             <ProjectBadge project={dataRow.project} disableLink hideName />
             <TextOverflow>{formatVersion(value)}</TextOverflow>
@@ -202,7 +210,15 @@ export function ReleasesDrawerTable({
         </CellWrapper>
       );
     },
-    [organization, location, navigate, onMouseOutRelease, onMouseOverRelease, theme]
+    [
+      organization,
+      location,
+      navigate,
+      onMouseOutRelease,
+      onMouseOverRelease,
+      releaseDrawerSource,
+      theme,
+    ]
   );
 
   const tableEmptyMessage = (
@@ -221,10 +237,7 @@ export function ReleasesDrawerTable({
         emptyMessage={tableEmptyMessage}
         fit="max-content"
         stickyHeader
-        grid={{
-          renderHeadCell: column => <span>{column.name}</span>,
-          renderBodyCell,
-        }}
+        grid={{renderHeadCell: column => <span>{column.name}</span>, renderBodyCell}}
       />
       <PaginationNoMargin
         {...getPaginationProps(pageLinks)}

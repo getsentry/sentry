@@ -53,9 +53,7 @@ interface MultiMetricsQueryParamsProviderProps {
   children: ReactNode;
 }
 
-const metricQueryParsers = {
-  metric: parseAsFieldList.withOptions({history: 'push'}),
-};
+const metricQueryParsers = {metric: parseAsFieldList.withOptions({history: 'push'})};
 
 export function MultiMetricsQueryParamsProvider({
   children,

@@ -12,10 +12,7 @@ describe('UserAvatar', () => {
       const user: AvatarUser = UserFixture({
         name: 'John Doe',
         email: 'john.doe@example.com',
-        avatar: {
-          avatarType: 'letter_avatar',
-          avatarUuid: null,
-        },
+        avatar: {avatarType: 'letter_avatar', avatarUuid: null},
       });
 
       render(<UserAvatar user={user} />);
@@ -70,10 +67,7 @@ describe('UserAvatar', () => {
           name,
           email,
           username,
-          avatar: {
-            avatarType: 'letter_avatar',
-            avatarUuid: '123',
-          },
+          avatar: {avatarType: 'letter_avatar', avatarUuid: '123'},
         });
 
         render(<UserAvatar user={user} />);
@@ -86,10 +80,7 @@ describe('UserAvatar', () => {
         name: 'John Doe',
         username: 'johndoe',
         email: '',
-        avatar: {
-          avatarType: 'gravatar',
-          avatarUuid: '123',
-        },
+        avatar: {avatarType: 'gravatar', avatarUuid: '123'},
       });
 
       render(<UserAvatar user={user} />);
@@ -101,22 +92,14 @@ describe('UserAvatar', () => {
 
   describe('actor rendering', () => {
     it('renders actor name as initials', () => {
-      const actor = {
-        id: '1',
-        name: 'John Doe',
-        type: 'user' as const,
-      };
+      const actor = {id: '1', name: 'John Doe', type: 'user' as const};
 
       render(<UserAvatar user={actor} />);
       expect(screen.getByText('JD')).toBeInTheDocument();
     });
 
     it('renders single initial for single-word actor name', () => {
-      const actor = {
-        id: '1',
-        name: 'John',
-        type: 'user' as const,
-      };
+      const actor = {id: '1', name: 'John', type: 'user' as const};
 
       render(<UserAvatar user={actor} />);
       expect(screen.getByText('J')).toBeInTheDocument();
@@ -128,10 +111,7 @@ describe('UserAvatar', () => {
       const user: AvatarUser = UserFixture({
         name: 'John Doe',
         email: 'john.doe@example.com',
-        avatar: {
-          avatarType: 'letter_avatar',
-          avatarUuid: '123',
-        },
+        avatar: {avatarType: 'letter_avatar', avatarUuid: '123'},
       });
 
       render(<UserAvatar user={user} />);
@@ -142,10 +122,7 @@ describe('UserAvatar', () => {
       const user: AvatarUser = UserFixture({
         name: 'John Doe',
         email: 'john.doe@example.com',
-        avatar: {
-          avatarType: 'letter_avatar',
-          avatarUuid: '123',
-        },
+        avatar: {avatarType: 'letter_avatar', avatarUuid: '123'},
       });
 
       render(
@@ -160,10 +137,7 @@ describe('UserAvatar', () => {
       const user: AvatarUser = UserFixture({
         name: 'John Doe',
         email: 'john.doe@example.com',
-        avatar: {
-          avatarType: 'gravatar',
-          avatarUuid: null,
-        },
+        avatar: {avatarType: 'gravatar', avatarUuid: null},
       });
 
       render(<UserAvatar user={user} />);
@@ -191,10 +165,7 @@ describe('UserAvatar', () => {
       const user: AvatarUser = UserFixture({
         name: 'John Doe',
         email: 'john.doe@example.com',
-        avatar: {
-          avatarType: 'letter_avatar',
-          avatarUuid: '123',
-        },
+        avatar: {avatarType: 'letter_avatar', avatarUuid: '123'},
       });
 
       render(<UserAvatar user={user} />);
@@ -208,10 +179,7 @@ describe('UserAvatar', () => {
       const user: AvatarUser = UserFixture({
         name: 'John Doe',
         email: 'john.doe@example.com',
-        avatar: {
-          avatarType: 'letter_avatar',
-          avatarUuid: '123',
-        },
+        avatar: {avatarType: 'letter_avatar', avatarUuid: '123'},
       });
 
       render(<UserAvatar user={user} />);
