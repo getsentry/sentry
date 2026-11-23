@@ -172,6 +172,11 @@ export interface Config {
   userIdentity: {email: string; id: string; ip_address: string; isStaff: boolean};
   validateSUForm: boolean;
   version: {build: string; current: string; latest: string; upgradeAvailable: boolean};
+  /**
+   * Epoch milliseconds until which this employee's traces are force-sampled.
+   * Optional because the frontend can deploy before the backend sends it.
+   */
+  forceTraceSamplingUntil?: number | null;
   intercomAppId?: string;
   partnershipAgreementPrompt?: {
     agreements: ParntershipAgreementType[];

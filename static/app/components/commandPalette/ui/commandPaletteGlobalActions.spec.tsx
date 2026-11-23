@@ -34,6 +34,7 @@ import {
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 import {CommandPaletteProvider} from './cmdk';
 import {CommandPalette} from './commandPalette';
@@ -761,5 +762,85 @@ describe('GlobalCommandPaletteActions - Open my current replay session', () => {
     await selectOpenCurrentReplay();
 
     expect(window.open).not.toHaveBeenCalled();
+  });
+});
+
+describe('GlobalCommandPaletteActions - force trace sampling', () => {
+  const organization = OrganizationFixture();
+  const url = '/internal/force-trace-sampling/';
+
+  function renderPalette() {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/organizations/${organization.slug}/issues/`},
+        },
+      }
+    );
+  }
+
+  beforeEach(() => {
+    mockOrgApis(organization);
+    ConfigStore.set('forceTraceSamplingUntil', null);
+    ConfigStore.set(
+      'user',
+      UserFixture({
+        isStaff: true,
+        emails: [{id: '1', email: 'employee@sentry.io', is_verified: true}],
+      })
+    );
+  });
+
+  it('requests a grant for employees', async () => {
+    const start = MockApiClient.addMockResponse({url, method: 'POST', body: {}});
+    renderPalette();
+
+    const input = await screen.findByRole('searchbox', {name: 'Search commands'});
+    await userEvent.type(input, 'sample traces');
+    await userEvent.click(
+      await screen.findByRole('option', {name: /Force-Sample Traces for 15 Minutes/})
+    );
+
+    await waitFor(() => expect(testableWindowLocation.reload).toHaveBeenCalled());
+    expect(start).toHaveBeenCalled();
+  });
+
+  it('removes an active grant', async () => {
+    ConfigStore.set('forceTraceSamplingUntil', Date.now() + 60_000);
+    const stop = MockApiClient.addMockResponse({url, method: 'DELETE', statusCode: 204});
+    renderPalette();
+
+    const input = await screen.findByRole('searchbox', {name: 'Search commands'});
+    await userEvent.type(input, 'stop sampling traces');
+    await userEvent.click(
+      await screen.findByRole('option', {name: /Stop Force-Sampling Traces/})
+    );
+
+    await waitFor(() => expect(testableWindowLocation.reload).toHaveBeenCalled());
+    expect(stop).toHaveBeenCalled();
+  });
+
+  it('hides the action from staff without a verified company email', async () => {
+    ConfigStore.set(
+      'user',
+      UserFixture({
+        isStaff: true,
+        emails: [{id: '1', email: 'employee@sentry.io', is_verified: false}],
+      })
+    );
+    renderPalette();
+
+    const input = await screen.findByRole('searchbox', {name: 'Search commands'});
+    await userEvent.type(input, 'sample traces');
+
+    expect(
+      screen.queryByRole('option', {name: /Force-Sample Traces/})
+    ).not.toBeInTheDocument();
   });
 });

@@ -70,6 +70,54 @@ describe('initializeSdk', () => {
       })
     ).toBeNull();
   });
+
+  describe('force trace sampling', () => {
+    const now = 1_700_000_000_000;
+
+    function getSampleRate(
+      forceTraceSamplingUntil: number | null,
+      parentSampled?: boolean
+    ) {
+      initializeSdk({
+        ...window.__initialData,
+        apmSampling: 0.2,
+        forceTraceSamplingUntil,
+        sentryConfig: {allowUrls: [], dsn: '', release: '', tracePropagationTargets: []},
+      });
+
+      const tracesSampler = jest.mocked(Sentry.init).mock.lastCall?.[0]?.tracesSampler;
+      return tracesSampler?.({
+        name: 'pageload',
+        attributes: {},
+        parentSampled,
+        inheritOrSampleWith: fallback => fallback,
+      });
+    }
+
+    beforeEach(() => {
+      jest.spyOn(Date, 'now').mockReturnValue(now);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('samples new traces while the grant is active', () => {
+      expect(getSampleRate(now + 1)).toBe(1);
+    });
+
+    it('keeps an unsampled parent decision', () => {
+      expect(getSampleRate(now + 1, false)).toBe(0.2);
+    });
+
+    it('uses the normal rate once the grant expires', () => {
+      expect(getSampleRate(now)).toBe(0.2);
+    });
+
+    it('uses the normal rate without a grant', () => {
+      expect(getSampleRate(null)).toBe(0.2);
+    });
+  });
 });
 
 describe('isWalletProviderError', () => {

@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {SentryGlobalSearch} from '@sentry-internal/global-search';
 import {IconAdd} from '@sentry/icons/add';
 import {IconAllProjects} from '@sentry/icons/allProjects';
@@ -22,6 +22,7 @@ import {IconSettings} from '@sentry/icons/settings';
 import {IconSiren} from '@sentry/icons/siren';
 import {IconStar} from '@sentry/icons/star';
 import {IconSubscribed} from '@sentry/icons/subscribed';
+import {IconTimer} from '@sentry/icons/timer';
 import {IconUser} from '@sentry/icons/user';
 import * as Sentry from '@sentry/react';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
@@ -65,6 +66,7 @@ import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useOrganizationSwitcher} from 'sentry/utils/organization/useOrganizationSwitcher';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
@@ -295,13 +297,28 @@ export function GlobalCommandPaletteActions() {
   const isSentryEmployee = useIsSentryEmployee();
   const {projects} = useProjects();
   const organizations = useStore(OrganizationsStore, state => state.organizations);
-  const {isSelfHosted, singleOrganization} = useStore(
+  const {forceTraceSamplingUntil, isSelfHosted, singleOrganization} = useStore(
     ConfigStore,
     useShallow(state => ({
+      forceTraceSamplingUntil: state.forceTraceSamplingUntil,
       isSelfHosted: state.isSelfHosted,
       singleOrganization: state.singleOrganization,
     }))
   );
+  const [hasForceSamplingExpired, setHasForceSamplingExpired] = useState(false);
+  const isForceSamplingTraces = !!forceTraceSamplingUntil && !hasForceSamplingExpired;
+
+  useEffect(() => {
+    if (!forceTraceSamplingUntil) {
+      return;
+    }
+    const timeout = setTimeout(
+      () => setHasForceSamplingExpired(true),
+      Math.max(0, forceTraceSamplingUntil - Date.now())
+    );
+    return () => clearTimeout(timeout);
+  }, [forceTraceSamplingUntil]);
+
   const settingsV3 = useSettingsV3();
   const params = useParams();
   const location = useLocation();
@@ -312,6 +329,16 @@ export function GlobalCommandPaletteActions() {
     mutationFn: () =>
       fetchMutation({url: getApiUrl('/auth/superuser/'), method: 'DELETE'}),
     onSuccess: () => window.location.reload(),
+  });
+  const {mutate: setForceTraceSampling} = useMutation({
+    mutationFn: (enabled: boolean) =>
+      fetchMutation({
+        url: getApiUrl('/internal/force-trace-sampling/'),
+        method: enabled ? 'POST' : 'DELETE',
+      }),
+    // The pageload inherits the HTML request's decision, so it has to be requested again.
+    onSuccess: () => testableWindowLocation.reload(),
+    onError: () => toast.error(t('Unable to change trace sampling')),
   });
 
   const {data: starredSavedQueries = []} = useGetSavedQueries({
@@ -829,6 +856,18 @@ export function GlobalCommandPaletteActions() {
               display={{label: t('Exit Superuser'), icon: <IconLock />}}
               keywords={[t('superuser')]}
               onAction={() => exitSuperuser()}
+            />
+          )}
+          {isSentryEmployee && (
+            <CMDKAction
+              display={{
+                label: isForceSamplingTraces
+                  ? t('Stop Force-Sampling Traces')
+                  : t('Force-Sample Traces for 15 Minutes'),
+                icon: <IconTimer />,
+              }}
+              keywords={[t('tracing'), t('sampling'), t('sample rate')]}
+              onAction={() => setForceTraceSampling(!isForceSamplingTraces)}
             />
           )}
         </CMDKAction>

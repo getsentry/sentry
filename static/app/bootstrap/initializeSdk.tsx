@@ -95,7 +95,13 @@ function getSentryIntegrations() {
  */
 export function initializeSdk(config: Config) {
   // NOTE: This config is mutated by `commonInitialization`
-  const {apmSampling, customerDomain, sentryConfig, userIdentity} = config;
+  const {
+    apmSampling,
+    customerDomain,
+    forceTraceSamplingUntil,
+    sentryConfig,
+    userIdentity,
+  } = config;
   const tracesSampleRate = apmSampling ?? 0;
   const extraTracePropagationTargets = SPA_DSN
     ? SPA_MODE_TRACE_PROPAGATION_TARGETS
@@ -121,6 +127,14 @@ export function initializeSdk(config: Config) {
     profileLifecycle: 'trace',
     tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     tracesSampler: context => {
+      // Keep an unsampled parent's decision so traces are never partially sampled.
+      if (
+        context.parentSampled !== false &&
+        Date.now() < (forceTraceSamplingUntil ?? 0)
+      ) {
+        return 1;
+      }
+
       const op = context.attributes?.[Sentry.SEMANTIC_ATTRIBUTE_SENTRY_OP];
       if (typeof op === 'string' && op.startsWith('ui.action')) {
         return context.inheritOrSampleWith(tracesSampleRate / 100);
