@@ -165,6 +165,25 @@ it('preserves a healthy modal when opened again', async () => {
   expect(screen.getByRole('textbox', {name: 'Modal draft'})).toHaveValue('Unsaved');
 });
 
+it('sizes the portal to the viewport only while a modal is open', () => {
+  render(<GlobalModal />, {wrapper});
+
+  act(() => openModal(({Body}) => <Body>Sized</Body>));
+  const dialog = screen.getByRole('dialog');
+  // oxlint-disable-next-line testing-library/no-node-access -- Check the portal's own styles.
+  const portal = dialog.closest<HTMLElement>('[data-overlay="modal"]');
+  expect(portal).toHaveStyle({
+    position: 'fixed',
+    inset: '0',
+    zIndex: String(lightTheme.zIndex.modal),
+  });
+
+  act(() => closeModal());
+  expect(portal?.style.position).toBe('');
+  expect(portal?.style.inset).toBe('');
+  expect(portal?.style.zIndex).toBe('');
+});
+
 it('opens and closes through package actions', async () => {
   render(<GlobalModal />, {wrapper});
 
