@@ -78,10 +78,7 @@ export default function NewAutomationPage() {
                   value={strategy}
                   onChange={option => setStrategy(option.value)}
                   options={[
-                    {
-                      value: 'breached_metric_investigation',
-                      label: t('Breached Metric'),
-                    },
+                    {value: 'breached_metric_investigation', label: t('Breached Metric')},
                     {value: 'agentic_triage_v2', label: t('Agentic Triage')},
                   ]}
                 />
