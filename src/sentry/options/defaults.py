@@ -783,11 +783,11 @@ register(
 )
 
 # Bound GitLab project webhook reconciliation independently in each cell region. Each
-# repository consumes three capacity tokens to leave room for repairs that make multiple
+# repository consumes five capacity tokens to leave room for repairs that make multiple
 # GitLab API requests.
 register(
     "gitlab.webhook-reconcile.rate-limit.burst",
-    default=3,
+    default=5,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -807,15 +807,8 @@ register(
 )
 
 register(
-    "gitlab.webhook-reconcile.rate-limit.retry-after-jitter-seconds",
-    default=300,
-    type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "gitlab.webhook-reconcile.forced-fanout-jitter-max-seconds",
-    default=1801,
+    default=601,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1382,6 +1375,13 @@ register(
     "store.transactions.check-pending-attachments",
     type=Bool,
     default=True,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Killswitch for bounding Bigtable (nodestore) operations while saving events.
+register(
+    "store.save-event.bigtable-operation-timeout.disabled",
+    type=Bool,
+    default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3094,16 +3094,6 @@ register(
 register(
     "crons.system_incidents.collect_metrics",
     default=False,
-    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Temporary killswitch for the system incident dual-write to
-# SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER (INFRENG-1051). Turn off to stop the
-# secondary writes at once. Has no effect when the setting is unset.
-# To be removed as part of INFRENG-1053
-register(
-    "crons.system_incidents.secondary_redis_writes",
-    default=True,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

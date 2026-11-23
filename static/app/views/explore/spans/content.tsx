@@ -39,9 +39,9 @@ import {
   useQueryParamsId,
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
+import {useSpansOnboardingProject} from './hooks/useSpansOnboardingProject';
 import {SpansCommandPaletteActions} from './spansCommandPaletteActions';
 import {SpansQueryParamsProvider} from './spansQueryParamsProvider';
 import {SpansTabContent, SpansTabOnboarding} from './spansTab';
@@ -73,7 +73,7 @@ export function ExploreContent() {
 
 function ExploreContentInner() {
   const hasCrossEvents = useHasCrossEvents();
-  const onboardingProject = useOnboardingProject();
+  const {project: onboardingProject, onFirstTraceReady} = useSpansOnboardingProject();
   const dataCategoryMaxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
@@ -145,6 +145,7 @@ function ExploreContentInner() {
                     organization={organization}
                     project={onboardingProject}
                     datePageFilterProps={datePageFilterProps}
+                    onFirstTraceReady={onFirstTraceReady}
                   />
                 ) : (
                   <SpansTabContent datePageFilterProps={datePageFilterProps} />

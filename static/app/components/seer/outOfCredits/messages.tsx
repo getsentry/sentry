@@ -72,11 +72,7 @@ export function getRefusedStepMessage(
 // TODO(CW-3102): Point at the Retry button instead of the next iteration.
 const STOPPED_PR_ITERATION_MESSAGE: Record<
   SeerCreditDenialReason,
-  {
-    branch_moved_retry: string;
-    push: string;
-    queued: (count: number) => string;
-  }
+  {branch_moved_retry: string; push: string; queued: (count: number) => string}
 > = {
   not_enough_credits: {
     push: t(

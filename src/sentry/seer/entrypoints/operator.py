@@ -357,12 +357,14 @@ class SeerAutofixOperator[CachePayloadT]:
                     self.entrypoint.on_trigger_autofix_error(error=error)
                 lifecycle.record_failure(failure_reason=error)
                 return
-            except SeerOutOfCreditsException:
+            except SeerOutOfCreditsException as e:
                 with SeerOperatorEventLifecycleMetric(
                     interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_OUT_OF_CREDITS,
                     entrypoint_key=self.entrypoint.key,
                 ).capture():
-                    self.entrypoint.on_trigger_autofix_out_of_credits(started=run_id is not None)
+                    self.entrypoint.on_trigger_autofix_out_of_credits(
+                        started=run_id is not None, denial_reason=e.denial_reason
+                    )
                 lifecycle.record_halt(halt_reason="not_enough_seer_credits")
                 return
             except Exception as e:

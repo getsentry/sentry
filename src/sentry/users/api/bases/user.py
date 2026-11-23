@@ -113,7 +113,7 @@ class UserDisplayPreferencesPermission(UserPermission):
 
 
 class OrganizationUserPermission(UserAndStaffPermission):
-    scope_map = {"DELETE": ["member:admin"]}
+    scope_map = {"DELETE": ["member:admin", "membership:admin"]}
 
     def has_org_permission(self, request: Request, user: User | RpcUser | None) -> bool:
         """

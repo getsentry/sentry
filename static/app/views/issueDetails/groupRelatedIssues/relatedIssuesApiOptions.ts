@@ -27,22 +27,62 @@ type ContributingMeta = RelationTypeMetaBase & {
   start?: string;
 };
 
-type RelationTypeMeta = SimilarStacktraceMeta | SameTraceMeta | ContributingMeta;
+type SameTitleMeta = RelationTypeMetaBase & {
+  type: 'same_title';
+  eventId?: string;
+  title?: string;
+};
+
+type SameSupergroupMeta = RelationTypeMetaBase & {
+  type: 'same_supergroup';
+  supergroup?: {id: string; title: string};
+};
+
+type InvestigationsMeta = RelationTypeMetaBase & {type: 'investigations'};
+
+type RelationTypeMeta =
+  | SimilarStacktraceMeta
+  | SameTraceMeta
+  | ContributingMeta
+  | SameTitleMeta
+  | SameSupergroupMeta
+  | InvestigationsMeta;
 
 type RelationType = RelationTypeMeta['type'];
 
 type RelatedIssueRelation =
   | {score: number; type: 'similar_stacktrace'}
   | {type: 'same_trace'}
-  | {type: 'contributing'};
+  | {type: 'contributing'}
+  | {type: 'same_title'}
+  | {type: 'same_supergroup'};
 
 export interface RelatedIssue {
   issue: Group;
   relations: RelatedIssueRelation[];
 }
 
+/**
+ * A Seer investigation that linked the issue.
+ */
+interface RelatedInvestigation {
+  /**
+   * The investigation's hypothesis whose evidence named the issue.
+   */
+  hypothesisStatement: string;
+  investigation: {id: string; title: string};
+  /**
+   * Why Seer found the issue relevant.
+   */
+  reason: string | null;
+}
+
 interface RelatedIssuesResponse {
   data: RelatedIssue[];
+  /**
+   * Most recently linked first. Empty unless the investigations type ran.
+   */
+  investigations: RelatedInvestigation[];
   meta: {types: RelationTypeMeta[]};
 }
 
@@ -52,7 +92,7 @@ interface RelatedIssuesApiOptionsParams {
   enabled?: boolean;
   limit?: number;
   /**
-   * The types of related issues to return. Returns every type when left out.
+   * The types of related issues or investigations to return. Returns every type when left out.
    */
   types?: RelationType[];
 }

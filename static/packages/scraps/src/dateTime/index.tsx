@@ -15,3 +15,4 @@ export {
   type YearDisplay,
 } from './format';
 export {getIntlFormatter} from './intlFormatter';
+export {parseDate} from './parseDate';

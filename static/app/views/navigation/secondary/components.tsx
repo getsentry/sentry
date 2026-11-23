@@ -70,10 +70,7 @@ import {
   type NavigationTourElementProps,
 } from 'sentry/views/navigation/navigationTour';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
-import {
-  useNavigationGroupHoverEnabled,
-  usePrimaryNavigation,
-} from 'sentry/views/navigation/primaryNavigationContext';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
@@ -123,8 +120,6 @@ function SecondarySidebarPanel({
   const containerRef = useObjectRef(tourRef);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
   const {layout, activeGroup} = usePrimaryNavigation();
-  // Group switches only animate to smooth over hover previews.
-  const shouldAnimateGroupSwitch = useNavigationGroupHoverEnabled();
   const isSettingsNavigation = useSettingsNavigation();
 
   const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
@@ -168,9 +163,9 @@ function SecondarySidebarPanel({
           width="100%"
           height="100%"
           key={activeGroup}
-          initial={shouldAnimateGroupSwitch ? {x: -6, opacity: 0} : false}
+          initial={{x: -6, opacity: 0}}
           animate={{x: 0, opacity: 1}}
-          exit={shouldAnimateGroupSwitch ? {x: 6, opacity: 0} : undefined}
+          exit={{x: 6, opacity: 0}}
           transition={{duration: 0.06}}
         >
           <Grid
@@ -658,7 +653,7 @@ function SecondaryNavigationSeparator() {
     return (
       <SecondaryNavigationRow height="auto" padding="md" radius="0">
         <Container column="2" minWidth="0">
-          <Separator orientation="horizontal" border="muted" />
+          <Separator orientation="horizontal" border="secondary" />
         </Container>
       </SecondaryNavigationRow>
     );
@@ -666,7 +661,7 @@ function SecondaryNavigationSeparator() {
 
   return (
     <Container padding="0 xl">
-      <Separator orientation="horizontal" border="muted" />
+      <Separator orientation="horizontal" border="secondary" />
     </Container>
   );
 }

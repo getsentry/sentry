@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Literal
 
 import orjson
 from django.db import router, transaction
-from django.db.models.functions import Greatest
 from django.utils import timezone
 
 from sentry import features, options
@@ -172,6 +171,7 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
         payload = asdict(data)
         tags = {"event_type": self.event_type}
         using = router.db_for_write(InboxItem)
+        activity_at = timezone.now()
 
         with (
             metrics.timer("inbox.record.duration", tags=tags),
@@ -184,14 +184,14 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
                         user_id=user_id,
                         subject_type=self.item_type.subject_type,
                         subject_id=subject_id,
-                        last_activity_at=timezone.now(),
+                        last_activity_at=activity_at,
                         status=ObjectStatus.ACTIVE,
                     )
                     for user_id in sorted(recipients)
                 ],
                 update_conflicts=True,
                 unique_fields=["user_id", "organization", "subject_type", "subject_id"],
-                update_fields=["status"],
+                update_fields=["status", "last_activity_at", "date_updated"],
             )
             events = []
             for item in items:
@@ -207,19 +207,9 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
                 )
                 if created:
                     events.append(event)
-                activity_at = event.date_added if created else timezone.now()
-                item.last_activity_at = Greatest("last_activity_at", activity_at)
-                item.date_updated = activity_at
-            transaction.on_commit(
-                partial(_schedule_item_retention, items),
-                using=router.db_for_write(InboxItem),
-            )
-            transaction.on_commit(
-                partial(_schedule_event_retention, items),
-                using=router.db_for_write(InboxItem),
-            )
-            InboxItem.objects.bulk_update(items, ["last_activity_at", "date_updated"])
 
+            transaction.on_commit(partial(_schedule_item_retention, items), using=using)
+            transaction.on_commit(partial(_schedule_event_retention, items), using=using)
             transaction.on_commit(
                 lambda: metrics.incr("inbox.events.processed", amount=len(recipients), tags=tags),
                 using=using,

@@ -9,6 +9,7 @@ from django.http import (
     HttpResponse,
     HttpResponseBadRequest,
     HttpResponseBase,
+    HttpResponseRedirect,
     StreamingHttpResponse,
 )
 from rest_framework.request import Request
@@ -36,6 +37,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.objectstore import get_download_redirect_url
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.api")
@@ -63,7 +65,9 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectReleasePermission,)
 
-    def download_file(self, download_id: str, project: Project) -> HttpResponseBase:
+    def download_file(
+        self, request: Request, download_id: str, project: Project
+    ) -> HttpResponseBase:
         split = download_id.split("/")
         if len(split) < 2:
             return HttpResponseBadRequest(content=b"Invalid download ID")
@@ -86,9 +90,9 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             )
             return HttpResponse({"Too many download requests"}, status=429)
 
-        file_m: ArtifactBundle | ReleaseFile | None = None
+        artifact: ArtifactBundle | ReleaseFile | None = None
         if ty == "artifact_bundle":
-            file_m = (
+            artifact = (
                 ArtifactBundle.objects.filter(
                     id=ty_id,
                     projectartifactbundle__project_id=project.id,
@@ -97,8 +101,10 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 .first()  # noqa: S035
             )
             metrics.incr("sourcemaps.download.artifact_bundle")
+            if artifact is not None and artifact.organization_id != project.organization_id:
+                raise Http404
         elif ty == "release_file":
-            file_m = (
+            artifact = (
                 ReleaseFile.objects.filter(
                     id=ty_id,
                     organization_id=project.organization.id,
@@ -107,17 +113,26 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 .get_or_none()
             )
             if (
-                file_m is not None
+                artifact is not None
                 and not ReleaseProject.objects.filter(
-                    project=project, release_id=file_m.release_id
+                    project=project, release_id=artifact.release_id
                 ).exists()
             ):
-                file_m = None
+                artifact = None
             metrics.incr("sourcemaps.download.release_file")
 
-        if file_m is None:
+        if artifact is None:
             raise Http404
-        file = file_m.file
+        if isinstance(artifact, ArtifactBundle) and artifact.storage_path is not None:
+            return HttpResponseRedirect(
+                get_download_redirect_url(
+                    request,
+                    artifact.get_objectstore_session(),
+                    artifact.organization_id,
+                    artifact.storage_path,
+                )
+            )
+        file = artifact.file
         if file is None:
             raise Http404
 
@@ -153,7 +168,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         """
         if (download_id := request.GET.get("download")) is not None:
             if has_download_permission(request, project):
-                return self.download_file(download_id, project)
+                return self.download_file(request, download_id, project)
             else:
                 return Response(status=403)
 
