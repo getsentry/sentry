@@ -3,7 +3,6 @@ import {useMemo} from 'react';
 import {Stack} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {StackTraceDisplayOptionsProvider} from 'sentry/components/stackTrace/displayOptionsContext';
 import {supportsAppleCrashReport} from 'sentry/components/stackTrace/native/appleCrashReport';
@@ -24,7 +23,11 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {IssueExceptionStackTrace} from './exceptionStackTrace';
 import {IssueStackTraceActions} from './issueStackTraceActions';
-import {formatExceptionsAsText, getOrderedExceptions} from './utils';
+import {
+  formatExceptionsAsText,
+  getIssueStackTracePlatform,
+  getOrderedExceptions,
+} from './utils';
 
 interface IssueStackTraceBaseProps {
   event: Event;
@@ -88,14 +91,15 @@ export function IssueStackTrace(props: IssueStackTraceProps) {
   const hasMinifiedStacktrace =
     !isStandalone && values.some(v => v.rawStacktrace !== null);
 
-  const platform = getStacktracePlatform(
+  const platform = getIssueStackTracePlatform(
+    organization,
     event,
     values.find(value => value.stacktrace)?.stacktrace
   );
   const isNative =
     isNativePlatform(platform) ||
     values.some(value =>
-      isNativePlatform(getStacktracePlatform(event, value.stacktrace))
+      isNativePlatform(getIssueStackTracePlatform(organization, event, value.stacktrace))
     );
 
   return (

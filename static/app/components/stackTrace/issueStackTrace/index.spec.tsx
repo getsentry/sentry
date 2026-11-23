@@ -177,6 +177,19 @@ describe('IssueStackTrace', () => {
     }
   );
 
+  it('renders native frames in a non-native event as regular rows without the native flag', async () => {
+    const {stacktrace} = makeCopyTestData();
+    stacktrace.frames = [FrameFixture({platform: 'cocoa', function: 'nativeCrash'})];
+    const exception = ExceptionValueFixture({stacktrace});
+    const event = EventFixture({platform: 'javascript'});
+
+    render(<IssueStackTrace event={event} values={[exception]} />);
+
+    expect(await screen.findByTestId('core-stacktrace-frame-title')).toHaveTextContent(
+      'nativeCrash'
+    );
+  });
+
   it('does not render when event has threads', () => {
     const {event, stacktrace} = makeStackTraceData();
     const eventWithThreads = EventFixture({

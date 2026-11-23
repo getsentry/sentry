@@ -1,7 +1,11 @@
 import {displayRawContent as rawStacktraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
+import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import type {StackTraceView} from 'sentry/components/stackTrace/types';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 
 interface IndexedExceptionValue extends ExceptionValue {
   exceptionIndex: number;
@@ -62,6 +66,23 @@ export function getExceptionEntryMeta(event: Event, isStandalone: boolean) {
   const rawEntryMeta = event._meta?.entries?.[entryIndex ?? -1]?.data;
   const exceptionValuesMeta = isStandalone ? undefined : rawEntryMeta?.values;
   return {rawEntryMeta, exceptionValuesMeta};
+}
+
+/**
+ * Picks the platform a stack trace renders with. Frame platforms only take
+ * over with the native stack trace, which renders native frames found in
+ * non-native events. Without it, the event platform wins.
+ */
+export function getIssueStackTracePlatform(
+  organization: Organization,
+  event: Event,
+  stacktrace: StacktraceType | null | undefined
+): PlatformKey {
+  const stacktracePlatform = getStacktracePlatform(event, stacktrace);
+  if (organization.features.includes('issue-details-native-stack-trace')) {
+    return stacktracePlatform;
+  }
+  return event.platform ?? stacktracePlatform;
 }
 
 /**

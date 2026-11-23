@@ -5,7 +5,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
-import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {
   RelatedExceptionsTree,
   ToggleRelatedExceptionsButton,
@@ -26,6 +25,7 @@ import type {Group} from 'sentry/types/group';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils/defined';
 import {isNativePlatform} from 'sentry/utils/platform';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {IssueFrameActions} from './issueFrameActions';
 import {IssueStackTraceFrameContext} from './issueStackTraceFrameContext';
@@ -33,6 +33,7 @@ import {
   formatExceptionsAsText,
   getExceptionEntryMeta,
   getFirstVisibleStacktraceIndex,
+  getIssueStackTracePlatform,
   getOrderedExceptions,
   resolveExceptionFields,
 } from './utils';
@@ -214,7 +215,12 @@ export function IssueExceptionStackTrace({
 }
 
 export function IssueStackTraceFrameList(props: IssueStackTraceFrameListProps) {
-  const platform = getStacktracePlatform(props.event, props.stacktrace);
+  const organization = useOrganization();
+  const platform = getIssueStackTracePlatform(
+    organization,
+    props.event,
+    props.stacktrace
+  );
   return (
     <StackTraceFrameList
       {...props}

@@ -13,7 +13,11 @@ import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
-const organization = OrganizationFixture({slug: 'org-slug'});
+// Thread stack traces only render with the native stack trace flag.
+const organization = OrganizationFixture({
+  slug: 'org-slug',
+  features: ['issue-details-native-stack-trace'],
+});
 const project = DetailedProjectFixture({slug: 'project-slug'});
 const storageKey = `issue-details-stracktrace-display-${organization.slug}-${project.slug}`;
 
