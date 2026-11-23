@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("seer", "0049_add_seerworkflowrun_source"),
+        ("seer", "0050_rename_agentic_triage_v2"),
     ]
 
     operations = [
