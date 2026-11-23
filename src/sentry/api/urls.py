@@ -2475,9 +2475,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-notebooks",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/annotations/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/timeseries-annotations/$",
         OrganizationTimeseriesAnnotationEndpoint.as_view(),
         name="sentry-api-0-organization-timeseries-annotations",
+    ),
+    # Deprecated alias of the route above; kept live until the frontend moves to
+    # /timeseries-annotations/, then deleted.
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/annotations/$",
+        OrganizationTimeseriesAnnotationEndpoint.as_view(),
+        name="sentry-api-0-organization-annotations-deprecated",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<notebook_id>[^/]+)/$",
