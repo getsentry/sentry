@@ -198,11 +198,40 @@ ruleTester.run('prefer-primitives', preferPrimitives, {
       code: `${emotion} const C = styled.div\`display:flex;display:\${value};gap:8px;\`;`,
     },
     {
+      name: 'auto and negative margins are allowed',
+      code: `${emotion} const A = styled.div\`margin: 0 auto;\`; const B = styled(Button)\`margin-left: auto;\`; const N = styled.div\`margin-top: -\${p => p.theme.space.md};\`;`,
+    },
+    {
+      name: 'dynamic object margins are allowed',
+      code: `const C = <div style={{marginTop: offset}}/>;`,
+    },
+    {
+      name: 'margins on non-layout elements are allowed',
+      code: `${emotion} const C = styled.a\`margin: 8px 0;\`;`,
+    },
+    {
+      name: 'component styles beyond spacing are allowed',
+      code: `${emotion} const C = styled(Panel)\`margin-bottom: 0; color: red;\`;`,
+    },
+    {
       name: 'CSS syntax errors do not crash unrelated source',
       code: `${emotion} const C = styled.div\`padding 8px; broken: {;\`; const D = <div/>;`,
     },
   ],
   invalid: [
+    ...[
+      `${emotion} const C = styled('div')\`margin: \${p => p.theme.space.md} 0;\`;`,
+      `${emotion} const C = styled.section\`margin-top: 8px; margin-bottom: 16px;\`;`,
+      `<div style={{marginBottom: 8}}/>`,
+      `${emotion} const C = styled(Panel)\`margin-bottom: 0;\`;`,
+      `${emotion} const C = styled(PanelItem)\`align-items: center; gap: \${p => p.theme.space.md}; padding: \${p => p.theme.space.md};\`;`,
+      `${emotion} const C = styled(Flex)({gap: 8});`,
+    ].map(code => ({
+      name: `spacing-only styles: ${code.replace(emotion, '')}`,
+      code,
+      filename: 'example.tsx',
+      errors: [{messageId: 'preferLayoutProps'}],
+    })),
     invalid(
       'nested important declarations do not override root styles',
       emotion + 'const C = styled.div`display:flex;&:hover {display:block!important;}`;',

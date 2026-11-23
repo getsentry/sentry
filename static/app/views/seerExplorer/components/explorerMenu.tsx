@@ -178,10 +178,7 @@ export function useExplorerMenu({
     }
 
     if (!inputAnchorRef?.current) {
-      setMenuPosition({
-        bottom: '100%',
-        left: '16px',
-      });
+      setMenuPosition({bottom: '100%', left: '16px'});
       return;
     }
 
@@ -285,12 +282,7 @@ function useSlashCommands({
 
   return useMemo(
     (): MenuItemProps[] => [
-      {
-        title: '/new',
-        key: '/new',
-        description: 'Start a new session',
-        handler: onNew,
-      },
+      {title: '/new', key: '/new', description: 'Start a new session', handler: onNew},
       ...(canInvestigate
         ? [
             {

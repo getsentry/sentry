@@ -119,9 +119,7 @@ describe('GHE AppInstallRedirectStep', () => {
     render(
       <AppInstallRedirectStep
         {...makeStepProps({
-          stepData: {
-            appInstallUrl: 'https://github.example.com/github-apps/sentry-app',
-          },
+          stepData: {appInstallUrl: 'https://github.example.com/github-apps/sentry-app'},
           advance,
         })}
       />
@@ -137,10 +135,7 @@ describe('GHE AppInstallRedirectStep', () => {
 
     dispatchPipelineMessage({
       source: mockPopup,
-      data: {
-        _pipeline_source: 'sentry-pipeline',
-        installation_id: 'inst-42',
-      },
+      data: {_pipeline_source: 'sentry-pipeline', installation_id: 'inst-42'},
     });
 
     expect(advance).toHaveBeenCalledWith({installationId: 'inst-42'});
@@ -150,9 +145,7 @@ describe('GHE AppInstallRedirectStep', () => {
     render(
       <AppInstallRedirectStep
         {...makeStepProps({
-          stepData: {
-            appInstallUrl: 'https://github.example.com/github-apps/sentry-app',
-          },
+          stepData: {appInstallUrl: 'https://github.example.com/github-apps/sentry-app'},
         })}
       />
     );
@@ -181,9 +174,7 @@ describe('GHE AppInstallRedirectStep', () => {
     render(
       <AppInstallRedirectStep
         {...makeStepProps({
-          stepData: {
-            appInstallUrl: 'https://github.example.com/github-apps/sentry-app',
-          },
+          stepData: {appInstallUrl: 'https://github.example.com/github-apps/sentry-app'},
         })}
       />
     );
@@ -201,9 +192,7 @@ describe('GHE AppInstallRedirectStep', () => {
     render(
       <AppInstallRedirectStep
         {...makeStepProps({
-          stepData: {
-            appInstallUrl: 'https://github.example.com/github-apps/sentry-app',
-          },
+          stepData: {appInstallUrl: 'https://github.example.com/github-apps/sentry-app'},
           isAdvancing: true,
         })}
       />
@@ -248,11 +237,7 @@ describe('GHE OAuthLoginStep', () => {
 
     dispatchPipelineMessage({
       source: mockPopup,
-      data: {
-        _pipeline_source: 'sentry-pipeline',
-        code: 'auth-code',
-        state: 'state-xyz',
-      },
+      data: {_pipeline_source: 'sentry-pipeline', code: 'auth-code', state: 'state-xyz'},
     });
 
     expect(advance).toHaveBeenCalledWith({code: 'auth-code', state: 'state-xyz'});

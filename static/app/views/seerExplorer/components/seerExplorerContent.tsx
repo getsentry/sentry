@@ -276,10 +276,7 @@ export function SeerExplorerContent({
   // for the run on screen, and this panel only exists while Explorer is showing.
   useEffect(() => {
     if (requestError?.chatPrompt) {
-      chatDispatch({
-        type: 'restore chat prompt',
-        payload: requestError.chatPrompt,
-      });
+      chatDispatch({type: 'restore chat prompt', payload: requestError.chatPrompt});
     }
   }, [requestError, chatDispatch]);
 
@@ -820,9 +817,7 @@ export function SeerExplorerContent({
   }, [chatPrompt, pendingRestart, revealChatPrompt]);
 
   // Auto-scroll to bottom when blocks are added or the transcript resizes, unless scrolled up
-  const {height: transcriptHeight} = useDimensions({
-    elementRef: scrollContainerRef,
-  });
+  const {height: transcriptHeight} = useDimensions({elementRef: scrollContainerRef});
   useEffect(() => {
     if (!userScrolledUpRef.current && scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
@@ -872,10 +867,7 @@ export function SeerExplorerContent({
   const prevIsTimedOutRef = useRef(false);
   useEffect(() => {
     if (isTimedOut && !prevIsTimedOutRef.current) {
-      trackAnalytics('seer.explorer.timed_out', {
-        organization,
-        run_id: runId,
-      });
+      trackAnalytics('seer.explorer.timed_out', {organization, run_id: runId});
     }
     prevIsTimedOutRef.current = isTimedOut;
   }, [isTimedOut, organization, runId]);
@@ -921,11 +913,7 @@ export function SeerExplorerContent({
         containerType="inline-size"
       >
         {renderHeader ? (
-          renderHeader({
-            children: headerContent,
-            isPoppedOut,
-            onClose: handleClose,
-          })
+          renderHeader({children: headerContent, isPoppedOut, onClose: handleClose})
         ) : (
           <SidebarHeaderShell onClose={handleClose}>{headerContent}</SidebarHeaderShell>
         )}
@@ -1155,7 +1143,7 @@ function RestartNotice({onCancel}: {onCancel: () => void}) {
       gap="md"
       padding="md lg"
       radius="md"
-      border="accent"
+      border="accent.vibrant"
       background="secondary"
       data-test-id="seer-explorer-restart-notice"
     >

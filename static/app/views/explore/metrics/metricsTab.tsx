@@ -49,9 +49,7 @@ import {
 } from './multiMetricsQueryParams';
 import {StyledPageFilterBar} from './styles';
 
-type MetricsTabProps = {
-  datePageFilterProps: DatePageFilterProps;
-};
+type MetricsTabProps = {datePageFilterProps: DatePageFilterProps};
 
 function MetricsTabContentInner({datePageFilterProps}: MetricsTabProps) {
   const {referencedMetricLabels, onEquationLabelsChange} = useEquationReferencedLabels();

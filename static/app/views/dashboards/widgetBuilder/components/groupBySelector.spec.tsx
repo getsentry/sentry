@@ -9,9 +9,7 @@ import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/conte
 
 import {WidgetBuilderGroupBySelector} from './groupBySelector';
 
-const organization = OrganizationFixture({
-  features: [],
-});
+const organization = OrganizationFixture({features: []});
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
 
@@ -28,9 +26,7 @@ describe('WidgetBuilderGroupBySelector', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderGroupBySelector />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(await screen.findByText('Group by')).toBeInTheDocument();
@@ -43,9 +39,7 @@ describe('WidgetBuilderGroupBySelector', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderGroupBySelector />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(await screen.findByText('Group by')).toBeInTheDocument();
@@ -74,9 +68,7 @@ describe('WidgetBuilderGroupBySelector', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderGroupBySelector />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(await screen.findByText('Group by')).toBeInTheDocument();
@@ -210,11 +202,7 @@ describe('WidgetBuilderGroupBySelector', () => {
     expect(optionRow(await screen.findByText('my_number'))).toHaveTextContent('number');
   });
 
-  it('disables group by selector when transaction widget type and discover-saved-queries-deprecation feature flag', async () => {
-    const organizationWithFeature = OrganizationFixture({
-      features: ['discover-saved-queries-deprecation'],
-    });
-
+  it('disables group by selector for transaction widgets', async () => {
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderGroupBySelector />
@@ -224,13 +212,10 @@ describe('WidgetBuilderGroupBySelector', () => {
           route: '/organizations/:orgId/dashboard/:dashboardId/',
           location: {
             pathname: '/organizations/org-slug/dashboard/1/',
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.LINE,
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
           },
         },
-        organization: organizationWithFeature,
+        organization,
       }
     );
 
@@ -240,11 +225,7 @@ describe('WidgetBuilderGroupBySelector', () => {
     expect(await screen.findByRole('button', {name: 'Select group'})).toBeDisabled();
   });
 
-  it('enables group by selector when transaction widget type but no discover-saved-queries-deprecation feature flag', async () => {
-    const organizationWithoutFeature = OrganizationFixture({
-      features: [],
-    });
-
+  it('enables group by selector for non-transaction widgets', async () => {
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderGroupBySelector />
@@ -254,43 +235,10 @@ describe('WidgetBuilderGroupBySelector', () => {
           route: '/organizations/:orgId/dashboard/:dashboardId/',
           location: {
             pathname: '/organizations/org-slug/dashboard/1/',
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.LINE,
-            },
+            query: {dataset: WidgetType.ERRORS, displayType: DisplayType.LINE},
           },
         },
-        organization: organizationWithoutFeature,
-      }
-    );
-
-    const addGroupButton = await screen.findByRole('button', {name: 'Add Group'});
-    expect(addGroupButton).toBeEnabled();
-
-    expect(await screen.findByRole('button', {name: 'Select group'})).toBeEnabled();
-  });
-
-  it('enables group by selector when discover-saved-queries-deprecation feature flag but not transaction widget type', async () => {
-    const organizationWithFeature = OrganizationFixture({
-      features: ['discover-saved-queries-deprecation'],
-    });
-
-    render(
-      <WidgetBuilderProvider>
-        <WidgetBuilderGroupBySelector />
-      </WidgetBuilderProvider>,
-      {
-        initialRouterConfig: {
-          route: '/organizations/:orgId/dashboard/:dashboardId/',
-          location: {
-            pathname: '/organizations/org-slug/dashboard/1/',
-            query: {
-              dataset: WidgetType.ERRORS,
-              displayType: DisplayType.LINE,
-            },
-          },
-        },
-        organization: organizationWithFeature,
+        organization,
       }
     );
 
@@ -303,12 +251,7 @@ describe('WidgetBuilderGroupBySelector', () => {
   it('hides group by fields that are hidden in the trace metrics dataset', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
-      body: [
-        {
-          key: 'metric.name',
-          name: 'metric.name',
-        },
-      ],
+      body: [{key: 'metric.name', name: 'metric.name'}],
     });
 
     render(
@@ -320,10 +263,7 @@ describe('WidgetBuilderGroupBySelector', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/dashboard/1/',
-            query: {
-              dataset: WidgetType.TRACEMETRICS,
-              displayType: DisplayType.LINE,
-            },
+            query: {dataset: WidgetType.TRACEMETRICS, displayType: DisplayType.LINE},
           },
         },
       }
@@ -360,9 +300,7 @@ describe('WidgetBuilderGroupBySelector', () => {
       }
     );
 
-    const removeButtons = await screen.findAllByRole('button', {
-      name: 'Remove group',
-    });
+    const removeButtons = await screen.findAllByRole('button', {name: 'Remove group'});
     await userEvent.click(removeButtons[0]!);
 
     await waitFor(() => {

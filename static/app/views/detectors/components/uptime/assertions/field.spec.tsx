@@ -279,11 +279,7 @@ describe('UptimeAssertionsField', () => {
     // When editing a monitor that has no assertions, pass empty assertion structure
     // (FormField converts null to '' so we can't use null directly)
     const emptyAssertion: UptimeAssertion = {
-      root: {
-        id: 'empty',
-        op: UptimeOpType.AND,
-        children: [],
-      },
+      root: {id: 'empty', op: UptimeOpType.AND, children: []},
     };
 
     render(
@@ -306,11 +302,7 @@ describe('UptimeAssertionsField', () => {
   it('allows adding assertions when editing monitor with no assertions', async () => {
     // When editing a monitor that has no assertions, user should be able to add new ones
     const emptyAssertion: UptimeAssertion = {
-      root: {
-        id: 'empty',
-        op: UptimeOpType.AND,
-        children: [],
-      },
+      root: {id: 'empty', op: UptimeOpType.AND, children: []},
     };
 
     render(
@@ -335,10 +327,7 @@ describe('UptimeAssertionsField', () => {
     // getValue should return the new assertion (not null)
     const transformedData = model.getTransformedData();
     expect(transformedData.assertion).toMatchObject({
-      root: {
-        op: UptimeOpType.AND,
-        children: [{op: UptimeOpType.STATUS_CODE_CHECK}],
-      },
+      root: {op: UptimeOpType.AND, children: [{op: UptimeOpType.STATUS_CODE_CHECK}]},
     });
   });
 

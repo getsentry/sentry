@@ -58,9 +58,7 @@ describe('DetectorLink', () => {
       logicType: DataConditionGroupLogicType.ALL,
       conditions: [],
     },
-    config: {
-      detectionType: 'static',
-    },
+    config: {detectionType: 'static'},
   };
 
   it('preserves page filters in detector link', () => {
@@ -90,12 +88,7 @@ describe('DetectorLink', () => {
   it('does not include query params when filters are not set', () => {
     render(<DetectorLink detector={mockDetector} />, {
       organization,
-      initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {},
-        },
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {}}},
     });
 
     const link = screen.getByRole('link', {name: /test detector/i});
@@ -109,9 +102,7 @@ describe('DetectorLink', () => {
       projectId: mockDetector.projectId,
     });
 
-    render(<DetectorLink detector={issueStreamDetector} />, {
-      organization,
-    });
+    render(<DetectorLink detector={issueStreamDetector} />, {organization});
 
     expect(screen.getByText(/all issues in/i)).toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
@@ -120,10 +111,7 @@ describe('DetectorLink', () => {
   it('renders percent thresholds using delta values in details', () => {
     const percentDetector: MetricDetector = {
       ...mockDetector,
-      config: {
-        detectionType: 'percent',
-        comparisonDelta: 3600,
-      },
+      config: {detectionType: 'percent', comparisonDelta: 3600},
       conditionGroup: {
         id: 'cg-1',
         logicType: DataConditionGroupLogicType.ALL,

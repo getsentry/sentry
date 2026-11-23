@@ -97,10 +97,7 @@ describe('useLogsTableColumnWidths', () => {
       })
     );
 
-    expect(result.current).toEqual({
-      timestamp: 175,
-      'code.file.path': FLEX,
-    });
+    expect(result.current).toEqual({timestamp: 175, 'code.file.path': FLEX});
   });
 
   it('does not lock while data is pending', () => {

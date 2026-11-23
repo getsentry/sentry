@@ -11,12 +11,14 @@ jest.mock('sentry/utils/replayCount/useReplayCountForIssues');
 
 function mockCount(count: undefined | number) {
   const getReplayCountForIssue = jest.fn().mockReturnValue(count);
-  jest.mocked(useReplayCountForIssues).mockReturnValue({
-    getReplayCountForIssue,
-    getReplayCountForIssues: jest.fn(),
-    issueHasReplay: jest.fn(),
-    issuesHaveReplay: jest.fn(),
-  });
+  jest
+    .mocked(useReplayCountForIssues)
+    .mockReturnValue({
+      getReplayCountForIssue,
+      getReplayCountForIssues: jest.fn(),
+      issueHasReplay: jest.fn(),
+      issuesHaveReplay: jest.fn(),
+    });
   return getReplayCountForIssue;
 }
 

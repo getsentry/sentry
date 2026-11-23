@@ -32,16 +32,11 @@ const mockReservations: Reservations = {
 const mockPreview = PreviewDataFixture({});
 
 describe('usePreviewData', () => {
-  const organization = OrganizationFixture({
-    access: ['org:billing'],
-  });
+  const organization = OrganizationFixture({access: ['org:billing']});
 
   it('should fetch a preview of a new AM2 plan, based on the current reservations', async () => {
     const teamPlan = PlanDetailsLookupFixture('am2_team');
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am2_team',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'am2_team'});
     const mockAM2BillingConfig = BillingConfigFixture(PlanTier.AM2);
 
     MockApiClient.addMockResponse({
@@ -57,10 +52,7 @@ describe('usePreviewData', () => {
     });
 
     const {result} = renderHookWithProviders(usePreviewData, {
-      initialProps: {
-        organization,
-        subscription,
-      },
+      initialProps: {organization, subscription},
     });
 
     await waitFor(() =>

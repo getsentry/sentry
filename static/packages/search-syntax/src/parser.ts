@@ -19,11 +19,7 @@
 import {parse as parseGrammar} from './grammar.pegjs';
 import {BooleanOperator, FilterType, TermOperator, Token} from './tokens';
 
-export type SourcePosition = {
-  column: number;
-  line: number;
-  offset: number;
-};
+export type SourcePosition = {column: number; line: number; offset: number};
 
 export type SourceLocation = {
   end: SourcePosition;
@@ -128,18 +124,11 @@ export type ValueDurationToken = BaseToken<Token.VALUE_DURATION> & {
   value: string;
 };
 
-export type ValueSizeToken = BaseToken<Token.VALUE_SIZE> & {
-  unit: string;
-  value: string;
-};
+export type ValueSizeToken = BaseToken<Token.VALUE_SIZE> & {unit: string; value: string};
 
-export type ValuePercentageToken = BaseToken<Token.VALUE_PERCENTAGE> & {
-  value: string;
-};
+export type ValuePercentageToken = BaseToken<Token.VALUE_PERCENTAGE> & {value: string};
 
-export type ValueBooleanToken = BaseToken<Token.VALUE_BOOLEAN> & {
-  value: string;
-};
+export type ValueBooleanToken = BaseToken<Token.VALUE_BOOLEAN> & {value: string};
 
 export type ValueNumberToken = BaseToken<Token.VALUE_NUMBER> & {
   unit: string | null;
@@ -192,19 +181,11 @@ export type LogicBooleanToken = BaseToken<Token.LOGIC_BOOLEAN> & {
   value: BooleanOperator;
 };
 
-export type LParenToken = BaseToken<Token.L_PAREN> & {
-  invalid: InvalidToken;
-  value: '(';
-};
+export type LParenToken = BaseToken<Token.L_PAREN> & {invalid: InvalidToken; value: '('};
 
-export type RParenToken = BaseToken<Token.R_PAREN> & {
-  invalid: InvalidToken;
-  value: ')';
-};
+export type RParenToken = BaseToken<Token.R_PAREN> & {invalid: InvalidToken; value: ')'};
 
-export type LogicGroupToken = BaseToken<Token.LOGIC_GROUP> & {
-  inner: ParseResultToken[];
-};
+export type LogicGroupToken = BaseToken<Token.LOGIC_GROUP> & {inner: ParseResultToken[]};
 
 /** A top-level token, or one directly inside a {@link LogicGroupToken}. */
 export type ParseResultToken =
@@ -359,10 +340,7 @@ export class TokenConverter<C extends SearchConfig = SearchConfig> {
     this.config = config;
   }
 
-  protected get defaultTokenFields(): {
-    location: SourceLocation;
-    text: string;
-  } {
+  protected get defaultTokenFields(): {location: SourceLocation; text: string} {
     return {text: this.text(), location: this.location()};
   }
 
@@ -512,21 +490,11 @@ export class TokenConverter<C extends SearchConfig = SearchConfig> {
   }
 
   tokenKeySimple(value: string, quoted: boolean): KeySimpleToken {
-    return {
-      ...this.defaultTokenFields,
-      type: Token.KEY_SIMPLE,
-      value,
-      quoted,
-    };
+    return {...this.defaultTokenFields, type: Token.KEY_SIMPLE, value, quoted};
   }
 
   tokenKeyExplicitFlag(prefix: string, key: KeySimpleToken): KeyExplicitFlagToken {
-    return {
-      ...this.defaultTokenFields,
-      type: Token.KEY_EXPLICIT_FLAG,
-      prefix,
-      key,
-    };
+    return {...this.defaultTokenFields, type: Token.KEY_EXPLICIT_FLAG, prefix, key};
   }
 
   tokenKeyExplicitStringFlag(
@@ -554,36 +522,21 @@ export class TokenConverter<C extends SearchConfig = SearchConfig> {
   }
 
   tokenKeyExplicitTag(prefix: string, key: KeySimpleToken): KeyExplicitTagToken {
-    return {
-      ...this.defaultTokenFields,
-      type: Token.KEY_EXPLICIT_TAG,
-      prefix,
-      key,
-    };
+    return {...this.defaultTokenFields, type: Token.KEY_EXPLICIT_TAG, prefix, key};
   }
 
   tokenKeyExplicitStringTag(
     prefix: string,
     key: KeySimpleToken
   ): KeyExplicitStringTagToken {
-    return {
-      ...this.defaultTokenFields,
-      type: Token.KEY_EXPLICIT_STRING_TAG,
-      prefix,
-      key,
-    };
+    return {...this.defaultTokenFields, type: Token.KEY_EXPLICIT_STRING_TAG, prefix, key};
   }
 
   tokenKeyExplicitNumberTag(
     prefix: string,
     key: KeySimpleToken
   ): KeyExplicitNumberTagToken {
-    return {
-      ...this.defaultTokenFields,
-      type: Token.KEY_EXPLICIT_NUMBER_TAG,
-      prefix,
-      key,
-    };
+    return {...this.defaultTokenFields, type: Token.KEY_EXPLICIT_NUMBER_TAG, prefix, key};
   }
 
   tokenKeyExplicitBooleanTag(
@@ -617,21 +570,11 @@ export class TokenConverter<C extends SearchConfig = SearchConfig> {
     key: KeySimpleToken | KeyExplicitArrayTagToken,
     index: string
   ): KeyArrayIncludesToken {
-    return {
-      ...this.defaultTokenFields,
-      type: Token.KEY_ARRAY_INCLUDES,
-      key,
-      index,
-    };
+    return {...this.defaultTokenFields, type: Token.KEY_ARRAY_INCLUDES, key, index};
   }
 
   tokenKeyAggregateParam(value: string, quoted: boolean): KeyAggregateParamToken {
-    return {
-      ...this.defaultTokenFields,
-      type: Token.KEY_AGGREGATE_PARAMS,
-      value,
-      quoted,
-    };
+    return {...this.defaultTokenFields, type: Token.KEY_AGGREGATE_PARAMS, value, quoted};
   }
 
   tokenKeyAggregate(
@@ -692,12 +635,7 @@ export class TokenConverter<C extends SearchConfig = SearchConfig> {
   }
 
   tokenValueDuration(value: string, unit: string): ValueDurationToken {
-    return {
-      ...this.defaultTokenFields,
-      type: Token.VALUE_DURATION,
-      value,
-      unit,
-    };
+    return {...this.defaultTokenFields, type: Token.VALUE_DURATION, value, unit};
   }
 
   tokenValueSize(value: string, unit: string): ValueSizeToken {
@@ -713,12 +651,7 @@ export class TokenConverter<C extends SearchConfig = SearchConfig> {
   }
 
   tokenValueNumber(value: string, unit: string | null): ValueNumberToken {
-    return {
-      ...this.defaultTokenFields,
-      type: Token.VALUE_NUMBER,
-      value,
-      unit,
-    };
+    return {...this.defaultTokenFields, type: Token.VALUE_NUMBER, value, unit};
   }
 
   tokenValueNumberList(
@@ -744,12 +677,7 @@ export class TokenConverter<C extends SearchConfig = SearchConfig> {
   }
 
   tokenValueText(value: string, quoted: boolean): ValueTextToken {
-    return {
-      ...this.defaultTokenFields,
-      type: Token.VALUE_TEXT,
-      value,
-      quoted,
-    };
+    return {...this.defaultTokenFields, type: Token.VALUE_TEXT, value, quoted};
   }
 
   // -- Grammar predicates -------------------------------------------------
@@ -809,10 +737,7 @@ export type TokenConverterClass<C extends SearchConfig> = new (
 ) => TokenConverter<C>;
 
 /** Thrown by {@link parseSearchOrThrow} when a query does not parse. */
-export type SearchSyntaxError = Error & {
-  found: string | null;
-  location: SourceLocation;
-};
+export type SearchSyntaxError = Error & {found: string | null; location: SourceLocation};
 
 /**
  * Apply `overrides` onto `base`, skipping `undefined` values so an unset

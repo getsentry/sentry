@@ -45,10 +45,7 @@ const mockButtonHref = `/organizations/${mockOrgSlug}/explore/replays/761104e184
 // Get replay data with the mocked replay reader params
 const mockReplay = ReplayReader.factory({
   replayRecord: ReplayRecordFixture({
-    browser: {
-      name: 'Chrome',
-      version: '110.0.0',
-    },
+    browser: {name: 'Chrome', version: '110.0.0'},
     started_at: new Date('Sep 22, 2022 4:58:39 PM UTC'),
     finished_at: new Date(mockEventTimestampMs + 5_000),
     duration: duration(10, 'seconds'),
@@ -56,9 +53,7 @@ const mockReplay = ReplayReader.factory({
   errors: [],
   fetching: false,
   attachments: [
-    ...RRWebInitFrameEventsFixture({
-      timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
-    }),
+    ...RRWebInitFrameEventsFixture({timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC')}),
     RRWebFullSnapshotFrameEventFixture({
       timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
     }),
@@ -95,10 +90,7 @@ const render = (
   return baseRender(children, {
     organization,
     initialRouterConfig: {
-      location: {
-        pathname: `/organizations/${mockOrgSlug}/issues/`,
-        query: {},
-      },
+      location: {pathname: `/organizations/${mockOrgSlug}/issues/`, query: {}},
       route: '/organizations/:orgId/issues/',
     },
   });
@@ -134,10 +126,7 @@ describe('ReplayClipPreview', () => {
     orgSlug: mockOrgSlug,
     replaySlug: mockReplaySlug,
     eventTimestampMs: mockEventTimestampMs,
-    clipOffsets: {
-      durationAfterMs: 5_000,
-      durationBeforeMs: 5_000,
-    },
+    clipOffsets: {durationAfterMs: 5_000, durationBeforeMs: 5_000},
     fullReplayButtonProps: {},
   };
 

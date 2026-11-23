@@ -5,7 +5,7 @@ import {isValidDate} from 'sentry/utils/date/isValidDate';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 import type {RawSpanFrame, SpanFrame} from './types';
-import {isSpanFrame} from './types';
+import {isMemoryFrame, isSpanFrame} from './types';
 
 export function hydrateSpans(
   replayRecord: HydratedReplayRecord,
@@ -24,13 +24,7 @@ export function hydrateSpans(
         invariant(isValidDate(start), 'spanFrame.startTimestamp is invalid');
         invariant(isValidDate(end), 'spanFrame.endTimestamp is invalid');
 
-        if (!frame.data) {
-          opsMissingData.add(frame.op);
-        }
-        if (frame.description === undefined) {
-          opsMissingDescription.add(frame.op);
-        }
-        return {
+        const hydratedFrame: SpanFrame = {
           ...frame,
           endTimestamp: end,
           endTimestampMs: end.getTime(),
@@ -41,6 +35,13 @@ export function hydrateSpans(
           // TODO: do we need this added as well?
           // id: `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`,
         };
+        if (!frame.data || (frame.op === 'memory' && !isMemoryFrame(hydratedFrame))) {
+          opsMissingData.add(frame.op);
+        }
+        if (frame.description === undefined) {
+          opsMissingDescription.add(frame.op);
+        }
+        return hydratedFrame;
       } catch {
         return;
       }

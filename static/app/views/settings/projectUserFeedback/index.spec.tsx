@@ -13,22 +13,13 @@ describe('ProjectUserFeedback', () => {
   const mockSeerSetup = () => {
     return MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/setup-check/`,
-      body: {
-        billing: {
-          hasAutofixQuota: false,
-          hasScannerQuota: false,
-        },
-      },
+      body: {billing: {hasAutofixQuota: false, hasScannerQuota: false}},
     });
   };
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: `${url}keys/`,
-      method: 'GET',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: `${url}keys/`, method: 'GET', body: []});
     MockApiClient.addMockResponse({
       url,
       method: 'GET',
@@ -38,15 +29,9 @@ describe('ProjectUserFeedback', () => {
   });
 
   it('can toggle sentry branding option', async () => {
-    render(<ProjectUserFeedback />, {
-      organization,
-      outletContext: {project},
-    });
+    render(<ProjectUserFeedback />, {organization, outletContext: {project}});
 
-    const mock = MockApiClient.addMockResponse({
-      url,
-      method: 'PUT',
-    });
+    const mock = MockApiClient.addMockResponse({url, method: 'PUT'});
 
     await userEvent.click(
       screen.getByRole('checkbox', {name: 'Show Sentry Branding in Crash Report Modal'})
@@ -56,18 +41,13 @@ describe('ProjectUserFeedback', () => {
       url,
       expect.objectContaining({
         method: 'PUT',
-        data: {
-          options: {'feedback:branding': true},
-        },
+        data: {options: {'feedback:branding': true}},
       })
     );
   });
 
   it('renders all fields with correct labels', () => {
-    render(<ProjectUserFeedback />, {
-      organization,
-      outletContext: {project},
-    });
+    render(<ProjectUserFeedback />, {organization, outletContext: {project}});
 
     expect(
       screen.getByRole('checkbox', {name: 'Show Sentry Branding in Crash Report Modal'})
@@ -79,15 +59,9 @@ describe('ProjectUserFeedback', () => {
   });
 
   it('can toggle crash report notifications', async () => {
-    render(<ProjectUserFeedback />, {
-      organization,
-      outletContext: {project},
-    });
+    render(<ProjectUserFeedback />, {organization, outletContext: {project}});
 
-    const mock = MockApiClient.addMockResponse({
-      url,
-      method: 'PUT',
-    });
+    const mock = MockApiClient.addMockResponse({url, method: 'PUT'});
 
     await userEvent.click(
       screen.getByRole('checkbox', {name: 'Enable Crash Report Notifications'})
@@ -97,9 +71,7 @@ describe('ProjectUserFeedback', () => {
       url,
       expect.objectContaining({
         method: 'PUT',
-        data: {
-          options: {'sentry:feedback_user_report_notifications': true},
-        },
+        data: {options: {'sentry:feedback_user_report_notifications': true}},
       })
     );
   });
@@ -107,10 +79,7 @@ describe('ProjectUserFeedback', () => {
   it('cannot toggle spam detection when the user does not have the spam feature flag', () => {
     seerSetupMock = mockSeerSetup();
 
-    render(<ProjectUserFeedback />, {
-      organization,
-      outletContext: {project},
-    });
+    render(<ProjectUserFeedback />, {organization, outletContext: {project}});
 
     expect(
       screen.queryByRole('checkbox', {name: 'Enable Spam Detection'})
@@ -146,9 +115,7 @@ describe('ProjectUserFeedback', () => {
       url,
       expect.objectContaining({
         method: 'PUT',
-        data: {
-          options: {'sentry:feedback_ai_spam_detection': true},
-        },
+        data: {options: {'sentry:feedback_ai_spam_detection': true}},
       })
     );
     expect(checkbox).toBeChecked();
@@ -156,16 +123,9 @@ describe('ProjectUserFeedback', () => {
 
     const updatedProject = {
       ...detailedProject,
-      options: {
-        ...detailedProject.options,
-        'sentry:feedback_ai_spam_detection': true,
-      },
+      options: {...detailedProject.options, 'sentry:feedback_ai_spam_detection': true},
     };
-    MockApiClient.addMockResponse({
-      url,
-      method: 'GET',
-      body: updatedProject,
-    });
+    MockApiClient.addMockResponse({url, method: 'GET', body: updatedProject});
     update.resolve(updatedProject);
 
     await waitFor(() => expect(checkbox).toBeEnabled());

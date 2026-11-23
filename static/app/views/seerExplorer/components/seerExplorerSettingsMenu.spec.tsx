@@ -23,9 +23,7 @@ describe('SeerExplorerSettingsMenu', () => {
   beforeEach(() => {
     ConfigStore.set(
       'user',
-      UserFixture({
-        emails: [{email: 'employee@sentry.io', is_verified: true, id: '1'}],
-      })
+      UserFixture({emails: [{email: 'employee@sentry.io', is_verified: true, id: '1'}]})
     );
   });
 

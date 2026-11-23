@@ -22,10 +22,7 @@ import {
 function makeContext({
   data = null,
   error = null,
-}: {
-  data?: any;
-  error?: PreviewCheckError | null;
-} = {}) {
+}: {data?: any; error?: PreviewCheckError | null} = {}) {
   return {
     data,
     error,

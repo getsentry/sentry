@@ -126,10 +126,7 @@ export function ResolveSection() {
             resolutionThreshold,
             thresholdSuffix,
           }
-        : {
-            detectionType: 'dynamic',
-            thresholdSuffix,
-          }
+        : {detectionType: 'dynamic', thresholdSuffix}
   );
 
   const resolutionStrategyChoices: RadioOption[] = [

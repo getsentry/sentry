@@ -113,9 +113,7 @@ export function ReleasesAdoptionChart({
         response?.intervals,
         sessionDisplayToField(activeDisplay)
       ),
-      emphasis: {
-        focus: 'series',
-      } as const satisfies LineSeriesOption['emphasis'],
+      emphasis: {focus: 'series'} as const satisfies LineSeriesOption['emphasis'],
     }));
   };
 
@@ -216,9 +214,7 @@ export function ReleasesAdoptionChart({
                   type: 'value',
                   interval: 10,
                   splitNumber: 10,
-                  axisLabel: {
-                    formatter: '{value}%',
-                  },
+                  axisLabel: {formatter: '{value}%'},
                 }}
                 xAxis={{
                   show: true,

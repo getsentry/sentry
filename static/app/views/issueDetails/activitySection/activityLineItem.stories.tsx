@@ -107,10 +107,7 @@ const resolutionActivities = [
     {version: 'backend@1.2.3'},
     linearApp
   ),
-  activity(GroupActivityType.SET_RESOLVED_IN_RELEASE, {
-    version: 'backend@1.2.3',
-    commit,
-  }),
+  activity(GroupActivityType.SET_RESOLVED_IN_RELEASE, {version: 'backend@1.2.3', commit}),
   activity(GroupActivityType.SET_RESOLVED_IN_RELEASE, {
     version: 'backend@1.2.3',
     commit: commitOnly,
@@ -153,24 +150,15 @@ const archivedActivities = [
   activity(GroupActivityType.SET_IGNORED),
   activity(GroupActivityType.SET_IGNORED, {ignoreDuration: 10}),
   activity(GroupActivityType.SET_IGNORED, {ignoreCount: 50}),
-  activity(GroupActivityType.SET_IGNORED, {
-    ignoreCount: 50,
-    ignoreWindow: 10,
-  }),
+  activity(GroupActivityType.SET_IGNORED, {ignoreCount: 50, ignoreWindow: 10}),
   activity(GroupActivityType.SET_IGNORED, {ignoreUserCount: 50}),
-  activity(GroupActivityType.SET_IGNORED, {
-    ignoreUserCount: 50,
-    ignoreUserWindow: 10,
-  }),
+  activity(GroupActivityType.SET_IGNORED, {ignoreUserCount: 50, ignoreUserWindow: 10}),
   activity(GroupActivityType.SET_IGNORED, {ignoreUntil: '2027-01-01T00:00:00Z'}),
   activity(GroupActivityType.SET_IGNORED, {ignoreUntilEscalating: true}),
 ];
 
 const assignmentActivities = [
-  activity(GroupActivityType.ASSIGNED, {
-    assignee: user.id,
-    assigneeType: 'user',
-  }),
+  activity(GroupActivityType.ASSIGNED, {assignee: user.id, assigneeType: 'user'}),
   activity(GroupActivityType.ASSIGNED, {
     assignee: '2',
     assigneeType: 'user',
@@ -230,10 +218,7 @@ const priorityActivities = [
     expired_snooze: {...expiredSnooze, user_count: 50},
   }),
   activity(GroupActivityType.SET_ESCALATING, {
-    expired_snooze: {
-      ...expiredSnooze,
-      until: new Date('2027-01-01T00:00:00Z'),
-    },
+    expired_snooze: {...expiredSnooze, until: new Date('2027-01-01T00:00:00Z')},
   }),
 ];
 
@@ -284,11 +269,7 @@ const issueActivities = [
     fingerprints: ['one'],
     source: {id: '3', shortId: 'EXAMPLE-3'},
   }),
-  activity(GroupActivityType.REPROCESS, {
-    eventCount: 25,
-    newGroupId: 2,
-    oldGroupId: 1,
-  }),
+  activity(GroupActivityType.REPROCESS, {eventCount: 25, newGroupId: 2, oldGroupId: 1}),
   activity(GroupActivityType.DELETED_ATTACHMENT),
 ];
 
@@ -335,9 +316,7 @@ const seerActivities = [
   seerActivity(GroupActivityType.SEER_SOLUTION_COMPLETED),
   seerActivity(GroupActivityType.SEER_CODING_STARTED),
   seerActivity(GroupActivityType.SEER_CODING_COMPLETED),
-  seerActivity(GroupActivityType.SEER_PR_CREATED, {
-    pull_requests: [seerPullRequest],
-  }),
+  seerActivity(GroupActivityType.SEER_PR_CREATED, {pull_requests: [seerPullRequest]}),
   {
     ...seerActivity(GroupActivityType.SEER_PR_CREATED, {
       pull_requests: [seerPullRequest],
@@ -349,9 +328,7 @@ const seerActivities = [
     pull_requests: [seerPullRequest],
   }),
   seerActivity(GroupActivityType.SEER_ITERATION_STARTED),
-  seerActivity(GroupActivityType.SEER_ITERATION_STARTED, {
-    referrer: 'github.pr_comment',
-  }),
+  seerActivity(GroupActivityType.SEER_ITERATION_STARTED, {referrer: 'github.pr_comment'}),
   seerActivity(GroupActivityType.SEER_ITERATION_STARTED, {
     referrer: 'github.check_suite',
   }),
@@ -364,9 +341,7 @@ const collapsedSeerActivities = collapseSeerActivityPairs([
   seerActivityAt(GroupActivityType.SEER_RCA_COMPLETED, '2025-01-01T00:12:00Z', {
     run_id: 1,
   }),
-  seerActivityAt(GroupActivityType.SEER_RCA_STARTED, '2025-01-01T00:00:00Z', {
-    run_id: 1,
-  }),
+  seerActivityAt(GroupActivityType.SEER_RCA_STARTED, '2025-01-01T00:00:00Z', {run_id: 1}),
   seerActivityAt(GroupActivityType.SEER_SOLUTION_COMPLETED, '2025-01-01T00:22:00Z', {
     run_id: 2,
   }),

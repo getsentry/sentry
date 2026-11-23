@@ -9,9 +9,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 import {DroppedDataChart, droppedEventsToSeries} from './droppedDataChart';
 
-jest.mock('sentry/components/charts/baseChart', () => ({
-  BaseChart: jest.fn(() => null),
-}));
+jest.mock('sentry/components/charts/baseChart', () => ({BaseChart: jest.fn(() => null)}));
 
 describe('DroppedDataChart', () => {
   it('does not zoom or change the time range', () => {

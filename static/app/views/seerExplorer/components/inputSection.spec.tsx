@@ -45,10 +45,7 @@ describe('InputSection', () => {
     const composerRef = createRef<HTMLDivElement>();
     render(
       <InputSection
-        {...makeProps({
-          composerRef,
-          onInputClick: () => composerRef.current?.focus(),
-        })}
+        {...makeProps({composerRef, onInputClick: () => composerRef.current?.focus()})}
       />
     );
 

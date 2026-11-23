@@ -30,11 +30,7 @@ function feedbackEventApiOptions(orgSlug: string, feedbackId: string) {
     '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
     {
       path: feedbackId
-        ? {
-            organizationIdOrSlug: orgSlug,
-            issueId: feedbackId,
-            eventId: 'latest',
-          }
+        ? {organizationIdOrSlug: orgSlug, issueId: feedbackId, eventId: 'latest'}
         : skipToken,
       query: {collapse: ['fullRelease']},
       staleTime: 0,

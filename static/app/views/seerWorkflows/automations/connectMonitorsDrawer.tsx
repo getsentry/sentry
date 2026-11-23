@@ -22,10 +22,7 @@ import {MonitorTable} from './monitorTable';
 
 const MONITORS_PER_PAGE = 10;
 
-type Props = {
-  initialMonitorIds: string[];
-  onChange: (monitorIds: string[]) => void;
-};
+type Props = {initialMonitorIds: string[]; onChange: (monitorIds: string[]) => void};
 
 export function ConnectMonitorsDrawer({initialMonitorIds, onChange}: Props) {
   const organization = useOrganization();

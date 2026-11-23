@@ -143,9 +143,5 @@ export function useRedirectPopupStep({
     }
   }, [redirectUrl, openPopupWindow]);
 
-  return {
-    openPopup,
-    popupStatus,
-    isWaitingForCallback: popupStatus === 'popup-open',
-  };
+  return {openPopup, popupStatus, isWaitingForCallback: popupStatus === 'popup-open'};
 }
