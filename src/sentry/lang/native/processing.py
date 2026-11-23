@@ -17,6 +17,7 @@ from sentry.lang.native.flamegraphs import (
     MAX_SYMBOLICATION_FRAMES,
     FlamegraphExpansionLimitExceeded,
     Flamegraphs,
+    FlamegraphSymbolicationInput,
     expand_inline_frames,
 )
 from sentry.lang.native.symbolicator import FrameOrder, Symbolicator, SymbolicatorFunction
@@ -471,9 +472,7 @@ def get_frames_for_symbolication(
     return rv
 
 
-def _get_flamegraph_stacktraces(
-    payload: dict[str, Any],
-) -> tuple[list[dict[str, Any]], list[int], list[dict[str, Any]]]:
+def _get_flamegraph_stacktraces(payload: dict[str, Any]) -> FlamegraphSymbolicationInput:
     frame_ids = []
     stacktraces = []
     original_modules = payload.get("debug_meta", {}).get("images", [])
@@ -484,7 +483,7 @@ def _get_flamegraph_stacktraces(
             module_indices[index] = len(modules)
             modules.append(image)
     if not modules:
-        return [], [], []
+        return FlamegraphSymbolicationInput(modules=[], frame_ids=[], stacktraces=[])
     for frame_id, frame in enumerate(payload["frames"][:MAX_SYMBOLICATION_FRAMES]):
         frames = get_frames_for_symbolication([frame], payload, original_modules, adjustment="none")
         if not frames:
@@ -500,7 +499,9 @@ def _get_flamegraph_stacktraces(
             frames[0]["addr_mode"] = f"rel:{module_index}"
         frame_ids.append(frame_id)
         stacktraces.append({"frames": frames})
-    return modules, frame_ids, stacktraces
+    return FlamegraphSymbolicationInput(
+        modules=modules, frame_ids=frame_ids, stacktraces=stacktraces
+    )
 
 
 def _merge_flamegraph_frames(
@@ -564,8 +565,8 @@ def _process_flamegraphs(symbolicator: Symbolicator, data: Any) -> bool:
                     if is_javascript
                     else _get_flamegraph_stacktraces
                 )
-                modules, frame_ids, stacktraces = get_stacktraces(payload)
-                if not stacktraces:
+                symbolication_input = get_stacktraces(payload)
+                if not symbolication_input.stacktraces:
                     metrics.incr(
                         "process.native.flamegraph.skipped", tags={"reason": "no_stacktraces"}
                     )
@@ -574,8 +575,8 @@ def _process_flamegraphs(symbolicator: Symbolicator, data: Any) -> bool:
                 if is_javascript:
                     response = symbolicator.process_js(
                         platform=payload["platform"],
-                        stacktraces=stacktraces,
-                        modules=modules,
+                        stacktraces=symbolication_input.stacktraces,
+                        modules=symbolication_input.modules,
                         release=data.get("release"),
                         dist=data.get("dist"),
                         frame_order=FrameOrder.caller_first,
@@ -584,8 +585,8 @@ def _process_flamegraphs(symbolicator: Symbolicator, data: Any) -> bool:
                 else:
                     response = symbolicator.process_payload(
                         platform=payload["platform"],
-                        stacktraces=stacktraces,
-                        modules=modules,
+                        stacktraces=symbolication_input.stacktraces,
+                        modules=symbolication_input.modules,
                         frame_order=FrameOrder.caller_first,
                         apply_source_context=False,
                     )
@@ -595,7 +596,7 @@ def _process_flamegraphs(symbolicator: Symbolicator, data: Any) -> bool:
                     )
                     continue
                 resolved_stacktraces = response.get("stacktraces", [])
-                if len(resolved_stacktraces) != len(frame_ids):
+                if len(resolved_stacktraces) != len(symbolication_input.frame_ids):
                     metrics.incr(
                         "process.native.flamegraph.skipped", tags={"reason": "invalid_response"}
                     )
@@ -606,7 +607,7 @@ def _process_flamegraphs(symbolicator: Symbolicator, data: Any) -> bool:
                     if is_javascript
                     else _merge_flamegraph_frames
                 )
-                output = merge_frames(payload, frame_ids, resolved_stacktraces)
+                output = merge_frames(payload, symbolication_input.frame_ids, resolved_stacktraces)
                 reason = "save_error"
                 attachments_changed |= flamegraphs.save(attachment_index, output)
             except SymbolicationTimeout as error:

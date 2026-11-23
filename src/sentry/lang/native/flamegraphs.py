@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from dataclasses import dataclass
 from typing import Any
 
 import rapidjson
@@ -22,6 +23,13 @@ MAX_SYMBOLICATION_FRAMES = 2500
 MAX_SAMPLE_COUNT = 9007199254740991
 # Bound node allocations independently of the serialized attachment size.
 MAX_EXPANDED_NODES = 100_000
+
+
+@dataclass
+class FlamegraphSymbolicationInput:
+    modules: list[dict[str, Any]]
+    frame_ids: list[int]
+    stacktraces: list[dict[str, Any]]
 
 
 class FlamegraphExpansionLimitExceeded(Exception):

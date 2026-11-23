@@ -5,7 +5,7 @@ from typing import Any
 
 from sentry.lang.javascript.utils import JAVASCRIPT_PLATFORMS
 from sentry.lang.native.error import SymbolicationFailed, write_error
-from sentry.lang.native.flamegraphs import MAX_SYMBOLICATION_FRAMES
+from sentry.lang.native.flamegraphs import MAX_SYMBOLICATION_FRAMES, FlamegraphSymbolicationInput
 from sentry.lang.native.symbolicator import FrameOrder, Symbolicator
 from sentry.models.eventerror import EventErrorType
 from sentry.stacktraces.processing import find_stacktraces_in_data
@@ -238,20 +238,20 @@ def _normalize_frame(raw_frame: Any) -> dict[str, Any]:
     return frame
 
 
-def get_flamegraph_stacktraces(
-    payload: dict[str, Any],
-) -> tuple[list[dict[str, Any]], list[int], list[dict[str, Any]]]:
+def get_flamegraph_stacktraces(payload: dict[str, Any]) -> FlamegraphSymbolicationInput:
     # Apply the same eligibility rules and request normalization as event stacks.
     modules = sourcemap_images_from_data(payload)
     frame_ids = []
     stacktraces = []
     if not modules:
-        return [], [], []
+        return FlamegraphSymbolicationInput(modules=[], frame_ids=[], stacktraces=[])
     for frame_id, frame in enumerate(payload["frames"][:MAX_SYMBOLICATION_FRAMES]):
         if _handles_frame(frame, payload):
             frame_ids.append(frame_id)
             stacktraces.append({"frames": [_normalize_frame(frame)]})
-    return modules, frame_ids, stacktraces
+    return FlamegraphSymbolicationInput(
+        modules=modules, frame_ids=frame_ids, stacktraces=stacktraces
+    )
 
 
 def merge_flamegraph_frames(

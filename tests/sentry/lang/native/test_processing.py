@@ -580,9 +580,15 @@ def test_javascript_flamegraph_frame_selection() -> None:
         ],
     }
     with mock.patch("sentry.lang.javascript.processing.MAX_SYMBOLICATION_FRAMES", 4):
-        assert get_js_flamegraph_stacktraces(payload) == ([image], [3], [{"frames": [frame]}])
+        symbolication_input = get_js_flamegraph_stacktraces(payload)
+        assert symbolication_input.modules == [image]
+        assert symbolication_input.frame_ids == [3]
+        assert symbolication_input.stacktraces == [{"frames": [frame]}]
     payload["debug_meta"] = {"images": [{"type": "macho"}]}
-    assert get_js_flamegraph_stacktraces(payload) == ([], [], [])
+    symbolication_input = get_js_flamegraph_stacktraces(payload)
+    assert symbolication_input.modules == []
+    assert symbolication_input.frame_ids == []
+    assert symbolication_input.stacktraces == []
 
 
 @django_db_all
@@ -1398,13 +1404,13 @@ def test_flamegraph_relative_address_uses_filtered_module_index(
     flamegraph_payload["debug_meta"]["images"].insert(0, {"type": "macho", "image_addr": "0x2000"})
     flamegraph_payload["frames"][0]["addr_mode"] = addr_mode
     original = deepcopy(flamegraph_payload)
-    modules, frame_ids, stacktraces = _get_flamegraph_stacktraces(flamegraph_payload)
-    assert modules == original["debug_meta"]["images"][1:]
-    assert frame_ids == [0]
-    assert stacktraces[0]["frames"][0]["addr_mode"] == "rel:0"
+    symbolication_input = _get_flamegraph_stacktraces(flamegraph_payload)
+    assert symbolication_input.modules == original["debug_meta"]["images"][1:]
+    assert symbolication_input.frame_ids == [0]
+    assert symbolication_input.stacktraces[0]["frames"][0]["addr_mode"] == "rel:0"
     processed = _merge_flamegraph_frames(
         flamegraph_payload,
-        frame_ids,
+        symbolication_input.frame_ids,
         [{"frames": [{"status": "symbolicated", "function": "main"}]}],
     )
     assert processed["frames"][0]["function"] == "main"
@@ -1423,10 +1429,10 @@ def test_flamegraph_relative_address_without_matching_image_is_preserved(
     flamegraph_payload["debug_meta"]["images"].insert(0, {"type": "macho", "image_addr": "0x2000"})
     flamegraph_payload["frames"][0]["addr_mode"] = addr_mode
     original = deepcopy(flamegraph_payload)
-    modules, frame_ids, stacktraces = _get_flamegraph_stacktraces(flamegraph_payload)
-    assert modules == original["debug_meta"]["images"][1:]
-    assert frame_ids == []
-    assert stacktraces == []
+    symbolication_input = _get_flamegraph_stacktraces(flamegraph_payload)
+    assert symbolication_input.modules == original["debug_meta"]["images"][1:]
+    assert symbolication_input.frame_ids == []
+    assert symbolication_input.stacktraces == []
     assert flamegraph_payload == original
 
 
