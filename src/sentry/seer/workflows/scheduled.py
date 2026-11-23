@@ -131,7 +131,7 @@ def sync_schedule(config: SeerWorkflowConfig) -> None:
 class ScheduleDefinition(AutomationDefinition[ScheduledRunInputs]):
     """Runs on the config's schedule, over the projects the config selects."""
 
-    strategy = SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+    strategy = SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
     inputs_type = ScheduledRunInputs
     settings_type = ScheduleSettings
     scoped_by: Literal["projects", "monitors"] = "projects"
