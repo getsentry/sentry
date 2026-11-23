@@ -287,7 +287,7 @@ export default defineConfig({
         {
           type: 'text',
           text: tct(
-            'If your app builds with [nitroLink:Nitro] for a Node.js runtime, the [code:sentryTanstackStart] Vite plugin (since version 11.13.0) bundles [code:instrument.server.mjs] into the server build and loads it when the server starts. You start your production build as usual, without the [code:--import] flag.',
+            'If your app builds with [nitroLink:Nitro] for a Node.js runtime, the [code:sentryTanstackStart] Vite plugin bundles [code:instrument.server.mjs] into the server build and loads it when the server starts. You start your production build as usual, without the [code:--import] flag.',
             {code: <code />, nitroLink: <ExternalLink href="https://nitro.build/" />}
           ),
         },
