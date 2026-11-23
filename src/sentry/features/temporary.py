@@ -508,6 +508,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:ourlogs-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable regular expression searches in logs
     manager.add("organizations:ourlogs-regex-searches", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Let trace metrics date pickers go back 90 days instead of 30, for individual orgs only
+    manager.add("organizations:tracemetrics-90-day-range", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable table support for the trace metrics dataset in dashboards
     manager.add("organizations:tracemetrics-dashboard-table", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics product (known internally as tracemetrics) in UI and backend
