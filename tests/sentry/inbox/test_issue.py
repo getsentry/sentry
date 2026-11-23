@@ -1,4 +1,5 @@
 from unittest.mock import patch
+from uuid import uuid4
 
 import pytest
 from django.db import IntegrityError, router, transaction
@@ -28,6 +29,8 @@ from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
+from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.types import UnsupportedActionEvent, WorkflowEventData
 
 
 class IssueItemTypeTest(TestCase):
@@ -540,3 +543,55 @@ class IssueProducerRecordingTest(TestCase):
         assert note is not None
         assert Activity.objects.filter(id=note.id).exists()
         assert not InboxItem.objects.exists()
+
+
+@with_feature("organizations:universal-inbox-recording")
+class AddToInboxActionTest(TestCase):
+    def test_replaying_mention_activity_records_each_type_once(self) -> None:
+        recipient = self.create_user()
+        self.create_member(organization=self.organization, user=recipient, teams=[self.team])
+        note = Activity.objects.create_without_group_action(
+            type=ActivityType.NOTE.value,
+            group=self.group,
+            project=self.project,
+            user_id=self.user.id,
+            data={
+                "mentions": [
+                    {"actor_type": "User", "id": recipient.id},
+                    {"actor_type": "Team", "id": self.team.id},
+                    {"actor_type": "User", "id": "invalid"},
+                ]
+            },
+        )
+        event = WorkflowEventData(event=note, group=self.group)
+        action = self.create_action(type=Action.Type.ADD_TO_INBOX)
+        with patch(
+            "sentry.workflow_engine.processors.detector.get_preferred_detector",
+            return_value=self.create_detector(project=self.project),
+        ):
+            for _ in range(2):
+                action.trigger(event, notification_uuid=str(uuid4()), workflow_id=1)
+
+        assert list(
+            InboxItemEvent.objects.order_by("type").values_list(
+                "type", "inbox_item__user_id", "inbox_item__subject_id", "actor_id", "data"
+            )
+        ) == [
+            (kind, recipient.id, str(self.group.id), self.user.id, {"comment_id": note.id})
+            for kind in ("issue.team_mentioned", "issue.user_mentioned")
+        ]
+
+    def test_excludes_unsupported_activities_and_mismatched_groups(self) -> None:
+        action = self.create_action(type=Action.Type.ADD_TO_INBOX)
+        validate = action.get_handler().validate_event_data
+        note = Activity(
+            id=1, type=ActivityType.NOTE.value, group=self.group, project=self.project, data={}
+        )
+        with pytest.raises(UnsupportedActionEvent):
+            validate(WorkflowEventData(event=note, group=self.group))
+
+        note.type = ActivityType.ASSIGNED.value
+        note.data = {"assigneeType": "user", "assignee": str(self.user.id)}
+        validate(WorkflowEventData(event=note, group=self.group))
+        with pytest.raises(UnsupportedActionEvent):
+            validate(WorkflowEventData(event=note, group=self.create_group(project=self.project)))
