@@ -19,9 +19,6 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 class SeerWorkflowStrategy(models.TextChoices):
     AGENTIC_TRIAGE = "agentic_triage"
     DUPLICATE_MONITORS = "duplicate_monitors"
-    # Renamed to SCHEDULED_INVESTIGATION by seer migration 0050. Kept so that runs recorded
-    # before the rename still parse.
-    AGENTIC_TRIAGE_V2 = "agentic_triage_v2"
     BREACHED_METRIC_INVESTIGATION = "breached_metric_investigation"
     SCHEDULED_INVESTIGATION = "scheduled_investigation"
 
