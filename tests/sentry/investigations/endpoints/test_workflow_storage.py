@@ -1,7 +1,9 @@
+from typing import Any
 from uuid import UUID, uuid4
 
 from django.test import override_settings
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.investigations.models import WorkflowNodeRun, WorkflowRun
 from sentry.testutils.cases import APITestCase
@@ -14,9 +16,9 @@ from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer
 class WorkflowStorageTest(APITestCase):
     endpoint = "sentry-api-0-workflow-storage"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
-        self.run = str(UUID("e225e501-619a-8f73-952b-fd7ad14beadb"))
+        self.run_id = str(UUID("e225e501-619a-8f73-952b-fd7ad14beadb"))
         self.node = str(UUID("be92e441-ac8e-828e-b725-e94ba689ffff"))
         self.system = {
             "HTTP_X_VIEWER_CONTEXT": encode_viewer_context(
@@ -25,9 +27,9 @@ class WorkflowStorageTest(APITestCase):
                 )
             )
         }
-        self.url = reverse(self.endpoint, args=[self.organization.slug, self.run])
+        self.url = reverse(self.endpoint, args=[self.organization.slug, self.run_id])
         self.checkpoint = {
-            "id": self.run,
+            "id": self.run_id,
             "request_id": str(uuid4()),
             "workflow_id": str(uuid4()),
             "input": {},
@@ -40,9 +42,9 @@ class WorkflowStorageTest(APITestCase):
             "max_attempts": 1,
             "status": "running",
         }
-        self.leaf = {
+        self.leaf: dict[str, Any] = {
             "id": self.node,
-            "workflow_run_id": self.run,
+            "workflow_run_id": self.run_id,
             "node_id": "scan",
             "organization_id": self.organization.id,
             "status": "running",
@@ -64,15 +66,15 @@ class WorkflowStorageTest(APITestCase):
             "destination": {"projectIds": []},
         }
 
-    def test_atomic_creation_checkpoint_activity_and_notebook_projection(self):
-        def create():
+    def test_atomic_creation_checkpoint_activity_and_notebook_projection(self) -> None:
+        def create() -> Response:
             return self.client.post(self.url, self.payload, format="json", **self.system)
 
         response = create()
         assert response.status_code == 200, response.data
         assert response.data["created"]
         assert not create().data["created"]
-        run = WorkflowRun.objects.get(uuid=self.run)
+        run = WorkflowRun.objects.get(uuid=self.run_id)
         notebook = run.checkpoint["notebook_id"]
         request = {
             **self.leaf,
@@ -128,7 +130,7 @@ class WorkflowStorageTest(APITestCase):
         self.login_as(self.user)
         public_url = reverse(
             "sentry-api-0-organization-investigation-workflow-run",
-            args=[self.organization.slug, self.run],
+            args=[self.organization.slug, self.run_id],
         )
         public = self.client.get(public_url, {"activity": 1})
         assert public.status_code == 200
@@ -159,11 +161,11 @@ class WorkflowStorageTest(APITestCase):
         # Signing in as a member cannot grant access to the worker API.
         assert self.client.get(self.url).status_code in (401, 403)
 
-    def test_rejects_cross_org_and_rolls_back_an_invalid_graph(self):
-        self.payload["nodes"][0]["organization_id"] += 1
+    def test_rejects_cross_org_and_rolls_back_an_invalid_graph(self) -> None:
+        self.leaf["organization_id"] += 1
         response = self.client.post(self.url, self.payload, format="json", **self.system)
         assert response.status_code == 400
-        assert not WorkflowRun.objects.filter(uuid=self.run).exists()
+        assert not WorkflowRun.objects.filter(uuid=self.run_id).exists()
         assert not WorkflowNodeRun.objects.filter(uuid=self.node).exists()
         self.system["HTTP_X_VIEWER_CONTEXT"] = encode_viewer_context(
             ViewerContext(

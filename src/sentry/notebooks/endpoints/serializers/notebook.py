@@ -148,7 +148,7 @@ class NotebookSerializerResponse(TypedDict):
     ]
 
 
-class NotebookDetailsSerializerResponse(NotebookSerializerResponse):
+class SerializedNotebookDetails(NotebookSerializerResponse):
     """
     Full notebook with ordered active blocks, parameter definitions and saved values, project
     IDs, and source context. source.snapshot is present only for source-backed investigations.
@@ -156,7 +156,6 @@ class NotebookDetailsSerializerResponse(NotebookSerializerResponse):
     re-checks them, newest report first, with that report's primary at the top.
     """
 
-    workflowReport: NotRequired[dict[str, JsonValue]]
     contentRevision: Annotated[str, ApiDescription("Revision of the ordered block contents")]
 
     template: Annotated[
@@ -181,6 +180,10 @@ class NotebookDetailsSerializerResponse(NotebookSerializerResponse):
         list[NotebookActionRequestSerializerResponse],
         ApiDescription("Steps the agent suggests, newest report first"),
     ]
+
+
+class NotebookDetailsSerializerResponse(SerializedNotebookDetails):
+    workflowReport: NotRequired[dict[str, JsonValue]]
 
 
 @register(Notebook)
@@ -348,7 +351,7 @@ class NotebookDetailsSerializer(NotebookSerializer):
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> NotebookDetailsSerializerResponse:
+    ) -> SerializedNotebookDetails:
         resolved_source = obj.source
         source: NotebookSourceSerializerResponse = {
             "type": resolved_source.get("type", NotebookSourceType.MANUAL),

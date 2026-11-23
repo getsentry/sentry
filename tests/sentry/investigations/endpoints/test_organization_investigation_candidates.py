@@ -203,7 +203,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         url = self.start_url + "?version=2"
         assert self.client.post(url, payload, format="json").status_code == 404
 
-        def accept(method, path, *, operation, data):
+        def accept(method: str, path: str, *, operation: str, data: dict[str, Any]) -> Response:
             assert (method, path, operation) == ("POST", "/runs", "runs")
             assert data["workflow"] == "breached_metrics"
             notebook_id = data["input"]["notebookId"]

@@ -74,7 +74,7 @@ def notebook_report(notebook: Notebook) -> dict[str, Any] | None:
                         if call.get("title") and not call.get("parent")
                     )
         for index, plan in enumerate(output.get("hypotheses", [])):
-            card = {
+            planned_card = {
                 "id": f"{row.uuid}-{index}",
                 "order": len(cards),
                 "statement": plan["statement"],
@@ -87,9 +87,9 @@ def notebook_report(notebook: Notebook) -> dict[str, Any] | None:
                 "evidence": [],
                 "verificationSteps": [],
             }
-            cards.append(card)
+            cards.append(planned_card)
             for check in plan.get("verificationSteps", []):
-                update_check(card, check, "queued", None)
+                update_check(planned_card, check, "queued", None)
     for row in rows:
         state = row.checkpoint["state"]
         inputs = state.get("input")
@@ -128,7 +128,7 @@ def notebook_report(notebook: Notebook) -> dict[str, Any] | None:
                     (checked.get("output") or {}).get("finding")
                     or (checked.get("error") or {}).get("message"),
                 )
-            for skipped in inputs.get("skippedChecks", inputs.get("skipped_checks", [])):
+            for skipped in inputs.get("skippedChecks") or inputs.get("skipped_checks") or []:
                 update_check(card, skipped["check"], "skipped", skipped["reason"])
             if output:
                 card["notebookBlockKey"] = f"hypothesis-{row.uuid}"

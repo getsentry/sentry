@@ -17,10 +17,34 @@ POOL = "sentry.investigations.services.workflow_client.seer_autofix_default_conn
 class OrganizationWorkflowRunsTest(APITestCase):
     endpoint = "sentry-api-0-organization-investigation-workflow-runs"
 
+    def test_disabled_investigations_blocks_workflow_api(self) -> None:
+        self.login_as(self.user)
+        url = reverse(
+            "sentry-api-0-organization-investigation-workflow-run",
+            args=[self.organization.slug, str(uuid4())],
+        )
+        with self.feature({"organizations:investigations": False}), patch(POOL) as pool:
+            self.get_error_response(
+                self.organization.slug,
+                method="post",
+                status_code=404,
+                workflow="breached_metrics",
+                input={},
+                requestId=str(uuid4()),
+            )
+            assert self.client.get(url, {"activity": "1"}).status_code == 404
+            assert (
+                self.client.post(
+                    url + "commands/", {"command": "cancel"}, format="json"
+                ).status_code
+                == 404
+            )
+            pool.urlopen.assert_not_called()
+
     @override_settings(
         DEBUG=True, SEER_API_SHARED_SECRET="workflow-service-test-key-for-signed-requests"
     )
-    def test_signed_run_and_status(self):
+    def test_signed_run_and_status(self) -> None:
         self.login_as(self.user)
         run_id = str(uuid4())
         accepted = {"id": run_id, "notebook": True}

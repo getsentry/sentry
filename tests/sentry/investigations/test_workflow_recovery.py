@@ -5,13 +5,14 @@ from django.utils import timezone
 
 from sentry.investigations.models import WorkflowNodeRun, WorkflowRun
 from sentry.investigations.services.workflow_runtime import reserve_due_nodes
+from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook
 from sentry.tasks.seer.investigation import expire_workflow_runs
 from sentry.testutils.cases import TestCase
 
 
 class WorkflowRecoveryTest(TestCase):
-    def make_run(self, organization, notebook_id):
+    def make_run(self, organization: Organization, notebook_id: int | None) -> WorkflowRun:
         return WorkflowRun.objects.create(
             organization=organization,
             uuid=uuid4(),
@@ -21,7 +22,7 @@ class WorkflowRecoveryTest(TestCase):
             checkpoint={"notebook_id": notebook_id},
         )
 
-    def test_due_nodes_are_grouped_by_organization_and_reserved_before_redelivery(self):
+    def test_due_nodes_are_grouped_by_organization_and_reserved_before_redelivery(self) -> None:
         now = timezone.now()
         batches = {}
         for org in (self.organization, self.create_organization()):
@@ -34,7 +35,7 @@ class WorkflowRecoveryTest(TestCase):
         assert reserve_due_nodes() == batches
         assert reserve_due_nodes() == {}
 
-    def test_retention_uses_creation_date_and_preserves_notebook(self):
+    def test_retention_uses_creation_date_and_preserves_notebook(self) -> None:
         notebook = Notebook.objects.create(
             organization=self.organization, created_by_id=self.user.id, title="Retained notebook"
         )

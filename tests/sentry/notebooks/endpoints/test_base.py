@@ -108,6 +108,19 @@ class NotebookWriterTest(APITestCase):
         self.login_as(self.user)
         assert self.client.get(url).status_code == 403
 
+    def test_disabled_investigations_blocks_workflow_notebook_producer(self) -> None:
+        url = self.url("sentry-api-0-organization-notebook-workflow", workflow_run_id=uuid4())
+        agent = self.agent_client()
+        service_account, _ = self.service_account_client()
+        assert agent.post(url, {"title": "Workflow report"}).status_code == 200
+
+        with self.feature({"organizations:investigations": False}):
+            for client in (agent, service_account):
+                assert client.get(url).status_code == 404
+                assert client.post(url, {"title": "Another report"}).status_code == 404
+                assert client.patch(url, {}, format="json").status_code == 404
+                assert client.put(url, {}, format="json").status_code == 404
+
     def test_only_seer_can_register_the_notebook_writer(self) -> None:
         run_id = uuid4()
         url = self.url("sentry-api-0-organization-notebook-workflow", workflow_run_id=run_id)
