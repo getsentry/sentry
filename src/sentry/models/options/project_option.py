@@ -285,9 +285,9 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         self._option_cache[cache_key] = result
         invalidate_relay_config()
 
-    def post_save(self, *, instance: ProjectOption, created: bool, **kwargs: object) -> None:
-        using = kwargs.get("using")
-        assert using is None or isinstance(using, str)
+    def post_save(
+        self, *, instance: ProjectOption, created: bool, using: str | None = None, **kwargs: object
+    ) -> None:
         self.reload_cache(
             instance.project_id, "projectoption.post_save", option_key=instance.key, using=using
         )

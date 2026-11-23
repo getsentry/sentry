@@ -507,7 +507,14 @@ class BaseManager(_base_manager_base[M]):
         cache_key = self.__get_lookup_cache_key(**{pk_name: instance_id})
         cache.delete(cache_key, version=self.cache_version)
 
-    def post_save(self, *, instance: M, created: bool, **kwargs: object) -> None:  # type: ignore[misc]  # python/mypy#6178
+    def post_save(
+        self,
+        *,
+        instance: M,  # type: ignore[misc]  # python/mypy#6178
+        created: bool,
+        using: str | None = None,
+        **kwargs: object,
+    ) -> None:
         """
         Triggered when a model bound to this manager is saved.
         """
