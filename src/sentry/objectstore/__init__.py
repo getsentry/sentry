@@ -186,11 +186,9 @@ def get_session(
 
     An explicit organization ID must match the project model's organization.
     """
-    if project is None and org is None:
-        raise ValueError("project or org is required")
-
     if project is None:
-        assert org is not None
+        if org is None:
+            raise ValueError("project or org is required")
         scope = {"org": org}
     elif isinstance(project, int):
         if org is None:
