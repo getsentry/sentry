@@ -116,6 +116,25 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         "additionalProperties": False,
     }
 
+    # Seer investigation workflows can also run on a cron schedule.
+    seer_investigation_config_schema = {
+        **config_schema,
+        "title": "Seer Investigation Workflow Schema",
+        "properties": {
+            **config_schema["properties"],
+            "cron": {
+                "description": "Cron expression for when the workflow runs, evaluated in timezone",
+                "type": "string",
+                "minLength": 1,
+            },
+            "timezone": {
+                "description": "IANA timezone name the cron is evaluated in; UTC if unset",
+                "type": "string",
+                "minLength": 1,
+            },
+        },
+    }
+
     __repr__ = sane_repr("organization_id")
 
     class Meta:
@@ -130,6 +149,11 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         indexes = [
             models.Index(fields=["type", "organization"], name="workflow_type_org_idx"),
         ]
+
+    def get_config_schema(self) -> dict[str, Any]:
+        if self.type == Workflow.Type.SEER_INVESTIGATION:
+            return self.seer_investigation_config_schema
+        return self.config_schema
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name, "type": self.type}
