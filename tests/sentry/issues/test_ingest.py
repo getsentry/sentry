@@ -13,7 +13,10 @@ from sentry.api.helpers.group_index.update import handle_priority
 from sentry.constants import MAX_CULPRIT_LENGTH, parse_log_level
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue, MetricIssueDetectorHandler
-from sentry.incidents.utils.types import AnomalyDetectionUpdate, ProcessedSubscriptionUpdate
+from sentry.incidents.utils.types import (
+    AnomalyDetectionProcessedSubscriptionUpdate,
+    ProcessedSubscriptionUpdate,
+)
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
@@ -297,9 +300,9 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         )
 
         handler = MetricIssueDetectorHandler(detector)
-        data_packet: DataPacket[ProcessedSubscriptionUpdate | AnomalyDetectionUpdate] = DataPacket(
-            str(query_subscription.id), query_subscription_update
-        )
+        data_packet: DataPacket[
+            ProcessedSubscriptionUpdate | AnomalyDetectionProcessedSubscriptionUpdate
+        ] = DataPacket(str(query_subscription.id), query_subscription_update)
         eval_result = handler._evaluate(data_packet)
 
         occurrence = None

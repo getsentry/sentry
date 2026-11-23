@@ -10,7 +10,7 @@ from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.incidents.utils.types import (
-    AnomalyDetectionUpdate,
+    AnomalyDetectionProcessedSubscriptionUpdate,
     MetricDetectorProcessedSubscriptionUpdate,
     MetricResult,
 )
@@ -127,7 +127,7 @@ class MetricIssueDetectorHandler(
     def extract_value(
         self, data_packet: DataPacket[MetricDetectorProcessedSubscriptionUpdate]
     ) -> MetricResult:
-        if isinstance(data_packet.packet, AnomalyDetectionUpdate):
+        if isinstance(data_packet.packet, AnomalyDetectionProcessedSubscriptionUpdate):
             return data_packet.packet.values
         return data_packet.packet.values["value"]
 

@@ -41,14 +41,16 @@ class ProcessedSubscriptionUpdate:
 
 
 @dataclass
-class AnomalyDetectionUpdate:
+class AnomalyDetectionProcessedSubscriptionUpdate:
     entity: str
     subscription_id: str
     values: AnomalyDetectionValues
     timestamp: datetime
 
 
-MetricDetectorProcessedSubscriptionUpdate = ProcessedSubscriptionUpdate | AnomalyDetectionUpdate
+MetricDetectorProcessedSubscriptionUpdate = (
+    ProcessedSubscriptionUpdate | AnomalyDetectionProcessedSubscriptionUpdate
+)
 
 
 MetricResult = float | AnomalyDetectionValues

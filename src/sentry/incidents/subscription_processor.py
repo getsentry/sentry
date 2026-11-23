@@ -15,7 +15,7 @@ from sentry.incidents.utils.query_helpers import (
 )
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
 from sentry.incidents.utils.types import (
-    AnomalyDetectionUpdate,
+    AnomalyDetectionProcessedSubscriptionUpdate,
     MetricDetectorProcessedSubscriptionUpdate,
     ProcessedSubscriptionUpdate,
     QuerySubscriptionUpdate,
@@ -223,7 +223,7 @@ class SubscriptionProcessor:
             )
 
         elif detection_type == AlertRuleDetectionType.DYNAMIC.value:
-            processed_subscription_update = AnomalyDetectionUpdate(
+            processed_subscription_update = AnomalyDetectionProcessedSubscriptionUpdate(
                 entity=entity,
                 subscription_id=self.snuba_subscription_id,
                 values={
