@@ -37,8 +37,7 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
             model_relations.append(ModelRelation(AlertRule, {"id__in": alert_rule_ids}))
 
         owned_source_ids = self._detach_shared_sources(instance)
-        if owned_source_ids:
-            model_relations.append(ModelRelation(DataSource, {"id__in": owned_source_ids}))
+        model_relations.append(ModelRelation(DataSource, {"id__in": owned_source_ids}))
 
         if instance.workflow_condition_group_id:
             model_relations.append(
@@ -48,6 +47,10 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
         return model_relations
 
     def _detach_shared_sources(self, instance: Detector) -> set[int]:
+        # Deletion relation validation inspects unsaved instances, which own no sources.
+        if instance.pk is None:
+            return set()
+
         # Concurrent deletions of the last two detectors must agree on which one
         # owns cleanup. Keep exclusive links until the child deletion succeeds.
         with transaction.atomic(using=router.db_for_write(DataSource)):
