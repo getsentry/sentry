@@ -16,7 +16,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.paginator import DateTimePaginator
+from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.models.organization import Organization
@@ -58,13 +58,14 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
         # caller still sees org-wide rows, never another project's.
         projects = self.get_projects(request, organization)
         project_ids = [p.id for p in projects]
+        environments = self.get_environments(request, organization)
+        environment_ids = {e.id for e in environments}
 
-        if features.has(
-            "organizations:timeseries-annotations-usecase-sdk-config-experimental",
-            organization,
-            actor=request.user,
-        ):
-            self._persist_sdk_config_annotations(organization, projects, start, end)
+        scopes = _parse_labels(request.GET.getlist("scope"), AnnotationScope, "scope")
+        types = _parse_labels(
+            request.GET.getlist("annotationType"), AnnotationType, "annotationType"
+        )
+        severities = _parse_labels(request.GET.getlist("severity"), Severity, "severity")
 
         queryset = (
             TimeseriesAnnotation.objects.within_retention(organization)
@@ -72,52 +73,68 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
             .filter(_window_overlap(start, end))
             .filter(Q(project_id__in=project_ids) | Q(project_id__isnull=True))
         )
-
         # Environment-level annotations are scoped like projects: a request filtering by
         # environment still sees org-wide (null environment) rows, never another env's.
-        environments = self.get_environments(request, organization)
-        if environments:
+        if environment_ids:
             queryset = queryset.filter(
-                Q(environment_id__in=[e.id for e in environments]) | Q(environment_id__isnull=True)
+                Q(environment_id__in=environment_ids) | Q(environment_id__isnull=True)
             )
-
-        scopes = _parse_labels(request.GET.getlist("scope"), AnnotationScope, "scope")
         if scopes:
             queryset = queryset.filter(scope__in=scopes)
-
-        types = _parse_labels(
-            request.GET.getlist("annotationType"), AnnotationType, "annotationType"
-        )
         if types:
             queryset = queryset.filter(annotation_type__in=types)
-
-        severities = _parse_labels(request.GET.getlist("severity"), Severity, "severity")
         if severities:
             queryset = queryset.filter(severity__in=severities)
 
-        # Client-side bucketing is correct only when the window fits one page; once results span
-        # pages it undercounts. Server-side bucketing to come.
+        annotations: list[TimeseriesAnnotation] = list(queryset)
+        if features.has(
+            "organizations:timeseries-annotations-usecase-sdk-config-experimental",
+            organization,
+            actor=request.user,
+        ):
+            annotations += self._sdk_config_annotations(
+                organization, projects, start, end, environment_ids, scopes, types, severities
+            )
+
+        # Order stored and derived (unsaved) annotations together by start time, id as a stable
+        # tiebreaker. The paginator scores by list position so equal-timestamp rows never fall
+        # back to comparing model instances (which aren't orderable).
+        annotations.sort(key=lambda a: (a.start_timestamp, a.id))
         return self.paginate(
             request=request,
-            queryset=queryset,
-            paginator_cls=DateTimePaginator,
-            order_by="start_timestamp",
-            on_results=lambda rows: serialize(
-                list(rows), request.user, TimeseriesAnnotationSerializer()
-            ),
+            paginator=SequencePaginator(list(enumerate(annotations))),
+            on_results=lambda rows: serialize(rows, request.user, TimeseriesAnnotationSerializer()),
         )
 
-    def _persist_sdk_config_annotations(
+    def _sdk_config_annotations(
         self,
         organization: Organization,
         projects: list[Project],
         start: datetime,
         end: datetime,
-    ) -> None:
+        environment_ids: set[int],
+        scopes: list[int],
+        types: list[int],
+        severities: list[int],
+    ) -> list[TimeseriesAnnotation]:
+        """Derive SDK-config-change annotations live from the metric; never persisted.
+
+        Best-effort: a metrics-read failure must never break the list. The derived rows are
+        filtered by the same request criteria the stored queryset applies.
+        """
         try:
-            sdk_config_change_as_annotations(organization, projects, start, end)
+            derived = sdk_config_change_as_annotations(organization, projects, start, end)
         except Exception:
             logger.exception("timeseries_annotations.sdk_config_producer_failed")
+            return []
+        return [
+            a
+            for a in derived
+            if (not environment_ids or a.environment_id in environment_ids)
+            and (not scopes or a.scope in scopes)
+            and (not types or a.annotation_type in types)
+            and (not severities or a.severity in severities)
+        ]
 
 
 def _window_overlap(start: datetime, end: datetime) -> Q:

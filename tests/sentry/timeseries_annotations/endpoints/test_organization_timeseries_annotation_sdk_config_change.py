@@ -10,6 +10,7 @@ from sentry.utils import json
 
 _TIMELINE_REFERRER = Referrer.API_TIMESERIES_ANNOTATIONS_SDK_CONFIG_TIMELINE.value
 _PROJECT_COL = "project.id"
+_ENVIRONMENT_COL = "environment"
 _HASH_COL = "tags[sentry.sdk_config.hash,string]"
 _PAYLOAD_COL = "tags[sentry.sdk_config.payload,string]"
 _FIRST_SEEN_COL = "min(timestamp_precise)"
@@ -42,10 +43,20 @@ def _fake_run_table_query_for(project_ids: list[int]) -> Any:
             rows = []
             for project_id in project_ids:
                 rows.append(
-                    {_PROJECT_COL: project_id, _HASH_COL: "h1", _FIRST_SEEN_COL: 1_795_000_000.0}
+                    {
+                        _PROJECT_COL: project_id,
+                        _ENVIRONMENT_COL: "production",
+                        _HASH_COL: "h1",
+                        _FIRST_SEEN_COL: 1_795_000_000.0,
+                    }
                 )
                 rows.append(
-                    {_PROJECT_COL: project_id, _HASH_COL: "h2", _FIRST_SEEN_COL: 1_795_010_000.0}
+                    {
+                        _PROJECT_COL: project_id,
+                        _ENVIRONMENT_COL: "production",
+                        _HASH_COL: "h2",
+                        _FIRST_SEEN_COL: 1_795_010_000.0,
+                    }
                 )
             return {"data": rows, "meta": {}, "confidence": []}
         # Payload fetch: the hash is quoted in the query string.
@@ -99,26 +110,27 @@ class SdkConfigAnnotationProducerTest(APITestCase):
         assert row["createdByLabel"] == "sdk-config-producer"
         assert row["severity"] == "high"
 
-    def test_idempotent_on_repeat(self) -> None:
+    def test_derived_annotations_are_not_persisted(self) -> None:
+        # Computed live and served, never written: repeat reads are stable and the DB stays empty.
         with self._with_flags():
-            self._get()
-            self._get()
-        assert (
-            TimeseriesAnnotation.objects.filter(
-                organization_id=self.organization.id,
-                annotation_type=AnnotationType.SDK_CONFIG_CHANGE_EXPERIMENTAL,
-            ).count()
-            == 1
-        )
+            first = self._get()
+            second = self._get()
+        config_rows = [
+            r for r in first.data if r["annotationType"] == "sdk_config_change_experimental"
+        ]
+        assert len(config_rows) == 1
+        assert [r["id"] for r in first.data] == [r["id"] for r in second.data]
+        assert not TimeseriesAnnotation.objects.filter(
+            annotation_type=AnnotationType.SDK_CONFIG_CHANGE_EXPERIMENTAL
+        ).exists()
 
     def test_type_filter_excludes_config_annotations(self) -> None:
         with self._with_flags():
-            response = self._get(annotationType="sentry_outage")
-        assert response.data == []
-        # The annotation was still created, just filtered out of this response.
-        assert TimeseriesAnnotation.objects.filter(
-            annotation_type=AnnotationType.SDK_CONFIG_CHANGE_EXPERIMENTAL
-        ).exists()
+            excluded = self._get(annotationType="sentry_outage")
+            included = self._get()
+        # Filtered out when the type doesn't match, present otherwise.
+        assert excluded.data == []
+        assert any(r["annotationType"] == "sdk_config_change_experimental" for r in included.data)
 
     def test_disabled_without_usecase_flag(self) -> None:
         with self.feature({"organizations:timeseries-annotations": True}):
@@ -198,3 +210,52 @@ class SdkConfigAnnotationProducerTest(APITestCase):
                 )
         assert response.data == []
         assert mock_query.call_count == 1  # timeline only, no payload fetch
+
+    def test_environments_are_not_mixed_into_false_transitions(self) -> None:
+        # Prod sits on config h1, staging on config h2, concurrently — each a single config in its
+        # own environment. Bucketed by (project, environment) this is no change; only if the two
+        # environments were merged into one project timeline would it look like an h1->h2 flap.
+        def _two_envs(**kwargs: Any) -> dict[str, Any]:
+            if kwargs["referrer"] == _TIMELINE_REFERRER:
+                return {
+                    "data": [
+                        {
+                            _PROJECT_COL: self.project.id,
+                            _ENVIRONMENT_COL: "production",
+                            _HASH_COL: "h1",
+                            _FIRST_SEEN_COL: 1_795_000_000.0,
+                        },
+                        {
+                            _PROJECT_COL: self.project.id,
+                            _ENVIRONMENT_COL: "staging",
+                            _HASH_COL: "h2",
+                            _FIRST_SEEN_COL: 1_795_010_000.0,
+                        },
+                    ],
+                    "meta": {},
+                    "confidence": [],
+                }
+            raise AssertionError("single-config scopes should never fetch a payload")
+
+        with self._with_flags():
+            with patch(
+                "sentry.timeseries_annotations.producers.sdk_config_change.TraceMetrics.run_table_query",
+                side_effect=_two_envs,
+            ):
+                response = self.get_success_response(
+                    self.organization.slug, project=self.project.id, statsPeriod="14d"
+                )
+        assert response.data == []
+        assert not TimeseriesAnnotation.objects.filter(
+            annotation_type=AnnotationType.SDK_CONFIG_CHANGE_EXPERIMENTAL
+        ).exists()
+
+    def test_transition_sets_environment_id(self) -> None:
+        environment = self.create_environment(project=self.project, name="production")
+        with self._with_flags():
+            response = self._get()
+        config_rows = [
+            r for r in response.data if r["annotationType"] == "sdk_config_change_experimental"
+        ]
+        assert len(config_rows) == 1
+        assert config_rows[0]["environmentId"] == str(environment.id)

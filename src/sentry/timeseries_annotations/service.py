@@ -28,6 +28,7 @@ class TimeseriesAnnotationData:
     start_timestamp: datetime
 
     project_id: int | None = None
+    environment_id: int | None = None
     end_timestamp: datetime | None = None
     interval_type: IntervalType = IntervalType.POINT
     scope: AnnotationScope = AnnotationScope.GLOBAL
@@ -46,6 +47,7 @@ class TimeseriesAnnotationData:
             id=annotation.id,
             organization_id=annotation.organization_id,
             project_id=annotation.project_id,
+            environment_id=annotation.environment_id,
             annotation_type=AnnotationType(annotation.annotation_type),
             description=annotation.description,
             start_timestamp=annotation.start_timestamp,
@@ -86,6 +88,7 @@ def create_timeseries_annotation(data: TimeseriesAnnotationData) -> TimeseriesAn
     annotation = TimeseriesAnnotation.objects.create(
         organization_id=data.organization_id,
         project_id=data.project_id,
+        environment_id=data.environment_id,
         start_timestamp=data.start_timestamp,
         end_timestamp=data.end_timestamp,
         interval_type=data.interval_type,
