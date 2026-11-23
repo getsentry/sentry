@@ -27,7 +27,7 @@ from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
 from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.utils.sdk import get_transaction_name_from_request
-from sentry.viewer_context import ActorType
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 EVENTS_PATH = "/api/0/organizations/my-org/events/"
 EVENTS_ROUTE = "/api/0/organizations/{organization_id_or_slug}/events/"
@@ -250,6 +250,16 @@ class GetActorTypeTest(TestCase):
     def test_agent(self) -> None:
         auth = AuthenticatedToken(kind=AGENT_TOKEN_KIND, user_id=1, organization_id=1)
         assert get_actor_type(make_request(auth=auth)) == ActorType.AGENT
+
+    def test_agent_from_viewer_context(self) -> None:
+        # Viewer-context auth loads the delegated user and leaves auth unset, so the
+        # agent is only on the viewer context.
+        user = self.create_user()
+        request = make_request(user=user, headers={"X-Viewer-Context": "a.b.c"})
+        setattr(request, "user_from_viewer_context", True)
+        ctx = ViewerContext(actor=Actor(type=ActorType.AGENT, delegated_user_id=user.id))
+        with viewer_context_scope(ctx):
+            assert get_actor_type(request) == ActorType.AGENT
 
     def test_anonymous_is_unknown(self) -> None:
         assert get_actor_type(make_request()) == ActorType.UNKNOWN
