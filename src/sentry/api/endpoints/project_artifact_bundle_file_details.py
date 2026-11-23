@@ -1,7 +1,6 @@
 import base64
 import binascii
 import posixpath
-from contextlib import ExitStack
 
 import sentry_sdk
 from django.core.exceptions import ValidationError
@@ -24,30 +23,28 @@ class ProjectArtifactBundleFileDetailsMixin:
     def download_file_from_artifact_bundle(
         cls, file_path: str, archive: ArtifactBundleArchive
     ) -> Response | FileResponse:
-        with ExitStack() as stack:
-            stack.enter_context(archive)
-            try:
-                fp, headers = archive.get_file(file_path)
-                stack.enter_context(fp)
-                file_info = archive.get_file_info(file_path)
-            except Exception:
-                return Response(
-                    {"error": f"The file {file_path} can't be found in the artifact bundle"},
-                    status=404,
-                )
+        try:
+            fp, headers = archive.get_file(file_path)
+            file_info = archive.get_file_info(file_path)
+        except Exception:
+            # In case we fail here, we want to close the fail before returning.
+            archive.close()
+            return Response(
+                {"error": f"The file {file_path} can't be found in the artifact bundle"},
+                status=404,
+            )
 
-            response = FileResponse(
-                ClosesDependentFiles(fp, archive),
-                content_type=headers.get("content-type", "application/octet-stream"),
-            )
-            if file_info is not None:
-                response["Content-Length"] = file_info.file_size
-            response["Content-Disposition"] = 'attachment; filename="%s"' % posixpath.basename(
-                " ".join(file_path.split())
-            )
-            # The completed response now closes the ZIP entry and its backing archive.
-            stack.pop_all()
-            return response
+        response = FileResponse(
+            ClosesDependentFiles(fp, archive),
+            content_type=headers.get("content-type", "application/octet-stream"),
+        )
+        if file_info is not None:
+            response["Content-Length"] = file_info.file_size
+        response["Content-Disposition"] = 'attachment; filename="%s"' % posixpath.basename(
+            " ".join(file_path.split())
+        )
+
+        return response
 
 
 @cell_silo_endpoint

@@ -6,7 +6,6 @@ import shutil
 import tempfile
 import zipfile
 from collections.abc import Callable, Mapping
-from contextlib import ExitStack
 from datetime import timedelta
 from enum import Enum
 from types import TracebackType
@@ -123,14 +122,26 @@ class ArtifactBundle(Model):
         return get_session(UsecaseId.ARTIFACT_BUNDLES, project=None, org=self.organization_id)
 
     def get_file(self) -> IO[bytes]:
-        """Open the bundle contents. The caller is responsible for closing the stream."""
+        """Open the bundle contents as a seekable stream, which reading the ZIP requires.
+
+        Objectstore bundles are downloaded to a temporary file first.
+        The caller is responsible for closing the stream.
+        """
         if self.storage_path is None:
             assert self.file is not None
             return self.file.getfile()
         response = self.get_objectstore_session().get(self.storage_path)
         if response is None:
             raise FileNotFoundError("Artifact bundle does not exist in Objectstore")
-        return response.payload
+        contents = tempfile.TemporaryFile()
+        try:
+            with response.payload:
+                shutil.copyfileobj(response.payload, contents)
+        except BaseException:
+            contents.close()
+            raise
+        contents.seek(0)
+        return contents
 
     def delete_objectstore_file_on_commit(self) -> None:
         # Assembly may replace the bundle's storage path before the transaction commits.
@@ -289,33 +300,20 @@ class ProjectArtifactBundle(Model):
 
 
 class ArtifactBundleArchive:
-    """Read-only ZIP archive. Takes ownership of the input, even if opening the archive fails."""
+    """Read-only view of uploaded ZIP artifact bundle."""
 
     def __init__(self, fileobj: IO[bytes], build_memory_map: bool = True) -> None:
-        with ExitStack() as stack:
-            if fileobj.seekable():
-                contents = stack.enter_context(fileobj)
-            else:
-                # ZIP reads seek to the central directory and back to individual entries.
-                # Close the source as soon as the copy finishes. The archive keeps the tempfile.
-                with fileobj:
-                    contents = stack.enter_context(tempfile.TemporaryFile())
-                    shutil.copyfileobj(fileobj, contents)
-                contents.seek(0)
+        self._fileobj = fileobj
+        self._zip_file = zipfile.ZipFile(self._fileobj)
+        self._entries_by_debug_id: dict[tuple[str, SourceFileType], tuple[str, str, dict[str, Any]]]
+        self._entries_by_debug_id = {}
+        self._entries_by_url: dict[str, tuple[str, dict[str, Any]]] = {}
 
-            self._zip_file = stack.enter_context(zipfile.ZipFile(contents))
-            self._entries_by_debug_id: dict[
-                tuple[str, SourceFileType], tuple[str, str, dict[str, Any]]
-            ]
-            self._entries_by_debug_id = {}
-            self._entries_by_url: dict[str, tuple[str, dict[str, Any]]] = {}
+        self.manifest = self._read_manifest()
+        self.artifact_count = len(self.manifest.get("files", {}))
 
-            self.manifest = self._read_manifest()
-            self.artifact_count = len(self.manifest.get("files", {}))
-
-            if build_memory_map:
-                self._build_memory_maps()
-            self._resources = stack.pop_all()
+        if build_memory_map:
+            self._build_memory_maps()
 
     def __enter__(self) -> Self:
         return self
@@ -329,7 +327,8 @@ class ArtifactBundleArchive:
         self.close()
 
     def close(self) -> None:
-        self._resources.close()
+        self._zip_file.close()
+        self._fileobj.close()
 
     def info(self, filename: str) -> zipfile.ZipInfo:
         return self._zip_file.getinfo(filename)
