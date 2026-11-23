@@ -130,17 +130,11 @@ function EventTagsTreeRowDropdown({
     highlightTagSet.has(originalTag.key);
   const query = generateQueryWithTag(
     {referrer},
-    {
-      ...originalTag,
-      key: escapeIssueTagKey(originalTag.key),
-    }
+    {...originalTag, key: escapeIssueTagKey(originalTag.key)}
   );
   const globalSelectionParams = extractSelectionParameters(location.query);
 
-  const isProjectAdmin = hasEveryAccess(['project:admin'], {
-    organization,
-    project,
-  });
+  const isProjectAdmin = hasEveryAccess(['project:admin'], {organization, project});
   const isIssueDetailsRoute = location.pathname.includes(`issues/${event.groupID}/`);
   const isFeedback = Boolean(event.contexts.feedback);
 
@@ -215,9 +209,7 @@ function EventTagsTreeRowDropdown({
       hidden: hideAddHighlightsOption || !isProjectAdmin || isFeedback,
       onAction: () => {
         saveTag(
-          {
-            highlightTags: [...(project?.highlightTags ?? []), originalTag.key],
-          },
+          {highlightTags: [...(project?.highlightTags ?? []), originalTag.key]},
           {
             onError: () => {
               toast.error(
@@ -257,11 +249,7 @@ function EventTagsTreeRowDropdown({
         originalTag.key === 'transaction'
           ? {
               pathname: `${getTransactionSummaryBaseUrl(organization)}/`,
-              query: {
-                project: event.projectID,
-                transaction: content.value,
-                referrer,
-              },
+              query: {project: event.projectID, transaction: content.value, referrer},
             }
           : undefined,
     },
@@ -283,15 +271,7 @@ function EventTagsTreeRowDropdown({
     visitExternalLinkAction(content.value),
   ];
 
-  return (
-    <KeyValueTreeRowActions
-      ariaLabel={t('Tag Actions Menu')}
-      items={items}
-      // Inline, the menu is trapped in the focused row's stacking context and
-      // renders under positioned content further down the page.
-      usePortal
-    />
-  );
+  return <KeyValueTreeRowActions ariaLabel={t('Tag Actions Menu')} items={items} />;
 }
 
 function EventTagsTreeValue({
@@ -353,14 +333,7 @@ function EventTagsTreeValue({
       });
       tagValue = (
         <TagLinkText>
-          <Link
-            to={{
-              pathname: replayPath,
-              query: {referrer},
-            }}
-          >
-            {content.value}
-          </Link>
+          <Link to={{pathname: replayPath, query: {referrer}}}>{content.value}</Link>
         </TagLinkText>
       );
       break;

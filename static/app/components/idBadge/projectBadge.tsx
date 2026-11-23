@@ -74,10 +74,8 @@ function ProjectBadge({
 
   if (!disableLink && organization?.slug) {
     const defaultTo =
-      makeProjectsPathname({
-        path: `/${project.slug}/`,
-        organization,
-      }) + (project.id ? `?project=${project.id}` : '');
+      makeProjectsPathname({path: `/${project.slug}/`, organization}) +
+      (project.id ? `?project=${project.id}` : '');
 
     return (
       <StyledLink

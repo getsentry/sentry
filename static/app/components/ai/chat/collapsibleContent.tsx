@@ -1,11 +1,43 @@
 import type {ReactNode} from 'react';
-import {useState} from 'react';
+import {createContext, useContext, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {TURN_META_WIDTH} from './turnMeta';
+
+export interface CollapsibleExpandAll {
+  /** Bumped on every expand or collapse all, so a repeated one applies again. */
+  generation: number;
+  open: boolean;
+}
+
+/**
+ * Opens or closes every collapsible section below it, e.g. a transcript's expand
+ * all. A section toggled by hand keeps its state until the next expand or collapse
+ * all.
+ */
+export const CollapsibleExpandAllContext = createContext<CollapsibleExpandAll | null>(
+  null
+);
+
+/**
+ * Open state for a collapsible section that follows expand and collapse all. It
+ * starts from the latest one, or `defaultOpen` without one.
+ */
+export function useCollapsibleOpenState(defaultOpen: boolean) {
+  const expandAll = useContext(CollapsibleExpandAllContext);
+  const [isOpen, setIsOpen] = useState(expandAll?.open ?? defaultOpen);
+  // Adjusted during render rather than in an effect, so every section changes in
+  // the same render.
+  const [generation, setGeneration] = useState(expandAll?.generation);
+  if (expandAll && expandAll.generation !== generation) {
+    setGeneration(expandAll.generation);
+    setIsOpen(expandAll.open);
+  }
+  return [isOpen, setIsOpen] as const;
+}
 
 interface CollapsibleContentProps {
   /** The rendered content revealed when expanded (markdown, nested blocks, etc.). */
@@ -17,21 +49,15 @@ interface CollapsibleContentProps {
   title: ReactNode | ((isOpen: boolean) => ReactNode);
   /** Forwarded to the root `<details>`, so callers can style it with `styled()`. */
   className?: string;
-  /** Start expanded. Defaults to collapsed. */
+  /** Start expanded when uncontrolled. Defaults to collapsed. */
   defaultOpen?: boolean;
   /** Fires on expand/collapse with the new open state. */
-  onToggle?: (open: boolean) => void;
+  onOpenChange?: (open: boolean) => void;
   /**
-   * Expands the section whenever this turns true, e.g. when a selected item
-   * inside it loads after the section first rendered. The user can still
-   * collapse it afterwards.
+   * The open state, for a caller that controls it (paired with `onOpenChange`).
+   * Without it the section keeps its own state, starting from `defaultOpen`.
    */
-  openWhen?: boolean;
-  /**
-   * Show the leading caret. Turn it off for a title that shows its own open
-   * state. Defaults to shown.
-   */
-  showCaret?: boolean;
+  open?: boolean;
 }
 
 /**
@@ -45,29 +71,23 @@ export function CollapsibleContent({
   title,
   className,
   defaultOpen = false,
-  openWhen = false,
-  showCaret = true,
-  onToggle,
+  open,
+  onOpenChange,
 }: CollapsibleContentProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen || openWhen);
-  // Adjusts state during render when `openWhen` changes, rather than in an
-  // effect, so the section opens in the same render.
-  const [prevOpenWhen, setPrevOpenWhen] = useState(openWhen);
-  if (openWhen !== prevOpenWhen) {
-    setPrevOpenWhen(openWhen);
-    if (openWhen) {
-      setIsOpen(true);
-    }
-  }
+  const [uncontrolledOpen, setUncontrolledOpen] = useCollapsibleOpenState(defaultOpen);
+  const isOpen = open ?? uncontrolledOpen;
 
   return (
     <Details
       open={isOpen}
       className={className}
       onToggle={e => {
-        const open = e.currentTarget.open;
-        setIsOpen(open);
-        onToggle?.(open);
+        const nextOpen = e.currentTarget.open;
+        if (nextOpen === isOpen) {
+          return;
+        }
+        setUncontrolledOpen(nextOpen);
+        onOpenChange?.(nextOpen);
       }}
     >
       <Flex
@@ -80,9 +100,7 @@ export function CollapsibleContent({
         cursor="pointer"
         onClick={e => e.stopPropagation()}
       >
-        {showCaret && (
-          <IconChevron direction={isOpen ? 'down' : 'right'} size="sm" variant="muted" />
-        )}
+        <IconChevron direction={isOpen ? 'down' : 'right'} size="sm" variant="muted" />
         {typeof title === 'function' ? title(isOpen) : title}
       </Flex>
       {children}

@@ -231,9 +231,7 @@ export function usePendingUserInput({
     if (nextIndex >= totalQuestions) {
       // All questions answered - submit
       if (pendingInputId) {
-        respondToUserInput(pendingInputId, {
-          answers: newAnswers,
-        });
+        respondToUserInput(pendingInputId, {answers: newAnswers});
       }
     } else {
       // Move to next question

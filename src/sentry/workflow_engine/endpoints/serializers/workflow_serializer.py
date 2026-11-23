@@ -47,7 +47,6 @@ ActionTypeName = Literal[
     "sentry_app",
     "plugin",
     "webhook",
-    "seer_workflow",
     "seer_investigation",
 ]
 LogicTypeName = Literal["any", "any-short", "all", "none"]

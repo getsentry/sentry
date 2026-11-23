@@ -126,22 +126,13 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
     isPending: isReleaseLoading,
     isError: isReleaseError,
   } = useQuery(
-    releaseApiOptions({
-      orgSlug: organization.slug,
-      projectSlug,
-      releaseVersion,
-    })
+    releaseApiOptions({orgSlug: organization.slug, projectSlug, releaseVersion})
   );
   const {
     data: deploys,
     isPending: isDeploysLoading,
     isError: isDeploysError,
-  } = useQuery(
-    deploysApiOptions({
-      orgSlug: organization.slug,
-      releaseVersion,
-    })
-  );
+  } = useQuery(deploysApiOptions({orgSlug: organization.slug, releaseVersion}));
 
   const repoLink = (
     <ConnectRepo>
@@ -161,11 +152,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
     () =>
       release?.authors.map<Actor | User>(author =>
         // Add a unique id if missing
-        ({
-          ...author,
-          type: 'user',
-          id: 'id' in author ? author.id : uniqueId(),
-        })
+        ({...author, type: 'user', id: 'id' in author ? author.id : uniqueId()})
       ),
     [release?.authors]
   );

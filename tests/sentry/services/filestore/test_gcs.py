@@ -1,5 +1,3 @@
-from collections.abc import Callable
-from typing import cast
 from unittest import mock
 
 import pytest
@@ -10,10 +8,10 @@ from google.api_core.exceptions import (
     ServiceUnavailable,
 )
 
-_ServiceUnavailable = cast("Callable[[str], ServiceUnavailable]", ServiceUnavailable)
-_InternalServerError = cast("Callable[[str], InternalServerError]", InternalServerError)
-_BadGateway = cast("Callable[[str], BadGateway]", BadGateway)
-_Forbidden = cast("Callable[[str], Forbidden]", Forbidden)
+_ServiceUnavailable = ServiceUnavailable
+_InternalServerError = InternalServerError
+_BadGateway = BadGateway
+_Forbidden = Forbidden
 
 from sentry.services.filestore.gcs import (
     GCS_RETRIES,

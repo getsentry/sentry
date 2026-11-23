@@ -62,10 +62,5 @@ function getSentryAppAvatarProps(
     return null;
   }
 
-  return {
-    type: 'upload',
-    uploadUrl,
-    identifier,
-    name,
-  };
+  return {type: 'upload', uploadUrl, identifier, name};
 }

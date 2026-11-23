@@ -137,6 +137,45 @@ describe('AIContentRenderer', () => {
     expect(hasAnnotations(container.textContent ?? '')).toBe(false);
   });
 
+  it('marks scrubbed values in inline code', () => {
+    const marked = annotate(
+      '[email]',
+      JSON.stringify({ruleId: '@email:replace', remark: 's'})
+    );
+    // Inline code across a line isn't detected as markdown, so it reaches the plain
+    // text renderer.
+    const texts = [`Run \`send("${marked}")\` now`, `Run \`send(\n"${marked}")\` now`];
+
+    for (const text of texts) {
+      const {container, unmount} = render(<AIContentRenderer text={text} />);
+      expect(screen.getByText('[email]').closest('code')).toBeInTheDocument();
+      expect(hasAnnotations(container.textContent ?? '')).toBe(false);
+      unmount();
+    }
+  });
+
+  it('drops the marks of scrubbed values in code', () => {
+    const marked = annotate(
+      '[email]',
+      JSON.stringify({ruleId: '@email:replace', remark: 's'})
+    );
+    // Tilde fences and indented code aren't detected as markdown, so they reach the
+    // plain text renderer, which still renders them as code.
+    const texts = [
+      `Run:\n\n\`\`\`python\nsend("${marked}")\n\`\`\``,
+      `Run \`send("${marked}")\` now`,
+      `Run:\n\n~~~\nsend("${marked}")\n~~~`,
+      `Run:\n\n    send("${marked}")`,
+    ];
+
+    for (const text of texts) {
+      const {container, unmount} = render(<AIContentRenderer text={text} />);
+      expect(container).toHaveTextContent('send("[email]")');
+      expect(container).not.toHaveTextContent(/[\uFDD0-\uFDD2\uE100-\uE17F]/);
+      unmount();
+    }
+  });
+
   it('renders collapsible XML tags with tag name label', () => {
     const text = '<thinking>\nsome thought\n</thinking>';
     render(<AIContentRenderer text={text} inline />);

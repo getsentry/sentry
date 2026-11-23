@@ -1,7 +1,5 @@
 import type {ReactNode} from 'react';
-import {IconChevron} from '@sentry/icons/chevron';
 
-import {getDuration} from '@sentry/scraps/duration';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -9,6 +7,7 @@ import {CollapsibleChatRow} from 'sentry/components/ai/chat/collapsibleContent';
 import {TurnMeta} from 'sentry/components/ai/chat/turnMeta';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useSelectionOpenState} from 'sentry/views/explore/conversations/hooks/useSelectionOpenState';
 import {
   callContainsNode,
   type ConversationMessage,
@@ -37,11 +36,11 @@ interface SubAgentRowProps {
 }
 
 /**
- * A sub-agent as a collapsed row laid out like a tool call row: the agent's
- * icon, its name and its task. A pill after the name, like the trace view's
- * children button, shows how many LLM calls it made and whether it's open.
- * Expanding it shows its own transcript, with the same bubbles and tool calls
- * as the rest of the conversation.
+ * A sub-agent as a collapsed row laid out like a tool call row: the leading
+ * caret shared with the transcript's other collapsible rows and the Agent
+ * Timeline, then the agent's icon, its name and its task. Expanding it shows its
+ * own transcript, with the same bubbles and tool calls as the rest of the
+ * conversation.
  */
 export function SubAgentRow({
   call,
@@ -51,79 +50,42 @@ export function SubAgentRow({
 }: SubAgentRowProps) {
   const organization = useOrganization();
   const node = nodeMap.get(call.nodeId);
+  // Opens when the selection is the sub-agent or inside it, so a deep-linked or
+  // timeline-selected span stays visible instead of hidden.
+  const [isOpen, setIsOpen] = useSelectionOpenState(
+    selectedNodeId !== null && callContainsNode(call, selectedNodeId)
+      ? selectedNodeId
+      : null
+  );
 
   return (
     <CollapsibleChatRow
-      // The pill after the name shows the open state instead.
-      showCaret={false}
-      // Open when the selection is the sub-agent or inside it, so a deep-linked
-      // or timeline-selected span stays visible instead of hidden.
-      openWhen={selectedNodeId !== null && callContainsNode(call, selectedNodeId)}
-      title={isOpen => (
+      open={isOpen}
+      title={
         <Flex align="center" gap="sm" minWidth={0}>
           {node && <AiSpanStatusIcon node={node} />}
           <ToolTag name={call.name} hasError={call.hasError} />
-          <ExpandPill count={call.llmCallCount} isOpen={isOpen} />
           {!isOpen && call.preview && (
             <Text size="xs" monospace variant="muted" ellipsis>
               {call.preview}
             </Text>
           )}
         </Flex>
-      )}
-      meta={
-        <TurnMeta
-          metric={null}
-          duration={
-            call.duration === undefined || call.duration <= 0 ? null : (
-              <Text size="xs" variant="muted" tabular align="right">
-                {getDuration(call.duration, {precision: 2, style: 'short'})}
-              </Text>
-            )
-          }
-        />
       }
-      onToggle={open =>
+      meta={<TurnMeta duration={call.duration} />}
+      onOpenChange={open => {
+        setIsOpen(open);
         trackAnalytics('conversations.detail.expand-subagent', {
           organization,
           expanded: open,
-        })
-      }
+        });
+      }}
     >
       <Container padding="xs 0 xs sm">
-        <Container borderLeft="muted" paddingLeft="md">
+        <Container borderLeft="secondary" paddingLeft="md">
           {renderMessages(call.messages, selectedNodeId)}
         </Container>
       </Container>
     </CollapsibleChatRow>
-  );
-}
-
-/**
- * Mirrors the trace view's children button: a pill with the number of LLM
- * calls inside and a chevron for the open state.
- */
-function ExpandPill({count, isOpen}: {count: number; isOpen: boolean}) {
-  return (
-    <Flex
-      align="center"
-      justify="center"
-      gap="2xs"
-      flexShrink={0}
-      // Same height and text size as the tag before it, so the two line up.
-      height="20px"
-      minWidth="36px"
-      padding="0 sm"
-      radius="full"
-      border="primary"
-      background="primary"
-    >
-      {count > 0 && (
-        <Text size="sm" variant="muted" tabular>
-          {count}
-        </Text>
-      )}
-      <IconChevron direction={isOpen ? 'down' : 'right'} size="sm" variant="muted" />
-    </Flex>
   );
 }

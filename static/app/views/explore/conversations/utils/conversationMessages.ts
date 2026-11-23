@@ -9,6 +9,7 @@ import {
 import {
   getNumberAttr,
   getStringAttr,
+  getTraceNodeAttribute,
   hasError,
   resolveAgentName,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
@@ -35,8 +36,10 @@ import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
 } from 'sentry/views/insights/pages/agents/utils/query';
+import {getRawToolOutput} from 'sentry/views/insights/pages/agents/utils/toolOutput';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
+import {getAIInputMessages} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput';
 
 const FILTERED = '[Filtered]';
 
@@ -87,8 +90,6 @@ export interface ToolCall {
 export interface SubAgentCall {
   hasError: boolean;
   kind: 'subagent';
-  /** The sub-agent's own LLM calls, not counting those of its sub-agents. */
-  llmCallCount: number;
   messages: ConversationMessage[];
   name: string;
   nodeId: string;
@@ -212,10 +213,7 @@ function cloneNodeWithAttrs(
   node: AITraceSpanNode,
   overrides: Record<string, string>
 ): AITraceSpanNode {
-  return {
-    ...node,
-    attributes: {...node.attributes, ...overrides},
-  } as AITraceSpanNode;
+  return {...node, attributes: {...node.attributes, ...overrides}} as AITraceSpanNode;
 }
 
 // The agent output interleaves assistant messages with `tool` result messages;
@@ -355,10 +353,11 @@ type SpanKind =
   | 'generation'
   | 'tool';
 
-// Evaluations, extractions, embeddings and memory operations are recognized by
-// gen_ai.operation.name first: until Relay sets a dedicated operation.type they
-// report "ai_client" like LLM calls (and memory spans may be nested under tool
-// calls), so matching by name keeps them out of the generation and tool kinds.
+// Evaluations, extractions, embeddings and memory operations report the
+// "ai_client" operation type like LLM calls, so their tokens and cost count in
+// the usual aggregates. They're recognized by gen_ai.operation.name first, which
+// keeps them out of the generation and tool kinds (memory spans may also be
+// nested under tool calls).
 function getSpanKind(node: AITraceSpanNode): SpanKind | null {
   if (isEvaluationNode(node)) {
     return 'evaluation';
@@ -795,10 +794,7 @@ function buildAgentHierarchyMessages(nodes: AITraceSpanNode[]): ConversationMess
       toSubAgentCall(
         agent,
         placements.get(agent.id)?.viaTool ?? null,
-        buildScope(agent.id),
-        (nodesByScope.get(agent.id) ?? []).filter(
-          node => getSpanKind(node) === 'generation'
-        ).length
+        buildScope(agent.id)
       )
     );
     return attachSubAgentCalls(
@@ -827,11 +823,8 @@ function getNodeDuration(node: AITraceSpanNode): number | undefined {
 }
 
 function getToolResult(tool: AITraceSpanNode): string | null {
-  return blankToNull(
-    getStringAttr(tool, 'gen_ai.tool.call.result') ||
-      getStringAttr(tool, 'gen_ai.tool.output') ||
-      null
-  );
+  const output = getRawToolOutput(key => getTraceNodeAttribute(key, tool));
+  return output === undefined ? null : blankToNull(String(output));
 }
 
 // When the sub-agent ran as a tool, the tool's result is what it returned to
@@ -839,8 +832,7 @@ function getToolResult(tool: AITraceSpanNode): string | null {
 function toSubAgentCall(
   agent: AITraceSpanNode,
   viaTool: AITraceSpanNode | null,
-  messages: ConversationMessage[],
-  llmCallCount: number
+  messages: ConversationMessage[]
 ): SubAgentCall {
   const name = resolveAgentName(agent.attributes ?? {}) || agent.description || 'agent';
   const result = viaTool ? getToolResult(viaTool) : null;
@@ -848,7 +840,6 @@ function toSubAgentCall(
     kind: 'subagent',
     nodeId: agent.id,
     name,
-    llmCallCount,
     hasError: hasError(agent),
     duration: getNodeDuration(agent),
     preview:
@@ -1114,6 +1105,62 @@ export function parseUserContent(node: AITraceSpanNode): string | null {
   return userMessage.content;
 }
 
+/**
+ * Returns the system prompt of an LLM call: `gen_ai.system_instructions`, or
+ * the system message of its input when the SDK sends it there instead.
+ */
+export function parseSystemPrompt(node: AITraceSpanNode): string | null {
+  const {messages} = getAIInputMessages(node);
+  const systemMessage = messages?.find(m => m.role === 'system');
+  return typeof systemMessage?.content === 'string' ? systemMessage.content : null;
+}
+
+/**
+ * The system prompt of the conversation's first LLM call or agent span that
+ * has one. Later calls (follow-up turns, sub-agents) usually repeat it or set
+ * up a different agent, so only the first is shown, at the top of the
+ * transcript.
+ */
+export function getConversationSystemPrompt(nodes: AITraceSpanNode[]): string | null {
+  let firstPrompt: string | null = null;
+  let firstStart = Infinity;
+  // Agent spans count too: some SDKs send the prompt, as messages or as
+  // `gen_ai.system_instructions`, only on the agent span.
+  const candidates = [
+    ...partitionSpansByType(nodes).generationSpans,
+    ...nodes.filter(isAgentNode),
+  ];
+  for (const node of candidates) {
+    const start = getNodeStartTimestamp(node);
+    if (start >= firstStart) {
+      continue;
+    }
+    const prompt = blankToNull(parseSystemPrompt(node));
+    if (prompt) {
+      firstPrompt = prompt;
+      firstStart = start;
+    }
+  }
+  return firstPrompt;
+}
+
+/**
+ * Whether the SDK captured any message content, as opposed to a transcript of
+ * `NOT_REPORTED` placeholders or no transcript at all. Only user and
+ * assistant turns count: a conversation of embeddings, evaluations,
+ * extractions or memory operations has no exchange to read, so the timeline
+ * shows it better.
+ */
+export function hasCapturedMessageContent(messages: ConversationMessage[]): boolean {
+  const isCaptured = (text: string | undefined) => Boolean(text) && text !== NOT_REPORTED;
+  return someMessageDeep(
+    messages,
+    message =>
+      (message.role === 'user' || message.role === 'assistant') &&
+      (isCaptured(message.content) || isCaptured(message.reasoning))
+  );
+}
+
 interface InputMessageStats {
   totalMessageCount: number;
   userMessageCount: number;
@@ -1162,14 +1209,9 @@ export function parseAssistantContent(node: AITraceSpanNode): {
     if (isFiltered(outputMessages)) {
       return {content: outputMessages, reasoning: null};
     }
-    const extracted = extractAssistantOutput(outputMessages, {
-      defaultRole: 'assistant',
-    });
+    const extracted = extractAssistantOutput(outputMessages, {defaultRole: 'assistant'});
     if (extracted.responseText) {
-      return {
-        content: extracted.responseText,
-        reasoning: extracted.reasoningText,
-      };
+      return {content: extracted.responseText, reasoning: extracted.reasoningText};
     }
     // If tool calls or reasoning were found but no text, don't fall through to
     // response attributes — tool calls are rendered separately as badges and

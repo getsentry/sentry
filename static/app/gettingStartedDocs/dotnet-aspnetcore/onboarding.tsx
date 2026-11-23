@@ -84,9 +84,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install the [strong:NuGet] package:', {
-            strong: <strong />,
-          }),
+          text: tct('Install the [strong:NuGet] package:', {strong: <strong />}),
         },
         {
           type: 'code',
@@ -117,11 +115,7 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'csharp', code: getConfigureSnippet(params)},
         {
           type: 'text',
           text: tct(
@@ -143,11 +137,7 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: getVerifySnippet(),
-        },
+        {type: 'code', language: 'csharp', code: getVerifySnippet()},
         {
           type: 'text',
           text: tct(
@@ -173,16 +163,10 @@ export const onboarding: OnboardingConfig = {
                 type: 'text',
                 text: tct(
                   'With [code:TracesSampleRate] set, Sentry traces every request automatically. To measure a specific part of a request, add a span inside your endpoint:',
-                  {
-                    code: <code />,
-                  }
+                  {code: <code />}
                 ),
               },
-              {
-                type: 'code',
-                language: 'csharp',
-                code: getPerformanceSpansSnippet(),
-              },
+              {type: 'code', language: 'csharp', code: getPerformanceSpansSnippet()},
             ],
           },
         ] satisfies OnboardingStep[])

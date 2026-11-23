@@ -5,6 +5,10 @@ import {parseAsStringLiteral, useQueryStates} from 'nuqs';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
+import {
+  type CollapsibleExpandAll,
+  CollapsibleExpandAllContext,
+} from 'sentry/components/ai/chat/collapsibleContent';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -14,6 +18,7 @@ import {
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationScrollRestoration} from 'sentry/views/explore/conversations/hooks/useConversationScrollRestoration';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
+import type {ConversationMessage} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -26,6 +31,7 @@ import {
   ConversationSpanDetail,
 } from './conversationSpanDetail';
 import {MessagesPanel} from './messagesPanel';
+import {TranscriptSearch} from './transcriptSearch';
 
 export type ConversationViewTab = 'transcript' | 'timeline';
 
@@ -37,7 +43,10 @@ export const CONVERSATION_VIEW_TABS: readonly ConversationViewTab[] = [
 interface ConversationViewContentProps {
   activeTab: ConversationViewTab;
   conversation: UseConversationsOptions;
+  expandAll?: CollapsibleExpandAll | null;
   focusedTool?: string | null;
+  /** The transcript, for a page that already built it. Passed to `MessagesPanel`. */
+  messages?: ConversationMessage[];
   onDeselectSpan?: () => void;
   onSelectSpan?: (spanId: string) => void;
   onViewTimeline?: () => void;
@@ -46,12 +55,14 @@ interface ConversationViewContentProps {
 
 export function ConversationViewContent({
   conversation,
+  messages,
   activeTab,
   selectedSpanId,
   onSelectSpan,
   onDeselectSpan,
   onViewTimeline,
   focusedTool,
+  expandAll = null,
 }: ConversationViewContentProps) {
   const isTimeline = activeTab === 'timeline';
 
@@ -60,6 +71,7 @@ export function ConversationViewContent({
     nodeTraceMap,
     canAutoFetchNextPage,
     hasNextPage,
+    hasReachedPageLimit,
     isLoading,
     isFetchingNextPage,
     error,
@@ -68,9 +80,7 @@ export function ConversationViewContent({
   } = useConversation({...conversation, autoFetchAll: false});
 
   const [detailState, setDetailState] = useQueryStates(
-    {
-      detailTab: parseAsStringLiteral(CONVERSATION_SPAN_DETAIL_TABS).withDefault('input'),
-    },
+    {detailTab: parseAsStringLiteral(CONVERSATION_SPAN_DETAIL_TABS).withDefault('input')},
     {history: 'replace'}
   );
 
@@ -109,10 +119,11 @@ export function ConversationViewContent({
   // off the sticky (URL) selection, not `displayedNode`: the timeline's
   // view-local default span is not a real selection, so entering the timeline
   // restores its saved offset rather than snapping to that default.
-  const contentRef = useConversationScrollRestoration({
-    activeTab,
-    selectedNodeId: selectedNode?.id ?? null,
-  });
+  const {scrollContainerRef: contentRef, centerOnSelect} =
+    useConversationScrollRestoration({
+      activeTab,
+      selectedNodeId: selectedNode?.id ?? null,
+    });
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -185,14 +196,31 @@ export function ConversationViewContent({
         leftPadding={isTranscript ? '0' : 'md'}
         left={
           <Fragment>
-            {isTranscript ? (
-              <MessagesPanel
-                isLoading={isLoading}
-                nodes={nodes}
-                selectedNodeId={displayedNode?.id ?? null}
-                onSelectNode={handleSelectAndOpenDetail}
-                onViewTimeline={onViewTimeline}
+            {isTranscript && onSelectSpan && (
+              <TranscriptSearch
+                key={conversation.conversationId}
+                rootRef={contentRef}
+                canLoadMore={canAutoFetchNextPage}
+                hasReachedPageLimit={hasReachedPageLimit}
+                isLoadingMore={isLoading || isFetchingNextPage}
+                loadMore={loadNextPage}
+                onSelectMatch={(spanId, element) => {
+                  centerOnSelect(spanId, element);
+                  onSelectSpan(spanId);
+                }}
               />
+            )}
+            {isTranscript ? (
+              <CollapsibleExpandAllContext value={expandAll}>
+                <MessagesPanel
+                  isLoading={isLoading}
+                  nodes={nodes}
+                  messages={messages}
+                  selectedNodeId={displayedNode?.id ?? null}
+                  onSelectNode={handleSelectAndOpenDetail}
+                  onViewTimeline={onViewTimeline}
+                />
+              </CollapsibleExpandAllContext>
             ) : (
               <AiSpanTimeline
                 isLoading={isLoading}

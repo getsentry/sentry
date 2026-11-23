@@ -2,19 +2,13 @@ import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 import {flamegraphSearchReducer, type FlamegraphSearch} from './flamegraphSearch';
 
-const frame = (name: string) =>
-  ({
-    frame: {name},
-  }) as FlamegraphFrame;
+const frame = (name: string) => ({frame: {name}}) as FlamegraphFrame;
 
 const initialState: FlamegraphSearch = {
   highlightFrames: null,
   index: null,
   query: '',
-  results: {
-    frames: new Map(),
-    spans: new Map(),
-  },
+  results: {frames: new Map(), spans: new Map()},
 };
 
 describe('flamegraphSearchReducer', () => {
@@ -27,10 +21,7 @@ describe('flamegraphSearchReducer', () => {
     );
     let state = flamegraphSearchReducer(initialState, {
       type: 'set search results',
-      payload: {
-        query: 'frame',
-        results: {frames: results, spans: new Map()},
-      },
+      payload: {query: 'frame', results: {frames: results, spans: new Map()}},
     });
 
     state = flamegraphSearchReducer(state, {type: 'next search result'});
@@ -47,10 +38,7 @@ describe('flamegraphSearchReducer', () => {
       ['two', {frame: frame('two'), match: []}],
     ]);
     const state = flamegraphSearchReducer(
-      {
-        ...initialState,
-        results: {frames: results, spans: new Map()},
-      },
+      {...initialState, results: {frames: results, spans: new Map()}},
       {type: 'previous search result'}
     );
 

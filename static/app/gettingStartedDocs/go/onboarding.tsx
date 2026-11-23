@@ -83,15 +83,9 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install our Go SDK using [code:go get]:', {
-            code: <code />,
-          }),
+          text: tct('Install our Go SDK using [code:go get]:', {code: <code />}),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'go get github.com/getsentry/sentry-go',
-        },
+        {type: 'code', language: 'bash', code: 'go get github.com/getsentry/sentry-go'},
       ],
     },
   ],
@@ -105,11 +99,7 @@ export const onboarding: OnboardingConfig = {
             "Import and initialize the Sentry SDK early in your application's setup:"
           ),
         },
-        {
-          type: 'code',
-          language: 'go',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'go', code: getConfigureSnippet(params)},
       ],
     },
   ],
@@ -123,11 +113,7 @@ export const onboarding: OnboardingConfig = {
             'The quickest way to verify Sentry in your Go program is to capture a message:'
           ),
         },
-        {
-          type: 'code',
-          language: 'go',
-          code: getVerifySnippet(params),
-        },
+        {type: 'code', language: 'go', code: getVerifySnippet(params)},
         metricsVerify(params),
       ],
     },

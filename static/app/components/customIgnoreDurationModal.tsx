@@ -13,9 +13,7 @@ import {Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import type {IgnoredStatusDetails} from 'sentry/types/group';
 
-type Props = ModalRenderProps & {
-  onSelected: (details: IgnoredStatusDetails) => void;
-};
+type Props = ModalRenderProps & {onSelected: (details: IgnoredStatusDetails) => void};
 
 export function CustomIgnoreDurationModal(props: Props) {
   const [dateWarning, setDateWarning] = useState(false);

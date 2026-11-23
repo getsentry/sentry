@@ -126,6 +126,14 @@ class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCas
     def test_invalid_group(self) -> None:
         self.get_error_response(self.organization.slug, group="invalid", status_code=400)
 
+    def test_internal_condition_hidden(self) -> None:
+        handler = self.registry.get(Condition.REAPPEARED_EVENT)
+        with patch.object(handler, "is_internal", True):
+            response = self.get_success_response(
+                self.organization.slug, group=DataConditionHandler.Group.WORKFLOW_TRIGGER
+            )
+        assert response.data == []
+
     def test_no_group(self) -> None:
         self.get_error_response(self.organization.slug, status_code=400)
 

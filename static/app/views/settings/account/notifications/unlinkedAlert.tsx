@@ -5,9 +5,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
 
-type Props = {
-  organizations: OrganizationSummary[];
-};
+type Props = {organizations: OrganizationSummary[]};
 
 export function UnlinkedAlert({organizations}: Props) {
   return (

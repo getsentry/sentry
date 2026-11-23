@@ -43,10 +43,7 @@ export function DocIntegrationDetails() {
 
   const onUpdateMutation = useMutation({
     mutationFn: (params: Record<string, unknown>): Promise<DocIntegration> => {
-      return api.requestPromise(ENDPOINT, {
-        method: 'PUT',
-        data: params,
-      });
+      return api.requestPromise(ENDPOINT, {method: 'PUT', data: params});
     },
     onMutate: () => {
       toast.loading('Saving changes...');
@@ -57,11 +54,7 @@ export function DocIntegrationDetails() {
       queryClient.setQueryData(queryOptions.queryKey, previous =>
         updatedData === undefined
           ? previous
-          : {
-              ...previous,
-              headers: previous?.headers ?? {},
-              json: updatedData,
-            }
+          : {...previous, headers: previous?.headers ?? {}, json: updatedData}
       );
     },
     onError: () => {
@@ -72,9 +65,7 @@ export function DocIntegrationDetails() {
 
   const onDeleteMutation = useMutation({
     mutationFn: () => {
-      return api.requestPromise(ENDPOINT, {
-        method: 'DELETE',
-      });
+      return api.requestPromise(ENDPOINT, {method: 'DELETE'});
     },
     onMutate: () => {
       toast.loading('Deleting doc integration...');

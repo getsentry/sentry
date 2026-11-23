@@ -16,9 +16,7 @@ import type {
   AdminConfirmRenderProps,
 } from 'admin/components/adminConfirmationModal';
 
-type Props = AdminConfirmRenderProps & {
-  organization: Organization;
-};
+type Props = AdminConfirmRenderProps & {organization: Organization};
 
 /**
  * Rendered as part of a openAdminConfirmModal call
@@ -38,10 +36,7 @@ export function ForkCustomerAction({organization, onConfirm, setConfirmCallback}
           getApiUrl('/organizations/$organizationIdOrSlug/fork/', {
             path: {organizationIdOrSlug: organization.slug},
           }),
-          {
-            method: 'POST',
-            host: locality?.url,
-          }
+          {method: 'POST', host: locality?.url}
         );
 
         navigate(`/_admin/relocations/${locality?.name}/${response.uuid}/`);

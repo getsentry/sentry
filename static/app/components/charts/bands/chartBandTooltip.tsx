@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {formatDateTime, type DateTimeOptions} from '@sentry/scraps/dateTime';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
@@ -10,7 +10,7 @@ import {parseChartDateTime} from 'sentry/components/charts/formatChartDateTime';
 
 import type {BandBucket} from './bandShapes';
 
-function formatBucketRange(start: number, end: number, timezone: string): string {
+export function formatTimeRange(start: number, end: number, timezone: string): string {
   const startDate = parseChartDateTime(start, timezone);
   const endDate = parseChartDateTime(end, timezone);
   const now = parseChartDateTime(Date.now(), timezone);
@@ -29,11 +29,16 @@ function formatBucketRange(start: number, end: number, timezone: string): string
 interface ChartBandTooltipHeadingProps {
   label: React.ReactNode;
   value: React.ReactNode;
+  padding?: FlexProps['padding'];
 }
 
-export function ChartBandTooltipHeading({label, value}: ChartBandTooltipHeadingProps) {
+export function ChartBandTooltipHeading({
+  label,
+  value,
+  padding = 'lg xl',
+}: ChartBandTooltipHeadingProps) {
   return (
-    <Flex justify="between" gap="2xl" padding="lg xl">
+    <Flex justify="between" gap="2xl" padding={padding}>
       <Text bold>{label}</Text>
       <Text bold tabular>
         {value}
@@ -43,9 +48,9 @@ export function ChartBandTooltipHeading({label, value}: ChartBandTooltipHeadingP
 }
 
 interface ChartBandTooltipProps {
-  bucket: BandBucket;
   sections: React.ReactElement[];
   timezone: string;
+  bucket?: BandBucket;
 }
 
 export function ChartBandTooltip({bucket, sections, timezone}: ChartBandTooltipProps) {
@@ -59,11 +64,13 @@ export function ChartBandTooltip({bucket, sections, timezone}: ChartBandTooltipP
           </Fragment>
         ))}
       </TooltipBody>
-      <Container className="tooltip-footer tooltip-footer-centered">
-        <Text size="xs" variant="muted">
-          {formatBucketRange(bucket.start, bucket.end, timezone)}
-        </Text>
-      </Container>
+      {bucket ? (
+        <Container className="tooltip-footer tooltip-footer-centered">
+          <Text size="xs" variant="muted">
+            {formatTimeRange(bucket.start, bucket.end, timezone)}
+          </Text>
+        </Container>
+      ) : null}
       <div className="tooltip-arrow arrow-top" />
     </Fragment>
   );

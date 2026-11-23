@@ -737,23 +737,20 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 def flex_time_data_fn(limit: int, page_token: PageToken | None) -> dict[str, Any]:
                     config = get_rpc_config()
 
-                    return cast(
-                        dict[str, Any],
-                        scoped_dataset.run_table_query(
-                            params=snuba_params,
-                            query_string=scoped_query or "",
-                            selected_columns=self.get_field_list(organization, request),
-                            equations=self.get_equation_list(organization, request),
-                            orderby=self.get_orderby(request),
-                            offset=0,  # required but not used because we're using page tokens here
-                            limit=limit,
-                            referrer=referrer,
-                            config=config,
-                            sampling_mode=snuba_params.sampling_mode,
-                            page_token=page_token,
-                            additional_queries=additional_queries,
-                            max_string_length=max_string_length,
-                        ),
+                    return scoped_dataset.run_table_query(
+                        params=snuba_params,
+                        query_string=scoped_query or "",
+                        selected_columns=self.get_field_list(organization, request),
+                        equations=self.get_equation_list(organization, request),
+                        orderby=self.get_orderby(request),
+                        offset=0,  # required but not used because we're using page tokens here
+                        limit=limit,
+                        referrer=referrer,
+                        config=config,
+                        sampling_mode=snuba_params.sampling_mode,
+                        page_token=page_token,
+                        additional_queries=additional_queries,
+                        max_string_length=max_string_length,
                     )
 
                 return EAPPageTokenPaginator(data_fn=flex_time_data_fn), EAPPageTokenCursor

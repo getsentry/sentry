@@ -14,7 +14,7 @@ from datetime import UTC, datetime, timedelta
 from enum import Enum
 from hashlib import sha1
 from importlib import import_module
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 from unittest import mock
 from uuid import uuid4
 
@@ -205,7 +205,6 @@ from sentry.seer.models.workflow import (
     SeerWorkflowConfigProject,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
-    SeerWorkflowTriggerBinding,
 )
 from sentry.seer.workflows.base import ConfigUpdate, LockedConfig, SelectedMonitors
 from sentry.seer.workflows.definitions import get_definition
@@ -1150,24 +1149,35 @@ class Factories:
         date_uploaded: datetime | None = None,
         date_last_modified: datetime | None = None,
         indexing_state: int | None = None,
+        use_objectstore: bool = False,
     ) -> ArtifactBundle:
         if date_uploaded is None:
             date_uploaded = timezone.now()
 
         bundle = cls.create_artifact_bundle_zip(org.slug, fixture_path=fixture_path)
-        file_ = File.objects.create(name="artifact-bundle.zip")
-        file_.putfile(ContentFile(bundle))
+        file = File.objects.create(name="artifact-bundle.zip")
+        file.putfile(ContentFile(bundle))
         # The 'artifact_count' should correspond to the 'bundle' contents but for the purpose of tests we can also
         # mock it with an arbitrary value.
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=org.id,
             bundle_id=bundle_id or uuid4(),
-            file=file_,
+            file=file,
             artifact_count=artifact_count,
             date_uploaded=date_uploaded,
             date_last_modified=date_last_modified,
             indexing_state=indexing_state,
         )
+        if use_objectstore:
+            with file.getfile() as contents:
+                key = artifact_bundle.get_objectstore_session().put(contents)
+            artifact_bundle.update(
+                storage_path=key,
+                checksum=file.checksum,
+                file_size=file.size,
+                file=None,
+            )
+            file.delete()
         return artifact_bundle
 
     @staticmethod
@@ -2140,7 +2150,7 @@ class Factories:
     def create_session() -> SessionBase:
         engine = import_module(settings.SESSION_ENGINE)
 
-        session = cast("SessionBase", engine.SessionStore())
+        session = engine.SessionStore()
         session.save()
         return session
 
@@ -2747,9 +2757,7 @@ class Factories:
             "result_attribute": "result",
             "dataset": telemetry_classifier_types.Dataset.CONVERSATION,
             "filter_query": "",
-            "natural_language_prompt": "Is the user frustrated?",
-            "compiled_prompt": "Return yes when the user is frustrated.",
-            "output_type": telemetry_classifier_types.TelemetryClassifierOutputType.BINARY,
+            "prebuilt_classifier_key": "conversation_user_frustration",
         }
         return TelemetryClassifier.objects.create(project=project, **{**defaults, **kwargs})
 
@@ -3628,13 +3636,10 @@ class Factories:
     def create_seer_workflow_config(
         organization: Organization,
         *,
-        trigger_actions: Sequence[Action] = (),
         monitors: Sequence[Detector] = (),
         **kwargs: Any,
     ) -> SeerWorkflowConfig:
         config = SeerWorkflowConfig.objects.create(organization=organization, **kwargs)
-        for action in trigger_actions:
-            Factories.create_seer_workflow_trigger_binding(config, action)
         if config.strategy in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
             update = ConfigUpdate(LockedConfig(config), get_definition(config.strategy))
             update.setup_backing_workflow(name=None, created_by_id=None, enabled=config.enabled)
@@ -3645,15 +3650,6 @@ class Factories:
                 update.set_scope(SelectedMonitors(tuple(monitor.id for monitor in monitors)))
             config.refresh_from_db()
         return config
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_seer_workflow_trigger_binding(
-        config: SeerWorkflowConfig, action: Action
-    ) -> SeerWorkflowTriggerBinding:
-        return SeerWorkflowTriggerBinding.objects.create(
-            workflow_config=config, trigger_action=action
-        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
