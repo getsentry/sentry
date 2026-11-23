@@ -1098,9 +1098,9 @@ const syntax = {
 };
 
 const shadow = {
+  high: 'var(--scraps-shadow-high)',
   low: 'var(--scraps-shadow-low)',
   medium: 'var(--scraps-shadow-medium)',
-  high: 'var(--scraps-shadow-high)',
 };
 
 export const themeVariables = {

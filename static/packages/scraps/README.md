@@ -69,6 +69,10 @@ do not edit `src/theme/variables.css` or `src/theme/variables.tsx` by hand.
 
 The nearest ancestor's `data-color-scheme` attribute picks the values: none or
 `light` is light, `dark` is dark, and `system` follows `prefers-color-scheme`.
+In dark mode, the nearest ancestor's `data-theme-dark` attribute (`ash` or
+`midnight`) picks a dark theme; any other value or none keeps the default dark
+theme. Scheme values live in `@layer colorScheme` and theme overrides in
+`@layer theme`, both inside `scraps.tokens`.
 `themeVariables` from `@sentry/scraps/theme` has the same shape as the theme's
 `tokens` and `shadow`, with `var(--scraps-*)` values. Components still read
 literal values from the Emotion theme, so loading this file does not change

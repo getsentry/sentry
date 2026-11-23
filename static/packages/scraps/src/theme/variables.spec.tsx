@@ -8,7 +8,8 @@ const css = readFileSync(path.join(__dirname, 'variables.css'), 'utf8');
 
 /**
  * Custom properties declared by each rule, keyed by its enclosing at-rules and
- * selector list, e.g. `@layer scraps.tokens > [data-color-scheme='dark']`.
+ * selector list, e.g.
+ * `@layer scraps.tokens > @layer colorScheme > [data-color-scheme='dark']`.
  */
 function declarationsByRule(source: string) {
   const rules = new Map<string, Map<string, string>>();
@@ -58,23 +59,33 @@ function valueAt(tree: unknown, keys: string[]): unknown {
 const rules = declarationsByRule(css);
 const references = leaves(themeVariables);
 
+const COLOR_SCHEME = '@layer scraps.tokens > @layer colorScheme';
+const THEME = '@layer scraps.tokens > @layer theme';
+const OS_DARK = '@media (prefers-color-scheme: dark)';
+
 const schemes = [
   {
     name: 'light',
-    rule: "@layer scraps.tokens > :root, [data-color-scheme='light'], [data-color-scheme='system']",
+    rule: `${COLOR_SCHEME} > :root, [data-color-scheme='light'], [data-color-scheme='system']`,
     theme: lightTheme,
   },
-  {
-    name: 'dark',
-    rule: "@layer scraps.tokens > [data-color-scheme='dark']",
-    theme: darkTheme,
-  },
+  {name: 'dark', rule: `${COLOR_SCHEME} > [data-color-scheme='dark']`, theme: darkTheme},
   {
     name: 'system with an OS dark preference',
-    rule: "@layer scraps.tokens > @media (prefers-color-scheme: dark) > [data-color-scheme='system']",
+    rule: `${COLOR_SCHEME} > ${OS_DARK} > [data-color-scheme='system']`,
     theme: darkTheme,
   },
 ];
+
+function darkVariantScope(variant: string) {
+  return `@scope ([data-theme-dark='${variant}']) to ([data-theme-dark])`;
+}
+
+const darkVariants = ['ash', 'midnight'].map(variant => ({
+  variant,
+  dark: `${THEME} > ${darkVariantScope(variant)} > :scope[data-color-scheme='dark'], [data-color-scheme='dark']`,
+  system: `${THEME} > ${OS_DARK} > ${darkVariantScope(variant)} > :scope[data-color-scheme='system'], [data-color-scheme='system']`,
+}));
 
 describe('theme variables', () => {
   it('only references --scraps-* custom properties', () => {
@@ -99,6 +110,23 @@ describe('theme variables', () => {
       });
 
       expect(mismatches).toEqual([]);
+    }
+  );
+
+  it.each(darkVariants)(
+    'overrides only dark scheme properties for the $variant theme',
+    ({dark, system}) => {
+      const overrides = rules.get(dark);
+      const darkScheme = rules.get(`${COLOR_SCHEME} > [data-color-scheme='dark']`);
+      expect(overrides?.size).toBeGreaterThan(0);
+
+      const unknown = [...(overrides?.keys() ?? [])].filter(
+        name => !darkScheme?.has(name)
+      );
+      expect(unknown).toEqual([]);
+
+      // System mode with an OS dark preference must look the same as dark mode.
+      expect(rules.get(system)).toEqual(overrides);
     }
   );
 });
