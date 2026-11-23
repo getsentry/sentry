@@ -54,11 +54,7 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'toml',
-          code: getInstallSnippet(params),
-        },
+        {type: 'code', language: 'toml', code: getInstallSnippet(params)},
       ],
     },
   ],
@@ -73,11 +69,7 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'rust',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'rust', code: getConfigureSnippet(params)},
       ],
     },
   ],
@@ -91,11 +83,7 @@ export const onboarding: OnboardingConfig = {
             'The quickest way to verify Sentry in your Rust application is to cause a panic:'
           ),
         },
-        {
-          type: 'code',
-          language: 'rust',
-          code: getVerifySnippet(params),
-        },
+        {type: 'code', language: 'rust', code: getVerifySnippet(params)},
       ],
     },
   ],

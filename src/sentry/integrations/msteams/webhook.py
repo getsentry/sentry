@@ -5,10 +5,11 @@ import time
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, cast
+from typing import Any
 
 import orjson
 import sentry_sdk
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
@@ -139,7 +140,7 @@ def verify_signature(request: Request) -> bool:
     # get the open id config and jwks
     client = MsTeamsJwtClient()
     open_id_config = client.get_open_id_config()
-    jwks = cast(Mapping[str, Any], client.get_cached(open_id_config["jwks_uri"]))
+    jwks = client.get_cached(open_id_config["jwks_uri"])
 
     # create a mapping of all the keys
     # taken from: https://renzolucioni.com/verifying-jwts-with-jwks-and-pyjwt/
@@ -160,7 +161,7 @@ def verify_signature(request: Request) -> bool:
         decoded = jwt.decode(
             token,
             key,
-            audience=options.get("msteams.client-id"),
+            audience=settings.SENTRY_MSTEAMS_CLIENT_ID,
             algorithms=algorithms,
         )
     except Exception as err:

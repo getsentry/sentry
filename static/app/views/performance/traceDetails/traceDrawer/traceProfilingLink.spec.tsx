@@ -70,9 +70,7 @@ describe('traceProfilingLink', () => {
 
     expect(link).toEqual(
       expect.objectContaining({
-        query: expect.objectContaining({
-          transactionId: 'transaction-span-id',
-        }),
+        query: expect.objectContaining({transactionId: 'transaction-span-id'}),
       })
     );
     expect(link).toEqual(
@@ -87,9 +85,7 @@ describe('traceProfilingLink', () => {
 
     expect(makeTraceContinuousProfilingLink(node, 'profiler-id', options)).toEqual(
       expect.objectContaining({
-        query: expect.not.objectContaining({
-          transactionId: expect.anything(),
-        }),
+        query: expect.not.objectContaining({transactionId: expect.anything()}),
       })
     );
   });
@@ -124,11 +120,7 @@ describe('traceProfilingLink', () => {
     });
     const span = new EapSpanNode(
       parent,
-      makeEAPSpan({
-        event_id: 'child-span-id',
-        start_timestamp: 1.25,
-        end_timestamp: 1.5,
-      }),
+      makeEAPSpan({event_id: 'child-span-id', start_timestamp: 1.25, end_timestamp: 1.5}),
       {organization}
     );
 

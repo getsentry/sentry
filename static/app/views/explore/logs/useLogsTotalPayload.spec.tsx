@@ -8,9 +8,7 @@ describe('useLogsTotalPayload', () => {
   it('returns undefined when disabled', () => {
     const {result} = renderHookWithProviders(
       () => useLogsTotalPayload({enabled: false}),
-      {
-        organization: OrganizationFixture(),
-      }
+      {organization: OrganizationFixture()}
     );
 
     expect(result.current).toBeUndefined();

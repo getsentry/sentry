@@ -72,16 +72,12 @@ function getReplayTabs({
   ];
 }
 
-type Props = {
-  isVideoReplay: boolean;
-};
+type Props = {isVideoReplay: boolean};
 
 export function FocusTabs({isVideoReplay}: Props) {
   const organization = useOrganization();
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
-  const {getActiveTab, setActiveTab} = useActiveReplayTab({
-    isVideoReplay,
-  });
+  const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
   const activeTab = getActiveTab();
   const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
@@ -104,9 +100,7 @@ export function FocusTabs({isVideoReplay}: Props) {
     const isAiTabAvailable = hasAiSummary && (!isVideoReplay || hasMobileSummary);
 
     if (isAiTabAvailable) {
-      trackAnalytics('replay.ai_tab_shown', {
-        organization,
-      });
+      trackAnalytics('replay.ai_tab_shown', {organization});
     }
   }, [organization, areAiFeaturesAllowed, isVideoReplay]);
 

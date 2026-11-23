@@ -27,10 +27,7 @@ function resolved(): ActivityFeedItem {
 }
 
 function ongoing(): ActivityFeedItem {
-  return activity({
-    type: GroupActivityType.AUTO_SET_ONGOING,
-    data: {after_days: 7},
-  });
+  return activity({type: GroupActivityType.AUTO_SET_ONGOING, data: {after_days: 7}});
 }
 
 function resolvedByAge(): ActivityFeedItem {
@@ -127,11 +124,7 @@ describe('collapseFlappingStatusActivities', () => {
       regression(),
     ];
     const result = collapseFlappingStatusActivities([
-      activity({
-        type: GroupActivityType.SET_UNRESOLVED,
-        data: {},
-        user: UserFixture(),
-      }),
+      activity({type: GroupActivityType.SET_UNRESOLVED, data: {}, user: UserFixture()}),
       ...automaticRun,
     ]);
 

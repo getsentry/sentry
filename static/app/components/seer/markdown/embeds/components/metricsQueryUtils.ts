@@ -98,10 +98,7 @@ export function getMetricsQueryHref(
   const metric = JSON.stringify({
     metric: {name, type, unit},
     query,
-    aggregateFields: toAggregateFields({
-      groupBy,
-      yAxes: resolveMetricYAxes(data),
-    }),
+    aggregateFields: toAggregateFields({groupBy, yAxes: resolveMetricYAxes(data)}),
     aggregateSortBys: sort ? [sort] : undefined,
     mode: toMode(mode),
   });

@@ -21,10 +21,7 @@ const PREFETCH_DELAY_MS = 200;
 export function useInboxPreviewPrefetch(group: Group) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const issueParams = {
-    groupId: group.id,
-    organizationSlug: organization.slug,
-  };
+  const issueParams = {groupId: group.id, organizationSlug: organization.slug};
   const prefetchDebouncer = useDebouncer(
     () => {
       void queryClient.prefetchQuery(

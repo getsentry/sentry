@@ -160,10 +160,7 @@ function useMetricsQueryOptions({
     ingestionDelaySeconds
   );
 
-  const pageFilters = {
-    ...selection,
-    datetime: baseDatetime,
-  };
+  const pageFilters = {...selection, datetime: baseDatetime};
   const dataset = DiscoverDatasets.TRACEMETRICS;
 
   const eventView = getEventView(
@@ -217,13 +214,7 @@ function useMetricsQueryOptions({
     staleTime: 0,
   });
 
-  return {
-    queryOptions,
-    other: {
-      eventView,
-      pageFiltersReady,
-    },
-  };
+  return {queryOptions, other: {eventView, pageFiltersReady}};
 }
 
 export function useMetricSamplesTable({
@@ -258,10 +249,7 @@ export function useMetricSamplesTable({
       requiredQuery,
       staleTime,
     },
-    queryOptions: {
-      canTriggerHighAccuracy,
-      samplingMode,
-    },
+    queryOptions: {canTriggerHighAccuracy, samplingMode},
   });
 }
 

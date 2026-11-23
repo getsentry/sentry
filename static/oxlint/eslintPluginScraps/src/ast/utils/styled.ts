@@ -70,25 +70,20 @@ function classifyTag(tag: ESTree.Node, imports: ImportTracker): StyledCallInfo {
     return {kind: 'css', tag};
   }
 
-  // MemberExpression patterns
-  if (tag.type === 'MemberExpression') {
-    // styled.div`...` or styled.div({...})
-    if (
-      imports.is(tag.object, '@emotion/styled', 'default') &&
-      tag.property.type === 'Identifier'
-    ) {
-      return classifyName(tag.property.name, tag);
-    }
+  if (
+    tag.type === 'MemberExpression' &&
+    !tag.computed &&
+    tag.property.type === 'Identifier' &&
+    imports.is(tag.object, '@emotion/styled', 'default')
+  ) {
+    return classifyName(tag.property.name, tag);
   }
 
-  // CallExpression patterns: styled('div') or styled(Component)
-  if (tag.type === 'CallExpression') {
-    const innerCallee = tag.callee;
-
-    // styled(X)
-    if (imports.is(innerCallee, '@emotion/styled', 'default')) {
-      return classifyStyledArgs(tag.arguments, tag);
-    }
+  if (
+    tag.type === 'CallExpression' &&
+    imports.is(tag.callee, '@emotion/styled', 'default')
+  ) {
+    return classifyStyledArgs(tag.arguments, tag);
   }
 
   return null;
@@ -167,14 +162,11 @@ export function getStyledCallInfo(
   }
 
   const tag = node.type === 'TaggedTemplateExpression' ? node.tag : node.callee;
-
-  // Try classifying from the tag/callee expression
   const result = classifyTag(tag, imports);
   if (result) {
     return result;
   }
 
-  // Direct styled(X) as a CallExpression node (not as tag of template)
   if (node.type === 'CallExpression' && imports.is(tag, '@emotion/styled', 'default')) {
     return classifyStyledArgs(node.arguments, node);
   }

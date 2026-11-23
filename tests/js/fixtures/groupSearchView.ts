@@ -14,12 +14,7 @@ export function GroupSearchViewFixture(
     querySort: IssueSortOptions.DATE,
     projects: [1],
     environments: ['prod'],
-    timeFilters: {
-      start: null,
-      end: null,
-      period: '7d',
-      utc: null,
-    },
+    timeFilters: {start: null, end: null, period: '7d', utc: null},
     lastVisited: null,
     visibility: GroupSearchViewVisibility.ORGANIZATION,
     starred: false,

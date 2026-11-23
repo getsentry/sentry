@@ -265,10 +265,7 @@ export function useNavigationTourModal() {
 
   const dismissTour = useCallback(() => {
     trackAnalytics('navigation.tour_modal_dismissed', {organization});
-    mutateAssistant({
-      guide: NAVIGATION_TOUR_GUIDE_KEY,
-      status: 'dismissed',
-    });
+    mutateAssistant({guide: NAVIGATION_TOUR_GUIDE_KEY, status: 'dismissed'});
     setLocalTourState({hasSeen: true});
     endTour();
   }, [mutateAssistant, organization, endTour, setLocalTourState]);

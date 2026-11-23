@@ -49,11 +49,7 @@ export function useIssueDetailsEventView({
       : defaultStatsPeriod;
 
   const interval = getInterval(
-    {
-      start: periodQuery?.start,
-      end: periodQuery?.end,
-      period: periodQuery?.statsPeriod,
-    },
+    {start: periodQuery?.start, end: periodQuery?.end, period: periodQuery?.statsPeriod},
     // Switch to low fidelity intervals on small screens
     isSmallContainer ? 'low' : 'issues'
   );
@@ -133,10 +129,7 @@ export function issueDetailsEventsApiOptions<T>({
 }) {
   return apiOptions.as<T>()('/organizations/$organizationIdOrSlug/events/', {
     path: {organizationIdOrSlug: params.organization.slug},
-    query: {
-      ...getIssueDetailsEventsQuery(params),
-      ...(field ? {field} : {}),
-    },
+    query: {...getIssueDetailsEventsQuery(params), ...(field ? {field} : {})},
     staleTime: 60_000,
   });
 }

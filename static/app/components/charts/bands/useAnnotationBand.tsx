@@ -4,11 +4,12 @@ import type {CustomSeriesRenderItem} from 'echarts';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import type {
-  AnnotationItem,
-  AnnotationKind,
-} from 'sentry/components/charts/annotations/types';
-import {t} from 'sentry/locale';
+import {
+  ANNOTATION_KIND_LABELS,
+  ANNOTATION_KINDS,
+} from 'sentry/components/charts/annotations/kinds';
+import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
+import {defined} from 'sentry/utils/defined';
 
 import {
   BAND_HEIGHT,
@@ -27,14 +28,6 @@ import {ChartBandTooltipHeading} from './chartBandTooltip';
 import type {ChartBand} from './mergeChartBands';
 
 export const ANNOTATION_BAND_SERIES_ID = '__annotation_band__';
-
-const ANNOTATION_KINDS: AnnotationKind[] = ['release', 'flag', 'timeseriesAnnotation'];
-
-const ANNOTATION_KIND_LABELS: Record<AnnotationKind, string> = {
-  release: t('Releases'),
-  flag: t('Flags'),
-  timeseriesAnnotation: t('Changes'),
-};
 
 interface AnnotationBandItem extends AnnotationBucket {
   opacity: number;
@@ -84,6 +77,25 @@ function annotationBandRenderItem(
   };
 }
 
+function withEarlierRanges(
+  annotationBuckets: AnnotationBucket[],
+  items: readonly AnnotationItem[]
+): AnnotationBucket[] {
+  const [firstBucket, ...otherBuckets] = annotationBuckets;
+  if (!firstBucket) {
+    return annotationBuckets;
+  }
+
+  const earlierRanges = items.filter(
+    ({start, end}) =>
+      start < firstBucket.start &&
+      (end === 'ongoing' || (defined(end) && end >= firstBucket.start))
+  );
+  return earlierRanges.length > 0
+    ? [{...firstBucket, items: [...earlierRanges, ...firstBucket.items]}, ...otherBuckets]
+    : annotationBuckets;
+}
+
 interface UseAnnotationBandParams {
   buckets: BandBucket[];
   items?: readonly AnnotationItem[];
@@ -102,7 +114,10 @@ export function useAnnotationBand({
   const theme = useTheme();
 
   return useMemo(() => {
-    const annotationBuckets = bucketAnnotations(items ?? [], buckets);
+    const annotationBuckets = withEarlierRanges(
+      bucketAnnotations(items ?? [], buckets),
+      items ?? []
+    );
     const bucketsWithItems = annotationBuckets.filter(bucket => bucket.items.length > 0);
     if (bucketsWithItems.length === 0) {
       return null;
@@ -132,7 +147,7 @@ export function useAnnotationBand({
       height: BAND_HEIGHT,
       onClick: start => {
         const bucket = bucketsByStart.get(start);
-        if (bucket && bucket.items.length > 0) {
+        if (bucket) {
           onClick?.(bucket.items);
         }
       },

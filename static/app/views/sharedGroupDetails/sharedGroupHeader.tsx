@@ -11,9 +11,7 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {EventCreatedTooltip} from 'sentry/views/issueDetails/eventCreatedTooltip';
 
-type Props = {
-  group: Group;
-};
+type Props = {group: Group};
 
 export function SharedGroupHeader({group}: Props) {
   const date = new Date(

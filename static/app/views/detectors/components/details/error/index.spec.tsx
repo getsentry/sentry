@@ -14,10 +14,7 @@ describe('ErrorDetectorDetails', () => {
   };
 
   beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'GET',
@@ -42,18 +39,9 @@ describe('ErrorDetectorDetails', () => {
       url: '/organizations/org-slug/issues/1/',
       body: GroupFixture(),
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/workflows/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/detectors/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/workflows/', body: []});
   });
 
   describe('breadcrumbs', () => {
@@ -83,9 +71,7 @@ describe('ErrorDetectorDetails', () => {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'GET',
-        body: DetailedProjectFixture({
-          resolveAge: 30 * 24,
-        }),
+        body: DetailedProjectFixture({resolveAge: 30 * 24}),
       });
 
       render(<ErrorDetectorDetails {...defaultProps} />);

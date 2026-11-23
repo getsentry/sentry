@@ -31,10 +31,7 @@ function mockCostResponse(
 
 function makeEvent(overrides: Partial<LowValueSpanEvidenceData> = {}) {
   return EventFixture({
-    occurrence: {
-      evidenceData: {...evidenceData, ...overrides},
-      type: 13002,
-    },
+    occurrence: {evidenceData: {...evidenceData, ...overrides}, type: 13002},
     groupID: '1',
   });
 }

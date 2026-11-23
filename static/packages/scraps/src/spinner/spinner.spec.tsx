@@ -82,10 +82,7 @@ describe('Spinner', () => {
     const container = screen.getByTestId('loading-indicator').firstElementChild;
     const indicator = container?.firstElementChild;
     expect(container).toHaveStyle({padding: '0.5px', overflow: 'hidden'});
-    expect(indicator).toHaveStyle({
-      'border-width': '6px',
-      background: 'transparent',
-    });
+    expect(indicator).toHaveStyle({'border-width': '6px', background: 'transparent'});
     expect(indicator).toHaveStyle({
       'border-left-color':
         theme.type === 'dark' ? theme.tokens.border.accent.vibrant : '#6c5fc7',

@@ -13,7 +13,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
 import {ProgressRing} from 'sentry/components/progressRing';
 import {t, tct} from 'sentry/locale';
@@ -57,10 +57,7 @@ function groupTasksByCompletion(tasks: OnboardingTask[]) {
   const [completedTasks, incompletedTasks] = partition(tasks, task =>
     findCompleteTasks(task)
   );
-  return {
-    completedTasks,
-    incompletedTasks,
-  };
+  return {completedTasks, incompletedTasks};
 }
 
 interface TaskCardProps {
@@ -249,11 +246,7 @@ function Task({task, hidePanel}: TaskProps) {
     });
 
     mutateOnboardingTasks.mutate([
-      {
-        task: task.task,
-        status: 'skipped',
-        completionSeen: true,
-      },
+      {task: task.task, status: 'skipped', completionSeen: true},
     ]);
   };
 
@@ -433,10 +426,7 @@ function TaskGroup({
       return;
     }
 
-    trackAnalytics('quick_start.task_group_completed', {
-      organization,
-      group,
-    });
+    trackAnalytics('quick_start.task_group_completed', {organization, group});
 
     setTaskGroupComplete(true);
   }, [

@@ -179,9 +179,7 @@ describe('NewClassifier', () => {
     await waitFor(() => {
       expect(conversationsMock).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({per_page: 10}),
-        })
+        expect.objectContaining({query: expect.objectContaining({per_page: 10})})
       );
     });
   });

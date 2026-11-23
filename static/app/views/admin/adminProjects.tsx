@@ -24,10 +24,7 @@ type Row = {
   dateCreated: string;
   id: string;
   name: string;
-  organization: {
-    name: string;
-    slug: string;
-  };
+  organization: {name: string; slug: string};
   slug: string;
   status: string;
 };

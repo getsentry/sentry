@@ -6,7 +6,6 @@ from django.db.models import Count, Max, QuerySet
 from rest_framework import serializers
 from rest_framework.serializers import ListField
 
-import sentry
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.discover.models import (
@@ -185,14 +184,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                 "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
             )
 
-        if (
-            sentry.features.has(
-                "organizations:discover-saved-queries-deprecation",
-                self.context["organization"],
-                actor=self.context["user"],
-            )
-            and dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE
-        ):
+        if dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE:
             raise serializers.ValidationError(
                 f"The Transactions dataset is being deprecated. Please append the `is_transaction:true` filter in the Trace Explorer product in Sentry or use the `/organizations/{self.context['organization'].slug}/explore/saved/` endpoint with the filter to save new transaction queries."
             )

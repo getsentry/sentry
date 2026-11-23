@@ -2,7 +2,11 @@ from django.test import override_settings
 from rest_framework.test import APIClient
 
 from sentry.seer import agent_token
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.roles import granular_roles_granting
+from sentry.testutils.silo import assume_test_silo_mode
 
 SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
 FLAG = "organizations:seer-agent-token-flow"
@@ -65,3 +69,24 @@ class OrganizationUserDetailsTest(APITestCase):
 
         assert response.data["email"] == self.owner_user.email
         assert response.data["emails"] == []
+
+
+class OrganizationUserDetailsMembershipScopeTest(APITestCase):
+    endpoint = "sentry-api-0-organization-user-details"
+
+    def setUp(self) -> None:
+        self.other_user = self.create_user("other@localhost")
+        self.create_member(organization=self.organization, user=self.other_user)
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:read")
+    def test_membership_read_can_get_user(self) -> None:
+        self._use_token(["membership:read"])
+        response = self.get_success_response(self.organization.slug, self.other_user.id)
+        assert response.data["id"] == str(self.other_user.id)

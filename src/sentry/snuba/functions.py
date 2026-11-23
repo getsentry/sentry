@@ -246,7 +246,7 @@ def format_top_events_timeseries_results(
 
         span.set_attribute(
             "result_count",
-            len(cast(Sequence[object], result.get("data", []))),
+            len(result.get("data", [])),
         )
         processed_result = query_builder.process_results(result)
 

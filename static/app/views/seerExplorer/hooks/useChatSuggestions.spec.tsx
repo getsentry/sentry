@@ -68,21 +68,13 @@ function makeSlowIssueDetailPage(loadAfterMs: number) {
 }
 
 describe('useChatSuggestions', () => {
-  const organization = OrganizationFixture({
-    features: ['seer-chat-suggestions'],
-  });
+  const organization = OrganizationFixture({features: ['seer-chat-suggestions']});
   const url = `/organizations/${organization.slug}/seer/chat-suggestions/`;
   const issuePageRouterConfig = {
-    location: {
-      pathname: `/organizations/${organization.slug}/issues/1/`,
-    },
+    location: {pathname: `/organizations/${organization.slug}/issues/1/`},
     route: '/organizations/:orgId/',
     children: [
-      {
-        path: 'issues/:groupId/',
-        element: null,
-        handle: {path: '/issues/:groupId/'},
-      },
+      {path: 'issues/:groupId/', element: null, handle: {path: '/issues/:groupId/'}},
     ],
   };
 
@@ -92,18 +84,11 @@ describe('useChatSuggestions', () => {
   });
 
   it('returns legacy suggestions when the flag is off', () => {
-    const request = MockApiClient.addMockResponse({
-      url,
-      method: 'POST',
-      body: {},
-    });
+    const request = MockApiClient.addMockResponse({url, method: 'POST', body: {}});
 
     const {result} = renderHookWithProviders(
       () => useChatSuggestions({enabled: true, allowStructuredContext: false}),
-      {
-        organization: OrganizationFixture(),
-        additionalWrapper: LLMContextProvider,
-      }
+      {organization: OrganizationFixture(), additionalWrapper: LLMContextProvider}
     );
 
     expect(result.current).toEqual({
@@ -112,20 +97,14 @@ describe('useChatSuggestions', () => {
       suggestions: [
         {text: 'Which of my open issues are getting worse, not better?'},
         {text: 'What are my slowest DB queries?'},
-        {
-          text: "Walk me through what's on my screen and what I can focus on next.",
-        },
+        {text: "Walk me through what's on my screen and what I can focus on next."},
       ],
     });
     expect(request).not.toHaveBeenCalled();
   });
 
   it('does not generate suggestions when disabled', () => {
-    const request = MockApiClient.addMockResponse({
-      url,
-      method: 'POST',
-      body: {},
-    });
+    const request = MockApiClient.addMockResponse({url, method: 'POST', body: {}});
 
     renderHookWithProviders(
       () => useChatSuggestions({enabled: false, allowStructuredContext: false}),
@@ -137,10 +116,7 @@ describe('useChatSuggestions', () => {
 
   it('returns generated suggestions when the request succeeds', async () => {
     const suggestions = [
-      {
-        text: 'Which of these issues started after the last release?',
-        kind: 'question',
-      },
+      {text: 'Which of these issues started after the last release?', kind: 'question'},
       {
         text: 'Email me when this issue regresses',
         kind: 'action',
@@ -160,11 +136,7 @@ describe('useChatSuggestions', () => {
 
     expect(result.current).toEqual({isLoading: true});
     await waitFor(() =>
-      expect(result.current).toEqual({
-        isLoading: false,
-        source: 'generated',
-        suggestions,
-      })
+      expect(result.current).toEqual({isLoading: false, source: 'generated', suggestions})
     );
     expect(request).toHaveBeenCalledTimes(1);
     expect(request).toHaveBeenCalledWith(
@@ -181,11 +153,7 @@ describe('useChatSuggestions', () => {
   });
 
   it('returns fallback suggestions when the response is empty', async () => {
-    MockApiClient.addMockResponse({
-      url,
-      method: 'POST',
-      body: {suggestions: []},
-    });
+    MockApiClient.addMockResponse({url, method: 'POST', body: {suggestions: []}});
 
     const {result} = renderHookWithProviders(
       () => useChatSuggestions({enabled: true, allowStructuredContext: false}),
@@ -331,11 +299,7 @@ describe('useChatSuggestions', () => {
   });
 
   it('returns issue fallback suggestions when on an issue page', async () => {
-    MockApiClient.addMockResponse({
-      url,
-      method: 'POST',
-      body: {suggestions: []},
-    });
+    MockApiClient.addMockResponse({url, method: 'POST', body: {suggestions: []}});
 
     const {result} = renderHookWithProviders(
       () => useChatSuggestions({enabled: true, allowStructuredContext: false}),
@@ -501,11 +465,7 @@ describe('useChatSuggestions', () => {
     async ({selected, projects, expected}) => {
       ProjectsStore.loadInitialData(projects);
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: selected}));
-      MockApiClient.addMockResponse({
-        url,
-        method: 'POST',
-        body: {suggestions: []},
-      });
+      MockApiClient.addMockResponse({url, method: 'POST', body: {suggestions: []}});
 
       const {result} = renderHookWithProviders(
         () => useChatSuggestions({enabled: true, allowStructuredContext: false}),

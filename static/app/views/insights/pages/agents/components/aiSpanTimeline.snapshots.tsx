@@ -7,7 +7,7 @@ import {AiSpanTimeline} from './aiSpanTimeline';
 
 describe('AiSpanTimeline', () => {
   it.snapshot(
-    'indents nested agents and their calls by their agent ancestors',
+    'indents nested spans at every level',
     () => {
       const lead = AiTraceSpanNodeFixture({id: 'lead-agent', operation: 'agent'});
       const tool = AiTraceSpanNodeFixture({
@@ -60,6 +60,47 @@ describe('AiSpanTimeline', () => {
                 unrelated,
               ]}
               selectedNodeKey={null}
+              onSelectNode={() => {}}
+            />
+          </Container>
+        </Text>
+      );
+    },
+    {viewport: 800, tags: {area: 'core'}}
+  );
+
+  it.snapshot(
+    'collapses sub-agents below maxDefaultDepth',
+    () => {
+      const lead = AiTraceSpanNodeFixture({id: 'lead-agent', operation: 'agent'});
+      const tool = AiTraceSpanNodeFixture({
+        id: 'lead-tool',
+        operation: 'tool',
+        parent: lead,
+      });
+      const child = AiTraceSpanNodeFixture({
+        id: 'child-agent',
+        operation: 'agent',
+        parent: tool,
+      });
+      const childCall = AiTraceSpanNodeFixture({
+        id: 'child-model',
+        operation: 'ai_client',
+        parent: child,
+      });
+      const leadCall = AiTraceSpanNodeFixture({
+        id: 'lead-model',
+        operation: 'ai_client',
+        parent: lead,
+      });
+
+      return (
+        <Text as="div">
+          <Container padding="md" background="primary">
+            <AiSpanTimeline
+              nodes={[lead, tool, child, childCall, leadCall]}
+              selectedNodeKey="lead-agent"
+              maxDefaultDepth={2}
               onSelectNode={() => {}}
             />
           </Container>
