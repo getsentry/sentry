@@ -129,8 +129,8 @@ def create_comment(
                 user_id=user.id if user is not None else None,
                 data=data,
             )
-            for record in issue_activity_inbox_calls(note, group):
-                safe_execute(record)
+            for call in issue_activity_inbox_calls(note, group):
+                safe_execute(call.func, *call.args, **call.keywords)
             if user is not None and not from_email:
                 _after_commit(partial(_sync_comment, note, user.id, created=True))
 
