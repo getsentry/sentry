@@ -12,8 +12,6 @@ from pydantic import BaseModel, Field, ValidationError, parse_obj_as, validator
 
 T = TypeVar("T", bound=BaseModel)
 
-SeerCreditDenialReason = Literal["not_enough_credits", "daily_cap_exceeded"]
-
 
 class ToolCall(BaseModel):
     """A tool call in a message."""
@@ -117,7 +115,7 @@ class RepoPRState(BaseModel):
     pr_creation_status: Literal["creating", "completed", "error"] | None = None
     pr_creation_error: str | None = None
     pr_creation_error_code: str | None = None
-    credit_denial_reason: SeerCreditDenialReason | None = Field(default=None, exclude=True)
+    credit_denial_reason: str | None = Field(default=None, exclude=True)
     title: str | None = None
     description: str | None = None
     integration_id: str | None = None
@@ -402,7 +400,7 @@ class SeerRunState(BaseModel):
     # chat API. Internal callers (autofix, agentic triage) still access them directly.
     metadata: dict[str, Any] | None = Field(default=None, exclude=True)
     billing_feature: int | None = Field(default=None, exclude=True)
-    credit_denial_reason: SeerCreditDenialReason | None = Field(default=None, exclude=True)
+    credit_denial_reason: str | None = Field(default=None, exclude=True)
     coding_agents: dict[str, CodingAgentState] = Field(default_factory=dict, exclude=True)
     usage: UsageAccumulator = Field(default_factory=UsageAccumulator, exclude=True)
     pr_push_log: list[PushLogEntry] | None = Field(default=None, exclude=True)
