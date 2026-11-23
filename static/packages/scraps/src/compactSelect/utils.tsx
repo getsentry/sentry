@@ -6,6 +6,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node, Selection} from '@react-types/shared';
 
 import {useTranslation} from '@sentry/scraps/translation';
+import {flattenSections} from '@sentry/scraps/useVirtualCollection';
 
 // oxlint-disable-next-line import/no-relative-parent-imports -- Keep the shared search helper private to Scraps.
 import {getSearchScore} from '../fzf';
@@ -52,6 +53,50 @@ export function hasVisibleLeadingItems(
       const {leadingItems}: {leadingItems?: unknown} = node.props;
       return !hiddenOptions.has(node.key) && Boolean(leadingItems);
     });
+}
+
+/** Where a visible option sits in the list, for screen readers. */
+export interface OptionPosition {
+  /** 1-based position among the visible options of its set. */
+  posInSet: number;
+  /** 1-based position among all visible options, across sections. */
+  rowIndex: number;
+  /** Number of visible options in its set. */
+  setSize: number;
+}
+
+/**
+ * Positions of the visible options. A virtualized list only mounts some of its
+ * options, so screen readers cannot count them from the DOM and need
+ * `aria-setsize`/`aria-posinset` (list box) or `aria-rowindex` (grid).
+ *
+ * React Aria's `isVirtualized` sets these from the whole collection, but
+ * options hidden by search or `sizeLimit` stay in the collection, so the counts
+ * would include them. A section's options form their own set, as do the
+ * options outside any section.
+ */
+export function getVisibleOptionPositions(
+  listItems: Iterable<Node<unknown>>,
+  hiddenOptions: ReadonlySet<SelectKey>
+): Map<SelectKey, OptionPosition> {
+  const options = flattenSections(listItems, hiddenOptions).filter(
+    node => node.type !== 'section'
+  );
+  // Options outside any section share the `undefined` set.
+  const setSizes = new Map<SelectKey | undefined, number>();
+  for (const {parentKey} of options) {
+    setSizes.set(parentKey ?? undefined, (setSizes.get(parentKey ?? undefined) ?? 0) + 1);
+  }
+
+  const seen = new Map<SelectKey | undefined, number>();
+  return new Map(
+    options.map((node, index) => {
+      const set = node.parentKey ?? undefined;
+      const posInSet = (seen.get(set) ?? 0) + 1;
+      seen.set(set, posInSet);
+      return [node.key, {posInSet, setSize: setSizes.get(set) ?? 0, rowIndex: index + 1}];
+    })
+  );
 }
 
 // Avoid the relatively expensive CSS.escape call for common keys while preserving
