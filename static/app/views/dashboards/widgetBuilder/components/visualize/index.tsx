@@ -488,6 +488,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
   const unifiedRows = useUnifiedTraceMetricRows({
     enabled: isUnifiedTraceMetrics,
     fields: fields ?? [],
+    selectedAggregate: state.selectedAggregate,
     updateAction,
     usesYAxisState,
     dispatch,
@@ -507,6 +508,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
               setError?.({...error, queries: []});
             }}
             onShow={() => unifiedRows.show(row)}
+            showDisabledReason={hasMaxMetrics ? maxMetricsTooltip : undefined}
           />
         )) ?? [])
       : [];

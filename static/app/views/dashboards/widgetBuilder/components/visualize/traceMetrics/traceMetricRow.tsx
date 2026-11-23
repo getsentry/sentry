@@ -101,6 +101,10 @@ interface HiddenTraceMetricRowProps {
   row: MetricRow;
   disabled?: boolean;
   indent?: boolean;
+  /**
+   * Disables the show toggle, e.g. at the metrics cap.
+   */
+  showDisabledReason?: string;
 }
 
 /**
@@ -112,6 +116,7 @@ export function HiddenTraceMetricRow({
   indent,
   onFieldChange,
   onShow,
+  showDisabledReason,
 }: HiddenTraceMetricRowProps) {
   return (
     <HiddenRow gap="xs" width="100%" data-test-id="hidden-metric-row">
@@ -120,7 +125,13 @@ export function HiddenTraceMetricRow({
         <FieldBar>
           <TraceMetricRow
             label={
-              <RowLabel label={row.letter} hidden disabled={disabled} onToggle={onShow} />
+              <RowLabel
+                label={row.letter}
+                hidden
+                disabled={disabled}
+                onToggle={onShow}
+                toggleDisabledReason={showDisabledReason}
+              />
             }
             field={row.field}
             disabled={disabled}

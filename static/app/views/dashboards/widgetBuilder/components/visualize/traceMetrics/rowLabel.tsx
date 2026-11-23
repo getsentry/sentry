@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 
@@ -49,37 +48,46 @@ interface RowLabelProps {
    * When set, the badge is the hide / show button.
    */
   onToggle?: () => void;
+  /**
+   * Disables the toggle and explains why on hover.
+   */
+  toggleDisabledReason?: string;
 }
 
 /**
  * Row letter (A, B, ƒ1, ...). Doubles as the hide / show toggle for rows an
  * equation uses.
  */
-export function RowLabel({label, hidden, disabled, onToggle}: RowLabelProps) {
+export function RowLabel({
+  label,
+  hidden,
+  disabled,
+  onToggle,
+  toggleDisabledReason,
+}: RowLabelProps) {
   if (!onToggle) {
     return <RowLabelBadge label={label} muted={hidden} />;
   }
 
+  const title =
+    toggleDisabledReason ??
+    (hidden
+      ? t('Click to show this series in the chart.')
+      : t('Click to hide this series from the chart.'));
+
   return (
-    <Tooltip
-      title={
-        hidden
-          ? t('Click to show this series in the chart.')
-          : t('Click to hide this series from the chart.')
-      }
+    <BadgeButton
+      variant="transparent"
+      size="zero"
+      muted={hidden}
+      disabled={disabled || !!toggleDisabledReason}
+      tooltipProps={{title}}
+      onClick={onToggle}
+      aria-pressed={hidden}
+      aria-label={hidden ? t('Show series %s', label) : t('Hide series %s', label)}
     >
-      <BadgeButton
-        variant="transparent"
-        size="zero"
-        muted={hidden}
-        disabled={disabled}
-        onClick={onToggle}
-        aria-pressed={hidden}
-        aria-label={hidden ? t('Show series %s', label) : t('Hide series %s', label)}
-      >
-        <RowLabelText label={label} muted={hidden} />
-      </BadgeButton>
-    </Tooltip>
+      <RowLabelText label={label} muted={hidden} />
+    </BadgeButton>
   );
 }
 

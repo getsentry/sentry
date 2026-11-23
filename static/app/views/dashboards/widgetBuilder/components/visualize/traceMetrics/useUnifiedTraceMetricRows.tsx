@@ -1,7 +1,7 @@
 import {useState} from 'react';
 
 import {generateFieldAsString, type Column} from 'sentry/utils/discover/fields';
-import type {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/constants';
+import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/constants';
 import type {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 
 import {
@@ -33,6 +33,10 @@ interface Options {
    * Time series carry a new-to-old index map so transformations follow rows.
    */
   usesYAxisState: boolean;
+  /**
+   * Index of the row big number and categorical bar widgets display.
+   */
+  selectedAggregate?: number;
 }
 
 export interface UnifiedTraceMetricRows {
@@ -72,6 +76,7 @@ export function useUnifiedTraceMetricRows({
   dispatch,
   enabled,
   fields,
+  selectedAggregate,
   updateAction,
   usesYAxisState,
 }: Options): UnifiedTraceMetricRows {
@@ -106,6 +111,18 @@ export function useUnifiedTraceMetricRows({
         ),
       }),
     });
+
+    // The radio selection is an index, so it follows the row it pointed at.
+    if (selectedAggregate !== undefined) {
+      const selected = previousVisible[selectedAggregate];
+      const nextIndex = nextVisible.findIndex(row => row.id === selected?.id);
+      if (nextIndex !== selectedAggregate) {
+        dispatch({
+          type: BuilderStateAction.SET_SELECTED_AGGREGATE,
+          payload: nextIndex === -1 ? undefined : nextIndex,
+        });
+      }
+    }
   };
 
   const hiddenRowsByAnchor = new Map<number, MetricRow[]>();

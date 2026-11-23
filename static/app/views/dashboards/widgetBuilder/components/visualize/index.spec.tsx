@@ -2846,7 +2846,7 @@ describe('Visualize', () => {
       });
     });
 
-    function renderUnified(yAxis: string[]) {
+    function renderUnifiedQuery(query: Record<string, string | string[]>) {
       return render(
         <WidgetBuilderProvider>
           <Visualize />
@@ -2856,16 +2856,16 @@ describe('Visualize', () => {
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-              query: {
-                dataset: WidgetType.TRACEMETRICS,
-                displayType: DisplayType.LINE,
-                yAxis,
-              },
+              query: {dataset: WidgetType.TRACEMETRICS, ...query},
             },
             route: DASHBOARD_WIDGET_BUILDER_ROUTE,
           },
         }
       );
+    }
+
+    function renderUnified(yAxis: string[]) {
+      return renderUnifiedQuery({displayType: DisplayType.LINE, yAxis});
     }
 
     it('lists aggregates and equations together without the mode toggle', async () => {
@@ -2925,6 +2925,21 @@ describe('Visualize', () => {
       expect(addEquation).toHaveAttribute('aria-disabled', 'true');
 
       await userEvent.hover(addEquation);
+      expect(
+        await screen.findByText(
+          `A widget can have up to ${MAX_METRICS_ALLOWED} metrics and equations.`
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('disables showing a hidden series at the metric cap', async () => {
+      const aggregates = Array.from({length: MAX_METRICS_ALLOWED - 1}, () => SUM_ALPHA);
+      renderUnified([...aggregates, `equation|${SUM_BETA} * 2`]);
+
+      const show = await screen.findByRole('button', {name: 'Show series J'});
+      expect(show).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.hover(show);
       expect(
         await screen.findByText(
           `A widget can have up to ${MAX_METRICS_ALLOWED} metrics and equations.`
@@ -3003,7 +3018,7 @@ describe('Visualize', () => {
       await userEvent.hover(removeButton);
       expect(
         await screen.findByText(
-          'This series is only used in an equation. Remove it from the equation to delete it.'
+          'This series is used in an equation. Remove it from the equation to delete it.'
         )
       ).toBeInTheDocument();
     });
@@ -3229,6 +3244,42 @@ describe('Visualize', () => {
           `equation|${SUM_ALPHA} * 2`,
         ]);
       });
+    });
+
+    it('keeps the big number selection on the same row when a row above it is hidden', async () => {
+      const {router} = renderUnifiedQuery({
+        displayType: DisplayType.BIG_NUMBER,
+        field: [SUM_ALPHA, SUM_BETA, `equation|${SUM_ALPHA} * 2`],
+        selectedAggregate: '1',
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Hide series A'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.field)).toEqual([
+          SUM_BETA,
+          `equation|${SUM_ALPHA} * 2`,
+        ]);
+      });
+      expect(router.location.query.selectedAggregate).toBe('0');
+    });
+
+    it('clears the big number selection when the selected row is hidden', async () => {
+      const {router} = renderUnifiedQuery({
+        displayType: DisplayType.BIG_NUMBER,
+        field: [SUM_ALPHA, SUM_BETA, `equation|${SUM_ALPHA} * 2`],
+        selectedAggregate: '0',
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Hide series A'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.field)).toEqual([
+          SUM_BETA,
+          `equation|${SUM_ALPHA} * 2`,
+        ]);
+      });
+      expect(router.location.query).not.toHaveProperty('selectedAggregate');
     });
 
     it('shows a hidden series again', async () => {
