@@ -1969,6 +1969,26 @@ describe('desktop navigation', () => {
         ).not.toBeInTheDocument();
       });
 
+      it('previews groups on hover', async () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({organization: universalInbox})
+        );
+
+        const secondaryNav = screen.getByRole('navigation', {
+          name: 'Secondary Navigation',
+        });
+        expect(
+          within(secondaryNav).getByRole('link', {name: 'Feed'})
+        ).toBeInTheDocument();
+
+        await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
+
+        expect(await screen.findByRole('link', {name: 'Traces'})).toBeInTheDocument();
+      });
+
       describe('hover', () => {
         beforeEach(() => {
           jest.useFakeTimers();
@@ -1983,7 +2003,13 @@ describe('desktop navigation', () => {
           }
         });
 
-        it('does not preview groups on hover', async () => {
+        async function hoverAndWait(name: string) {
+          await userEvent.hover(screen.getByRole('link', {name}), {delay: null});
+          // Advance past the longest hover activation delay.
+          act(() => jest.advanceTimersByTime(250));
+        }
+
+        it('does not preview anything when hovering Inbox', async () => {
           render(
             <PrimaryNavigationContextProvider>
               <Navigation />
@@ -1991,23 +2017,34 @@ describe('desktop navigation', () => {
             navigationContext({organization: universalInbox})
           );
 
+          await hoverAndWait('Inbox');
+
           const secondaryNav = screen.getByRole('navigation', {
             name: 'Secondary Navigation',
           });
           expect(
             within(secondaryNav).getByRole('link', {name: 'Feed'})
           ).toBeInTheDocument();
+        });
 
-          await userEvent.hover(screen.getByRole('link', {name: 'Explore'}), {
-            delay: null,
-          });
-          // Advance past the longest hover activation delay.
-          act(() => jest.advanceTimersByTime(250));
+        it('does not preview groups on hover from the inbox', async () => {
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext({
+              organization: universalInbox,
+              initialRouterConfig: {
+                location: {pathname: '/organizations/org-slug/inbox/'},
+              },
+            })
+          );
+
+          await hoverAndWait('Explore');
 
           expect(
-            within(secondaryNav).getByRole('link', {name: 'Feed'})
-          ).toBeInTheDocument();
-          expect(screen.queryByRole('link', {name: 'Traces'})).not.toBeInTheDocument();
+            screen.queryByRole('navigation', {name: 'Secondary Navigation'})
+          ).not.toBeInTheDocument();
         });
       });
 
