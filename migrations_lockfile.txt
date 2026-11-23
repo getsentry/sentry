@@ -37,7 +37,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0048_remove_seer_workflow_trigger_binding
+seer: 0049_drop_seer_workflow_trigger_binding
 
 seer_workflow_outputs: 0001_initial
 
