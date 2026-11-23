@@ -720,16 +720,15 @@ class Factories:
         )
 
     @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def _drain_user_outboxes(user_id: int) -> None:
-        # A new member's user_email and user_is_active reach the cell through this drain
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            pending_user_outboxes = list(
-                ControlOutbox.objects.filter(
-                    shard_scope=OutboxScope.USER_SCOPE, shard_identifier=user_id
-                )
-            )
-            for outbox in pending_user_outboxes:
-                outbox.drain_shard()
+        # A new member's row on the cell lacks its user's details until these outboxes drain
+        pending_user_outboxes = ControlOutbox.objects.filter(
+            shard_scope=OutboxScope.USER_SCOPE, shard_identifier=user_id
+        )
+        outbox_per_cell = {outbox.cell_name: outbox for outbox in pending_user_outboxes}
+        for outbox in outbox_per_cell.values():
+            outbox.drain_shard()
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
