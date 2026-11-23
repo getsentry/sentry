@@ -102,7 +102,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     DEFAULT_FREQUENCY = 30
 
-    config_schema = {
+    config_schema: ClassVar[dict[str, Any]] = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "title": "Workflow Schema",
         "type": "object",
@@ -116,17 +116,11 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         "additionalProperties": False,
     }
 
-    # Seer investigation workflows can also run on a cron schedule.
-    seer_investigation_config_schema = {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
+    seer_investigation_config_schema: ClassVar[dict[str, Any]] = {
+        **config_schema,
         "title": "Seer Investigation Workflow Schema",
-        "type": "object",
         "properties": {
-            "frequency": {
-                "description": "How often the workflow should fire for a Group (minutes)",
-                "type": "integer",
-                "minimum": 0,
-            },
+            **config_schema["properties"],
             "cron": {
                 "description": "Cron expression for when the workflow runs, evaluated in timezone",
                 "type": "string",
@@ -139,7 +133,6 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             },
         },
         "dependentRequired": {"timezone": ["cron"]},
-        "additionalProperties": False,
     }
 
     __repr__ = sane_repr("organization_id")
