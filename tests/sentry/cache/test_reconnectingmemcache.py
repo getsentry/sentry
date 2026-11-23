@@ -46,6 +46,8 @@ def clear_thread_clients() -> Generator[None]:
     # Clients outlive their backend, so a test would get another's.
     reconnectingmemcache._thread_clients.by_key.clear()
     yield
+    for state in reconnectingmemcache._thread_clients.by_key.values():
+        state.client.close()
     reconnectingmemcache._thread_clients.by_key.clear()
 
 
