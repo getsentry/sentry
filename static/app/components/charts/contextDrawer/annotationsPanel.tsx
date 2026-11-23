@@ -1,4 +1,4 @@
-import {useEffect, useRef, type ReactNode, type Ref} from 'react';
+import {lazy, useEffect, useRef, type ReactNode, type Ref} from 'react';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Flex, Stack, type StackProps} from '@sentry/scraps/layout';
@@ -14,9 +14,27 @@ import type {
   AnnotationItem,
   AnnotationKind,
 } from 'sentry/components/charts/annotations/types';
+import {LazyLoad} from 'sentry/components/lazyLoad';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 
+import {AnnotationSevereTable} from './annotationSevereTable';
 import type {ChartContextSection} from './chartContextDrawer';
+
+export const ANNOTATION_FLAGS_CURSOR = 'contextFlagsCursor';
+
+const LazyReleasesDrawerTable = lazy(() =>
+  import('sentry/views/explore/releases/drawer/releasesDrawerTable').then(module => ({
+    default: module.ReleasesDrawerTable,
+  }))
+);
+
+const LazyAnnotationFlagsTable = lazy(() =>
+  import('./annotationFlagsTable').then(module => ({
+    default: module.AnnotationFlagsTable,
+  }))
+);
 
 interface AnnotationsPanelProps {
   items: readonly AnnotationItem[];
@@ -25,6 +43,7 @@ interface AnnotationsPanelProps {
 }
 
 export function AnnotationsPanel({items, kinds, section}: AnnotationsPanelProps) {
+  const {selection} = usePageFilters();
   const activityRef = useRef<HTMLElement>(null);
   const severeRef = useRef<HTMLElement>(null);
   const activityItems = items.filter(item => !isSevere(item));
@@ -46,11 +65,11 @@ export function AnnotationsPanel({items, kinds, section}: AnnotationsPanelProps)
         count={severeItems.length}
         padding="2xl"
       >
-        <Text variant="muted">
-          {severeItems.length > 0
-            ? t('Table coming soon')
-            : t('No severe annotations in this time range')}
-        </Text>
+        {severeItems.length > 0 ? (
+          <AnnotationSevereTable items={severeItems} />
+        ) : (
+          <Text variant="muted">{t('No severe annotations in this time range')}</Text>
+        )}
       </AnnotationsSection>
       <Separator orientation="horizontal" border="primary" />
       <Stack
@@ -67,7 +86,22 @@ export function AnnotationsPanel({items, kinds, section}: AnnotationsPanelProps)
               title={ANNOTATION_KIND_LABELS[kind]}
               count={activityItems.filter(item => item.kind === kind).length}
             >
-              <Text variant="muted">{t('Table coming soon')}</Text>
+              {kind === 'release' ? (
+                <LazyLoad
+                  LazyComponent={LazyReleasesDrawerTable}
+                  loadingFallback={<LoadingIndicator mini />}
+                  {...selection}
+                  releaseDrawerSource="chart-context-drawer"
+                />
+              ) : kind === 'flag' ? (
+                <LazyLoad
+                  LazyComponent={LazyAnnotationFlagsTable}
+                  loadingFallback={<LoadingIndicator mini />}
+                  cursorKeyName={ANNOTATION_FLAGS_CURSOR}
+                />
+              ) : (
+                <Text variant="muted">{t('Table coming soon')}</Text>
+              )}
             </AnnotationsSection>
           ))
         ) : (

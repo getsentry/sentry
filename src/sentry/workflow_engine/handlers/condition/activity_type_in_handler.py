@@ -42,7 +42,6 @@ class ActivityTypeInHandler(WorkflowTriggerDataConditionHandler):
         "minItems": 1,
         "uniqueItems": True,
     }
-    condition_result_schema = {"type": "boolean"}
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:

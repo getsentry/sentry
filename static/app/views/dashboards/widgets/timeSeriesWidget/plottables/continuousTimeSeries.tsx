@@ -1,9 +1,12 @@
 import type {SeriesOption} from 'echarts';
 
-import {defined} from 'sentry/utils/defined';
 import {mergeTimeRanges, type TimeRange} from 'sentry/utils/timeSeries/mergeTimeRanges';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 import type {TimeSeriesSegmentField} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
+import {
+  isExtrapolatedTimeSeriesItem,
+  isLowConfidenceTimeSeriesItem,
+} from 'sentry/utils/timeSeries/timeSeriesItemConfidence';
 import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {isAPlottableTimeSeriesValueType} from 'sentry/views/dashboards/widgets/common/typePredicates';
 import type {
@@ -102,13 +105,13 @@ export abstract class ContinuousTimeSeries<
     // Incomplete buckets are partial, so they often have few samples. Charts draw
     // them in the incomplete style, which hides low confidence, so they don't count
     const completeValues = values.filter(datum => !datum.incomplete);
-    const lowCount = completeValues.filter(isLowConfidenceDataPoint).length;
+    const lowCount = completeValues.filter(isLowConfidenceTimeSeriesItem).length;
 
     if (lowCount > 0) {
       return lowCount === completeValues.length ? 'low' : 'mixed';
     }
 
-    return values.some(isExtrapolated) ? 'high' : 'full';
+    return values.some(isExtrapolatedTimeSeriesItem) ? 'high' : 'full';
   }
 
   /**
@@ -123,7 +126,9 @@ export abstract class ContinuousTimeSeries<
       this.timeSeries.values
         .filter(
           datum =>
-            datum.value !== null && !datum.incomplete && isLowConfidenceDataPoint(datum)
+            datum.value !== null &&
+            !datum.incomplete &&
+            isLowConfidenceTimeSeriesItem(datum)
         )
         .map(({timestamp}) => ({
           start: timestamp - interval / 2,
@@ -179,7 +184,7 @@ export abstract class ContinuousTimeSeries<
   ): ContinuousTimeSeriesDataPoint {
     return {
       value: timeSeriesItemToEChartsDataPoint(item),
-      confidence: segmentBy.includes('confidence') ? item.confidence : undefined,
+      confidence: segmentBy.includes('confidence') ? getConfidence(item) : undefined,
       completeness: segmentBy.includes('completeness')
         ? getCompleteness(item)
         : undefined,
@@ -214,6 +219,8 @@ function getCompleteness(
   return item.incomplete ? 'incomplete' : 'complete';
 }
 
-function isExtrapolated(datum: TimeSeriesItem): boolean {
-  return defined(datum.sampleRate) && datum.sampleRate < 1;
+function getConfidence(
+  item: TimeSeriesItem
+): ContinuousTimeSeriesDataPoint['confidence'] {
+  return isLowConfidenceTimeSeriesItem(item) ? 'low' : item.confidence;
 }

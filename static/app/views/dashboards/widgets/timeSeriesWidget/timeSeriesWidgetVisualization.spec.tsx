@@ -1,6 +1,6 @@
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -14,6 +14,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
 import {Line} from './plottables/line';
+import {LOW_CONFIDENCE_OPACITY} from './settings';
 import {
   LOW_CONFIDENCE_AREAS_NAME,
   TimeSeriesWidgetVisualization,
@@ -151,36 +152,63 @@ describe('TimeSeriesWidgetVisualization', () => {
     expect(fromAnnotations).toContain('Releases');
   });
 
-  describe('low confidence areas', () => {
+  describe('confidence', () => {
     const lowConfidencePlottables = [
-      new Line({
-        ...sampleDurationTimeSeries,
-        values: sampleDurationTimeSeries.values.map((item, index) => ({
-          ...item,
-          confidence: index === 3 ? ('low' as const) : ('high' as const),
-        })),
-      }),
+      new Line(
+        TimeSeriesFixture({
+          values: [
+            {timestamp: 1729796400000, value: 10},
+            {timestamp: 1729798200000, value: 20, confidence: 'low'},
+            {timestamp: 1729800000000, value: 30},
+          ],
+        })
+      ),
     ];
 
-    function getLowConfidenceSeries() {
+    function lowConfidenceAreas() {
       const {series} = jest.mocked(BaseChart).mock.calls.at(-1)![0];
       return series?.find(({id}) => id === LOW_CONFIDENCE_AREAS_NAME);
     }
 
-    it('hatches low confidence data with the time series confidence feature', () => {
-      render(<TimeSeriesWidgetVisualization plottables={lowConfidencePlottables} />, {
-        organization: OrganizationFixture({
-          features: ['data-browsing-time-series-confidence'],
-        }),
-      });
+    function plottedLineOpacities() {
+      const {series} = jest.mocked(BaseChart).mock.calls.at(-1)![0];
+      return series?.map(item =>
+        'lineStyle' in item ? item.lineStyle?.opacity : undefined
+      );
+    }
 
-      expect(getLowConfidenceSeries()).toBeDefined();
-    });
-
-    it('needs the time series confidence feature', () => {
+    it('does not mark low-confidence buckets by default', () => {
       render(<TimeSeriesWidgetVisualization plottables={lowConfidencePlottables} />);
 
-      expect(getLowConfidenceSeries()).toBeUndefined();
+      expect(plottedLineOpacities()).not.toContain(LOW_CONFIDENCE_OPACITY);
+    });
+
+    it('marks low-confidence buckets with showConfidence', () => {
+      render(
+        <TimeSeriesWidgetVisualization
+          plottables={lowConfidencePlottables}
+          showConfidence
+        />
+      );
+
+      expect(plottedLineOpacities()).toContain(LOW_CONFIDENCE_OPACITY);
+    });
+
+    it('does not hatch low-confidence buckets by default', () => {
+      render(<TimeSeriesWidgetVisualization plottables={lowConfidencePlottables} />);
+
+      expect(lowConfidenceAreas()).toBeUndefined();
+    });
+
+    it('hatches low-confidence buckets with showConfidence', () => {
+      render(
+        <TimeSeriesWidgetVisualization
+          plottables={lowConfidencePlottables}
+          showConfidence
+        />
+      );
+
+      expect(lowConfidenceAreas()).toBeDefined();
     });
   });
 });

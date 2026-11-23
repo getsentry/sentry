@@ -594,6 +594,7 @@ class RecordTest(TestCase):
 
         items = list(InboxItem.objects.order_by("user_id"))
         assert [item.user_id for item in items] == sorted([self.user.id, other.id])
+        assert items[0].last_activity_at == items[1].last_activity_at
         assert sorted((event.inbox_item_id, event.id) for event in recorded) == sorted(
             (item.id, item.events.get().id) for item in items
         )
@@ -604,7 +605,7 @@ class RecordTest(TestCase):
             assert item.subject_id == str(self.group.id)
             assert item.subject_type == "issue"
             assert item.organization_id == self.organization.id
-            assert item.last_activity_at == event.date_added
+            assert item.last_activity_at <= event.date_added
             assert item.last_read_at is None
             assert event.actor_type == InboxActorType.USER
             assert event.actor_id == actor.id
@@ -745,7 +746,6 @@ class RecordTest(TestCase):
         assert InboxItem.objects.count() == 2
         assert item.events.count() == 2
         assert item.last_read_at == read_at
-        assert item.last_activity_at == event.date_added
         assert item.last_activity_at > read_at
         assert item.status == ObjectStatus.ACTIVE
         assert foreign.date_updated == foreign_updated_at
@@ -774,7 +774,7 @@ class RecordTest(TestCase):
         assert not InboxItem.objects.exists()
         assert not InboxItemEvent.objects.exists()
 
-    def test_update_failure_rolls_back_fanout(self) -> None:
+    def test_event_failure_rolls_back_existing_item(self) -> None:
         read_at = before_now(days=1)
         item = self.create_inbox_item(
             subject_id=str(self.group.id),
@@ -783,11 +783,10 @@ class RecordTest(TestCase):
             status=ObjectStatus.PENDING_DELETION,
         )
         activity_at, updated_at = item.last_activity_at, item.date_updated
-        other = self.create_user()
 
         with (
             patch(
-                "sentry.inbox.types.InboxItem.objects.bulk_update",
+                "sentry.inbox.types.InboxItemEvent.objects.get_or_create",
                 side_effect=RuntimeError("write failed"),
             ),
             pytest.raises(RuntimeError, match="write failed"),
@@ -795,7 +794,7 @@ class RecordTest(TestCase):
             ISSUE_USER_MENTIONED.record(
                 subject=self.group,
                 data=IssueMentionedData(comment_id=123),
-                recipient_user_ids=[self.user.id, other.id],
+                recipient_user_ids=[self.user.id],
                 actor=SYSTEM_ACTOR,
             )
 
@@ -807,20 +806,34 @@ class RecordTest(TestCase):
         assert item.date_updated == updated_at
         assert not InboxItemEvent.objects.exists()
 
-    def test_activity_timestamp_does_not_move_backwards(self) -> None:
-        activity_at = before_now(days=-1)
-        item = self.create_inbox_item(subject_id=str(self.group.id), last_activity_at=activity_at)
+    @override_options({"cleanup.inbox-items.enabled": False, "cleanup.inbox-events.enabled": False})
+    def test_records_item_once(self) -> None:
+        group = self.group
+        user_ids = [self.user.id]
+        for comment_id in (123, 456):
+            with self.assertNumQueries(7):
+                ISSUE_USER_MENTIONED.record(
+                    subject=group,
+                    data=IssueMentionedData(comment_id=comment_id),
+                    recipient_user_ids=user_ids,
+                    actor=SYSTEM_ACTOR,
+                )
 
-        ISSUE_USER_MENTIONED.record(
-            subject=self.group,
-            data=IssueMentionedData(comment_id=123),
-            recipient_user_ids=[self.user.id],
-            actor=SYSTEM_ACTOR,
+    def test_activity_timestamp_uses_recording_time(self) -> None:
+        item = self.create_inbox_item(
+            subject_id=str(self.group.id), last_activity_at=before_now(days=-1)
         )
+        activity_at = before_now(seconds=1)
+        with freeze_time(activity_at):
+            ISSUE_USER_MENTIONED.record(
+                subject=self.group,
+                data=IssueMentionedData(comment_id=123),
+                recipient_user_ids=[self.user.id],
+                actor=SYSTEM_ACTOR,
+            )
 
         item.refresh_from_db()
         assert item.last_activity_at == activity_at
-        assert item.date_updated == item.events.get().date_added
 
     def test_duplicate_preserves_event_and_refreshes_item(self) -> None:
         data = IssueMentionedData(comment_id=123)
@@ -940,14 +953,10 @@ class RecordConcurrencyTest(TransactionTestCase):
     ) -> list[list[InboxItemEvent]]:
         group = self.group
         ready = Barrier(2, timeout=20)
-        bulk_create = InboxItem.objects.bulk_create
-
-        def concurrent_create(items: list[InboxItem], **kwargs: Any) -> list[InboxItem]:
-            ready.wait()
-            return bulk_create(items, **kwargs)
 
         def record(comment_id: int, user_ids: list[int]) -> list[InboxItemEvent]:
             try:
+                ready.wait()
                 return ISSUE_USER_MENTIONED.record(
                     subject=group,
                     data=IssueMentionedData(comment_id=comment_id),
@@ -957,10 +966,7 @@ class RecordConcurrencyTest(TransactionTestCase):
             finally:
                 connections.close_all()
 
-        with (
-            patch.object(InboxItem.objects, "bulk_create", concurrent_create),
-            ContextPropagatingThreadPoolExecutor(max_workers=2) as executor,
-        ):
+        with ContextPropagatingThreadPoolExecutor(max_workers=2) as executor:
             futures = [
                 executor.submit(record, comment_ids[0], recipient_user_ids),
                 executor.submit(record, comment_ids[1], list(reversed(recipient_user_ids))),
@@ -969,7 +975,6 @@ class RecordConcurrencyTest(TransactionTestCase):
 
     def test_concurrent_creates_keep_both_events(self) -> None:
         recipients = [self.user.id, self.create_user().id]
-
         self._record_concurrently(recipients)
 
         assert InboxItem.objects.count() == 2
@@ -977,7 +982,6 @@ class RecordConcurrencyTest(TransactionTestCase):
             events = list(item.events.order_by("date_added"))
             assert len(events) == 2
             assert {event.data["comment_id"] for event in events} == {123, 456}
-            assert item.last_activity_at == events[-1].date_added
 
     def test_concurrent_duplicate_deliveries_only_record_once(self) -> None:
         recipients = [self.user.id, self.create_user().id]
@@ -992,7 +996,6 @@ class RecordConcurrencyTest(TransactionTestCase):
         for item in InboxItem.objects.all():
             event = item.events.get()
             assert event.data["comment_id"] == 123
-            assert item.last_activity_at >= event.date_added
         assert metrics_mock.incr.call_count == 2
         metrics_mock.incr.assert_called_with(
             "inbox.events.processed", amount=2, tags={"event_type": "issue.user_mentioned"}
@@ -1015,7 +1018,6 @@ class RecordConcurrencyTest(TransactionTestCase):
             events = list(item.events.order_by("date_added"))
             assert len(events) == 2
             assert {event.data["comment_id"] for event in events} == {123, 456}
-            assert item.last_activity_at == events[-1].date_added
             assert item.status == ObjectStatus.ACTIVE
         existing.refresh_from_db()
         assert existing.last_read_at == read_at

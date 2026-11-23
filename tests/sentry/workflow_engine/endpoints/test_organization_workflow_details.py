@@ -631,6 +631,36 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.data["environment"] == test_environment.name
         assert updated_workflow.environment_id == test_environment.id
 
+    def test_update_rejects_object_condition_result_on_existing_condition(self) -> None:
+        condition = self.create_data_condition(
+            condition_group=self.workflow.when_condition_group,
+            type=Condition.EVERY_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        self.valid_workflow["triggers"] = {
+            "logicType": "any-short",
+            "conditions": [
+                {
+                    "id": condition.id,
+                    "type": Condition.EVERY_EVENT.value,
+                    "comparison": True,
+                    "conditionResult": {},
+                }
+            ],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=self.valid_workflow,
+            status_code=400,
+        )
+
+        assert "must be a boolean" in str(response.data)
+        condition.refresh_from_db()
+        assert condition.condition_result is True
+
     def test_update_rejects_operator_condition_in_triggers(self) -> None:
         self.valid_workflow["triggers"] = {
             "logicType": "any-short",
