@@ -167,6 +167,16 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 404
         assert response.data == {"detail": "The requested resource does not exist"}
 
+    def test_dashboard_id_out_of_range(self) -> None:
+        response = self.do_request("get", self.url("1" * 40))
+        assert response.status_code == 404
+        assert response.data == {"detail": "The requested resource does not exist"}
+
+    def test_dashboard_id_not_numeric(self) -> None:
+        response = self.do_request("get", self.url("not-a-dashboard"))
+        assert response.status_code == 404
+        assert response.data == {"detail": "The requested resource does not exist"}
+
     def test_dashboard_widget_returns_limit(self) -> None:
         response = self.do_request("get", self.url(self.dashboard.id))
         assert response.status_code == 200, response.content
