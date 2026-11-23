@@ -124,7 +124,11 @@ type WidgetAction =
   | {payload: string; type: typeof BuilderStateAction.SET_DESCRIPTION}
   | {payload: DisplayType; type: typeof BuilderStateAction.SET_DISPLAY_TYPE}
   | {payload: WidgetType; type: typeof BuilderStateAction.SET_DATASET}
-  | {payload: Column[]; type: typeof BuilderStateAction.SET_FIELDS}
+  | {
+      payload: Column[];
+      type: typeof BuilderStateAction.SET_FIELDS;
+      selectedAggregate?: number | undefined;
+    }
   | {
       payload: Column[];
       type: typeof BuilderStateAction.SET_Y_AXIS;
@@ -155,7 +159,12 @@ type WidgetAction =
       type: typeof BuilderStateAction.SET_THRESHOLDS;
     }
   | {payload: string; type: typeof BuilderStateAction.SET_CATEGORICAL_X_AXIS}
-  | {payload: Column[]; type: typeof BuilderStateAction.SET_CATEGORICAL_AGGREGATE}
+  | {
+      payload: Column[];
+      type: typeof BuilderStateAction.SET_CATEGORICAL_AGGREGATE;
+      // Present when the radio selection moves with the fields; undefined clears it.
+      selectedAggregate?: number | undefined;
+    }
   | {
       payload: number; // index of the field to delete within the visible fields list
       type: typeof BuilderStateAction.DELETE_AGGREGATE;
@@ -883,6 +892,9 @@ export function useWidgetBuilderState(): {
         }
         case BuilderStateAction.SET_FIELDS: {
           setFields(action.payload, options);
+          if ('selectedAggregate' in action) {
+            setSelectedAggregate(action.selectedAggregate, options);
+          }
           const remainingKindFields = action.payload.filter(
             field => field.kind === FieldValueKind.FIELD
           );
@@ -1217,6 +1229,9 @@ export function useWidgetBuilderState(): {
             const existingXAxisFields =
               fields?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
             setFields([...existingXAxisFields, ...action.payload], options);
+            if ('selectedAggregate' in action) {
+              setSelectedAggregate(action.selectedAggregate, options);
+            }
 
             // If the sort was on an aggregate that got edited in-place, fall
             // back to the same index so the sort follows the edit.
@@ -1238,7 +1253,22 @@ export function useWidgetBuilderState(): {
               sortedOldIndex >= 0 ? sortedOldIndex : undefined,
               existingXAxisFields
             );
-            if (fixedSort) {
+            if (
+              'selectedAggregate' in action &&
+              action.selectedAggregate !== undefined &&
+              action.payload[action.selectedAggregate]
+            ) {
+              // Bars stay ordered by the displayed metric.
+              setSort(
+                [
+                  {
+                    kind: sort?.[0]?.kind ?? 'desc',
+                    field: generateSortField(action.payload, action.selectedAggregate),
+                  },
+                ],
+                options
+              );
+            } else if (fixedSort) {
               setSort(fixedSort, options);
             }
           }

@@ -3282,6 +3282,27 @@ describe('Visualize', () => {
       expect(router.location.query).not.toHaveProperty('selectedAggregate');
     });
 
+    it('keeps the categorical bar sort on the displayed series when a row above it is hidden', async () => {
+      const {router} = renderUnifiedQuery({
+        displayType: DisplayType.CATEGORICAL_BAR,
+        field: ['metric.name', SUM_ALPHA, SUM_BETA, `equation|${SUM_ALPHA} * 2`],
+        selectedAggregate: '1',
+        sort: [`-${SUM_BETA}`],
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Hide series A'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.field)).toEqual([
+          'metric.name',
+          SUM_BETA,
+          `equation|${SUM_ALPHA} * 2`,
+        ]);
+      });
+      expect(router.location.query.selectedAggregate).toBe('0');
+      expect(decodeList(router.location.query.sort)).toEqual([`-${SUM_BETA}`]);
+    });
+
     it('shows a hidden series again', async () => {
       const {router} = renderUnified([`equation|${SUM_BETA} * 2`]);
 

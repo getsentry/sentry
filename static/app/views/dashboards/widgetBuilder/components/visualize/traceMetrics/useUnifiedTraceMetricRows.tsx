@@ -1,7 +1,7 @@
 import {useState} from 'react';
 
 import {generateFieldAsString, type Column} from 'sentry/utils/discover/fields';
-import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/constants';
+import type {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/constants';
 import type {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 
 import {
@@ -102,6 +102,14 @@ export function useUnifiedTraceMetricRows({
 
     const previousVisible = visibleRows;
     const nextVisible = visibleRowsOf(next);
+
+    // The radio selection is an index, so it follows the row it pointed at.
+    const selected =
+      selectedAggregate === undefined ? undefined : previousVisible[selectedAggregate];
+    const nextSelected = selected
+      ? nextVisible.findIndex(row => row.id === selected.id)
+      : -1;
+
     dispatch({
       type: updateAction,
       payload: nextFields,
@@ -110,19 +118,11 @@ export function useUnifiedTraceMetricRows({
           previousVisible.findIndex(previous => previous.id === row.id)
         ),
       }),
+      ...(selected &&
+        nextSelected !== selectedAggregate && {
+          selectedAggregate: nextSelected === -1 ? undefined : nextSelected,
+        }),
     });
-
-    // The radio selection is an index, so it follows the row it pointed at.
-    if (selectedAggregate !== undefined) {
-      const selected = previousVisible[selectedAggregate];
-      const nextIndex = nextVisible.findIndex(row => row.id === selected?.id);
-      if (nextIndex !== selectedAggregate) {
-        dispatch({
-          type: BuilderStateAction.SET_SELECTED_AGGREGATE,
-          payload: nextIndex === -1 ? undefined : nextIndex,
-        });
-      }
-    }
   };
 
   const hiddenRowsByAnchor = new Map<number, MetricRow[]>();
