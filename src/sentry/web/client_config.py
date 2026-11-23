@@ -45,11 +45,9 @@ from sentry.users.models.user import User
 from sentry.users.services.user import UserSerializeType
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
-from sentry.utils import auth, json
+from sentry.utils import auth, force_trace_sampling, json
 from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled
-from sentry.utils.force_trace_sampling import COOKIE_NAME as FORCE_TRACE_SAMPLING_COOKIE
-from sentry.utils.force_trace_sampling import read_grant as read_force_trace_sampling_grant
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.settings import (
     is_self_hosted,
@@ -222,17 +220,21 @@ class _ClientConfig:
         }
 
     @property
-    def force_trace_sampling_until(self) -> int | None:
-        """Expiry in epoch milliseconds of the current user's force sampling grant."""
+    def force_trace_sampling_remaining_ms(self) -> int | None:
+        """Time left on the user's grant, relative so a wrong browser clock can't extend it."""
         if self.request is None or self.user is None or not self.user.is_authenticated:
             return None
 
-        grant = read_force_trace_sampling_grant(
-            self.request.COOKIES.get(FORCE_TRACE_SAMPLING_COOKIE)
+        grant = force_trace_sampling.read_grant(
+            self.request.COOKIES.get(force_trace_sampling.COOKIE_NAME)
         )
-        if grant is None or grant.user_id != self.user.id:
+        if (
+            grant is None
+            or grant.user_id != self.user.id
+            or not options.get("tracing.force-sampling.enabled")
+        ):
             return None
-        return grant.expires_at_ms
+        return force_trace_sampling.get_grant_remaining_ms(grant)
 
     @property
     def enabled_features(self) -> Iterable[str]:
@@ -451,7 +453,7 @@ class _ClientConfig:
             "statuspage": _get_statuspage(),
             "messages": [{"message": msg.message, "level": msg.tags} for msg in self.messages],
             "apmSampling": float(settings.SENTRY_FRONTEND_APM_SAMPLING or 0),
-            "forceTraceSamplingUntil": self.force_trace_sampling_until,
+            "forceTraceSamplingRemainingMs": self.force_trace_sampling_remaining_ms,
             # Maintain isOnPremise key for backcompat (plugins?).
             "isOnPremise": is_self_hosted(),
             "isSelfHosted": is_self_hosted(),

@@ -89,3 +89,14 @@ class InternalForceTraceSamplingTest(APITestCase):
 
         assert response.status_code == 204
         assert response.cookies[COOKIE_NAME]["max-age"] == 0
+
+    def test_former_employee_can_clear_cookie(self) -> None:
+        self.login_as(self.create_user(email="former@example.com", is_staff=False))
+
+        response = self.client.delete(URL)
+
+        assert response.status_code == 204
+        assert response.cookies[COOKIE_NAME]["max-age"] == 0
+
+    def test_anonymous_cannot_call_delete(self) -> None:
+        assert self.client.delete(URL).status_code in (401, 403)
