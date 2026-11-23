@@ -370,7 +370,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
     def get_quota_message(self, quota: DetectorQuota) -> str:
         return metric_detector_quota_message(quota)
 
-    def _enforce_enable_quota(self) -> None:
+    def _enforce_enabled_detector_quota(self) -> None:
         quota = self.get_quota()
         if can_enable_metric_detectors(quota, 1):
             return
@@ -531,7 +531,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
         if validated_data.get("enabled") is True and not instance.enabled:
-            self._enforce_enable_quota()
+            self._enforce_enabled_detector_quota()
 
         if "config" in validated_data:
             self._clean_config(validated_data["config"])

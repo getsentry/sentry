@@ -19,6 +19,7 @@ from sentry.incidents.logic import (
     DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
     get_alert_resolution,
 )
+from sentry.incidents.metric_detector_quota import get_metric_detector_quota
 from sentry.incidents.metric_issue_detector import (
     MetricIssueComparisonConditionValidator,
     MetricIssueDetectorValidator,
@@ -640,6 +641,7 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
                 type=MetricIssue.slug,
                 status=status,
             )
+        # Create a disabled detector, which shouldn't count towards the limit
         self.create_detector(
             project_id=self.project.id,
             name="Disabled Detector",
@@ -647,6 +649,10 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
             status=ObjectStatus.ACTIVE,
             enabled=False,
         )
+
+        # none of the detectors above count
+        assert get_metric_detector_quota(self.organization).count == 0
+
         self.create_detector(
             project_id=self.project.id,
             name="Enabled Detector",
@@ -658,7 +664,7 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
         validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid()
         assert validator.save()
-        mock_get_limit.assert_called_once_with(self.project.organization.id)
+        mock_get_limit.assert_called_with(self.project.organization.id)
 
         validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
         validator.is_valid()
@@ -1119,7 +1125,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
 
     @mock.patch("sentry.quotas.backend.get_metric_detector_limit", return_value=3)
     @with_feature("organizations:workflow-engine-metric-detector-limit")
-    def test_enable_rejected_at_limit(self, mock_get_limit: mock.MagicMock) -> None:
+    def test_enablement_request_rejected_at_limit(self, mock_get_limit: mock.MagicMock) -> None:
         self.create_static_detector()
         self.create_static_detector()
         disabled = self.create_static_detector()

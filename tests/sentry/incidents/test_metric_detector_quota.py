@@ -19,7 +19,9 @@ class MetricDetectorQuotaTest(TestCase):
     def _metric_detector(self, **kwargs: Any) -> Detector:
         return self.create_detector(project=self.project, type=MetricIssue.slug, **kwargs)
 
-    def test_counts_only_enabled_active_metric_detectors(self, _limit: mock.MagicMock) -> None:
+    def test_counts_only_enabled_active_metric_detectors(
+        self, _mock_get_limit: mock.MagicMock
+    ) -> None:
         self._metric_detector(enabled=True)
         self._metric_detector(enabled=False)
         self._metric_detector(enabled=True, status=ObjectStatus.PENDING_DELETION)
@@ -31,20 +33,20 @@ class MetricDetectorQuotaTest(TestCase):
         assert quota.limit == 2
         assert not quota.has_exceeded
 
-    def test_disabled_detectors_leave_room(self, _limit: mock.MagicMock) -> None:
+    def test_disabled_detectors_leave_room(self, _mock_get_limit: mock.MagicMock) -> None:
         self._metric_detector(enabled=True)
         self._metric_detector(enabled=False)
         self._metric_detector(enabled=False)
 
         assert not get_metric_detector_quota(self.organization).has_exceeded
 
-    def test_exceeded_at_limit(self, _limit: mock.MagicMock) -> None:
+    def test_exceeded_at_limit(self, _mock_get_limit: mock.MagicMock) -> None:
         self._metric_detector(enabled=True)
         self._metric_detector(enabled=True)
 
         assert get_metric_detector_quota(self.organization).has_exceeded
 
-    def test_can_enable_up_to_limit(self, _limit: mock.MagicMock) -> None:
+    def test_can_enable_up_to_limit(self, _mock_get_limit: mock.MagicMock) -> None:
         self._metric_detector(enabled=True)
 
         quota = get_metric_detector_quota(self.organization)
@@ -62,7 +64,7 @@ class MetricDetectorQuotaTest(TestCase):
 
 @mock.patch("sentry.quotas.backend.get_metric_detector_limit", return_value=0)
 class MetricDetectorQuotaFlagOffTest(TestCase):
-    def test_flag_off_is_unlimited(self, _limit: mock.MagicMock) -> None:
+    def test_flag_off_is_unlimited(self, _mock_get_limit: mock.MagicMock) -> None:
         quota = get_metric_detector_quota(self.organization)
         assert not quota.has_exceeded
         assert can_enable_metric_detectors(quota, 5)

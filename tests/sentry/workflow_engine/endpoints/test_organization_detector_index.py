@@ -1370,6 +1370,8 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
     def test_update_detectors_enable_already_enabled_not_counted(
         self, mock_get_limit: MagicMock
     ) -> None:
+        assert self.detector.enabled is True
+
         self.get_success_response(
             self.organization.slug,
             qs_params={"id": str(self.detector.id)},
