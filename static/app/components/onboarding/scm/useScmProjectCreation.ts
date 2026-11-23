@@ -429,9 +429,7 @@ function useReplaceProjectWorkflow() {
           fetchMutation({
             url: getApiUrl(
               '/organizations/$organizationIdOrSlug/workflows/$workflowId/',
-              {
-                path: {organizationIdOrSlug: organization.slug, workflowId},
-              }
+              {path: {organizationIdOrSlug: organization.slug, workflowId}}
             ),
             method: 'DELETE',
           }).catch(error => Sentry.captureException(error))
