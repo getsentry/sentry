@@ -173,8 +173,7 @@ def parse_headers(recording: bytes) -> tuple[int, bytes]:
 
 
 def _drop_invalid_recording(reason: str) -> NoReturn:
-    metrics.incr("replays.consumer.recording.invalid", tags={"reason": reason})
-    logger.warning("Dropped an invalid recording segment.", extra={"reason": reason})
+    sentry_sdk.metrics.count("replays.consumer.recording.invalid", 1, attributes={"reason": reason})
     raise DropSilently()
 
 

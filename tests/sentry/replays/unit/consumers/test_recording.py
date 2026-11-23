@@ -188,14 +188,14 @@ def test_parse_headers_compressed_header() -> None:
     """A compressed segment in the header slot is dropped and counted, not reported as an error."""
     recording = b"x\x9c\xed]\x8f\xe38v" + b"\n" + zlib.compress(b"[]")
     with (
-        mock.patch("sentry.replays.consumers.recording.metrics.incr") as incr,
+        mock.patch("sentry.replays.consumers.recording.sentry_sdk.metrics.count") as count,
         mock.patch("sentry.replays.consumers.recording.logger") as logger,
     ):
         with pytest.raises(DropSilently):
             parse_headers(recording)
 
-    incr.assert_called_once_with(
-        "replays.consumer.recording.invalid", tags={"reason": "invalid_headers_json"}
+    count.assert_called_once_with(
+        "replays.consumer.recording.invalid", 1, attributes={"reason": "invalid_headers_json"}
     )
     logger.exception.assert_not_called()
 
