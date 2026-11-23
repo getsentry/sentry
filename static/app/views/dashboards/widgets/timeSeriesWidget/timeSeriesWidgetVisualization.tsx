@@ -271,8 +271,17 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const {
     onDataZoom,
     onChartReady: onChartReadyZoom,
+    dataZoom,
     ...chartZoomProps
   } = useChartZoom({disabled: props.disableZoom, saveOnZoom: true});
+
+  // The default `filter` mode drops a hatch area that crosses the zoom window
+  // edge, since both its start and end are on the X axis. `weakFilter` keeps
+  // it, and acts the same as `filter` for series with one X value per point.
+  const weakFilterDataZoom = useMemo(
+    () => dataZoom.map(zoom => ({...zoom, filterMode: 'weakFilter' as const})),
+    [dataZoom]
+  );
 
   const {brush, onBrushEnd, onBrushStart, toolBox, ActionMenu} = useChartXRangeSelection({
     chartRef,
@@ -893,6 +902,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           xAxis={band.xAxis}
           yAxes={showYAxis ? band.yAxes : band.yAxes.map(() => HIDDEN_AXIS)}
           {...chartZoomProps}
+          dataZoom={weakFilterDataZoom}
           onDataZoom={props.onZoom ?? onDataZoom}
           toolBox={toolBox ?? chartZoomProps.toolBox}
           brush={brush}
