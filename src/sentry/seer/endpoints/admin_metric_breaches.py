@@ -28,7 +28,10 @@ from sentry.incidents.grouptype import MetricIssue, MetricIssueDetectorHandler
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
-from sentry.incidents.utils.types import MetricUpdate, ProcessedSubscriptionUpdate
+from sentry.incidents.utils.types import (
+    MetricDetectorProcessedSubscriptionUpdate,
+    ProcessedSubscriptionUpdate,
+)
 from sentry.investigations.services.breached_metrics import code_mode_dataset
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import process_occurrence_message
@@ -163,7 +166,7 @@ def create_synthetic_breach(context: SyntheticBreachContext) -> tuple[Group, str
     submitted_at = timezone.now()
     breach_start = submitted_at - timedelta(minutes=15)
     value = synthetic_value(context.condition)
-    packet = DataPacket[MetricUpdate](
+    packet = DataPacket[MetricDetectorProcessedSubscriptionUpdate](
         source_id=str(context.subscription.id),
         packet=ProcessedSubscriptionUpdate(
             entity="admin-synthetic-metric-breach",

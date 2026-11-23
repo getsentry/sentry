@@ -48,7 +48,7 @@ class AnomalyDetectionUpdate:
     timestamp: datetime
 
 
-MetricUpdate = ProcessedSubscriptionUpdate | AnomalyDetectionUpdate
+MetricDetectorProcessedSubscriptionUpdate = ProcessedSubscriptionUpdate | AnomalyDetectionUpdate
 
 
 MetricResult = float | AnomalyDetectionValues

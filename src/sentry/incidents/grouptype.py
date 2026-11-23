@@ -9,7 +9,11 @@ from sentry.incidents.handlers.condition import *  # noqa
 from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
-from sentry.incidents.utils.types import AnomalyDetectionUpdate, MetricResult, MetricUpdate
+from sentry.incidents.utils.types import (
+    AnomalyDetectionUpdate,
+    MetricDetectorProcessedSubscriptionUpdate,
+    MetricResult,
+)
 from sentry.integrations.metric_alerts import TEXT_COMPARISON_DELTA, describe_query_metric
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.ratelimits.sliding_windows import Quota
@@ -33,13 +37,15 @@ from sentry.workflow_engine.types import (
 logger = logging.getLogger(__name__)
 
 
-class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
+class MetricIssueDetectorHandler(
+    StatefulDetectorHandler[MetricDetectorProcessedSubscriptionUpdate, MetricResult]
+):
     regression_timeout = timedelta(hours=24)
 
     def build_detector_evidence_data(
         self,
         group_evaluation: DataConditionGroupEvaluation | None,
-        data_packet: DataPacket[MetricUpdate],
+        data_packet: DataPacket[MetricDetectorProcessedSubscriptionUpdate],
         priority: DetectorPriorityLevel,
     ) -> dict[str, Any]:
         try:
@@ -58,7 +64,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
     def create_occurrence(
         self,
         evaluation: DetectorEvaluation,
-        data_packet: DataPacket[MetricUpdate],
+        data_packet: DataPacket[MetricDetectorProcessedSubscriptionUpdate],
     ) -> tuple[DetectorOccurrence, EventData]:
         priority = evaluation.priority
 
@@ -113,10 +119,14 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
             },
         )
 
-    def extract_dedupe_value(self, data_packet: DataPacket[MetricUpdate]) -> int:
+    def extract_dedupe_value(
+        self, data_packet: DataPacket[MetricDetectorProcessedSubscriptionUpdate]
+    ) -> int:
         return int(data_packet.packet.timestamp.timestamp())
 
-    def extract_value(self, data_packet: DataPacket[MetricUpdate]) -> MetricResult:
+    def extract_value(
+        self, data_packet: DataPacket[MetricDetectorProcessedSubscriptionUpdate]
+    ) -> MetricResult:
         if isinstance(data_packet.packet, AnomalyDetectionUpdate):
             return data_packet.packet.values
         return data_packet.packet.values["value"]

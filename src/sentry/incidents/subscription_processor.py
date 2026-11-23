@@ -16,7 +16,7 @@ from sentry.incidents.utils.query_helpers import (
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
 from sentry.incidents.utils.types import (
     AnomalyDetectionUpdate,
-    MetricUpdate,
+    MetricDetectorProcessedSubscriptionUpdate,
     ProcessedSubscriptionUpdate,
     QuerySubscriptionUpdate,
 )
@@ -182,7 +182,7 @@ class SubscriptionProcessor:
 
     def _create_data_packet(
         self, subscription_update: QuerySubscriptionUpdate
-    ) -> DataPacket[MetricUpdate] | None:
+    ) -> DataPacket[MetricDetectorProcessedSubscriptionUpdate] | None:
         extracted_value = self._extract_value_from_update(subscription_update)
 
         if extracted_value is None:
@@ -191,7 +191,7 @@ class SubscriptionProcessor:
         entity = subscription_update.get("entity", "")
         timestamp = subscription_update["timestamp"]
         detection_type = self.detector.config["detection_type"]
-        processed_subscription_update: MetricUpdate
+        processed_subscription_update: MetricDetectorProcessedSubscriptionUpdate
 
         if detection_type == AlertRuleDetectionType.STATIC.value:
             processed_subscription_update = ProcessedSubscriptionUpdate(
