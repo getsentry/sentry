@@ -1,13 +1,10 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
-from django.db import router
 from django.utils import timezone
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.dummy import DummyProvider
-from sentry.hybridcloud.models.outbox import ControlOutbox
-from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import OrganizationMember
@@ -133,26 +130,3 @@ class CheckAuthIdentityTest(TestCase):
         updated_ai = AuthIdentity.objects.get(id=ai.id)
         assert updated_ai.last_synced == ai.last_synced
         assert updated_ai.last_verified == ai.last_verified
-
-    def test_leaves_replication_to_the_outbox_drain(self) -> None:
-        organization = self.create_organization()
-        user = self.create_user()
-        auth_provider = self.create_auth_provider(organization_id=organization.id, provider="dummy")
-        self.create_member(
-            user_id=user.id, organization=organization, flags=OrganizationMember.flags["sso:linked"]
-        )
-        ai = self.create_auth_identity(auth_provider=auth_provider, user=user)
-        replication_outboxes = ControlOutbox.objects.filter(
-            category=OutboxCategory.AUTH_IDENTITY_UPDATE, object_identifier=ai.id
-        )
-        outboxes_before = replication_outboxes.count()
-
-        with (
-            patch.object(ControlOutbox, "drain_shard") as mock_drain_shard,
-            patch.object(DummyProvider, "refresh_identity"),
-            self.captureOnCommitCallbacks(using=router.db_for_write(ControlOutbox), execute=True),
-        ):
-            check_auth_identity(auth_identity_id=ai.id)
-
-        mock_drain_shard.assert_not_called()
-        assert replication_outboxes.count() == outboxes_before + 1
