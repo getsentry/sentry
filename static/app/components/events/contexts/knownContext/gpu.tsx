@@ -65,35 +65,15 @@ export function getGPUContextData({
   return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
       case GPUContextKeys.NAME:
-        return {
-          key: ctxKey,
-          subject: t('Name'),
-          value: data.name,
-        };
+        return {key: ctxKey, subject: t('Name'), value: data.name};
       case GPUContextKeys.VERSION:
-        return {
-          key: ctxKey,
-          subject: t('Version'),
-          value: data.version,
-        };
+        return {key: ctxKey, subject: t('Version'), value: data.version};
       case GPUContextKeys.ID:
-        return {
-          key: ctxKey,
-          subject: t('GPU ID'),
-          value: data.id,
-        };
+        return {key: ctxKey, subject: t('GPU ID'), value: data.id};
       case GPUContextKeys.VENDOR_ID:
-        return {
-          key: ctxKey,
-          subject: t('Vendor ID'),
-          value: data.vendor_id,
-        };
+        return {key: ctxKey, subject: t('Vendor ID'), value: data.vendor_id};
       case GPUContextKeys.VENDOR_NAME:
-        return {
-          key: ctxKey,
-          subject: t('Vendor Name'),
-          value: data.vendor_name,
-        };
+        return {key: ctxKey, subject: t('Vendor Name'), value: data.vendor_name};
       case GPUContextKeys.MEMORY_SIZE:
         return {
           key: ctxKey,
@@ -101,17 +81,9 @@ export function getGPUContextData({
           value: data.memory_size ? formatMemory(data.memory_size) : undefined,
         };
       case GPUContextKeys.DRIVER_VERSION:
-        return {
-          key: ctxKey,
-          subject: t('Driver Version'),
-          value: data.driver_version,
-        };
+        return {key: ctxKey, subject: t('Driver Version'), value: data.driver_version};
       case GPUContextKeys.API_TYPE:
-        return {
-          key: ctxKey,
-          subject: t('API Type'),
-          value: data.api_type,
-        };
+        return {key: ctxKey, subject: t('API Type'), value: data.api_type};
       case GPUContextKeys.MULTI_THREAD_RENDERING:
         return {
           key: ctxKey,
@@ -119,11 +91,7 @@ export function getGPUContextData({
           value: data.multi_threaded_rendering,
         };
       case GPUContextKeys.NPOT_SUPPORT:
-        return {
-          key: ctxKey,
-          subject: t('NPOT Support'),
-          value: data.npot_support,
-        };
+        return {key: ctxKey, subject: t('NPOT Support'), value: data.npot_support};
       case GPUContextKeys.MAX_TEXTURE_SIZE:
         return {
           key: ctxKey,

@@ -72,9 +72,7 @@ export type StackTraceEventParameters = {
     project_slug: string;
     platform?: string;
   };
-  'stack_trace.prism_missing_language': {
-    attempted_language: string;
-  };
+  'stack_trace.prism_missing_language': {attempted_language: string};
   'stack_trace.threads.thread_selected': {
     has_stacktrace: boolean;
     num_in_app_frames: number;
@@ -85,10 +83,7 @@ export type StackTraceEventParameters = {
     is_current_thread?: boolean;
     platform?: string;
   };
-  'stack_trace.threads.thread_selector_opened': {
-    num_threads: number;
-    platform?: string;
-  };
+  'stack_trace.threads.thread_selector_opened': {num_threads: number; platform?: string};
 };
 
 export const stackTraceEventMap: Record<keyof StackTraceEventParameters, string> = {

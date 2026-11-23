@@ -6,7 +6,7 @@ import zoneinfo
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
 from functools import cache
-from typing import TYPE_CHECKING, Any, ClassVar, Self, cast, override
+from typing import TYPE_CHECKING, Any, ClassVar, Self, override
 from uuid import uuid4
 
 import jsonschema
@@ -72,10 +72,7 @@ MONITOR_CONFIG = {
 
 @cache
 def get_monitor_config_validator() -> jsonschema.protocols.Validator:
-    validator_cls = cast(
-        "type[jsonschema.protocols.Validator]",
-        jsonschema.validators.validator_for(MONITOR_CONFIG),
-    )
+    validator_cls = jsonschema.validators.validator_for(MONITOR_CONFIG)
     validator_cls.check_schema(MONITOR_CONFIG)
     return validator_cls(MONITOR_CONFIG)
 
@@ -556,6 +553,7 @@ class MonitorCheckIn(Model):
         on_delete=models.PROTECT,
         # Nothing looks up check-ins by config, and config rows are never deleted
         db_index=False,
+        db_constraint=False,
     )
     """
     References the MonitorCheckInConfig holding a snapshot of the monitor
@@ -582,9 +580,6 @@ class MonitorCheckIn(Model):
                 condition=Q(status=CheckInStatus.IN_PROGRESS),
                 name="consumer_latest",
             ),
-            # Note: If we remove all indexes that start with `monitor_environment`, we need to add the index back on the
-            # column
-            models.Index(fields=["monitor_environment", "status", "date_added"]),
             # used for timeout task
             models.Index(
                 fields=["timeout_at"],
@@ -733,9 +728,6 @@ class MonitorEnvironment(Model):
         app_label = "monitors"
         db_table = "sentry_monitorenvironment"
         unique_together = (("monitor", "environment_id"),)
-        indexes = [
-            models.Index(fields=["status", "next_checkin_latest"]),
-        ]
 
     __repr__ = sane_repr("monitor_id", "environment_id")
 
@@ -748,13 +740,6 @@ class MonitorEnvironment(Model):
             "status": self.status,
             "monitor": self.monitor.name,
         }
-
-    def get_last_successful_checkin(self) -> MonitorCheckIn | None:
-        return (
-            MonitorCheckIn.objects.filter(monitor_environment=self, status=CheckInStatus.OK)
-            .order_by("-date_added")
-            .first()
-        )
 
     @property
     def active_incident(self) -> MonitorIncident | None:
@@ -813,6 +798,12 @@ class MonitorIncident(Model):
     resolving_timestamp = models.DateTimeField(null=True)
     """
     This represents the final OK check-in that we receive
+    """
+
+    last_successful_timestamp = models.DateTimeField(null=True)
+    """
+    Time of the newest OK check-in before this incident, or during it while
+    the recovery threshold is not yet met. Shown on the incident's issue.
     """
 
     grouphash = models.CharField(max_length=32, default=default_grouphash)

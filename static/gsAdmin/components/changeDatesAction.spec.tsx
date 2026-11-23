@@ -24,11 +24,7 @@ describe('ChangeDatesAction', () => {
 
   const onSuccess = jest.fn();
 
-  const modalProps = {
-    orgId: organization.slug,
-    onSuccess,
-    subscription,
-  };
+  const modalProps = {orgId: organization.slug, onSuccess, subscription};
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();

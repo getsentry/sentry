@@ -26,6 +26,7 @@ from sentry.search.eap import constants
 from sentry.search.eap.extrapolation_mode import resolve_extrapolation_mode
 from sentry.search.eap.trace_metrics.types import TraceMetric, TraceMetricType
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
+from sentry.search.events.constants import NUMERIC_FIELD_TYPES
 from sentry.search.events.types import SnubaParams
 
 ResolvedArgument: TypeAlias = AttributeKey | str | int | float | TraceItemFilter
@@ -220,10 +221,7 @@ class NumericArgumentDefinition(AttributeArgumentDefinition):
     attribute_types: set[constants.SearchType] | None = field(
         default_factory=lambda: {
             "duration",
-            "number",
-            "percentage",
-            "integer",
-            "currency",
+            *NUMERIC_FIELD_TYPES,
             *constants.SIZE_TYPE,
             *constants.DURATION_TYPE,
         }

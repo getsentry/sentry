@@ -14,6 +14,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.apidocs import constants
+from sentry.apidocs.examples.inbox_examples import InboxExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import require_user
@@ -41,9 +42,12 @@ class InboxUpdate(TypedDict, total=False):
 
 
 class InboxUpdateSerializer(serializers.Serializer[None, InboxUpdate]):
-    isRead = serializers.BooleanField(required=False)
+    isRead = serializers.BooleanField(
+        required=False,
+        help_text="Set to `true` to mark items as read, or `false` to mark them as unread.",
+    )
     undoRemoval = serializers.BooleanField(
-        required=False, help_text="Set to true to cancel a pending removal."
+        required=False, help_text="Set to `true` to restore recently removed items."
     )
 
     def validate(self, attrs: InboxUpdateRequest) -> InboxUpdate:
@@ -74,6 +78,8 @@ class OrganizationInboxIndexEndpoint(OrganizationInboxEndpoint):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
+    # Retries can mark newer activity read or remove newly matching items.
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationInboxIndexPermission,)
 
     @extend_schema(
@@ -90,11 +96,15 @@ class OrganizationInboxIndexEndpoint(OrganizationInboxEndpoint):
             403: constants.RESPONSE_FORBIDDEN,
             404: constants.RESPONSE_NOT_FOUND,
         },
+        examples=InboxExamples.LIST_ITEMS,
     )
     def get(
         self, request: AuthenticatedHttpRequest, organization: Organization
     ) -> Response[list[InboxItemResponse]]:
-        """List your active inbox items, newest activity first."""
+        """Return inbox items for the authenticated user, ordered by most recent activity.
+
+        Each item groups activity for an issue or investigation.
+        """
         filters = InboxFilterSerializer(data=request.GET)
         if not filters.is_valid():
             raise ParseError({"detail": filters.errors})
@@ -111,7 +121,11 @@ class OrganizationInboxIndexEndpoint(OrganizationInboxEndpoint):
             cursor_cls=StringCursor,
             default_per_page=25,
             max_per_page=100,
-            on_results=lambda page: serialize(page, user, InboxItemSerializer()),
+            # Subject deletion removes its inbox items, so a missing subject is rare and
+            # short-lived. Drop it rather than filter every query.
+            on_results=lambda page: [
+                item for item in serialize(page, user, InboxItemSerializer()) if item is not None
+            ],
         )
 
     @extend_schema(
@@ -125,14 +139,15 @@ class OrganizationInboxIndexEndpoint(OrganizationInboxEndpoint):
             403: constants.RESPONSE_FORBIDDEN,
             404: constants.RESPONSE_NOT_FOUND,
         },
+        examples=InboxExamples.UPDATE_ITEMS,
     )
     def put(
         self, request: AuthenticatedHttpRequest, organization: Organization
     ) -> Response[InboxUpdateResponse]:
-        """Update read state or undo pending removal for matching inbox items.
+        """Update the read status of inbox items or restore recently removed items.
 
-        Omitting filters selects all items. Read-state updates only affect active items
-        unless restoring them. updatedCount includes items already in the requested state.
+        If no filters are provided, the update applies to all inbox items for the
+        authenticated user.
         """
         filters = InboxFilterSerializer(data=request.GET)
         if not filters.is_valid():
@@ -167,10 +182,10 @@ class OrganizationInboxIndexEndpoint(OrganizationInboxEndpoint):
     def delete(
         self, request: AuthenticatedHttpRequest, organization: Organization
     ) -> Response[None]:
-        """Remove matching items immediately and schedule deletion one hour later.
+        """Remove inbox items from the authenticated user's inbox.
 
-        Omitting filters removes all active items. Restore items with PUT undoRemoval=true
-        before deletion runs. Repeated removal does not extend the pending deletion time.
+        If no filters are provided, all inbox items are removed. Removed items can be restored
+        within one hour by updating them with `undoRemoval` set to `true`.
         """
         filters = InboxFilterSerializer(data=request.GET)
         if not filters.is_valid():

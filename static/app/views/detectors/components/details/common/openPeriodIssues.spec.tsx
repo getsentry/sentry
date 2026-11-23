@@ -12,17 +12,12 @@ import {DetectorDetailsOpenPeriodIssues} from './openPeriodIssues';
 
 describe('DetectorDetailsOpenPeriodIssues', () => {
   beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
   });
 
   it('renders latest issue with one open period', async () => {
     const detector = MetricDetectorFixture({
-      latestGroup: SimpleGroupFixture({
-        id: '1234',
-      }),
+      latestGroup: SimpleGroupFixture({id: '1234'}),
       dataSources: [
         SnubaQueryDataSourceFixture({
           queryObj: {

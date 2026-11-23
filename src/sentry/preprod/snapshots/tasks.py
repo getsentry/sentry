@@ -129,7 +129,10 @@ def _put_json(session: SnapshotStorage, key: str, model: BaseModel) -> None:
 
 
 def _put_diff_mask(session: SnapshotStorage, key: str, data: bytes) -> None:
-    _retry_objectstore(lambda: session.put(data, key=key, content_type="image/png"))
+    # PNG data is already compressed, so compressing it again would waste CPU for little gain.
+    _retry_objectstore(
+        lambda: session.put(data, key=key, content_type="image/png", compress="none")
+    )
 
 
 def _errored_result(candidate: ChunkCandidate, reason: str) -> ComparisonImageResult:

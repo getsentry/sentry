@@ -15,7 +15,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea, useAnalyticsArea} from 'sentry/components/analyticsArea';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {t, tct} from 'sentry/locale';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';
@@ -166,9 +166,7 @@ function TrySeerNowButton() {
       icon={<IconUpgrade />}
       analyticsEventKey="clicked.try_seer_button"
       analyticsEventName="Clicked: Try Seer Now"
-      analyticsParams={{
-        surface,
-      }}
+      analyticsParams={{surface}}
     >
       {t('Try Seer Now')}
     </LinkButton>

@@ -26,10 +26,7 @@ describe('GuideStore', () => {
     );
     GuideStore.reset();
     data = [
-      {
-        guide: 'trace_view',
-        seen: false,
-      },
+      {guide: 'trace_view', seen: false},
       {guide: 'issue_stream', seen: true},
     ];
     GuideStore.registerAnchor('issue_stream');
@@ -53,10 +50,7 @@ describe('GuideStore', () => {
 
   it('should force show a guide with #assistant', () => {
     data = [
-      {
-        guide: 'issue_stream',
-        seen: true,
-      },
+      {guide: 'issue_stream', seen: true},
       {guide: 'trace_view', seen: false},
     ];
 
@@ -99,14 +93,8 @@ describe('GuideStore', () => {
 
   it('only shows guides with server data and content', () => {
     data = [
-      {
-        guide: 'issue_stream',
-        seen: true,
-      },
-      {
-        guide: 'has_no_content',
-        seen: false,
-      },
+      {guide: 'issue_stream', seen: true},
+      {guide: 'has_no_content', seen: false},
     ];
 
     GuideStore.fetchSucceeded(data);

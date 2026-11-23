@@ -8,7 +8,7 @@
  *   2. The cursor parameter is rejected from `query` (managed by the helper).
  *   3. The return type is the correct response shape (Array vs compound).
  *
- * If this file ever fails `tsc --noEmit`, the generator has regressed.
+ * If this file fails the package type check, the generator has regressed.
  */
 
 import {

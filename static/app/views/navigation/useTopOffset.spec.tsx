@@ -7,9 +7,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {PRIMARY_HEADER_HEIGHT, SUPERUSER_MARQUEE_HEIGHT} from './constants';
 import {useTopOffset} from './useTopOffset';
 
-jest.mock('sentry/utils/isActiveSuperuser', () => ({
-  isActiveSuperuser: jest.fn(),
-}));
+jest.mock('sentry/utils/isActiveSuperuser', () => ({isActiveSuperuser: jest.fn()}));
 
 const HEADER_HEIGHT = PRIMARY_HEADER_HEIGHT;
 

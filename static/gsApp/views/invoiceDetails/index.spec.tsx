@@ -10,6 +10,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {DateTimeProvider} from '@sentry/scraps/dateTime';
+
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import InvoiceDetails from 'getsentry/views/invoiceDetails';
@@ -82,14 +84,19 @@ describe('InvoiceDetails', () => {
       method: 'GET',
       body: basicInvoice,
     });
-    render(<InvoiceDetails />, {
-      initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+    render(
+      <DateTimeProvider value={{timezone: 'America/New_York'}}>
+        <InvoiceDetails />
+      </DateTimeProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+          },
+          route: '/organizations/:orgId/invoices/:invoiceGuid/',
         },
-        route: '/organizations/:orgId/invoices/:invoiceGuid/',
-      },
-    });
+      }
+    );
     await waitFor(() => expect(mockapi).toHaveBeenCalled());
 
     expect(await screen.findByText('Sentry')).toBeInTheDocument();
@@ -260,9 +267,7 @@ describe('InvoiceDetails', () => {
 
     expect(mockpost).toHaveBeenCalledWith(
       `/customers/${organization.slug}/invoices/${basicInvoice.id}/`,
-      expect.objectContaining({
-        data: {op: 'send_receipt', email: 'user@example.com'},
-      })
+      expect.objectContaining({data: {op: 'send_receipt', email: 'user@example.com'}})
     );
     // Form should be reset.
     expect(screen.queryByText('user@example.com')).not.toBeInTheDocument();
@@ -374,11 +379,7 @@ describe('InvoiceDetails', () => {
           sentryTaxIds: {
             taxId: '1234',
             taxIdName: 'Country Id',
-            region: {
-              code: 'AA',
-              taxId: '5678',
-              taxIdName: 'Regional Tax Id',
-            },
+            region: {code: 'AA', taxId: '5678', taxIdName: 'Regional Tax Id'},
           },
         },
         organization
@@ -405,10 +406,7 @@ describe('InvoiceDetails', () => {
 
     it('renders reverse charge row', async () => {
       const basicInvoiceReverseCharge = InvoiceFixture(
-        {
-          isReverseCharge: true,
-          defaultTaxName: 'VAT',
-        },
+        {isReverseCharge: true, defaultTaxName: 'VAT'},
         organization
       );
 

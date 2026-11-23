@@ -19,12 +19,7 @@ function parseMetricsUrl(url: string) {
 describe('getWidgetMetricsUrl', () => {
   const organization = OrganizationFixture({slug: 'test-org'});
   const selection: PageFilters = {
-    datetime: {
-      start: null,
-      end: null,
-      period: '14d',
-      utc: null,
-    },
+    datetime: {start: null, end: null, period: '14d', utc: null},
     environments: ['production'],
     projects: [1, 2],
   };
@@ -61,6 +56,38 @@ describe('getWidgetMetricsUrl', () => {
       expect(params.referrer).toBe('dashboards');
       expect(params.metric).toBeDefined();
       expect(Array.isArray(params.metric) ? params.metric.length : 1).toBe(1);
+    });
+
+    it('preserves the dashboard query speed', () => {
+      const widget: Widget = {
+        id: '1',
+        title: 'Test Widget',
+        displayType: DisplayType.LINE,
+        interval: '5m',
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: [
+          {
+            name: 'Query 1',
+            fields: [],
+            aggregates: ['avg(value,duration,d,none)'],
+            columns: [],
+            conditions: 'transaction:"/api/users"',
+            orderby: '',
+            fieldAliases: [],
+          },
+        ],
+      };
+
+      const url = getWidgetMetricsUrl(
+        widget,
+        undefined,
+        selection,
+        organization,
+        'faster'
+      );
+      const {params} = parseMetricsUrl(url);
+
+      expect(params.queryPriority).toBe('faster');
     });
 
     it('generates URL for multiple aggregates', () => {
@@ -220,9 +247,7 @@ describe('getWidgetMetricsUrl', () => {
         ],
       };
 
-      const dashboardFilters: DashboardFilters = {
-        release: ['v1.0.0'],
-      };
+      const dashboardFilters: DashboardFilters = {release: ['v1.0.0']};
 
       const url = getWidgetMetricsUrl(widget, dashboardFilters, selection, organization);
       const {params} = parseMetricsUrl(url);
@@ -658,9 +683,7 @@ describe('getWidgetMetricsUrl', () => {
         ],
       };
 
-      const dashboardFilters: DashboardFilters = {
-        release: ['v1.0.0'],
-      };
+      const dashboardFilters: DashboardFilters = {release: ['v1.0.0']};
 
       const url = getWidgetMetricsUrl(widget, dashboardFilters, selection, organization);
       const {params} = parseMetricsUrl(url);

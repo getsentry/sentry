@@ -539,7 +539,7 @@ export function Control<Value extends SelectKey>({
               <FocusScope contain>
                 {hasHeader && (
                   <Header
-                    borderBottom={searchEnabled ? 'none' : 'muted'}
+                    borderBottom={searchEnabled ? 'none' : 'secondary'}
                     padding={searchEnabled ? 'xs lg 0 lg' : 'xs lg'}
                   >
                     {/* The clear button's height, so the header doesn't resize
@@ -640,9 +640,7 @@ export const ClearButton = styled(Button)`
 
 const withUnits = (value: unknown) => (typeof value === 'string' ? value : `${value}px`);
 
-const StyledOverlay = styled(Overlay, {
-  shouldForwardProp: prop => isPropValid(prop),
-})<{
+const StyledOverlay = styled(Overlay, {shouldForwardProp: prop => isPropValid(prop)})<{
   maxHeightProp: string | number;
   height?: string | number;
   maxHeight?: string | number;

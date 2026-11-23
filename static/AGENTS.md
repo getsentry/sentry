@@ -41,7 +41,7 @@
 
 ### Frontend API Calls
 
-Use `apiOptions` with `useQuery` from TanStack Query; **never** use the deprecated `useApiQuery`/`getApiQueryData`/`setApiQueryData`. `staleTime` is required. For the full guide (conditional fetching, no call-site generics, response headers/pagination) → use the **`frontend-data-fetching`** skill.
+Use `apiOptions` with `useQuery` from TanStack Query; `staleTime` is required. Never build or index api query keys by hand: use `apiOptions.queryFilter` for cache filters, and `parseQueryKey`/`safeParseQueryKey` to read a key. For the full guide (conditional fetching, no call-site generics, response headers/pagination) → use the **`frontend-data-fetching`** skill.
 
 ### API URLs the Browser Loads Directly
 
@@ -140,6 +140,8 @@ For worked examples of all of the above, use the **`design-system`** skill.
 `pnpm test` uses one Jest watcher for app, lint, and test-support tests. `pnpm test-all` runs all workspace test scripts once with watch mode disabled.
 
 Writing or editing frontend tests (`*.spec.tsx`, RTL, `MockApiClient`, routing/network tests) → use the **`react-testing`** skill for the full guide (query priority, no hook mocking, fixtures, async assertions, mocking network requests).
+
+Call `render(<Component />)` directly in each test. Do not wrap it in a `renderFoo()` helper: the helper hides what each test renders.
 
 Appearance changes (colors, spacing, sizing, responsive layout) are covered by visual snapshots, not RTL → see the **`react-testing`** skill for the rule and **`generate-snapshot-tests`** for writing them.
 

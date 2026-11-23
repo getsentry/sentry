@@ -106,9 +106,7 @@ export const profiling: OnboardingConfig = {
           type: 'text',
           text: tct(
             'To enable profiling, you need to use Sentry Java SDK version [code:8.23.0] or higher.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -124,11 +122,7 @@ export const profiling: OnboardingConfig = {
               language: 'xml',
               code: getMavenProfilingSnippet(params, false),
             },
-            {
-              label: 'SBT',
-              language: 'scala',
-              code: getSbtProfilingSnippet(params),
-            },
+            {label: 'SBT', language: 'scala', code: getSbtProfilingSnippet(params)},
           ],
         },
       ],
@@ -147,11 +141,7 @@ export const profiling: OnboardingConfig = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'Java',
-              language: 'java',
-              code: getJavaConfigureSnippet(params),
-            },
+            {label: 'Java', language: 'java', code: getJavaConfigureSnippet(params)},
             {
               label: 'Kotlin',
               language: 'kotlin',
@@ -166,11 +156,7 @@ export const profiling: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'properties',
-          code: getSentryPropertiesSnippet(params),
-        },
+        {type: 'code', language: 'properties', code: getSentryPropertiesSnippet(params)},
       ],
     },
   ],

@@ -500,7 +500,7 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
                 env_name = env.name if env else "[removed]"
 
             attrs[checkin]["environment_name"] = env_name
-            attrs[checkin]["monitor_config"] = checkin_configs[checkin.checkin_config_id]
+            attrs[checkin]["monitor_config"] = checkin_configs.get(checkin.checkin_config_id, {})
 
         if self._expand("groups") and self.start and self.end:
             # aggregate all the trace_ids in the given set of check-ins
@@ -550,7 +550,7 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
             "dateClock": obj.date_clock,
             "dateInProgress": obj.date_in_progress,
             "expectedTime": obj.expected_time,
-            "monitorConfig": cast(MonitorConfigSerializerResponse, config),
+            "monitorConfig": config,
         }
 
         if self._expand("groups"):

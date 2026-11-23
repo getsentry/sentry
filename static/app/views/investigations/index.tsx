@@ -158,16 +158,8 @@ function InvestigationActions({
   return (
     <DropdownMenu
       items={[
-        {
-          key: 'copy-link',
-          label: t('Copy link'),
-          onAction: onCopy,
-        },
-        {
-          key: 'duplicate',
-          label: t('Duplicate'),
-          onAction: onDuplicate,
-        },
+        {key: 'copy-link', label: t('Copy link'), onAction: onCopy},
+        {key: 'duplicate', label: t('Duplicate'), onAction: onDuplicate},
         {
           key: 'delete',
           label: t('Delete'),
@@ -184,7 +176,7 @@ function InvestigationActions({
       trigger={triggerProps => (
         <OverlayTrigger.IconButton
           {...triggerProps}
-          size="sm"
+          size="zero"
           variant="transparent"
           icon={<IconEllipsis />}
           aria-label={t('More options for %s', investigation.title)}
@@ -280,10 +272,7 @@ export function InvestigationsPage() {
   });
 
   function handleSearch(nextQuery: string) {
-    setQueryParams({
-      query: nextQuery || null,
-      cursor: null,
-    });
+    setQueryParams({query: nextQuery || null, cursor: null});
   }
 
   const renderBodyCell = (

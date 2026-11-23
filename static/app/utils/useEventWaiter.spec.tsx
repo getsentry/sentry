@@ -26,12 +26,7 @@ describe('useEventWaiter', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () =>
-        useEventWaiter({
-          eventType: 'error',
-          organization: org,
-          project,
-        }),
+      () => useEventWaiter({eventType: 'error', organization: org, project}),
       {organization: org}
     );
 
@@ -77,6 +72,35 @@ describe('useEventWaiter', () => {
     jest.useRealTimers();
   });
 
+  it('resolves the nearest issue when firstSeen does not match firstEvent exactly', async () => {
+    const org = OrganizationFixture();
+    const project = ProjectFixture({firstEvent: '2019-05-01T00:00:00.123456Z'});
+    const issues = [
+      {id: 1, firstSeen: '2019-05-01T01:00:00Z'},
+      {id: 2, firstSeen: '2019-05-01T00:00:00Z'},
+    ];
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'GET',
+      body: project,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/issues/`,
+      method: 'GET',
+      body: issues,
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useEventWaiter({eventType: 'error', organization: org, project}),
+      {organization: org}
+    );
+
+    await waitFor(() => {
+      expect(result.current).toEqual(issues[1]);
+    });
+  });
+
   it('returns true when first event has expired (no matching issue)', async () => {
     const org = OrganizationFixture();
     const project = ProjectFixture({firstEvent: '2019-05-01T00:00:00.000Z'});
@@ -95,12 +119,7 @@ describe('useEventWaiter', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () =>
-        useEventWaiter({
-          eventType: 'error',
-          organization: org,
-          project,
-        }),
+      () => useEventWaiter({eventType: 'error', organization: org, project}),
       {organization: org}
     );
 
@@ -120,12 +139,7 @@ describe('useEventWaiter', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () =>
-        useEventWaiter({
-          eventType: 'transaction',
-          organization: org,
-          project,
-        }),
+      () => useEventWaiter({eventType: 'transaction', organization: org, project}),
       {organization: org}
     );
 
@@ -146,12 +160,7 @@ describe('useEventWaiter', () => {
 
     const {result} = renderHookWithProviders(
       () =>
-        useEventWaiter({
-          eventType: 'error',
-          organization: org,
-          project,
-          disabled: true,
-        }),
+        useEventWaiter({eventType: 'error', organization: org, project, disabled: true}),
       {organization: org}
     );
 
@@ -173,12 +182,7 @@ describe('useEventWaiter', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () =>
-        useEventWaiter({
-          eventType: 'transaction',
-          organization: org,
-          project,
-        }),
+      () => useEventWaiter({eventType: 'transaction', organization: org, project}),
       {organization: org}
     );
 
@@ -218,20 +222,11 @@ describe('useEventWaiter', () => {
       MockApiClient.addMockResponse({
         url: `/projects/${org.slug}/${project.slug}/`,
         method: 'GET',
-        body: ProjectFixture({
-          id: project.id,
-          slug: project.slug,
-          [field]: true,
-        }),
+        body: ProjectFixture({id: project.id, slug: project.slug, [field]: true}),
       });
 
       const {result} = renderHookWithProviders(
-        () =>
-          useEventWaiter({
-            eventType,
-            organization: org,
-            project,
-          }),
+        () => useEventWaiter({eventType, organization: org, project}),
         {organization: org}
       );
 
@@ -255,11 +250,7 @@ describe('useEventWaiter', () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'GET',
-      body: ProjectFixture({
-        id: project.id,
-        slug: project.slug,
-        firstEvent,
-      }),
+      body: ProjectFixture({id: project.id, slug: project.slug, firstEvent}),
     });
 
     MockApiClient.addMockResponse({
@@ -269,12 +260,7 @@ describe('useEventWaiter', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () =>
-        useEventWaiter({
-          eventType: 'error',
-          organization: org,
-          project,
-        }),
+      () => useEventWaiter({eventType: 'error', organization: org, project}),
       {organization: org}
     );
 
@@ -305,12 +291,7 @@ describe('useEventWaiter', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () =>
-        useEventWaiter({
-          eventType: 'transaction',
-          organization: org,
-          project,
-        }),
+      () => useEventWaiter({eventType: 'transaction', organization: org, project}),
       {organization: org}
     );
 
@@ -339,12 +320,7 @@ describe('useEventWaiter', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () =>
-        useEventWaiter({
-          eventType: 'transaction',
-          organization: org,
-          project,
-        }),
+      () => useEventWaiter({eventType: 'transaction', organization: org, project}),
       {organization: org}
     );
 

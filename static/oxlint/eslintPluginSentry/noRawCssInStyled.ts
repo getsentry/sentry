@@ -1,4 +1,4 @@
-import {defineRule, type ESTree} from '@oxlint/plugins';
+import {defineRule, type ESTree, type Scope} from '@oxlint/plugins';
 
 import {isStyledOrCssTemplate} from './utils/styled.ts';
 
@@ -34,12 +34,20 @@ export const noRawCssInStyled = defineRule({
     },
   },
   create(context) {
+    function isCssInScope(node: ESTree.Node): boolean {
+      let scope: Scope | null = context.sourceCode.getScope(node);
+      while (scope) {
+        if (scope.set.has('css')) {
+          return true;
+        }
+        scope = scope.upper;
+      }
+      return false;
+    }
+
     return {
       TemplateLiteral(node) {
-        if (
-          node.parent?.type === 'TaggedTemplateExpression' &&
-          node.parent.quasi === node
-        ) {
+        if (node.parent?.type === 'TaggedTemplateExpression') {
           return;
         }
 
@@ -55,9 +63,9 @@ export const noRawCssInStyled = defineRule({
         context.report({
           node,
           messageId: 'useCssTag',
-          fix(fixer) {
-            return fixer.insertTextBefore(node, 'css');
-          },
+          fix: isCssInScope(node)
+            ? fixer => fixer.insertTextBefore(node, 'css')
+            : undefined,
         });
       },
     };

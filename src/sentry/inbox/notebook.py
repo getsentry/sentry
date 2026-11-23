@@ -1,13 +1,26 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from sentry.inbox.event_data import (
+    InboxEventData,
+    NotebookCompletedDataResponse,
+    NotebookMentionedDataResponse,
+    NotebookParticipantAddedDataResponse,
+)
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
-from sentry.inbox.types import InboxEventData, InboxEventSummary, InboxEventType, InboxItemType
+from sentry.inbox.response_types import InboxNotebookSubjectResponse
+from sentry.inbox.types import InboxEventSummary, InboxEventType, InboxItemType, InboxSubject
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notebooks.access import NOTEBOOK_SCOPES, has_notebooks_access
 from sentry.notebooks.models import Notebook
 from sentry.notifications.types import NotificationSettingEnum
+
+
+@dataclass(frozen=True, kw_only=True)
+class NotebookSubject(InboxSubject):
+    def serialize(self) -> InboxNotebookSubjectResponse:
+        return {"id": str(self.id), "type": "notebook", "title": self.title, "metadata": {}}
 
 
 class NotebookItemType(InboxItemType[Notebook]):
@@ -19,12 +32,15 @@ class NotebookItemType(InboxItemType[Notebook]):
     def get_organization_id(self, subject: Notebook) -> int:
         return subject.organization_id
 
-    def get_titles(
+    def get_subjects(
         self, *, organization: Organization, subject_ids: Sequence[str]
-    ) -> dict[str, str]:
+    ) -> dict[str, NotebookSubject]:
         ids = [int(subject_id) for subject_id in subject_ids if subject_id.isdecimal()]
         notebooks = Notebook.objects.filter(organization=organization, id__in=ids)
-        return {str(notebook.id): notebook.title for notebook in notebooks}
+        return {
+            str(notebook.id): NotebookSubject(id=notebook.id, title=notebook.title)
+            for notebook in notebooks
+        }
 
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
         return organization.absolute_url(
@@ -49,16 +65,26 @@ class NotebookCompletedData(InboxEventData):
     seer_run_id: int  # Seer DbRunState ID, matching issue inbox events.
     generation: int
 
+    def serialize(self) -> NotebookCompletedDataResponse:
+        return {"seerRunId": str(self.seer_run_id), "generation": self.generation}
+
 
 @dataclass(frozen=True, kw_only=True)
 class NotebookMentionedData(InboxEventData):
     comment_id: int
     block_id: int | None = None
 
+    def serialize(self) -> NotebookMentionedDataResponse:
+        return {
+            "commentId": str(self.comment_id),
+            "blockId": str(self.block_id) if self.block_id is not None else None,
+        }
+
 
 @dataclass(frozen=True, kw_only=True)
 class NotebookParticipantAddedData(InboxEventData):
-    pass
+    def serialize(self) -> NotebookParticipantAddedDataResponse:
+        return {}
 
 
 NOTEBOOK = NotebookItemType()

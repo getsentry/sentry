@@ -44,14 +44,7 @@ function renderChannel(
   {channel, setChannel = jest.fn(), options}: RenderChannelOpts = {}
 ) {
   return renderHookWithProviders(
-    () =>
-      useMessagingChannel({
-        channel,
-        integration,
-        provider,
-        setChannel,
-        options,
-      }),
+    () => useMessagingChannel({channel, integration, provider, setChannel, options}),
     {organization}
   );
 }

@@ -3,11 +3,10 @@ from __future__ import annotations
 import hashlib
 import logging
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 import orjson
 
-from sentry.auth.access import from_user
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.locks import locks
@@ -30,10 +29,10 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
+from sentry.seer.autofix.single_run import single_run_stopping_point
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
-from sentry.seer.credits import OUT_OF_CREDITS
+from sentry.seer.credits import OUT_OF_CREDITS, SeerCreditDenialReason, get_run_denial_reason
 from sentry.seer.endpoints.agent_request import (
-    AgentApprovalRequestData,
     AgentApprovalRequestSerializer,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
@@ -58,7 +57,6 @@ from sentry.seer.entrypoints.types import (
 )
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
@@ -73,17 +71,6 @@ AUTOFIX_RUN_FAILED_MESSAGE = (
 if TYPE_CHECKING:
     from sentry.integrations.slack.requests.action import SlackActionRequest
     from sentry.models.group import Group
-
-
-def user_has_billing_access(*, organization_id: int, user_id: int | None) -> bool:
-    """Whether the user can manage the organization's billing."""
-    if user_id is None:
-        return False
-    organization = Organization.objects.get_or_none(id=organization_id)
-    if not organization:
-        return False
-    user = user_service.get_user(user_id)
-    return from_user(user, organization).has_scope("org:billing")
 
 
 class EntrypointSetupError(Exception):
@@ -102,8 +89,6 @@ class SlackAutofixCachePayload(TypedDict):
     # Captured at cache creation. When set, the Slack ROOT_CAUSE update swaps the
     # next-stage trigger button for a "Hand off to ..." button.
     handoff_target: CodingAgentProviderType | None
-    # The Sentry user who started the run from Slack. Unset for runs nobody started by hand.
-    user_id: NotRequired[int | None]
 
 
 class SlackAgentCachePayload(TypedDict):
@@ -111,8 +96,6 @@ class SlackAgentCachePayload(TypedDict):
     integration_id: int
     thread: SlackThreadDetails
     slack_user_id: NotRequired[str]
-    # The Sentry user linked to slack_user_id.
-    user_id: NotRequired[int | None]
 
 
 class SlackPendingMentionPayload(TypedDict):
@@ -145,7 +128,7 @@ def _agent_write_approval(
     )
     if not pending_user_input.id or not approval.is_valid():
         return None
-    validated_data = cast(AgentApprovalRequestData, approval.validated_data)
+    validated_data = approval.validated_data
     scopes = validated_data["scopes"]
     if not scopes:
         return None
@@ -364,18 +347,14 @@ class SlackAutofixEntrypoint(
             ephemeral_user_id=self.slack_request.user_id,
         )
 
-    def on_trigger_autofix_out_of_credits(self, *, started: bool) -> None:
-        # The action webhook already resolved who clicked, so this lookup is cached.
-        user = self.slack_request.get_identity_user()
+    def on_trigger_autofix_out_of_credits(
+        self, *, started: bool, denial_reason: SeerCreditDenialReason | None
+    ) -> None:
         send_thread_update(
             install=self.install,
             thread=self.thread,
             data=SeerAutofixOutOfCredits(
-                organization_id=self.organization_id,
-                has_billing_access=user_has_billing_access(
-                    organization_id=self.organization_id,
-                    user_id=user.id if user else None,
-                ),
+                organization_id=self.organization_id, denial_reason=denial_reason
             ),
             ephemeral_user_id=self.slack_request.user_id,
         )
@@ -421,8 +400,6 @@ class SlackAutofixEntrypoint(
         )
 
     def create_autofix_cache_payload(self) -> SlackAutofixCachePayload:
-        # The action webhook already resolved who clicked, so this lookup is cached.
-        user = self.slack_request.get_identity_user()
         return SlackAutofixCachePayload(
             threads=[self.thread],
             organization_id=self.organization_id,
@@ -431,7 +408,6 @@ class SlackAutofixEntrypoint(
             group_id=self.group.id,
             group_link=self.get_group_link(self.group),
             handoff_target=_get_handoff_target(self.group.project),
-            user_id=user.id if user else None,
         )
 
     @staticmethod
@@ -468,13 +444,9 @@ class SlackAutofixEntrypoint(
                         suggestion=escape_slack_text(stop["suggestion"]),
                     )
                 elif event_payload.get("failure_reason") == OUT_OF_CREDITS:
-                    # The copy is written for whoever started the run.
                     message = SeerAutofixOutOfCredits(
                         organization_id=cache_payload["organization_id"],
-                        has_billing_access=user_has_billing_access(
-                            organization_id=cache_payload["organization_id"],
-                            user_id=cache_payload.get("user_id"),
-                        ),
+                        denial_reason=event_payload.get("denial_reason"),
                     )
                 else:
                     message = SeerAutofixError(
@@ -528,6 +500,10 @@ class SlackAutofixEntrypoint(
                         "reasoning_header": "Why did this happen?",
                         "steps_header": "Reproduction Steps",
                         "handoff_target": cache_payload.get("handoff_target"),
+                        "hide_next_trigger": single_run_stopping_point(
+                            cache_payload["organization_id"], event_payload["run_id"]
+                        )
+                        is not None,
                     }
                 )
             case SentryAppEventType.SEER_SOLUTION_COMPLETED:
@@ -579,6 +555,10 @@ class SlackAutofixEntrypoint(
                     {
                         "current_point": AutofixStoppingPoint.CODE_CHANGES,
                         "changes": changes_list,
+                        "hide_next_trigger": single_run_stopping_point(
+                            cache_payload["organization_id"], event_payload["run_id"]
+                        )
+                        == AutofixStoppingPoint.OPEN_PR,
                     }
                 )
             # Skipped for now, as it would repeat PR_CREATED's message. Seer will eventually always
@@ -668,8 +648,6 @@ class SlackAgentEntrypoint(
         self.integration = integration
         self.install = SlackIntegration(model=integration, organization_id=organization_id)
         self.slack_user_id = slack_user_id
-        # Set by the caller once it has resolved the Slack user to a Sentry user.
-        self.user_id: int | None = None
 
     @staticmethod
     def has_access(organization: Organization | RpcOrganization) -> bool:
@@ -692,7 +670,6 @@ class SlackAgentEntrypoint(
             organization_id=self.organization_id,
             integration_id=self.install.model.id,
             slack_user_id=self.slack_user_id,
-            user_id=self.user_id,
         )
 
     @staticmethod
@@ -769,7 +746,10 @@ class SlackAgentEntrypoint(
                 else send_thread_update(
                     install=install,
                     thread=thread,
-                    data=_agent_out_of_credits(cache_payload),
+                    data=SeerAgentOutOfCredits(
+                        organization_id=organization_id,
+                        denial_reason=get_run_denial_reason(state),
+                    ),
                 )
             )
             if message_ts:
@@ -825,17 +805,6 @@ class SlackAgentEntrypoint(
 
 def _get_repo_pr_states(state: SeerRunState) -> list[RepoPRState]:
     return [state.repo_pr_states[repo] for repo in sorted(state.repo_pr_states)]
-
-
-def _agent_out_of_credits(cache_payload: SlackAgentCachePayload) -> SeerAgentOutOfCredits:
-    """The out-of-credits notice, written for whoever sent the message that started the run."""
-    return SeerAgentOutOfCredits(
-        organization_id=cache_payload["organization_id"],
-        has_billing_access=user_has_billing_access(
-            organization_id=cache_payload["organization_id"],
-            user_id=cache_payload.get("user_id"),
-        ),
-    )
 
 
 def _is_pr_out_of_credits(pr: RepoPRState) -> bool:
@@ -928,7 +897,9 @@ def _next_agent_reply(
         key = _out_of_credits_key(state)
         if key in replies:
             return None
-        return key, _agent_out_of_credits(cache_payload)
+        return key, SeerAgentOutOfCredits(
+            organization_id=organization_id, denial_reason=get_run_denial_reason(state)
+        )
     else:
         turn = next((turn for turn in reversed(state.get_turns()) if turn.answer), None)
         if turn is None or turn.answer is None:

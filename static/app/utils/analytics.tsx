@@ -69,6 +69,8 @@ import type {PerformanceEventParameters} from './analytics/performanceAnalyticsE
 import {performanceEventMap} from './analytics/performanceAnalyticsEvents';
 import type {PreprodBuildEventParameters} from './analytics/preprodBuildAnalyticsEvents';
 import {preprodBuildEventMap} from './analytics/preprodBuildAnalyticsEvents';
+import type {ProductEmptyStateEventParameters} from './analytics/productEmptyStateAnalyticsEvents';
+import {productEmptyStateEventMap} from './analytics/productEmptyStateAnalyticsEvents';
 import type {ProfilingEventParameters} from './analytics/profilingAnalyticsEvents';
 import {profilingEventMap} from './analytics/profilingAnalyticsEvents';
 import type {ProjectCreationEventParameters} from './analytics/projectCreationAnalyticsEvents';
@@ -132,6 +134,7 @@ interface EventParameters
     StackTraceEventParameters,
     EcosystemEventParameters,
     IntegrationEventParameters,
+    ProductEmptyStateEventParameters,
     ProjectCreationEventParameters,
     SignupAnalyticsParameters,
     LogsAnalyticsEventParameters,
@@ -180,6 +183,7 @@ const allEventMap: Record<string, string | null> = {
   ...stackTraceEventMap,
   ...ecosystemEventMap,
   ...integrationEventMap,
+  ...productEmptyStateEventMap,
   ...projectCreationEventMap,
   ...signupEventMap,
   ...statsEventMap,

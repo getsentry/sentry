@@ -74,29 +74,15 @@ export const featureFlag = ({
           {
             type: 'code',
             tabs: sentryImport
-              ? [
-                  {
-                    label: 'JavaScript',
-                    language: 'javascript',
-                    code: sentryImport,
-                  },
-                ]
+              ? [{label: 'JavaScript', language: 'javascript', code: sentryImport}]
               : [
                   {
                     label: 'npm',
                     language: 'bash',
                     code: `npm install --save ${packageName}`,
                   },
-                  {
-                    label: 'yarn',
-                    language: 'bash',
-                    code: `yarn add ${packageName}`,
-                  },
-                  {
-                    label: 'pnpm',
-                    language: 'bash',
-                    code: `pnpm add ${packageName}`,
-                  },
+                  {label: 'yarn', language: 'bash', code: `yarn add ${packageName}`},
+                  {label: 'pnpm', language: 'bash', code: `pnpm add ${packageName}`},
                 ],
           },
         ],
@@ -133,13 +119,7 @@ export const featureFlag = ({
           },
           {
             type: 'code',
-            tabs: [
-              {
-                label: 'JavaScript',
-                language: 'javascript',
-                code: makeVerifyCode(),
-              },
-            ],
+            tabs: [{label: 'JavaScript', language: 'javascript', code: makeVerifyCode()}],
           },
         ],
       },

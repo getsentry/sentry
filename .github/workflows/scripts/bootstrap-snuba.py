@@ -32,6 +32,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from typing import Any, Callable
 from urllib.error import URLError
+from urllib.parse import urlencode
 from urllib.request import urlopen
 
 SNUBA_ENV = {
@@ -114,8 +115,11 @@ def http_ok(url: str) -> bool:
         return False
 
 
-def clickhouse_query(sql: str, *, session: str | None = None, timeout: int = 30) -> str:
-    url = f"{CLICKHOUSE_URL}?session_id={session}" if session else CLICKHOUSE_URL
+def clickhouse_query(
+    sql: str, *, session: str | None = None, query_id: str | None = None, timeout: int = 30
+) -> str:
+    params = {k: v for k, v in (("session_id", session), ("query_id", query_id)) if v}
+    url = f"{CLICKHOUSE_URL}?{urlencode(params)}" if params else CLICKHOUSE_URL
     with urlopen(url, sql.encode(), timeout=timeout) as r:
         return r.read().decode()
 
@@ -250,6 +254,10 @@ def configure_clickhouse() -> None:
     log(f"Loaded the CI ClickHouse config (log_queries={log_queries})")
 
 
+def restore_query_id(target: int) -> str:
+    return f"bootstrap-snuba-{os.getpid()}-restore-{worker_db(target)}"
+
+
 def clone_databases(source: int, targets: range) -> None:
     """Copy a bootstrapped worker database, schema and migration state, to others.
 
@@ -267,9 +275,32 @@ def clone_databases(source: int, targets: range) -> None:
         clickhouse_query(
             f"RESTORE DATABASE {src} AS {worker_db(i)} FROM Memory('{src}')",
             session=session,
+            query_id=restore_query_id(i),
             timeout=120,
         )
         log(f"Copied {src} to {worker_db(i)}")
+
+
+def discard_copies(targets: range) -> None:
+    """Undo a failed clone_databases, so each target is bootstrapped from scratch.
+
+    A RESTORE that fails partway leaves a partial database, whose partial
+    migrations_local would make `snuba bootstrap` skip migrations. A client
+    timeout leaves the RESTORE running on the server, so it's killed first.
+    """
+    query_ids = ", ".join(f"'{restore_query_id(i)}'" for i in targets)
+    clickhouse_query(f"KILL QUERY WHERE query_id IN ({query_ids}) SYNC", timeout=120)
+    for i in targets:
+        clickhouse_query(f"DROP DATABASE IF EXISTS {worker_db(i)} SYNC", timeout=120)
+
+
+def copy_or_bootstrap(source: int, targets: range, bootstrap: Callable[[int], None]) -> None:
+    try:
+        clone_databases(source, targets)
+    except (URLError, OSError) as e:
+        log(f"::warning::Copying {worker_db(source)} failed ({e}), bootstrapping each")
+        discard_copies(targets)
+        run_parallel(bootstrap, targets)
 
 
 def bootstrap_worker(worker_id: int, *, image: str, network: str) -> None:
@@ -360,11 +391,7 @@ def main() -> None:
     bootstrap = partial(bootstrap_worker, image=image, network=network)
     run_parallel(bootstrap, workers[:1])
     if len(workers) > 1:
-        try:
-            clone_databases(workers[0], workers[1:])
-        except (URLError, OSError) as e:
-            log(f"::warning::Copying {worker_db(workers[0])} failed ({e}), bootstrapping each")
-            run_parallel(bootstrap, workers[1:])
+        copy_or_bootstrap(workers[0], workers[1:], bootstrap)
     set_monitor_phase("setup")
     log(f"Phase 1 done ({time.monotonic() - start:.0f}s)")
 

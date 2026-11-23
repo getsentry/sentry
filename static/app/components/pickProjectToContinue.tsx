@@ -8,10 +8,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {ContextPickerModalContainer as ContextPickerModal} from './contextPickerModal';
 
-type Project = {
-  id: string;
-  slug: string;
-};
+type Project = {id: string; slug: string};
 
 type Props = {
   /**

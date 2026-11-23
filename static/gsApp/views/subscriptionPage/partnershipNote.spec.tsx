@@ -25,9 +25,7 @@ describe('PartnershipNote', () => {
   it('preserves the partner link, including target and rel', () => {
     render(<PartnershipNote subscription={subscriptionWithNote(PARTNER_NOTE)} />);
 
-    const link = screen.getByRole('link', {
-      name: 'Partner Support Portal',
-    });
+    const link = screen.getByRole('link', {name: 'Partner Support Portal'});
     expect(link).toHaveAttribute('href', expect.stringContaining('partner.example.com'));
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noreferrer');

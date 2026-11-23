@@ -4,7 +4,7 @@ from collections.abc import Iterator
 from gzip import BadGzipFile, GzipFile
 from io import BytesIO
 from tempfile import SpooledTemporaryFile
-from typing import Annotated, Protocol, TypedDict, cast
+from typing import Annotated, Protocol, TypedDict
 
 import zstandard
 from django.conf import settings
@@ -468,13 +468,13 @@ def get_files(
 ) -> "Iterator[tuple[File[bytes], str]]":
     for chunk in request.FILES.getlist("file"):
         if encoding == "gzip":
-            yield gzip_chunk(chunk, spool_max_memory_size), cast(str, chunk.name)
+            yield gzip_chunk(chunk, spool_max_memory_size), chunk.name
         elif encoding == "zstd":
-            yield zstd_chunk(chunk, spool_max_memory_size), cast(str, chunk.name)
+            yield zstd_chunk(chunk, spool_max_memory_size), chunk.name
         else:
-            yield chunk, cast(str, chunk.name)
+            yield chunk, chunk.name
 
     # Legacy: older clients send gzipped chunks under `file_gzip` with no
     # Content-Encoding header. Prefer `Content-Encoding: gzip` on `file`.
     for chunk in request.FILES.getlist("file_gzip"):
-        yield gzip_chunk(chunk, spool_max_memory_size), cast(str, chunk.name)
+        yield gzip_chunk(chunk, spool_max_memory_size), chunk.name

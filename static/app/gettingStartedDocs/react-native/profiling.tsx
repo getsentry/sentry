@@ -27,18 +27,13 @@ export const profiling: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Enable Tracing and Profiling by adding [code:tracesSampleRate] and [code:profilesSampleRate] to your [code:Sentry.init()] call.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
           type: 'code',
           language: 'javascript',
-          code: getConfigureSnippet({
-            ...params,
-            isProfilingSelected: true,
-          }),
+          code: getConfigureSnippet({...params, isProfilingSelected: true}),
         },
       ],
     },
