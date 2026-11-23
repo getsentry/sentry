@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams
 from sentry.investigations.models import WorkflowRun
 from sentry.investigations.services.workflow_client import forward_workflow_request
@@ -47,7 +48,10 @@ class WorkflowEndpoint(OrganizationNotebooksBaseEndpoint):
 class OrganizationWorkflowRunsEndpoint(WorkflowEndpoint):
     publish_status = {"POST": ApiPublishStatus.PRIVATE}
 
-    @extend_schema(request=StartWorkflowRequest, responses={200: OpenApiTypes.OBJECT})
+    @extend_schema(
+        request=StartWorkflowRequest,
+        responses={200: OpenApiTypes.OBJECT, 400: constants.RESPONSE_BAD_REQUEST},
+    )
     def post(self, request: Request, organization: Organization) -> Response:
         """Start an investigation workflow and retrieve its run ID and notebook flag."""
         payload: object = request.data

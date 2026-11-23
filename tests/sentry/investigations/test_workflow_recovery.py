@@ -57,6 +57,7 @@ class WorkflowRecoveryTest(TestCase):
         }
         save_nodes(run, [checkpoint])
         node = WorkflowNodeRun.objects.get(uuid=paused)
+        assert node.next_check_at is not None
         assert node.next_check_at >= now + PAUSED_RECOVERY_INTERVAL
         WorkflowNodeRun.objects.bulk_create(
             [
@@ -70,6 +71,7 @@ class WorkflowRecoveryTest(TestCase):
         assert str(paused) not in reserve_due_nodes()[self.organization.id]
         assert reserve_due_nodes() == {self.organization.id: [str(paused)]}
         node.refresh_from_db()
+        assert node.next_check_at is not None
         assert node.next_check_at >= now + PAUSED_RECOVERY_INTERVAL
         assert reserve_due_nodes() == {}
         save_nodes(run, [{**checkpoint, "next_check_at": now.isoformat()}])
