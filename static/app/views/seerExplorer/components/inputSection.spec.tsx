@@ -41,21 +41,30 @@ function makeProps(
 }
 
 describe('InputSection', () => {
-  it('focuses the first toolbar button when clicking empty toolbar space', async () => {
-    const onInputClick = jest.fn();
+  it('focuses the composer when clicking empty toolbar space', async () => {
+    const composerRef = createRef<HTMLDivElement>();
     render(
       <InputSection
-        {...makeProps({
-          onInputClick,
-          leadingToolbarItems: <button type="button">Commands</button>,
-        })}
+        {...makeProps({composerRef, onInputClick: () => composerRef.current?.focus()})}
       />
     );
 
     await userEvent.click(screen.getByTestId('seer-composer-toolbar'));
 
+    expect(screen.getByRole('combobox', {name: 'Ask Seer a question'})).toHaveFocus();
+  });
+
+  it('moves keyboard focus from the composer to the first toolbar button', async () => {
+    render(
+      <InputSection
+        {...makeProps({leadingToolbarItems: <button type="button">Commands</button>})}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('combobox', {name: 'Ask Seer a question'}));
+    await userEvent.tab();
+
     expect(screen.getByRole('button', {name: 'Commands'})).toHaveFocus();
-    expect(onInputClick).not.toHaveBeenCalled();
   });
 
   it('does not focus the composer when clicking a toolbar control', async () => {

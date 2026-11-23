@@ -308,9 +308,7 @@ export function InputSection({
             data-test-id="seer-composer-toolbar"
             onClick={event => {
               if (event.target === event.currentTarget) {
-                event.currentTarget
-                  .querySelector<HTMLButtonElement>('button:not(:disabled)')
-                  ?.focus();
+                onInputClick();
               }
             }}
           >
