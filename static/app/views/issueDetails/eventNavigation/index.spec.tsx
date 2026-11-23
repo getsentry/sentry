@@ -378,6 +378,30 @@ describe('EventNavigation', () => {
 
       expect(screen.getAllByRole('tab')[0]).toHaveAttribute('aria-selected', 'true');
     });
+
+    it('labels the check-ins list with check-ins', () => {
+      const cronGroup = GroupFixture({
+        id: group.id,
+        issueCategory: IssueCategory.CRON,
+        issueType: IssueType.MONITOR_CHECK_IN_FAILURE,
+      });
+      renderNav(organization, {navGroup: cronGroup, tab: Tab.CHECK_INS});
+
+      expect(screen.getByText('Check-Ins')).toBeInTheDocument();
+      expect(screen.queryByText('Events')).not.toBeInTheDocument();
+    });
+
+    it('labels the uptime checks list with uptime checks', () => {
+      const uptimeGroup = GroupFixture({
+        id: group.id,
+        issueCategory: IssueCategory.UPTIME,
+        issueType: IssueType.UPTIME_DOMAIN_FAILURE,
+      });
+      renderNav(organization, {navGroup: uptimeGroup, tab: Tab.UPTIME_CHECKS});
+
+      expect(screen.getByText('Uptime Checks')).toBeInTheDocument();
+      expect(screen.queryByText('Events')).not.toBeInTheDocument();
+    });
   });
 
   describe('counts', () => {
