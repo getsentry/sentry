@@ -2138,11 +2138,13 @@ describe('CompactSelect', () => {
           {wrapper: ThemeWrapper}
         );
         await screen.findAllByRole('option');
-        // Spacers are hidden from the accessibility tree.
+        // Spacers are presentational, and the only ones with a fixed height:
+        // the sections' wrappers are as tall as their content.
         const height = within(screen.getByRole('listbox'))
           .getAllByRole('presentation', {hidden: true})
           .reduce(
-            (total, spacer) => total + parseFloat(getComputedStyle(spacer).height),
+            (total, element) =>
+              total + (parseFloat(getComputedStyle(element).height) || 0),
             0
           );
         unmount();
