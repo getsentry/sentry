@@ -11,14 +11,13 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.creator import get_creator_reference
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.investigations.contracts import ActionSuggestionSerializer, trim_action_request
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebooksBaseEndpoint,
@@ -26,8 +25,9 @@ from sentry.notebooks.endpoints.base import (
     require_project_access,
 )
 from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
-from sentry.notebooks.models import Notebook, NotebookWorkflowRun
+from sentry.notebooks.models import Notebook, NotebookBlock, NotebookWorkflowRun
 from sentry.notebooks.services import NotebookValidationError
+from sentry.notebooks.services.producer_sources import workflow_block_key
 from sentry.notebooks.services.workflow import (
     content_revision,
     deliver_finalizer,
@@ -52,9 +52,12 @@ WORKFLOW_RUN_ID = OpenApiParameter(
 
 
 def _validate_payload(
-    validator: type[StrictCamelSnakeValidator[None]], data: Any
+    validator: type[StrictCamelSnakeValidator[None]],
+    data: Any,
+    *,
+    context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    serializer = validator(data=data)
+    serializer = validator(data=data, context=context or {})
     serializer.is_valid(raise_exception=True)
     return serializer.validated_data
 
@@ -96,9 +99,25 @@ class MetadataWrite(StrictCamelSnakeValidator[None]):
     )
 
 
+class WorkflowSuggestionWrite(ActionSuggestionSerializer):
+    def to_internal_value(self, data: Any) -> dict[str, Any]:
+        if isinstance(data, dict):
+            data = trim_action_request({"impact": None, **data})
+        return super().to_internal_value(data)
+
+    def validate_anchor(self, value: dict[str, str] | None) -> dict[str, str] | None:
+        if value is not None and value["type"] == "block":
+            stored = workflow_block_key(self.context["workflow_run_id"], value["id"])
+            limit = NotebookBlock._meta.get_field("producer_key").max_length
+            if limit is not None and len(stored) > limit:
+                raise serializers.ValidationError({"id": "The workflow block key is too long."})
+            return {**value, "id": stored}
+        return value
+
+
 class StepsWrite(StrictCamelSnakeValidator[None]):
-    suggestions = serializers.ListField(
-        child=serializers.DictField(),
+    suggestions: serializers.ListSerializer[Any] = serializers.ListSerializer(
+        child=WorkflowSuggestionWrite(),
         max_length=10,
         help_text="Suggested next steps with a key, title and rationale.",
     )
@@ -114,6 +133,14 @@ class FinalizerWrite(StrictCamelSnakeValidator[None]):
     result = serializers.DictField(
         help_text="Structured metadata or suggestions produced by this finalizer."
     )
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        result_type = MetadataWrite if attrs["section"] == "metadata" else StepsWrite
+        try:
+            result = _validate_payload(result_type, attrs["result"], context=self.context)
+        except serializers.ValidationError as error:
+            raise serializers.ValidationError({"result": error.detail}) from error
+        return {**attrs, "result": result}
 
 
 class WorkflowNotebookContext(TypedDict):
@@ -247,28 +274,48 @@ class OrganizationNotebookWorkflowEndpoint(OrganizationNotebooksBaseEndpoint):
     )
     def put(self, request: Request, binding: NotebookWorkflowRun, **kwargs: Any) -> Response:
         """Deliver one finalizer's result for the completed content revision."""
-        values = _validate_payload(FinalizerWrite, request.data)
-        section = values["section"]
-        validator = MetadataWrite if section == "metadata" else StepsWrite
-        result = _validate_payload(validator, values["result"])
-        deliver_finalizer(binding, values["revision"], section, result)
+        values = _validate_payload(
+            FinalizerWrite, request.data, context={"workflow_run_id": binding.run_id}
+        )
+        deliver_finalizer(binding, values["revision"], values["section"], values["result"])
         return Response(status=204)
 
 
 class WriterRunWrite(StrictCamelSnakeValidator[None]):
-    seer_run_state_id = serializers.IntegerField(min_value=1, max_value=2**63 - 1)
-    user_id = serializers.IntegerField(min_value=1, allow_null=True)
+    seer_run_state_id = serializers.IntegerField(
+        min_value=1,
+        max_value=2**63 - 1,
+        help_text="The Explorer run state ID of the notebook writer.",
+    )
+    user_id = serializers.IntegerField(
+        min_value=1,
+        allow_null=True,
+        help_text="The Sentry user who started the writer, or null for a service account.",
+    )
 
 
+class RegisteredNotebookWriter(TypedDict):
+    writerRunUuid: str
+
+
+@extend_schema(tags=["Notebooks"], parameters=[GlobalParams.ORG_ID_OR_SLUG, WORKFLOW_RUN_ID])
 @cell_silo_endpoint
-class OrganizationNotebookWorkflowWriterEndpoint(OrganizationEndpoint):
+class OrganizationNotebookWorkflowWriterEndpoint(OrganizationNotebooksBaseEndpoint):
     """Only the authenticated Seer worker can register a child run in Sentry's mirror."""
 
-    owner = ApiOwner.ML_AI
     publish_status = {"PUT": ApiPublishStatus.PRIVATE}
     authentication_classes = (SeerRpcViewerContextAuthentication,)
     permission_classes = (SeerSystemViewerContextPermission,)
 
+    @extend_schema(
+        operation_id="registerWorkflowNotebookWriter",
+        request=WriterRunWrite,
+        responses={
+            200: inline_sentry_response_serializer(
+                "RegisteredNotebookWriter", RegisteredNotebookWriter
+            )
+        },
+    )
     def put(self, request: Request, organization: Organization, workflow_run_id: UUID) -> Response:
         """Attach the authenticated worker's Explorer run to an existing workflow notebook."""
         try:

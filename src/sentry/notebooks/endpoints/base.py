@@ -5,6 +5,7 @@ from typing import Any
 
 from rest_framework import status
 from rest_framework.exceptions import APIException, PermissionDenied
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -136,7 +137,7 @@ class OrganizationNotebooksBaseEndpoint(OrganizationEndpoint):
     schema = NotebookSchema()
 
     owner = ApiOwner.ML_AI
-    permission_classes = (NotebookPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (NotebookPermission,)
 
     def convert_args(
         self,

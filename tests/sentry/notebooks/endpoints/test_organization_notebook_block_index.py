@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import patch
 from uuid import UUID, uuid4
 
 from django.test import override_settings
@@ -270,6 +271,61 @@ class NotebookProducerBlockTest(APITestCase):
         assert self.client.post(self.workflow_url(), destination).data == second.data
         assert self.client.post(url, destination).status_code == 409
 
+    def test_two_workflows_can_upsert_the_same_key_in_one_notebook(self) -> None:
+        first, second = uuid4(), uuid4()
+        first_url = self.bind_workflow(first)
+        self.bind_workflow(second)
+        link_writer_run(self.organization, first, 91, None)
+        link_writer_run(self.organization, second, 92, None)
+        a = {"workflowRunId": str(first), "writerRunId": 91, "key": "summary:latency"}
+        b = {**a, "workflowRunId": str(second), "writerRunId": 92}
+
+        first_block = self.write(**a)
+        second_block = self.write(**b)
+        assert first_block.status_code == second_block.status_code == 201
+        assert first_block.data["id"] != second_block.data["id"]
+        assert self.write(**b).data == second_block.data
+        assert self.write(**a, revision=2, blockVersion=1, content="Updated").status_code == 200
+
+        detail = reverse(
+            "sentry-api-0-organization-notebook-details",
+            args=[self.organization.slug, self.notebook.id],
+        )
+        blocks = self.client.get(detail).data["blocks"]
+        assert [
+            (block["workflowRunId"], block["producerKey"], block["content"]) for block in blocks
+        ] == [(str(first), "summary:latency", "Updated"), (str(second), "summary:latency", "Text")]
+        suggestion = {
+            "key": "inspect",
+            "title": "Inspect latency",
+            "rationale": "Verify.",
+            "anchor": {"type": "block", "id": "summary:latency"},
+        }
+        revision = self.client.get(first_url).data["revision"]
+        assert (
+            self.client.put(
+                first_url,
+                {
+                    "section": "nextSteps",
+                    "revision": revision,
+                    "result": {"suggestions": [suggestion]},
+                },
+                format="json",
+            ).status_code
+            == 204
+        )
+        assert self.client.get(detail).data["actionRequests"][0]["anchor"] == {
+            "type": "block",
+            "id": "summary:latency",
+            "blockId": first_block.data["id"],
+        }
+
+        key_limit = 128 - len(f":workflow:{first}:")
+        assert self.write(**{**a, "key": "a" * key_limit}).status_code == 201
+        oversized = self.write(**{**a, "key": "a" * (key_limit + 1)})
+        assert oversized.status_code == 400
+        assert "key" in oversized.data
+
     def test_workflow_embed_replays_and_rejects_stale_writes(self) -> None:
         run_id = uuid4()
         url = self.bind_workflow(run_id)
@@ -367,8 +423,11 @@ class NotebookProducerBlockTest(APITestCase):
         assert self.notebook.blocks.get(pk=posted.data["id"]).producing_seer_run_id == 92
 
     def test_workflow_finalizers_share_a_revision_and_save_once(self) -> None:
-        url = self.bind_workflow(uuid4())
-        self.create_notebook_block(notebook=self.notebook, content="Issue recurred")
+        url = self.workflow_url()
+        opened = self.client.post(url, {"title": "Draft"})
+        assert opened.status_code == 200
+        notebook = Notebook.objects.get(id=opened.data["notebookId"])
+        self.create_notebook_block(notebook=notebook, content="Issue recurred")
         revision = self.client.get(url).data["revision"]
 
         def deliver(section: str, result: dict[str, Any]) -> None:
@@ -384,13 +443,13 @@ class NotebookProducerBlockTest(APITestCase):
             "metadata",
             {"title": "Recurrence", "summary": "One issue", "description": "It recurred."},
         )
-        self.notebook.refresh_from_db()
-        assert self.notebook.title == "Recurrence"
-        assert self.notebook.action_requests.get().key == "inspect"
-        version = self.notebook.version
+        notebook.refresh_from_db()
+        assert notebook.title == "Recurrence"
+        assert notebook.action_requests.get().key == "inspect"
+        version = notebook.version
         deliver("nextSteps", steps)
-        self.notebook.refresh_from_db()
-        assert self.notebook.version == version
+        notebook.refresh_from_db()
+        assert notebook.version == version
 
     def test_shared_notebook_keeps_other_producers_suggestions(self) -> None:
         first, second = uuid4(), uuid4()
@@ -422,8 +481,40 @@ class NotebookProducerBlockTest(APITestCase):
         assert self.notebook.action_requests.get(workflow_run__run_id=second).state == "suggested"
         assert self.notebook.action_requests.get(workflow_run__isnull=True).state == "suggested"
 
-    def test_manual_title_survives_metadata_delivery(self) -> None:
+    def test_finalizer_validates_nested_items_before_delivery(self) -> None:
         url = self.bind_workflow(uuid4())
+        revision = self.client.get(url).data["revision"]
+        with patch(
+            "sentry.notebooks.endpoints.organization_notebook_workflow.deliver_finalizer"
+        ) as deliver:
+            metadata = self.client.put(
+                url,
+                {"revision": revision, "section": "metadata", "result": {"title": "Report"}},
+                format="json",
+            )
+            assert metadata.status_code == 400
+            assert set(metadata.data["result"]) == {"summary", "description"}
+            valid = {"key": "inspect", "title": "Inspect", "rationale": "Verify."}
+            steps = self.client.put(
+                url,
+                {
+                    "revision": revision,
+                    "section": "nextSteps",
+                    "result": {"suggestions": [valid, {**valid, "key": "Bad Key"}]},
+                },
+                format="json",
+            )
+            assert steps.status_code == 400
+            errors = steps.json()["result"]["suggestions"]
+            assert errors[0] == {}
+            assert "key" in errors[1]
+            deliver.assert_not_called()
+
+    def test_manual_title_survives_metadata_delivery(self) -> None:
+        url = self.workflow_url()
+        opened = self.client.post(url, {"title": "Draft", "projectIds": [self.project.id]})
+        assert opened.status_code == 200
+        self.notebook = Notebook.objects.get(pk=opened.data["notebookId"])
         self.create_notebook_block(notebook=self.notebook, content="Evidence")
         revision = self.client.get(url).data["revision"]
         detail = reverse(
@@ -436,6 +527,7 @@ class NotebookProducerBlockTest(APITestCase):
             format="json",
         )
         assert renamed.status_code == 200
+        later_url = self.bind_workflow(uuid4())
         metadata = {"title": "Generated title", "summary": "New summary", "description": "Details"}
         assert (
             self.client.put(
@@ -445,10 +537,19 @@ class NotebookProducerBlockTest(APITestCase):
             ).status_code
             == 204
         )
+        metadata["summary"] = "Second run summary"
+        assert (
+            self.client.put(
+                later_url,
+                {"section": "metadata", "revision": revision, "result": metadata},
+                format="json",
+            ).status_code
+            == 204
+        )
         self.notebook.refresh_from_db()
         assert (self.notebook.title, self.notebook.summary, self.notebook.summary_description) == (
             "Maintainer title",
-            "New summary",
+            "Second run summary",
             "Details",
         )
 

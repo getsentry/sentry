@@ -30,6 +30,7 @@ from sentry.notebooks.services.producer import (
     follow_up_status_hint,
     follow_ups,
 )
+from sentry.notebooks.services.producer_sources import split_workflow_block_key
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -248,14 +249,21 @@ class NotebookActionRequestSerializer(Serializer[NotebookActionRequestSerializer
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> NotebookActionRequestSerializerResponse:
+        anchor_id = obj.anchor_id
+        if (
+            anchor_id
+            and obj.workflow_run_id
+            and obj.anchor_type == NotebookActionRequestAnchorType.BLOCK
+        ):
+            _, anchor_id = split_workflow_block_key(anchor_id)
         return {
             "id": str(obj.id),
             "key": obj.key,
             "reportRevision": obj.producer_revision,
             "primary": obj.primary,
             "anchor": (
-                {"type": obj.anchor_type, "id": obj.anchor_id, "blockId": attrs["block_id"]}
-                if obj.anchor_type is not None and obj.anchor_id is not None
+                {"type": obj.anchor_type, "id": anchor_id, "blockId": attrs["block_id"]}
+                if obj.anchor_type is not None and anchor_id is not None
                 else None
             ),
             "title": obj.title,

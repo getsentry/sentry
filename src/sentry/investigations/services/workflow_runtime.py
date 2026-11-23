@@ -2,7 +2,7 @@
 
 from datetime import timedelta
 from typing import Any
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from django.db import router, transaction
 from django.db.models import Case, DateTimeField, Value, When
@@ -17,12 +17,16 @@ from sentry.investigations.services.orchestration import (
     get_or_create_metric_workflow_notebook,
 )
 from sentry.models.organization import Organization
-from sentry.notebooks.models import Notebook
+from sentry.notebooks.models import Notebook, NotebookSourceType
 from sentry.notebooks.services import NotebookSourceNotFound, NotebookValidationError
 from sentry.notebooks.services.workflow import open_workflow_notebook
 from sentry.viewer_context import ActorId, ActorType
 
 PAUSED_RECOVERY_INTERVAL = timedelta(hours=1)
+
+
+def metric_workflow_request_id(notebook_id: int) -> UUID:
+    return uuid5(NAMESPACE_URL, f"sentry:metric-investigation-v2:{notebook_id}")
 
 
 class StaleWorkflow(APIException):
@@ -109,13 +113,13 @@ def _breach_notebook(
     detector_id: int,
     project_ids: list[int],
     creator: ActorId,
-) -> Notebook:
+) -> tuple[Notebook, bool]:
     resolved = resolve_investigation_source(
         organization=organization, source=source, accessible_project_ids=set(project_ids)
     )
     if str(detector_id) != resolved.source["snapshot"]["monitor"]["id"]:
         raise NotebookValidationError({"source": "The open period belongs to a different monitor."})
-    notebook, _ = get_or_create_metric_workflow_notebook(
+    return get_or_create_metric_workflow_notebook(
         organization=organization,
         creator=creator,
         title=None,
@@ -124,7 +128,6 @@ def _breach_notebook(
         project_ids=[],
         filters={},
     )
-    return notebook
 
 
 def create_run(
@@ -171,8 +174,9 @@ def create_run(
                     if target is None:
                         raise serializers.ValidationError("Unknown notebook.")
                 try:
+                    new_breach_notebook = False
                     if source is not None:
-                        target = _breach_notebook(
+                        target, new_breach_notebook = _breach_notebook(
                             organization,
                             source,
                             checkpoint["input"]["detector_id"],
@@ -183,6 +187,13 @@ def create_run(
                         organization,
                         run.uuid,
                         destination=target,
+                        generate_placeholder_title=new_breach_notebook
+                        or (
+                            target is not None
+                            and target.source_type == NotebookSourceType.METRIC_OPEN_PERIOD
+                            and (target.source_key or "").startswith("v2:")
+                            and run.request_id == metric_workflow_request_id(target.id)
+                        ),
                         title=definition["name"],
                         project_ids=destination["projectIds"],
                         creator={

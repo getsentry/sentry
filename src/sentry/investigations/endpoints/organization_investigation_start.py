@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from uuid import NAMESPACE_URL, uuid5
-
 from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -20,6 +18,7 @@ from sentry.investigations.endpoints.validators import InvestigationStartValidat
 from sentry.investigations.models import WorkflowRun
 from sentry.investigations.services import breached_metric_orchestration_source, start_investigation
 from sentry.investigations.services.workflow_client import forward_workflow_request
+from sentry.investigations.services.workflow_runtime import metric_workflow_request_id
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebooksBaseEndpoint,
@@ -103,7 +102,7 @@ class OrganizationInvestigationStartEndpoint(OrganizationNotebooksBaseEndpoint):
             record_notebook_started(investigation)
         if use_workflow:
             # The notebook owns the launch identity and snapshot, even when two viewers click.
-            request_id = uuid5(NAMESPACE_URL, f"sentry:metric-investigation-v2:{investigation.id}")
+            request_id = metric_workflow_request_id(investigation.id)
             run = WorkflowRun.objects.filter(
                 organization=organization,
                 uuid__in=investigation.notebookworkflowrun_set.values("run_id"),

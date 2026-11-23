@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 import jsonschema
@@ -13,11 +13,10 @@ from rest_framework import serializers
 
 from sentry.api.exceptions import ConflictError
 from sentry.api.helpers.creator import CreatorReference
-from sentry.investigations.contracts import valid_action_request
 from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.services.orchestration_events import complete_report_metadata
 from sentry.models.organization import Organization
-from sentry.notebooks.contracts import MAX_MARKDOWN_CHARS
+from sentry.notebooks.contracts import MAX_MARKDOWN_CHARS, ActionRequestItem
 from sentry.notebooks.models import (
     Notebook,
     NotebookBlock,
@@ -30,9 +29,11 @@ from sentry.notebooks.services.action_requests import sync_snapshot_action_reque
 from sentry.notebooks.services.notebooks import (
     _validate_project_ids,
     create_manual_notebook,
+    has_default_notebook_title,
     require_workflow_writer,
     validate_evidence_scope,
 )
+from sentry.notebooks.services.producer_sources import workflow_block_key
 from sentry.notebooks.services.producer_writes import notebook_writes
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.utils import json
@@ -46,6 +47,7 @@ def open_workflow_notebook(
     creator: CreatorReference,
     title: str,
     project_ids: list[int],
+    generate_placeholder_title: bool = False,
 ) -> Notebook:
     def destination_notebook() -> Notebook:
         return destination or create_manual_notebook(
@@ -59,8 +61,10 @@ def open_workflow_notebook(
     # get_or_create evaluates callable defaults inside its savepoint. A simultaneous
     # first open that loses the unique-key race also rolls back its blank notebook.
     with transaction.atomic(using=router.db_for_write(Notebook)):
-        binding, _ = NotebookWorkflowRun.objects.get_or_create(
-            organization=organization, run_id=run_id, defaults={"notebook": destination_notebook}
+        binding, created = NotebookWorkflowRun.objects.get_or_create(
+            organization=organization,
+            run_id=run_id,
+            defaults={"notebook": destination_notebook, "preserve_title": destination is not None},
         )
         if destination is not None and destination.id != binding.notebook_id:
             raise ConflictError("This workflow already opened another notebook.")
@@ -69,6 +73,15 @@ def open_workflow_notebook(
         )
         if notebook.status != "active":
             raise ConflictError("Archived notebooks are read-only.")
+        # A monitor launch creates its draft before the workflow starts. Only that
+        # launch may replace the untouched placeholder, even if the open is retried.
+        if (
+            created
+            and generate_placeholder_title
+            and notebook.version == 1
+            and has_default_notebook_title(notebook)
+        ):
+            binding.update(preserve_title=False)
         evidence = _validate_project_ids(organization.id, project_ids)
         validate_evidence_scope(list(notebook.projects.values_list("id", flat=True)), evidence)
         if notebook.workflow_evidence_scope != WorkflowEvidenceScope.ORGANIZATION:
@@ -147,7 +160,7 @@ def write_workflow_block(
     with notebook_writes(notebook) as writes:
         require_workflow_writer(notebook, workflow_run_id, writer_run_id)
         blocks = notebook.blocks
-        stored_key = f"workflow:{key}"
+        stored_key = workflow_block_key(workflow_run_id, key)
         block = blocks.filter(producer_key=stored_key).order_by("-producer_revision").first()
         created = block is None
         if block is None:
@@ -271,14 +284,10 @@ def deliver_finalizer(
                 version=notebook.version + 1,
             )
         else:
-            actions = []
-            for item in result["suggestions"]:
-                action = valid_action_request(
-                    {"impact": None, **item, "reportRevision": notebook.version}
-                )
-                if action is None:
-                    raise serializers.ValidationError({"suggestions": "Invalid next step."})
-                actions.append(action)
+            actions = [
+                cast(ActionRequestItem, {**item, "reportRevision": notebook.version})
+                for item in result["suggestions"]
+            ]
             sync_snapshot_action_requests(notebook, actions, workflow_run=binding)
             notebook.update(version=notebook.version + 1)
         binding.update(delivered={**binding.delivered, section: revision})

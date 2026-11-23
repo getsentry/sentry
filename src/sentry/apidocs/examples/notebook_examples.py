@@ -31,6 +31,7 @@ BLOCK: dict[str, object] = {
     "createdBy": None,
     "lastEditedBy": None,
     "producerKey": "summary",
+    "workflowRunId": None,
     "producerRevision": 1,
     "embed": None,
     "embedSource": None,

@@ -274,9 +274,9 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             "ref": {"groupId": str(group.id), "openPeriodId": str(period.id)},
         }
         detector_id = group.detectorgroup_set.get().detector_id
-        for seed in (
-            {"metricIssueId": group.id, "openPeriodId": period.id},
-            {"sentrySource": {**source, "snapshot": {"groupTitle": "untrusted"}}},
+        for seed, reused in (
+            ({"metricIssueId": group.id, "openPeriodId": period.id}, False),
+            ({"sentrySource": {**source, "snapshot": {"groupTitle": "untrusted"}}}, True),
         ):
             run_id = str(uuid4())
             run, _ = create_run(
@@ -307,6 +307,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
                 source_key=f"v2:metric_open_period:{group.id}:{period.id}"
             )
             assert run.checkpoint["notebook_id"] == notebook.id
+            assert NotebookWorkflowRun.objects.get(run_id=run.uuid).preserve_title == reused
             assert notebook.source["snapshot"]["groupTitle"] == group.title
         with mock.patch(
             "sentry.investigations.endpoints.organization_investigation_start.forward_workflow_request"

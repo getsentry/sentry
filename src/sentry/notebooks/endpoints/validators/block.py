@@ -19,7 +19,7 @@ from sentry.notebooks.endpoints.validators.base import (
 )
 from sentry.notebooks.models import Notebook, NotebookBlock, NotebookBlockKind
 from sentry.notebooks.services.notebooks import create_block
-from sentry.notebooks.services.producer_sources import get_producer_source_type
+from sentry.notebooks.services.producer_sources import get_producer_source_type, workflow_block_key
 from sentry.notebooks.services.producer_writes import (
     MAX_REVISION_STEP,
     UNSET,
@@ -236,14 +236,18 @@ class BlockCreateValidator(NotebookVersionValidator[tuple[NotebookBlock, bool]])
                         "detail": "Send writerRunId, key, revision and either text content or an embed and source."
                     }
                 )
-            if (
-                len("workflow:" + attrs["key"]) > 128
-                or (
-                    kind == NotebookBlockKind.TEXT
-                    and not 0 < len(attrs["content"]) <= MAX_MARKDOWN_CHARS
+            prefix = workflow_block_key(attrs["workflow_run_id"], "")
+            max_length = NotebookBlock._meta.get_field("producer_key").max_length
+            if max_length is not None and len(prefix) + len(attrs["key"]) > max_length:
+                raise serializers.ValidationError(
+                    {
+                        "key": f"Ensure this field has no more than {max_length - len(prefix)} characters."
+                    }
                 )
-                or (kind == NotebookBlockKind.EMBED and not attrs["embed_source"].strip())
-            ):
+            if (
+                kind == NotebookBlockKind.TEXT
+                and not 0 < len(attrs["content"]) <= MAX_MARKDOWN_CHARS
+            ) or (kind == NotebookBlockKind.EMBED and not attrs["embed_source"].strip()):
                 raise serializers.ValidationError(
                     {"detail": "Supply a valid key and nonempty text or widget source."}
                 )
