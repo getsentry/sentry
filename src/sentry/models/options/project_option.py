@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Mapping, Sequence
-from functools import partial
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import models, router, transaction
@@ -17,6 +17,8 @@ from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
+
+logger = logging.getLogger(__name__)
 
 # Explicitly allow options that are safe to return in project-list responses.
 # Internal options, including credentials, belong only in OPTION_KEYS below.
@@ -209,28 +211,36 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         option_key: str | None = None,
         *,
         using: str | None = None,
-    ) -> Mapping[str, Any]:
+    ) -> None:
         using = using or self._db or router.db_for_write(self.model)
         connection = transaction.get_connection(using)
         if not connection.get_autocommit():
             self._option_cache.pop(self._make_key(project_id), None)
+
+            def reload_after_commit() -> None:
+                try:
+                    self._reload_cache(project_id, update_reason, option_key, using)
+                except Exception:
+                    # The write already committed. Allow unrelated commit hooks to run.
+                    logger.exception(
+                        "projectoption.cache_reload_failed",
+                        extra={"project_id": project_id, "using": using},
+                    )
+
             # Register inside an atomic block so this also works when a caller
             # manages autocommit manually. Rollback discards the callback.
             with transaction.atomic(using=using, savepoint=False):
-                transaction.on_commit(
-                    partial(self._reload_cache, project_id, update_reason, option_key, using),
-                    using=using,
-                )
-            return self._get_values_from_database(project_id, using)
+                transaction.on_commit(reload_after_commit, using=using)
+            return
 
-        return self._reload_cache(project_id, update_reason, option_key, using)
+        self._reload_cache(project_id, update_reason, option_key, using)
 
     def _get_values_from_database(self, project_id: int, using: str) -> dict[str, Any]:
         return dict(self.using(using).filter(project_id=project_id).values_list("key", "value"))
 
     def _reload_cache(
         self, project_id: int, update_reason: str, option_key: str | None, using: str
-    ) -> Mapping[str, Any]:
+    ) -> None:
         from sentry.tasks.relay import schedule_invalidate_project_config
 
         # Query when the callback runs, rather than publishing a snapshot taken
@@ -246,7 +256,6 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
                 trigger_details=option_key,
                 transaction_db=using,
             )
-        return result
 
     def post_save(self, *, instance: ProjectOption, created: bool, **kwargs: object) -> None:
         using = kwargs.get("using")

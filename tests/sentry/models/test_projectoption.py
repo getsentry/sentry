@@ -1,8 +1,8 @@
 from collections.abc import Iterator
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
-from django.db import connections, router, transaction
+from django.db import OperationalError, connections, router, transaction
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.options.project_option import ProjectOption
@@ -93,13 +93,33 @@ class ProjectOptionTransactionTest(TransactionTestCase):
         before = cache.get(self.cache_key)
         expected = before | {"foo": "new", "created": True}
         with transaction.atomic(using=self.using):
-            self.manager.set_value(self.project, "foo", "new")
-            self.manager.set_value(self.project, "created", True)
+            # Only the writes, locking reads, and savepoints; cache reloads wait for commit.
+            with self.assertNumQueries(10):
+                self.manager.set_value(self.project, "foo", "new")
+                self.manager.set_value(self.project, "created", True)
             assert self.manager.get_all_values(self.project) == expected
             assert cache.get(self.cache_key) == before
 
         assert cache.get(self.cache_key) == expected
         assert self.manager.get_all_values(self.project) == expected
+
+    def test_failed_refresh_does_not_interrupt_commit_callbacks(self) -> None:
+        sibling_callback = Mock()
+        with (
+            patch.object(
+                self.manager,
+                "_get_values_from_database",
+                side_effect=OperationalError("disconnected"),
+            ),
+            patch("sentry.models.options.project_option.logger") as logger,
+        ):
+            with transaction.atomic(using=self.using):
+                self.manager.set_value(self.project, "foo", "new")
+                transaction.on_commit(sibling_callback, using=self.using)
+
+        assert self.manager.get(project=self.project, key="foo").value == "new"
+        logger.exception.assert_called_once()
+        sibling_callback.assert_called_once_with()
 
     def test_rollback_preserves_cached_options(self) -> None:
         before = cache.get(self.cache_key)
