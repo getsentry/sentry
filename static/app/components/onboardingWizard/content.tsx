@@ -91,7 +91,7 @@ function TaskCard({
         {title}
         {description && <p>{description}</p>}
       </TaskCardDescription>
-      <Grid align="start" gap="md" autoColumns="20px" flow="column">
+      <Grid align="start" gap="md" autoColumns="max-content" flow="column">
         {actions}
       </Grid>
     </TaskCardWrapper>
@@ -505,7 +505,7 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
   );
 
   return (
-    <Stack overscrollBehavior="none" data-test-id="quick-start-content">
+    <Stack overscrollBehavior="none" gap="md" data-test-id="quick-start-content">
       <TaskGroup
         title={t('Getting Started')}
         tasks={sortedGettingStartedTasks}
@@ -546,6 +546,7 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
 
 const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
   padding-left: ${p => p.theme.space.md};
+  padding-right: ${p => p.theme.space.md};
 
   p {
     color: ${p =>
