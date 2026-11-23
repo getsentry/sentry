@@ -27,6 +27,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
 from sentry.utils.memory import track_memory_usage
+from sentry.workflow_engine.caches.detector import get_detectors_by_data_source
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.processors.data_packet import process_data_packet
@@ -80,26 +81,30 @@ class SubscriptionProcessor:
         Entry point for processing a subscription update.
         Returns False if required objects don't exist or are invalid.
         """
-        # Look up detector
-        try:
-            detector = Detector.objects.get(
-                data_sources__source_id=str(subscription.id),
-                data_sources__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-            )
-        except Detector.DoesNotExist:
+        detectors = get_detectors_by_data_source(
+            str(subscription.id), DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        )
+
+        if len(detectors) == 0:
             logger.info("Detector not found", extra={"subscription_id": subscription.id})
             metrics.incr(
-                "incidents.subscription_processor.detector_lookup",
-                tags={"found": "False"},
+                "incidents.subscription_processor.detector_lookup", tags={"found": "False"}
+            )
+            return False
+        elif len(detectors) > 1:
+            logger.warning("Multiple detectors found", extra={"subscription_id": subscription.id})
+            metrics.incr(
+                "incidents.subscription_processor.detector_lookup", tags={"found": "Mulitiple"}
             )
             return False
 
-        metrics.incr(
-            "incidents.subscription_processor.detector_lookup",
-            tags={"found": "True"},
-        )
+        detector = detectors[0]
+        metrics.incr("incidents.subscription_processor.detector_lookup", tags={"found": "True"})
 
-        # Fetch and cache Project
+        if not detector.enabled:
+            logger.info("Detector disabled", extra={"subscription_id": subscription.id})
+            return False
+
         try:
             project = Project.objects.get_from_cache(id=subscription.project_id)
             subscription.set_cached_field_value("project", project)
@@ -111,11 +116,9 @@ class SubscriptionProcessor:
             metrics.incr("incidents.alert_rules.ignore_deleted_project")
             return False
 
-        # Fetch and cache Organization
         organization = Organization.objects.get_from_cache(id=project.organization_id)
         project.set_cached_field_value("organization", organization)
 
-        # Create processor and run
         processor = cls(subscription, detector)
         return processor.process_update(subscription_update)
 
