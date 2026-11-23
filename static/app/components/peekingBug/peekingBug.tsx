@@ -20,6 +20,7 @@ const LEDGE = -VIEW_BOX.y * SCALE;
 const BELOW_LEDGE = (VIEW_BOX.height + VIEW_BOX.y) * SCALE;
 // md and sm buttons lift their face 3px above the button's box while hovered.
 const FACE_LIFT = 3;
+const CLAW_REACH = 28;
 const FINE_HOVER = '(hover: hover) and (pointer: fine)';
 
 const BUGS = [
@@ -200,8 +201,12 @@ const Layer = styled('svg')`
     clip-path: inset(${LEDGE}px 0 ${BELOW_LEDGE}px 0);
     transition:
       visibility 0s 0.2s,
-      clip-path 0.1s ease-out,
+      clip-path 0s 0.1s,
       translate ${p => p.theme.motion.snap.fast};
+  }
+  &.front .squash {
+    translate: 0 -${CLAW_REACH}px;
+    transition: translate 0.1s ease-in;
   }
 
   .rise1 {
@@ -229,7 +234,8 @@ const Hideout = styled(Flex)`
 
   &[data-resting] .layer,
   &[data-resting] .rise1,
-  &[data-resting] .rise2 {
+  &[data-resting] .rise2,
+  &[data-resting] .squash {
     transition: none !important;
   }
 
@@ -259,8 +265,12 @@ const Hideout = styled(Flex)`
         clip-path: inset(${LEDGE}px 0 0 0);
         transition:
           visibility 0s ${at(0)},
-          clip-path 0.14s ease-in ${at(POP + 0.24)},
+          clip-path 0s ${at(POP + 0.24)},
           translate ${p => p.theme.motion.snap.fast};
+      }
+      .layer.front .squash {
+        translate: none;
+        transition: translate 0.35s cubic-bezier(0.4, 0, 0.2, 1) ${at(POP + 0.24)};
       }
 
       /* Outranks the global reduced-motion reset, which zeroes every transition delay. */
