@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from uuid import uuid4
 
 import pytest
@@ -30,7 +30,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import UnsupportedActionEvent, WorkflowEventData
+from sentry.workflow_engine.types import ActionInvocation, UnsupportedActionEvent, WorkflowEventData
 
 
 class IssueItemTypeTest(TestCase):
@@ -547,6 +547,37 @@ class IssueProducerRecordingTest(TestCase):
 
 @with_feature("organizations:universal-inbox-recording")
 class AddToInboxActionTest(TestCase):
+    def test_team_mention_attempted_when_user_mention_fails(self) -> None:
+        note = Activity(
+            id=1,
+            type=ActivityType.NOTE.value,
+            group=self.group,
+            project=self.project,
+            data={
+                "mentions": [
+                    {"actor_type": "User", "id": self.user.id},
+                    {"actor_type": "Team", "id": self.team.id},
+                ]
+            },
+        )
+        invocation = Mock(
+            spec=ActionInvocation, event_data=WorkflowEventData(event=note, group=self.group)
+        )
+        handler = Action(type=Action.Type.ADD_TO_INBOX).get_handler()
+        with (
+            patch(
+                "sentry.inbox.issue_activity.create_inbox_items",
+                side_effect=[RuntimeError("user mention failed"), None],
+            ) as record,
+            pytest.raises(RuntimeError, match="user mention failed"),
+        ):
+            handler.execute(invocation)
+
+        assert [call.kwargs["event_type"].event_type for call in record.call_args_list] == [
+            "issue.user_mentioned",
+            "issue.team_mentioned",
+        ]
+
     def test_replaying_mention_activity_records_each_type_once(self) -> None:
         recipient = self.create_user()
         self.create_member(organization=self.organization, user=recipient, teams=[self.team])

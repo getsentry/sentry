@@ -23,6 +23,7 @@ def test_workflow_action_openapi_schema_documents_public_contract() -> None:
     variants = {variant["properties"]["type"]["enum"][0]: variant for variant in schema["oneOf"]}
 
     assert "plugin" not in variants
+    assert "add_to_inbox" not in variants
 
     email = variants["email"]
     assert "integrationId" not in email["properties"]
