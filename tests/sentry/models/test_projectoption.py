@@ -111,6 +111,7 @@ class ProjectOptionTransactionTest(TransactionTestCase):
                 "_get_values_from_database",
                 side_effect=OperationalError("disconnected"),
             ),
+            patch("sentry.tasks.relay.schedule_invalidate_project_config") as invalidate,
             patch("sentry.models.options.project_option.logger") as logger,
         ):
             with transaction.atomic(using=self.using):
@@ -118,6 +119,12 @@ class ProjectOptionTransactionTest(TransactionTestCase):
                 transaction.on_commit(sibling_callback, using=self.using)
 
         assert self.manager.get(project=self.project, key="foo").value == "new"
+        invalidate.assert_called_once_with(
+            project_id=self.project.id,
+            trigger="projectoption.set_value",
+            trigger_details="foo",
+            transaction_db=self.using,
+        )
         logger.exception.assert_called_once_with(
             "projectoption.cache_reload_failed",
             extra={
@@ -135,24 +142,27 @@ class ProjectOptionTransactionTest(TransactionTestCase):
 
     def test_failed_eviction_does_not_interrupt_commit_callbacks(self) -> None:
         sibling_callback = Mock()
+        refresh_error = OperationalError("disconnected")
         with (
-            patch.object(
-                self.manager,
-                "_get_values_from_database",
-                side_effect=OperationalError("disconnected"),
+            patch.object(self.manager, "_get_values_from_database", side_effect=refresh_error),
+            patch(
+                "sentry.tasks.relay.schedule_invalidate_project_config",
+                side_effect=RuntimeError("scheduler unavailable"),
             ),
             patch.object(cache, "delete", side_effect=RuntimeError("cache unavailable")),
-            patch("sentry.models.options.project_option.logger") as logger,
+            self.assertLogs("sentry.models.options.project_option", level="ERROR") as logs,
         ):
             with transaction.atomic(using=self.using):
                 self.manager.set_value(self.project, "foo", "new")
                 transaction.on_commit(sibling_callback, using=self.using)
 
         assert self.manager.get(project=self.project, key="foo").value == "new"
-        assert [call.args[0] for call in logger.exception.call_args_list] == [
+        assert [record.getMessage() for record in logs.records] == [
             "projectoption.cache_eviction_failed",
+            "projectoption.relay_invalidation_failed",
             "projectoption.cache_reload_failed",
         ]
+        assert logs.records[-1].exc_info and logs.records[-1].exc_info[1] is refresh_error
         sibling_callback.assert_called_once_with()
 
     def test_rollback_preserves_cached_options(self) -> None:

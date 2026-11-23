@@ -248,6 +248,15 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
     ) -> None:
         from sentry.tasks.relay import schedule_invalidate_project_config
 
+        def invalidate_relay_config() -> None:
+            if update_reason != "projectoption.get_all_values":
+                schedule_invalidate_project_config(
+                    project_id=project_id,
+                    trigger=update_reason,
+                    trigger_details=option_key,
+                    transaction_db=using,
+                )
+
         # Query when the callback runs, rather than publishing a snapshot taken
         # before commit (which may include writes rolled back to a savepoint).
         cache_key = self._make_key(project_id)
@@ -257,27 +266,24 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         except Exception:
             # Let a subsequent read recover from the database rather than stale caches.
             self._option_cache.pop(cache_key, None)
+            log_context = {
+                "project_id": project_id,
+                "using": using,
+                "update_reason": update_reason,
+                "option_key": option_key,
+            }
             try:
                 cache.delete(cache_key)
             except Exception:
-                logger.exception(
-                    "projectoption.cache_eviction_failed",
-                    extra={
-                        "project_id": project_id,
-                        "using": using,
-                        "update_reason": update_reason,
-                        "option_key": option_key,
-                    },
-                )
+                logger.exception("projectoption.cache_eviction_failed", extra=log_context)
+            # Relay caches its own config. Evicting the option cache doesn't rebuild it.
+            try:
+                invalidate_relay_config()
+            except Exception:
+                logger.exception("projectoption.relay_invalidation_failed", extra=log_context)
             raise
         self._option_cache[cache_key] = result
-        if update_reason != "projectoption.get_all_values":
-            schedule_invalidate_project_config(
-                project_id=project_id,
-                trigger=update_reason,
-                trigger_details=option_key,
-                transaction_db=using,
-            )
+        invalidate_relay_config()
 
     def post_save(self, *, instance: ProjectOption, created: bool, **kwargs: object) -> None:
         using = kwargs.get("using")
