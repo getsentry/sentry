@@ -1290,6 +1290,55 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:relay_pii_config") == value
         assert resp.data["relayPiiConfig"] == value
 
+    def test_options_invalid_relay_pii_config(self) -> None:
+        bare_string_redaction = orjson.dumps(
+            {
+                "rules": {
+                    "0": {
+                        "type": "anything",
+                        "redaction": "remove",
+                        "attributes": ["$user.geo.**"],
+                    }
+                }
+            }
+        ).decode()
+        invalid_values: list[object] = [
+            "not json",
+            bare_string_redaction,
+            {"applications": {}},
+            None,
+        ]
+        for value in invalid_values:
+            resp = self.get_error_response(
+                self.org_slug,
+                self.proj_slug,
+                options={"sentry:relay_pii_config": value},
+                status_code=400,
+            )
+            assert "sentry:relay_pii_config" in resp.data["options"]
+        assert self.project.get_option("sentry:relay_pii_config") is None
+
+    def test_options_invalid_safe_fields(self) -> None:
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            options={"sentry:safe_fields": ["er ror"]},
+            status_code=400,
+        )
+        assert "sentry:safe_fields" in resp.data["options"]
+        assert self.project.get_option("sentry:safe_fields") is None
+
+    def test_options_invalid_sensitive_fields(self) -> None:
+        for value in (["foo", " "], "foo", ["x" * 4001]):
+            resp = self.get_error_response(
+                self.org_slug,
+                self.proj_slug,
+                options={"sentry:sensitive_fields": value},
+                status_code=400,
+            )
+            assert "sentry:sensitive_fields" in resp.data["options"]
+        assert self.project.get_option("sentry:sensitive_fields") is None
+
     def test_sensitive_fields(self) -> None:
         value = ["foobar.com", "https://example.com"]
         resp = self.get_success_response(self.org_slug, self.proj_slug, sensitiveFields=value)
