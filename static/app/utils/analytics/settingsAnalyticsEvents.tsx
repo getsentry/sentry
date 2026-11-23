@@ -1,3 +1,5 @@
+import type {SettingsScope} from 'sentry/views/settings/settingsScope';
+
 /**
  * Places outside of the settings navigation that open a settings page, as a link or a button.
  * - `org_menu`: "Settings" item in the organization avatar menu
@@ -6,6 +8,7 @@
  * - `project_details_menu`: "Project Settings" item on the project details page
  * - `project_card`: settings icon on a project card in the projects list
  * - `usage_stats`: "Project Settings" button on a project row in the usage stats table
+ * - `command_palette`: a settings page picked in the command palette (cmd+k)
  */
 export type SettingsEntryPoint =
   | 'org_menu'
@@ -13,7 +16,8 @@ export type SettingsEntryPoint =
   | 'project_page_filter'
   | 'project_details_menu'
   | 'project_card'
-  | 'usage_stats';
+  | 'usage_stats'
+  | 'command_palette';
 
 /**
  * Where a project was picked from in the organization avatar menu.
@@ -30,9 +34,13 @@ export type SettingsEventParameters = {
   };
   /**
    * A link or button outside of the settings navigation was clicked and opened a
-   * settings page. `entry_point` says where it was.
+   * settings page. `entry_point` says where it was. `scope` is the settings area
+   * that was opened, sent only by entry points that can open more than one area.
    */
-  'settings.entry_point_clicked': {entry_point: SettingsEntryPoint};
+  'settings.entry_point_clicked': {
+    entry_point: SettingsEntryPoint;
+    scope?: SettingsScope;
+  };
   /**
    * A project was bookmarked or unbookmarked from the organization avatar menu.
    */

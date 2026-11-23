@@ -1,6 +1,6 @@
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useSettingsScope} from './useSettingsScope';
+import {getSettingsScope, useSettingsScope} from './useSettingsScope';
 
 describe('useSettingsScope', () => {
   it.each([
@@ -25,5 +25,18 @@ describe('useSettingsScope', () => {
     });
 
     expect(result.current).toEqual(expected);
+  });
+});
+
+describe('getSettingsScope', () => {
+  it.each([
+    ['/settings/org-slug/', 'org'],
+    ['/settings/organization/', 'org'],
+    ['/settings/org-slug/projects/project-slug/filters/', 'project'],
+    ['/settings/projects/project-slug/', 'project'],
+    ['/settings/account/details/', 'account'],
+    ['/organizations/org-slug/issues/', null],
+  ])('derives the scope for %s', (pathname, expected) => {
+    expect(getSettingsScope(pathname).scope).toBe(expected);
   });
 });
