@@ -167,8 +167,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
     @classmethod
     def _render_section(cls, text: str) -> SectionBlock:
-        # Seer content has no length limit, and Slack rejects the whole message when one
-        # section's text is over its limit.
+        # Slack rejects blocks >3000 characters, truncate anything exceeding that
         return SectionBlock(
             text=MarkdownTextObject(text=truncatechars(text, SectionBlock.text_max_length))
         )
