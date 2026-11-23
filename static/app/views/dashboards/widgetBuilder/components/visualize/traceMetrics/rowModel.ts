@@ -19,12 +19,12 @@ import {getFunctionLabel} from 'sentry/views/explore/utils/getFunctionLabel';
  * The editing model behind the unified trace metrics visualize list.
  *
  * A saved widget is a flat list of columns where equations are plain text with
- * the aggregates written inline. That shape has no row identity, so letters
+ * the aggregates written inline. That shape has no row identity, so labels
  * and hidden rows cannot survive edits. This model gives every row an id and
- * gives metric rows a letter that never changes. Equations are kept in letter
+ * gives metric rows a label that never changes. Equations are kept in label
  * form while editing. `fieldsFromRows` turns the model back into the saved
  * shape; `rowsFromFields` builds the model from it, reusing an earlier model
- * when there is one so ids and letters are kept.
+ * when there is one so ids and labels are kept.
  *
  * @public used by the unified visualize list in a follow-up PR
  */
@@ -33,9 +33,9 @@ export interface MetricRow {
   id: string;
   kind: 'metric';
   /**
-   * Stable reference letter (A, B, ...). Handed out once, never reassigned.
+   * Stable reference label (A, B, ...). Handed out once, never reassigned.
    */
-  letter: string;
+  label: string;
   /**
    * Hidden rows only feed equations. They are not saved on the widget.
    */
@@ -58,7 +58,7 @@ export interface ColumnRow {
  */
 export interface EquationRow {
   /**
-   * The equation in letter form, e.g. `A + B`.
+   * The equation in label form, e.g. `A + B`.
    */
   expression: string;
   id: string;
@@ -94,12 +94,12 @@ function isEquationRow(row: TraceMetricRow): row is EquationRow {
   return row.kind === 'equation';
 }
 
-function getLetters(rows: TraceMetricRow[]): Set<string> {
-  return new Set(rows.filter(isMetricRow).map(row => row.letter));
+function getLabels(rows: TraceMetricRow[]): Set<string> {
+  return new Set(rows.filter(isMetricRow).map(row => row.label));
 }
 
-function getNextLetter(rows: TraceMetricRow[]): string {
-  const used = getLetters(rows);
+function getNextLabel(rows: TraceMetricRow[]): string {
+  const used = getLabels(rows);
   let index = 0;
   while (used.has(getFunctionLabel(index))) {
     index++;
@@ -108,26 +108,26 @@ function getNextLetter(rows: TraceMetricRow[]): string {
 }
 
 /**
- * Letter to aggregate text, for every metric row, visible or hidden.
+ * Label to aggregate text, for every metric row, visible or hidden.
  * @public used by the unified visualize list in a follow-up PR
  */
 export function getReferenceMap(rows: TraceMetricRow[]): Record<string, string> {
   return Object.fromEntries(
-    rows.filter(isMetricRow).map(row => [row.letter, generateFieldAsString(row.field)])
+    rows.filter(isMetricRow).map(row => [row.label, generateFieldAsString(row.field)])
   );
 }
 
 /**
- * Letters named by at least one equation.
+ * Labels named by at least one equation.
  */
-function getReferencedLetters(rows: TraceMetricRow[]): Set<string> {
-  const letters = getLetters(rows);
+function getReferencedLabels(rows: TraceMetricRow[]): Set<string> {
+  const labels = getLabels(rows);
   const referenced = new Set<string>();
   for (const row of rows) {
     if (!isEquationRow(row)) {
       continue;
     }
-    for (const token of tokenizeExpression(row.expression, letters)) {
+    for (const token of tokenizeExpression(row.expression, labels)) {
       if (isTokenReference(token)) {
         referenced.add(token.text);
       }
@@ -142,7 +142,7 @@ function getReferencedLetters(rows: TraceMetricRow[]): Set<string> {
  */
 export function isRowReferenced(rows: TraceMetricRow[], id: string): boolean {
   const row = rows.find(r => r.id === id);
-  return !!row && isMetricRow(row) && getReferencedLetters(rows).has(row.letter);
+  return !!row && isMetricRow(row) && getReferencedLabels(rows).has(row.label);
 }
 
 /**
@@ -171,7 +171,7 @@ export function getHiddenAggregates(rows: TraceMetricRow[]): string[] {
 }
 
 /**
- * Letter form to saved form. Letters that match no row are left as typed.
+ * Label form to saved form. Labels that match no row are left as typed.
  */
 function resolveExpression(
   expression: string,
@@ -189,18 +189,18 @@ function resolveExpression(
 }
 
 /**
- * Saved form to letter form. When several rows share an aggregate, each
- * repeated use takes the next such letter in turn, so `x + x` with rows A and
+ * Saved form to label form. When several rows share an aggregate, each
+ * repeated use takes the next such label in turn, so `x + x` with rows A and
  * B both on `x` reads as `A + B`. Functions without a row stay as text.
  */
 function unresolveExpression(
   expression: string,
   referenceMap: Record<string, string>
 ): string {
-  const lettersByKey = new Map<string, string[]>();
-  for (const [letter, aggregate] of Object.entries(referenceMap)) {
+  const labelsByKey = new Map<string, string[]>();
+  for (const [label, aggregate] of Object.entries(referenceMap)) {
     const key = getAggregateKey(aggregate);
-    lettersByKey.set(key, [...(lettersByKey.get(key) ?? []), letter]);
+    labelsByKey.set(key, [...(labelsByKey.get(key) ?? []), label]);
   }
 
   const uses = new Map<string, number>();
@@ -210,13 +210,13 @@ function unresolveExpression(
         return token.text;
       }
       const key = getAggregateKey(token.text);
-      const letters = lettersByKey.get(key);
-      if (!letters?.length) {
+      const labels = labelsByKey.get(key);
+      if (!labels?.length) {
         return token.text;
       }
       const n = uses.get(key) ?? 0;
       uses.set(key, n + 1);
-      return letters[n % letters.length]!;
+      return labels[n % labels.length]!;
     })
     .filter(text => text.length > 0)
     .join(' ');
@@ -246,9 +246,9 @@ function getEquationAggregates(equation: string): string[] {
  * Drops hidden rows that no equation names any more.
  */
 function pruneOrphanHiddenRows(rows: TraceMetricRow[]): TraceMetricRow[] {
-  const referenced = getReferencedLetters(rows);
+  const referenced = getReferencedLabels(rows);
   return rows.filter(
-    row => !isMetricRow(row) || row.visible || referenced.has(row.letter)
+    row => !isMetricRow(row) || row.visible || referenced.has(row.label)
   );
 }
 
@@ -278,10 +278,10 @@ export function fieldsFromRows(rows: TraceMetricRow[]): Column[] {
  * Builds the model from the saved shape.
  *
  * With `previous`, rows are matched back by kind and value, in order, so ids
- * and letters are kept across changes made outside the list (a display type
- * switch, a sort fix-up). An equation whose letters still produce its saved
- * text keeps those letters and the hidden rows they name. Anything unmatched
- * gets a new id and the next free letter.
+ * and labels are kept across changes made outside the list (a display type
+ * switch, a sort fix-up). An equation whose labels still produce its saved
+ * text keeps those labels and the hidden rows they name. Anything unmatched
+ * gets a new id and the next free label.
  * @public used by the unified visualize list in a follow-up PR
  */
 export function rowsFromFields(
@@ -308,15 +308,15 @@ export function rowsFromFields(
   );
 
   // Pair equation fields with the previous equation rows, in order. Where the
-  // old letters still spell the saved text, reserve the rows they name that no
+  // old labels still spell the saved text, reserve the rows they name that no
   // visible field will match: hidden rows, so a visible field with the same
   // aggregate cannot claim them, and visible rows whose field went away, which
   // become hidden rows.
   const previousMap = getReferenceMap(previous);
-  const previousLetters = new Set(Object.keys(previousMap));
+  const previousLabels = new Set(Object.keys(previousMap));
   const previousEquations = previous.filter(isEquationRow);
   const reusedHidden: Array<{index: number; row: MetricRow}> = [];
-  const equationMatches = new Map<number, {keepsLetters: boolean; row: EquationRow}>();
+  const equationMatches = new Map<number, {keepsLabels: boolean; row: EquationRow}>();
   fields.forEach((field, fieldIndex) => {
     if (field.kind !== FieldValueKind.EQUATION) {
       return;
@@ -326,16 +326,16 @@ export function rowsFromFields(
       return;
     }
     unused.delete(match);
-    const keepsLetters = resolveExpression(match.expression, previousMap) === field.field;
-    equationMatches.set(fieldIndex, {row: match, keepsLetters});
-    if (!keepsLetters) {
+    const keepsLabels = resolveExpression(match.expression, previousMap) === field.field;
+    equationMatches.set(fieldIndex, {row: match, keepsLabels});
+    if (!keepsLabels) {
       return;
     }
-    for (const token of tokenizeExpression(match.expression, previousLetters)) {
+    for (const token of tokenizeExpression(match.expression, previousLabels)) {
       if (!isTokenReference(token)) {
         continue;
       }
-      const named = previous.find(row => isMetricRow(row) && row.letter === token.text);
+      const named = previous.find(row => isMetricRow(row) && row.label === token.text);
       if (
         named &&
         isMetricRow(named) &&
@@ -370,14 +370,14 @@ export function rowsFromFields(
     if (field.kind === FieldValueKind.FUNCTION) {
       const key = columnKey(field);
       // Prefer a row that was already visible, so a hidden twin keeps its own
-      // id and letter.
+      // id and label.
       const match =
         take(row => isMetricRow(row) && row.visible && columnKey(row.field) === key) ??
         take(row => isMetricRow(row) && columnKey(row.field) === key);
       rows.push({
         id: match?.id ?? newRowId(),
         kind: 'metric',
-        letter: match && isMetricRow(match) ? match.letter : '',
+        label: match && isMetricRow(match) ? match.label : '',
         field,
         visible: true,
       });
@@ -386,7 +386,7 @@ export function rowsFromFields(
 
     if (field.kind === FieldValueKind.EQUATION) {
       const match = equationMatches.get(fieldIndex);
-      if (!match?.keepsLetters) {
+      if (!match?.keepsLabels) {
         for (const aggregate of getEquationAggregates(field.field)) {
           const key = getAggregateKey(aggregate);
           if (hasMetric(key)) {
@@ -403,7 +403,7 @@ export function rowsFromFields(
             rows.push({
               id: newRowId(),
               kind: 'metric',
-              letter: '',
+              label: '',
               field: column,
               visible: false,
             });
@@ -426,15 +426,15 @@ export function rowsFromFields(
     rows.splice(Math.min(index, rows.length), 0, row);
   }
 
-  // New metric rows take the next free letter, in display order.
+  // New metric rows take the next free label, in display order.
   for (const row of rows) {
-    if (isMetricRow(row) && !row.letter) {
-      row.letter = getNextLetter(rows);
+    if (isMetricRow(row) && !row.label) {
+      row.label = getNextLabel(rows);
     }
   }
 
-  // An equation keeps the letters it had when they still mean the same text;
-  // otherwise the letters are derived from the text.
+  // An equation keeps the labels it had when they still mean the same text;
+  // otherwise the labels are derived from the text.
   const referenceMap = getReferenceMap(rows);
   for (const {row, reused, text} of pendingEquations) {
     if (!(reused && resolveExpression(row.expression, referenceMap) === text)) {
@@ -446,7 +446,7 @@ export function rowsFromFields(
 }
 
 /**
- * Moves the row at `from` to `to`. Letters travel with their rows.
+ * Moves the row at `from` to `to`. Labels travel with their rows.
  * @public used by the unified visualize list in a follow-up PR
  */
 export function moveRow(
@@ -486,7 +486,7 @@ export function deleteRow(rows: TraceMetricRow[], id: string): TraceMetricRow[] 
 /**
  * Replaces the column of a metric or column row. A row that changes kind, for
  * example a table column becoming an aggregate, keeps its id and takes a
- * letter when it becomes a metric row.
+ * label when it becomes a metric row.
  * @public used by the unified visualize list in a follow-up PR
  */
 export function setRowField(
@@ -501,7 +501,7 @@ export function setRowField(
     if (field.kind === FieldValueKind.FUNCTION) {
       return isMetricRow(row)
         ? {...row, field}
-        : {id: row.id, kind: 'metric', letter: getNextLetter(rows), field, visible: true};
+        : {id: row.id, kind: 'metric', label: getNextLabel(rows), field, visible: true};
     }
     return {id: row.id, kind: 'column', field};
   });
@@ -525,7 +525,7 @@ export function setRowAlias(
 }
 
 /**
- * Sets an equation's letter-form expression.
+ * Sets an equation's label-form expression.
  * @public used by the unified visualize list in a follow-up PR
  */
 export function setEquationExpression(
@@ -539,13 +539,13 @@ export function setEquationExpression(
 }
 
 /**
- * Appends a visible metric row with the next free letter.
+ * Appends a visible metric row with the next free label.
  * @public used by the unified visualize list in a follow-up PR
  */
 export function addMetricRow(rows: TraceMetricRow[], field: Column): TraceMetricRow[] {
   return [
     ...rows,
-    {id: newRowId(), kind: 'metric', letter: getNextLetter(rows), field, visible: true},
+    {id: newRowId(), kind: 'metric', label: getNextLabel(rows), field, visible: true},
   ];
 }
 

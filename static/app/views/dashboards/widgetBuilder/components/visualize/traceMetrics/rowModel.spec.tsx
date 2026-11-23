@@ -41,31 +41,31 @@ function col(field: string): Column {
   return {kind: 'field', field};
 }
 
-function letters(rows: TraceMetricRow[]): string[] {
-  return rows.map(row => (row.kind === 'metric' ? row.letter : row.kind));
+function labels(rows: TraceMetricRow[]): string[] {
+  return rows.map(row => (row.kind === 'metric' ? row.label : row.kind));
 }
 
-function metric(rows: TraceMetricRow[], letter: string): MetricRow {
-  const row = rows.find(r => r.kind === 'metric' && r.letter === letter);
+function metric(rows: TraceMetricRow[], label: string): MetricRow {
+  const row = rows.find(r => r.kind === 'metric' && r.label === label);
   if (row?.kind !== 'metric') {
-    throw new Error(`No metric row ${letter}`);
+    throw new Error(`No metric row ${label}`);
   }
   return row;
 }
 
 describe('rowModel', () => {
   describe('rowsFromFields', () => {
-    it('gives visible aggregates letters in order and keeps columns', () => {
+    it('gives visible aggregates labels in order and keeps columns', () => {
       const rows = rowsFromFields([col('transaction'), fn(SUM_FOO), fn(SUM_BAR)]);
 
-      expect(letters(rows)).toEqual(['column', 'A', 'B']);
+      expect(labels(rows)).toEqual(['column', 'A', 'B']);
       expect(rows.every(row => row.id)).toBe(true);
     });
 
     it('makes a hidden row above the equation for an aggregate only it uses', () => {
       const rows = rowsFromFields([fn(SUM_FOO), eq(`${SUM_FOO} / ${SUM_BAR}`)]);
 
-      expect(letters(rows)).toEqual(['A', 'B', 'equation']);
+      expect(labels(rows)).toEqual(['A', 'B', 'equation']);
       expect(metric(rows, 'B').visible).toBe(false);
       expect(rows[2]).toMatchObject({kind: 'equation', expression: 'A / B'});
     });
@@ -77,12 +77,12 @@ describe('rowModel', () => {
         fn(SUM_BAR),
       ]);
 
-      expect(letters(rows)).toEqual(['equation', 'A', 'B']);
+      expect(labels(rows)).toEqual(['equation', 'A', 'B']);
       expect(rows[0]).toMatchObject({expression: 'A + B'});
       expect(getHiddenAggregates(rows)).toEqual([]);
     });
 
-    it('gives repeated uses of a shared aggregate distinct letters', () => {
+    it('gives repeated uses of a shared aggregate distinct labels', () => {
       const rows = rowsFromFields([
         fn(SUM_FOO),
         fn(SUM_FOO),
@@ -132,7 +132,7 @@ describe('rowModel', () => {
   });
 
   describe('editing', () => {
-    it('keeps letters and the equation when rows are reordered', () => {
+    it('keeps labels and the equation when rows are reordered', () => {
       const rows = rowsFromFields([
         fn(SUM_FOO),
         fn(SUM_BAR),
@@ -141,7 +141,7 @@ describe('rowModel', () => {
 
       const moved = moveRow(rows, 1, 0);
 
-      expect(letters(moved)).toEqual(['B', 'A', 'equation']);
+      expect(labels(moved)).toEqual(['B', 'A', 'equation']);
       expect(moved[2]).toMatchObject({expression: 'A + B'});
       expect(fieldsFromRows(moved)).toEqual([
         fn(SUM_BAR),
@@ -150,7 +150,7 @@ describe('rowModel', () => {
       ]);
     });
 
-    it('keeps a hidden row in place with its letter', () => {
+    it('keeps a hidden row in place with its label', () => {
       const rows = rowsFromFields([
         fn(SUM_FOO),
         fn(SUM_BAR),
@@ -159,7 +159,7 @@ describe('rowModel', () => {
 
       const hidden = setRowVisible(rows, metric(rows, 'A').id, false);
 
-      expect(letters(hidden)).toEqual(['A', 'B', 'equation']);
+      expect(labels(hidden)).toEqual(['A', 'B', 'equation']);
       expect(metric(hidden, 'A').visible).toBe(false);
       expect(fieldsFromRows(hidden)).toEqual([
         fn(SUM_BAR),
@@ -187,24 +187,24 @@ describe('rowModel', () => {
       ]);
     });
 
-    it('gives a column a letter when it becomes an aggregate', () => {
+    it('gives a column a label when it becomes an aggregate', () => {
       const rows = rowsFromFields([col('transaction'), fn(SUM_FOO)]);
 
       const edited = setRowField(rows, rows[0]!.id, fn(SUM_BAR));
 
-      expect(letters(edited)).toEqual(['B', 'A']);
+      expect(labels(edited)).toEqual(['B', 'A']);
       expect(edited[0]!.id).toBe(rows[0]!.id);
     });
 
     it('drops hidden rows an equation no longer names', () => {
       const rows = rowsFromFields([fn(SUM_FOO), eq(`${SUM_FOO} / ${SUM_BAR}`)]);
-      expect(letters(rows)).toEqual(['A', 'B', 'equation']);
+      expect(labels(rows)).toEqual(['A', 'B', 'equation']);
 
       const edited = setEquationExpression(rows, rows[2]!.id, 'A * 2');
-      expect(letters(edited)).toEqual(['A', 'equation']);
+      expect(labels(edited)).toEqual(['A', 'equation']);
 
       const deleted = deleteRow(rows, rows[2]!.id);
-      expect(letters(deleted)).toEqual(['A']);
+      expect(labels(deleted)).toEqual(['A']);
     });
 
     it("resolves the equation with a hidden row's new aggregate", () => {
@@ -238,17 +238,17 @@ describe('rowModel', () => {
         eq(`${SUM_BAR} * 2`),
         eq(`${SUM_BAR} + ${SUM_FOO}`),
       ]);
-      expect(letters(rows)).toEqual(['A', 'B', 'equation', 'equation']);
+      expect(labels(rows)).toEqual(['A', 'B', 'equation', 'equation']);
 
       const oneLeft = deleteRow(rows, rows[2]!.id);
-      expect(letters(oneLeft)).toEqual(['A', 'B', 'equation']);
+      expect(labels(oneLeft)).toEqual(['A', 'B', 'equation']);
       expect(oneLeft[2]).toMatchObject({expression: 'B + A'});
 
       const noneLeft = deleteRow(oneLeft, oneLeft[2]!.id);
-      expect(letters(noneLeft)).toEqual(['A']);
+      expect(labels(noneLeft)).toEqual(['A']);
     });
 
-    it('keeps the alias and letter of a row through hide and show', () => {
+    it('keeps the alias and label of a row through hide and show', () => {
       let rows = rowsFromFields([fn(SUM_FOO, 'Foo'), fn(SUM_BAR), eq(`${SUM_FOO} * 2`)]);
       const id = metric(rows, 'A').id;
 
@@ -256,7 +256,7 @@ describe('rowModel', () => {
       rows = moveRow(rows, 1, 2);
       rows = setRowVisible(rows, id, true);
 
-      expect(letters(rows)).toEqual(['A', 'equation', 'B']);
+      expect(labels(rows)).toEqual(['A', 'equation', 'B']);
       expect(fieldsFromRows(rows)).toEqual([
         fn(SUM_FOO, 'Foo'),
         eq(`${SUM_FOO} * 2`),
@@ -287,14 +287,14 @@ describe('rowModel', () => {
       expect(isRowReferenced(rows, metric(rows, 'B').id)).toBe(false);
     });
 
-    it('adds rows with the next free letter', () => {
+    it('adds rows with the next free label', () => {
       let rows = rowsFromFields([fn(SUM_FOO), fn(SUM_BAR)]);
       rows = deleteRow(rows, metric(rows, 'A').id);
 
       rows = addMetricRow(rows, fn(COUNT_FOO));
       rows = addEquationRow(rows);
 
-      expect(letters(rows)).toEqual(['B', 'A', 'equation']);
+      expect(labels(rows)).toEqual(['B', 'A', 'equation']);
       expect(getEquationLabels(rows).get(rows[2]!.id)).toBe('ƒ1');
     });
 
@@ -318,7 +318,7 @@ describe('rowModel', () => {
   });
 
   describe('reconciling with outside changes', () => {
-    it('keeps ids and letters when the state fields still match', () => {
+    it('keeps ids and labels when the state fields still match', () => {
       const rows = rowsFromFields([
         fn(SUM_FOO),
         fn(SUM_BAR),
@@ -329,16 +329,16 @@ describe('rowModel', () => {
       const next = rowsFromFields(fieldsFromRows(moved), moved);
 
       expect(next.map(row => row.id)).toEqual(moved.map(row => row.id));
-      expect(letters(next)).toEqual(['B', 'A', 'equation']);
+      expect(labels(next)).toEqual(['B', 'A', 'equation']);
       expect(next[2]).toMatchObject({expression: 'A + B'});
     });
 
-    it('keeps letters when a y-axis cap drops trailing rows', () => {
+    it('keeps labels when a y-axis cap drops trailing rows', () => {
       const rows = rowsFromFields([fn(SUM_FOO), fn(SUM_BAR), fn(COUNT_FOO)]);
       const trimmed = rowsFromFields([fn(SUM_FOO), fn(SUM_BAR)], rows);
 
       expect(trimmed.map(row => row.id)).toEqual(rows.slice(0, 2).map(row => row.id));
-      expect(letters(trimmed)).toEqual(['A', 'B']);
+      expect(labels(trimmed)).toEqual(['A', 'B']);
     });
 
     it('keeps a hidden row where it was when fields change elsewhere', () => {
@@ -352,7 +352,7 @@ describe('rowModel', () => {
       // Something outside the list appended a row to the saved fields.
       const next = rowsFromFields([...fieldsFromRows(hidden), fn(COUNT_FOO)], hidden);
 
-      expect(letters(next)).toEqual(['A', 'B', 'equation', 'C']);
+      expect(labels(next)).toEqual(['A', 'B', 'equation', 'C']);
       expect(metric(next, 'A')).toMatchObject({id: metric(rows, 'A').id, visible: false});
       expect(next[2]).toMatchObject({expression: 'A + B'});
     });
@@ -371,12 +371,12 @@ describe('rowModel', () => {
         rows
       );
 
-      expect(letters(next)).toEqual(['A', 'C', 'equation']);
+      expect(labels(next)).toEqual(['A', 'C', 'equation']);
       expect(next.map(row => row.id)).toEqual([rows[0]!.id, rows[2]!.id, rows[3]!.id]);
       expect(next[2]).toMatchObject({expression: 'A * 2'});
     });
 
-    it('keeps letters when the saved fields are reordered outside the model', () => {
+    it('keeps labels when the saved fields are reordered outside the model', () => {
       const rows = rowsFromFields([
         fn(SUM_FOO),
         fn(SUM_BAR),
@@ -388,7 +388,7 @@ describe('rowModel', () => {
         rows
       );
 
-      expect(letters(next)).toEqual(['B', 'equation', 'A']);
+      expect(labels(next)).toEqual(['B', 'equation', 'A']);
       expect(next[1]).toMatchObject({expression: 'A - B'});
     });
 
@@ -403,7 +403,7 @@ describe('rowModel', () => {
       // A display type switch round-trips the saved shape.
       const next = rowsFromFields(fieldsFromRows(hidden), hidden);
 
-      expect(letters(next)).toEqual(['A', 'B', 'equation']);
+      expect(labels(next)).toEqual(['A', 'B', 'equation']);
       expect(metric(next, 'A')).toMatchObject({id: metric(rows, 'A').id, visible: false});
       expect(metric(next, 'B')).toMatchObject({id: metric(rows, 'B').id, visible: true});
       expect(next[2]).toMatchObject({expression: 'A / B'});
@@ -420,7 +420,7 @@ describe('rowModel', () => {
       // Something outside the list added another sum(foo).
       const next = rowsFromFields([...fieldsFromRows(hidden), fn(SUM_FOO)], hidden);
 
-      expect(letters(next)).toEqual(['A', 'B', 'equation', 'C']);
+      expect(labels(next)).toEqual(['A', 'B', 'equation', 'C']);
       expect(metric(next, 'A').visible).toBe(false);
       expect(next[2]).toMatchObject({expression: 'A / B'});
     });
@@ -435,18 +435,18 @@ describe('rowModel', () => {
       // A y-axis cap dropped A's field but the equation still names it.
       const next = rowsFromFields([fn(SUM_BAR), eq(`${SUM_FOO} + ${SUM_BAR}`)], rows);
 
-      expect(letters(next)).toEqual(['A', 'B', 'equation']);
+      expect(labels(next)).toEqual(['A', 'B', 'equation']);
       expect(metric(next, 'A')).toMatchObject({id: metric(rows, 'A').id, visible: false});
       expect(next[2]).toMatchObject({expression: 'A + B'});
       expect(fieldsFromRows(next)).toEqual([fn(SUM_BAR), eq(`${SUM_FOO} + ${SUM_BAR}`)]);
     });
 
-    it('gives new letters to rows it cannot match', () => {
+    it('gives new labels to rows it cannot match', () => {
       const rows = rowsFromFields([fn(SUM_FOO)]);
 
       const next = rowsFromFields([fn(SUM_BAR), fn(SUM_FOO)], rows);
 
-      expect(letters(next)).toEqual(['B', 'A']);
+      expect(labels(next)).toEqual(['B', 'A']);
       expect(metric(next, 'A').id).toBe(rows[0]!.id);
     });
   });
