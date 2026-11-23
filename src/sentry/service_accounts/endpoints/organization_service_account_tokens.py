@@ -48,6 +48,7 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
 )
 from sentry.seer.agent_token import is_agent_auth
+from sentry.service_accounts.audit import token_audit_log_data
 from sentry.service_accounts.endpoints.organization_service_accounts import (
     SERVICE_ACCOUNT_ID,
     ServiceAccountPermission,
@@ -280,7 +281,7 @@ class OrganizationServiceAccountTokenIndexEndpoint(ServiceAccountTokenEndpointBa
             organization=organization,
             target_object=token.id,
             event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_ADD"),
-            data=token.get_audit_log_data(service_account),
+            data=token_audit_log_data(service_account, token),
         )
         response: ServiceAccountTokenResponse = serialize(
             token, request.user, serializer=ServiceAccountTokenSerializer()
@@ -346,6 +347,6 @@ class OrganizationServiceAccountTokenDetailsEndpoint(ServiceAccountTokenEndpoint
             organization=organization,
             target_object=token.id,
             event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_REMOVE"),
-            data=token.get_audit_log_data(service_account),
+            data=token_audit_log_data(service_account, token),
         )
         return Response(status=204)

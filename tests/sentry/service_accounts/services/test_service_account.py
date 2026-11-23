@@ -1,11 +1,9 @@
 import pytest
 from django.db import router, transaction
 
-from sentry import audit_log
 from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc.service import RpcValidationException
-from sentry.models.auditlogentry import AuditLogEntry
 from sentry.service_accounts.models import (
     ServiceAccount,
     ServiceAccountProject,
@@ -321,26 +319,25 @@ class ServiceAccountServiceTest(TestCase):
                 scope_list=["event:read"],
             )
 
-        service_account_service.delete_service_account(
+        deactivated = service_account_service.delete_service_account(
             organization_id=self.organization.id, service_account_id=account_id
         )
 
+        assert deactivated is not None
+        assert [(t.id, t.name, t.scope_list) for t in deactivated] == [
+            (token.id, "deploys", ["event:read"])
+        ]
         with assume_test_silo_mode(SiloMode.CONTROL):
             token.refresh_from_db()
             assert token.date_deactivated is not None
-            entry = AuditLogEntry.objects.get(
-                event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_REMOVE")
+
+        # A second delete deactivates nothing.
+        assert (
+            service_account_service.delete_service_account(
+                organization_id=self.organization.id, service_account_id=account_id
             )
-        assert entry.target_object == token.id
-        assert entry.actor_id is None
-        assert entry.actor_label == "Sentry"
-        assert entry.data == {
-            "name": "deploys",
-            "scopes": ["event:read"],
-            "service_account_id": account_id,
-            "service_account_name": "seer-agent",
-            "reason": "service_account_deleted",
-        }
+            is None
+        )
 
     def test_deleted_service_account_is_hidden(self) -> None:
         account_id = self.create()

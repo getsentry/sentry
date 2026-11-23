@@ -22,6 +22,14 @@ class RpcServiceAccount(RpcModel):
     project_ids: list[int] = Field(default_factory=list)
 
 
+class RpcDeactivatedServiceAccountToken(RpcModel):
+    """What a caller needs to audit a token deactivated with its account. No secret."""
+
+    id: int = -1
+    name: str = ""
+    scope_list: list[str] = Field(default_factory=list)
+
+
 class RpcServiceAccountToken(RpcModel):
     id: int = -1
     service_account_id: int = -1

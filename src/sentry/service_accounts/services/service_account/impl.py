@@ -5,21 +5,21 @@ from datetime import datetime
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 
-from sentry import audit_log
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.service_accounts.models import (
-    SERVICE_ACCOUNT_DELETED_REASON,
     InvalidScopeError,
     ServiceAccount,
     ServiceAccountOwnerKind,
     ServiceAccountProject,
     validate_grantable_scopes,
 )
-from sentry.service_accounts.services.service_account.model import RpcServiceAccount
+from sentry.service_accounts.services.service_account.model import (
+    RpcDeactivatedServiceAccountToken,
+    RpcServiceAccount,
+)
 from sentry.service_accounts.services.service_account.serial import serialize_service_account
 from sentry.service_accounts.services.service_account.service import ServiceAccountService
-from sentry.utils.audit import create_system_audit_entry
 
 
 class DatabaseBackedServiceAccountService(ServiceAccountService):
@@ -151,24 +151,23 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
             service_account, set() if all_projects else set(project_ids)
         )
 
-    def delete_service_account(self, *, organization_id: int, service_account_id: int) -> None:
+    def delete_service_account(
+        self, *, organization_id: int, service_account_id: int
+    ) -> list[RpcDeactivatedServiceAccountToken] | None:
         service_account = ServiceAccount.objects.get_or_none(
             id=service_account_id, organization_id=organization_id
         )
         if service_account is None:
-            return
-        deactivated_tokens = service_account.deactivate() or []
-        # No person is attached to the call, so Sentry is the actor.
-        for token in deactivated_tokens:
-            create_system_audit_entry(
-                organization_id=organization_id,
-                target_object=token.id,
-                event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_REMOVE"),
-                data={
-                    **token.get_audit_log_data(service_account),
-                    "reason": SERVICE_ACCOUNT_DELETED_REASON,
-                },
+            return None
+        tokens = service_account.deactivate()
+        if tokens is None:
+            return None
+        return [
+            RpcDeactivatedServiceAccountToken(
+                id=token.id, name=token.name, scope_list=list(token.scope_list)
             )
+            for token in tokens
+        ]
 
 
 def _serialize_with_projects(service_account: ServiceAccount) -> RpcServiceAccount:

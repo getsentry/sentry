@@ -7,7 +7,10 @@ from abc import abstractmethod
 from datetime import datetime
 
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
-from sentry.service_accounts.services.service_account.model import RpcServiceAccount
+from sentry.service_accounts.services.service_account.model import (
+    RpcDeactivatedServiceAccountToken,
+    RpcServiceAccount,
+)
 from sentry.silo.base import SiloMode
 
 
@@ -92,11 +95,14 @@ class ServiceAccountService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def delete_service_account(self, *, organization_id: int, service_account_id: int) -> None:
+    def delete_service_account(
+        self, *, organization_id: int, service_account_id: int
+    ) -> list[RpcDeactivatedServiceAccountToken] | None:
         """
-        Soft-delete the account: keep the row, turn it off for good and remove its project
-        links. Does nothing when the account isn't in `organization_id` or was already
-        deleted. Callers must write the audit log.
+        Soft-delete the account: keep the row, turn it off for good, remove its project
+        links and deactivate its active tokens. Returns the tokens it deactivated, or None
+        when the account isn't in `organization_id` or was already deleted. Callers must
+        write the audit log for the account and for each token.
         """
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Any, ClassVar, NewType, Self
+from typing import ClassVar, NewType, Self
 
 from django.conf import settings
 from django.contrib.postgres.fields.array import ArrayField
@@ -41,9 +41,6 @@ __all__ = (
 
 # Matches the `name` serializer in the service account API.
 MAX_NAME_LENGTH = 64
-
-# The `reason` on the audit entry for a token deactivated because its account was deleted.
-SERVICE_ACCOUNT_DELETED_REASON = "service_account_deleted"
 
 # OIDC scopes describe a human login, so a service account can't hold them. Service
 # account scopes are withheld so an account can't create or widen other accounts.
@@ -385,15 +382,6 @@ class ServiceAccountToken(ReplicatedControlModel):
         db_table = "service_accounts_serviceaccounttoken"
 
     __repr__ = sane_repr("organization_id", "service_account_id", "name")
-
-    def get_audit_log_data(self, service_account: ServiceAccount) -> dict[str, Any]:
-        # Never the token or its hash.
-        return {
-            "name": self.name,
-            "scopes": sorted(self.scope_list),
-            "service_account_id": service_account.id,
-            "service_account_name": service_account.name,
-        }
 
     def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         from sentry.hybridcloud.services.replica import cell_replica_service

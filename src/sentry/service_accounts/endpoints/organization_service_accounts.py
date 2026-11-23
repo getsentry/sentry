@@ -46,10 +46,10 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.service_accounts.audit import token_audit_log_data
 from sentry.service_accounts.models import (
     GRANTABLE_SCOPES,
     MAX_NAME_LENGTH,
-    SERVICE_ACCOUNT_DELETED_REASON,
     ServiceAccount,
     ServiceAccountOwnerKind,
     ServiceAccountProject,
@@ -494,9 +494,6 @@ class OrganizationServiceAccountDetailsEndpoint(ServiceAccountScopedEndpointBase
                 organization=organization,
                 target_object=token.id,
                 event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_REMOVE"),
-                data={
-                    **token.get_audit_log_data(service_account),
-                    "reason": SERVICE_ACCOUNT_DELETED_REASON,
-                },
+                data=token_audit_log_data(service_account, token, account_deleted=True),
             )
         return Response(status=204)
