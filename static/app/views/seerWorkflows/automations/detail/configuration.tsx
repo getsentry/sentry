@@ -6,16 +6,14 @@ import {Alert} from '@sentry/scraps/alert';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {t} from 'sentry/locale';
 import {AgenticTriageForm} from 'sentry/views/seerWorkflows/automations/agenticTriageForm';
-import {
-  MetricAutomationForm,
-  type MetricAutomationFormHandle,
-} from 'sentry/views/seerWorkflows/automations/metricAutomationForm';
+import type {AutomationFormHandle} from 'sentry/views/seerWorkflows/automations/formComponents';
+import {MetricAutomationForm} from 'sentry/views/seerWorkflows/automations/metricAutomationForm';
 import type {SeerWorkflowConfigResponse} from 'sentry/views/seerWorkflows/types';
 
 export type AutomationDetailOutletContext = {
   config: SeerWorkflowConfigResponse;
   formId: string;
-  formRef: RefObject<MetricAutomationFormHandle | null>;
+  formRef: RefObject<AutomationFormHandle | null>;
   isConfiguring: boolean;
   name: string;
   onSaved: () => void;

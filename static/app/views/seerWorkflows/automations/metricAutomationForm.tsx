@@ -1,4 +1,4 @@
-import {useEffect, useImperativeHandle, type ReactNode, type RefObject} from 'react';
+import {useEffect, useImperativeHandle, type RefObject} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 import {IconClose} from '@sentry/icons/close';
 import {IconFire} from '@sentry/icons/fire';
@@ -19,7 +19,7 @@ import {
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
 import {t, tn} from 'sentry/locale';
@@ -34,10 +34,7 @@ import {
   allDetectorListsQueryKey,
   detectorListApiOptions,
 } from 'sentry/views/detectors/hooks';
-import type {
-  SeerServiceAccountResponse,
-  SeerWorkflowConfigResponse,
-} from 'sentry/views/seerWorkflows/types';
+import type {SeerWorkflowConfigResponse} from 'sentry/views/seerWorkflows/types';
 import {
   AUTO_REFRESH_INTERVAL,
   getAutomationDetailPath,
@@ -46,14 +43,15 @@ import {
 
 import {useCreateConfig, useUpdateConfig} from './hooks/configs';
 import {ConnectMonitorsDrawer} from './connectMonitorsDrawer';
+import {FormSection, type AutomationFormHandle} from './formComponents';
 import {MonitorTable} from './monitorTable';
 import {
   DEFAULT_SERVICE_ACCOUNT_SCOPES,
   getServiceAccountProjectIds,
+  getServiceAccountProjectSelection,
   ServiceAccountPermissions,
   ServiceAccountProjects,
   ServiceAccountSummary,
-  type ServiceAccountProjectAccess,
 } from './serviceAccountAccess';
 
 const schema = z.object({
@@ -69,8 +67,6 @@ const schema = z.object({
     .min(1, t('Give the service account at least one permission.')),
 });
 
-export type MetricAutomationFormHandle = {reset: () => void};
-
 type Props =
   | {mode: 'create'}
   | {
@@ -82,7 +78,7 @@ type Props =
       /**
        * Exposes the form's reset so callers outside the form can discard changes
        */
-      formRef: RefObject<MetricAutomationFormHandle | null>;
+      formRef: RefObject<AutomationFormHandle | null>;
       mode: 'edit';
       /**
        * Name edited outside the form, in the page header
@@ -453,19 +449,6 @@ export function MetricAutomationForm(props: Props) {
   );
 }
 
-export function FormSection({title, children}: {children: ReactNode; title: string}) {
-  return (
-    <Stack gap="md">
-      <Container paddingLeft="md">
-        <Heading as="h2" size="lg">
-          {title}
-        </Heading>
-      </Container>
-      {children}
-    </Stack>
-  );
-}
-
 function ConnectedMonitors({
   monitorIds,
   monitors,
@@ -536,13 +519,4 @@ function ConnectedMonitors({
       />
     </Stack>
   );
-}
-
-function getServiceAccountProjectSelection(
-  serviceAccount: SeerServiceAccountResponse | null
-): ServiceAccountProjectAccess {
-  return {
-    allProjects: serviceAccount?.allProjects ?? false,
-    projectIds: serviceAccount?.projectIds.map(String) ?? [],
-  };
 }

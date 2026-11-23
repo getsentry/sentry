@@ -19,7 +19,8 @@ import {
 } from 'sentry/views/seerWorkflows/utils';
 
 import {AgenticTriageForm} from './agenticTriageForm';
-import {FormSection, MetricAutomationForm} from './metricAutomationForm';
+import {FormSection} from './formComponents';
+import {MetricAutomationForm} from './metricAutomationForm';
 
 const STRATEGIES = [
   'breached_metric_investigation',

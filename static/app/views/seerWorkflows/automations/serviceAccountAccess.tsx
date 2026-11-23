@@ -20,13 +20,14 @@ import {t, tn} from 'sentry/locale';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import type {SeerServiceAccountResponse} from 'sentry/views/seerWorkflows/types';
 
 export type ProjectSelection = {allProjects: boolean; projectIds: string[]};
 
 /**
  * Its projectIds are granted on top of the connected monitors' projects
  */
-export type ServiceAccountProjectAccess = ProjectSelection;
+type ServiceAccountProjectAccess = ProjectSelection;
 
 const PROJECT_COLUMNS: TableColumnConfig[] = [
   {key: 'project', width: 'minmax(0, 1fr)'},
@@ -62,6 +63,18 @@ export function getServiceAccountProjectIds(
       ...access.projectIds,
     ]),
   ].sort((a, b) => Number(a) - Number(b));
+}
+
+/**
+ * The project access saved on a service account, or none when there is no account yet
+ */
+export function getServiceAccountProjectSelection(
+  serviceAccount: SeerServiceAccountResponse | null
+): ServiceAccountProjectAccess {
+  return {
+    allProjects: serviceAccount?.allProjects ?? false,
+    projectIds: serviceAccount?.projectIds.map(String) ?? [],
+  };
 }
 
 export const DEFAULT_SERVICE_ACCOUNT_SCOPES = [

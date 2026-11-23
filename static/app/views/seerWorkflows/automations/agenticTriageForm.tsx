@@ -25,25 +25,23 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
-import type {
-  SeerServiceAccountResponse,
-  SeerWorkflowConfigResponse,
-} from 'sentry/views/seerWorkflows/types';
+import type {SeerWorkflowConfigResponse} from 'sentry/views/seerWorkflows/types';
 import {
   getAutomationDetailPath,
   getAutomationsPath,
 } from 'sentry/views/seerWorkflows/utils';
 
 import {useCreateConfig, useUpdateConfig} from './hooks/configs';
-import {FormSection, type MetricAutomationFormHandle} from './metricAutomationForm';
+import {FormSection, type AutomationFormHandle} from './formComponents';
 import {
+  DEFAULT_SERVICE_ACCOUNT_SCOPES,
   getServiceAccountProjectIds,
+  getServiceAccountProjectSelection,
   ProjectSelector,
   ServiceAccountPermissions,
   ServiceAccountSummary,
   useHasAllProjectsAccess,
   type ProjectSelection,
-  type ServiceAccountProjectAccess,
 } from './serviceAccountAccess';
 
 /**
@@ -86,14 +84,6 @@ const ALL_ENVIRONMENTS = '__all__';
  */
 const ALL_PROJECTS_ID = -1;
 
-const DEFAULT_SERVICE_ACCOUNT_SCOPES = [
-  'event:read',
-  'member:read',
-  'org:read',
-  'project:read',
-  'team:read',
-];
-
 type Props =
   | {mode: 'create'}
   | {
@@ -105,7 +95,7 @@ type Props =
       /**
        * Exposes the form's reset so callers outside the form can discard changes
        */
-      formRef: RefObject<MetricAutomationFormHandle | null>;
+      formRef: RefObject<AutomationFormHandle | null>;
       mode: 'edit';
       /**
        * Name edited outside the form, in the page header
@@ -481,13 +471,4 @@ export function AgenticTriageForm(props: Props) {
 function getProjectSelection(projectIds: number[]): ProjectSelection {
   const allProjects = projectIds.includes(ALL_PROJECTS_ID);
   return {allProjects, projectIds: allProjects ? [] : projectIds.map(String)};
-}
-
-function getServiceAccountProjectSelection(
-  serviceAccount: SeerServiceAccountResponse | null
-): ServiceAccountProjectAccess {
-  return {
-    allProjects: serviceAccount?.allProjects ?? false,
-    projectIds: serviceAccount?.projectIds.map(String) ?? [],
-  };
 }
