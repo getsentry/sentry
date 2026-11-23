@@ -36,6 +36,7 @@ from sentry.utils import json, warnings
 from sentry.utils.attributes import get_attribute_value
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.env import in_test_environment
+from sentry.utils.force_trace_sampling import has_valid_grant_cookie
 from sentry.utils.rust import RustInfoIntegration
 from sentry.viewer_context import set_viewer_context_organization
 
@@ -215,6 +216,10 @@ def traces_sampler(sampling_context: dict[str, Any]) -> float:
     # If there's already a sampling decision, just use that
     if sampling_context["parent_sampled"] is not None:
         return sampling_context["parent_sampled"]
+
+    # Only applies at the root of a trace, so existing traces are never partially sampled.
+    if has_valid_grant_cookie(sampling_context.get("wsgi_environ")):
+        return 1.0
 
     if "taskworker" in sampling_context:
         task_name = sampling_context["taskworker"].get("task")

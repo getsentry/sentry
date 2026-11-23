@@ -42,6 +42,8 @@ from sentry.testutils.silo import (
 )
 from sentry.types import cell
 from sentry.users.models.user import User
+from sentry.utils.force_trace_sampling import COOKIE_NAME as FORCE_TRACE_SAMPLING_COOKIE
+from sentry.utils.force_trace_sampling import create_grant_token
 from sentry.web.client_config import get_client_config
 
 
@@ -155,6 +157,30 @@ def test_client_config_deleted_user() -> None:
     result = get_client_config(request)
     assert result["isAuthenticated"] is False
     assert result["user"] is None
+
+
+@no_silo_test
+@django_db_all
+@override_options({"tracing.force-sampling.enabled": True})
+def test_client_config_exposes_own_force_sampling_grant() -> None:
+    request, user = make_user_request_from_org()
+    request.user = user
+    token, expires_at_ms = create_grant_token(user.id)
+    request.COOKIES[FORCE_TRACE_SAMPLING_COOKIE] = token
+
+    assert get_client_config(request)["forceTraceSamplingUntil"] == expires_at_ms
+
+
+@no_silo_test
+@django_db_all
+@override_options({"tracing.force-sampling.enabled": True})
+def test_client_config_ignores_another_users_force_sampling_grant() -> None:
+    request, user = make_user_request_from_org()
+    request.user = user
+    token, _ = create_grant_token(user.id + 1)
+    request.COOKIES[FORCE_TRACE_SAMPLING_COOKIE] = token
+
+    assert get_client_config(request)["forceTraceSamplingUntil"] is None
 
 
 @no_silo_test

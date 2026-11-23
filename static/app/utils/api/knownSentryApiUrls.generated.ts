@@ -55,6 +55,7 @@ export type KnownSentryApiUrls =
   | '/internal/demo/email-capture/'
   | '/internal/environment/'
   | '/internal/feature-flags/'
+  | '/internal/force-trace-sampling/'
   | '/internal/frontend-version/'
   | '/internal/health/'
   | '/internal/integration-proxy/'

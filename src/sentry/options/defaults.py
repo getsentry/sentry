@@ -335,6 +335,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Lets employees force-sample their own traces. Disabling this invalidates active grants.
+register(
+    "tracing.force-sampling.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Superuser read/write
 register(
     "superuser.read-write.ga-rollout",

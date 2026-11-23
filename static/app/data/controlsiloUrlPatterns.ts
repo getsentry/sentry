@@ -204,6 +204,7 @@ export const controlsiloUrlPatterns: RegExp[] = [
   new RegExp('^api/0/wizard/[^/]+/$'),
   new RegExp('^api/0/wizard/[^/]+/session/$'),
   new RegExp('^api/0/internal/beacon/$'),
+  new RegExp('^api/0/internal/force-trace-sampling/$'),
   new RegExp('^api/0/internal/demo/email-capture/$'),
   new RegExp('^api/0/internal/notifications/registered-templates/$'),
   new RegExp('^api/0/tempest-ips/$'),

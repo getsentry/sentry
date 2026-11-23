@@ -824,6 +824,7 @@ from .endpoints.internal import (
     InternalBeaconEndpoint,
     InternalEnvironmentEndpoint,
     InternalFeatureFlagsEndpoint,
+    InternalForceTraceSamplingEndpoint,
     InternalMailEndpoint,
     InternalPackagesEndpoint,
     InternalRpcServiceEndpoint,
@@ -3766,6 +3767,11 @@ INTERNAL_URLS = [
         r"^beacon/$",
         InternalBeaconEndpoint.as_view(),
         name="sentry-api-0-internal-beacon",
+    ),
+    re_path(
+        r"^force-trace-sampling/$",
+        InternalForceTraceSamplingEndpoint.as_view(),
+        name="sentry-api-0-internal-force-trace-sampling",
     ),
     re_path(
         r"^frontend-version/$",
