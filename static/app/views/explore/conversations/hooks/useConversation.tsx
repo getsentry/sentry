@@ -1,5 +1,12 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
+import {
+  InfiniteQueryObserver,
+  skipToken,
+  useInfiniteQuery,
+  useQueryClient,
+  type InfiniteData,
+  type QueryClient,
+} from '@tanstack/react-query';
 
 import {
   ALL_ACCESS_PROJECTS,
@@ -9,7 +16,10 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {InfiniteApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
 import {
@@ -137,6 +147,11 @@ export interface ConversationApiResponse {
   title: string | null;
 }
 
+export type ConversationInfiniteData = InfiniteData<
+  ApiResponse<ConversationApiResponse>,
+  ParsedHeader | undefined
+>;
+
 interface UseConversationResult {
   canAutoFetchNextPage: boolean;
   error: boolean;
@@ -146,6 +161,12 @@ interface UseConversationResult {
   isLoading: boolean;
   isNextPageError: boolean;
   loadNextPage: () => void;
+  /**
+   * Loads every page left, up to the page limit, and adds them to the conversation
+   * in a single update. Resolves with the number of pages then loaded.
+   */
+  loadRemainingPages: (signal: AbortSignal) => Promise<number>;
+  loadedPageCount: number;
   nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
   stats: ConversationStats | null;
@@ -396,14 +417,76 @@ export function getConversationQueryOptions(
   );
 }
 
+/**
+ * Rendering rebuilds the whole conversation, so adding pages one at a time takes far
+ * longer than fetching them. This fetches them under a separate key, then adds them
+ * to the conversation at once.
+ */
+async function fetchRemainingPages(
+  queryClient: QueryClient,
+  queryOptions: ReturnType<typeof getConversationQueryOptions>,
+  signal: AbortSignal
+) {
+  const queryKey: InfiniteApiQueryKey = queryOptions.queryKey;
+  const getLoadedData = () =>
+    queryClient.getQueryData(queryKey) as ConversationInfiniteData | undefined;
+  const initialData = getLoadedData();
+  if (!initialData) {
+    return 0;
+  }
+
+  const remainingKey = [...queryKey, {remainingPages: true}] as const;
+  queryClient.removeQueries({queryKey: remainingKey, exact: true});
+  const observer = new InfiniteQueryObserver(queryClient, {
+    ...queryOptions,
+    queryKey: remainingKey,
+    initialData,
+  });
+  const cancelFetch = () =>
+    void queryClient.cancelQueries({queryKey: remainingKey, exact: true});
+  signal.addEventListener('abort', cancelFetch);
+
+  let result = observer.getCurrentResult();
+  try {
+    while (
+      result.hasNextPage &&
+      !result.isFetchNextPageError &&
+      !signal.aborted &&
+      (result.data?.pages.length ?? 0) < MAX_PAGES
+    ) {
+      result = await observer.fetchNextPage();
+    }
+  } finally {
+    signal.removeEventListener('abort', cancelFetch);
+    observer.destroy();
+  }
+
+  // A page that infinite scroll is still fetching would overwrite this update.
+  await queryClient.cancelQueries({queryKey, exact: true});
+  const loadedPages = getLoadedData()?.pages.length ?? 0;
+  const fetchedPages = result.data?.pages.length ?? 0;
+  if (result.data && fetchedPages > loadedPages) {
+    queryClient.setQueryData(queryKey, result.data);
+  }
+  queryClient.removeQueries({queryKey: remainingKey, exact: true});
+  return Math.max(loadedPages, fetchedPages);
+}
+
 export function useConversation(
   conversation: UseConversationsOptions
 ): UseConversationResult {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const {selection} = usePageFilters();
   // Fixed for the hook's lifetime so the retention clamp can't change the
   // query key between renders.
   const [now] = useState(Date.now);
+  const queryOptions = getConversationQueryOptions(
+    organization,
+    conversation,
+    selection,
+    now
+  );
 
   const {
     data,
@@ -414,9 +497,7 @@ export function useConversation(
     isFetchNextPageError,
     isLoading,
     isLoadingError,
-  } = useInfiniteQuery(
-    getConversationQueryOptions(organization, conversation, selection, now)
-  );
+  } = useInfiniteQuery(queryOptions);
 
   const pageCount = data?.pages.length ?? 0;
   const loadNextPage = useCallback(() => {
@@ -424,6 +505,9 @@ export function useConversation(
       void fetchNextPage({cancelRefetch: false});
     }
   }, [fetchNextPage, hasNextPage, isFetching]);
+
+  const loadRemainingPages = (signal: AbortSignal) =>
+    fetchRemainingPages(queryClient, queryOptions, signal);
 
   const autoFetchAll = conversation.autoFetchAll ?? true;
   const canAutoFetchNextPage = Boolean(
@@ -463,7 +547,9 @@ export function useConversation(
       hasReachedPageLimit: false,
       isFetchingNextPage: false,
       isLoading: false,
+      loadedPageCount: 0,
       loadNextPage,
+      loadRemainingPages,
       isNextPageError: false,
       error: false,
       title: null,
@@ -480,7 +566,9 @@ export function useConversation(
     hasReachedPageLimit: Boolean(hasNextPage && pageCount >= MAX_PAGES),
     isFetchingNextPage,
     isLoading: isLoading || nextAutoFetchPage !== null,
+    loadedPageCount: pageCount,
     loadNextPage,
+    loadRemainingPages,
     isNextPageError: isFetchNextPageError,
     error: isLoadingError || (autoFetchAll && isFetchNextPageError),
     title,

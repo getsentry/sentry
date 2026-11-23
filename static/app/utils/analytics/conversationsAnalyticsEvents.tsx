@@ -11,6 +11,7 @@ export type ConversationsEventParameters = {
   'conversations.detail.expand-thinking': {expanded: boolean};
   'conversations.detail.expand-tool-calls': {expanded: boolean};
   'conversations.detail.export-conversation': Record<string, unknown>;
+  'conversations.detail.jump-to-end': Record<string, unknown>;
   'conversations.detail.page-view': Record<string, unknown>;
   'conversations.detail.select-span': Record<string, unknown>;
   'conversations.detail.span-limit-reached': Record<string, unknown>;
@@ -63,6 +64,7 @@ export const conversationsEventMap: Record<keyof ConversationsEventParameters, s
     'Conversations: Detail Expand System Prompt',
   'conversations.detail.expand-thinking': 'Conversations: Detail Expand Thinking',
   'conversations.detail.expand-tool-calls': 'Conversations: Detail Expand Tool Calls',
+  'conversations.detail.jump-to-end': 'Conversations: Detail Jump To End',
   'conversations.detail.page-view': 'Conversations: Detail Page View',
   'conversations.detail.tab-switch': 'Conversations: Detail Tab Switch',
   'conversations.detail.select-span': 'Conversations: Detail Select Span',

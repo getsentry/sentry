@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {
   act,
   cleanup,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -18,19 +19,35 @@ jest.mock('sentry/utils/analytics');
 
 const CONVERSATION_ID = 'conv-1';
 const originalIntersectionObserver = window.IntersectionObserver;
-let triggerIntersection: ((isIntersecting: boolean) => void) | undefined;
+const activeIntersectionObservers = new Set<MockIntersectionObserver>();
+
+function triggerIntersection(isIntersecting: boolean) {
+  for (const observer of activeIntersectionObservers) {
+    observer.trigger(isIntersecting);
+  }
+}
 
 class MockIntersectionObserver {
+  private readonly callback: IntersectionObserverCallback;
+
   constructor(callback: IntersectionObserverCallback) {
-    triggerIntersection = isIntersecting =>
-      callback(
-        [{isIntersecting} as IntersectionObserverEntry],
-        this as unknown as IntersectionObserver
-      );
+    this.callback = callback;
   }
 
-  observe() {}
-  disconnect() {}
+  trigger(isIntersecting: boolean) {
+    this.callback(
+      [{isIntersecting} as IntersectionObserverEntry],
+      this as unknown as IntersectionObserver
+    );
+  }
+
+  observe() {
+    activeIntersectionObservers.add(this);
+  }
+
+  disconnect() {
+    activeIntersectionObservers.delete(this);
+  }
 }
 
 function spanFixture(overrides: Record<string, unknown>) {
@@ -116,7 +133,7 @@ describe('ConversationViewContent', () => {
   beforeEach(() => {
     window.IntersectionObserver =
       MockIntersectionObserver as unknown as typeof IntersectionObserver;
-    triggerIntersection = undefined;
+    activeIntersectionObservers.clear();
     // jsdom implements neither scroll API the view relies on: the detail pane
     // calls scrollTo, and switching tabs reveals a selected span via scrollIntoView.
     Element.prototype.scrollTo = jest.fn();
@@ -203,7 +220,7 @@ describe('ConversationViewContent', () => {
     expect(
       scrollContainer.querySelector('[data-test-id="loading-indicator"]')
     ).toBeInTheDocument();
-    act(() => triggerIntersection?.(true));
+    act(() => triggerIntersection(true));
 
     await waitFor(() => expect(nextRequest).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('second turn')).toBeInTheDocument();
@@ -224,7 +241,7 @@ describe('ConversationViewContent', () => {
     renderView();
     expect(await screen.findByText('First answer')).toBeInTheDocument();
 
-    act(() => triggerIntersection?.(true));
+    act(() => triggerIntersection(true));
 
     const retry = await screen.findByRole('button', {name: 'Retry'});
     expect(screen.getByText('First answer')).toBeInTheDocument();
@@ -347,6 +364,108 @@ describe('ConversationViewContent', () => {
       'conversations.detail.span-limit-reached',
       expect.anything()
     );
+  });
+
+  describe('jump to end', () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('loads every remaining page, then scrolls to the end', async () => {
+      jest.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(5000);
+      MockApiClient.clearMockResponses();
+      mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'page-2'});
+      const secondPage = mockConversation(
+        [
+          spanFixture({
+            span_id: 'span-c',
+            'span.name': 'middle turn',
+            'precise.start_ts': 1500,
+            'precise.finish_ts': 1500.5,
+            'gen_ai.input.messages': JSON.stringify([{role: 'user', content: 'Middle?'}]),
+            'gen_ai.output.messages': JSON.stringify([
+              {role: 'assistant', content: 'Middle answer'},
+            ]),
+          }),
+        ],
+        {cursor: 'page-2', nextCursor: 'page-3'}
+      );
+      const thirdPage = mockConversation([CONVERSATION_BODY[1]!], {cursor: 'page-3'});
+      renderView();
+      await screen.findByText('First answer');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Jump to end'}));
+
+      expect(await screen.findByText('Second answer')).toBeInTheDocument();
+      expect(secondPage).toHaveBeenCalledTimes(1);
+      expect(thirdPage).toHaveBeenCalledTimes(1);
+      await waitFor(() =>
+        expect(Element.prototype.scrollTo).toHaveBeenCalledWith({top: 5000})
+      );
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'conversations.detail.jump-to-end',
+        expect.anything()
+      );
+    });
+
+    it('stops loading pages when the user scrolls', async () => {
+      MockApiClient.clearMockResponses();
+      mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'page-2'});
+      const secondPage = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+        match: [MockApiClient.matchQuery({cursor: 'page-2'})],
+        asyncDelay: 10,
+        body: {conversationId: CONVERSATION_ID, title: null, spans: []},
+        headers: {
+          Link: `</x/?cursor=page-3>; rel="next"; results="true"; cursor="page-3"`,
+        },
+      });
+      const thirdPage = mockConversation([CONVERSATION_BODY[1]!], {cursor: 'page-3'});
+      renderView();
+      await screen.findByText('First answer');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Jump to end'}));
+      const stop = await screen.findByRole('button', {name: 'Stop loading'});
+      fireEvent.wheel(stop);
+
+      expect(
+        await screen.findByRole('button', {name: 'Jump to end'})
+      ).toBeInTheDocument();
+      await waitFor(() => expect(secondPage).toHaveBeenCalledTimes(1));
+      expect(thirdPage).not.toHaveBeenCalled();
+    });
+
+    it('keeps the pages loaded before a failure and scrolls to them', async () => {
+      jest.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(5000);
+      MockApiClient.clearMockResponses();
+      mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'page-2'});
+      mockConversation([CONVERSATION_BODY[1]!], {cursor: 'page-2', nextCursor: 'page-3'});
+      const failedPage = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+        match: [MockApiClient.matchQuery({cursor: 'page-3'})],
+        statusCode: 500,
+      });
+      renderView();
+      await screen.findByText('First answer');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Jump to end'}));
+
+      expect(await screen.findByText('Second answer')).toBeInTheDocument();
+      expect(failedPage).toHaveBeenCalledTimes(1);
+      await waitFor(() =>
+        expect(Element.prototype.scrollTo).toHaveBeenCalledWith({top: 5000})
+      );
+    });
+
+    it('is hidden at the end of a fully loaded conversation', async () => {
+      renderView();
+      await screen.findByText('First answer');
+      expect(screen.getByRole('button', {name: 'Jump to end'})).toBeInTheDocument();
+
+      act(() => triggerIntersection(true));
+
+      expect(screen.queryByRole('button', {name: 'Jump to end'})).not.toBeInTheDocument();
+    });
   });
 
   describe('at the span limit', () => {

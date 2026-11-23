@@ -30,6 +30,7 @@ import {
   CONVERSATION_SPAN_DETAIL_TABS,
   ConversationSpanDetail,
 } from './conversationSpanDetail';
+import {JumpToEndButton} from './jumpToEndButton';
 import {MessagesPanel} from './messagesPanel';
 import {TranscriptSearch} from './transcriptSearch';
 
@@ -75,7 +76,9 @@ export function ConversationViewContent({
     isLoading,
     isFetchingNextPage,
     error,
+    loadedPageCount,
     loadNextPage,
+    loadRemainingPages,
     isNextPageError,
   } = useConversation({...conversation, autoFetchAll: false});
 
@@ -240,6 +243,15 @@ export function ConversationViewContent({
                   <LoadingIndicator size={24} />
                 )}
               </Flex>
+            )}
+            {!isLoading && (
+              <JumpToEndButton
+                key={`${conversation.conversationId}:${activeTab}`}
+                canLoadMore={canAutoFetchNextPage}
+                loadedPageCount={loadedPageCount}
+                loadRemainingPages={loadRemainingPages}
+                scrollContainerRef={contentRef}
+              />
             )}
           </Fragment>
         }
