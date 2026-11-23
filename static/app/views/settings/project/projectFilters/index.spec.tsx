@@ -1534,10 +1534,8 @@ describe('ProjectFilters', () => {
     const dialog = await screen.findByRole('dialog');
     await userEvent.click(within(dialog).getByRole('textbox', {name: 'Name'}));
     await userEvent.paste('Chrome 120 to 122');
-    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Data Type'}));
-    await userEvent.click(
-      within(dialog).getByRole('menuitemradio', {name: 'All Data Types'})
-    );
+    await userEvent.click(within(dialog).getByRole('combobox', {name: 'Data Type'}));
+    await userEvent.click(within(dialog).getByRole('option', {name: 'All Data Types'}));
 
     // Every data type carries the browser, so the catch-all offers both conditions.
     await userEvent.click(
@@ -1822,7 +1820,7 @@ describe('ProjectFilters', () => {
       within(dialog).getByText('Sentry drops data that meets every condition below.')
     ).toBeInTheDocument();
     expect(within(dialog).getByRole('textbox', {name: 'Name'})).toBeDisabled();
-    expect(within(dialog).getByRole('textbox', {name: 'Data Type'})).toBeDisabled();
+    expect(within(dialog).getByRole('combobox', {name: 'Data Type'})).toBeDisabled();
     expect(
       within(dialog).getByRole('row', {name: 'release:[1.*,2.*,3.*,4.*,5.*]'})
     ).toBeInTheDocument();
