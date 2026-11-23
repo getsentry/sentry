@@ -1,13 +1,14 @@
 import contextvars
 from collections.abc import Iterator
 from concurrent.futures import CancelledError, Future
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from queue import Full
 from threading import Event
 from unittest import mock
 
 import pytest
 import sentry_sdk
+from sentry_sdk.traces import Span
 
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.concurrent import (
@@ -333,3 +334,67 @@ def test_context_propagating_executor_sentry_scope() -> None:
         result = executor.submit(read_scope_tag).result(timeout=2)
 
     assert result == "test_value"
+
+
+def test_context_propagating_executor_forks_sentry_scopes() -> None:
+    """Scope mutations in a task don't leak to the caller or to other tasks."""
+    caller_scope = sentry_sdk.get_current_scope()
+    caller_isolation_scope = sentry_sdk.get_isolation_scope()
+
+    def mutate_scopes(value: str) -> tuple[object | None, object | None]:
+        current = sentry_sdk.get_current_scope()
+        isolation = sentry_sdk.get_isolation_scope()
+        seen = (current._tags.get("task_key"), isolation._tags.get("task_key"))
+        current.set_tag("task_key", value)
+        isolation.set_tag("task_key", value)
+        return seen
+
+    with ContextPropagatingThreadPoolExecutor(max_workers=1) as executor:
+        assert executor.submit(mutate_scopes, "first").result(timeout=2) == (None, None)
+        assert executor.submit(mutate_scopes, "second").result(timeout=2) == (None, None)
+
+    assert "task_key" not in caller_scope._tags
+    assert "task_key" not in caller_isolation_scope._tags
+
+
+def test_context_propagating_executor_overlapping_spans_finish_out_of_order() -> None:
+    first_started = Event()
+    second_started = Event()
+    first_finished = Event()
+
+    def first_task() -> Span:
+        with sentry_sdk.start_span(name="first") as span:
+            first_started.set()
+            assert second_started.wait(timeout=5)
+        return span
+
+    def second_task() -> Span:
+        with sentry_sdk.start_span(name="second") as span:
+            second_started.set()
+            assert first_finished.wait(timeout=5)
+        return span
+
+    with (
+        closing(sentry_sdk.Client(default_integrations=False, traces_sample_rate=1.0)) as client,
+        sentry_sdk.new_scope() as caller_scope,
+        ContextPropagatingThreadPoolExecutor(max_workers=2) as executor,
+    ):
+        caller_scope.set_client(client)
+        caller_scope.span = None
+
+        first_future = executor.submit(first_task)
+        assert first_started.wait(timeout=5)
+        second_future = executor.submit(second_task)
+        first_span = first_future.result(timeout=5)
+        first_finished.set()
+        second_span = second_future.result(timeout=5)
+
+        assert first_span.sampled is True
+        assert first_span.end_timestamp is not None
+        assert second_span.end_timestamp is not None
+        assert sentry_sdk.get_current_span() is None
+        assert executor.submit(sentry_sdk.get_current_span).result(timeout=5) is None
+
+        with mock.patch.dict(client.options, traces_sample_rate=0.0):
+            with sentry_sdk.start_span(name="later") as later_span:
+                assert later_span.sampled is False
