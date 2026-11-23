@@ -1,9 +1,10 @@
 import {Activity, useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 import {IconSlashForward} from '@sentry/icons/slashForward';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container} from '@sentry/scraps/layout';
+import {ListItem, SECTION_ITEM_SPACE, SectionList} from '@sentry/scraps/menu';
+import {Overlay} from '@sentry/scraps/overlay';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
@@ -109,7 +110,7 @@ export function useExplorerMenu({
   );
 
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const menuItemRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const menuItemRefs = useRef<Array<HTMLLIElement | null>>([]);
 
   // Reset selected index when items change
   useEffect(() => {
@@ -206,21 +207,36 @@ export function useExplorerMenu({
 
   const menu = (
     <Activity mode={isVisible ? 'visible' : 'hidden'}>
-      <MenuPanel panelSize={panelSize} style={menuPosition} data-seer-menu-panel="">
-        {menuItems.map((item: MenuItemProps, index: number) => (
-          <MenuItem
-            key={item.key}
-            ref={el => {
-              menuItemRefs.current[index] = el;
-            }}
-            isSelected={index === selectedIndex}
-            onClick={() => onSelect(item)}
-          >
-            <ItemName>{item.title}</ItemName>
-            <ItemDescription>{item.description}</ItemDescription>
-          </MenuItem>
-        ))}
-      </MenuPanel>
+      {/* Built from the same Scraps pieces as the toolbar's DropdownMenu, so the
+          two slash command menus look the same. */}
+      <Overlay
+        style={{
+          ...menuPosition,
+          position: 'absolute',
+          overflowY: 'auto',
+          maxHeight: panelSize === 'max' ? 'calc(100vh - 120px)' : 'calc(50vh - 80px)',
+        }}
+        data-seer-menu-panel=""
+      >
+        <SectionList margin="xs 0" gap={SECTION_ITEM_SPACE}>
+          {menuItems.map((item: MenuItemProps, index: number) => (
+            <ListItem
+              key={item.key}
+              ref={(el: HTMLLIElement | null) => {
+                menuItemRefs.current[index] = el;
+              }}
+              size="sm"
+              label={item.title}
+              details={<SlashCommandDetails>{item.description}</SlashCommandDetails>}
+              isFocused={index === selectedIndex}
+              innerWrapProps={{
+                onPointerEnter: () => setSelectedIndex(index),
+                onClick: () => onSelect(item),
+              }}
+            />
+          ))}
+        </SectionList>
+      </Overlay>
     </Activity>
   );
 
@@ -231,11 +247,7 @@ export function useExplorerMenu({
         items={allSlashCommands.map(item => ({
           key: item.key,
           label: item.title,
-          details: (
-            <Container width="320px" maxWidth="calc(100vw - 64px)">
-              {item.description}
-            </Container>
-          ),
+          details: <SlashCommandDetails>{item.description}</SlashCommandDetails>,
           onAction: () => onSelect(item),
         }))}
         position="top-start"
@@ -376,47 +388,10 @@ function useSlashCommands({
   );
 }
 
-const MenuPanel = styled('div')<{
-  panelSize: 'max' | 'med';
-}>`
-  position: absolute;
-  width: 300px;
-  background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  box-shadow: ${p => p.theme.shadow.high};
-  max-height: ${p =>
-    p.panelSize === 'max' ? 'calc(100vh - 120px)' : 'calc(50vh - 80px)'};
-  overflow-y: auto;
-  z-index: 10;
-`;
-
-const MenuItem = styled('div')<{isSelected: boolean}>`
-  padding: ${p => p.theme.space.md};
-  cursor: pointer;
-  background: ${p =>
-    p.isSelected
-      ? p.theme.tokens.interactive.transparent.neutral.background.active
-      : 'transparent'};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &:hover {
-    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
-  }
-`;
-
-const ItemName = styled('div')`
-  font-size: ${p => p.theme.font.size.sm};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const ItemDescription = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.xs};
-`;
+function SlashCommandDetails({children}: {children: React.ReactNode}) {
+  return (
+    <Container width="320px" maxWidth="calc(100vw - 64px)">
+      {children}
+    </Container>
+  );
+}
