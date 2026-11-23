@@ -1,26 +1,6 @@
-from django.db import migrations
-from django.db.backends.base.schema import BaseDatabaseSchemaEditor
-from django.db.migrations.state import StateApps
+from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
-
-OLD_STRATEGY = "agentic_triage_v2"
-NEW_STRATEGY = "scheduled_investigation"
-AGENTIC_TRIAGE_ACTION_SETTINGS = {"skill": "agentic_triage"}
-
-
-def rename_agentic_triage_v2(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
-    SeerWorkflowConfig = apps.get_model("seer", "SeerWorkflowConfig")
-    for config in RangeQuerySetWrapperWithProgressBar(
-        SeerWorkflowConfig.objects.filter(strategy=OLD_STRATEGY)
-    ):
-        config.strategy = NEW_STRATEGY
-        if config.extras.get("seeded_default") == OLD_STRATEGY:
-            config.extras["seeded_default"] = NEW_STRATEGY
-            if not config.extras.get("action_settings"):
-                config.extras["action_settings"] = AGENTIC_TRIAGE_ACTION_SETTINGS
-        config.save(update_fields=["strategy", "extras"])
 
 
 class Migration(CheckedMigration):
@@ -43,9 +23,22 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.RunPython(
-            rename_agentic_triage_v2,
-            reverse_code=migrations.RunPython.noop,
-            hints={"tables": ["seer_workflowconfig"]},
+        migrations.AddIndex(
+            model_name="seerworkflowrun",
+            index=models.Index(
+                condition=models.Q(("status__in", ("queued", "running"))),
+                fields=["date_added"],
+                name="seer_run_active_added_idx",
+            ),
+        ),
+        migrations.AddConstraint(
+            model_name="seerworkflowrun",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(
+                    ("source__in", ("cron", "manual")), ("status__in", ("queued", "running"))
+                ),
+                fields=("workflow_config",),
+                name="seer_nightshiftrun_one_active_exclusive_run",
+            ),
         ),
     ]
