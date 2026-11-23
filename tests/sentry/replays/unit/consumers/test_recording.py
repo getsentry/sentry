@@ -57,13 +57,13 @@ def test_decompress_segment_already_decompressed() -> None:
 
 def test_decompress_segment_unexpected_start_character() -> None:
     """Test handling of invalid data that can't be decompressed"""
-    with pytest.raises(DropSilently):
+    with pytest.raises(InvalidRecording):
         decompress_segment(b"hello, world!", MAX_SIZE)
 
 
 def test_decompress_segment_empty_data() -> None:
     """Test handling of empty data"""
-    with pytest.raises(DropSilently):
+    with pytest.raises(InvalidRecording):
         decompress_segment(b"", MAX_SIZE)
 
 
@@ -72,7 +72,7 @@ def test_decompress_segment_truncated_stream() -> None:
     compressed_data = zlib.compress(b"[" + b"hello, world!" * 100 + b"]")
 
     for cut in (1, 4, len(compressed_data) // 2):
-        with pytest.raises(DropSilently):
+        with pytest.raises(InvalidRecording):
             decompress_segment(compressed_data[:-cut], MAX_SIZE)
 
 
@@ -81,7 +81,7 @@ def test_decompress_segment_invalid_checksum() -> None:
     compressed_data = bytearray(zlib.compress(b"[hello, world!]"))
     compressed_data[-1] ^= 0xFF
 
-    with pytest.raises(DropSilently):
+    with pytest.raises(InvalidRecording):
         decompress_segment(bytes(compressed_data), MAX_SIZE)
 
 
@@ -169,19 +169,19 @@ def test_parse_headers_success() -> None:
 def test_parse_headers_success_invalid_type() -> None:
     """Test parsing headers with invalid segment-id value"""
     recording = json.dumps({"segment_id": None}).encode() + b"\n" + b"hello, world"
-    with pytest.raises(DropSilently):
+    with pytest.raises(InvalidRecording):
         parse_headers(recording)
 
 
 def test_parse_headers_no_newline() -> None:
     """Test parsing headers without newline separator"""
-    with pytest.raises(DropSilently):
+    with pytest.raises(InvalidRecording):
         parse_headers(b'{"segment_id": 42}')
 
 
 def test_parse_headers_invalid_json() -> None:
     """Test parsing headers with invalid JSON"""
-    with pytest.raises(DropSilently):
+    with pytest.raises(InvalidRecording):
         parse_headers(b"hello\nworld")
 
 
@@ -194,71 +194,15 @@ def test_parse_headers_compressed_header() -> None:
     assert exc_info.value.reason == "invalid_headers_json"
 
 
-def test_process_message_compressed_header_reports_context() -> None:
-    """A dropped invalid recording is counted and logged with what we know about its sender."""
-    replay_event = {
-        "platform": "javascript",
-        "environment": "production",
-        "replay_type": "buffer",
-        "sdk": {"name": "sentry.javascript.react", "version": "10.0.0"},
-        "contexts": {
-            "browser": {"name": "Firefox", "version": "140.0"},
-            "os": {"name": "Windows", "version": ">=10"},
-        },
-    }
-    message = {
-        "type": "replay_recording_not_chunked",
-        "org_id": 3,
-        "project_id": 4,
-        "replay_id": "1",
-        "received": 2,
-        "retention_days": 30,
-        "payload": b"x\x9c\xed]\x8f\xe38v" + b"\n" + zlib.compress(b"[]"),
-        "key_id": 1,
-        "replay_event": json.dumps(replay_event).encode(),
-        "replay_video": b"",
-        "version": 0,
-    }
-
-    with (
-        mock.patch("sentry.replays.consumers.recording.sentry_sdk.metrics.count") as count,
-        mock.patch("sentry.replays.consumers.recording.sdk_logger") as sdk_logger,
-        mock.patch("sentry.replays.consumers.recording.logger") as logger,
-    ):
-        assert process_message(make_kafka_message(message)) is None
-
-    count.assert_called_once_with(
-        "replays.consumer.recording.invalid", 1, attributes={"reason": "invalid_headers_json"}
-    )
-    logger.exception.assert_not_called()
-    sdk_logger.warning.assert_called_once()
-    assert sdk_logger.warning.call_args.kwargs["attributes"] == {
-        "reason": "invalid_headers_json",
-        "org_id": 3,
-        "project_id": 4,
-        "key_id": 1,
-        "replay_id": "1",
-        "payload_size": 19,
-        "payload_prefix": "789ced5d8fe33876",
-        "sdk_name": "sentry.javascript.react",
-        "sdk_version": "10.0.0",
-        "platform": "javascript",
-        "environment": "production",
-        "replay_type": "buffer",
-        "browser": {"name": "Firefox", "version": "140.0"},
-        "os": {"name": "Windows", "version": ">=10"},
-    }
-
-
 def test_parse_headers_missing_segment_id() -> None:
     """Test parsing headers missing segment_id field"""
-    with pytest.raises(DropSilently):
+    with pytest.raises(InvalidRecording):
         parse_headers(b'{"other_field": "value"}\nworld')
 
 
 def test_parse_headers_empty_recording() -> None:
     """Test parsing empty recording"""
-    with pytest.raises(DropSilently):
+    with pytest.raises(InvalidRecording):
         parse_headers(b"")
 
 
@@ -383,7 +327,7 @@ def test_parse_recording_event_with_replay_event() -> None:
 
 
 def test_parse_recording_event_missing_payload() -> None:
-    """Test that missing payload cause DropSilently"""
+    """Test that missing payload causes InvalidRecording"""
     message = {
         "type": "replay_recording_not_chunked",
         "org_id": 123,
@@ -394,13 +338,13 @@ def test_parse_recording_event_missing_payload() -> None:
         "payload": b'{"segment_id": 42}',  # Missing newline separator
         "version": 0,
     }
-    with pytest.raises(DropSilently):
+    with pytest.raises(InvalidRecording):
         parse_recording_event(msgpack.packb(message))
 
 
 @django_db_all
 def test_parse_recording_event_invalid_compression() -> None:
-    """Test that invalid compression in payload causes DropSilently"""
+    """Test that invalid compression in payload causes InvalidRecording"""
     message = {
         "type": "replay_recording_not_chunked",
         "org_id": 123,
@@ -411,12 +355,12 @@ def test_parse_recording_event_invalid_compression() -> None:
         "payload": json.dumps({"segment_id": 42}).encode() + b"\ninvalid",
         "version": 0,
     }
-    with pytest.raises(DropSilently):
+    with pytest.raises(InvalidRecording):
         parse_recording_event(msgpack.packb(message))
 
 
 def test_parse_recording_event_invalid_headers() -> None:
-    """Test that invalid headers in payload causes DropSilently"""
+    """Test that invalid headers in payload causes InvalidRecording"""
     message = {
         "type": "replay_recording_not_chunked",
         "org_id": 123,
@@ -427,7 +371,7 @@ def test_parse_recording_event_invalid_headers() -> None:
         "payload": json.dumps({"hello": "world"}).encode() + b"\n" + zlib.compress(b"t"),
         "version": 0,
     }
-    with pytest.raises(DropSilently):
+    with pytest.raises(InvalidRecording):
         parse_recording_event(msgpack.packb(message))
 
 

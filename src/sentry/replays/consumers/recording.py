@@ -31,7 +31,7 @@ class DropSilently(Exception):
     pass
 
 
-class InvalidRecording(DropSilently):
+class InvalidRecording(Exception):
     def __init__(self, reason: str) -> None:
         super().__init__(reason)
         self.reason = reason
@@ -53,6 +53,8 @@ def process_message(message: bytes) -> ProcessedEvent | None:
             use_new_recording_parser=options.get("replay.consumer.msgspec_recording_parser"),
         )
     except DropSilently:
+        return None
+    except InvalidRecording:
         return None
     except Exception:
         logger.exception("Failed to process replay recording message.")
