@@ -251,6 +251,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const theme = useTheme();
   const renderToString = useRenderToString();
+  // `renderToString` flushes a React root, so it can't run during render.
+  // Render the icon on the first low-confidence tooltip and reuse it after.
+  const warningIconRef = useRef('');
   const navigate = useNavigate();
   const location = useLocation();
   const hasReleaseBubbles =
@@ -390,7 +393,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     const hasLowConfidence = toArray(deDupedParams).some(param =>
       isLowConfidenceDataPoint(param.data)
     );
-    const warningIcon = hasLowConfidence ? renderToString(<IconWarning size="xs" />) : '';
+    if (hasLowConfidence && !warningIconRef.current) {
+      warningIconRef.current = renderToString(<IconWarning size="xs" />);
+    }
+    const warningIcon = hasLowConfidence ? warningIconRef.current : '';
 
     return getFormatter({
       isGroupedByDate: true,
