@@ -24,8 +24,17 @@ class SeerInvestigationActionHandler(ActionHandler):
     data_schema = {
         "type": "object",
         "properties": {
-            "prompt": {"type": "string", "minLength": 1, "maxLength": 4096},
-            "skill": {"type": "string", "enum": ["agentic_triage"]},
+            "prompt": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096,
+                "description": "Prompt the investigation runs",
+            },
+            "skill": {
+                "type": "string",
+                "enum": ["agentic_triage"],
+                "description": "Seer skill the investigation runs, instead of a prompt",
+            },
         },
         "additionalProperties": False,
     }
