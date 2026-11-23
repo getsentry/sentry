@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from functools import partial
 
 from sentry.inbox.issue import (
@@ -28,7 +28,7 @@ def _recipient_id(value: object) -> int | None:
     return None
 
 
-def issue_activity_inbox_calls(activity: Activity, group: Group) -> Iterator[Callable[[], None]]:
+def issue_activity_inbox_calls(activity: Activity, group: Group) -> Iterator[partial[None]]:
     """Build one platform call per event type from the persisted activity."""
     if not isinstance(activity.data, dict):
         return
@@ -42,7 +42,7 @@ def issue_activity_inbox_calls(activity: Activity, group: Group) -> Iterator[Cal
         try:
             source = ActivityIntegration(integration) if integration is not None else None
         except ValueError:
-            logger.exception("groupassignee.inbox.invalid_integration")
+            logger.exception("inbox.issue_activity.invalid_integration")
             return
         is_team = kind == "team"
         yield partial(

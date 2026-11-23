@@ -232,8 +232,8 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
                 user=acting_user,
                 data=data,
             )
-            for record in issue_activity_inbox_calls(activity, group):
-                safe_execute(record)
+            for call in issue_activity_inbox_calls(activity, group):
+                safe_execute(call.func, *call.args, **call.keywords)
             record_group_history(group, GroupHistoryStatus.ASSIGNED, actor=acting_user)
 
             GroupOwner.invalidate_assignee_exists_cache(group.id)
