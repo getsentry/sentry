@@ -61,6 +61,7 @@ import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUse
 import type {Block} from 'sentry/views/seerExplorer/types';
 
 import {InvestigationBlockPlaceholder} from './blockPlaceholder';
+import {NotebookEmbed} from './notebookEmbed';
 
 type InvestigationNotebookBlockProps = {
   block: InvestigationBlock;
@@ -228,7 +229,12 @@ function InvestigationNotebookBlockInner({
       padding="0"
       data-test-id={`investigation-block-${block.id}`}
     >
-      {block.kind === 'query' ? (
+      {block.kind === 'embed' ? (
+        <SavedEmbedBlock
+          block={block}
+          actions={<BlockActionButtons {...actionButtonProps} size="zero" />}
+        />
+      ) : block.kind === 'query' ? (
         <Fragment>
           <QueryResult
             actions={<BlockActionButtons {...actionButtonProps} size="zero" />}
@@ -319,6 +325,33 @@ function BlockActionButtons({
   );
 }
 
+// Widgets with a card claim the actions for their header. Other widgets leave
+// the actions beside the notebook content, including when validation fails.
+function useEmbedActions() {
+  const [actionsInEmbed, setActionsInEmbed] = useState(false);
+  const claimActions = useCallback(() => {
+    setActionsInEmbed(true);
+    return () => setActionsInEmbed(false);
+  }, []);
+  return {actionsInEmbed, claimActions};
+}
+
+function SavedEmbedBlock({
+  block,
+  actions,
+}: {
+  actions: React.ReactNode;
+  block: InvestigationBlock;
+}) {
+  const {actionsInEmbed, claimActions} = useEmbedActions();
+  return (
+    <BlockHoverSurface>
+      {!actionsInEmbed && <Flex justify="end">{actions}</Flex>}
+      <NotebookEmbed block={block} hostActions={{actions, onClaim: claimActions}} />
+    </BlockHoverSurface>
+  );
+}
+
 function BlockResult({
   actions,
   block,
@@ -338,15 +371,7 @@ function BlockResult({
     () => splitFirstMarkdownBlock(markdown ?? ''),
     [markdown]
   );
-  // An embed the markdown opens with takes the actions into its card's header,
-  // so the card can run the block's full width. Until one claims them -- or if
-  // that embed renders no card -- they sit beside the first line.
-  const [actionsInEmbed, setActionsInEmbed] = useState(false);
-  // Stable, so a re-render (each streamed chunk) doesn't release and reclaim them.
-  const claimActions = useCallback(() => {
-    setActionsInEmbed(true);
-    return () => setActionsInEmbed(false);
-  }, []);
+  const {actionsInEmbed, claimActions} = useEmbedActions();
   const actionsBesideFirstLine = actionsInEmbed ? null : (
     <Grid area="1 / 2">
       {/* A hidden line of text, so the actions sit on the content's first line. */}
@@ -579,6 +604,9 @@ export function shouldDisplayInvestigationBlock(block: InvestigationBlock) {
   // Seer names a block before it fills it, so a block it has started can be shown
   // right away. A block that is only queued stays hidden — it may never produce
   // anything.
+  if (block.kind === 'embed') {
+    return Boolean(block.embed || block.embedSummary || block.embedSource);
+  }
   if (isBlockWorking(block) && block.title.trim()) {
     return true;
   }

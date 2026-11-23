@@ -33,6 +33,7 @@ import {
   InvestigationBlockFixture,
   InvestigationCommentFixture,
   InvestigationDetailFixture,
+  InvestigationHypothesisFixture,
   InvestigationMetricSourceFixture,
   InvestigationOrchestrationFixture,
   InvestigationQueryOutputFixture,
@@ -173,6 +174,78 @@ describe('Investigation detail', () => {
         body: {actionRequest: InvestigationActionRequestFixture({id})},
       });
     }
+  });
+
+  describe('while a workflow notebook is running', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it('refreshes a live workflow notebook with its verdict, checks and title while keeping comments available', async () => {
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+      const report = {
+        runId: 'workflow-1',
+        elapsedSeconds: 15,
+        active: true,
+        activity: [],
+        hypotheses: [],
+        hypothesisBlockKeys: [],
+        summary: null,
+      };
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationDetailFixture({
+          title: 'Investigating monitor',
+          workflowReport: report,
+        }),
+      });
+      renderView();
+      expect(await screen.findByText('Running…')).toBeInTheDocument();
+      expect(
+        screen.getByRole('timer', {name: 'Investigation elapsed time'})
+      ).toHaveTextContent('15.0s');
+      await act(() => jest.advanceTimersByTimeAsync(500));
+      expect(screen.getByRole('timer')).toHaveTextContent('15.5s');
+      expect(screen.getByRole('heading', {name: 'Activity'})).toBeInTheDocument();
+      const hypothesis = InvestigationHypothesisFixture();
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationDetailFixture({
+          title: 'Cache misses delayed checkout',
+          workflowReport: {
+            ...report,
+            status: 'succeeded',
+            elapsedSeconds: 17,
+            active: false,
+            hypotheses: [hypothesis],
+          },
+        }),
+      });
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+      expect(
+        await screen.findByDisplayValue('Cache misses delayed checkout')
+      ).toBeInTheDocument();
+      await act(() => jest.advanceTimersByTimeAsync(500));
+      expect(screen.getByRole('timer')).toHaveTextContent('17.0s');
+      const panel = screen.getByTestId('investigation-run-panel');
+      await user.click(
+        within(panel).getByRole('button', {name: /hypotheses/i, expanded: false})
+      );
+      expect(
+        screen.getByText('Every check points at the same cache regression.')
+      ).toBeInTheDocument();
+      await user.click(screen.getByRole('button', {name: /show 3 steps/i}));
+      expect(
+        screen.getByText('The lookup slowed sharply during the incident window.')
+      ).toBeInTheDocument();
+    });
   });
 
   it('loads and renders the complete investigation response', async () => {
@@ -2474,6 +2547,35 @@ describe('Investigation detail', () => {
         },
       },
     });
+  });
+
+  it('shows a saved embed and gives Seer its summary when there is no block execution', async () => {
+    const block = InvestigationBlockFixture({
+      title: 'Fixture chart',
+      kind: 'embed',
+      content: '',
+      output: null,
+      embed: {
+        name: 'chart',
+        body: {
+          title: 'Sample volumes',
+          visualization: 'bar',
+          x_axis: 'category',
+          series: [{label: 'Samples', data: [{x: 'Release', y: 3}]}],
+        },
+      },
+      embedSummary: 'Three samples from the release.',
+    });
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({blocks: [block]}),
+    });
+    const openChatPrompt = jest.fn();
+    renderView(askSeerOrganization, makeTestQueryClient(), openChatPrompt);
+    expect(await screen.findByText('Sample volumes')).toBeInTheDocument();
+    expect(screen.queryByText(block.embedSummary!)).not.toBeInTheDocument();
+    await chooseBlockAction('Fixture chart', 'Ask Seer');
+    expect(openChatPrompt.mock.calls[0][0].context.block.output).toBe(block.embedSummary);
   });
 
   it('renders block output instead of block content', async () => {

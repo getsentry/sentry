@@ -72,7 +72,10 @@ export function getInvestigationLLMContext(
     summary: investigation.summary,
     summaryDescription: investigation.summaryDescription,
     // The investigation carries where the run was until the full run arrives.
-    runStatus: orchestration?.status ?? investigation.orchestration?.status,
+    runStatus:
+      orchestration?.status ??
+      investigation.orchestration?.status ??
+      investigation.workflowReport?.status,
     runPhase: orchestration?.phase ?? investigation.orchestration?.phase,
   };
 }
@@ -131,6 +134,9 @@ const BLOCK_OUTPUT_MAX_CHARS = 4000;
  * an older text block carries as its content instead.
  */
 function getBlockOutputText(block: InvestigationBlock): string {
+  if (block.kind === 'embed') {
+    return block.embedSummary || block.embedSource || block.content;
+  }
   const {output} = block;
   if (output && typeof output === 'object') {
     if ('tableMarkdown' in output && typeof output.tableMarkdown === 'string') {

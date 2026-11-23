@@ -86,7 +86,7 @@ export function getInvestigationOutline({
   const blockEntries = headings
     .filter(heading => heading.depth === null || heading.depth <= topDepth + 1)
     .map((heading): InvestigationOutlineEntry => ({
-      // A title stands in for the heading Seer is about to write.
+      // Titles target the whole widget or text placeholder.
       depth: heading.depth ?? SECTION_DEPTH,
       key: `${heading.blockId}:${heading.headingIndex ?? 'title'}`,
       label: heading.label,
@@ -118,6 +118,11 @@ function getSectionEntry(
 }
 
 function getBlockHeadings(block: InvestigationBlock): BlockHeading[] {
+  if (block.kind === 'embed') {
+    const title = block.embed?.body.title;
+    const label = (typeof title === 'string' && title.trim()) || block.title.trim();
+    return label ? [{blockId: block.id, depth: null, headingIndex: null, label}] : [];
+  }
   if (block.kind !== 'text') {
     return [];
   }

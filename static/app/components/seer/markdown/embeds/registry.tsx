@@ -15,6 +15,8 @@ export interface SeerEmbedProps {
   data: unknown;
   level: SeerEmbedRenderLevel;
   name: string;
+  /** A saved text alternative for an unreadable notebook widget. */
+  fallback?: ReactNode;
   /**
    * Position among all embeds in the message, in document order. Assigned by
    * `Markdown` while lexing; see `renderTracking` for what it is used for.

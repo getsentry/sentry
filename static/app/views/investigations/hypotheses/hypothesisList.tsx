@@ -37,6 +37,7 @@ type HypothesisListProps = {
   getActions?: (hypothesis: InvestigationHypothesis) => MenuItemProps[];
   /** `report.primaryHypothesisId` from the projection, if the report has one. */
   primaryHypothesisId?: string | null;
+  showFindings?: boolean;
 };
 
 /**
@@ -80,6 +81,7 @@ export function HypothesisList({
   className,
   getActions,
   hypotheses,
+  showFindings,
   primaryHypothesisId,
 }: HypothesisListProps) {
   if (hypotheses.length === 0) {
@@ -96,6 +98,7 @@ export function HypothesisList({
           hypothesis={hypothesis}
           isPrimary={hypothesis.id === primaryHypothesisId}
           actions={getActions?.(hypothesis)}
+          showFindings={showFindings}
         />
       ))}
     </Grid>

@@ -39,6 +39,7 @@ type HypothesisCardProps = {
    * landed; this says which one the report is built around.
    */
   isPrimary?: boolean;
+  showFindings?: boolean;
 };
 
 /**
@@ -52,6 +53,7 @@ type HypothesisCardProps = {
 export function HypothesisCard({
   actions,
   hypothesis,
+  showFindings,
   isPrimary = false,
 }: HypothesisCardProps) {
   const theme = useTheme();
@@ -136,6 +138,12 @@ export function HypothesisCard({
         </Text>
       ) : null}
 
+      {showFindings && hypothesis.agentVerdict?.rationale && (
+        <Text as="p" size="sm">
+          {hypothesis.agentVerdict.rationale}
+        </Text>
+      )}
+
       {steps.length > 0 ? (
         <EvidenceList as="ol" aria-label={t('Verification steps')}>
           {isCollapsible ? (
@@ -204,7 +212,11 @@ export function HypothesisCard({
                       : step.title}
                   </StepTitle>
                 }
-              />
+              >
+                {showFindings && step.result ? (
+                  <Timeline.Text>{step.result}</Timeline.Text>
+                ) : null}
+              </Timeline.Item>
             );
           })}
         </EvidenceList>

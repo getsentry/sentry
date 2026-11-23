@@ -588,6 +588,49 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(router.location.pathname).toBe('/seer/investigations/4567/');
   });
 
+  it('opens the v2 notebook for the same open period as the legacy button', async () => {
+    const organization = OrganizationFixture({
+      features: ['investigations', 'investigations-v2'],
+      openMembership: true,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'investigate'}]},
+    });
+    const launch = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/',
+      method: 'POST',
+      body: {id: '7654'},
+    });
+    const {router} = render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+    expect(
+      await screen.findByRole('button', {name: 'Launch Investigation'})
+    ).toBeEnabled();
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Investigation with v2 (beta)'})
+    );
+    await waitFor(() =>
+      expect(router.location.pathname).toBe(
+        '/organizations/org-slug/seer/investigations/7654/'
+      )
+    );
+    expect(launch).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {version: 2},
+        data: {
+          source: {
+            type: 'metric_open_period',
+            ref: {groupId: defaultGroup.id, openPeriodId: '101'},
+          },
+        },
+      })
+    );
+  });
+
   it('hides the investigation section for a closed-membership organization', () => {
     const organization = OrganizationFixture({
       slug: 'org-slug',

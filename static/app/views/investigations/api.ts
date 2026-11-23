@@ -431,7 +431,8 @@ function useInvestigationMutation<TData, TVariables>(
 
 export function useLaunchInvestigationMutation(
   organizationSlug: string,
-  options?: MutationOptions<InvestigationDetail, MetricOpenPeriodInvestigationSource>
+  options?: MutationOptions<InvestigationDetail, MetricOpenPeriodInvestigationSource>,
+  version?: 2
 ) {
   return useInvestigationMutation(
     organizationSlug,
@@ -442,9 +443,10 @@ export function useLaunchInvestigationMutation(
         }),
         method: 'POST',
         data: {source},
+        options: version ? {query: {version}} : undefined,
       }),
     options,
-    {invalidateCandidates: true}
+    {invalidateCandidates: !version}
   );
 }
 

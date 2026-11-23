@@ -37,6 +37,7 @@
     "static/app",
     "static/gsApp",
     "static/gsAdmin",
+    "src/sentry/**/*.tsx",
     "static/oxlint",
     "tests/js",
     "config",

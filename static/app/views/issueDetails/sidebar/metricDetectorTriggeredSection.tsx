@@ -692,6 +692,17 @@ function SeerInvestigationSection({
     onError: () => toast.error(t('Unable to launch investigation.')),
   });
 
+  const launchV2Mutation = useLaunchInvestigationMutation(
+    organization.slug,
+    {
+      onSuccess: notebook =>
+        navigate(getInvestigationPath(organization.slug, notebook.id)),
+      onError: () =>
+        toast.error(t('Unable to launch the v2 investigation. Please try again.')),
+    },
+    2
+  );
+
   const investigationPath =
     candidate?.status === 'view'
       ? getInvestigationPath(organization.slug, candidate.investigationId)
@@ -707,6 +718,16 @@ function SeerInvestigationSection({
   ) {
     return null;
   }
+
+  const betaButton = organization.features.includes('investigations-v2') && (
+    <Button
+      size={statusBlock ? 'sm' : 'md'}
+      busy={launchV2Mutation.isPending}
+      onClick={() => launchV2Mutation.mutate(source)}
+    >
+      {t('Investigation with v2 (beta)')}
+    </Button>
+  );
 
   return (
     <FoldSection
@@ -728,9 +749,12 @@ function SeerInvestigationSection({
               {...statusBlock}
               trailing={
                 investigationPath ? (
-                  <LinkButton size="sm" variant="primary" to={investigationPath}>
-                    {t('View Investigation')}
-                  </LinkButton>
+                  <Flex gap="sm" wrap="wrap">
+                    <LinkButton size="sm" variant="primary" to={investigationPath}>
+                      {t('View Investigation')}
+                    </LinkButton>
+                    {betaButton}
+                  </Flex>
                 ) : undefined
               }
             />
@@ -742,7 +766,7 @@ function SeerInvestigationSection({
             </Text>
           )}
           {statusBlock && investigationPath ? null : (
-            <Flex>
+            <Flex gap="sm" wrap="wrap">
               {investigationPath ? (
                 <LinkButton size="md" variant="primary" to={investigationPath}>
                   {t('View Investigation')}
@@ -757,6 +781,7 @@ function SeerInvestigationSection({
                   {t('Launch Investigation')}
                 </Button>
               )}
+              {betaButton}
             </Flex>
           )}
         </Stack>

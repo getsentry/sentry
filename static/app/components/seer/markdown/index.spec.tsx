@@ -4,11 +4,14 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
 
-import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {SeerEmbed, SeerMarkdown} from 'sentry/components/seer/markdown';
 import * as constants from 'sentry/constants';
 import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
 import {buildRoutes} from 'sentry/router/routes';
 import {ConfigStore} from 'sentry/stores/configStore';
+
+import {seerEmbedsToJsonSchemas} from './embeds/schemas';
+import {SeerEmbedRegistry} from './embeds';
 
 // Replace USING_CUSTOMER_DOMAIN with a getter so it can be toggled per test.
 jest.mock('sentry/constants', () => {
@@ -53,6 +56,20 @@ function renderWithLeadingEmbedActions(raw: string) {
 }
 
 describe('SeerMarkdown', () => {
+  it('has an Explorer renderer for every block widget offered to notebook writers', () => {
+    const offered = seerEmbedsToJsonSchemas().filter(widget =>
+      widget.level.includes('block')
+    );
+    expect(offered.filter(widget => !SeerEmbedRegistry.get(widget.name))).toEqual([]);
+  });
+
+  it('keeps a saved text alternative when a widget payload fails validation', () => {
+    render(
+      <SeerEmbed name="chart" level="block" data={{}} fallback="Saved chart evidence" />
+    );
+    expect(screen.getByText('Saved chart evidence')).toBeInTheDocument();
+  });
+
   it('drops unknown embed tags and reports them', () => {
     const captureException = jest.spyOn(Sentry, 'captureException');
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});

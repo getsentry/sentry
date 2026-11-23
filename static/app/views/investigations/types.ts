@@ -74,9 +74,13 @@ export type InvestigationBlock = {
   staleAt: string | null;
   title: string;
   version: number;
+  embed?: {body: Record<string, unknown>; name: string} | null;
+  embedSource?: string | null;
+  embedSummary?: string | null;
+  producerKey?: string | null;
 };
 
-export type InvestigationBlockKind = 'query' | 'text';
+export type InvestigationBlockKind = 'embed' | 'query' | 'text';
 
 export type InvestigationViewer = {active: boolean; lastSeen: string; userId: string};
 
@@ -160,6 +164,23 @@ export type InvestigationQueryOutput = {
   tableMarkdown: string;
 };
 
+export type WorkflowReport = {
+  active: boolean;
+  activity: string[];
+  hypotheses: InvestigationHypothesis[];
+  hypothesisBlockKeys: string[];
+  runId: string;
+  summary: string | null;
+  elapsedSeconds?: number | null;
+  status?:
+    | 'pending'
+    | 'running'
+    | 'awaiting_input'
+    | 'succeeded'
+    | 'failed'
+    | 'cancelled';
+};
+
 export type InvestigationDetail = InvestigationListItem & {
   actionRequests?: InvestigationActionRequest[];
   blocks?: InvestigationBlock[];
@@ -172,6 +193,7 @@ export type InvestigationDetail = InvestigationListItem & {
     type: string;
     snapshot?: Record<string, unknown>;
   };
+  workflowReport?: WorkflowReport;
 };
 
 export type InvestigationTitleGeneration = {
@@ -401,6 +423,7 @@ export type InvestigationHypothesis = {
   automaticRetryCount?: number;
   heartbeatAt?: string | null;
   investigatorRunId?: number | null;
+  notebookBlockKey?: string;
   thoughts?: InvestigationThought[];
   toolActivity?: InvestigationToolActivity[];
   /**
