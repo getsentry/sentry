@@ -243,8 +243,10 @@ export const getTextStyles = (p: TextStyleProps) => css`
         ]
   };
 
-  /* A cap trimmed box would clip anything below the baseline, so only clip sideways */
+  /* A cap trimmed box would clip anything below the baseline, so only clip sideways.
+     Unlike hidden, clip doesn't let a flex item shrink, so reset its min-width. */
   overflow: ${p.ellipsis ? (p.trim === 'cap' ? 'clip visible' : 'hidden') : undefined};
+  min-width: ${p.ellipsis && p.trim === 'cap' ? 0 : undefined};
   text-overflow: ${p.ellipsis ? 'ellipsis' : undefined};
   white-space: ${p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined};
   text-wrap: ${p.textWrap ?? undefined};
