@@ -505,11 +505,17 @@ class IssueProducerRecordingTest(TestCase):
         assert not InboxItem.objects.exists()
 
     def test_recording_failure_does_not_fail_assignment(self) -> None:
-        with patch(
-            "sentry.inbox.issue.InboxEventType.record", side_effect=RuntimeError("write failed")
+        with (
+            patch(
+                "sentry.inbox.issue.InboxEventType.record", side_effect=RuntimeError("write failed")
+            ),
+            self.assertLogs("sentry.safe.function", level="ERROR") as logs,
         ):
             GroupAssignee.objects.assign(self.group, self.user)
 
+        assert [record.getMessage() for record in logs.records] == [
+            "create_inbox_items.process_error"
+        ]
         assert GroupAssignee.objects.get(group=self.group).user_id == self.user.id
         assert Activity.objects.filter(group=self.group, type=ActivityType.ASSIGNED.value).exists()
 
