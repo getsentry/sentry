@@ -63,7 +63,6 @@ class AutofixStageConfig(TypedDict):
     completed_text: str
 
 
-# Any organization page opens the Seer auto-reload modal for this fragment.
 SEER_AUTO_RELOAD_MODAL_FRAGMENT = "open-seer-auto-reload-modal"
 
 MAX_STEPS = 10
