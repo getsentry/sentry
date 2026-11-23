@@ -232,20 +232,18 @@ function DiscoverLanding() {
                 <LoadingError message={error.message} />
               ) : (
                 <Stack gap="xl">
-                  {organization.features.includes('expose-migrated-discover-queries') && (
-                    <Alert variant="info">
-                      {tct(
-                        'Your saved transactions queries are no longer available in this UI. Try them out in the [exploreLink:Explore Queries] page instead.',
-                        {
-                          exploreLink: (
-                            <Link
-                              to={`/organizations/${organization.slug}/explore/saved-queries/`}
-                            />
-                          ),
-                        }
-                      )}
-                    </Alert>
-                  )}
+                  <Alert variant="info">
+                    {tct(
+                      'Your saved transactions queries are no longer available in this UI. Try them out in the [exploreLink:Explore Queries] page instead.',
+                      {
+                        exploreLink: (
+                          <Link
+                            to={`/organizations/${organization.slug}/explore/saved-queries/`}
+                          />
+                        ),
+                      }
+                    )}
+                  </Alert>
                   <QueryList
                     pageLinks={savedQueriesPageLinks ?? ''}
                     savedQueries={savedQueries}
