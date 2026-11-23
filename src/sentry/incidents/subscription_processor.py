@@ -59,7 +59,17 @@ class SubscriptionProcessor:
         Use the `process` classmethod rather than calling this directly.
         """
         self.subscription = subscription
+        self.subscription_id = str(subscription.id)
         self.detector = detector
+        self.dataset = self.subscription.snuba_query.dataset
+        self.project = self.subscription.project
+
+        # The subscription's `subscription_id` field is nullable (since it's only set once Snuba
+        # accepts the subscription), but we wouldn't get here if it weren't set, as the subscription
+        # update consumer only calls this processor once it's used the id to found the subscription
+        # record.
+        assert self.subscription.subscription_id is not None
+        self.snuba_subscription_id = self.subscription.subscription_id
 
     @classmethod
     def process(
@@ -123,7 +133,7 @@ class SubscriptionProcessor:
         # crashed sessions directly or users experiencing at least one crashed session. Either way,
         # snuba returns the counts, not the rate, so we have to do the percentage calculation
         # ourselves.
-        if self.subscription.snuba_query.dataset == Dataset.Metrics.value:
+        if self.dataset == Dataset.Metrics.value:
             total_count = raw_data.get("count", 0)
             crash_count = raw_data.get("crashed", 0)
 
@@ -164,9 +174,9 @@ class SubscriptionProcessor:
         baseline_window_start = baseline_window_end - timedelta(seconds=snuba_query.time_window)
         baseline_value = run_query_for_window(
             snuba_query=snuba_query,
-            subscription_id=subscription_update["subscription_id"],
-            org_id=self.subscription.project.organization.id,
-            project_ids=[self.subscription.project_id],
+            subscription_id=self.snuba_subscription_id,
+            org_id=self.project.organization.id,
+            project_ids=[self.project.id],
             window_start=baseline_window_start,
             window_end=baseline_window_end,
             referrer=Referrer.SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY,
@@ -190,7 +200,7 @@ class SubscriptionProcessor:
                 # validation to make sure no such detectors ever reappear), we can remove this
                 # branch in the logic.
                 extracted_value
-                if self.subscription.snuba_query.dataset == Dataset.Metrics.value
+                if self.dataset == Dataset.Metrics.value
                 else self._get_percent_detector_value(extracted_value, subscription_update)
             )
 
@@ -208,17 +218,17 @@ class SubscriptionProcessor:
         if detector_cfg["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
             anomaly_detection_packet = AnomalyDetectionUpdate(
                 entity=subscription_update.get("entity", ""),
-                subscription_id=subscription_update["subscription_id"],
+                subscription_id=self.snuba_subscription_id,
                 values={
                     "value": evaluation_value,
-                    "source_id": str(self.subscription.id),
-                    "subscription_id": subscription_update["subscription_id"],
+                    "source_id": self.subscription_id,
+                    "subscription_id": self.snuba_subscription_id,
                     "timestamp": timestamp,
                 },
                 timestamp=timestamp,
             )
             anomaly_detection_data_packet = DataPacket[AnomalyDetectionUpdate](
-                source_id=str(self.subscription.id), packet=anomaly_detection_packet
+                source_id=self.subscription_id, packet=anomaly_detection_packet
             )
             results = process_data_packet(
                 anomaly_detection_data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
@@ -226,12 +236,12 @@ class SubscriptionProcessor:
         else:
             metric_packet = ProcessedSubscriptionUpdate(
                 entity=subscription_update.get("entity", ""),
-                subscription_id=subscription_update["subscription_id"],
+                subscription_id=self.snuba_subscription_id,
                 values={"value": evaluation_value},
                 timestamp=timestamp,
             )
             metric_data_packet = DataPacket[ProcessedSubscriptionUpdate](
-                source_id=str(self.subscription.id), packet=metric_packet
+                source_id=self.subscription_id, packet=metric_packet
             )
             results = process_data_packet(metric_data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 
@@ -242,13 +252,10 @@ class SubscriptionProcessor:
         Core processing method. Assumes subscription has cached project/organization
         and detector exists (enforced by the `process` classmethod).
         """
-        dataset = self.subscription.snuba_query.dataset
-        organization = self.subscription.project.organization
-
-        if not is_metric_subscription_allowed(dataset, organization):
+        if not is_metric_subscription_allowed(self.dataset, self.project.organization):
             metrics.incr(
                 "incidents.alert_rules.ignore_update_not_enabled",
-                tags={"dataset": dataset},
+                tags={"dataset": self.dataset},
             )
             return False
 
@@ -260,16 +267,13 @@ class SubscriptionProcessor:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return False
 
-        if (
-            len(subscription_update["values"]["data"]) > 1
-            and self.subscription.snuba_query.dataset != Dataset.Metrics.value
-        ):
+        if len(subscription_update["values"]["data"]) > 1 and self.dataset != Dataset.Metrics.value:
             logger.warning(
                 "Subscription returned more than 1 row of data",
                 extra={
-                    "subscription_id": self.subscription.id,
-                    "dataset": self.subscription.snuba_query.dataset,
-                    "snuba_subscription_id": self.subscription.subscription_id,
+                    "subscription_id": self.subscription_id,
+                    "dataset": self.dataset,
+                    "snuba_subscription_id": self.snuba_subscription_id,
                     "result": subscription_update,
                 },
             )
@@ -292,9 +296,7 @@ class SubscriptionProcessor:
         # Whether or not the value was valid, we processed the update, so bump the stored last
         # update time to avoid reprocessing it. This happens after processing, not before, so an
         # update interrupted partway through can still be redelivered and reprocessed.
-        store_detector_last_update(
-            self.detector, self.subscription.project_id, subscription_update["timestamp"]
-        )
+        store_detector_last_update(self.detector, self.project.id, subscription_update["timestamp"])
 
         return evaluation_value is not None
 
