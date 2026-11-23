@@ -68,7 +68,7 @@ class SeerWorkflowEnsureDefaultsTest(TestCase):
         assert workflow.filters.all_projects is True
         assert workflow.filters.environments == []
         assert workflow.extras.seeded_default == SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
-        assert workflow.extras.action_settings == {"skill": "night_shift"}
+        assert workflow.extras.action_settings == {"skill": "agentic_triage"}
         assert workflow.get_project_ids() == [first.id, later.id]
 
     def test_existing_disabled_config_is_not_reseeded_or_changed(self) -> None:
@@ -222,7 +222,7 @@ class SeerWorkflowCreateTest(TestCase):
         assert not SeerWorkflowConfig.objects.exists()
 
     def test_scheduled_investigation_runs_a_prompt_or_a_skill(self) -> None:
-        for action_settings in ({"prompt": "Check checkout latency"}, {"skill": "night_shift"}):
+        for action_settings in ({"prompt": "Check checkout latency"}, {"skill": "agentic_triage"}):
             workflow = SeerWorkflow.create(
                 organization_id=self.organization.id,
                 strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
@@ -235,7 +235,7 @@ class SeerWorkflowCreateTest(TestCase):
             assert workflow.extras.action_settings == action_settings
 
         for action_settings, error in (
-            ({"prompt": "Check checkout latency", "skill": "night_shift"}, "not both"),
+            ({"prompt": "Check checkout latency", "skill": "agentic_triage"}, "not both"),
             ({"skill": "unknown"}, "skill"),
             ({"prompt": ""}, "prompt"),
         ):

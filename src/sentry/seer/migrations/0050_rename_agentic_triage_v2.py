@@ -7,7 +7,7 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 OLD_STRATEGY = "agentic_triage_v2"
 NEW_STRATEGY = "scheduled_investigation"
-NIGHT_SHIFT_ACTION_SETTINGS = {"skill": "night_shift"}
+AGENTIC_TRIAGE_ACTION_SETTINGS = {"skill": "agentic_triage"}
 
 
 def rename_agentic_triage_v2(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
@@ -18,9 +18,9 @@ def rename_agentic_triage_v2(apps: StateApps, schema_editor: BaseDatabaseSchemaE
         config.strategy = NEW_STRATEGY
         if config.extras.get("seeded_default") == OLD_STRATEGY:
             config.extras["seeded_default"] = NEW_STRATEGY
-            # The seeded default ran the night shift prompt, which is now a Seer skill.
+            # The seeded default ran the agentic triage prompt, which is now a Seer skill.
             if not config.extras.get("action_settings"):
-                config.extras["action_settings"] = NIGHT_SHIFT_ACTION_SETTINGS
+                config.extras["action_settings"] = AGENTIC_TRIAGE_ACTION_SETTINGS
         config.save(update_fields=["strategy", "extras"])
 
 
