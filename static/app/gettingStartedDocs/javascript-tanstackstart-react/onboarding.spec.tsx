@@ -34,11 +34,15 @@ describe('javascript-tanstackstart-react onboarding docs', () => {
 
     expect(
       screen.getByText(
-        textWithMarkupMatcher(/NODE_OPTIONS='--import \.\/instrument\.server\.mjs' vite dev/)
+        textWithMarkupMatcher(
+          /NODE_OPTIONS='--import \.\/instrument\.server\.mjs' vite dev/
+        )
       )
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/"start": "node \.output\/server\/index\.mjs"/))
+      screen.getByText(
+        textWithMarkupMatcher(/"start": "node \.output\/server\/index\.mjs"/)
+      )
     ).toBeInTheDocument();
     expect(
       screen.queryByText(textWithMarkupMatcher(/cp instrument\.server\.mjs/))
