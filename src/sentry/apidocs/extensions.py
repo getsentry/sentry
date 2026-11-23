@@ -225,7 +225,7 @@ def _workflow_action_schema() -> dict[str, Any]:
     variants = []
     for registered_type, handler in sorted(action_handler_registry.registrations.items()):
         action_type = Action.Type(registered_type)
-        if action_type in DEPRECATED_ACTION_TYPES:
+        if action_type in DEPRECATED_ACTION_TYPES or action_type == Action.Type.ADD_TO_INBOX:
             continue
 
         transformer = handler.get_config_transformer()
