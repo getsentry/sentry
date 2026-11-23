@@ -1,5 +1,6 @@
 import type * as React from 'react';
-import {useContext, useId, useMemo, useRef} from 'react';
+import {useContext, useId, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {useGridList} from '@react-aria/gridlist';
 import {mergeProps} from '@react-aria/utils';
@@ -7,6 +8,7 @@ import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
 import {SelectFilterContext} from '@sentry/scraps/compactSelect/selectFilterContext';
+import {SelectRows} from '@sentry/scraps/compactSelect/selectRows';
 import {
   ListLabel,
   ListSeparator,
@@ -14,8 +16,10 @@ import {
   SizeLimitMessage,
 } from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
-import {useVirtualizedItems} from '@sentry/scraps/compactSelect/useVirtualizedItems';
-import {hasVisibleLeadingItems} from '@sentry/scraps/compactSelect/utils';
+import {
+  getVisibleListItems,
+  hasVisibleLeadingItems,
+} from '@sentry/scraps/compactSelect/utils';
 import {Container} from '@sentry/scraps/layout';
 import {ControlContext, ReserveLeadingSlot} from '@sentry/scraps/menu';
 import {useTranslation} from '@sentry/scraps/translation';
@@ -82,7 +86,9 @@ function GridList<T extends ListItemBase>({
   ...props
 }: GridListProps<T>) {
   const {t} = useTranslation();
+  const theme = useTheme();
   const ref = useRef<HTMLUListElement>(null);
+  const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null);
   const labelId = useId();
   const {gridProps} = useGridList(
     {...props, 'aria-labelledby': label ? labelId : props['aria-labelledby']},
@@ -101,22 +107,13 @@ function GridList<T extends ListItemBase>({
   const {overlayIsOpen, searchable} = useContext(ControlContext);
   const hiddenOptions = useContext(SelectFilterContext);
   const listItems = useMemo(
-    () =>
-      [...listState.collection].filter(node => {
-        if (node.type === 'section') {
-          return ![...node.childNodes].every(child => hiddenOptions.has(child.key));
-        }
-
-        return !hiddenOptions.has(node.key);
-      }),
+    () => getVisibleListItems(listState.collection, hiddenOptions),
     [listState.collection, hiddenOptions]
   );
   const reserveLeadingSlot = useMemo(
     () => hasVisibleLeadingItems(listItems, hiddenOptions),
     [listItems, hiddenOptions]
   );
-
-  const virtualizer = useVirtualizedItems({listItems, virtualized, size});
 
   const mergedProps = mergeProps(gridProps, props);
 
@@ -125,51 +122,46 @@ function GridList<T extends ListItemBase>({
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel id={labelId}>{label}</ListLabel>}
       {overlayIsOpen && (
-        <Container ref={virtualizer.scrollElementRef} height="100%" overflowY="auto">
-          {/* oxlint-disable-next-line react/refs */}
-          <Container {...virtualizer.wrapperProps}>
-            <ListWrap
-              {...mergedProps}
-              style={{...mergedProps.style, ...virtualizer.listWrapStyle}}
-              onKeyDown={onKeyDown}
-              ref={ref}
-            >
-              {/* oxlint-disable-next-line react/refs */}
-              {virtualizer.items.map(row => {
-                const item = listItems[row.index];
-                if (!item) {
-                  return null;
-                }
-                if (item.type === 'section') {
-                  return (
-                    <GridListSection
-                      {...virtualizer.itemProps(row.index)}
-                      key={item.key}
-                      node={item}
-                      listState={listState}
-                      size={size}
-                    />
-                  );
-                }
-
-                return (
-                  <GridListOption
-                    key={item.key}
-                    {...virtualizer.itemProps(row.index)}
-                    node={item}
-                    listState={listState}
-                    size={size}
-                  />
-                );
-              })}
-
-              {!searchable && hiddenOptions.size > 0 && (
-                <SizeLimitMessage>
-                  {sizeLimitMessage ?? t('Use search to find more options…')}
-                </SizeLimitMessage>
+        <Container ref={setScrollElement} height="100%" overflowY="auto">
+          <ListWrap {...mergedProps} onKeyDown={onKeyDown} ref={ref}>
+            <SelectRows
+              listItems={listItems}
+              hiddenOptions={hiddenOptions}
+              virtualized={!!virtualized}
+              size={size}
+              scrollElement={scrollElement}
+              focusedKey={listState.selectionManager.focusedKey}
+              selectionMode={listState.selectionManager.selectionMode}
+              showSectionHeaders
+              // Matches the vertical padding of `ListWrap`.
+              listPadding={parseFloat(theme.space.xs)}
+              renderOption={({node, rowProps}) => (
+                <GridListOption
+                  node={node}
+                  listState={listState}
+                  size={size}
+                  data-index={rowProps?.['data-index']}
+                  ref={rowProps?.ref}
+                />
               )}
-            </ListWrap>
-          </Container>
+              renderSection={({layout, node, rowProps}, options) => (
+                <GridListSection
+                  node={node}
+                  layout={layout}
+                  listState={listState}
+                  rowProps={rowProps}
+                >
+                  {options}
+                </GridListSection>
+              )}
+            />
+
+            {!searchable && hiddenOptions.size > 0 && (
+              <SizeLimitMessage>
+                {sizeLimitMessage ?? t('Use search to find more options…')}
+              </SizeLimitMessage>
+            )}
+          </ListWrap>
         </Container>
       )}
     </ReserveLeadingSlot>
