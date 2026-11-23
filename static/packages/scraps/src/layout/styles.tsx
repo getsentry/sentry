@@ -11,6 +11,7 @@ import {
 import {useTheme} from '@emotion/react';
 
 import type {
+  BackgroundToken,
   BorderToken,
   BorderVariant,
   BreakpointSize,
@@ -220,6 +221,22 @@ function resolveMargin(sizeComponent: Margin, theme: Theme) {
   }
 
   return theme.space[sizeComponent] ?? theme.space['0'];
+}
+
+export function getBackground(
+  background: BackgroundToken | undefined,
+  _breakpoint: ResponsiveBreakpoint | undefined,
+  theme: Theme
+): string | undefined {
+  if (background === undefined) {
+    return undefined;
+  }
+
+  let node: unknown = theme.tokens.background;
+  for (const segment of background.split('.')) {
+    node = (node as Record<string, unknown>)[segment];
+  }
+  return node as string;
 }
 
 function borderValue(path: BorderToken, theme: Theme): string {

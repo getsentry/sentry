@@ -6,9 +6,10 @@ import {act, render, renderHook, screen} from '@testing-library/react';
 
 import {Container} from '@sentry/scraps/layout';
 import {darkTheme, lightTheme, lightTheme as theme} from '@sentry/scraps/theme';
-import type {BorderToken, BreakpointSize} from '@sentry/scraps/theme';
+import type {BackgroundToken, BorderToken, BreakpointSize} from '@sentry/scraps/theme';
 
 import {
+  getBackground,
   getBorder,
   rc,
   useActiveBreakpoint,
@@ -177,6 +178,29 @@ describe('rc', () => {
       'container-type: inline-size;'
     );
     expect(rc('container-type', undefined, theme)).toBeUndefined();
+  });
+});
+
+describe('getBackground', () => {
+  it.each([lightTheme, darkTheme])('resolves every background token path', t => {
+    const paths: BackgroundToken[] = [];
+    const collect = (node: Record<string, unknown>, prefix: string) => {
+      for (const [key, value] of Object.entries(node)) {
+        const path = prefix ? `${prefix}.${key}` : key;
+        if (typeof value === 'string') {
+          paths.push(path as BackgroundToken);
+          expect(getBackground(path as BackgroundToken, undefined, t)).toBe(value);
+        } else {
+          collect(value as Record<string, unknown>, path);
+        }
+      }
+    };
+    collect(t.tokens.background, '');
+    expect(paths).toHaveLength(15);
+  });
+
+  it('returns undefined when omitted', () => {
+    expect(getBackground(undefined, undefined, theme)).toBeUndefined();
   });
 });
 

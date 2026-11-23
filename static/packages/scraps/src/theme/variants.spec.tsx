@@ -2,6 +2,7 @@ import {expectTypeOf} from 'expect-type';
 
 import type {
   AlertVariant,
+  BackgroundToken,
   BorderToken,
   BorderVariant,
   ButtonVariant,
@@ -69,6 +70,23 @@ it('preserves the variant unions and constrains tracked button variants', () => 
     | 'transparent.success.vibrant'
   >();
   expectTypeOf<BorderVariant>().toEqualTypeOf<BorderToken | 'none'>();
+  expectTypeOf<BackgroundToken>().toEqualTypeOf<
+    | 'primary'
+    | 'secondary'
+    | 'tertiary'
+    | 'overlay'
+    | 'accent.vibrant'
+    | 'promotion.vibrant'
+    | 'danger.vibrant'
+    | 'warning.vibrant'
+    | 'success.vibrant'
+    | 'transparent.neutral.muted'
+    | 'transparent.accent.muted'
+    | 'transparent.promotion.muted'
+    | 'transparent.danger.muted'
+    | 'transparent.warning.muted'
+    | 'transparent.success.muted'
+  >();
   expectTypeOf<TagVariant>().toEqualTypeOf<
     'muted' | 'info' | 'success' | 'warning' | 'danger' | 'promotion'
   >();
