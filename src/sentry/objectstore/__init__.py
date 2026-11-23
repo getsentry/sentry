@@ -174,21 +174,23 @@ _USECASES: dict[UsecaseId, ObjectstoreClientUsecase] = {}
 
 
 def get_session(
-    usecase: UsecaseId, project: Project | int | None, *, org: int | None = None
+    usecase: UsecaseId, project: Project | int | None, org: int | None = None
 ) -> Session:
     """Return an Objectstore session scoped to an organization and optionally a project.
 
     Pass a project model, a project ID with its organization ID, or an organization ID alone::
 
         get_session(UsecaseId.ATTACHMENTS, project)
-        get_session(UsecaseId.ATTACHMENTS, project_id, org=org_id)
+        get_session(UsecaseId.ATTACHMENTS, project_id, org_id)
         get_session(UsecaseId.ARTIFACT_BUNDLES, project=None, org=org_id)
 
     An explicit organization ID must match the project model's organization.
     """
+    if project is None and org is None:
+        raise ValueError("project or org is required")
+
     if project is None:
-        if org is None:
-            raise TypeError("org is required for an organization-only session")
+        assert org is not None
         scope = {"org": org}
     elif isinstance(project, int):
         if org is None:
