@@ -1,6 +1,4 @@
-import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
 
 import {
   getAbsoluteSummary,
@@ -100,15 +98,8 @@ export function BreakdownTotal({aggregate, meta, selection, value}: BreakdownTot
       : t('Overall');
 
   return (
-    <Tooltip title={tooltip} skipWrapper>
-      <Flex align="baseline" gap="sm">
-        <Text size="md" variant="muted" aria-hidden>
-          ·
-        </Text>
-        <Text size="md" bold tabular>
-          {formatBreakdownLegendValue(value, meta.valueType, meta.valueUnit ?? undefined)}
-        </Text>
-      </Flex>
-    </Tooltip>
+    <InfoText title={tooltip} size="md" variant="muted" tabular>
+      {formatBreakdownLegendValue(value, meta.valueType, meta.valueUnit ?? undefined)}
+    </InfoText>
   );
 }

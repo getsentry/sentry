@@ -73,7 +73,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
           )}
 
           {props.titleSummary ? (
-            <Flex align="baseline" gap="sm" minWidth="0">
+            <Flex align="baseline" gap="md" minWidth="0">
               <Container minWidth="0">
                 <Widget.WidgetTitle title={props.title} />
               </Container>
