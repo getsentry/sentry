@@ -10,7 +10,7 @@ from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 from sentry.constants import ObjectStatus
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.incidents.utils.process_update_helpers import (
+from sentry.incidents.utils.query_helpers import (
     normalize_snuba_query_result,
     run_query_for_window,
 )
