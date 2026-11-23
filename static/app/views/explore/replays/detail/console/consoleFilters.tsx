@@ -7,9 +7,7 @@ import {FiltersGrid} from 'sentry/views/explore/replays/detail/filtersGrid';
 
 import {type useConsoleFilters} from './useConsoleFilters';
 
-type Props = {
-  frames: undefined | unknown[];
-} & ReturnType<typeof useConsoleFilters>;
+type Props = {frames: undefined | unknown[]} & ReturnType<typeof useConsoleFilters>;
 
 export function Filters({
   frames,

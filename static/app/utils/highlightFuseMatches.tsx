@@ -2,10 +2,7 @@ import type {FuseResultMatch} from 'fuse.js/basic';
 
 type Match = FuseResultMatch;
 
-type HighlightResult = {
-  highlight: boolean;
-  text: string;
-};
+type HighlightResult = {highlight: boolean; text: string};
 
 type MatchResult = HighlightResult[];
 
@@ -50,18 +47,12 @@ const getFuseMatches = ({value, indices}: Match): MatchResult => {
 
     // Only add to result if non-empty string
     if (stringBeforeMatch) {
-      result.push({
-        highlight: false,
-        text: stringBeforeMatch,
-      });
+      result.push({highlight: false, text: stringBeforeMatch});
     }
 
     // This is the matched string, which should be highlighted
     const matchedString = value.substring(start, end + 1);
-    result.push({
-      highlight: true,
-      text: matchedString,
-    });
+    result.push({highlight: true, text: matchedString});
 
     prev = [start, end];
   });

@@ -12,9 +12,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Truncate} from 'sentry/components/truncate';
 
-type BaseProps = {
-  title: string;
-};
+type BaseProps = {title: string};
 
 type SingleUnClearableProps = DistributedOmit<
   SingleSelectProps<string>,
@@ -44,11 +42,7 @@ type MultipleProps = DistributedOmit<
   MultipleSelectProps<string>,
   'onChange' | 'multiple' | 'title' | 'value'
 > &
-  BaseProps & {
-    multiple: true;
-    onChange: (value: string[]) => void;
-    selected: string[];
-  };
+  BaseProps & {multiple: true; onChange: (value: string[]) => void; selected: string[]};
 
 export function OptionSelector({
   options,

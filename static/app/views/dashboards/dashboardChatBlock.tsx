@@ -26,10 +26,7 @@ export function DashboardChatBlock({block, blockIndex, runId}: DashboardChatBloc
   if (block.message.role === 'user' && typeof block.message.content === 'string') {
     const {instructions, query} = splitDashboardPrompt(block.message.content);
     if (instructions) {
-      const queryBlock: Block = {
-        ...block,
-        message: {...block.message, content: query},
-      };
+      const queryBlock: Block = {...block, message: {...block.message, content: query}};
       return (
         <Stack width="100%">
           <BlockComponent block={queryBlock} blockIndex={blockIndex} runId={runId} />

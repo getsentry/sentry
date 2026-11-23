@@ -21,9 +21,7 @@ export function OrganizationIntegrationsFixture(
       aspects: {},
     },
     configOrganization: [],
-    configData: {
-      installationType: 'born_as_bot',
-    },
+    configData: {installationType: 'born_as_bot'},
     externalId: 'TA99AB9CD',
     gracePeriodEnd: '',
     organizationId: 1,

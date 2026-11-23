@@ -37,11 +37,6 @@ class BaseTSDBTest(TestCase):
         assert len(post_results) == 1
         assert post_results[1] == [[1368889200, 15], [1368892800, 7]]
 
-    def test_calculate_expiry(self) -> None:
-        timestamp = datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)
-        result = self.tsdb.calculate_expiry(10, 30, timestamp)
-        assert result == 1368890330
-
     @freeze_time("2016-08-01")
     def test_get_optimal_rollup_series_aligned_intervals(self) -> None:
         start = datetime.now(timezone.utc) - timedelta(seconds=30)

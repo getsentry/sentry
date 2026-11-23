@@ -28,9 +28,7 @@ export const profiling: OnboardingConfig = {
               type: 'text',
               text: tct(
                 'UI Profiling requires a minimum version of [code:8.49.0] of the Sentry SDK.',
-                {
-                  code: <code />,
-                }
+                {code: <code />}
               ),
             },
           ],
@@ -56,16 +54,10 @@ export const profiling: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Alternatively, when your project uses a [packageSwift: Package.swift] file to manage dependencies, you can specify the target with:',
-            {
-              packageSwift: <code />,
-            }
+            {packageSwift: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'swift',
-          code: getInstallSnippet(params),
-        },
+        {type: 'code', language: 'swift', code: getInstallSnippet(params)},
       ],
     },
   ],
@@ -77,9 +69,7 @@ export const profiling: OnboardingConfig = {
           type: 'text',
           text: tct(
             'To configure profiling, assign a closure to [code:SentryOptions.configureProfiling], setting the desired options on the object passed in as parameter.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

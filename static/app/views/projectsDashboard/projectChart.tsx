@@ -42,16 +42,8 @@ export function ProjectChart({firstEvent, stats, transactionStats, project}: Pro
       barMinHeight: 1,
       xAxisIndex: 1,
       yAxisIndex: 1,
-      itemStyle: {
-        color: theme.tokens.dataviz.semantic.neutral,
-        opacity: 0.8,
-      },
-      emphasis: {
-        itemStyle: {
-          color: theme.tokens.dataviz.semantic.neutral,
-          opacity: 1,
-        },
-      },
+      itemStyle: {color: theme.tokens.dataviz.semantic.neutral, opacity: 0.8},
+      emphasis: {itemStyle: {color: theme.tokens.dataviz.semantic.neutral, opacity: 1}},
     });
   }
 
@@ -68,41 +60,16 @@ export function ProjectChart({firstEvent, stats, transactionStats, project}: Pro
       barMinHeight: 1,
       xAxisIndex: 0,
       yAxisIndex: 0,
-      itemStyle: {
-        color: theme.tokens.dataviz.semantic.accent,
-        opacity: 0.6,
-      },
-      emphasis: {
-        itemStyle: {
-          color: theme.tokens.dataviz.semantic.accent,
-          opacity: 0.8,
-        },
-      },
+      itemStyle: {color: theme.tokens.dataviz.semantic.accent, opacity: 0.6},
+      emphasis: {itemStyle: {color: theme.tokens.dataviz.semantic.accent, opacity: 0.8}},
     });
   }
   const grid = hasTransactions
     ? [
-        {
-          top: 10,
-          bottom: 60,
-          left: 2,
-          right: 2,
-        },
-        {
-          top: 105,
-          bottom: 0,
-          left: 2,
-          right: 2,
-        },
+        {top: 10, bottom: 60, left: 2, right: 2},
+        {top: 105, bottom: 0, left: 2, right: 2},
       ]
-    : [
-        {
-          top: 10,
-          bottom: 0,
-          left: 2,
-          right: 2,
-        },
-      ];
+    : [{top: 10, bottom: 0, left: 2, right: 2}];
 
   const chartOptions = {
     series,
@@ -111,29 +78,13 @@ export function ProjectChart({firstEvent, stats, transactionStats, project}: Pro
     isGroupedByDate: true,
     showTimeInTooltip: true,
     grid,
-    tooltip: {
-      trigger: 'axis' as const,
-    },
+    tooltip: {trigger: 'axis' as const},
     xAxes: Array.from(Array.from({length: series.length})).map((_i, index) => ({
       gridIndex: index,
-      axisLine: {
-        show: false,
-      },
-      axisTick: {
-        show: false,
-      },
-      axisLabel: {
-        show: false,
-      },
-      axisPointer: {
-        type: 'line' as const,
-        label: {
-          show: false,
-        },
-        lineStyle: {
-          width: 0,
-        },
-      },
+      axisLine: {show: false},
+      axisTick: {show: false},
+      axisLabel: {show: false},
+      axisPointer: {type: 'line' as const, label: {show: false}, lineStyle: {width: 0}},
     })),
     yAxes: Array.from(Array.from({length: series.length})).map((_i, index) => ({
       gridIndex: index,
@@ -155,18 +106,14 @@ export function ProjectChart({firstEvent, stats, transactionStats, project}: Pro
         textBorderColor: theme.tokens.border.secondary,
         textBorderWidth: 1,
       },
-      splitLine: {
-        show: false,
-      },
+      splitLine: {show: false},
       zlevel: theme.zIndex.header,
     })),
     axisPointer: {
       // Link each x-axis together.
       link: [{xAxisIndex: [0, 1]}],
     },
-    options: {
-      animation: false,
-    },
+    options: {animation: false},
   };
 
   return (

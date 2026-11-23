@@ -18,10 +18,7 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'time', width: '1fr'},
 ];
 
-type Props = {
-  project: Project;
-  latestDeploys?: Project['latestDeploys'];
-};
+type Props = {project: Project; latestDeploys?: Project['latestDeploys']};
 
 export function Deploys({latestDeploys, project}: Props) {
   const flattenedDeploys = Object.entries(latestDeploys ?? {}).map(

@@ -30,9 +30,7 @@ describe('echo onboarding docs', () => {
   });
 
   it('renders logs onboarding docs correctly', async () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.LOGS],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.LOGS]});
 
     const elements = await screen.findAllByText(textWithMarkupMatcher(/EnableLogs/));
     for (const element of elements) {

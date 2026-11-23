@@ -71,10 +71,7 @@ function IssueOpenPeriodsList() {
   const openPeriods = response?.json ?? [];
   const investigationsEnabled = useInvestigationsEnabled();
   const candidateSources: MetricOpenPeriodInvestigationSource[] = openPeriods.map(
-    period => ({
-      type: 'metric_open_period',
-      ref: {groupId, openPeriodId: period.id},
-    })
+    period => ({type: 'metric_open_period', ref: {groupId, openPeriodId: period.id}})
   );
   const {data: candidates} = useQuery({
     ...investigationCandidatesQueryOptions({
@@ -131,13 +128,7 @@ function IssueOpenPeriodsList() {
     {key: 'start', width: COL_WIDTH_UNDEFINED, name: t('Start')},
     {key: 'end', width: COL_WIDTH_UNDEFINED, name: t('End')},
     ...(investigationsEnabled
-      ? [
-          {
-            key: 'investigation',
-            width: COL_WIDTH_UNDEFINED,
-            name: t('Investigation'),
-          },
-        ]
+      ? [{key: 'investigation', width: COL_WIDTH_UNDEFINED, name: t('Investigation')}]
       : []),
   ];
 
@@ -174,9 +165,7 @@ function IssueOpenPeriodsList() {
         data={data}
         error={error}
         columnOrder={columnOrder}
-        grid={{
-          renderBodyCell,
-        }}
+        grid={{renderBodyCell}}
       />
     </EventListTable>
   );

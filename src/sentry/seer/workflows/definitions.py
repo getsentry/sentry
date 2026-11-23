@@ -9,8 +9,8 @@ from sentry.seer.workflows.breached_metrics import MetricAlertDefinition
 from sentry.seer.workflows.scheduled import ScheduleDefinition
 
 DEFINITIONS: Mapping[SeerWorkflowStrategy, AutomationDefinition[Any]] = {
-    SeerWorkflowStrategy.AGENTIC_TRIAGE_V2: ScheduleDefinition(),
-    SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION: MetricAlertDefinition(),
+    definition.strategy: definition
+    for definition in (ScheduleDefinition(), MetricAlertDefinition())
 }
 
 

@@ -31,19 +31,11 @@ function renderMockRequests({
   organization: Organization;
   canSelfServe?: boolean;
 }) {
-  const subscription = SubscriptionFixture({
-    organization,
-    canSelfServe,
-  });
+  const subscription = SubscriptionFixture({organization, canSelfServe});
 
   act(() => SubscriptionStore.set(organization.slug, subscription));
 
-  MockApiClient.addMockResponse({
-    url: '/customers/org-slug/',
-    body: {
-      canSelfServe,
-    },
-  });
+  MockApiClient.addMockResponse({url: '/customers/org-slug/', body: {canSelfServe}});
 
   MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/billing-config/`,
@@ -54,9 +46,7 @@ function renderMockRequests({
 describe('ProductSelectionAvailability', () => {
   describe('with no billing access', () => {
     it('with performance and session replay', async () => {
-      const organization = OrganizationFixture({
-        features: ['session-replay'],
-      });
+      const organization = OrganizationFixture({features: ['session-replay']});
       const initialRouterConfig = {
         location: {
           pathname: '/mock-pathname/',
@@ -76,10 +66,7 @@ describe('ProductSelectionAvailability', () => {
           organization={organization}
           platform="javascript-react"
         />,
-        {
-          organization,
-          initialRouterConfig,
-        }
+        {organization, initialRouterConfig}
       );
 
       expect(
@@ -156,9 +143,7 @@ describe('ProductSelectionAvailability', () => {
       const initialRouterConfig = {
         location: {
           pathname: '/mock-pathname/',
-          query: {
-            product: [ProductSolution.PERFORMANCE_MONITORING],
-          },
+          query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
         },
       };
 
@@ -169,10 +154,7 @@ describe('ProductSelectionAvailability', () => {
           organization={organization}
           platform="javascript-react"
         />,
-        {
-          organization,
-          initialRouterConfig,
-        }
+        {organization, initialRouterConfig}
       );
 
       expect(
@@ -220,10 +202,7 @@ describe('ProductSelectionAvailability', () => {
           organization={organization}
           platform="javascript-react"
         />,
-        {
-          organization,
-          initialRouterConfig,
-        }
+        {organization, initialRouterConfig}
       );
 
       expect(
@@ -260,9 +239,7 @@ describe('ProductSelectionAvailability', () => {
     });
 
     it('without session replay and profiling', async () => {
-      const organization = OrganizationFixture({
-        access: ['org:billing'],
-      });
+      const organization = OrganizationFixture({access: ['org:billing']});
 
       renderMockRequests({organization});
 
@@ -271,9 +248,7 @@ describe('ProductSelectionAvailability', () => {
           organization={organization}
           platform="javascript-react"
         />,
-        {
-          organization,
-        }
+        {organization}
       );
 
       expect(
@@ -301,15 +276,11 @@ describe('ProductSelectionAvailability', () => {
     });
 
     it('without session replay', async () => {
-      const organization = OrganizationFixture({
-        access: ['org:billing'],
-      });
+      const organization = OrganizationFixture({access: ['org:billing']});
       const initialRouterConfig = {
         location: {
           pathname: '/mock-pathname/',
-          query: {
-            product: [ProductSolution.PERFORMANCE_MONITORING],
-          },
+          query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
         },
       };
 
@@ -350,10 +321,7 @@ describe('ProductSelectionAvailability', () => {
           organization={organization}
           platform="javascript-react"
         />,
-        {
-          organization,
-          initialRouterConfig,
-        }
+        {organization, initialRouterConfig}
       );
 
       expect(
@@ -405,9 +373,7 @@ describe('ProductSelectionAvailability', () => {
     });
 
     it('with profiling and without session replay', async () => {
-      const organization = OrganizationFixture({
-        features: ['profiling-view'],
-      });
+      const organization = OrganizationFixture({features: ['profiling-view']});
       const initialRouterConfig = {
         location: {
           pathname: '/mock-pathname/',
@@ -424,10 +390,7 @@ describe('ProductSelectionAvailability', () => {
           organization={organization}
           platform="python-django"
         />,
-        {
-          organization,
-          initialRouterConfig,
-        }
+        {organization, initialRouterConfig}
       );
 
       expect(
@@ -457,9 +420,7 @@ describe('ProductSelectionAvailability', () => {
       const initialRouterConfig = {
         location: {
           pathname: '/mock-pathname/',
-          query: {
-            product: [ProductSolution.PERFORMANCE_MONITORING],
-          },
+          query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
         },
       };
 
@@ -470,10 +431,7 @@ describe('ProductSelectionAvailability', () => {
           organization={organization}
           platform="python-django"
         />,
-        {
-          organization,
-          initialRouterConfig,
-        }
+        {organization, initialRouterConfig}
       );
 
       expect(
@@ -506,9 +464,7 @@ describe('ProductSelectionAvailability', () => {
     });
 
     it('enabling Profiling, shall check and "disabled" Tracing', async () => {
-      const organization = OrganizationFixture({
-        features: ['profiling-view'],
-      });
+      const organization = OrganizationFixture({features: ['profiling-view']});
 
       renderMockRequests({organization});
 
@@ -517,9 +473,7 @@ describe('ProductSelectionAvailability', () => {
           organization={organization}
           platform="python-django"
         />,
-        {
-          organization,
-        }
+        {organization}
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Profiling'}));
@@ -544,9 +498,7 @@ describe('ProductSelectionAvailability', () => {
     });
 
     it('with Profiling and Tracing', async () => {
-      const organization = OrganizationFixture({
-        features: ['profiling-view'],
-      });
+      const organization = OrganizationFixture({features: ['profiling-view']});
       const initialRouterConfig = {
         location: {
           pathname: '/mock-pathname/',
@@ -563,10 +515,7 @@ describe('ProductSelectionAvailability', () => {
           organization={organization}
           platform="python-django"
         />,
-        {
-          organization,
-          initialRouterConfig,
-        }
+        {organization, initialRouterConfig}
       );
       // Tracing
       expect(screen.getByRole('button', {name: 'Tracing'})).toBeEnabled();
@@ -581,9 +530,7 @@ describe('ProductSelectionAvailability', () => {
       await waitFor(() => {
         expect(router.location).toEqual(
           expect.objectContaining({
-            query: {
-              product: ProductSolution.PERFORMANCE_MONITORING,
-            },
+            query: {product: ProductSolution.PERFORMANCE_MONITORING},
           })
         );
       });

@@ -61,9 +61,7 @@ export function TeamReleases({
       '/teams/$organizationIdOrSlug/$teamIdOrSlug/release-count/',
       {
         path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
-        query: {
-          ...normalizeDateTimeParams(datetime),
-        },
+        query: {...normalizeDateTimeParams(datetime)},
         staleTime: 5000,
       }
     )
@@ -79,9 +77,7 @@ export function TeamReleases({
       '/teams/$organizationIdOrSlug/$teamIdOrSlug/release-count/',
       {
         path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
-        query: {
-          statsPeriod: '7d',
-        },
+        query: {statsPeriod: '7d'},
         staleTime: 5000,
       }
     )
@@ -170,10 +166,7 @@ export function TeamReleases({
   const groupedProjects = groupByTrend(sortedProjects);
 
   const data = Object.entries(periodReleases?.release_counts ?? {}).map(
-    ([bucket, count]) => ({
-      value: Math.ceil(count),
-      name: new Date(bucket).getTime(),
-    })
+    ([bucket, count]) => ({value: Math.ceil(count), name: new Date(bucket).getTime()})
   );
   const seriesData = sortSeriesByDay(data);
 
@@ -204,9 +197,7 @@ export function TeamReleases({
                 silent: true,
                 lineStyle: {color: theme.colors.gray200, type: 'dashed', width: 1},
                 data: [{yAxis: totalPeriodAverage}],
-                label: {
-                  show: false,
-                },
+                label: {show: false},
               }),
               barCategoryGap: '5%',
             },
@@ -277,10 +268,7 @@ export function TeamReleases({
                     avatarSize={18}
                     project={project}
                     to={{
-                      pathname: makeReleasesPathname({
-                        organization,
-                        path: '/',
-                      }),
+                      pathname: makeReleasesPathname({organization, path: '/'}),
                       query: {project: project.id},
                     }}
                   />
@@ -292,10 +280,7 @@ export function TeamReleases({
               <SimpleTable.RowCell justify="end">
                 <Link
                   to={{
-                    pathname: makeReleasesPathname({
-                      organization,
-                      path: '/',
-                    }),
+                    pathname: makeReleasesPathname({organization, path: '/'}),
                     query: {project: project.id, statsPeriod: '7d'},
                   }}
                 >

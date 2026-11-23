@@ -16,9 +16,7 @@ describe('UnsupportedPlatformOnboarding', () => {
   const project = ProjectFixture();
 
   beforeEach(() => {
-    Object.assign(navigator, {
-      clipboard: {writeText: jest.fn().mockResolvedValue('')},
-    });
+    Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
   });
 
   it('renders CopyMarkdownButton', () => {
@@ -381,10 +379,7 @@ describe('Onboarding deployment target', () => {
     render(<Onboarding />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {deploymentTarget: 'cloudflare'},
-        },
+        location: {pathname: '/', query: {deploymentTarget: 'cloudflare'}},
       },
     });
 
@@ -484,9 +479,7 @@ describe('NoDocsOnboarding', () => {
   const project = ProjectFixture();
 
   beforeEach(() => {
-    Object.assign(navigator, {
-      clipboard: {writeText: jest.fn().mockResolvedValue('')},
-    });
+    Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
   });
 
   it('renders CopyMarkdownButton', () => {

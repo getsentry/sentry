@@ -11,15 +11,8 @@ describe('useAuthOrganization', () => {
       joinRequestUrl: '/join-request/acme/',
       loginMethod: 'sso' as const,
       ssoRequired: true,
-      organization: {
-        avatarUrl: null,
-        name: 'Acme',
-        slug: 'acme',
-      },
-      provider: {
-        key: 'dummy',
-        name: 'Dummy',
-      },
+      organization: {avatarUrl: null, name: 'Acme', slug: 'acme'},
+      provider: {key: 'dummy', name: 'Dummy'},
       warnings: [],
     };
     const request = MockApiClient.addMockResponse({

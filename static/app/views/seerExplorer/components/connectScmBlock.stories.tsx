@@ -5,6 +5,8 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {Container} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {PendingUserInput} from 'sentry/views/seerExplorer/types';
 
 import {ConnectScmBlock} from './connectScmBlock';
@@ -71,10 +73,13 @@ function Example({
   failureReason,
   status,
   connectedAccounts = [],
+  asMember = false,
 }: {
   failureReason: string;
   /** Null to keep the check from ever answering. */
   status: string | null;
+  /** Show it to someone who can't install integrations. */
+  asMember?: boolean;
   connectedAccounts?: string[];
 }) {
   const [queryClient] = useState(
@@ -86,12 +91,22 @@ function Example({
     data: {repo_name: 'acme-labs/app', failure_reason: failureReason},
   };
 
+  const organization = useOrganization();
+  const viewerOrganization = asMember
+    ? {
+        ...organization,
+        access: organization.access.filter(scope => scope !== 'org:integrations'),
+      }
+    : organization;
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <Container width="420px" border="primary" radius="md" padding="lg 0">
-        <ConnectScmBlock pendingInput={pendingInput} respondToUserInput={() => {}} />
-      </Container>
-    </QueryClientProvider>
+    <OrganizationContext.Provider value={viewerOrganization}>
+      <QueryClientProvider client={queryClient}>
+        <Container width="420px" border="primary" radius="md" padding="lg 0">
+          <ConnectScmBlock pendingInput={pendingInput} respondToUserInput={() => {}} />
+        </Container>
+      </QueryClientProvider>
+    </OrganizationContext.Provider>
   );
 }
 
@@ -130,6 +145,23 @@ export default Storybook.story('ConnectScmBlock', story => {
 
   story("Sentry can't tell what's wrong", () => (
     <Example failureReason="no_scm_integration" status="unknown" />
+  ));
+
+  story('A member, with no source control connected', () => (
+    <Example failureReason="no_scm_integration" status="no_scm_integration" asMember />
+  ));
+
+  story("A member, when the repo's account isn't connected", () => (
+    <Example
+      failureReason="scm_account_not_connected"
+      status="scm_account_not_connected"
+      connectedAccounts={['acme-corp', 'my-group/sub']}
+      asMember
+    />
+  ));
+
+  story("A member, when the repo isn't in Sentry", () => (
+    <Example failureReason="repo_not_in_sentry" status="repo_not_in_sentry" asMember />
   ));
 
   story('Fixed, waiting for the user to try again', () => (

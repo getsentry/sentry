@@ -244,11 +244,7 @@ function getAnalyticsCreateEventKeyName(
  */
 function extractAnalyticsQueryFields(payload: NewQuery): Partial<NewQuery> {
   const {projects, fields, query} = payload;
-  return {
-    projects,
-    fields,
-    query,
-  };
+  return {projects, fields, query};
 }
 
 export function displayModeToDisplayType(displayMode: DisplayModes | undefined) {
@@ -310,8 +306,6 @@ export function getSavedQueryWithDataset<T extends SavedQuery | NewQuery>(
 export function getTransactionDeprecationMessage(tracesUrl: string) {
   return tct(
     'Discover\u2192Transactions is going to be merged into Explore\u2192Traces soon. Please save any transaction related queries from [traces:Explore\u2192Traces]',
-    {
-      traces: <Link to={tracesUrl} />,
-    }
+    {traces: <Link to={tracesUrl} />}
   );
 }

@@ -80,11 +80,7 @@ export function rgbToOklch([red, green, blue]: Rgb): Oklch {
   const A = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s;
   const B = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s;
 
-  return {
-    l: L,
-    c: Math.hypot(A, B),
-    h: ((Math.atan2(B, A) * 180) / Math.PI + 360) % 360,
-  };
+  return {l: L, c: Math.hypot(A, B), h: ((Math.atan2(B, A) * 180) / Math.PI + 360) % 360};
 }
 
 function oklchToLinearRgb({l: L, c, h}: Oklch): Rgb {

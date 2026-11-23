@@ -77,9 +77,12 @@ export function useRevokeConsoleSdkPlatformInvite() {
       }
     },
     onSettled: (_data, _error, {orgSlug}: UseRevokeConsoleSdkPlatformInviteParams) => {
-      queryClient.invalidateQueries({
-        queryKey: [`/organizations/${orgSlug}/console-sdk-invites/`],
-      });
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter(
+          '/organizations/$organizationIdOrSlug/console-sdk-invites/',
+          {path: {organizationIdOrSlug: orgSlug}}
+        )
+      );
     },
   });
 }

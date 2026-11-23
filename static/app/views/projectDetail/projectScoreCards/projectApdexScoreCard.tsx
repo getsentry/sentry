@@ -52,10 +52,7 @@ const useApdex = (props: Props) => {
   const currentQuery = useQuery({
     ...apiOptions.as<TableData>()('/organizations/$organizationIdOrSlug/events/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {
-        ...commonQuery,
-        ...normalizeDateTimeParams(datetime),
-      },
+      query: {...commonQuery, ...normalizeDateTimeParams(datetime)},
       staleTime: Infinity,
     }),
     enabled: isEnabled,

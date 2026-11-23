@@ -3,14 +3,14 @@ from collections.abc import Callable
 
 
 # Marked as internal with underscore but actually used in getsentry
-def _retry_operation(
-    operation: Callable[..., object],
+def _retry_operation[R](
+    operation: Callable[..., R],
     *args: object,
     retries: int,
     delay: float,
     exceptions: type[BaseException] | tuple[type[BaseException], ...],
     **kwargs: object,
-) -> object | None:
+) -> R | None:
     for attempt in range(retries):
         try:
             return operation(*args, **kwargs)

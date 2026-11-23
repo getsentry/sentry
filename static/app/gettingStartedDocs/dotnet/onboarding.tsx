@@ -17,14 +17,14 @@ const getInstallProfilingSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.Profiling -Version ${getPackageVersion(
   params,
   'sentry.dotnet.profiling',
-  '6.0.0'
+  '7.0.0'
 )}`;
 
 const getInstallProfilingSnippetCoreCli = (params: DocsParams) => `
 dotnet add package Sentry.Profiling -v ${getPackageVersion(
   params,
   'sentry.dotnet.profiling',
-  '6.0.0'
+  '7.0.0'
 )}`;
 
 enum DotNetPlatform {
@@ -80,12 +80,6 @@ SentrySdk.Init(options =>
     ));`
     }`
         : ''
-    }${
-      params.isLogsSelected
-        ? `
-    // Enable logs to be sent to Sentry
-    options.EnableLogs = true;`
-        : ''
     }
 });`;
 
@@ -121,9 +115,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install the [strong:NuGet] package:', {
-            strong: <strong />,
-          }),
+          text: tct('Install the [strong:NuGet] package:', {strong: <strong />}),
         },
         {
           type: 'code',
@@ -148,9 +140,7 @@ export const onboarding: OnboardingConfig = {
               type: 'text',
               text: tct(
                 'Additionally, for all platforms except iOS/Mac Catalyst, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
-                {
-                  sentryProfilingPackage: <code />,
-                }
+                {sentryProfilingPackage: <code />}
               ),
             },
             {
@@ -189,9 +179,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Initialize the SDK as early as possible. For example, call [code:SentrySdk.Init] in your [code:Program.cs] file:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         params.isProfilingSelected
@@ -210,11 +198,7 @@ export const onboarding: OnboardingConfig = {
                 },
               ],
             }
-          : {
-              type: 'code',
-              language: 'csharp',
-              code: getConfigureSnippet(params),
-            },
+          : {type: 'code', language: 'csharp', code: getConfigureSnippet(params)},
       ],
     },
   ],
@@ -246,11 +230,7 @@ export const onboarding: OnboardingConfig = {
                   'You can measure the performance of your code by capturing transactions and spans.'
                 ),
               },
-              {
-                type: 'code',
-                language: 'csharp',
-                code: getPerformanceMonitoringSnippet(),
-              },
+              {type: 'code', language: 'csharp', code: getPerformanceMonitoringSnippet()},
               {
                 type: 'text',
                 text: tct(

@@ -12,11 +12,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
 
-type Props = {
-  date: RelaxedDateType;
-  dateGlobal: RelaxedDateType;
-  environment?: string;
-};
+type Props = {date: RelaxedDateType; dateGlobal: RelaxedDateType; environment?: string};
 
 export function SeenInfo({date, dateGlobal, environment}: Props) {
   return (

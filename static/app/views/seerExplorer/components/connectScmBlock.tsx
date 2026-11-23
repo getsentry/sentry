@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useMutation, useMutationState, useQuery} from '@tanstack/react-query';
 import {motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -7,10 +7,15 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {canManageIntegrations} from 'sentry/utils/integrationUtil';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTimeout} from 'sentry/utils/useTimeout';
 import type {
@@ -24,6 +29,20 @@ import type {
 // coming back to the tab or pressing Check again checks again.
 const POLL_INTERVAL_MS = 5_000;
 const POLL_FOR_MS = 10 * 60_000;
+
+// The integrations directory filtered to source control: where the popup sends people who can
+// install integrations (Sentry owners, managers and admins), and where a member's request sends
+// the owners.
+const SCM_CATEGORY = 'source code management';
+
+/**
+ * The key of a member's requests to the owners during one pause. The requests live in the query
+ * client rather than in the popup, so moving the chat in or out of its popped-out window (which
+ * remounts the popup) doesn't forget them.
+ */
+function getRequestInstallKey(pauseId: string) {
+  return ['seer-explorer-request-scm-install', {pauseId}] as const;
+}
 
 interface RepoAccess {
   connectedAccounts: string[];
@@ -49,15 +68,22 @@ function isSettled(status: string) {
   return isFound(status) || status === 'unknown';
 }
 
+interface Problem {
+  body: string;
+  fix: {label: string; to: string};
+  /**
+   * The fix is installing source control, which only Sentry owners, managers and admins can do;
+   * members request it from the owners.
+   */
+  needsInstall: boolean;
+}
+
 /**
  * What's stopping Seer from opening the repo, and where to go to fix it. Null when nothing
  * Sentry can name is, so Continue is the way forward.
  */
-function getProblem(
-  access: RepoAccess,
-  orgSlug: string
-): {body: string; fix: {label: string; to: string}} | null {
-  const integrationsPath = `/settings/${orgSlug}/integrations/?category=source%20code%20management`;
+function getProblem(access: RepoAccess, orgSlug: string): Problem | null {
+  const integrationsPath = `/settings/${orgSlug}/integrations/?category=${encodeURIComponent(SCM_CATEGORY)}`;
 
   if (isFound(access.status)) {
     return null;
@@ -69,6 +95,7 @@ function getProblem(
       return {
         body: t('No source control is connected to this organization.'),
         fix: {label: t('Connect source control'), to: integrationsPath},
+        needsInstall: true,
       };
     case 'scm_account_not_connected':
       return {
@@ -79,6 +106,7 @@ function getProblem(
             )
           : t("This repo's account isn't connected to this organization."),
         fix: {label: t('Go to integrations'), to: integrationsPath},
+        needsInstall: true,
       };
     case 'repo_not_in_sentry':
       return {
@@ -86,13 +114,67 @@ function getProblem(
           "This repo isn't in Sentry. Check its name, and that Sentry has access to it."
         ),
         fix: {label: t('Go to repositories'), to: `/settings/${orgSlug}/repos/`},
+        needsInstall: false,
       };
     default:
       return {
         body: t("Seer couldn't open this repo."),
         fix: {label: t('Go to integrations'), to: integrationsPath},
+        needsInstall: false,
       };
   }
+}
+
+/**
+ * For members, who can't install integrations: emails the organization's owners to install
+ * source control, with why Seer needs it.
+ */
+function RequestInstallButton({
+  message,
+  pauseId,
+  requested,
+}: {
+  message: string;
+  pauseId: string;
+  requested: boolean;
+}) {
+  const organization = useOrganization();
+  const request = useMutation({
+    mutationKey: getRequestInstallKey(pauseId),
+    // Keep the request for as long as the page is open, however long the popup is gone.
+    gcTime: Infinity,
+    mutationFn: (requestMessage: string) =>
+      fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/integration-requests/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        method: 'POST',
+        // Any source control integration will do, and the message says what for.
+        data: {
+          providerType: 'category',
+          providerSlug: SCM_CATEGORY,
+          message: requestMessage,
+        },
+      }),
+    onSuccess: () => {
+      toast.success(t('Request sent to your organization owners.'));
+    },
+    onError: () => {
+      toast.error(t('Error sending the request'));
+    },
+  });
+
+  return (
+    <Button
+      size="sm"
+      variant="primary"
+      busy={request.isPending}
+      disabled={request.isPending || requested}
+      onClick={() => request.mutate(message)}
+    >
+      {requested ? t('Installation requested') : t('Request installation')}
+    </Button>
+  );
 }
 
 function CorrectRepoForm({
@@ -135,22 +217,35 @@ function CorrectRepoForm({
   );
 }
 
-/** A button that opens where to fix the problem in a new tab, or one that acts here. */
-type PromptAction = {label: string; to: string} | {label: string; onClick: () => void};
+/**
+ * A button that opens where to fix the problem in a new tab, one that acts here, or one that
+ * asks the organization's owners to install source control.
+ */
+type PromptAction =
+  | {label: string; to: string}
+  | {label: string; onClick: () => void}
+  | {requestMessage: string; requested: boolean};
 
 /** What the popup says. Every version has the same layout. */
 interface Prompt {
   /**
    * The buttons before Correct repo name and Continue without code. The first is the way
-   * forward: Check again when it couldn't check, where to fix the problem, or Continue once
-   * there's nothing to fix.
+   * forward: Check again when it couldn't check, where to fix the problem (or, for a member,
+   * asking the owners to), or Continue once there's nothing to fix.
    */
   actions: PromptAction[];
   /** Null while it's checking, when placeholders stand in for the text and the buttons. */
   body: string | null;
   title: string;
   variant: 'muted' | 'success' | 'warning';
+  /** Under the body: how a member gets the problem fixed. */
+  hint?: string;
   note?: string;
+  /**
+   * A member has asked the owners to connect this repo, so the popup stops offering to correct
+   * its name.
+   */
+  requested?: boolean;
 }
 
 /** What to say, given this pause's latest answer (if any) and whether it's still checking. */
@@ -159,15 +254,21 @@ function getPrompt({
   isWatching,
   repoName,
   orgSlug,
+  canInstall,
+  requestedMessages,
   onCheckAgain,
   onContinue,
 }: {
   access: RepoAccess | undefined;
+  /** Whether the user can install integrations, which members can't. */
+  canInstall: boolean;
   isWatching: boolean;
   onCheckAgain: () => void;
   onContinue: () => void;
   orgSlug: string;
   repoName: string;
+  /** The messages of the member's requests to the owners during this pause. */
+  requestedMessages: string[];
 }): Prompt {
   const checkAgain = {label: t('Check again'), onClick: onCheckAgain};
   const continueRun = {label: t('Continue'), onClick: onContinue};
@@ -212,21 +313,38 @@ function getPrompt({
     };
   }
 
+  // Both problems that need installing source control are ones a member can't fix, so they
+  // request it either way, and the message says which one it is. A new problem (say, the owners
+  // connected a different account) needs a new request, so only a request for this one counts.
+  const mustRequest = problem.needsInstall && !canInstall;
+  const requestMessage = `${t("Seer can't access %s.", repoName)} ${problem.body}`;
+  const requested = mustRequest && requestedMessages.includes(requestMessage);
+  const fix: PromptAction = mustRequest ? {requestMessage, requested} : problem.fix;
+  const hint = mustRequest
+    ? t(
+        'Request it from your Sentry organization owners, and you can continue here once they connect it.'
+      )
+    : undefined;
+
   // Checking again could still help, but the popup has stopped doing it every few seconds.
   if (!isWatching && !isSettled(access.status)) {
     return {
       title: t("Seer can't access %s", repoName),
       variant: 'warning',
       body: problem.body,
+      hint,
       note: t('Stopped checking every few seconds.'),
-      actions: [problem.fix, checkAgain],
+      requested,
+      actions: [fix, checkAgain],
     };
   }
   return {
     title: t("Seer can't access %s", repoName),
     variant: 'warning',
     body: problem.body,
-    actions: [problem.fix],
+    hint,
+    requested,
+    actions: [fix],
   };
 }
 
@@ -256,6 +374,11 @@ export function ConnectScmBlock({
   // Whether the field to correct the repo name is open. A later request remounts the block, so
   // it starts closed.
   const [isCorrecting, setIsCorrecting] = useState(false);
+  // The messages of the member's requests to the owners during this pause.
+  const requestedMessages = useMutationState({
+    filters: {mutationKey: getRequestInstallKey(pendingInput.id), status: 'success'},
+    select: mutation => mutation.state.variables as string,
+  });
   // Whether to keep checking: for POLL_FOR_MS after the popup opens.
   const [isWatching, setIsWatching] = useState(true);
   const {start: startWatching} = useTimeout({
@@ -270,14 +393,14 @@ export function ConnectScmBlock({
       staleTime: 0,
     }
   );
-  const [url, endpointOptions, marker] = repoAccessOptions.queryKey;
+  const repoAccessKey: ApiQueryKey = repoAccessOptions.queryKey;
   // A failed check keeps the last answer, so this is this pause's latest answer.
   const {data: access, refetch} = useQuery({
     ...repoAccessOptions,
     // Each pause gets its own answers. Seer just failed to open the repo, so an earlier pause's
     // answer, or one from a check it started, says nothing about this one. Moving the chat in or
     // out of its popped-out window remounts the popup but keeps this pause's answers.
-    queryKey: [url, endpointOptions, marker, {pauseId: pendingInput.id}] as const,
+    queryKey: [...repoAccessKey, {pauseId: pendingInput.id}] as const,
     // The fix happens in another tab, so coming back to this one is when to check again.
     refetchOnWindowFocus: true,
     // That other tab hides this one, and a popped-out chat stays on screen while it does, so keep
@@ -303,6 +426,8 @@ export function ConnectScmBlock({
     isWatching,
     repoName: data.repo_name,
     orgSlug: organization.slug,
+    canInstall: canManageIntegrations(organization),
+    requestedMessages,
     onCheckAgain: () => {
       setIsWatching(true);
       startWatching();
@@ -324,6 +449,7 @@ export function ConnectScmBlock({
               ) : (
                 <Text size="sm">{prompt.body}</Text>
               )}
+              {prompt.hint && <Text size="sm">{prompt.hint}</Text>}
               {prompt.note && (
                 <Text size="sm" variant="muted">
                   {prompt.note}
@@ -347,6 +473,16 @@ export function ConnectScmBlock({
             ) : (
               <Stack gap="sm" align="start">
                 {prompt.actions.map((action, index) => {
+                  if ('requestMessage' in action) {
+                    return (
+                      <RequestInstallButton
+                        key="request-installation"
+                        message={action.requestMessage}
+                        pauseId={pendingInput.id}
+                        requested={action.requested}
+                      />
+                    );
+                  }
                   const variant = index === 0 ? 'primary' : undefined;
                   return 'to' in action ? (
                     <LinkButton
@@ -369,9 +505,11 @@ export function ConnectScmBlock({
                     </Button>
                   );
                 })}
-                <Button size="sm" onClick={() => setIsCorrecting(true)}>
-                  {t('Correct repo name')}
-                </Button>
+                {!prompt.requested && (
+                  <Button size="sm" onClick={() => setIsCorrecting(true)}>
+                    {t('Correct repo name')}
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   onClick={() => respondToUserInput(pendingInput.id, {decision: 'skip'})}

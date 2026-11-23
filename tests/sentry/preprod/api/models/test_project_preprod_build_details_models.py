@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import cast
 
 import pytest
 from django.utils import timezone
@@ -218,8 +217,8 @@ class TestToSizeInfo(TestCase):
         size_metrics = PreprodArtifactSizeMetrics(
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            max_install_size=cast("int", None),
-            max_download_size=cast("int", None),
+            max_install_size=None,
+            max_download_size=None,
         )
 
         with pytest.raises(
@@ -231,7 +230,7 @@ class TestToSizeInfo(TestCase):
         """Test to_size_info raises ValueError when FAILED state has only error_code."""
         size_metrics = PreprodArtifactSizeMetrics(
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
-            error_code=cast("int", None),
+            error_code=None,
             error_message="Processing failed",
         )
 

@@ -3,11 +3,7 @@ import {RuleTester} from 'oxlint/plugins-dev';
 import {noManualTable} from './noManualTable';
 
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parserOptions: {
-      ecmaFeatures: {jsx: true},
-    },
-  },
+  languageOptions: {parserOptions: {ecmaFeatures: {jsx: true}}},
 });
 
 ruleTester.run('no-manual-table', noManualTable, {

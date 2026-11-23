@@ -24,7 +24,7 @@ class FlyOAuth2ProviderTest(TestCase):
             auth_provider=self.auth_provider, user=self.user, data={"access_token": "access_token"}
         )
 
-        provider = cast(FlyOAuth2Provider, self.auth_provider.get_provider())
+        provider = self.auth_provider.get_provider()
 
         with pytest.raises(IdentityNotValid):
             provider.refresh_identity(auth_identity)

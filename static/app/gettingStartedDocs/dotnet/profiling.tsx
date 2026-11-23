@@ -15,14 +15,14 @@ const getInstallProfilingSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.Profiling -Version ${getPackageVersion(
   params,
   'sentry.dotnet.profiling',
-  '6.0.0'
+  '7.0.0'
 )}`;
 
 const getInstallProfilingSnippetCoreCli = (params: DocsParams) => `
 dotnet add package Sentry.Profiling -v ${getPackageVersion(
   params,
   'sentry.dotnet.profiling',
-  '6.0.0'
+  '7.0.0'
 )}`;
 
 const getProfilingConfigureSnippet = (
@@ -89,9 +89,7 @@ export const profiling: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Make sure the SDK is up to date. The minimum version of the SDK required for profiling is [code:4.3.0].',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -113,9 +111,7 @@ export const profiling: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Additionally, for all platforms except iOS/Mac Catalyst, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
-            {
-              sentryProfilingPackage: <code />,
-            }
+            {sentryProfilingPackage: <code />}
           ),
         },
         {

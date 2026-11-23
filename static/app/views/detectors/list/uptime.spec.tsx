@@ -20,17 +20,12 @@ describe('UptimeDetectorsList', () => {
   const organization = OrganizationFixture();
 
   const initialRouterConfig: RouterConfig = {
-    location: {
-      pathname: `/organizations/${organization.slug}/detectors/uptime/`,
-    },
+    location: {pathname: `/organizations/${organization.slug}/detectors/uptime/`},
   };
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1/',
       body: UserFixture(),
@@ -60,10 +55,7 @@ describe('UptimeDetectorsList', () => {
   });
 
   it('displays header when no uptime monitors are found', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/detectors/', body: []});
 
     render(<UptimeDetectorsList />, {organization, initialRouterConfig});
 
@@ -88,12 +80,7 @@ describe('UptimeDetectorsList', () => {
         'uptime-1': [
           [
             nowSec - 3600,
-            {
-              success: 1,
-              failure: 0,
-              failure_incident: 0,
-              missed_window: 0,
-            },
+            {success: 1, failure: 0, failure_incident: 0, missed_window: 0},
           ],
         ],
       },
