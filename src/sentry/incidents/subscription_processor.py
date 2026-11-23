@@ -10,8 +10,8 @@ from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 from sentry.constants import ObjectStatus
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.process_update_helpers import (
-    get_comparison_aggregation_value,
-    get_crash_rate_alert_metrics_aggregation_value_helper,
+    normalize_snuba_query_result,
+    run_query_for_window,
 )
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
 from sentry.incidents.utils.types import (
@@ -24,6 +24,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
+from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
 from sentry.utils.memory import track_memory_usage
@@ -113,50 +114,92 @@ class SubscriptionProcessor:
         processor = cls(subscription, detector)
         return processor.process_update(subscription_update)
 
-    def get_crash_rate_alert_metrics_aggregation_value(
+    def _extract_value_from_update(
         self, subscription_update: QuerySubscriptionUpdate
     ) -> float | None:
         """
-        Handles validation and extraction of Crash Rate Alerts subscription updates values over
-        metrics dataset.
-        The subscription update looks like
-        [
-            {'project_id': 8, 'tags[5]': 6, 'count': 2.0, 'crashed': 1.0}
-        ]
-        - `count` represents sessions or users sessions that were started, hence to get the crash
-        free percentage, we would need to divide number of crashed sessions by that number,
-        and subtract that value from 1. This is also used when CRASH_RATE_ALERT_MINIMUM_THRESHOLD is
-        set in the sense that if the minimum threshold is greater than the session count,
-        then the update is dropped. If the minimum threshold is not set then the total sessions
-        count is just ignored
-        - `crashed` represents the total sessions or user counts that crashed.
+        Extract and normalize the query subscription update's value. Returns None if the value is
+        unusable.
         """
-        evaluation_value = get_crash_rate_alert_metrics_aggregation_value_helper(
-            subscription_update
-        )
-        return evaluation_value
+        raw_data = subscription_update["values"]["data"][0]
 
-    def get_evaluation_value(
-        self, subscription_update: QuerySubscriptionUpdate, comparison_delta: int | None = None
-    ) -> float | None:
+        # The only queries on the metric dataset are crash-rate queries, which measure either
+        # crashed sessions directly or users experiencing at least one crashed session. Either way,
+        # snuba returns the counts, not the rate, so we have to do the percentage calculation
+        # ourselves.
         if self.subscription.snuba_query.dataset == Dataset.Metrics.value:
-            evaluation_value = self.get_crash_rate_alert_metrics_aggregation_value(
-                subscription_update
-            )
+            total_count = raw_data.get("count", 0)
+            crash_count = raw_data.get("crashed", 0)
+
+            if total_count == 0:
+                metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
+                return None
+
+            if (
+                CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None
+                and total_count < CRASH_RATE_ALERT_MINIMUM_THRESHOLD
+            ):
+                metrics.incr("incidents.alert_rules.ignore_update_count_lower_than_min_threshold")
+                return None
+
+            return round((1 - crash_count / total_count) * 100, 3)
         else:
-            evaluation_value = get_comparison_aggregation_value(
-                subscription_update=subscription_update,
-                snuba_query=self.subscription.snuba_query,
-                organization_id=self.subscription.project.organization.id,
-                project_ids=[self.subscription.project_id],
-                comparison_delta=comparison_delta,
+            raw_value = list(raw_data.values())[0]
+            return normalize_snuba_query_result(raw_value, none_defaults_to_zero=True)
+
+    def _get_percent_detector_value(
+        self, current_value: float, subscription_update: QuerySubscriptionUpdate
+    ) -> float | None:
+        """
+        Calculate the ratio between the query's current value and its value for the time window
+        `comparison_delta` seconds earlier. Expressed as a percentage (so a 200% increase results in
+        a return value of 300, while a 75% decrease results in a return value of 25). Returns None
+        if the baseline is invalid or 0.
+
+        Note: Only the current value is included in the subscription update, so this requires a
+        snuba query in order to get the baseline value.
+        """
+        detector_config: MetricIssueDetectorConfig = self.detector.config
+        snuba_query = self.subscription.snuba_query
+
+        baseline_window_end = subscription_update["timestamp"] - timedelta(
+            seconds=detector_config["comparison_delta"]
+        )
+        baseline_window_start = baseline_window_end - timedelta(seconds=snuba_query.time_window)
+        baseline_value = run_query_for_window(
+            snuba_query=snuba_query,
+            subscription_id=subscription_update["subscription_id"],
+            org_id=self.subscription.project.organization.id,
+            project_ids=[self.subscription.project_id],
+            window_start=baseline_window_start,
+            window_end=baseline_window_end,
+            referrer=Referrer.SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY,
+        )
+
+        if not baseline_value:
+            metrics.incr("incidents.alert_rules.skipping_update_comparison_value_invalid")
+            return None
+
+        return (current_value / baseline_value) * 100
+
+    def get_evaluation_value(self, subscription_update: QuerySubscriptionUpdate) -> float | None:
+        extracted_value = self._extract_value_from_update(subscription_update)
+        if extracted_value is None:
+            return None
+
+        if self.detector.config["detection_type"] == AlertRuleDetectionType.PERCENT.value:
+            return (
+                # TODO: We have a handful of (broken) crash rate detectors which are wrongly stored
+                # with `detection_type: 'percent'`. Once we fix those bad detectors (and add
+                # validation to make sure no such detectors ever reappear), we can remove this
+                # branch in the logic.
+                extracted_value
+                if self.subscription.snuba_query.dataset == Dataset.Metrics.value
+                else self._get_percent_detector_value(extracted_value, subscription_update)
             )
 
-        return evaluation_value
-
-    def get_comparison_delta(self, detector: Detector) -> int | None:
-        detector_cfg: MetricIssueDetectorConfig = detector.config
-        return detector_cfg.get("comparison_delta")
+        # Static and dynamic detectors use the extracted value as is
+        return extracted_value
 
     def _create_and_process_data_packet(
         self,
@@ -237,8 +280,7 @@ class SubscriptionProcessor:
             track_memory_usage("incidents.alert_rules.process_update_memory"),
         ):
             metrics.incr("incidents.alert_rules.process_update.start")
-            comparison_delta = self.get_comparison_delta(self.detector)
-            evaluation_value = self.get_evaluation_value(subscription_update, comparison_delta)
+            evaluation_value = self.get_evaluation_value(subscription_update)
 
             # `get_evaluation_value` will return None if there's no usable value
             if evaluation_value is None:
