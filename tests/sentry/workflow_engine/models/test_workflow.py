@@ -157,3 +157,11 @@ class WorkflowConfigSchemaTest(TestCase):
                 type=Workflow.Type.SEER_INVESTIGATION,
                 config={"prompt": "Investigate"},
             )
+
+    def test_seer_investigation_workflow_rejects_a_timezone_without_a_cron(self) -> None:
+        with pytest.raises(JSONSchemaValidationError):
+            self.create_workflow(
+                organization=self.organization,
+                type=Workflow.Type.SEER_INVESTIGATION,
+                config={"timezone": "UTC"},
+            )
