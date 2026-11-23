@@ -421,6 +421,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/tags/$key/values/'
   | '/organizations/$organizationIdOrSlug/teams/'
   | '/organizations/$organizationIdOrSlug/test-fire-actions/'
+  | '/organizations/$organizationIdOrSlug/timeseries-annotations/'
   | '/organizations/$organizationIdOrSlug/trace-items/attributes/'
   | '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/context/'
   | '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/values/'
