@@ -66,7 +66,7 @@ describe('AutomationsList', () => {
       await screen.findByRole('heading', {name: 'custom_strategy'})
     ).toBeInTheDocument();
     expect(screen.getAllByRole('listitem')).toHaveLength(2);
-    expect(screen.getByRole('heading', {name: 'Agentic triage'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Agentic Triage'})).toBeInTheDocument();
     expect(
       screen.getByText('Automatically triage and fix the most fixable Issues.')
     ).toBeInTheDocument();
@@ -113,7 +113,7 @@ describe('AutomationsList', () => {
       },
     });
 
-    await userEvent.click(await screen.findByRole('link', {name: /Breached metrics/}));
+    await userEvent.click(await screen.findByRole('link', {name: /Breached Metrics/}));
     await userEvent.click(await screen.findByRole('tab', {name: 'Runs'}));
 
     expect(router.location.pathname).toBe(
@@ -213,7 +213,7 @@ describe('AutomationsList', () => {
 
     render(<AutomationsList />, {organization});
 
-    const heading = await screen.findByRole('heading', {name: 'Agentic triage'});
+    const heading = await screen.findByRole('heading', {name: 'Agentic Triage'});
     expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
     await userEvent.hover(heading.nextElementSibling!.lastElementChild!);
     expect(await screen.findByText('Built and maintained by Sentry')).toBeInTheDocument();
