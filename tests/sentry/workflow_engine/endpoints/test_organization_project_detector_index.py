@@ -29,6 +29,7 @@ from sentry.snuba.models import (
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import (
@@ -471,6 +472,23 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
 
         detector = Detector.objects.get(id=response.data["id"])
         assert detector.description == "This is a test metric detector"
+
+    @mock.patch("sentry.auth.scope_declaration.capture_message")
+    def test_workflow_connection_scopes_are_declared(self, capture_message: mock.MagicMock) -> None:
+        # Connecting workflows checks org:write/org:admin in can_edit_workflows;
+        # those scopes must be declared on the endpoint's POST scope_map.
+        with override_options({"api.permission-scope-audit.enabled": True}):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                **self.valid_data,
+                status_code=201,
+            )
+
+        assert DetectorWorkflow.objects.filter(
+            detector_id=response.data["id"], workflow=self.connected_workflow
+        ).exists()
+        capture_message.assert_not_called()
 
     def test_invalid_workflow_ids(self) -> None:
         data = {**self.valid_data, "workflowIds": [999999]}
