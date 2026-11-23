@@ -159,7 +159,7 @@ describe('MetricAutomationForm', () => {
     await userEvent.click(
       screen.getByRole('button', {name: /1 project · 5 permissions/})
     );
-    expect(screen.getByText('1 connected monitor')).toBeInTheDocument();
+    expect(screen.getByText('Connected Monitors')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Remove checkout-api'})
     ).not.toBeInTheDocument();

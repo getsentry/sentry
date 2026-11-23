@@ -25,7 +25,7 @@ import type {SeerServiceAccountResponse} from 'sentry/views/seerWorkflows/types'
 export type ProjectSelection = {allProjects: boolean; projectIds: string[]};
 
 /**
- * Its projectIds are granted on top of the connected monitors' projects
+ * Its projectIds are granted on top of the projects in the automation's scope
  */
 type ServiceAccountProjectAccess = ProjectSelection;
 
@@ -41,23 +41,29 @@ const PERMISSION_COLUMNS: TableColumnConfig[] = [
 ];
 
 /**
- * The projects of the connected monitors and of the automation's scope are always granted
+ * Monitors scope an automation to an explicit list of their projects
+ */
+export function getMonitorScopeProjects(monitors: MetricDetector[]): ProjectSelection {
+  return {
+    allProjects: false,
+    projectIds: [...new Set(monitors.map(monitor => monitor.projectId))],
+  };
+}
+
+/**
+ * The projects in the automation's scope are always granted. Empty when the
+ * account or the scope covers all projects.
  */
 export function getServiceAccountProjectIds(
   access: ServiceAccountProjectAccess,
-  monitors: MetricDetector[] = [],
-  scopeProjectIds: string[] = []
+  scopeProjects?: ProjectSelection
 ): string[] {
-  if (access.allProjects) {
+  if (access.allProjects || scopeProjects?.allProjects) {
     return [];
   }
-  return [
-    ...new Set([
-      ...monitors.map(monitor => monitor.projectId),
-      ...scopeProjectIds,
-      ...access.projectIds,
-    ]),
-  ].sort((a, b) => Number(a) - Number(b));
+  return [...new Set([...(scopeProjects?.projectIds ?? []), ...access.projectIds])].sort(
+    (a, b) => Number(a) - Number(b)
+  );
 }
 
 /**
@@ -112,33 +118,29 @@ export function getPermissionLevel(
 
 export function ServiceAccountSummary({
   access,
-  monitors,
-  scopeProjectIds,
+  isMonitorScoped = false,
+  scopeProjects,
   scopes,
 }: {
   access: ServiceAccountProjectAccess;
   scopes: string[];
   /**
-   * Omit when the automation has no monitors
+   * Whether the scope comes from connected monitors, which changes the wording
    */
-  monitors?: MetricDetector[];
+  isMonitorScoped?: boolean;
   /**
    * Projects the automation is scoped to, which are always granted
    */
-  scopeProjectIds?: string[];
+  scopeProjects?: ProjectSelection;
 }) {
-  const projectCount = getServiceAccountProjectIds(
-    access,
-    monitors,
-    scopeProjectIds
-  ).length;
+  const projectCount = getServiceAccountProjectIds(access, scopeProjects).length;
   const selected = new Set(scopes);
   const levels = PERMISSIONS.map(permission => getPermissionLevel(permission, selected));
   let projects = tn('%s project', '%s projects', projectCount);
-  if (access.allProjects) {
+  if (access.allProjects || scopeProjects?.allProjects) {
     projects = t('All projects');
   } else if (projectCount === 0) {
-    projects = monitors ? t('Connected monitor projects') : t('No projects');
+    projects = isMonitorScoped ? t('Connected monitor projects') : t('No projects');
   }
   const permissions = tn(
     '%s permission',
@@ -163,7 +165,8 @@ export function ServiceAccountProjects({
   return (
     <ProjectSelector
       value={value}
-      monitors={monitors}
+      scopeProjects={getMonitorScopeProjects(monitors)}
+      isMonitorScoped
       disabled={disabled}
       onChange={onChange}
       emptyMessage={t(
@@ -185,14 +188,13 @@ export function useHasAllProjectsAccess(): boolean {
 }
 
 /**
- * Picks all projects or a list of them. Projects of the given monitors or
- * automation scope are always included and can't be removed.
+ * Picks all projects or a list of them. Projects in the automation's scope are
+ * always included and can't be removed.
  */
 export function ProjectSelector({
   value,
-  monitors,
-  scopeProjectIds,
-  scopeAllProjects = false,
+  scopeProjects,
+  isMonitorScoped = false,
   disabled,
   emptyMessage,
   onChange,
@@ -201,33 +203,26 @@ export function ProjectSelector({
   emptyMessage: string;
   onChange: (value: ProjectSelection) => void;
   value: ProjectSelection;
-  monitors?: MetricDetector[];
   /**
-   * Whether the automation is scoped to all projects, which forces all projects here
+   * Whether the scope comes from connected monitors, which changes the wording
    */
-  scopeAllProjects?: boolean;
+  isMonitorScoped?: boolean;
   /**
-   * Projects the automation is scoped to
+   * Projects the automation is scoped to. A scope of all projects forces all
+   * projects here.
    */
-  scopeProjectIds?: string[];
+  scopeProjects?: ProjectSelection;
 }) {
   const {projects} = useProjects();
   // Only global roles can grant all projects, or narrow an account that has them
   const canToggleAllProjects = useHasAllProjectsAccess();
 
-  const monitorCounts = new Map<string, number>();
-  for (const monitor of monitors ?? []) {
-    monitorCounts.set(monitor.projectId, (monitorCounts.get(monitor.projectId) ?? 0) + 1);
-  }
+  const scopeAllProjects = scopeProjects?.allProjects ?? false;
   const allProjects = value.allProjects || scopeAllProjects;
-  const scopeIds = new Set(scopeProjectIds);
-  const isLocked = (projectId: string) =>
-    monitorCounts.has(projectId) || scopeIds.has(projectId);
-  const lockedCount = new Set([...monitorCounts.keys(), ...scopeIds]).size;
-  const hasLockSource = monitors !== undefined || scopeProjectIds !== undefined;
-  const grantedIds = new Set(
-    getServiceAccountProjectIds(value, monitors, scopeProjectIds)
-  );
+  const scopeIds = new Set(scopeProjects?.projectIds);
+  const isLocked = (projectId: string) => scopeIds.has(projectId);
+  const scopeReason = isMonitorScoped ? t('Connected Monitors') : t('Automation scope');
+  const grantedIds = new Set(getServiceAccountProjectIds(value, scopeProjects));
   const granted = projects
     .filter(project => grantedIds.has(project.id))
     .sort((a, b) => a.slug.localeCompare(b.slug));
@@ -265,11 +260,11 @@ export function ProjectSelector({
       {!allProjects && (
         <Flex align="center" justify="between" gap="md">
           <Text size="sm" variant="muted">
-            {hasLockSource
+            {scopeProjects
               ? `${tn('%s project', '%s projects', granted.length)} · ${
-                  monitors
-                    ? t('%s from connected monitors', lockedCount)
-                    : t('%s from automation scope', lockedCount)
+                  isMonitorScoped
+                    ? t('%s from connected monitors', scopeIds.size)
+                    : t('%s from automation scope', scopeIds.size)
                 }`
               : tn('%s project', '%s projects', granted.length)}
           </Text>
@@ -309,61 +304,52 @@ export function ProjectSelector({
           }
         >
           {granted.length === 0 && <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>}
-          {granted.map(project => {
-            const monitorCount = monitorCounts.get(project.id);
-            let reason = t('Added manually');
-            if (monitorCount) {
-              reason = tn('%s connected monitor', '%s connected monitors', monitorCount);
-            } else if (scopeIds.has(project.id)) {
-              reason = t('Automation scope');
-            }
-            return (
-              <SimpleTable.Row key={project.id}>
-                <SimpleTable.RowCell>
-                  <ProjectBadge project={project} avatarSize={16} disableLink />
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell>
-                  <Text size="sm" variant="muted">
-                    {reason}
-                  </Text>
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell justify="end">
-                  {isLocked(project.id) ? (
-                    <Button
-                      size="xs"
-                      variant="transparent"
-                      icon={<IconLock locked />}
-                      aria-label={
-                        monitorCount
-                          ? t('%s is included by its connected monitors', project.slug)
-                          : t('%s is included by automation scope', project.slug)
-                      }
-                      tooltipProps={{
-                        title: monitorCount
-                          ? t('Included by its connected monitors')
-                          : t('Included by automation scope'),
-                      }}
-                      disabled
-                    />
-                  ) : (
-                    <Button
-                      size="xs"
-                      variant="transparent"
-                      icon={<IconClose />}
-                      aria-label={t('Remove %s', project.slug)}
-                      disabled={disabled}
-                      onClick={() =>
-                        onChange({
-                          ...value,
-                          projectIds: value.projectIds.filter(id => id !== project.id),
-                        })
-                      }
-                    />
-                  )}
-                </SimpleTable.RowCell>
-              </SimpleTable.Row>
-            );
-          })}
+          {granted.map(project => (
+            <SimpleTable.Row key={project.id}>
+              <SimpleTable.RowCell>
+                <ProjectBadge project={project} avatarSize={16} disableLink />
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell>
+                <Text size="sm" variant="muted">
+                  {isLocked(project.id) ? scopeReason : t('Added manually')}
+                </Text>
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell justify="end">
+                {isLocked(project.id) ? (
+                  <Button
+                    size="xs"
+                    variant="transparent"
+                    icon={<IconLock locked />}
+                    aria-label={
+                      isMonitorScoped
+                        ? t('%s is included by its connected monitors', project.slug)
+                        : t('%s is included by automation scope', project.slug)
+                    }
+                    tooltipProps={{
+                      title: isMonitorScoped
+                        ? t('Included by its connected monitors')
+                        : t('Included by automation scope'),
+                    }}
+                    disabled
+                  />
+                ) : (
+                  <Button
+                    size="xs"
+                    variant="transparent"
+                    icon={<IconClose />}
+                    aria-label={t('Remove %s', project.slug)}
+                    disabled={disabled}
+                    onClick={() =>
+                      onChange({
+                        ...value,
+                        projectIds: value.projectIds.filter(id => id !== project.id),
+                      })
+                    }
+                  />
+                )}
+              </SimpleTable.RowCell>
+            </SimpleTable.Row>
+          ))}
         </SimpleTable>
       )}
     </Stack>

@@ -97,7 +97,7 @@ export function AgenticTriageForm(
     .filter(project => project.hasAccess)
     .sort((a, b) => a.slug.localeCompare(b.slug))[0];
 
-  const schema = getSchema({allowNoProjects: !firstProject});
+  const schema = getSchema({allowNoProjects: !hasAllProjectsAccess && !firstProject});
   // All projects when the user can grant them, otherwise their first project
   const defaultProjects: ProjectSelection =
     props.mode === 'edit'
@@ -129,13 +129,10 @@ export function AgenticTriageForm(
       serviceAccount: {
         scopes: value.scopes,
         // An automation scoped to all projects needs a service account that reaches them
-        projectIds: value.projects.allProjects
-          ? []
-          : getServiceAccountProjectIds(
-              value.serviceAccountProjects,
-              [],
-              value.projects.projectIds
-            ).map(Number),
+        projectIds: getServiceAccountProjectIds(
+          value.serviceAccountProjects,
+          value.projects
+        ).map(Number),
         allProjects:
           value.projects.allProjects || value.serviceAccountProjects.allProjects,
       },
@@ -355,12 +352,8 @@ export function AgenticTriageForm(
                 <Disclosure>
                   <Disclosure.Title>
                     <ServiceAccountSummary
-                      access={
-                        scopeProjects.allProjects
-                          ? {...serviceAccountProjects, allProjects: true}
-                          : serviceAccountProjects
-                      }
-                      scopeProjectIds={scopeProjectIds}
+                      access={serviceAccountProjects}
+                      scopeProjects={scopeProjects}
                       scopes={scopes}
                     />
                   </Disclosure.Title>
@@ -379,8 +372,7 @@ export function AgenticTriageForm(
                                   </Text>
                                   <ProjectSelector
                                     value={field.state.value}
-                                    scopeProjectIds={scopeProjectIds}
-                                    scopeAllProjects={scopeProjects.allProjects}
+                                    scopeProjects={scopeProjects}
                                     disabled={readOnly}
                                     onChange={field.handleChange}
                                     emptyMessage={t(

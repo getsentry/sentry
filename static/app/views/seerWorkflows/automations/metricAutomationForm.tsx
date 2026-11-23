@@ -50,6 +50,7 @@ import {ConnectMonitorsDrawer} from './connectMonitorsDrawer';
 import {MonitorTable} from './monitorTable';
 import {
   DEFAULT_SERVICE_ACCOUNT_SCOPES,
+  getMonitorScopeProjects,
   getServiceAccountProjectIds,
   getServiceAccountProjectSelection,
   ServiceAccountPermissions,
@@ -98,7 +99,9 @@ export function MetricAutomationForm(props: Props) {
         scopes: value.scopes,
         projectIds: getServiceAccountProjectIds(
           value.serviceAccountProjects,
-          monitors.filter(monitor => value.monitorIds.includes(monitor.id))
+          getMonitorScopeProjects(
+            monitors.filter(monitor => value.monitorIds.includes(monitor.id))
+          )
         ).map(Number),
         allProjects: value.serviceAccountProjects.allProjects,
       },
@@ -345,7 +348,8 @@ export function MetricAutomationForm(props: Props) {
                   <Disclosure.Title>
                     <ServiceAccountSummary
                       access={serviceAccountProjects}
-                      monitors={connectedMonitors}
+                      scopeProjects={getMonitorScopeProjects(connectedMonitors)}
+                      isMonitorScoped
                       scopes={scopes}
                     />
                   </Disclosure.Title>
