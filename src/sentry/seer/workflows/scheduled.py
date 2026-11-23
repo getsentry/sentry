@@ -82,7 +82,7 @@ class ScheduledInvestigationSettings(BaseModel):
 
     prompt: str | None = Field(default=None, min_length=1, max_length=4096)
     # Loads a Seer skill whose prompt we maintain, rather than storing it on the config.
-    skill: Literal["night_shift"] | None = None
+    skill: Literal["agentic_triage"] | None = None
 
     class Config:
         extra = "forbid"
