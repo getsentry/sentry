@@ -3,7 +3,7 @@ from typing import Any
 
 from django.conf import settings
 
-from sentry.incidents.utils.types import AnomalyDetectionValues
+from sentry.incidents.utils.types import AnomalyDetectionEvaluationValues
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
@@ -32,7 +32,7 @@ SEER_EVALUATION_TO_DETECTOR_PRIORITY = {
 
 
 @condition_handler_registry.register(Condition.ANOMALY_DETECTION)
-class AnomalyDetectionHandler(DataConditionHandler[AnomalyDetectionValues]):
+class AnomalyDetectionHandler(DataConditionHandler[AnomalyDetectionEvaluationValues]):
     group = DataConditionHandler.Group.DETECTOR_TRIGGER
     comparison_json_schema = {
         "type": "object",
@@ -55,7 +55,9 @@ class AnomalyDetectionHandler(DataConditionHandler[AnomalyDetectionValues]):
     }
 
     @staticmethod
-    def evaluate_value(update: AnomalyDetectionValues, comparison: Any) -> DetectorPriorityLevel:
+    def evaluate_value(
+        update: AnomalyDetectionEvaluationValues, comparison: Any
+    ) -> DetectorPriorityLevel:
         from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
 
         sensitivity = comparison["sensitivity"]

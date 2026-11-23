@@ -12,7 +12,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.incidents.utils.types import AnomalyDetectionValues
+from sentry.incidents.utils.types import AnomalyDetectionEvaluationValues
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import Feature
@@ -542,7 +542,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
         }
 
     def test_eap_preserves_anomaly_input_timestamp(self) -> None:
-        anomaly_input = AnomalyDetectionValues(
+        anomaly_input = AnomalyDetectionEvaluationValues(
             value=12.0,
             source_id="test-source",
             subscription_id="test-subscription",

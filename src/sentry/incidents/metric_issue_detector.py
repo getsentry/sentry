@@ -168,7 +168,7 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
         has_anomaly_detection = Condition.ANOMALY_DETECTION in condition_types
         if has_anomaly_detection and condition_types != {Condition.ANOMALY_DETECTION}:
             # Dynamic (anomaly detection) detectors are evaluated against an
-            # AnomalyDetectionValues dict rather than a scalar. Mixing in a base
+            # `AnomalyDetectionEvaluationValues` dict rather than a scalar. Mixing in a base
             # comparison condition (gt/lt/gte/lte) creates a malformed condition
             # group: the shared dict payload gets handed to an operator that
             # expects a number, which TypeErrors at evaluation time.

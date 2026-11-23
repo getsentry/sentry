@@ -25,7 +25,7 @@ class SubscriptionUpdateValues(TypedDict):
     value: float
 
 
-class AnomalyDetectionValues(TypedDict):
+class AnomalyDetectionEvaluationValues(TypedDict):
     value: float
     source_id: str
     subscription_id: str
@@ -44,7 +44,7 @@ class ProcessedSubscriptionUpdate:
 class AnomalyDetectionProcessedSubscriptionUpdate:
     entity: str
     subscription_id: str
-    values: AnomalyDetectionValues
+    values: AnomalyDetectionEvaluationValues
     timestamp: datetime
 
 
@@ -53,7 +53,7 @@ MetricDetectorProcessedSubscriptionUpdate = (
 )
 
 
-MetricResult = float | AnomalyDetectionValues
+MetricResult = float | AnomalyDetectionEvaluationValues
 
 
 # Post-serialization: what's stored in evidence data after JSON round-trip.
