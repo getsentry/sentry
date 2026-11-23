@@ -160,7 +160,7 @@ class SubscriptionProcessor:
         detector_cfg: MetricIssueDetectorConfig = detector.config
         return detector_cfg.get("comparison_delta")
 
-    def process_results_workflow_engine(
+    def _create_and_process_data_packet(
         self,
         detector: Detector,
         subscription_update: QuerySubscriptionUpdate,
@@ -252,7 +252,7 @@ class SubscriptionProcessor:
                 )
                 return False
 
-            self.process_results_workflow_engine(
+            self._create_and_process_data_packet(
                 self.detector, subscription_update, evaluation_value
             )
             # Ensure that we have last_update stored for all Detector evaluations.
