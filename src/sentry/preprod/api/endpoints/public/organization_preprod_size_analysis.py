@@ -202,7 +202,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         size_metrics: list[PreprodArtifactSizeMetrics],
     ) -> Response:
         """Build response for a completed size analysis."""
-        analysis_file_id = main_metric.analysis_file_id
+        analysis_file_id = main_metric.analysis_storage_path or main_metric.analysis_file_id
         if not analysis_file_id:
             sentry_sdk.capture_message(
                 "preprod.public_api.size_analysis.no_file_id",
@@ -214,7 +214,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
             )
 
         try:
-            file_obj = File.objects.get(id=analysis_file_id)
+            file_obj = main_metric.get_analysis_file()
         except File.DoesNotExist:
             sentry_sdk.capture_message(
                 "preprod.public_api.size_analysis.file_not_found",

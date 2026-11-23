@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from sentry.models.files.file import File
 from sentry.preprod.models import PreprodArtifactSizeComparison, PreprodArtifactSizeMetrics
+from sentry.preprod.objectstore import ObjectstoreFile
 from sentry.preprod.size_analysis.compare import compare_size_analysis
 from sentry.preprod.size_analysis.models import ComparisonResults, SizeAnalysisResults
 from sentry.preprod.vcs.pr_comments.size_tasks import create_preprod_size_pr_comment_task
@@ -374,9 +375,9 @@ def _delete_unreferenced_result_files(files: Sequence[File]) -> None:
 
 def _get_analysis_files(
     head_size_metric: PreprodArtifactSizeMetrics, base_size_metric: PreprodArtifactSizeMetrics
-) -> tuple[File, File] | None:
+) -> tuple[File | ObjectstoreFile, File | ObjectstoreFile] | None:
     try:
-        head_analysis_file = File.objects.get(id=head_size_metric.analysis_file_id)
+        head_analysis_file = head_size_metric.get_analysis_file()
     except File.DoesNotExist:
         logger.exception(
             "preprod.size_analysis.compare.head_analysis_file_not_found",
@@ -388,7 +389,7 @@ def _get_analysis_files(
         return None
 
     try:
-        base_analysis_file = File.objects.get(id=base_size_metric.analysis_file_id)
+        base_analysis_file = base_size_metric.get_analysis_file()
     except File.DoesNotExist:
         logger.exception(
             "preprod.size_analysis.compare.base_analysis_file_not_found",
@@ -402,7 +403,7 @@ def _get_analysis_files(
     return head_analysis_file, base_analysis_file
 
 
-def _load_size_analysis_results(analysis_file: File) -> SizeAnalysisResults:
-    analysis_fileobj = analysis_file.getfile()
-    analysis_content = analysis_fileobj.read()
+def _load_size_analysis_results(analysis_file: File | ObjectstoreFile) -> SizeAnalysisResults:
+    with analysis_file.getfile() as analysis_fileobj:
+        analysis_content = analysis_fileobj.read()
     return SizeAnalysisResults.parse_raw(analysis_content)
