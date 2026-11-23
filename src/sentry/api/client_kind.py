@@ -26,6 +26,7 @@ from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import is_system_auth
 from sentry.middleware import is_frontend_request
 from sentry.seer.agent_token import is_agent_auth
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.utils import metrics
 from sentry.utils.http import SEER_REFERRER_HEADER, get_mcp_client_family, is_mcp_request
 from sentry.utils.sdk import get_transaction_name_from_request
@@ -39,6 +40,7 @@ class ClientKind(StrEnum):
     INTERNAL_SERVICE = "internal_service"
     MCP = "mcp"
     INTEGRATION = "integration"
+    SERVICE_ACCOUNT = "service_account"
     CLI = "cli"
     SDK = "sdk"
     SCRIPT = "script"
@@ -151,6 +153,11 @@ def get_client_kind(request: Request) -> ClientKind:
         if is_frontend_request(request) and getattr(user, "is_authenticated", False):
             return ClientKind.FRONTEND
         return ClientKind.UNKNOWN
+
+    # Checked after Seer: a Seer workflow acting as a service account carries a
+    # service-account credential, but Seer is the caller.
+    if is_service_account_auth(auth):
+        return ClientKind.SERVICE_ACCOUNT
 
     # A SentryApp installation token authenticates as the app's proxy user.
     if getattr(user, "is_sentry_app", False):

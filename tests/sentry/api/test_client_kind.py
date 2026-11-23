@@ -23,6 +23,7 @@ from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken
 from sentry.seer.agent_token import AGENT_TOKEN_KIND
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
+from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.utils.sdk import get_transaction_name_from_request
 
@@ -134,6 +135,20 @@ class GetClientKindTest(TestCase):
     def test_oauth_token_is_integration(self) -> None:
         request = make_request(auth=api_token(application_id=42))
         assert self.classify(request) == ClientKind.INTEGRATION
+
+    def test_service_account_token_is_service_account(self) -> None:
+        auth = AuthenticatedToken(kind=SERVICE_ACCOUNT_TOKEN_KIND, entity_id=1, organization_id=1)
+        assert self.classify(make_request(auth=auth)) == ClientKind.SERVICE_ACCOUNT
+
+    def test_service_account_wins_over_the_user_agent(self) -> None:
+        auth = AuthenticatedToken(kind=SERVICE_ACCOUNT_TOKEN_KIND, entity_id=1, organization_id=1)
+        request = make_request(auth=auth, user_agent="sentry-cli/2.42.1")
+        assert self.classify(request) == ClientKind.SERVICE_ACCOUNT
+
+    def test_seer_acting_as_a_service_account_is_seer(self) -> None:
+        auth = AuthenticatedToken(kind=SERVICE_ACCOUNT_TOKEN_KIND, entity_id=1, organization_id=1)
+        request = make_request(auth=auth, headers={"X-Viewer-Context": "a.b.c"})
+        assert self.classify(request) == ClientKind.SEER
 
     def test_token_auth_falls_back_to_user_agent(self) -> None:
         cases = [
