@@ -91,7 +91,9 @@ from sentry.seer.entrypoints.slack.investigation_status import (
     MAX_SUMMARY_DESCRIPTION_LENGTH,
 )
 from sentry.seer.entrypoints.slack.messaging import (
+    MAX_AUTOFIX_UPDATE_THREADS,
     edit_thread_message,
+    get_recent_autofix_threads,
     process_thread_update,
     replace_investigation_buttons,
     schedule_all_thread_updates,
@@ -734,6 +736,44 @@ class SlackAutofixEntrypointTest(TestCase):
 
         assert mock_process_thread_update.apply_async.call_count == len(threads)
 
+    @patch("sentry.seer.entrypoints.slack.messaging.process_thread_update")
+    def test_schedule_all_thread_updates_bounds_threads(
+        self, mock_process_thread_update: MagicMock
+    ) -> None:
+        threads = [
+            SlackThreadDetails(thread_ts=f"1234567890.{i:06d}", channel_id="C1234567890")
+            for i in range(MAX_AUTOFIX_UPDATE_THREADS * 3)
+        ]
+
+        schedule_all_thread_updates(
+            threads=threads,
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            data=self._create_update(AutofixStoppingPoint.SOLUTION),
+        )
+
+        scheduled = [
+            call.kwargs["kwargs"]["thread"]
+            for call in mock_process_thread_update.apply_async.call_args_list
+        ]
+        assert scheduled == threads[-MAX_AUTOFIX_UPDATE_THREADS:]
+
+    def test_get_recent_autofix_threads_dedupes_and_keeps_most_recent(self) -> None:
+        oldest = SlackThreadDetails(thread_ts="1.000001", channel_id="C1")
+        repeated = SlackThreadDetails(thread_ts="1.000002", channel_id="C1")
+        same_ts_other_channel = SlackThreadDetails(thread_ts="1.000002", channel_id="C2")
+        newer = [
+            SlackThreadDetails(thread_ts=f"2.{i:06d}", channel_id="C1")
+            for i in range(MAX_AUTOFIX_UPDATE_THREADS - 2)
+        ]
+
+        result = get_recent_autofix_threads(
+            [oldest, repeated, same_ts_other_channel, *newer, repeated]
+        )
+
+        # The repeated thread counts once, at its latest position, which pushes out the oldest.
+        assert result == [same_ts_other_channel, *newer, repeated]
+
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
         return_value={"ok": True, "ts": "1234567890.000100"},
@@ -842,6 +882,39 @@ class SlackAutofixEntrypointTest(TestCase):
         call_kwargs = mock_populate_cache.call_args.kwargs
         cache_payload = call_kwargs["cache_payload"]
         assert len(cache_payload["threads"]) == 1
+
+    @patch(
+        "sentry.seer.entrypoints.slack.entrypoint.SeerOperatorAutofixCache.populate_pre_autofix_cache",
+        return_value={"key": "just_returning_for_logging", "source": "group_id"},
+    )
+    @patch("sentry.seer.entrypoints.slack.entrypoint.SeerOperatorAutofixCache.get")
+    def test_prepare_slack_thread_for_autofix_updates_keeps_most_recent_threads(
+        self, mock_cache_get: MagicMock, mock_populate_cache: MagicMock
+    ) -> None:
+        existing_threads = [
+            SlackThreadDetails(thread_ts=f"9876543210.{i:06d}", channel_id="CEXISTING00")
+            for i in range(MAX_AUTOFIX_UPDATE_THREADS * 2)
+        ]
+        mock_cache_get.return_value = {
+            "payload": {"threads": existing_threads},
+            "source": "group_id",
+            "key": "test_key",
+        }
+
+        prepare_slack_thread_for_autofix_updates(
+            thread_ts=self.thread_ts,
+            channel_id=self.channel_id,
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            group=self.group,
+        )
+
+        cache_payload = mock_populate_cache.call_args.kwargs["cache_payload"]
+        new_thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
+        assert cache_payload["threads"] == [
+            *existing_threads[-(MAX_AUTOFIX_UPDATE_THREADS - 1) :],
+            new_thread,
+        ]
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
     def test_update_existing_message_removes_all_buttons_for_non_root_cause(
