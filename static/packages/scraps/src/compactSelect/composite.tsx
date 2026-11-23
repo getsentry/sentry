@@ -208,10 +208,14 @@ const RegionsWrap = styled('div')`
     padding-bottom: calc(${p => p.theme.space.xs} + 1px);
   }
 
-  /* The regions scroll together in this element, not in their own scroll areas,
-  so a region's inset is padding: margins would collapse with the separator's
+  /* The regions scroll together in this element, and their lists virtualize
+  against it, so a region's scroll area must not scroll: in an overlay with a
+  definite height, its 100% height would make it a scroller of its own. A
+  region's inset is padding, as margins would collapse with the separator's
   margins between regions. */
   > ${ListScrollArea} {
+    height: auto;
+    overflow: visible;
     margin: 0;
   }
 
