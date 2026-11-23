@@ -29,7 +29,7 @@ Load this reference when fixing violations of a specific `@sentry/scraps` rule.
 
 **Has autofix**: No.
 
-**What the rule enforces**: Imports from `utils/theme/scraps` are only allowed in the designated theme directory.
+**What the rule enforces**: Imports from `@sentry/scraps/tokens` (and its subpaths) are only allowed in the scraps theme and tokens directories.
 
 **Manual fix**: Move the token usage to a component that accesses tokens via `theme.tokens.*` through `useTheme()` or styled-component theme callback, rather than importing raw token values directly.
 

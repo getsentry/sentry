@@ -7,7 +7,7 @@ import {ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {getShortEventId} from 'sentry/utils/events';

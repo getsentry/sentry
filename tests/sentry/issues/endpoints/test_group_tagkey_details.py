@@ -82,3 +82,12 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         top_values = {value["value"]: value["count"] for value in response.data["topValues"]}
         assert top_values.get("") == 2
         assert top_values.get("baz") == 1
+
+    def test_unresolvable_tag_key_returns_400(self) -> None:
+        group = self.create_group(project=self.project)
+        self.login_as(user=self.user)
+
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/tags/mac%20catalyst%20app.name/"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 400, response.content
+        assert "not resolved" in response.data["detail"]
