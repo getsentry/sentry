@@ -9,6 +9,8 @@ describe('isCodeModeNode', () => {
   it('recognizes execution tools, not search or ordinary tools', () => {
     expect(isCodeModeNode(toolNode('sentry_api_execute'))).toBe(true);
     expect(isCodeModeNode(toolNode('execute_code'))).toBe(true);
+    expect(isCodeModeNode(toolNode('Sentry API Execute'))).toBe(true);
+    expect(isCodeModeNode(toolNode('query_agent_api_execute'))).toBe(true);
     expect(isCodeModeNode(toolNode('sentry_api_search'))).toBe(false);
     expect(isCodeModeNode(toolNode('search_issues'))).toBe(false);
   });

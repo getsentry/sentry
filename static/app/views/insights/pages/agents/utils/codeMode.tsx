@@ -7,6 +7,8 @@ import type {AITraceSpanNode} from './types';
 
 const CODE_MODE_TOOLS = new Set([
   'sentry_api_execute',
+  'Sentry API Execute',
+  'query_agent_api_execute',
   'execute_code',
   'codemode',
   'code_mode',
