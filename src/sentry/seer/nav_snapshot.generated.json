@@ -75,10 +75,10 @@
       "when": {
         "all": [
           {
-            "flag": "visibility-explore-view"
+            "flag": "explore-saved-formulas"
           },
           {
-            "flag": "explore-saved-formulas"
+            "flag": "visibility-explore-view"
           }
         ]
       }
@@ -774,10 +774,10 @@
       "when": {
         "all": [
           {
-            "flag": "visibility-explore-view"
+            "flag": "explore-saved-formulas"
           },
           {
-            "flag": "explore-saved-formulas"
+            "flag": "visibility-explore-view"
           }
         ]
       },
@@ -878,10 +878,12 @@
     "sections": {
       "dashboards": [
         "Dashboards",
+        "Dashboards",
         "All Dashboards",
         "Starred Dashboards"
       ],
       "explore": [
+        "Explore",
         "Explore",
         "Traces",
         "Logs",
@@ -895,28 +897,35 @@
         "Automations",
         "Investigations",
         "Saved Queries",
+        "Saved Queries",
         "Saved Formulas",
         "Starred Queries"
       ],
       "insights": [
         "Insights",
+        "Domains",
         "AI",
+        "Monitors",
         "Moved",
         "Crons",
         "Moved",
-        "Uptime"
+        "Uptime",
+        "Projects"
       ],
       "issues": [
         "Issues",
+        "Feed",
         "Feed",
         "Inbox",
         "User Feedback",
         "Autofix",
         "Overview",
         "Recently Run",
+        "Views",
         "All Views"
       ],
       "monitors": [
+        "Monitors",
         "Monitors",
         "All Monitors",
         "My Monitors",
@@ -926,6 +935,7 @@
         "Cron",
         "Uptime",
         "Mobile Build",
+        "Alerts",
         "Alerts"
       ],
       "projects": [

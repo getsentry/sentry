@@ -5,7 +5,12 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from 'react';
+import {createPortal} from 'react-dom';
+import {useTheme} from '@emotion/react';
+import {FocusScope} from '@react-aria/focus';
+import {useFocusWithin, useHover} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import {IconArrow} from '@sentry/icons/arrow';
 import {IconCompass} from '@sentry/icons/compass';
@@ -17,16 +22,20 @@ import {IconSeer} from '@sentry/icons/seer';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconSiren} from '@sentry/icons/siren';
 import {useQuery} from '@tanstack/react-query';
-import {motion, type MotionProps} from 'framer-motion';
+import {motion, type MotionProps, useReducedMotion} from 'framer-motion';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Stack, Flex} from '@sentry/scraps/layout';
+import {Container, Stack, Flex, Surface} from '@sentry/scraps/layout';
+import type {LinkProps} from '@sentry/scraps/link';
+import {PositionWrapper} from '@sentry/scraps/overlay';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Override} from 'sentry/components/override';
 import {t} from 'sentry/locale';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {getReturnPath} from 'sentry/utils/useReturnPath';
@@ -64,6 +73,7 @@ import {SecondaryNavigation} from './secondary/components';
 import {SecondaryNavigationContent} from './secondary/content';
 import {
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
+  PRIMARY_NAVIGATION_OVERLAY_OFFSET,
   PRIMARY_SIDEBAR_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
   getSettingsLastProjectKey,
@@ -75,7 +85,12 @@ import {
   useNavigationTour,
   useNavigationTourModal,
 } from './navigationTour';
-import {hasSecondaryNavigation, usePrimaryNavigation} from './primaryNavigationContext';
+import {
+  hasSecondaryNavigation,
+  type NavigationGroup,
+  useNavPeek,
+  usePrimaryNavigation,
+} from './primaryNavigationContext';
 import {useSecondaryNavigation} from './secondaryNavigationContext';
 import {useCollapsedNavigation} from './useCollapsedNavigation';
 import {useSettingsNavigation} from './useSettingsNavigation';
@@ -84,8 +99,8 @@ function NavigationImpl() {
   const organization = useOrganization({allowNull: true});
   const isSettingsNavigation = useSettingsNavigation();
   const settingsV3 = useSettingsV3();
-  const collapsedNavigation = useCollapsedNavigation();
-  const {view} = useSecondaryNavigation();
+  const navPeek = useNavPeek();
+  const {view} = useCollapsedNavigation({enabled: !navPeek});
 
   const ref = useRef<HTMLUListElement | null>(null);
 
@@ -96,7 +111,12 @@ function NavigationImpl() {
   const {currentStepId} = useNavigationTour();
   // The tour forces the sidebar open regardless of `view`, so this — not
   // `view !== 'expanded'` alone — is the actual collapsed state on screen.
-  const isCollapsed = currentStepId === null ? view !== 'expanded' : false;
+  const isCollapsed = currentStepId === null && view !== 'expanded';
+  const hideCollapsedSidebar = isCollapsed && navPeek;
+  const canExpandSidebar = hideCollapsedSidebar && hasSecondaryNavigation(activeGroup);
+  const {hoverProps, isHovered} = useHover({isDisabled: !canExpandSidebar});
+  const [isHeaderFocused, setHeaderFocused] = useState(false);
+  const {focusWithinProps} = useFocusWithin({onFocusWithinChange: setHeaderFocused});
 
   useLLMContext({
     contextHint: isSettingsNavigation
@@ -120,11 +140,8 @@ function NavigationImpl() {
 
   const sidebarAnimationProps = useMemo(
     () =>
-      makeCollapsedSecondaryWrapperAnimationProps(
-        collapsedNavigation.view === 'peek',
-        secondarySidebarWidth
-      ),
-    [collapsedNavigation.view, secondarySidebarWidth]
+      makeCollapsedSecondaryWrapperAnimationProps(view === 'peek', secondarySidebarWidth),
+    [view, secondarySidebarWidth]
   );
 
   const secondarySidebar = (
@@ -136,13 +153,20 @@ function NavigationImpl() {
   return (
     <Fragment>
       <PrimaryNavigation.Sidebar>
-        <PrimaryNavigation.SidebarHeader>
+        <PrimaryNavigation.SidebarHeader
+          position="relative"
+          {...hoverProps}
+          {...focusWithinProps}
+        >
           {isSettingsNavigation && organization ? (
             <SettingsNavigationBackButton organizationSlug={organization.slug} />
           ) : organization ? (
             <OrganizationDropdown />
           ) : (
             <UserDropdown />
+          )}
+          {canExpandSidebar && (isHovered || isHeaderFocused) && (
+            <SecondaryNavigation.Toggle variant="transparent" />
           )}
         </PrimaryNavigation.SidebarHeader>
         <PrimaryNavigation.List ref={ref}>
@@ -178,9 +202,10 @@ function NavigationImpl() {
       </PrimaryNavigation.Sidebar>
 
       {hasSecondaryNavigation(activeGroup) &&
+        !hideCollapsedSidebar &&
         (isCollapsed ? (
           <CollapsedSecondaryWrapper
-            data-visible={collapsedNavigation.view === 'peek'}
+            data-visible={view === 'peek'}
             data-test-id="collapsed-secondary-sidebar"
             height="100%"
             left={`${PRIMARY_SIDEBAR_WIDTH}px`}
@@ -291,9 +316,19 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
 
   const fallbackRef = useRef<HTMLUListElement>(null);
 
-  const makeNavigationItemProps = useActivateNavigationGroupOnHover({
+  const makeLegacyItemProps = useActivateNavigationGroupOnHover({
     ref: listRef ?? fallbackRef,
   });
+
+  const {layout} = usePrimaryNavigation();
+  const {currentStepId} = useNavigationTour();
+  const navPeek = useNavPeek();
+  const {getPreviewProps, previewCard} = usePrimaryNavigationPreview(
+    layout === 'sidebar' && currentStepId === null && navPeek
+  );
+
+  const makeNavigationItemProps: typeof makeLegacyItemProps = (group, to, activeTo) =>
+    mergeProps(makeLegacyItemProps(group, to, activeTo), getPreviewProps(group));
 
   const settingsPath = organization
     ? `/settings/${organization.slug}/`
@@ -465,9 +500,211 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
       </PrimaryNavigation.ListItem>
 
       {settingsV3 ? null : settingsItem}
+      {previewCard}
     </Fragment>
   );
 }
+
+function usePrimaryNavigationPreview(enabled: boolean) {
+  const theme = useTheme();
+  const reduceMotion = useReducedMotion();
+  const {activeGroup} = usePrimaryNavigation();
+  const {view} = useSecondaryNavigation();
+  const location = useLocation();
+  const [preview, setPreview] = useState<{
+    contentOffset: number;
+    group: NavigationGroup;
+    keyboard: boolean;
+    locationKey: string;
+  } | null>(null);
+  const previewTimer = useRef<number | undefined>(undefined);
+  const canPreviewGroup = (group: NavigationGroup) =>
+    hasSecondaryNavigation(group) && (group !== activeGroup || view !== 'expanded');
+  const openPreview =
+    enabled && preview?.locationKey === location.key && canPreviewGroup(preview.group)
+      ? preview
+      : null;
+  if (preview && !openPreview) {
+    setPreview(null);
+  }
+
+  const closePreview = () => {
+    window.clearTimeout(previewTimer.current);
+    setPreview(null);
+  };
+  const {
+    overlayProps,
+    triggerProps: {ref: setPreviewAnchor},
+    triggerRef: previewAnchor,
+  } = useOverlay({
+    isOpen: openPreview !== null,
+    onOpenChange: isOpen => {
+      if (!isOpen) {
+        closePreview();
+      }
+    },
+    position: 'right-start',
+    // The link fills the padded rail, while the footer buttons are centered.
+    offset:
+      PRIMARY_NAVIGATION_OVERLAY_OFFSET +
+      Number.parseFloat(theme.space.xs) -
+      (PRIMARY_SIDEBAR_WIDTH - 1 - Number.parseFloat(theme.form.sm.height)) / 2,
+    shouldApplyMinWidth: false,
+    shouldCloseOnBlur: true,
+    shouldCloseOnInteractOutside: target =>
+      !target.closest('[data-secondary-navigation-toggle]'),
+  });
+
+  useEffect(() => () => window.clearTimeout(previewTimer.current), []);
+
+  const scheduleClose = () => {
+    window.clearTimeout(previewTimer.current);
+    previewTimer.current = window.setTimeout(() => setPreview(null), 200);
+  };
+
+  const openPreviewFor = (
+    item: HTMLAnchorElement,
+    group: NavigationGroup,
+    keyboard: boolean
+  ) => {
+    if (openPreview?.group === group && openPreview.keyboard === keyboard) {
+      return;
+    }
+
+    const previousAnchor = openPreview && previewAnchor.current;
+    const contentOffset =
+      !reduceMotion && previousAnchor && previousAnchor !== item
+        ? previousAnchor.compareDocumentPosition(item) & Node.DOCUMENT_POSITION_FOLLOWING
+          ? -12
+          : 12
+        : 0;
+
+    setPreviewAnchor(item);
+    setPreview({group, keyboard, locationKey: location.key, contentOffset});
+  };
+
+  const handlePointerEnter = (
+    event: React.PointerEvent<HTMLAnchorElement>,
+    group: NavigationGroup
+  ) => {
+    if (event.pointerType !== 'mouse') {
+      return;
+    }
+    if (!canPreviewGroup(group)) {
+      closePreview();
+      return;
+    }
+    window.clearTimeout(previewTimer.current);
+    const item = event.currentTarget;
+    if (openPreview) {
+      openPreviewFor(item, group, false);
+    } else {
+      previewTimer.current = window.setTimeout(
+        () => openPreviewFor(item, group, false),
+        120
+      );
+    }
+  };
+
+  const handleKeyDown = (
+    event: React.KeyboardEvent<HTMLAnchorElement>,
+    group: NavigationGroup
+  ) => {
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      window.clearTimeout(previewTimer.current);
+      openPreviewFor(event.currentTarget, group, true);
+    }
+  };
+
+  const getPreviewProps = (group: NavigationGroup): Partial<LinkProps> => {
+    if (!enabled) {
+      return {};
+    }
+
+    const canPreview = canPreviewGroup(group);
+    return {
+      'aria-keyshortcuts': canPreview ? 'ArrowRight' : undefined,
+      onPointerEnter: event => handlePointerEnter(event, group),
+      onPointerLeave: canPreview && !openPreview?.keyboard ? scheduleClose : undefined,
+      onKeyDown: canPreview ? event => handleKeyDown(event, group) : undefined,
+      onClick: closePreview,
+    };
+  };
+
+  const previewCard =
+    openPreview &&
+    createPortal(
+      <FocusScope
+        autoFocus={openPreview.keyboard}
+        restoreFocus={openPreview.keyboard}
+        key={openPreview.keyboard ? 'keyboard' : 'pointer'}
+      >
+        <PositionWrapper
+          {...overlayProps}
+          zIndex={theme.zIndex.hovercard}
+          style={{
+            ...overlayProps.style,
+            transition: openPreview.contentOffset
+              ? `top ${theme.motion.enter.fast}`
+              : undefined,
+          }}
+          role="dialog"
+          aria-label={t('Navigation preview')}
+          onPointerEnter={() => window.clearTimeout(previewTimer.current)}
+          onPointerLeave={openPreview.keyboard ? undefined : scheduleClose}
+          onClick={event => {
+            if (
+              !event.metaKey &&
+              !event.ctrlKey &&
+              !event.shiftKey &&
+              !event.altKey &&
+              event.target instanceof Element &&
+              event.target.closest('a[href]')
+            ) {
+              closePreview();
+            }
+          }}
+        >
+          <Surface variant="overlay" elevation="high">
+            {surfaceProps => (
+              <Stack
+                {...surfaceProps}
+                width="320px"
+                maxWidth="inherit"
+                maxHeight="inherit"
+                overflow="hidden"
+                position="relative"
+              >
+                <MotionPreviewPanel
+                  key={openPreview.group}
+                  minHeight="0"
+                  padding="md 0"
+                  overflowX="hidden"
+                  overflowY="auto"
+                  overscrollBehavior="contain"
+                  initial={
+                    openPreview.contentOffset ? {y: openPreview.contentOffset} : false
+                  }
+                  animate={{y: 0}}
+                  transition={theme.motion.framer.enter.fast}
+                >
+                  <SecondaryNavigation.Preview value>
+                    <SecondaryNavigationContent group={openPreview.group} />
+                  </SecondaryNavigation.Preview>
+                </MotionPreviewPanel>
+              </Stack>
+            )}
+          </Surface>
+        </PositionWrapper>
+      </FocusScope>,
+      document.body
+    );
+
+  return {getPreviewProps, previewCard};
+}
+
+const MotionPreviewPanel = motion.create(Container);
 
 /**
  * Returns the list of items from the footer of the primary navigation

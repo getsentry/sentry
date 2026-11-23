@@ -36,10 +36,20 @@ const PRIMARY_NAVIGATION_GROUP_CONFIG = {
   admin: {paths: ['manage'], secondaryNavigation: true},
 } as const satisfies Record<string, NavigationGroupConfig>;
 
-type NavigationGroup = keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
+export type NavigationGroup = keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
 
 export function hasSecondaryNavigation(group: NavigationGroup): boolean {
   return PRIMARY_NAVIGATION_GROUP_CONFIG[group].secondaryNavigation;
+}
+
+/**
+ * Whether nav peek is enabled. Hovering a primary navigation item then opens a
+ * preview card of its secondary navigation instead of swapping the secondary
+ * sidebar, and collapsing the secondary sidebar hides it completely.
+ */
+export function useNavPeek(): boolean {
+  const organization = useOrganization({allowNull: true});
+  return !!organization?.features.includes('nav-peek');
 }
 
 const PRIMARY_NAVIGATION_ROUTE_OVERRIDES: Array<{

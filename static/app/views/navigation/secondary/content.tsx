@@ -2,7 +2,10 @@ import type {ReactNode} from 'react';
 
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {
+  type NavigationGroup,
+  usePrimaryNavigation,
+} from 'sentry/views/navigation/primaryNavigationContext';
 
 import {AdminSecondaryNavigation} from './sections/admin/adminSecondaryNavigation';
 import {DashboardsSecondaryNavigation} from './sections/dashboards/dashboardsSecondaryNavigation';
@@ -14,11 +17,16 @@ import {ProjectsSecondaryNavigation} from './sections/projects/projectsSecondary
 import {SeerSecondaryNavigation} from './sections/seer/seerSecondaryNavigation';
 import {SettingsSecondaryNavigation} from './sections/settings/settingsSecondaryNavigation';
 
-export function SecondaryNavigationContent(): ReactNode {
+export function SecondaryNavigationContent({
+  group,
+}: {
+  group?: NavigationGroup;
+}): ReactNode {
   const {activeGroup} = usePrimaryNavigation();
   const organization = useOrganization({allowNull: true});
 
-  switch (activeGroup) {
+  const selectedGroup = group ?? activeGroup;
+  switch (selectedGroup) {
     // Groups without a secondary navigation must also set
     // `secondaryNavigation: false` in `PRIMARY_NAVIGATION_GROUP_CONFIG`.
     case 'inbox':
@@ -46,7 +54,7 @@ export function SecondaryNavigationContent(): ReactNode {
     case 'admin':
       return <AdminSecondaryNavigation />;
     default:
-      unreachable(activeGroup);
+      unreachable(selectedGroup);
       return null;
   }
 }

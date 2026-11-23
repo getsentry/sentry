@@ -15,6 +15,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {PRIMARY_NAVIGATION_OVERLAY_OFFSET} from 'sentry/views/navigation/constants';
+import {useNavPeek} from 'sentry/views/navigation/primaryNavigationContext';
 
 import {PrimaryNavigation, usePrimaryNavigationButtonOverlay} from './components';
 
@@ -238,13 +240,16 @@ export function WhatsNewContent() {
 }
 
 export function PrimaryNavigationWhatsNew() {
+  const navPeek = useNavPeek();
   const {unseenPostIds} = useWhatsNewBroadcasts();
 
   const {
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
-  } = usePrimaryNavigationButtonOverlay();
+  } = usePrimaryNavigationButtonOverlay(
+    navPeek ? {offset: PRIMARY_NAVIGATION_OVERLAY_OFFSET} : undefined
+  );
 
   return (
     <Fragment>
