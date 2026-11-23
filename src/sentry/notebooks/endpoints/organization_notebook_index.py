@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.db.models import Exists, OuterRef, Q, QuerySet, Subquery
+from django.db.models.fields.json import KT
 from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -23,6 +24,7 @@ from sentry.apidocs.response_types import (
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.access import ServiceAccountAccess
 from sentry.auth.principal import acting_user_id
+from sentry.investigations.models import WorkflowRun
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebooksBaseEndpoint,
@@ -43,6 +45,7 @@ from sentry.notebooks.models import (
     NotebookEvidenceProject,
     NotebookProject,
     NotebookStatus,
+    NotebookWorkflowRun,
     WorkflowEvidenceScope,
 )
 from sentry.notebooks.services.producer import filter_by_run_status, known_run_statuses
@@ -192,8 +195,34 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
         if query:
             notebooks = notebooks.filter(title__icontains=query)
         notebooks = filter_by_trigger(notebooks, organization, trigger, strategy, viewer_id)
+        # Keep workflow progress independent of legacy orchestration: the latter
+        # also tells clients whether the legacy commands endpoint exists.
+        can_read_workflow = (
+            not isinstance(request.access, ServiceAccountAccess) or request.access.has_all_projects
+        )
+        if can_read_workflow:
+            status_for_binding = WorkflowRun.objects.filter(
+                organization=organization, uuid=OuterRef("run_id")
+            ).values(status_value=KT("checkpoint__status"))[:1]
+            latest = (
+                NotebookWorkflowRun.objects.filter(
+                    organization=organization, notebook_id=OuterRef("pk")
+                )
+                .order_by("-id")
+                .values(latest_status=Subquery(status_for_binding))[:1]
+            )
+            notebooks = notebooks.annotate(workflow_run_status=Subquery(latest))
         if run_statuses:
-            notebooks = filter_by_run_status(notebooks, run_statuses)
+            legacy_matches = filter_by_run_status(notebooks, run_statuses)
+            if can_read_workflow:
+                workflow_names = {"processing": "running", "completed": "succeeded"}
+                notebooks = legacy_matches.filter(
+                    workflow_run_status__isnull=True
+                ) | notebooks.filter(
+                    workflow_run_status__in=[workflow_names.get(s, s) for s in run_statuses]
+                )
+            else:
+                notebooks = legacy_matches
         return self.paginate(
             request=request,
             queryset=notebooks,

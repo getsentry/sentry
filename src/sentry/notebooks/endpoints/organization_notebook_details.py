@@ -83,7 +83,9 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
             not isinstance(request.access, ServiceAccountAccess)
             or service_account_reaches(request.access, [])
         ):
-            if report := notebook_report(notebook):
+            if report := notebook_report(
+                notebook, viewer_id=request.user.id if request.user.is_authenticated else None
+            ):
                 body["workflowReport"] = report
         return Response(body)
 

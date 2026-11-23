@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from typing import Any, cast
+from uuid import uuid4
 
 from django.test import override_settings
 from django.urls import reverse
@@ -19,6 +20,7 @@ from sentry.investigations.models import (
     InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationRun,
+    WorkflowRun,
 )
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.environment import Environment
@@ -29,6 +31,7 @@ from sentry.notebooks.models import (
     NotebookActionRequestState,
     NotebookBlock,
     NotebookStatus,
+    NotebookWorkflowRun,
 )
 from sentry.notebooks.services.action_kinds import ACTION_KINDS
 from sentry.notebooks.services.action_kinds.base import (
@@ -188,6 +191,25 @@ class OrganizationNotebookActionRequestApplyTest(APITestCase):
             condition.id: (condition.condition_result, condition.comparison)
             for condition in self.detector.workflow_condition_group.conditions.all()
         }
+
+    def test_applies_a_workflow_suggestion_using_its_own_source_monitor(self) -> None:
+        self.orchestration_run.delete()
+        self.notebook.update(source={"snapshot": {"monitor": {"id": str(self.detector.id)}}})
+        run = WorkflowRun.objects.create(
+            organization=self.organization,
+            uuid=uuid4(),
+            request_id=uuid4(),
+            user_id=self.user.id,
+            checkpoint={"status": "succeeded"},
+            definition={},
+        )
+        binding = NotebookWorkflowRun.objects.create(
+            organization=self.organization, notebook=self.notebook, run_id=run.uuid
+        )
+        action = self.suggest(workflow_run=binding)
+        response = self.apply(action)
+        assert response.status_code == 200, response.data
+        assert self.snuba_query().time_window == 900
 
     def test_applies_a_threshold_change(self) -> None:
         action_request = self.suggest(

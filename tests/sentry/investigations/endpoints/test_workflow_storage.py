@@ -180,6 +180,49 @@ class WorkflowStorageTest(APITestCase):
         # Signing in as a member cannot grant access to the worker API.
         assert self.client.get(self.url).status_code in (401, 403)
 
+    def test_archive_stops_the_run_and_fences_inflight_worker_updates(self) -> None:
+        response = self.client.post(self.url, self.payload, format="json", **self.system)
+        assert response.status_code == 200
+        run = WorkflowRun.objects.get(uuid=self.run_id)
+        notebook = Notebook.objects.get(pk=run.checkpoint["notebook_id"])
+        self.login_as(self.user)
+        response = self.client.delete(
+            f"/api/0/organizations/{self.organization.slug}/notebooks/{notebook.id}/",
+            {"notebookVersion": notebook.version},
+            format="json",
+        )
+        assert response.status_code == 204, response.data
+        run.refresh_from_db()
+        assert run.checkpoint["status"] == "cancelled"
+        child = run.nodes.get()
+        assert child.checkpoint["status"] == "cancelled" and child.next_check_at
+        stale = {"version": 1, "run": {"status": "running"}, "nodes": [self.leaf]}
+        assert self.client.put(self.url, stale, format="json", **self.system).status_code == 409
+
+    def test_two_rechecks_cannot_take_over_the_same_notebook(self) -> None:
+        assert (
+            self.client.post(self.url, self.payload, format="json", **self.system).status_code
+            == 200
+        )
+        parent = WorkflowRun.objects.get(uuid=self.run_id)
+        self.payload["destination"] = {
+            "projectIds": [],
+            "notebookId": parent.checkpoint["notebook_id"],
+            "previousRunId": self.run_id,
+        }
+        for expected in (200, 409):
+            run_id = str(uuid4())
+            self.payload.update(
+                run={**self.checkpoint, "id": run_id, "request_id": str(uuid4())}, nodes=[]
+            )
+            url = reverse(self.endpoint, args=[self.organization.slug, run_id])
+            response = self.client.post(url, self.payload, format="json", **self.system)
+            assert response.status_code == expected, response.data
+            if expected == 200:
+                assert not self.client.post(url, self.payload, format="json", **self.system).data[
+                    "created"
+                ]
+
     def test_specific_breach_must_resolve_unless_a_destination_is_explicit(self) -> None:
         self.payload["definition"]["name"] = "breached_metrics"
         self.checkpoint["input"] = {
@@ -207,6 +250,181 @@ class WorkflowStorageTest(APITestCase):
         )
         assert notebook.source_type == NotebookSourceType.MANUAL
         assert notebook.source_key is None
+
+    def test_queue_time_activity_and_reporting_phases(self) -> None:
+        self.checkpoint.update(status="pending", created_at="2025-01-01T00:00:00Z")
+        self.leaf.update(status="ready", explorer_run_id=None)
+        created = self.client.post(self.url, self.payload, format="json", **self.system)
+        assert created.status_code == 200, created.data
+        notebook = WorkflowRun.objects.get(uuid=self.run_id).checkpoint["notebook_id"]
+        self.login_as(self.user)
+        detail = f"/api/0/organizations/{self.organization.slug}/notebooks/{notebook}/"
+        queued = self.client.get(detail).data["workflowReport"]
+        collection = f"/api/0/organizations/{self.organization.slug}/notebooks/"
+        queued_list = self.client.get(collection, {"runStatus": "pending"})
+        assert [(item["id"], item["workflowStatus"]) for item in queued_list.data] == [
+            (str(notebook), "pending")
+        ]
+        assert queued["elapsedSeconds"] > 0
+        assert queued["awaitingHypotheses"]
+        assert queued["phase"] == "broad_scan"
+        assert not queued["currentActivity"]
+
+        self.leaf.update(status="running", explorer_run_id=100)
+        update = {
+            "version": 1,
+            "run": {"status": "running", "started_at": "2025-01-01T00:01:00Z"},
+            "nodes": [self.leaf],
+        }
+        self.client.put(self.url, update, format="json", **self.system)
+        node_url = reverse(self.endpoint, args=[self.organization.slug, self.node])
+        block = {
+            "id": "call",
+            "message": {"role": "tool_use", "tool_calls": [{"id": "c", "function": "query"}]},
+            "tool_results": [
+                {
+                    "tool_call_id": "c",
+                    "structuredContent": {
+                        "calls": [
+                            {"id": 1, "title": "Count errors", "status": 200},
+                            {"id": 2, "parent": 1, "title": "Nested"},
+                            {
+                                "id": 3,
+                                "llm_description": "Reading traces",
+                                "error": "Tool call failed",
+                            },
+                        ]
+                    },
+                }
+            ],
+        }
+        activity = {
+            "explorer_run_id": 100,
+            "updatedAt": "2025-01-01T00:01:05Z",
+            "session": {"blocks": [block]},
+        }
+        assert (
+            self.client.patch(node_url, activity, format="json", **self.system).status_code == 204
+        )
+        live = self.client.get(detail).data["workflowReport"]
+        assert [(entry["title"], entry["status"]) for entry in live["currentActivity"]] == [
+            ("Count errors", "completed"),
+            ("Reading traces", "failed"),
+        ]
+
+        self.leaf.update(status="succeeded")
+        writer = {
+            **self.leaf,
+            "id": str(uuid4()),
+            "node_id": "notebook/write",
+            "status": "running",
+            "state": {"output_schema": "NotebookReceipt"},
+        }
+        update = {"version": 2, "run": {}, "nodes": [self.leaf, writer]}
+        assert self.client.put(self.url, update, format="json", **self.system).status_code == 204
+        writing = self.client.get(detail).data["workflowReport"]
+        assert writing["phase"] == "reporting"
+        assert not writing["awaitingHypotheses"]
+
+        final = {
+            "version": 3,
+            "run": {"status": "succeeded", "finished_at": "2025-01-01T00:02:00Z"},
+            "nodes": [],
+        }
+        assert self.client.put(self.url, final, format="json", **self.system).status_code == 204
+        assert self.client.get(detail).data["workflowReport"]["elapsedSeconds"] == 120
+        assert self.client.get(collection, {"runStatus": "pending"}).data == []
+        assert (
+            self.client.get(collection, {"runStatus": "completed"}).data[0]["workflowStatus"]
+            == "succeeded"
+        )
+
+    def test_saved_evidence_is_attached_to_the_verdict_and_check_that_produced_it(self) -> None:
+        hypothesis = {"statement": "Slow downloads", "rationale": "Requests waited"}
+        check = {
+            "id": "latency",
+            "title": "Check latency",
+            "method": "Compare requests",
+            "objective": "Check the timeout",
+        }
+        evidence = {
+            "kind": "trace",
+            "title": "Slow trace",
+            "url": "/trace/",
+            "summary": "Eight seconds",
+            "data": {},
+        }
+        self.leaf.update(
+            status="succeeded",
+            state={"output_schema": "BroadScanArtifact", "output": {"hypotheses": [hypothesis]}},
+        )
+        judge = {
+            **self.leaf,
+            "id": str(uuid4()),
+            "node_id": "judgment",
+            "state": {
+                "output_schema": "HypothesisJudgmentArtifact",
+                "input": {
+                    "hypothesis": hypothesis,
+                    "evidence": [evidence],
+                    "checks": [
+                        {
+                            "check": check,
+                            "status": "succeeded",
+                            "output": {"finding": "Deadline reached", "evidence": [evidence]},
+                        }
+                    ],
+                },
+                "output": {
+                    "verdict": "supported",
+                    "confidence": 0.9,
+                    "rationale": "The deadline expired",
+                    "supportingEvidenceIndexes": [0],
+                    "refutingEvidenceIndexes": [],
+                },
+            },
+        }
+        self.payload["nodes"].extend(
+            [
+                judge,
+                {
+                    **self.leaf,
+                    "id": str(uuid4()),
+                    "node_id": "notebook/metadata",
+                    "state": {
+                        "output_schema": "InvestigationNotebookMetadata",
+                        "output": {"primaryHypothesisKey": f"hypothesis-{judge['id']}"},
+                    },
+                },
+            ]
+        )
+        assert (
+            self.client.post(self.url, self.payload, format="json", **self.system).status_code
+            == 200
+        )
+        notebook = WorkflowRun.objects.get(uuid=self.run_id).checkpoint["notebook_id"]
+        self.login_as(self.user)
+        detail = self.client.get(
+            f"/api/0/organizations/{self.organization.slug}/notebooks/{notebook}/"
+        )
+        card = detail.data["workflowReport"]["hypotheses"][0]
+        assert detail.data["workflowReport"]["primaryHypothesisId"] == card["id"]
+        assert card["agentVerdict"]["supportingEvidenceIds"] == [card["evidence"][0]["id"]]
+        assert card["verificationSteps"][0]["evidence"][0]["url"] == evidence["url"]
+
+    def test_unrelated_workflow_does_not_promise_hypotheses(self) -> None:
+        self.leaf.update(
+            status="pending", state={"definition": {"output_schema": "CustomArtifact"}}
+        )
+        response = self.client.post(self.url, self.payload, format="json", **self.system)
+        assert response.status_code == 200
+        notebook = WorkflowRun.objects.get(uuid=self.run_id).checkpoint["notebook_id"]
+        self.login_as(self.user)
+        report = self.client.get(
+            f"/api/0/organizations/{self.organization.slug}/notebooks/{notebook}/"
+        ).data["workflowReport"]
+        assert report["phase"] == "workflow"
+        assert not report["awaitingHypotheses"]
 
     def test_rejects_cross_org_and_rolls_back_an_invalid_graph(self) -> None:
         self.leaf["organization_id"] += 1

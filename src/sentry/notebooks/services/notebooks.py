@@ -376,6 +376,9 @@ def archive_notebook_row(*, notebook: Notebook, expected_version: int) -> Notebo
             raise NotebookValidationError(
                 {"detail": "Stop active block runs before archiving this investigation."}
             )
+        from sentry.investigations.services.workflow_runtime import cancel_notebook_workflows
+
+        cancel_notebook_workflows(locked)
         locked.status = NotebookStatus.ARCHIVED
         bump_notebook_version(locked)
     return locked

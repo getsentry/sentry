@@ -241,6 +241,11 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             beta = self.client.post(url, payload, format="json")
             assert beta.status_code == 201, beta.data
             assert beta.data["id"] != legacy.data["id"]
+            lookup = self.client.post(
+                self.candidates_url, {"sources": [payload["source"]]}, format="json"
+            )
+            assert lookup.data["items"][0]["investigationId"] == legacy.data["id"]
+            assert lookup.data["items"][0]["workflowInvestigationId"] == beta.data["id"]
             assert beta.data["source"]["snapshot"] == legacy.data["source"]["snapshot"]
             notebook = Notebook.objects.get(id=beta.data["id"])
             related_project = self.create_project(organization=self.organization)

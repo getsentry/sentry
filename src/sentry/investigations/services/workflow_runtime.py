@@ -1,12 +1,13 @@
 """Sentry owns the checkpoint. Workers evaluate the graph against a versioned snapshot."""
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from django.db import router, transaction
 from django.db.models import Case, DateTimeField, Value, When
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, PermissionDenied
 
@@ -17,7 +18,7 @@ from sentry.investigations.services.orchestration import (
     get_or_create_metric_workflow_notebook,
 )
 from sentry.models.organization import Organization
-from sentry.notebooks.models import Notebook, NotebookSourceType
+from sentry.notebooks.models import Notebook, NotebookSourceType, NotebookWorkflowRun
 from sentry.notebooks.services import NotebookSourceNotFound, NotebookValidationError
 from sentry.notebooks.services.workflow import open_workflow_notebook
 from sentry.viewer_context import ActorId, ActorType
@@ -168,11 +169,24 @@ def create_run(
                     raise serializers.ValidationError("Missing notebook destination.")
                 target = None
                 if destination.get("notebookId") is not None:
-                    target = Notebook.objects.filter(
-                        organization=organization, pk=destination["notebookId"], status="active"
-                    ).get_or_none()
+                    target = (
+                        Notebook.objects.select_for_update()
+                        .filter(
+                            organization=organization, pk=destination["notebookId"], status="active"
+                        )
+                        .get_or_none()
+                    )
                     if target is None:
                         raise serializers.ValidationError("Unknown notebook.")
+                    if previous := destination.get("previousRunId"):
+                        latest = (
+                            NotebookWorkflowRun.objects.filter(notebook=target)
+                            .order_by("-id")
+                            .values_list("run_id", flat=True)
+                            .first()
+                        )
+                        if latest != UUID(previous):
+                            raise StaleWorkflow("Another run has already taken over this notebook.")
                 try:
                     new_breach_notebook = False
                     if source is not None:
@@ -219,6 +233,34 @@ def create_run(
         return run, created
 
 
+def cancel_notebook_workflows(notebook: Notebook) -> None:
+    """Fence pending writes and leave claimed Explorer children due for Seer's stop sweep."""
+    bindings = NotebookWorkflowRun.objects.filter(notebook=notebook).values("run_id")
+    runs = WorkflowRun.objects.select_for_update().filter(
+        organization_id=notebook.organization_id,
+        uuid__in=bindings,
+        checkpoint__status__in=["pending", "running", "awaiting_input"],
+    )
+    now = timezone.now()
+    for run in runs:
+        for node in run.nodes.exclude(checkpoint__status__in=["succeeded", "failed", "cancelled"]):
+            saved = node.checkpoint
+            if saved["state"].get("kind") == "llm":
+                saved.update(lease_token=None, lease_expires_at=None)
+                saved["state"]["dispatch_token"] = None
+                due = None
+            else:
+                due = now if saved["attempt"] else None
+            saved.update(status="cancelled", next_check_at=due.isoformat() if due else None)
+            node.update(checkpoint=saved, next_check_at=due)
+        if clock := run.checkpoint.get("active_clock"):
+            if since := clock.get("since"):
+                clock["seconds"] += max(0, (now - datetime.fromisoformat(since)).total_seconds())
+                clock["since"] = None
+        run.checkpoint.update(status="cancelled", finished_at=now.isoformat(), next_check_at=None)
+        run.update(checkpoint=run.checkpoint, version=run.version + 1)
+
+
 def worker_snapshot(run: WorkflowRun) -> dict[str, Any]:
     return {
         "run": {k: v for k, v in run.checkpoint.items() if k != "usage"},
@@ -245,7 +287,17 @@ def update_checkpoint(run: WorkflowRun, data: dict[str, Any]) -> None:
             )
             if expires <= timezone.now():
                 raise StaleWorkflow()
+        now = timezone.now()
+        previous = run.checkpoint
+        clock = previous.get("active_clock", {})
+        since = (
+            clock.get("since")
+            if clock
+            else (previous.get("started_at") if previous["status"] == "running" else None)
+        )
         mutable = {
+            "steering",
+            "followups",
             "started_at",
             "finished_at",
             "status",
@@ -261,6 +313,26 @@ def update_checkpoint(run: WorkflowRun, data: dict[str, Any]) -> None:
         if "usage" in data:
             run.checkpoint["usage"] = data["usage"]
         save_nodes(run, data["nodes"])
+        if any(
+            n["node_id"] == "notebook/metadata" and n["status"] == "succeeded"
+            for n in data["nodes"]
+        ):
+            run.checkpoint["report_ready"] = True
+        ticking = (
+            run.checkpoint["status"] == "running"
+            and run.checkpoint.get("started_at")
+            and not run.checkpoint.get("report_ready")
+        )
+        seconds = clock.get("seconds", 0)
+        if since and not ticking:
+            end = parse_datetime(run.checkpoint.get("finished_at") or "") or now
+            seconds += max(0, (end - datetime.fromisoformat(since)).total_seconds())
+        run.checkpoint["active_clock"] = {
+            "seconds": seconds,
+            "since": (since or (now.isoformat() if clock else run.checkpoint["started_at"]))
+            if ticking
+            else None,
+        }
         run.version += 1
         run.save(update_fields=("checkpoint", "version", "date_updated"))
 
