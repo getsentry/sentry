@@ -6,6 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs import constants
+from sentry.apidocs.examples.inbox_examples import InboxExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
@@ -28,7 +29,13 @@ class OrganizationInboxItemEventsEndpoint(OrganizationInboxEndpoint):
         operation_id="List Personal Inbox Item Events",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
-            OpenApiParameter("item_id", str, location="path", required=True),
+            OpenApiParameter(
+                "item_id",
+                str,
+                location="path",
+                required=True,
+                description="The ID of the inbox item.",
+            ),
             *PAGINATION_PARAMETERS,
         ],
         responses={
@@ -38,11 +45,12 @@ class OrganizationInboxItemEventsEndpoint(OrganizationInboxEndpoint):
             403: constants.RESPONSE_FORBIDDEN,
             404: constants.RESPONSE_NOT_FOUND,
         },
+        examples=InboxExamples.LIST_EVENTS,
     )
     def get(
         self, request: AuthenticatedHttpRequest, organization: Organization, item_id: str
     ) -> Response[list[InboxItemEventResponse]]:
-        """List an inbox item's events, newest first. Reading does not change its read state."""
+        """Return events for an inbox item, ordered from newest to oldest."""
         user = request.user
         item = get_object_or_404(
             InboxItem,

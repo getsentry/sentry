@@ -47,7 +47,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
 
     def get_validated_data(self, data: str, user: User) -> tuple[dict[str, object], Project]:
         try:
-            payload = cast(dict[str, object], unsign(force_str(data), salt=SALT))
+            payload = unsign(force_str(data), salt=SALT)
         except SignatureExpired:
             raise InvalidPayload("Project transfer link has expired.")
         except BadSignature:
@@ -58,8 +58,8 @@ class AcceptProjectTransferEndpoint(Endpoint):
 
         try:
             project = Project.objects.get(
-                id=cast(str | int, payload["project_id"]),
-                organization_id=cast(str | int, payload["from_organization_id"]),
+                id=payload["project_id"],
+                organization_id=payload["from_organization_id"],
             )
         except Project.DoesNotExist:
             raise InvalidPayload("Project no longer exists")

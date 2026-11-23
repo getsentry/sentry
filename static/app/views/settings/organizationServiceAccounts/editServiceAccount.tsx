@@ -7,6 +7,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -39,10 +40,10 @@ function EditServiceAccountForm({account}: {account: ServiceAccount}) {
     <ServiceAccountForm
       defaultValues={defaultValues}
       submitLabel={t('Save Changes')}
-      onCancel={() => navigate(detailsUrl)}
+      onCancel={() => navigate(normalizeUrl(detailsUrl))}
       onSubmit={async input => {
         await updateAccount.mutateAsync(input);
-        navigate(detailsUrl);
+        navigate(normalizeUrl(detailsUrl));
       }}
     />
   );

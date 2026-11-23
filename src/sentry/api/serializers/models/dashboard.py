@@ -890,25 +890,20 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
     ) -> dict[Dashboard, dict[str, object]]:
         result: dict[Dashboard, dict[str, object]] = {}
 
-        widgets = cast(
-            "list[DashboardWidgetResponse]",
-            serialize(
-                list(
-                    DashboardWidget.objects.filter(
-                        dashboard_id__in=[i.id for i in item_list]
-                    ).order_by("id")
-                ),
-                user=user,
+        widgets = serialize(
+            list(
+                DashboardWidget.objects.filter(dashboard_id__in=[i.id for i in item_list]).order_by(
+                    "id"
+                )
             ),
+            user=user,
         )
 
         creator_ids = [d.created_by_id for d in item_list if d.created_by_id is not None]
         serialized_creators = (
             user_service.serialize_many(filter={"user_ids": creator_ids}) if creator_ids else []
         )
-        serialized_users = {
-            u["id"]: u for u in cast("list[dict[str, object]]", serialized_creators)
-        }
+        serialized_users = {u["id"]: u for u in serialized_creators}
 
         for dashboard in item_list:
             dashboard_widgets = [w for w in widgets if w and w["dashboardId"] == str(dashboard.id)]
@@ -992,11 +987,7 @@ class DashboardRevisionSerializer(Serializer[DashboardRevisionResponse]):
     ) -> dict[DashboardRevision, dict[str, object]]:
         user_ids = [r.created_by_id for r in item_list if r.created_by_id is not None]
         users_by_id = {
-            u["id"]: u
-            for u in cast(
-                "list[dict[str, object]]",
-                user_service.serialize_many(filter={"user_ids": user_ids}),
-            )
+            u["id"]: u for u in user_service.serialize_many(filter={"user_ids": user_ids})
         }
         result: dict[DashboardRevision, dict[str, object]] = {
             revision: {"created_by": users_by_id.get(str(revision.created_by_id))}

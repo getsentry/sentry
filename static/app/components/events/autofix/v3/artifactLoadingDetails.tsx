@@ -3,6 +3,7 @@ import {useMemo, useState} from 'react';
 import {MessageRow, ThinkingBlock} from '@sentry/scraps/chat';
 
 import {type AutofixSection} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {defined} from 'sentry/utils/defined';
 import {
   groupTranscript,
   ResponseGroup,
@@ -27,7 +28,7 @@ export function ArtifactLoadingDetails({
   return (
     <ArtifactDetails>
       {transcript.responses.length ? (
-        <StepResponses {...transcript} />
+        <StepResponses {...transcript} blocks={blocks} />
       ) : (
         <MessageRow from="assistant" density="compact">
           <ThinkingBlock title={loadingMessage} startTime={appearedAt} />
@@ -55,7 +56,7 @@ export function ArtifactPartialDetails({blocks}: {blocks: AutofixSection['blocks
 
   return (
     <ArtifactDetails>
-      <StepResponses {...transcript} />
+      <StepResponses {...transcript} blocks={blocks} />
     </ArtifactDetails>
   );
 }
@@ -73,17 +74,31 @@ function useStepTranscript(blocks: AutofixSection['blocks']) {
 }
 
 /**
- * A step's responses, the way the Seer Agent chat draws them.
+ * A step's responses, the way the Seer Agent chat draws them. `blocks` is the
+ * step's full list, including the error blocks left out of `responses`.
  */
-function StepResponses({responses, latestTodos}: ReturnType<typeof useStepTranscript>) {
-  return responses.map(segment => (
-    <ResponseGroup
-      key={segment.indices[0]}
-      group={segment.blocks}
-      blockIndex={segment.indices[0]!}
-      latestTodos={latestTodos}
-      readOnly
-      showThinking
-    />
-  ));
+function StepResponses({
+  blocks,
+  responses,
+  latestTodos,
+}: ReturnType<typeof useStepTranscript> & {blocks: AutofixSection['blocks']}) {
+  return responses.map(segment => {
+    const lastBlock = segment.blocks.at(-1);
+    const nextBlock = defined(lastBlock)
+      ? blocks[blocks.indexOf(lastBlock) + 1]
+      : undefined;
+    return (
+      <ResponseGroup
+        key={segment.indices[0]}
+        group={segment.blocks}
+        blockIndex={segment.indices[0]!}
+        latestTodos={latestTodos}
+        readOnly
+        showThinking
+        // The timestamp of the block after the segment: the user's next message or, in a
+        // stopped step, Seer's error block. None when nothing follows, as while it runs.
+        endedAt={nextBlock?.timestamp}
+      />
+    );
+  });
 }
