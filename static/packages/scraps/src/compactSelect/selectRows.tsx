@@ -14,6 +14,7 @@ import {
 
 import {SECTION_SEPARATOR_HEIGHT} from './styles';
 import type {ListItemBase} from './types';
+import {getVisibleOptionPositions, type OptionPosition} from './utils';
 
 /** What a section's own row holds, above the section's options. */
 export interface SectionRowLayout {
@@ -31,6 +32,8 @@ export interface SelectSectionRow<T extends ListItemBase> {
 
 export interface SelectOptionRow<T extends ListItemBase> {
   node: Node<T>;
+  /** Set when virtualized, see `getVisibleOptionPositions`. */
+  position: OptionPosition | undefined;
   /**
    * Measurement props for the option, when virtualized. Pass `data-index` and
    * `ref` to the option as separate props: they keep their identity, so a
@@ -86,6 +89,11 @@ export function SelectRows<T extends ListItemBase>({
   size,
   virtualized,
 }: SelectRowsProps<T>) {
+  const positions = useMemo(
+    () => (virtualized ? getVisibleOptionPositions(listItems, hiddenOptions) : undefined),
+    [virtualized, listItems, hiddenOptions]
+  );
+
   // The overlay sizes its width to the rows. Keep the visible option with the
   // longest label mounted, so a virtualized list does not change width as other
   // options scroll into view.
@@ -131,7 +139,9 @@ export function SelectRows<T extends ListItemBase>({
   return (
     <VirtualRows
       virtual={virtual}
-      renderRow={({node, props}) => renderOption({node, rowProps: props})}
+      renderRow={({node, props}) =>
+        renderOption({node, position: positions?.get(node.key), rowProps: props})
+      }
       renderSection={(section, options) =>
         renderSection(
           {

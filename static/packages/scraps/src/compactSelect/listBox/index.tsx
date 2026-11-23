@@ -294,10 +294,11 @@ export function ListBox<T extends ListItemBase>({
                 selectionMode={listState.selectionManager.selectionMode}
                 showSectionHeaders={showSectionHeaders}
                 listPadding={virtualizedListPadding ?? parseFloat(theme.space.xs)}
-                renderOption={({node, rowProps}) => (
+                renderOption={({node, position, rowProps}) => (
                   <ListBoxOption
                     item={node}
                     listState={listState}
+                    position={position}
                     showDetails={showDetails}
                     size={size}
                     data-index={rowProps?.['data-index']}
