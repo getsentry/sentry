@@ -32,4 +32,4 @@ def can_enable_metric_detectors(quota: DetectorQuota, count: int) -> bool:
 
 
 def metric_detector_quota_message(quota: DetectorQuota) -> str:
-    return f"Used {quota.count}/{quota.limit} of allowed {DetectorType.METRIC_ISSUE} monitors."
+    return f"This would exceed your plan's limit of {quota.limit} metric monitors."

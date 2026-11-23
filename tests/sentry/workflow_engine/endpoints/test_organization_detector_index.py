@@ -1341,7 +1341,9 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
 
-        assert response.data["detail"] == "Used 2/3 of allowed metric_issue monitors."
+        assert (
+            response.data["detail"] == "This would exceed your plan's limit of 3 metric monitors."
+        )
         self.detector_two.refresh_from_db()
         self.detector_three.refresh_from_db()
         assert self.detector_two.enabled is False
@@ -1363,7 +1365,7 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         self.detector_three.refresh_from_db()
         assert self.detector_three.enabled is True
 
-    @patch("sentry.quotas.backend.get_metric_detector_limit", return_value=1)
+    @patch("sentry.quotas.backend.get_metric_detector_limit", return_value=4)
     @with_feature("organizations:workflow-engine-metric-detector-limit")
     def test_update_detectors_enable_already_enabled_not_counted(
         self, mock_get_limit: MagicMock

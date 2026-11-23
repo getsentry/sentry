@@ -367,6 +367,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             raise serializers.ValidationError("Missing organization/request context")
         return get_metric_detector_quota(organization, actor=request.user)
 
+    def get_quota_message(self, quota: DetectorQuota) -> str:
+        return metric_detector_quota_message(quota)
+
     def _enforce_enable_quota(self) -> None:
         quota = self.get_quota()
         if can_enable_metric_detectors(quota, 1):
