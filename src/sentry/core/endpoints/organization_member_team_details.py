@@ -112,6 +112,7 @@ class OrganizationTeamMemberPermission(OrganizationPermission):
             "member:admin",
             "team:admin",
             "team:write",
+            "membership:read",
         ],
         "DELETE": ["org:read", "org:write", "org:admin", "team:admin"],
     }

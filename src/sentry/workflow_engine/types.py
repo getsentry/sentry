@@ -380,11 +380,14 @@ class DataConditionHandler(Generic[T]):
 
 class WorkflowTriggerDataConditionHandler(DataConditionHandler[WorkflowEventData]):
     group = DataConditionHandler.Group.WORKFLOW_TRIGGER
+    # DataCondition.get_condition_result() only evaluates booleans for workflow conditions.
+    condition_result_schema = {"type": "boolean"}
     preview_behavior: ClassVar[WorkflowTriggerPreviewBehavior | UnsupportedPreviewBehavior]
 
 
 class ActionFilterDataConditionHandler(DataConditionHandler[T]):
     group = DataConditionHandler.Group.ACTION_FILTER
+    condition_result_schema = {"type": "boolean"}
     preview_behavior: ClassVar[ActionFilterPreviewBehavior | UnsupportedPreviewBehavior]
 
 

@@ -19,8 +19,8 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 class SeerWorkflowStrategy(models.TextChoices):
     AGENTIC_TRIAGE = "agentic_triage"
     DUPLICATE_MONITORS = "duplicate_monitors"
-    AGENTIC_TRIAGE_V2 = "agentic_triage_v2"
     BREACHED_METRIC_INVESTIGATION = "breached_metric_investigation"
+    SCHEDULED_INVESTIGATION = "scheduled_investigation"
 
 
 # Strategies with one config per organization, found or created by get_or_create_for_strategy.
@@ -31,7 +31,10 @@ SEER_LEGACY_WORKFLOW_STRATEGIES = frozenset(
 
 # Strategies with any number of configs per organization. Each config is looked up by its id.
 SEER_CONFIGURABLE_WORKFLOW_STRATEGIES = frozenset(
-    {SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION}
+    {
+        SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+        SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+    }
 )
 
 # Soft bound on configs per organization. Actual count could go over a bit from concurrent writes.
@@ -160,6 +163,12 @@ class SeerWorkflowRunStatus(models.TextChoices):
     REJECTED = "rejected"
 
 
+class SeerWorkflowRunSource(models.TextChoices):
+    CRON = "cron"
+    MANUAL = "manual"
+    EVENT = "event"
+
+
 class SeerWorkflowExecutionStatus(models.TextChoices):
     QUEUED = "queued"
     RUNNING = "running"
@@ -225,6 +234,8 @@ class SeerWorkflowRun(DefaultFieldsModel):
     trigger_key = models.CharField(max_length=256, null=True, db_column="schedule_id")
     # Null for historical runs that have not adopted the shared lifecycle.
     status = models.CharField(max_length=256, choices=SeerWorkflowRunStatus.choices, null=True)
+    # Null for historical runs recorded before sources were tracked.
+    source = models.CharField(max_length=256, choices=SeerWorkflowRunSource.choices, null=True)
     date_completed = models.DateTimeField(null=True)
     # Shape: SeerWorkflowRunExtras.
     extras = models.JSONField(db_default={}, default=dict)

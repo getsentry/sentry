@@ -27,6 +27,10 @@ ruleTester.run('no-core-import', noCoreImport, {
       filename: '/project/src/foo/file.ts',
     },
     {code: 'import x from "other-package";', filename: '/project/src/foo/file.ts'},
+    {
+      code: 'import x from "sentry/components/coreLike/button";',
+      filename: '/project/src/foo/file.ts',
+    },
   ],
 
   invalid: [
