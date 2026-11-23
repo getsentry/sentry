@@ -32,6 +32,7 @@ if TYPE_CHECKING:
         Block,
         ColumnSetBlock,
         ContainerBlock,
+        RichTextBlock,
         TextBlock,
     )
     from sentry.integrations.msteams.utils import ACTION_TYPE
@@ -103,20 +104,11 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         return group.get_absolute_url(params=params)
 
     @classmethod
-    def build_title(cls, *, group: Group, issue_url: str) -> TextBlock:
+    def build_title(cls, *, group: Group, issue_url: str) -> RichTextBlock:
         from sentry.integrations.messaging.message_builder import build_attachment_title
-        from sentry.integrations.msteams.card_builder.block import (
-            TextSize,
-            TextWeight,
-            create_text_block,
-        )
+        from sentry.integrations.msteams.card_builder.block import create_issue_title_block
 
-        title_text = build_attachment_title(group)
-        return create_text_block(
-            f"[{title_text}]({issue_url})",
-            size=TextSize.LARGE,
-            weight=TextWeight.BOLDER,
-        )
+        return create_issue_title_block(build_attachment_title(group), issue_url)
 
     @classmethod
     def build_description(

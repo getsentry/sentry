@@ -22,7 +22,11 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
         """Test that issue alerts are sent to a MS Teams user."""
 
         event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+            data={
+                "message": "Expected [x] < y & z > 0 in __init__ (literal &lt;)",
+                "level": "error",
+            },
+            project_id=self.project.id,
         )
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
@@ -59,12 +63,14 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
             f"Alert triggered [{rule.label}](http://testserver/organizations/baz/monitors/alerts/{origin.workflow_id}/)"
             == body[0]["text"]
         )
+        title = body[1]["inlines"][0]
+        assert title["text"] == event.title
         assert (
-            f"[{event.title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=issue\\_alert-msteams&amp;notification\\_uuid={notification_uuid})"
-            == body[1]["text"]
+            title["selectAction"]["url"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=issue_alert-msteams&notification_uuid={notification.notification_uuid}"
         )
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/alerts/?referrer=issue\\_alert-msteams-user&amp;notification\\_uuid={notification_uuid}&amp;organizationId={self.organization.id})"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/alerts/?referrer=issue\\_alert-msteams-user&amp;notification\\_uuid={notification.notification_uuid}&amp;organizationId={self.organization.id})"
             == body[3]["columns"][1]["items"][0]["text"]
         )
 
@@ -110,11 +116,13 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
             f"Alert triggered [{rule.label}](http://testserver/organizations/baz/monitors/alerts/{origin.workflow_id}/)"
             == body[0]["text"]
         )
+        title = body[1]["inlines"][0]
+        assert title["text"] == event.title
         assert (
-            f"[{event.title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=issue\\_alert-msteams&amp;notification\\_uuid={notification_uuid})"
-            == body[1]["text"]
+            title["selectAction"]["url"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=issue_alert-msteams&notification_uuid={notification.notification_uuid}"
         )
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/alerts/?referrer=issue\\_alert-msteams-user&amp;notification\\_uuid={notification_uuid}&amp;organizationId={self.organization.id})"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/alerts/?referrer=issue\\_alert-msteams-user&amp;notification\\_uuid={notification.notification_uuid}&amp;organizationId={self.organization.id})"
             == body[3]["columns"][1]["items"][0]["text"]
         )

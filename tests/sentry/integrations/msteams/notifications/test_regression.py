@@ -41,13 +41,14 @@ class MSTeamsRegressionNotificationTest(MSTeamsActivityNotificationTest):
         assert 4 == len(body)
 
         assert "Issue marked as regression" == body[0]["text"]
+        title = body[1]["inlines"][0]
+        assert title["text"] == self.group.title
         assert (
-            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=regression\\_activity-msteams&amp;notification\\_uuid="
-            in body[1]["text"]
+            title["selectAction"]["url"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=regression_activity-msteams&notification_uuid={notification.notification_uuid}"
         )
-        notification_uuid = self.get_notification_uuid(body[3]["columns"][1]["items"][0]["text"])
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=regression\\_activity-msteams-user&amp;notification\\_uuid={notification_uuid}&amp;organizationId={self.organization.id})"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=regression\\_activity-msteams-user&amp;notification\\_uuid={notification.notification_uuid}&amp;organizationId={self.organization.id})"
             == body[3]["columns"][1]["items"][0]["text"]
         )
 
@@ -71,7 +72,9 @@ class MSTeamsRegressionNotificationTest(MSTeamsActivityNotificationTest):
         mock_send_card.assert_called_once()
         args, kwargs = mock_send_card.call_args
         body = args[1]["body"]
+        title = body[1]["inlines"][0]
+        assert title["text"] == self.group.title
         assert (
-            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/events/{event_id}/?referrer=regression\\_activity-msteams&amp;notification\\_uuid="
-            in body[1]["text"]
+            title["selectAction"]["url"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/events/{event_id}/?referrer=regression_activity-msteams&notification_uuid={notification.notification_uuid}"
         )

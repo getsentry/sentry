@@ -41,16 +41,17 @@ class MSTeamsEscalatingNotificationTest(MSTeamsActivityNotificationTest):
         assert 4 == len(body)
 
         assert body[0]["text"] == "Issue marked as escalating"
+        title = body[1]["inlines"][0]
+        assert title["text"] == self.group.title
         assert (
-            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=escalating\\_activity-msteams&amp;notification\\_uuid="
-            in body[1]["text"]
+            title["selectAction"]["url"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=escalating_activity-msteams&notification_uuid={notification.notification_uuid}"
         )
         assert (
             body[2]["text"]
             == "Sentry flagged this issue as escalating because over 100 events happened in an hour."
         )
-        notification_uuid = self.get_notification_uuid(body[3]["columns"][1]["items"][0]["text"])
         assert (
             body[3]["columns"][1]["items"][0]["text"]
-            == f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=escalating\\_activity-msteams-user&amp;notification\\_uuid={notification_uuid}&amp;organizationId={self.organization.id})"
+            == f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=escalating\\_activity-msteams-user&amp;notification\\_uuid={notification.notification_uuid}&amp;organizationId={self.organization.id})"
         )

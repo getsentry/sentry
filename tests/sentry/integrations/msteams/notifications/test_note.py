@@ -41,13 +41,14 @@ class MSTeamsNoteNotificationTest(MSTeamsActivityNotificationTest):
         assert 4 == len(body)
 
         assert f"New comment by {self.user.get_display_name()}" == body[0]["text"]
+        title = body[1]["inlines"][0]
+        assert title["text"] == self.group.title
         assert (
-            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note\\_activity-msteams&amp;notification\\_uuid="
-            in body[1]["text"]
+            title["selectAction"]["url"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note_activity-msteams&notification_uuid={notification.notification_uuid}"
         )
         assert notification.activity.data["text"] == body[2]["text"]
-        notification_uuid = self.get_notification_uuid(body[3]["columns"][1]["items"][0]["text"])
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=note\\_activity-msteams-user&amp;notification\\_uuid={notification_uuid}&amp;organizationId={self.organization.id})"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=note\\_activity-msteams-user&amp;notification\\_uuid={notification.notification_uuid}&amp;organizationId={self.organization.id})"
             == body[3]["columns"][1]["items"][0]["text"]
         )

@@ -95,6 +95,19 @@ class TextBlock(_TextBlockNotRequired):
     text: str
 
 
+class TextRun(TypedDict):
+    type: Literal["TextRun"]
+    text: str
+    size: TextSize
+    weight: TextWeight
+    selectAction: NotRequired[OpenUrlAction]
+
+
+class RichTextBlock(TypedDict):
+    type: Literal["RichTextBlock"]
+    inlines: list[TextRun]
+
+
 class _ImageBlockNotRequired(TypedDict, total=False):
     size: ImageSize
     height: str
@@ -154,6 +167,7 @@ ItemBlock: TypeAlias = str | TextBlock | ImageBlock
 Block: TypeAlias = (
     ActionSet
     | TextBlock
+    | RichTextBlock
     | ImageBlock
     | ColumnSetBlock
     | ContainerBlock
@@ -182,6 +196,14 @@ def create_text_block(text: str | None, **kwargs: Unpack[_TextBlockNotRequired])
         "text": escape_markdown_special_chars(text) if text else "",
         **kwargs,
     }
+
+
+def create_issue_title_block(text: str, url: str | None) -> RichTextBlock:
+    # TextRun displays the issue title literally, including Markdown and HTML entities.
+    title = TextRun(type="TextRun", text=text, size=TextSize.LARGE, weight=TextWeight.BOLDER)
+    if url:
+        title["selectAction"] = OpenUrlAction(type=ActionType.OPEN_URL, title=text, url=url)
+    return {"type": "RichTextBlock", "inlines": [title]}
 
 
 def create_code_block(text: str) -> CodeBlock:

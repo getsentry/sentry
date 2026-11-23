@@ -19,6 +19,7 @@ from sentry.integrations.msteams.card_builder.block import (
     Block,
     ColumnSetBlock,
     ContainerBlock,
+    RichTextBlock,
     ShowCardAction,
     SubmitAction,
     TextBlock,
@@ -46,6 +47,7 @@ from .block import (
     create_footer_logo_block,
     create_footer_text_block,
     create_input_choice_set_block,
+    create_issue_title_block,
     create_text_block,
 )
 
@@ -84,19 +86,14 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             }
         }
 
-    def build_group_title(self, notification_uuid: str | None = None) -> TextBlock:
+    def build_group_title(self, notification_uuid: str | None = None) -> RichTextBlock:
         text = build_attachment_title(self.group)
         params = {"referrer": IntegrationProviderSlug.MSTEAMS.value}
         if notification_uuid:
             params.update({"notification_uuid": notification_uuid})
         link = self.group.get_absolute_url(params=params)
 
-        title_text = f"[{text}]({link})"
-        return create_text_block(
-            title_text,
-            size=TextSize.LARGE,
-            weight=TextWeight.BOLDER,
-        )
+        return create_issue_title_block(text, link)
 
     def build_group_descr(self) -> TextBlock | None:
         # Webhook rebuilds pass a nodestore Event without its occurrence, which yields no text

@@ -29,6 +29,7 @@ from sentry.integrations.msteams.card_builder.block import (
     create_footer_column_block,
     create_footer_logo_block,
     create_footer_text_block,
+    create_issue_title_block,
     create_text_block,
 )
 from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
@@ -114,11 +115,7 @@ class IssueMSTeamsRendererTest(TestCase):
             params={"referrer": "msteams", "notification_uuid": notification_uuid}
         )
 
-        title = create_text_block(
-            f"[{title_text}]({issue_url})",
-            size=TextSize.LARGE,
-            weight=TextWeight.BOLDER,
-        )
+        title = create_issue_title_block(title_text, issue_url)
 
         project = Project.objects.get_from_cache(id=group.project_id)
         origins = [
@@ -242,7 +239,8 @@ class IssueMSTeamsRendererTest(TestCase):
             )
 
     def test_render_produces_card(self) -> None:
-        data, event, group = self._create_data()
+        issue_title = "Expected [x] < y & z > 0 in __init__ (literal &lt;)"
+        data, event, group = self._create_data(event_data={"message": issue_title})
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
         result = render_issue(
@@ -251,6 +249,13 @@ class IssueMSTeamsRendererTest(TestCase):
         )
 
         assert result == self._build_expected_card(group=group, event=event)
+        title = result["body"][0]
+        assert title["type"] == "RichTextBlock"
+        title_run = title["inlines"][0]
+        assert title_run["text"] == issue_title
+        assert title_run["selectAction"]["url"] == group.get_absolute_url(
+            params={"referrer": "msteams", "notification_uuid": data.notification_uuid}
+        )
 
     def _card_actions(self, card: AdaptiveCard) -> list[Any]:
         container = cast(Any, card["body"][-1])

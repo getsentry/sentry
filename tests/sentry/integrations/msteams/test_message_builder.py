@@ -334,8 +334,9 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "test-url" == unlink_identity_card["actions"][0]["url"]
 
     def test_issue_message_builder(self) -> None:
+        issue_title = "Expected [x] < y & z > 0 in __init__ (literal &lt;)"
         self.event1.data["metadata"].update({"value": "some error"})
-        self.group1.data["metadata"].update({"value": "some error"})
+        self.group1.data["metadata"].update({"type": issue_title, "value": "some error"})
         self.event1.data["type"] = self.group1.data["type"] = "error"
 
         issue_card = MSTeamsIssueMessageBuilder(
@@ -349,10 +350,22 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert 4 == len(body)
 
         title = body[0]
-        assert _is_text_block(title)
-        assert "oh no" in title["text"]
-        assert TextSize.LARGE == title["size"]
-        assert TextWeight.BOLDER == title["weight"]
+        assert title == {
+            "type": "RichTextBlock",
+            "inlines": [
+                {
+                    "type": "TextRun",
+                    "text": issue_title,
+                    "size": "Large",
+                    "weight": "Bolder",
+                    "selectAction": {
+                        "type": "Action.OpenUrl",
+                        "title": issue_title,
+                        "url": self.group1.get_absolute_url(params={"referrer": "msteams"}),
+                    },
+                }
+            ],
+        }
 
         description = body[1]
         assert _is_text_block(description)
@@ -598,10 +611,11 @@ class MSTeamsNotificationMessageBuilderTest(TestCase):
         assert "Notification Title with some\\_value" == title["text"]
 
         group_title = body[1]
-        assert _is_text_block(group_title)
-        assert "[My Title]" in group_title["text"]
-        assert TextSize.LARGE == group_title["size"]
-        assert TextWeight.BOLDER == group_title["weight"]
+        assert group_title["type"] == "RichTextBlock"
+        title_run = group_title["inlines"][0]
+        assert title_run["text"] == "My Title"
+        assert title_run["size"] == TextSize.LARGE
+        assert title_run["weight"] == TextWeight.BOLDER
 
         description = body[2]
         assert _is_text_block(description)

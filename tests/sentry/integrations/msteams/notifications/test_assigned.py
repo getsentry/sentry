@@ -40,14 +40,15 @@ class MSTeamsAssignedNotificationTest(MSTeamsActivityNotificationTest):
         body = args[1]["body"]
         assert 4 == len(body)
 
-        notification_uuid = self.get_notification_uuid(body[1]["text"])
         assert f"Issue assigned to {self.user.get_display_name()} by themselves" == body[0]["text"]
+        title = body[1]["inlines"][0]
+        assert title["text"] == self.group.title
         assert (
-            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=assigned\\_activity-msteams&amp;notification\\_uuid"
-            in body[1]["text"]
+            title["selectAction"]["url"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=assigned_activity-msteams&notification_uuid={notification.notification_uuid}"
         )
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=assigned\\_activity-msteams-user&amp;notification\\_uuid={notification_uuid}&amp;organizationId={self.organization.id})"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=assigned\\_activity-msteams-user&amp;notification\\_uuid={notification.notification_uuid}&amp;organizationId={self.organization.id})"
             == body[3]["columns"][1]["items"][0]["text"]
         )
 
@@ -75,13 +76,14 @@ class MSTeamsAssignedNotificationTest(MSTeamsActivityNotificationTest):
         body = args[1]["body"]
         assert 4 == len(body)
 
-        notification_uuid = self.get_notification_uuid(body[1]["text"])
         assert f"Issue automatically assigned to {self.user.get_display_name()}" == body[0]["text"]
+        title = body[1]["inlines"][0]
+        assert title["text"] == self.group.title
         assert (
-            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=assigned\\_activity-msteams&amp;notification\\_uuid"
-            in body[1]["text"]
+            title["selectAction"]["url"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=assigned_activity-msteams&notification_uuid={notification.notification_uuid}"
         )
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=assigned\\_activity-msteams-user&amp;notification\\_uuid={notification_uuid}&amp;organizationId={self.organization.id})"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=assigned\\_activity-msteams-user&amp;notification\\_uuid={notification.notification_uuid}&amp;organizationId={self.organization.id})"
             == body[3]["columns"][1]["items"][0]["text"]
         )

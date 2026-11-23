@@ -1,4 +1,3 @@
-import re
 import time
 from typing import Any
 from unittest import mock
@@ -87,12 +86,11 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         attachments = data["attachments"]
         assert len(attachments) == 1
 
-        # Wish there was a better way to do this, but we
-        # can't pass the title and title link separately
-        # with MS Teams cards.
-        title_card = attachments[0]["content"]["body"][0]
-        title_pattern = r"\[%s\](.*)" % event.title
-        assert re.match(title_pattern, title_card["text"])
+        title = attachments[0]["content"]["body"][0]["inlines"][0]
+        assert title["text"] == event.title
+        assert title["selectAction"]["url"] == event.group.get_absolute_url(
+            params={"referrer": "msteams", "notification_uuid": notification_uuid}
+        )
         assert_last_analytics_event(
             mock_record,
             AlertSentEvent(
@@ -147,12 +145,11 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         attachments = data["attachments"]
         assert len(attachments) == 1
 
-        # Wish there was a better way to do this, but we
-        # can't pass the title and title link separately
-        # with MS Teams cards.
-        title_card = attachments[0]["content"]["body"][0]
-        title_pattern = r"\[%s\](.*)" % event.title
-        assert re.match(title_pattern, title_card["text"])
+        title = attachments[0]["content"]["body"][0]["inlines"][0]
+        assert title["text"] == event.title
+        assert title["selectAction"]["url"] == event.group.get_absolute_url(
+            params={"referrer": "msteams", "notification_uuid": notification_uuid}
+        )
         assert_last_analytics_event(
             mock_record,
             AlertSentEvent(
@@ -212,12 +209,11 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         attachments = data["attachments"]
         assert len(attachments) == 1
 
-        # Wish there was a better way to do this, but we
-        # can't pass the title and title link separately
-        # with MS Teams cards.
-        title_card = attachments[0]["content"]["body"][0]
-        title_pattern = r"\[%s\](.*)" % event.title
-        assert re.match(title_pattern, title_card["text"])
+        title = attachments[0]["content"]["body"][0]["inlines"][0]
+        assert title["text"] == event.title
+        assert title["selectAction"]["url"] == event.group.get_absolute_url(
+            params={"referrer": "msteams", "notification_uuid": notification_uuid}
+        )
         assert_last_analytics_event(
             mock_record,
             AlertSentEvent(
@@ -282,9 +278,11 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         title_card = attachments[0]["content"]["body"][0]
         description = attachments[0]["content"]["body"][1]
 
+        title = title_card["inlines"][0]
+        assert title["text"] == TEST_ISSUE_OCCURRENCE.issue_title
         assert (
-            title_card["text"]
-            == f"[{TEST_ISSUE_OCCURRENCE.issue_title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=msteams)"
+            title["selectAction"]["url"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=msteams"
         )
         assert description["text"] == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
 
@@ -326,9 +324,11 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         title_card = attachments[0]["content"]["body"][0]
         description = attachments[0]["content"]["body"][1]
+        title = title_card["inlines"][0]
+        assert title["text"] == "N+1 Query"
         assert (
-            title_card["text"]
-            == f"[N+1 Query](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=msteams)"
+            title["selectAction"]["url"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=msteams"
         )
         assert (
             description["text"]

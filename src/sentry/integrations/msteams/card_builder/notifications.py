@@ -8,7 +8,6 @@ from sentry.integrations.messaging.message_builder import (
     build_attachment_title,
     get_title_link,
 )
-from sentry.integrations.msteams.card_builder import MSTEAMS_URL_FORMAT
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.block import OpenUrlAction
 from sentry.integrations.types import ExternalProviders
@@ -23,14 +22,15 @@ from .block import (
     ActionType,
     AdaptiveCard,
     ColumnSetBlock,
+    RichTextBlock,
     TextBlock,
     TextSize,
-    TextWeight,
     create_column_block,
     create_column_set_block,
     create_footer_column_block,
     create_footer_logo_block,
     create_footer_text_block,
+    create_issue_title_block,
     create_text_block,
 )
 
@@ -58,19 +58,11 @@ class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
 
         return None
 
-    def create_attachment_title_block(self) -> TextBlock | None:
+    def create_attachment_title_block(self) -> RichTextBlock | None:
         title = self.notification.build_attachment_title(self.recipient)
         title_link = self.notification.get_title_link(self.recipient, ExternalProviders.MSTEAMS)
 
-        return (
-            create_text_block(
-                MSTEAMS_URL_FORMAT.format(text=title, url=title_link),
-                size=TextSize.LARGE,
-                weight=TextWeight.BOLDER,
-            )
-            if title
-            else None
-        )
+        return create_issue_title_block(title, title_link) if title else None
 
     def create_title_block(self) -> TextBlock:
         return create_text_block(
@@ -132,21 +124,13 @@ class MSTeamsIssueNotificationsMessageBuilder(MSTeamsNotificationsMessageBuilder
         assert notification.group is not None
         self.group = notification.group
 
-    def create_attachment_title_block(self) -> TextBlock | None:
+    def create_attachment_title_block(self) -> RichTextBlock | None:
         title = build_attachment_title(self.group)
         title_link = get_title_link(
             self.group, None, False, True, self.notification, ExternalProviders.MSTEAMS
         )
 
-        return (
-            create_text_block(
-                MSTEAMS_URL_FORMAT.format(text=title, url=title_link),
-                size=TextSize.LARGE,
-                weight=TextWeight.BOLDER,
-            )
-            if title
-            else None
-        )
+        return create_issue_title_block(title, title_link) if title else None
 
     def create_description_block(self) -> TextBlock | None:
         return (
