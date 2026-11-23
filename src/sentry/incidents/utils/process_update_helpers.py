@@ -65,7 +65,9 @@ def get_crash_rate_alert_metrics_aggregation_value_helper(
     return evaluation_value
 
 
-def coerce_aggregation_value(value: object, *, none_defaults_to_zero: bool = False) -> float | None:
+def normalize_snuba_query_result(
+    value: object, *, none_defaults_to_zero: bool = False
+) -> float | None:
     """
     Normalize a Snuba/EAP aggregate to float | None.
 
@@ -104,7 +106,7 @@ def get_aggregation_value_helper(subscription_update: QuerySubscriptionUpdate) -
     # there were no rows present when we made the query for certain types of aggregations
     # like avg. Defaulting this to 0 for now. It might turn out that we'd prefer to skip
     # the update in the future.
-    return coerce_aggregation_value(evaluation_value, none_defaults_to_zero=True)
+    return normalize_snuba_query_result(evaluation_value, none_defaults_to_zero=True)
 
 
 def get_eap_aggregation_value(
@@ -158,7 +160,7 @@ def get_eap_aggregation_value(
             },
         )
         return None
-    return coerce_aggregation_value(baseline_value)
+    return normalize_snuba_query_result(baseline_value)
 
 
 def get_aggregation_value(
@@ -217,7 +219,7 @@ def get_aggregation_value(
             },
         )
         return None
-    return coerce_aggregation_value(baseline_value)
+    return normalize_snuba_query_result(baseline_value)
 
 
 def get_comparison_aggregation_value(
