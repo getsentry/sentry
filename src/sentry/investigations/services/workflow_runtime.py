@@ -167,6 +167,7 @@ def create_run(
             if definition.get("notebook"):
                 if destination is None:
                     raise serializers.ValidationError("Missing notebook destination.")
+                previous_binding = None
                 target = None
                 if destination.get("notebookId") is not None:
                     target = (
@@ -177,15 +178,16 @@ def create_run(
                         .get_or_none()
                     )
                     if target is None:
+                        if destination.get("previousRunId"):
+                            raise StaleWorkflow("The notebook is no longer active.")
                         raise serializers.ValidationError("Unknown notebook.")
                     if previous := destination.get("previousRunId"):
-                        latest = (
+                        previous_binding = (
                             NotebookWorkflowRun.objects.filter(notebook=target)
                             .order_by("-id")
-                            .values_list("run_id", flat=True)
                             .first()
                         )
-                        if latest != UUID(previous):
+                        if previous_binding is None or previous_binding.run_id != UUID(previous):
                             raise StaleWorkflow("Another run has already taken over this notebook.")
                 try:
                     new_breach_notebook = False
@@ -222,6 +224,12 @@ def create_run(
                     ) from exc
                 except NotebookValidationError as exc:
                     raise serializers.ValidationError(exc.errors) from exc
+                if previous_binding and not previous_binding.preserve_title:
+                    # Carry title ownership across a retry. A user rename sets preserve_title
+                    # on the original binding, including during an unfinished first attempt.
+                    NotebookWorkflowRun.objects.filter(
+                        organization=organization, run_id=run.uuid
+                    ).update(preserve_title=False)
                 run.checkpoint = {**checkpoint, "notebook_id": notebook.id}
                 run.save(update_fields=["checkpoint"])
             save_nodes(run, nodes)
