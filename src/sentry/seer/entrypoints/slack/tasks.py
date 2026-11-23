@@ -11,7 +11,6 @@ from slack_sdk.models.blocks import MarkdownBlock
 from taskbroker_client.retry import Retry
 
 from sentry import analytics
-from sentry.auth.access import from_user
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -154,7 +153,6 @@ def process_mention_for_slack(
                 status="",
             )
             return
-        entrypoint.user_id = user.id
 
         if not organization.has_access(user):
             lifecycle.record_halt(ProcessMentionHaltReason.USER_NOT_ORG_MEMBER)
@@ -180,7 +178,6 @@ def process_mention_for_slack(
             _send_out_of_credits_message(
                 entrypoint=entrypoint,
                 organization=organization,
-                user=user,
                 thread_ts=thread_ts or ts,
             )
             # The webhook set "is thinking..." before queueing this task; clear it.
@@ -429,7 +426,6 @@ def _send_out_of_credits_message(
     *,
     entrypoint: SlackAgentEntrypoint,
     organization: Organization,
-    user: RpcUser,
     thread_ts: str,
 ) -> None:
     """Reply in the thread, for everyone to see, that the org is out of Seer credits."""
@@ -437,10 +433,7 @@ def _send_out_of_credits_message(
         send_thread_update(
             install=entrypoint.install,
             thread=SlackThreadDetails(thread_ts=thread_ts, channel_id=entrypoint.channel_id),
-            data=SeerAgentOutOfCredits(
-                organization_id=organization.id,
-                has_billing_access=from_user(user, organization).has_scope("org:billing"),
-            ),
+            data=SeerAgentOutOfCredits(organization_id=organization.id),
         )
     except Exception as e:
         _logger.warning("seer.slack.process_mention.send_out_of_credits_failed", exc_info=e)

@@ -82,24 +82,20 @@ class SeerAutofixStoppedTemplate(NotificationTemplate[SeerAutofixStopped]):
         )
 
 
-# NO_RELOADS is for billing members whose auto-reload is already on.
-AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE = "Your organization does not have enough credits to continue your Autofix run. Ask your admin to increase your daily token limit or set up auto-reload."
-AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE = "Your organization does not have enough credits to continue your Autofix run. Set up auto-reload to keep your flow uninterrupted."
+# NO_RELOADS is for when auto-reload is already on.
+AUTOFIX_OUT_OF_CREDITS_MESSAGE = "Your organization does not have enough credits to continue your Autofix run. Set up auto-reload to keep your flow uninterrupted."
 AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE = "Your organization does not have enough credits to continue your Autofix run, and you have no auto-reloads remaining. Adjust your spend and turn on auto-reload."
 
 
 class SeerAutofixOutOfCredits(NotificationData):
     source: NotificationSource = NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS
-    has_billing_access: bool = False
     auto_reload_enabled: bool = False
 
     @property
     def message(self) -> str:
-        if not self.has_billing_access:
-            return AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE
         if self.auto_reload_enabled:
             return AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE
-        return AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE
+        return AUTOFIX_OUT_OF_CREDITS_MESSAGE
 
 
 @template_registry.register(NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS)
@@ -255,23 +251,19 @@ class SeerAgentErrorTemplate(NotificationTemplate[SeerAgentError]):
         )
 
 
-AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE = "Your organization does not have enough credits left for you to message Seer. Ask your admin to set up auto-reload."
-AGENT_OUT_OF_CREDITS_BILLING_MESSAGE = "Your organization does not have enough credits left for you to message Seer. Adjust your spend and turn on auto-reload."
+AGENT_OUT_OF_CREDITS_MESSAGE = "Your organization does not have enough credits left for you to message Seer. Adjust your spend and turn on auto-reload."
 AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE = "Your organization does not have enough credits left for you to message Seer, and you have no auto-reloads remaining. Adjust your spend and turn on auto-reload."
 
 
 class SeerAgentOutOfCredits(NotificationData):
     source: NotificationSource = NotificationSource.SEER_AGENT_OUT_OF_CREDITS
-    has_billing_access: bool = False
     auto_reload_enabled: bool = False
 
     @property
     def message(self) -> str:
-        if not self.has_billing_access:
-            return AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE
         if self.auto_reload_enabled:
             return AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE
-        return AGENT_OUT_OF_CREDITS_BILLING_MESSAGE
+        return AGENT_OUT_OF_CREDITS_MESSAGE
 
 
 @template_registry.register(NotificationSource.SEER_AGENT_OUT_OF_CREDITS)
