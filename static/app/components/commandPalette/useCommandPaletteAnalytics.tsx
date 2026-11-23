@@ -4,16 +4,14 @@ import type {LocationDescriptor} from 'history';
 import uniqueId from 'lodash/uniqueId';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getSettingsScope} from 'sentry/views/settings/useSettingsScope';
+import {useTrackSettingsEntryPoint} from 'sentry/views/settings/useTrackSettingsEntryPoint';
 
 import {
   getActionPath,
   type CMDKNavStack,
   useCommandPaletteState,
 } from './ui/commandPaletteStateContext';
-import {getLocationHref} from './ui/locationUtils';
 
 function getNavDepth(node: CMDKNavStack | null): number {
   let depth = 0;
@@ -39,28 +37,13 @@ interface ActionLike {
   to?: LocationDescriptor;
 }
 
-/**
- * The settings scope an action opens, or null when it does not open a
- * settings page.
- */
-function getDestinationSettingsScope(action: ActionLike) {
-  if (action.to === undefined) {
-    return null;
-  }
-  const url = new URL(getLocationHref(action.to), window.location.origin);
-  if (url.origin !== window.location.origin) {
-    return null;
-  }
-  return getSettingsScope(url.pathname).scope;
-}
-
 export function useCommandPaletteAnalytics(filteredActionCount: number): {
   recordAction: (action: ActionLike, resultIndex: number, group: string) => void;
   recordGroupAction: (action: ActionLike, resultIndex: number) => void;
 } {
   const organization = useOrganization({allowNull: true});
   const state = useCommandPaletteState();
-  const {pathname} = useLocation();
+  const trackSettingsEntry = useTrackSettingsEntryPoint('command_palette');
 
   const [openedAt] = useState(() => Date.now());
 
@@ -170,20 +153,13 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
           session_id: s.sessionId,
         });
 
-        // Opening a settings page from outside settings is an entry into
-        // settings. Moving between settings pages is not.
-        const settingsScope = getDestinationSettingsScope(action);
-        if (settingsScope && !getSettingsScope(pathname).scope) {
-          trackAnalytics('settings.entry_point_clicked', {
-            organization,
-            entry_point: 'command_palette',
-            scope: settingsScope,
-          });
-        }
-
         s.hadInteraction = true;
         s.actionsSelected++;
         s.completed = true;
+
+        if (action.to !== undefined) {
+          trackSettingsEntry(action.to);
+        }
       },
       recordGroupAction(action: ActionLike, resultIndex: number) {
         const s = analyticsState.current;
@@ -207,6 +183,6 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
         }
       },
     }),
-    [organization, pathname]
+    [organization, trackSettingsEntry]
   );
 }
