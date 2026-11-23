@@ -1,6 +1,6 @@
 from collections.abc import Generator
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, TypedDict
 
 import rapidjson
 import sentry_sdk
@@ -25,11 +25,15 @@ MAX_SAMPLE_COUNT = 9007199254740991
 MAX_EXPANDED_NODES = 100_000
 
 
+class Stacktrace(TypedDict):
+    frames: list[dict[str, object]]
+
+
 @dataclass
 class FlamegraphSymbolicationInput:
-    modules: list[dict[str, Any]]
+    modules: list[dict[str, object]]
     frame_ids: list[int]
-    stacktraces: list[dict[str, Any]]
+    stacktraces: list[Stacktrace]
 
 
 class FlamegraphExpansionLimitExceeded(Exception):

@@ -18,6 +18,7 @@ from sentry.lang.native.flamegraphs import (
     FlamegraphExpansionLimitExceeded,
     Flamegraphs,
     FlamegraphSymbolicationInput,
+    Stacktrace,
     expand_inline_frames,
 )
 from sentry.lang.native.symbolicator import FrameOrder, Symbolicator, SymbolicatorFunction
@@ -474,9 +475,9 @@ def get_frames_for_symbolication(
 
 def _get_flamegraph_stacktraces(payload: dict[str, Any]) -> FlamegraphSymbolicationInput:
     frame_ids = []
-    stacktraces = []
+    stacktraces: list[Stacktrace] = []
     original_modules = payload.get("debug_meta", {}).get("images", [])
-    modules: list[dict[str, Any]] = []
+    modules: list[dict[str, object]] = []
     module_indices: dict[int, int] = {}
     for index, image in enumerate(original_modules):
         if is_native_image(image):
@@ -573,7 +574,7 @@ def _process_flamegraphs(symbolicator: Symbolicator, data: Any) -> bool:
                     continue
                 reason = "request_error"
                 if is_javascript:
-                    response = symbolicator.process_js(
+                    response = symbolicator.with_function(SymbolicatorFunction.js).process_js(
                         platform=payload["platform"],
                         stacktraces=symbolication_input.stacktraces,
                         modules=symbolication_input.modules,

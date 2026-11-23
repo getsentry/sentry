@@ -19,7 +19,9 @@ from uuid import uuid4
 import orjson
 import pytest
 import rapidjson
+from django.conf import settings
 from django.core.files.base import ContentFile
+from django.test import override_settings
 from pytest_django.live_server_helper import LiveServer
 from requests.exceptions import ConnectionError, Timeout
 
@@ -547,6 +549,7 @@ def cached_flamegraph(
         timeout=60,
     )
     symbolicator = mock.Mock(project=default_project)
+    symbolicator.with_function.return_value = symbolicator
     symbolicator.process_payload.return_value = {
         "status": "completed",
         "stacktraces": [
@@ -691,6 +694,7 @@ def test_process_javascript_flamegraph(
         assert request["apply_source_context"] is False
         assert process_native_stacktraces(symbolicator, data) is None
     symbolicator.process_js.assert_called_once()
+    symbolicator.with_function.assert_called_once_with(SymbolicatorFunction.js)
     symbolicator.process_payload.assert_not_called()
 
 
@@ -951,17 +955,23 @@ def test_javascript_flamegraph_debug_id_source_map(
         [CachedAttachment(type="event.flamegraph", data=orjson.dumps(payload))],
         timeout=60,
     )
-    symbolicator = Symbolicator(
-        SymbolicatorTaskKind(SymbolicatorFunction.native),
-        lambda: None,
-        default_project,
-        data["event_id"],
-    )
     with (
         Feature({"organizations:flamegraph-attachments": True}),
         set_sentry_option("system.url-prefix", live_server.url),
         mock.patch("sentry.auth.system.is_internal_ip", return_value=True),
+        override_settings(
+            SYMBOLICATOR_POOL_URLS={
+                "default": "http://native.invalid",
+                "js": settings.SENTRY_SYMBOLICATOR_OPTIONS["url"],
+            }
+        ),
     ):
+        symbolicator = Symbolicator(
+            SymbolicatorTaskKind(SymbolicatorFunction.native),
+            lambda: None,
+            default_project,
+            data["event_id"],
+        )
         assert process_native_stacktraces(symbolicator, data) is data
     output = orjson.loads(list(get_attachments_for_event(data))[0].load_data(default_project))
     assert output["frames"][0]["function"] == "render"
