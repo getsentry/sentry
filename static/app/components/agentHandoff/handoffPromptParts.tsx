@@ -1,16 +1,13 @@
 import {Fragment, useId, useState, type PointerEventHandler} from 'react';
 import {css, ThemeProvider, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconSettings} from '@sentry/icons/settings';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {InfoText, InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {darkTheme} from '@sentry/scraps/theme';
 
@@ -19,57 +16,6 @@ import {t} from 'sentry/locale';
 import {getHandoffGuideUrl, getHandoffPrompt} from './handoffPrompt';
 import {AgentHandoffFlow, type AgentHandoffContext} from './types';
 import {useHandoffPromptInteractions} from './useHandoffPromptInteractions';
-
-export function getHandoffPreviewUrl(sentryUrl: string): string {
-  return new URL('/agent-handoff.md', sentryUrl).href;
-}
-
-interface HandoffAdvancedMenuProps {
-  disabled: boolean;
-  onToggle: () => void;
-  useIpPinning: boolean;
-}
-
-export function HandoffAdvancedMenu({
-  disabled,
-  useIpPinning,
-  onToggle,
-}: HandoffAdvancedMenuProps) {
-  return (
-    <DropdownMenu
-      items={[
-        {
-          key: 'ip-pinning',
-          label: t('Use IP pinning'),
-          details: t(
-            'Restricts the handoff code to your current IP address. Turn this off when your agent runs on a different network.'
-          ),
-          textValue: t('Use IP pinning'),
-          disabled,
-          isSelected: useIpPinning,
-          onAction: onToggle,
-        },
-      ]}
-      maxWidth={360}
-      position="bottom-end"
-      shouldApplyMinWidth={false}
-      size="xs"
-      usePortal
-      trigger={triggerProps => (
-        <OverlayTrigger.Button
-          {...triggerProps}
-          aria-label={t('Advanced options')}
-          icon={<IconSettings />}
-          showChevron={false}
-          size="xs"
-          variant="transparent"
-        >
-          {t('Advanced')}
-        </OverlayTrigger.Button>
-      )}
-    />
-  );
-}
 
 interface HandoffIpPinningCheckboxProps {
   disabled: boolean;
