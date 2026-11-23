@@ -7,7 +7,7 @@ from __future__ import annotations
 from collections.abc import Collection, Generator, Mapping
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from typing import Any, cast
+from typing import Any
 from uuid import uuid4
 
 import orjson
@@ -131,14 +131,11 @@ class GitHubWebhookTestCase(APITestCase):
 
         # The DRF APIClient stubs can misinterpret **extra headers as a positional arg
         client: Any = self.client
-        return cast(
-            "HttpResponseBase",
-            client.post(
-                self.github_webhook_url,
-                data=event_data,
-                content_type="application/json",
-                **headers,
-            ),
+        return client.post(
+            self.github_webhook_url,
+            data=event_data,
+            content_type="application/json",
+            **headers,
         )
 
 

@@ -5,7 +5,7 @@ import moment from 'moment-timezone';
 import {useTimezone} from '@sentry/scraps/dateTime';
 import {toast} from '@sentry/scraps/toast';
 
-import {getOutOfCreditsPRMessage} from 'sentry/components/seer/outOfCredits/messages';
+import {getRefusedPRMessage} from 'sentry/components/seer/outOfCredits/messages';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -299,7 +299,7 @@ export const useSeerExplorer = () => {
         },
       });
     },
-    onSuccess: (response, params) => {
+    onSuccess: async (response, params) => {
       if (isLatestRequest(params) && isCurrentRun(params.runId)) {
         setRequestError(null);
       }
@@ -310,8 +310,10 @@ export const useSeerExplorer = () => {
           payload: response.sentry_run_id ?? response.run_id,
         });
       } else {
-        // invalidate the query so fresh data is fetched
-        queryClient.invalidateQueries({
+        // Stay pending until the refetch lands. A poll that ran before the server saved the
+        // message may have stored a finished session; ending the send before fresh data
+        // arrives would drop the optimistic message until then.
+        await queryClient.invalidateQueries({
           queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
         });
       }
@@ -644,7 +646,7 @@ export const useSeerExplorer = () => {
       ) {
         toast.error(
           isOutOfCreditsPRState(currentState)
-            ? getOutOfCreditsPRMessage(currentState)
+            ? getRefusedPRMessage(currentState, null)
             : (currentState.pr_creation_error ?? 'Failed to create PR')
         );
       }

@@ -29,6 +29,46 @@ describe('javascript-tanstackstart-react onboarding docs', () => {
     ).toBeInTheDocument();
   });
 
+  it('only uses the --import flag for vite dev', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          /NODE_OPTIONS='--import \.\/instrument\.server\.mjs' vite dev/
+        )
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/"start": "node \.output\/server\/index\.mjs"/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/cp instrument\.server\.mjs/))
+    ).not.toBeInTheDocument();
+  });
+
+  it('forwards opts in the server entry', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/return handler\.fetch\(request, opts\)/))
+    ).toBeInTheDocument();
+  });
+
+  it('adds the CSRF middleware in src/start.ts', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          /requestMiddleware: \[sentryGlobalRequestMiddleware, csrfMiddleware\]/
+        )
+      )
+    ).toBeInTheDocument();
+  });
+
   it('displays sample rates when performance and replay are selected', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [

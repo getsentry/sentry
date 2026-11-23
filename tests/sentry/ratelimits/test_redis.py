@@ -1,5 +1,5 @@
 from time import time
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from rediscluster.exceptions import RedisClusterException
 
@@ -77,9 +77,11 @@ class RedisRateLimiterTest(TestCase):
 
     def test_fails_open_on_cluster_error(self) -> None:
         error = RedisClusterException("Too many connection")
-        with (
-            patch.object(self.backend.client, "pipeline", side_effect=error),
-            patch.object(self.backend.client, "get", side_effect=error),
-        ):
+        # Patch the backend's attribute, not methods of the shared lazy client: mock deletes
+        # attributes it patched through the proxy, which strips the client's test wrappers.
+        client = MagicMock()
+        client.pipeline.side_effect = error
+        client.get.side_effect = error
+        with patch.object(self.backend, "client", client):
             assert self.backend.is_limited("foo", 1) is False
             assert self.backend.current_value("foo") == 0

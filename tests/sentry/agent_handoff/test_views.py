@@ -22,6 +22,7 @@ from sentry.analytics.events.oauth_setup_code import OAuthSetupCodeIssuedEvent
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apisetupcode import ApiSetupCode
+from sentry.models.organization import OrganizationStatus
 from sentry.onboarding.agentic_progress.model import ProgressUpdate, Stage, StageStatus
 from sentry.onboarding.agentic_progress.service import get_onboarding_progress_service
 from sentry.projects.services.project.model import RpcProject
@@ -151,8 +152,7 @@ class AgentHandoffViewTest(TestCase):
             organization_id=self.organization.id,
             client_run_id="browser",
         )
-        response = self.claim_api(self.issue(ProjectSetupContext(run_id=run.run_id)))
-        assert response.status_code == 410
+        self.assert_setup_unavailable(self.issue(ProjectSetupContext(run_id=run.run_id)))
         assert not ApiSetupCode.objects.exists()
         assert not ApiAuthorization.objects.exists()
         assert_not_analytics_event(mock_record, OAuthSetupCodeIssuedEvent)
@@ -187,23 +187,51 @@ class AgentHandoffViewTest(TestCase):
 
     def test_expired_handoff_is_unavailable(self) -> None:
         code = self.issue()
+        with freeze_time(timezone.now() + HANDOFF_LIFETIME):
+            response = self.claim_api(code)
+
+        assert response.status_code == 410
+        assert json.loads(response.content) == {
+            "detail": {
+                "code": "agent-handoff-expired",
+                "message": (
+                    "The handoff code expired. Codes must be used within 5 minutes; ask the "
+                    "user to copy a new handoff prompt from Sentry."
+                ),
+                "extra": {},
+            }
+        }
+        assert not ApiSetupCode.objects.filter(user_id=self.user.id).exists()
+
+    def test_handoff_past_retention_is_unavailable(self) -> None:
+        code = self.issue()
         _get_redis_client().expire(_handoff_key(code), 0)
-        assert self.claim_api(code).status_code == 410
+        self.assert_unavailable(code)
+
+    def assert_claim_fails(self, code: str, error_code: str) -> None:
+        response = self.claim_api(code)
+        assert response.status_code == 410
+        assert json.loads(response.content)["detail"]["code"] == error_code
         assert not ApiSetupCode.objects.filter(user_id=self.user.id).exists()
 
     def assert_unavailable(self, code: str) -> None:
-        assert self.claim_api(code).status_code == 410
-        assert not ApiSetupCode.objects.filter(user_id=self.user.id).exists()
+        self.assert_claim_fails(code, "agent-handoff-unavailable")
+
+    def assert_access_changed(self, code: str) -> None:
+        self.assert_claim_fails(code, "agent-handoff-access-changed")
+
+    def assert_setup_unavailable(self, code: str) -> None:
+        self.assert_claim_fails(code, "agent-handoff-setup-unavailable")
 
     def test_inactive_user_prevents_claim(self) -> None:
         code = self.issue()
         self.user.update(is_active=False)
-        self.assert_unavailable(code)
+        self.assert_access_changed(code)
 
     def test_suspended_user_prevents_claim(self) -> None:
         code = self.issue()
         self.user.update(is_suspended=True)
-        self.assert_unavailable(code)
+        self.assert_access_changed(code)
 
     def test_inactive_application_prevents_claim(self) -> None:
         code = self.issue()
@@ -245,8 +273,13 @@ class AgentHandoffViewTest(TestCase):
         code = self.issue()
         with assume_test_silo_mode(SiloMode.CELL):
             self.organization.member_set.filter(user_id=self.user.id).delete()
-        assert self.claim_api(code).status_code == 410
-        assert not ApiSetupCode.objects.filter(user_id=self.user.id).exists()
+        self.assert_access_changed(code)
+
+    def test_inactive_organization_prevents_claim(self) -> None:
+        code = self.issue()
+        with assume_test_silo_mode(SiloMode.CELL):
+            self.organization.update(status=OrganizationStatus.PENDING_DELETION)
+        self.assert_access_changed(code)
 
     def test_public_guide_installs_the_cli_and_preserves_the_code(self) -> None:
         code = self.issue()
@@ -279,8 +312,11 @@ class AgentHandoffViewTest(TestCase):
         assert response["Content-Type"] == "application/json"
         assert json.loads(response.content) == {
             "detail": {
-                "code": "agent-handoff-unavailable",
-                "message": "Handoff code unavailable.",
+                "code": "agent-handoff-malformed",
+                "message": (
+                    "The handoff code is malformed. Check that the full code was copied, or ask "
+                    "the user to copy a new handoff prompt from Sentry."
+                ),
                 "extra": {},
             }
         }
@@ -293,13 +329,7 @@ class AgentHandoffViewTest(TestCase):
         )
 
         assert response.status_code == 400
-        assert json.loads(response.content) == {
-            "detail": {
-                "code": "agent-handoff-unavailable",
-                "message": "Handoff code unavailable.",
-                "extra": {},
-            }
-        }
+        assert json.loads(response.content)["detail"]["code"] == "agent-handoff-malformed"
 
     def test_api_claim_accepts_json_charset(self) -> None:
         response = self.client.post(
@@ -340,7 +370,10 @@ class AgentHandoffViewTest(TestCase):
         assert json.loads(response.content) == {
             "detail": {
                 "code": "agent-handoff-unavailable",
-                "message": "Handoff code unavailable.",
+                "message": (
+                    "The handoff code was already used or is no longer valid. Ask the user to "
+                    "copy a new handoff prompt from Sentry."
+                ),
                 "extra": {},
             }
         }
@@ -420,9 +453,7 @@ class AgentHandoffViewTest(TestCase):
             "sentry.agent_handoff.flows.add_feature.get_accessible_project",
             return_value=None,
         ):
-            response = self.claim_api(code)
-        assert response.status_code == 410
-        assert not ApiSetupCode.objects.filter(user_id=self.user.id).exists()
+            self.assert_setup_unavailable(code)
 
     def test_add_feature_access_revoked_prevents_claim(self) -> None:
         code = self.issue_add_feature(project_id=1)
@@ -430,9 +461,7 @@ class AgentHandoffViewTest(TestCase):
             "sentry.agent_handoff.flows.add_feature.get_accessible_project",
             return_value=None,
         ):
-            response = self.claim_api(code)
-        assert response.status_code == 410
-        assert not ApiSetupCode.objects.filter(user_id=self.user.id).exists()
+            self.assert_setup_unavailable(code)
 
     def assert_claim_recorded(
         self, record: MagicMock, outcome: ClaimOutcome, *, attributed: bool = True

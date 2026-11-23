@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any, cast
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -104,7 +104,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
         # Reset for next test
         self.preprod_artifact.state = PreprodArtifact.ArtifactState.UPLOADING
-        self.preprod_artifact.error_code = cast("int", None)
+        self.preprod_artifact.error_code = None
         self.preprod_artifact.save()
 
         # Test that setting error_message sets state to FAILED
@@ -530,7 +530,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
             preprod_artifact=self.preprod_artifact
         )
         assert mobile_app_info.build_version == "3.0.0"
-        assert cast("object", mobile_app_info.build_number) is None
+        assert mobile_app_info.build_number is None
         assert mobile_app_info.app_name is None
         assert mobile_app_info.app_icon_id is None
 
@@ -816,7 +816,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
         assert response.status_code == 200
         self.preprod_artifact.refresh_from_db()
-        assert cast("object", self.preprod_artifact.installable_app_error_code) is None
+        assert self.preprod_artifact.installable_app_error_code is None
         assert self.preprod_artifact.installable_app_error_message is None
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])

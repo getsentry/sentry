@@ -95,9 +95,7 @@ class AvatarMixin(Generic[AvatarT, AvatarObjectT]):
     def put(self, request: Request, **kwargs: Any) -> Response[dict[str, object]]:
         obj, serializer = self.parse(request, **kwargs)
         if not serializer.is_valid():
-            return Response(
-                cast(dict[str, object], serializer.errors), status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         self.save_avatar(obj, serializer)
         obj = kwargs.pop(self.object_type, None)  # serialize doesn't like these params
         return Response(cast(dict[str, object], serialize(obj, request.user, **kwargs)))
