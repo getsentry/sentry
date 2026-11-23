@@ -332,7 +332,7 @@ class OrganizationEvaluationArtifactsTest(APITestCase, SnubaTestCase):
             {
                 "id": item.item_id.hex(),
                 "traceId": item.trace_id,
-                "timestamp": self.timestamp.isoformat().replace("+00:00", "Z"),
+                "timestamp": self.expected_timestamp(item),
                 "projectId": str(self.project.id),
                 "evaluationType": "workflow",
                 "outcome": "not_triggered",
@@ -479,7 +479,7 @@ class OrganizationEvaluationArtifactsTest(APITestCase, SnubaTestCase):
             {
                 "id": item.item_id.hex(),
                 "traceId": item.trace_id,
-                "timestamp": self.timestamp.isoformat().replace("+00:00", "Z"),
+                "timestamp": self.expected_timestamp(item),
                 "projectId": str(self.project.id),
                 "evaluationType": "workflow",
                 "evaluationPhase": "delayed",

@@ -57,10 +57,9 @@ _ATTRIBUTE_PARAM_CHOICES = {
 
 
 def evaluation_filter_field(name: str) -> serializers.Field[Any, Any, Any, Any]:
-    attr_type = EVALUATION_FILTER_TYPES[name]
     if name in _ATTRIBUTE_PARAM_CHOICES:
         return serializers.ChoiceField(choices=_ATTRIBUTE_PARAM_CHOICES[name])
-    if attr_type == AttributeKey.TYPE_INT:
+    if EVALUATION_FILTER_TYPES[name] == AttributeKey.TYPE_INT:
         return serializers.IntegerField(min_value=0, max_value=I64_MAX)
     return serializers.CharField(trim_whitespace=False)
 

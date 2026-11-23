@@ -53,6 +53,8 @@ _EVALUATION_ATTRIBUTE_TYPES: dict[str, AttributeKey.Type.ValueType] = {
     "is_new_group_environment": AttributeKey.TYPE_BOOLEAN,
     "has_escalated": AttributeKey.TYPE_BOOLEAN,
 }
+# TraceItem envelope fields, which EAP exposes under the `sentry.` prefix.
+_ENVELOPE_ATTRIBUTES = frozenset({"project_id", "trace_id"})
 
 
 def build_evaluation_filter(filters: Mapping[str, Sequence[Any]]) -> TraceItemFilter | None:
@@ -61,20 +63,17 @@ def build_evaluation_filter(filters: Mapping[str, Sequence[Any]]) -> TraceItemFi
     for name, values in filters.items():
         attr_type = EVALUATION_FILTER_TYPES[name]
         key = AttributeKey(name=name, type=attr_type)
-        conditions.append(
-            or_trace_item_filters(
-                *[
-                    TraceItemFilter(
-                        comparison_filter=ComparisonFilter(
-                            key=key,
-                            op=ComparisonFilter.OP_EQUALS,
-                            value=create_attribute_value(attr_type, value),
-                        )
-                    )
-                    for value in values
-                ]
+        equals_any_value = [
+            TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=key,
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=create_attribute_value(attr_type, value),
+                )
             )
-        )
+            for value in values
+        ]
+        conditions.append(or_trace_item_filters(*equals_any_value))
     return and_trace_item_filters(*conditions)
 
 
@@ -115,7 +114,7 @@ def query_evaluation_artifacts(
             Column(
                 label=name,
                 key=AttributeKey(
-                    name=f"sentry.{name}" if name in {"project_id", "trace_id"} else name,
+                    name=f"sentry.{name}" if name in _ENVELOPE_ATTRIBUTES else name,
                     type=attr_type,
                 ),
             )
