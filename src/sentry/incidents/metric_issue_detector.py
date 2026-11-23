@@ -246,11 +246,11 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             if len(conditions) > 3:
                 raise serializers.ValidationError("Too many conditions")
 
-        if "data_sources" in attrs:
-            self._validate_data_sources(attrs)
-
         if "config" in attrs:
             self._validate_config(attrs["config"])
+
+        if "data_sources" in attrs:
+            self._validate_data_sources(attrs)
 
         return attrs
 
