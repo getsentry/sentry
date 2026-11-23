@@ -51,7 +51,7 @@ export const RATE_AGGREGATES_IN_EQUATION_DISABLED: Record<string, string> =
   );
 
 /**
- * Letter, control, alias and filter bar of a row. Shared by visible and hidden
+ * Label, control, alias and filter bar of a row. Shared by visible and hidden
  * rows so they line up.
  */
 export function TraceMetricRow({
@@ -126,7 +126,7 @@ export function HiddenTraceMetricRow({
           <TraceMetricRow
             label={
               <RowLabel
-                label={row.letter}
+                label={row.label}
                 hidden
                 disabled={disabled}
                 onToggle={onShow}

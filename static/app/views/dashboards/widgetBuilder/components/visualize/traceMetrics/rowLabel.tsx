@@ -55,7 +55,7 @@ interface RowLabelProps {
 }
 
 /**
- * Row letter (A, B, ƒ1, ...). Doubles as the hide / show toggle for rows an
+ * Row label (A, B, ƒ1, ...). Doubles as the hide / show toggle for rows an
  * equation uses.
  */
 export function RowLabel({

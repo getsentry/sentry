@@ -5,7 +5,7 @@ import {EquationBuilder} from 'sentry/views/explore/metrics/equationBuilder';
 
 interface TraceMetricEquationRowProps {
   /**
-   * Letter form, e.g. `A + B`.
+   * Label form, e.g. `A + B`.
    */
   expression: string;
   onChange: (expression: string) => void;
@@ -18,7 +18,7 @@ interface TraceMetricEquationRowProps {
 }
 
 /**
- * Edits the letter form of an equation. Letters are resolved to aggregates when
+ * Edits the label form of an equation. Labels are resolved to aggregates when
  * the saved fields are derived.
  */
 export function TraceMetricEquationRow({

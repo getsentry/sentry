@@ -483,7 +483,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
     MAX_METRICS_ALLOWED
   );
 
-  // Row model for the unified list. Letters stay with their rows; the builder
+  // Row model for the unified list. Labels stay with their rows; the builder
   // fields are derived from it.
   const unifiedRows = useUnifiedTraceMetricRows({
     enabled: isUnifiedTraceMetrics,

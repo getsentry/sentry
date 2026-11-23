@@ -70,7 +70,7 @@ function visibleRowsOf(rows: TraceMetricRow[]): TraceMetricRow[] {
 /**
  * Owns the row model for the unified list. Edits write the derived fields to
  * the builder state; changes from elsewhere rebuild the rows, keeping ids and
- * letters.
+ * labels.
  */
 export function useUnifiedTraceMetricRows({
   dispatch,
@@ -142,7 +142,7 @@ export function useUnifiedTraceMetricRows({
     getLabel: index => {
       const row = visibleRows[index];
       if (row?.kind === 'metric') {
-        return row.letter;
+        return row.label;
       }
       if (row?.kind === 'equation') {
         return equationLabels.get(row.id);

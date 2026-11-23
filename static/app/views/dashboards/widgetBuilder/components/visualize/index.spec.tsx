@@ -2978,7 +2978,7 @@ describe('Visualize', () => {
       expect(await screen.findByTestId('hidden-metric-row')).toBeInTheDocument();
     });
 
-    it('keeps the row letters in place when hiding a series', async () => {
+    it('keeps the row labels in place when hiding a series', async () => {
       const {router} = renderUnified([
         SUM_ALPHA,
         SUM_BETA,
@@ -3031,20 +3031,20 @@ describe('Visualize', () => {
       ]);
       await screen.findByRole('button', {name: 'Hide series A'});
 
-      // The equation reads A + B, so it follows B to beta_metric.
-      await userEvent.click(screen.getAllByRole('button', {name: 'alpha_metric'})[1]!);
+      // The equation reads A + A, so it follows A to beta_metric.
+      await userEvent.click(screen.getAllByRole('button', {name: 'alpha_metric'})[0]!);
       await userEvent.click(await screen.findByRole('option', {name: 'beta_metric'}));
 
       await waitFor(() => {
         expect(decodeList(router.location.query.yAxis)).toEqual([
-          SUM_ALPHA,
           SUM_BETA,
-          `equation|${SUM_ALPHA} + ${SUM_BETA}`,
+          SUM_ALPHA,
+          `equation|${SUM_BETA} + ${SUM_BETA}`,
         ]);
       });
     });
 
-    it('keeps letters with their rows when series are reordered', async () => {
+    it('keeps labels with their rows when series are reordered', async () => {
       // dnd-kit's keyboard sensor needs distinct element positions to find a drop target
       jest.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
         this: Element
@@ -3112,7 +3112,7 @@ describe('Visualize', () => {
       });
     });
 
-    it('keeps a hidden row and its letter through a reorder', async () => {
+    it('keeps a hidden row and its label through a reorder', async () => {
       // dnd-kit's keyboard sensor needs distinct element positions to find a drop target
       jest.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
         this: Element
@@ -3207,7 +3207,7 @@ describe('Visualize', () => {
       expect(screen.getByRole('button', {name: 'Show series B'})).toBeInTheDocument();
     });
 
-    it('letters only aggregates and equations in a table with a group by column', async () => {
+    it('labels only aggregates and equations in a table with a group by column', async () => {
       const {router} = render(
         <WidgetBuilderProvider>
           <Visualize />
