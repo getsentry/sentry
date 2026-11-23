@@ -335,7 +335,7 @@ export function InputSection({
                 icon={<IconArrow />}
                 onClick={onSend}
                 size="zero"
-                variant="secondary"
+                variant={canSendMessage ? 'primary' : 'secondary'}
                 disabled={!canSendMessage}
                 aria-label={t('Send message')}
               />
