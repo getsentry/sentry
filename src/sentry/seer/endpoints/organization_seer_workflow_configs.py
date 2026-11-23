@@ -466,7 +466,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                     created_by_id=acting_user_id(request.user),
                     service_account_grant=grant,
                 )
-            elif strategy is SeerWorkflowStrategy.AGENTIC_TRIAGE_V2:
+            elif strategy is SeerWorkflowStrategy.SCHEDULED_INVESTIGATION:
                 workflow = SeerWorkflow.create(
                     organization_id=organization.id,
                     strategy=strategy,

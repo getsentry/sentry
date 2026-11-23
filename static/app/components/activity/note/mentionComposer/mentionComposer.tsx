@@ -11,6 +11,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
+import {serializeMentions} from 'sentry/utils/mentions/serializeMentions';
 import {useOrgMentionPlugins} from 'sentry/utils/mentions/useOrgMentionPlugins';
 
 interface CreateComposerProps {
@@ -37,20 +38,6 @@ type MentionComposerProps =
 
 type EditorMode = 'write' | 'preview';
 
-function serializeNoteMentions(value: ComposerValue): string {
-  let text = value.text;
-
-  for (const mention of value.mentions.toSorted((a, b) => b.start - a.start)) {
-    if (value.text.slice(mention.start, mention.end) !== mention.text) {
-      continue;
-    }
-
-    text = text.slice(0, mention.start) + `**${mention.text}**` + text.slice(mention.end);
-  }
-
-  return text;
-}
-
 export function MentionComposer(props: MentionComposerProps) {
   const {
     initialValue = '',
@@ -70,16 +57,7 @@ export function MentionComposer(props: MentionComposerProps) {
     ...defaultFormOptions,
     defaultValues: {value: initialEditorValue},
     onSubmit: async ({value}) => {
-      const editorValue = value.value;
-      const validMentionIds = editorValue.mentions.flatMap(mention =>
-        editorValue.text.slice(mention.start, mention.end) === mention.text
-          ? mention.id
-          : []
-      );
-      const uniqueMentionIds = [...new Set(validMentionIds)];
-      const data = {text: serializeNoteMentions(editorValue), mentions: uniqueMentionIds};
-
-      await onSubmit(data);
+      await onSubmit(serializeMentions(value.value));
 
       if (props.mode === 'create') {
         form.reset(
@@ -144,7 +122,7 @@ export function MentionComposer(props: MentionComposerProps) {
               minHeight={`${minHeight}px`}
               overflow="auto"
             >
-              <Markdown raw={serializeNoteMentions(field.state.value)} />
+              <Markdown raw={serializeMentions(field.state.value).text} />
             </Container>
           )
         }

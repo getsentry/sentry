@@ -18,7 +18,8 @@ def combine(
 ) -> RelatedIssuesResponse:
     """
     Build the response from each type's result. An issue found by several types becomes one entry
-    with a relation for each, and issues matched by more types come first.
+    with a relation for each, and issues matched by more types come first. Investigations go in
+    their own list.
     """
     relations_by_group: dict[int, list[RelatedIssueRelation]] = {}
     for result in results.values():
@@ -42,6 +43,12 @@ def combine(
             {"issue": serialized[group_id], "relations": relations_by_group[group_id]}
             for group_id in ordered_group_ids
             if group_id in serialized
+        ],
+        "investigations": [
+            investigation
+            for result in results.values()
+            if result.meta["status"] == RelationTypeStatus.OK
+            for investigation in result.investigations
         ],
         "meta": {
             "types": [result.meta for result in results.values()],

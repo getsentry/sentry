@@ -6,8 +6,7 @@ type SortableMember = ESTree.TSSignature;
 
 function getName(member: SortableMember): string | undefined {
   if (member.type === 'TSIndexSignature') {
-    const parameter = member.parameters[0];
-    return parameter?.type === 'Identifier' ? `[index: ${parameter.name}]` : '[index]';
+    return `[index: ${member.parameters[0]!.name}]`;
   }
   if (member.type !== 'TSMethodSignature' && member.type !== 'TSPropertySignature') {
     return undefined;
@@ -89,7 +88,6 @@ export const sortInterfaceKeys = defineRule({
       members: SortableMember[],
       container: ESTree.TSInterfaceBody | ESTree.TSTypeLiteral
     ): void {
-      const sorted = members.toSorted(compare);
       const violations = members
         .slice(1)
         .flatMap((member, index) =>
@@ -130,6 +128,7 @@ export const sortInterfaceKeys = defineRule({
             index === 0 && canFix
               ? fixer => {
                   const separator = separators[0] ?? ' ';
+                  const sorted = members.toSorted(compare);
                   const replacement = sorted
                     .map((sortedMember, sortedIndex) => {
                       const text = sourceCode.getText(sortedMember);

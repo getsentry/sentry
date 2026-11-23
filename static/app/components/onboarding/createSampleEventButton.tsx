@@ -16,6 +16,8 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {useOnboardingContext} from './onboardingContext';
+
 type CreateSampleEventButtonProps = ButtonProps & {
   source: string;
   hasScmOnboarding?: boolean;
@@ -34,6 +36,7 @@ export function CreateSampleEventButton({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const organization = useOrganization();
+  const {discardOnboardingSession} = useOnboardingContext();
   const pollingAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -89,7 +92,10 @@ export function CreateSampleEventButton({
       const t0 = performance.now();
       let retries = 0;
 
-      queryClient
+      // Returning the poll keeps the mutation pending, and the button disabled,
+      // until the event is ready. A second click during the poll would create a
+      // duplicate sample event.
+      return queryClient
         .fetchQuery({
           ...apiOptions.as<unknown>()(
             '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
@@ -127,6 +133,9 @@ export function CreateSampleEventButton({
             source,
           });
 
+          // Outside onboarding the context is a no-op. Inside it, this click leaves
+          // the flow, so the next onboarding visit must not resume this session.
+          discardOnboardingSession();
           navigate(
             normalizeUrl(
               `/organizations/${organization.slug}/issues/${groupID}/?project=${project!.id}&referrer=sample-error`
