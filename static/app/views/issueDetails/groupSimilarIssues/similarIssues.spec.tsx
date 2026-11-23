@@ -61,15 +61,11 @@ function mockRedirectedGroup(project: Project, useEmbeddings = false) {
 describe('Issues Similar View', () => {
   let mock: jest.Mock;
 
-  const project = ProjectFixture({
-    features: ['similarity-view'],
-  });
+  const project = ProjectFixture({features: ['similarity-view']});
 
   const group = GroupFixture({project});
   const initialRouterConfig = {
-    location: {
-      pathname: `/organizations/org-slug/issues/${group.id}/similar/`,
-    },
+    location: {pathname: `/organizations/org-slug/issues/${group.id}/similar/`},
     route: '/organizations/:orgId/issues/:groupId/similar/',
   };
 
@@ -80,9 +76,7 @@ describe('Issues Similar View', () => {
     {'exception:stacktrace:pairs': 0.001488},
   ];
 
-  const mockData = {
-    similar: GroupsFixture().map((issue, i) => [issue, scores[i]]),
-  };
+  const mockData = {similar: GroupsFixture().map((issue, i) => [issue, scores[i]])};
 
   beforeEach(() => {
     mock = MockApiClient.addMockResponse({
@@ -123,9 +117,7 @@ describe('Issues Similar View', () => {
   };
 
   it('renders with mocked data', async () => {
-    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {
-      initialRouterConfig,
-    });
+    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {initialRouterConfig});
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
@@ -139,9 +131,7 @@ describe('Issues Similar View', () => {
     const merge = MockApiClient.addMockResponse({
       method: 'PUT',
       url: '/projects/org-slug/project-slug/issues/',
-      body: {
-        merge: {children: ['123'], parent: '321'},
-      },
+      body: {merge: {children: ['123'], parent: '321'}},
     });
 
     const {router} = render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {
@@ -171,9 +161,7 @@ describe('Issues Similar View', () => {
   });
 
   it('toggles selection when item is clicked', async () => {
-    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {
-      initialRouterConfig,
-    });
+    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {initialRouterConfig});
     renderGlobalModal();
 
     await selectNthSimilarItem(0);
@@ -191,9 +179,7 @@ describe('Issues Similar View', () => {
       match: [MockApiClient.matchQuery({limit: 50})],
     });
 
-    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {
-      initialRouterConfig,
-    });
+    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {initialRouterConfig});
     renderGlobalModal();
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
@@ -210,15 +196,11 @@ describe('Issues Similar View', () => {
 describe('Issues Similar Embeddings View', () => {
   let mock: jest.Mock;
 
-  const project = ProjectFixture({
-    features: ['similarity-view'],
-  });
+  const project = ProjectFixture({features: ['similarity-view']});
   const group = GroupFixture({project});
 
   const initialRouterConfig = {
-    location: {
-      pathname: `/organizations/org-slug/issues/${group.id}/similar/`,
-    },
+    location: {pathname: `/organizations/org-slug/issues/${group.id}/similar/`},
     route: '/organizations/:orgId/issues/:groupId/similar/',
   };
 
@@ -271,9 +253,7 @@ describe('Issues Similar Embeddings View', () => {
   };
 
   it('renders with mocked data', async () => {
-    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {
-      initialRouterConfig,
-    });
+    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {initialRouterConfig});
 
     expect(await screen.findAllByTestId('similar-item-row')).toHaveLength(4);
     expect(mock).toHaveBeenCalled();
@@ -285,9 +265,7 @@ describe('Issues Similar Embeddings View', () => {
     const merge = MockApiClient.addMockResponse({
       method: 'PUT',
       url: '/projects/org-slug/project-slug/issues/',
-      body: {
-        merge: {children: ['123'], parent: '321'},
-      },
+      body: {merge: {children: ['123'], parent: '321'}},
     });
 
     const {router} = render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {
@@ -317,9 +295,7 @@ describe('Issues Similar Embeddings View', () => {
   });
 
   it('toggles selection when item is clicked', async () => {
-    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {
-      initialRouterConfig,
-    });
+    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {initialRouterConfig});
     renderGlobalModal();
 
     await selectNthSimilarItem(0);
@@ -348,9 +324,7 @@ describe('Issues Similar Embeddings View', () => {
       match: [MockApiClient.matchQuery({type: ['similar_stacktrace']})],
     });
 
-    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {
-      initialRouterConfig,
-    });
+    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {initialRouterConfig});
     renderGlobalModal();
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
@@ -370,9 +344,7 @@ describe('Issues Similar Embeddings View', () => {
       match: [MockApiClient.matchQuery({type: ['similar_stacktrace']})],
     });
 
-    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {
-      initialRouterConfig,
-    });
+    render(<GroupSimilarIssuesWithProvider groupId={group.id} />, {initialRouterConfig});
 
     expect(await screen.findByText("Couldn't load similar issues.")).toBeInTheDocument();
 

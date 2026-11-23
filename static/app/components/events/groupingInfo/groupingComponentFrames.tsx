@@ -49,9 +49,7 @@ export function GroupingComponentFrames({
             aria-expanded={!collapsed}
           >
             {collapsed
-              ? tct('show [numberOfFrames] similar', {
-                  numberOfFrames: items.length - 2,
-                })
+              ? tct('show [numberOfFrames] similar', {numberOfFrames: items.length - 2})
               : tct('collapse [numberOfFrames] similar', {
                   numberOfFrames: items.length - 2,
                 })}

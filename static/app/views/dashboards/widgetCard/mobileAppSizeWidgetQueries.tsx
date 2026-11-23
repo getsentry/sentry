@@ -40,8 +40,5 @@ export function MobileAppSizeWidgetQueries({
     widgetInterval,
   });
 
-  return getDynamicText({
-    value: children(result),
-    fixed: <div />,
-  });
+  return getDynamicText({value: children(result), fixed: <div />});
 }

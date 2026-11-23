@@ -102,13 +102,7 @@ describe('useConversation', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/conv-title/`,
       body: envelope(
-        [
-          {
-            ...BASE_SPAN,
-            'gen_ai.conversation.id': 'conv-title',
-            span_id: 'span-title',
-          },
-        ],
+        [{...BASE_SPAN, 'gen_ai.conversation.id': 'conv-title', span_id: 'span-title'}],
         'My great conversation'
       ),
     });
@@ -145,11 +139,7 @@ describe('useConversation', () => {
     const requests = Array.from({length: 100}, (_, index) =>
       MockApiClient.addMockResponse({
         url,
-        match: [
-          MockApiClient.matchQuery({
-            cursor: index === 0 ? undefined : `${index}`,
-          }),
-        ],
+        match: [MockApiClient.matchQuery({cursor: index === 0 ? undefined : `${index}`})],
         body: envelope([{...BASE_SPAN, span_id: `span-${index}`}]),
         headers: {
           Link: `<${url}?cursor=${
@@ -281,9 +271,10 @@ describe('useConversation', () => {
     });
 
     it('leaves them alone unless asked to mark them, like for the export', () => {
-      const {nodes} = buildConversationNodes([
-        {...BASE_SPAN, 'gen_ai.input.messages': inputMessages, meta},
-      ]);
+      const {nodes} = buildConversationNodes(
+        [{...BASE_SPAN, 'gen_ai.input.messages': inputMessages, meta}],
+        {organization}
+      );
 
       expect(nodes[0]?.attributes?.[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe(
         inputMessages
@@ -699,6 +690,50 @@ describe('useConversation', () => {
     ]);
   });
 
+  it('nests spans under their agent through spans that are not gen_ai spans', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/conv-gap/`,
+      body: envelope([
+        {
+          ...BASE_SPAN,
+          'gen_ai.conversation.id': 'conv-gap',
+          span_id: 'agent',
+          parent_span: 'outside-the-conversation',
+          'gen_ai.operation.type': 'agent',
+        },
+        {
+          ...BASE_SPAN,
+          'gen_ai.conversation.id': 'conv-gap',
+          span_id: 'http',
+          parent_span: 'agent',
+          'gen_ai.operation.type': undefined,
+          'span.name': 'GET /search',
+          'span.op': 'http.client',
+        },
+        {
+          ...BASE_SPAN,
+          'gen_ai.conversation.id': 'conv-gap',
+          span_id: 'chat',
+          parent_span: 'http',
+          'gen_ai.operation.type': 'ai_client',
+        },
+      ]),
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-gap'}),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.nodes.map(node => node.id)).toEqual(['agent', 'chat']);
+    const chat = result.current.nodes[1]!;
+    expect(chat.findParent(parent => parent.id === 'agent')?.id).toBe('agent');
+  });
+
   it('keeps spans whose parent links form a cycle', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/conv-cycle/`,
@@ -750,9 +785,7 @@ describe('useConversation', () => {
 
     expect(mockRequest).toHaveBeenCalledWith(
       expect.stringContaining('/agents/conversations/conv-123/'),
-      expect.objectContaining({
-        query: expect.objectContaining({project: [456]}),
-      })
+      expect.objectContaining({query: expect.objectContaining({project: [456]})})
     );
   });
 
@@ -807,11 +840,7 @@ describe('useConversation', () => {
 
     expect(mockRequest).toHaveBeenCalledWith(
       expect.stringContaining('/agents/conversations/conv-123/'),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          project: [-1],
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({project: [-1]})})
     );
     // No statsPeriod sent — backend uses its 30d retention fallback
     const queryArg = mockRequest.mock.calls[0]![1]!.query;
@@ -822,12 +851,7 @@ describe('useConversation', () => {
 
   it('uses relative period from page filters when explicitly set', async () => {
     act(() =>
-      PageFiltersStore.updateDateTime({
-        period: '7d',
-        start: null,
-        end: null,
-        utc: null,
-      })
+      PageFiltersStore.updateDateTime({period: '7d', start: null, end: null, utc: null})
     );
 
     const mockRequest = MockApiClient.addMockResponse({
@@ -844,11 +868,7 @@ describe('useConversation', () => {
 
     expect(mockRequest).toHaveBeenCalledWith(
       expect.stringContaining('/agents/conversations/conv-123/'),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          statsPeriod: '7d',
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({statsPeriod: '7d'})})
     );
     const queryArg = mockRequest.mock.calls[0]![1]!.query;
     expect(queryArg).not.toHaveProperty('start');
@@ -960,11 +980,7 @@ describe('useConversation', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/conv-no-issues/`,
       body: envelope([
-        {
-          ...BASE_SPAN,
-          'gen_ai.conversation.id': 'conv-no-issues',
-          span_id: 'span-x',
-        },
+        {...BASE_SPAN, 'gen_ai.conversation.id': 'conv-no-issues', span_id: 'span-x'},
       ]),
     });
 

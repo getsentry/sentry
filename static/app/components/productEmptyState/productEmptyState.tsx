@@ -87,14 +87,16 @@ export function ProductEmptyState({
 
   return (
     <Stack gap="md" width="100%" maxWidth="960px" margin="0 auto">
-      <Flex align="center" justify="between" gap="2xl" padding="3xl 2xl">
+      <Flex align="center" justify="between" gap="2xl" padding="3xl xl">
         <Stack gap="xl" flex={1}>
           <Heading as="h2" size="2xl">
             {title}
           </Heading>
           <Stack as="ul" role="list" gap="sm" padding="0" margin="0">
             {benefits.map(benefit => (
-              <Benefit key={benefit}>{benefit}</Benefit>
+              <Benefit key={benefit} size="lg" density="comfortable">
+                {benefit}
+              </Benefit>
             ))}
           </Stack>
         </Stack>
@@ -109,14 +111,19 @@ export function ProductEmptyState({
             align="center"
             justify="between"
             gap="md"
-            padding="lg 2xl"
+            padding="lg xl"
             background="secondary"
             borderBottom="primary"
             wrap="wrap"
           >
             <Flex align="center" gap="sm">
-              <Text bold>{tct('Set up [productName] for', {productName})}</Text>
-              <ProjectBadge project={project} avatarSize={16} />
+              <Text size="lg" bold>
+                {tct('Set up [productName] for', {productName})}
+              </Text>
+              {/* The badge inherits its name's size and weight. */}
+              <Text as="div" size="lg" bold>
+                <ProjectBadge project={project} avatarSize={16} />
+              </Text>
             </Flex>
             <SegmentedControl<SetupMode>
               value={mode}
@@ -124,14 +131,12 @@ export function ProductEmptyState({
               aria-label={t('Setup mode')}
             >
               <SegmentedControl.Item key="agent">
-                {t('Use my coding agent')}
+                {t('Using my coding agent')}
               </SegmentedControl.Item>
-              <SegmentedControl.Item key="manual">
-                {t('Set up manually')}
-              </SegmentedControl.Item>
+              <SegmentedControl.Item key="manual">{t('Manually')}</SegmentedControl.Item>
             </SegmentedControl>
           </Flex>
-          <Container padding="2xl">
+          <Container padding="xl xl lg">
             {mode === 'agent' ? (
               <AgentHandoffProductPrompt
                 agentSteps={agentSteps}

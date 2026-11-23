@@ -6,10 +6,7 @@ import {Button} from '@sentry/scraps/button';
 
 import {t} from 'sentry/locale';
 
-type Props = {
-  multi?: boolean;
-  onRestore?: () => void;
-};
+type Props = {multi?: boolean; onRestore?: () => void};
 
 export function ReleaseArchivedNotice({onRestore, multi}: Props) {
   return (

@@ -1,10 +1,6 @@
 import {replaceRouterParams} from './replaceRouterParams';
 
-const params = {
-  orgId: 'org-slug',
-  projectId: 'project-slug',
-  project: 1234,
-};
+const params = {orgId: 'org-slug', projectId: 'project-slug', project: 1234};
 
 describe('replaceRouterParams', () => {
   it('replaces parameters in a path', () => {

@@ -133,6 +133,11 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
   legendSelection?: LegendSelection;
 
   /**
+   * Called with the annotations of a bucket when it's clicked in the annotations band.
+   */
+  onAnnotationClick?: (items: AnnotationItem[]) => void;
+
+  /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
    */
   onLegendSelectionChange?: (selection: LegendSelection) => void;
@@ -262,10 +267,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     onDataZoom,
     onChartReady: onChartReadyZoom,
     ...chartZoomProps
-  } = useChartZoom({
-    disabled: props.disableZoom,
-    saveOnZoom: true,
-  });
+  } = useChartZoom({disabled: props.disableZoom, saveOnZoom: true});
 
   const {brush, onBrushEnd, onBrushStart, toolBox, ActionMenu} = useChartXRangeSelection({
     chartRef,
@@ -475,10 +477,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const bubbleReleases = useMemo(
     () =>
       hasReleaseBubbles
-        ? props.releases?.map(({timestamp, version}) => ({
-            date: timestamp,
-            version,
-          }))
+        ? props.releases?.map(({timestamp, version}) => ({date: timestamp, version}))
         : [],
     [hasReleaseBubbles, props.releases]
   );
@@ -515,10 +514,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const annotationBand = useAnnotationBand({
     buckets: bandBuckets,
     items: props.annotations,
+    onClick: props.onAnnotationClick,
   });
   const annotationMarkers = useAnnotationMarkers({
     buckets: bandBuckets,
+    chartRef,
     items: props.annotations,
+    utc,
   });
   const annotationMarkerSeries = annotationMarkers
     ? {...annotationMarkers, yAxisIndex: yAxes.length}
@@ -624,10 +626,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
               {customValues: customTicks, showMinLabel: true, showMaxLabel: true}
             : {}),
         },
-        axisTick: {
-          show: true,
-          ...(hasCustomTicks ? {customValues: customTicks} : {}),
-        },
+        axisTick: {show: true, ...(hasCustomTicks ? {customValues: customTicks} : {})},
         // When customValues are provided, suppress auto-tick generation
         // so ECharts only renders our timezone-aligned ticks.
         splitNumber: hasCustomTicks ? 0 : X_AXIS_SPLIT_NUMBER,
@@ -726,11 +725,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       typeof releaseLegendSeries.name === 'string' ? releaseLegendSeries.name : '';
     const releaseColor =
       typeof releaseLegendSeries.color === 'string' ? releaseLegendSeries.color : '';
-    chartLegendItems.push({
-      name: releaseName,
-      label: releaseName,
-      color: releaseColor,
-    });
+    chartLegendItems.push({name: releaseName, label: releaseName, color: releaseColor});
   }
 
   // ECharts needs every known legend item to be present in the selection state.
@@ -853,9 +848,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           tooltip={{
             appendToBody: true,
             trigger: 'axis',
-            axisPointer: {
-              type: 'cross',
-            },
+            axisPointer: {type: 'cross'},
             formatter: formatTooltip,
           }}
           xAxis={band.xAxis}
@@ -894,10 +887,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
  */
 function getPlottableEventDataIndex(
   series: SeriesOption[],
-  event: {
-    dataIndex: number;
-    seriesIndex?: number;
-  },
+  event: {dataIndex: number; seriesIndex?: number},
   affectedRange: Range<Plottable>
 ): number {
   const {dataIndex, seriesIndex} = event;

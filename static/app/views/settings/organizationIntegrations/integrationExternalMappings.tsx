@@ -40,10 +40,7 @@ const MAPPING_COLUMNS: TableColumnConfig[] = [
 
 type CodeOwnersAssociationMappings = Record<
   string,
-  {
-    associations: Record<string, string>;
-    errors: Record<string, string>;
-  }
+  {associations: Record<string, string>; errors: Record<string, string>}
 >;
 
 type Props = Pick<
@@ -59,9 +56,7 @@ type Props = Pick<
   pageLinks?: string;
 };
 
-type LocationQuery = {
-  cursor?: string;
-};
+type LocationQuery = {cursor?: string};
 
 function MappingName({
   defaultOptions,

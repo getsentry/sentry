@@ -28,18 +28,11 @@ export function useSpanWaiter({
       search,
       fields: ['id'],
       limit: 1,
-      useQueryOptions: {
-        refetchInterval: shouldRefetch ? 5000 : undefined,
-      },
+      useQueryOptions: {refetchInterval: shouldRefetch ? 5000 : undefined},
       pageFilters: {
         ...selection,
         projects: [Number(project.id)],
-        datetime: {
-          period: '6h',
-          utc: true,
-          start: null,
-          end: null,
-        },
+        datetime: {period: '6h', utc: true, start: null, end: null},
       },
     },
     referrer

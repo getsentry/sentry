@@ -18,17 +18,12 @@ describe('ProjectDebugFiles', () => {
   const initialRouterConfig = {
     location: {
       pathname: `/settings/${organization.slug}/projects/${project.slug}/debug-symbols/`,
-      query: {
-        query: '',
-      },
+      query: {query: ''},
     },
   };
 
   beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: endpoint,
-      body: [DebugFileFixture()],
-    });
+    MockApiClient.addMockResponse({url: endpoint, body: [DebugFileFixture()]});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/builtin-symbol-sources/`,
       method: 'GET',
@@ -51,10 +46,7 @@ describe('ProjectDebugFiles', () => {
   });
 
   it('renders empty', async () => {
-    MockApiClient.addMockResponse({
-      url: endpoint,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: endpoint, body: []});
 
     render(<ProjectDebugFiles />, {
       organization,

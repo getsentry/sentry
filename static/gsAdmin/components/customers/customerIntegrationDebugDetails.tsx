@@ -15,9 +15,7 @@ import {useApi} from 'sentry/utils/useApi';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 
-type Props = {
-  orgId: string;
-};
+type Props = {orgId: string};
 
 type IntegrationRow = {
   dateAdded: string | null;

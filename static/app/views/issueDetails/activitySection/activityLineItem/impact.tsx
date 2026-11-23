@@ -48,9 +48,7 @@ export function ActivityLineImpact({
           title={assessed ? t('Impact assessed') : t("Impact wasn't assessed")}
           details={
             assessed
-              ? tct('as [impact]', {
-                  impact: <ImpactChip level={level} score={score} />,
-                })
+              ? tct('as [impact]', {impact: <ImpactChip level={level} score={score} />})
               : undefined
           }
           timestamp={
@@ -61,7 +59,7 @@ export function ActivityLineImpact({
       }
     >
       <Container paddingTop="sm">
-        <Container width="100%" padding="sm md" border="muted" radius="md">
+        <Container width="100%" padding="sm md" border="secondary" radius="md">
           <ImpactActivityDetails activity={activity} group={group} />
         </Container>
       </Container>
@@ -84,7 +82,7 @@ function ImpactActivityDetails({
       <Text as="p" density="comfortable">
         {description}
       </Text>
-      <Flex gap="xs" wrap="wrap" borderTop="muted" paddingTop="md">
+      <Flex gap="xs" wrap="wrap" borderTop="secondary" paddingTop="md">
         <Container>
           <Text bold size="xs">
             {t('Citations:')}

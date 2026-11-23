@@ -17,11 +17,7 @@ describe('NextBillingPeriodAction', () => {
   const subscription = SubscriptionFixture({organization});
   const onSuccess = jest.fn();
 
-  const modalProps = {
-    orgId: organization.slug,
-    onSuccess,
-    subscription,
-  };
+  const modalProps = {orgId: organization.slug, onSuccess, subscription};
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -46,10 +42,7 @@ describe('NextBillingPeriodAction', () => {
     await waitFor(() => {
       expect(updateMock).toHaveBeenCalledWith(
         `/customers/${organization.slug}/`,
-        expect.objectContaining({
-          method: 'PUT',
-          data: {endPeriodEarly: true},
-        })
+        expect.objectContaining({method: 'PUT', data: {endPeriodEarly: true}})
       );
     });
 

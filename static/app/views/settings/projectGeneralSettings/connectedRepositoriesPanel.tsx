@@ -78,10 +78,7 @@ export function ConnectedRepositoriesPanel({project}: {project: Project}) {
   const {openModal} = useModal();
 
   const query = useInfiniteQuery(
-    projectRepoInfiniteOptions({
-      orgSlug: organization.slug,
-      projectSlug: project.slug,
-    })
+    projectRepoInfiniteOptions({orgSlug: organization.slug, projectSlug: project.slug})
   );
   useFetchAllPages({result: query});
 

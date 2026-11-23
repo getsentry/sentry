@@ -13,11 +13,7 @@ describe('Csp report entry', () => {
       entries: [{type: EntryType.CSP, data: {effective_directive: ''}}],
       _meta: {
         entries: {
-          0: {
-            data: {
-              effective_directive: {'': {rem: [['organization:1', 'x']]}},
-            },
-          },
+          0: {data: {effective_directive: {'': {rem: [['organization:1', 'x']]}}}},
         },
       },
     });

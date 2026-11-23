@@ -38,9 +38,7 @@ export default function TempestSettings() {
     setupInstructions: parseAsBoolean,
   });
   const {dismiss: dismissPS5Warning, isDismissed: isPS5WarningDismissed} =
-    useDismissAlert({
-      key: PS5_WARNING_DISMISS_KEY,
-    });
+    useDismissAlert({key: PS5_WARNING_DISMISS_KEY});
 
   const tab = tabParam ?? 'devkit-crashes';
 

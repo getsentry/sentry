@@ -12,10 +12,10 @@ import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 const getInstallSnippetPackageManager = (params: DocsParams) => `
-Install-Package Sentry -Version ${getPackageVersion(params, 'sentry.dotnet', '3.34.0')}`;
+Install-Package Sentry -Version ${getPackageVersion(params, 'sentry.dotnet', '7.0.0')}`;
 
 const getInstallSnippetCoreCli = (params: DocsParams) => `
-dotnet add package Sentry -v ${getPackageVersion(params, 'sentry.dotnet', '3.34.0')}`;
+dotnet add package Sentry -v ${getPackageVersion(params, 'sentry.dotnet', '7.0.0')}`;
 
 const getConfigureSnippet = (params: DocsParams) => `
 using System.Windows.Threading;
@@ -38,12 +38,6 @@ public partial class App : Application
             // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
             o.TracesSampleRate = 1.0;`
-                : ''
-            }${
-              params.isLogsSelected
-                ? `
-            // Enable logs to be sent to Sentry
-            o.EnableLogs = true;`
                 : ''
             }
         });
@@ -82,9 +76,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install the [strong:NuGet] package:', {
-            strong: <strong />,
-          }),
+          text: tct('Install the [strong:NuGet] package:', {strong: <strong />}),
         },
         {
           type: 'code',
@@ -112,16 +104,10 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Initialize the SDK as early as possible, like in the constructor of the [code:App]:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'csharp', code: getConfigureSnippet(params)},
       ],
     },
   ],

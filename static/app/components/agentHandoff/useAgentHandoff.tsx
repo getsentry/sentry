@@ -130,11 +130,7 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
     let clipboardWrite: Promise<void>;
     try {
       clipboardWrite = navigator.clipboard
-        .write([
-          new ClipboardItem({
-            'text/plain': clipboardPayload,
-          }),
-        ])
+        .write([new ClipboardItem({'text/plain': clipboardPayload})])
         .catch(() => {
           throw clipboardError();
         });

@@ -152,30 +152,18 @@ class SeerWorkflowConfigProject(DefaultFieldsModel):
     __repr__ = sane_repr("config_id", "project_id")
 
 
-@cell_silo_model
-class SeerWorkflowTriggerBinding(DefaultFieldsModel):
-    """Connect a WFE Action to an automation; a config may have multiple bindings."""
-
-    __relocation_scope__ = RelocationScope.Excluded
-
-    workflow_config = FlexibleForeignKey("seer.SeerWorkflowConfig", on_delete=models.CASCADE)
-    trigger_action = models.OneToOneField(
-        "workflow_engine.Action", on_delete=models.CASCADE, related_name="seer_workflow_binding"
-    )
-
-    class Meta:
-        app_label = "seer"
-        db_table = "seer_workflowtriggerbinding"
-
-    __repr__ = sane_repr("workflow_config_id", "trigger_action_id")
-
-
 class SeerWorkflowRunStatus(models.TextChoices):
     QUEUED = "queued"
     RUNNING = "running"
     COMPLETE = "complete"
     FAILED = "failed"
     REJECTED = "rejected"
+
+
+class SeerWorkflowRunSource(models.TextChoices):
+    CRON = "cron"
+    MANUAL = "manual"
+    EVENT = "event"
 
 
 class SeerWorkflowExecutionStatus(models.TextChoices):
@@ -243,6 +231,8 @@ class SeerWorkflowRun(DefaultFieldsModel):
     trigger_key = models.CharField(max_length=256, null=True, db_column="schedule_id")
     # Null for historical runs that have not adopted the shared lifecycle.
     status = models.CharField(max_length=256, choices=SeerWorkflowRunStatus.choices, null=True)
+    # Null for historical runs recorded before sources were tracked.
+    source = models.CharField(max_length=256, choices=SeerWorkflowRunSource.choices, null=True)
     date_completed = models.DateTimeField(null=True)
     # Shape: SeerWorkflowRunExtras.
     extras = models.JSONField(db_default={}, default=dict)

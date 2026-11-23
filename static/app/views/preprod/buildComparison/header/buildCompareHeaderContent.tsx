@@ -34,11 +34,7 @@ interface BuildCompareHeaderContentProps {
   onRerunComparison?: () => void;
 }
 
-const buildCompareFeedbackOptions = {
-  tags: {
-    'feedback.source': 'preprod.buildDetails',
-  },
-};
+const buildCompareFeedbackOptions = {tags: {'feedback.source': 'preprod.buildDetails'}};
 
 function getInstallSizeStatLabels(platform: Platform | null) {
   if (platform === 'android') {
