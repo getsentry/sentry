@@ -97,6 +97,91 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
+    def _dashboard_with_query(self, title: str, **query_kwargs: object) -> Dashboard:
+        dashboard = Dashboard.objects.create(
+            title=title, created_by_id=self.user.id, organization=self.organization
+        )
+        widget = self.create_dashboard_widget(dashboard=dashboard, title=title)
+        self.create_dashboard_widget_query(widget=widget, order=0, **query_kwargs)
+        return dashboard
+
+    def _formula_titles(self, formula: str = "formula.apdex") -> set[str]:
+        with self.feature("organizations:explore-saved-formulas"):
+            response = self.do_request("get", self.url, data={"formula": formula})
+        assert response.status_code == 200, response.content
+        return {dashboard["title"] for dashboard in response.data}
+
+    def test_get_filters_by_formula_aggregate(self) -> None:
+        dashboard = self._dashboard_with_query(
+            "Formula dashboard",
+            aggregates=["formula.apdex(span.duration,300)"],
+            fields=["span.duration"],
+            columns=[],
+            conditions="",
+        )
+
+        assert self._formula_titles() == {dashboard.title}
+
+    def test_get_filters_by_formula_condition(self) -> None:
+        dashboard = self._dashboard_with_query(
+            "Formula condition dashboard",
+            aggregates=["count()"],
+            fields=["count()"],
+            columns=[],
+            conditions="formula.apdex(span.duration,300):>0.7",
+        )
+
+        assert self._formula_titles() == {dashboard.title}
+
+    def test_get_formula_filter_ignores_fields(self) -> None:
+        self._dashboard_with_query(
+            "Formula in fields",
+            aggregates=["count()"],
+            fields=["formula.apdex(span.duration,300)"],
+            columns=[],
+            conditions="",
+        )
+
+        assert self._formula_titles() == set()
+
+    def test_get_formula_filter_ignores_columns(self) -> None:
+        self._dashboard_with_query(
+            "Formula in columns",
+            aggregates=["count()"],
+            fields=["count()"],
+            columns=["formula.apdex(span.duration,300)"],
+            conditions="",
+        )
+
+        assert self._formula_titles() == set()
+
+    def test_get_formula_filter_ignores_similar_name(self) -> None:
+        self._dashboard_with_query(
+            "Similar formula name",
+            aggregates=["formula.apdex_score(span.duration,300)"],
+            fields=["span.duration"],
+            columns=[],
+            conditions="",
+        )
+
+        assert self._formula_titles() == set()
+
+    def test_get_formula_filter_ignores_similar_condition(self) -> None:
+        self._dashboard_with_query(
+            "Similar dashboard",
+            aggregates=["count()"],
+            fields=["count()"],
+            columns=[],
+            conditions="field:formula.apdex(span.duration,300)",
+        )
+
+        assert self._formula_titles() == set()
+
+    def test_get_formula_filter_rejects_invalid_prefix(self) -> None:
+        with self.feature("organizations:explore-saved-formulas"):
+            response = self.do_request("get", self.url, data={"formula": "not-a-formula"})
+        assert response.status_code == 400, response.content
+
     def test_get_sortby(self) -> None:
         Dashboard.objects.create(
             title="A", created_by_id=self.user.id, organization=self.organization
