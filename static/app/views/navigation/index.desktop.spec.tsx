@@ -10,6 +10,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {
   act,
   cleanup,
+  fireEvent,
   render,
   type RouterConfig,
   screen,
@@ -2026,6 +2027,33 @@ describe('desktop navigation', () => {
             within(secondaryNav).getByRole('link', {name: 'Feed'})
           ).toBeInTheDocument();
         });
+      });
+
+      it('previews hovered groups as an overlay right after opening the inbox', async () => {
+        const {router} = render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({organization: universalInbox})
+        );
+
+        // The pointer enters the nav while it is still expanded, opens the inbox
+        // from the rail, and moves on to another item without leaving the nav.
+        // fireEvent keeps the parent from receiving a second mouseenter, which
+        // is what happens in a browser.
+        const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+        fireEvent.mouseEnter(primaryNav.parentElement!);
+        fireEvent.click(screen.getByRole('link', {name: 'Inbox'}));
+        expect(router.location.pathname).toBe('/organizations/org-slug/inbox/');
+        fireEvent.mouseOver(screen.getByRole('link', {name: 'Explore'}));
+
+        await waitFor(() => {
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'true'
+          );
+        });
+        expect(await screen.findByRole('link', {name: 'Traces'})).toBeInTheDocument();
       });
 
       it('previews hovered groups as an overlay on the inbox', async () => {
