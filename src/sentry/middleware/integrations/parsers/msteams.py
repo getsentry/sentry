@@ -43,7 +43,7 @@ class MsTeamsRequestParser(BaseRequestParser):
     def get_integration_from_request(self) -> Integration | None:
         integration = parsing.get_integration_from_request_data(data=self.request_data)
         if integration:
-            return Integration.objects.filter(id=integration.id).first()
+            return Integration.objects.get_or_none(id=integration.id)
         return None
 
     @classmethod

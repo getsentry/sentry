@@ -36,11 +36,7 @@ interface LimitDateTimeParamsToMaxPointsOptions {
 }
 
 interface LimitDateTimeParamsToMaxPointsResult {
-  dateTimeParams: {
-    end?: string;
-    start?: string;
-    statsPeriod?: string;
-  };
+  dateTimeParams: {end?: string; start?: string; statsPeriod?: string};
   isRangeLimited: boolean;
 }
 
@@ -158,40 +154,28 @@ export function limitDateTimeParamsToMaxPoints({
   if (statsPeriod) {
     const statsPeriodDurationMs = parseStatsPeriodDurationMs(statsPeriod);
     if (!statsPeriodDurationMs || statsPeriodDurationMs <= maxSpanMs) {
-      return {
-        dateTimeParams: {statsPeriod},
-        isRangeLimited: false,
-      };
+      return {dateTimeParams: {statsPeriod}, isRangeLimited: false};
     }
 
     const hourMs = 60 * 60 * 1000;
     // Query to the nearest hour, rounded down
     const durationHours = Math.floor(maxSpanMs / hourMs);
 
-    return {
-      dateTimeParams: {statsPeriod: `${durationHours}h`},
-      isRangeLimited: true,
-    };
+    return {dateTimeParams: {statsPeriod: `${durationHours}h`}, isRangeLimited: true};
   }
 
   const startMs = parseDateTimeMs(start);
   const endMs = parseDateTimeMs(end);
   if (startMs === null || endMs === null || endMs <= startMs) {
     return {
-      dateTimeParams: {
-        start: start ?? undefined,
-        end: end ?? undefined,
-      },
+      dateTimeParams: {start: start ?? undefined, end: end ?? undefined},
       isRangeLimited: false,
     };
   }
 
   if (endMs - startMs <= maxSpanMs) {
     return {
-      dateTimeParams: {
-        start: start ?? undefined,
-        end: end ?? undefined,
-      },
+      dateTimeParams: {start: start ?? undefined, end: end ?? undefined},
       isRangeLimited: false,
     };
   }

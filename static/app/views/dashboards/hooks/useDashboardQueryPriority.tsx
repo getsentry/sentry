@@ -4,6 +4,7 @@ import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {toast} from '@sentry/scraps/toast';
 
+import {QUERY_SPEEDS} from 'sentry/components/querySpeedMenu';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -21,31 +22,9 @@ import {
 
 import {getDashboardRevisionsQueryKey} from './useDashboardRevisions';
 
-const DASHBOARD_QUERY_PRIORITIES = [
-  'normal',
-  'faster',
-] as const satisfies readonly DashboardQueryPriority[];
-
-const DASHBOARD_QUERY_PRIORITY_OPTIONS: Array<{
-  details: string;
-  label: string;
-  value: DashboardQueryPriority;
-}> = [
-  {
-    value: 'normal',
-    label: t('Balanced Querying'),
-    details: t('Balances speed and accuracy'),
-  },
-  {
-    value: 'faster',
-    label: t('Fast Querying'),
-    details: t('Faster with reduced accuracy'),
-  },
-];
-
 // No default: an absent param must stay null so a saved dashboard priority can
 // apply. `withDefault('normal')` would hide that saved value.
-const queryPriorityParser = parseAsStringLiteral(DASHBOARD_QUERY_PRIORITIES);
+const queryPriorityParser = parseAsStringLiteral(QUERY_SPEEDS);
 
 const SavedDashboardQueryPriorityContext = createContext<
   DashboardQueryPriority | undefined
@@ -90,7 +69,6 @@ export function useDashboardQueryPriority(savedPriority?: DashboardQueryPriority
 
   return {
     enabled,
-    options: DASHBOARD_QUERY_PRIORITY_OPTIONS,
     priority,
     setPriority: (value: DashboardQueryPriority) => {
       if (enabled) {

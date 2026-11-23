@@ -35,10 +35,7 @@ export function getTraceDateTimeRange(input: {end: number; start: number}): {
     .utc()
     .format('YYYY-MM-DDTHH:mm:ss.SSS');
 
-  return {
-    start,
-    end,
-  };
+  return {start, end};
 }
 
 function isGapSpan(span: ProcessedSpanType): span is GapSpanType {
@@ -102,7 +99,7 @@ function subTimingMarkToTime(span: RawSpanType, mark: SpanSubTimingMark) {
     return span.timestamp;
   }
 
-  return (span as any).data?.[mark] as number | undefined;
+  return span.data?.[mark] as number | undefined;
 }
 
 export function getSpanSubTimings(

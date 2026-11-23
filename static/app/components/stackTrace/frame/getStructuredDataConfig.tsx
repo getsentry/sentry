@@ -7,10 +7,7 @@ const NUMERIC_STRING_REGEX = /^-?\d+(\.\d+)?$/;
 type FrameStructuredDataConfig = Omit<
   StructedEventDataConfig,
   'renderBoolean' | 'renderNull'
-> & {
-  renderBoolean?: (value: unknown) => string;
-  renderNull?: (value: unknown) => string;
-};
+> & {renderBoolean?: (value: unknown) => string; renderNull?: (value: unknown) => string};
 
 const renderPythonBoolean = (value: unknown) => {
   if (typeof value === 'string') {

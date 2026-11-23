@@ -14,11 +14,7 @@ import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils
 
 import {PerformanceBadge} from './performanceBadge';
 
-type Props = {
-  webVital: WebVitals;
-  score?: number;
-  value?: string;
-};
+type Props = {webVital: WebVitals; score?: number; value?: string};
 
 export const WEB_VITAL_FULL_NAME_MAP = {
   cls: t('Cumulative Layout Shift'),

@@ -144,10 +144,13 @@ class SeerAutofixUpdate(NotificationData):
     pull_requests: list[SeerAutofixPullRequest] = Field(default_factory=list)
     summary: str | None = None
     handoff_target: CodingAgentProviderType | None = None
+    hide_next_trigger: bool = False
     source: NotificationSource = NotificationSource.SEER_AUTOFIX_UPDATE
 
     @property
     def has_next_trigger(self) -> bool:
+        if self.hide_next_trigger:
+            return False
         match self.current_point:
             case AutofixStoppingPoint.ROOT_CAUSE:
                 return True
@@ -331,9 +334,9 @@ class SeerAgentWriteApprovalTemplate(NotificationTemplate[SeerAgentWriteApproval
 
 
 class SeerInvestigationStarted(NotificationData):
-    """Posted in the alert's Slack thread when someone starts a Seer investigation."""
+    """Posted in an alert's Slack thread when a Seer investigation starts."""
 
-    slack_user_id: str
+    slack_user_id: str | None = None
     investigation_url: str
     source: NotificationSource = NotificationSource.SEER_INVESTIGATION_STARTED
 

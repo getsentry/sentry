@@ -11,13 +11,10 @@ export function PreprodQuotaAlert({system}: {system?: boolean}) {
   const organization = useOrganization();
 
   const {data: quotaData} = useQuery(
-    apiOptions.as<{
-      hasDistributionQuota: boolean;
-      hasSizeQuota: boolean;
-    }>()('/organizations/$organizationIdOrSlug/preprod/quota/', {
-      path: {organizationIdOrSlug: organization.slug},
-      staleTime: 0,
-    })
+    apiOptions.as<{hasDistributionQuota: boolean; hasSizeQuota: boolean}>()(
+      '/organizations/$organizationIdOrSlug/preprod/quota/',
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+    )
   );
 
   const isOutOfQuota =
@@ -46,10 +43,7 @@ export function PreprodQuotaAlert({system}: {system?: boolean}) {
       <Alert variant="warning" system={system}>
         {tct(
           "You've exceeded your [quotaType] quota. See details on getting more quota in the [link:pricing docs].",
-          {
-            quotaType,
-            link: <ExternalLink href={link} />,
-          }
+          {quotaType, link: <ExternalLink href={link} />}
         )}
       </Alert>
     </Alert.Container>

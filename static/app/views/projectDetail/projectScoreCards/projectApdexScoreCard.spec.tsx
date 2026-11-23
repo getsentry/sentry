@@ -12,12 +12,7 @@ describe('ProjectDetail > ProjectApdex', () => {
   const selection = {
     projects: [1],
     environments: [],
-    datetime: {
-      start: null,
-      end: null,
-      period: '14d',
-      utc: null,
-    },
+    datetime: {start: null, end: null, period: '14d', utc: null},
   };
 
   afterEach(() => {
@@ -27,33 +22,21 @@ describe('ProjectDetail > ProjectApdex', () => {
   it('renders apdex', async () => {
     previousDataEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [
-          {
-            'apdex(span.duration,300)': 0.678,
-          },
-        ],
-      },
+      body: {data: [{'apdex(span.duration,300)': 0.678}]},
       status: 200,
       match: [MockApiClient.matchQuery({statsPeriodStart: '28d'})],
     });
 
     currentDataEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [
-          {
-            'apdex(span.duration,300)': 0.781,
-          },
-        ],
-      },
+      body: {data: [{'apdex(span.duration,300)': 0.781}]},
       status: 200,
       match: [MockApiClient.matchQuery({statsPeriod: '14d'})],
     });
 
     render(
       <ProjectApdexScoreCard
-        organization={{...organization, features: ['discover-basic', 'performance-view']}}
+        organization={{...organization, features: ['discover-basic']}}
         selection={selection}
         isProjectStabilized
         hasTransactions
@@ -99,15 +82,13 @@ describe('ProjectDetail > ProjectApdex', () => {
   it('renders without performance', async () => {
     const endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        detail: 'test error',
-      },
+      body: {detail: 'test error'},
       status: 404,
     });
 
     render(
       <ProjectApdexScoreCard
-        organization={{...organization, features: ['performance-view']}}
+        organization={organization}
         hasTransactions={false}
         selection={selection}
         isProjectStabilized

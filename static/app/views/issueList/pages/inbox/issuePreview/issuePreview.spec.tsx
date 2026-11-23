@@ -280,9 +280,7 @@ describe('IssuePreview', () => {
 
     it('renders and copies summary context without Seer quota', async () => {
       const writeText = jest.fn((_text: string) => Promise.resolve());
-      Object.assign(navigator, {
-        clipboard: {writeText},
-      });
+      Object.assign(navigator, {clipboard: {writeText}});
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
         method: 'POST',
@@ -843,9 +841,7 @@ describe('IssuePreview', () => {
           },
         });
 
-        const copyButton = await screen.findByRole('button', {
-          name: 'Copy as Markdown',
-        });
+        const copyButton = await screen.findByRole('button', {name: 'Copy as Markdown'});
         await waitFor(() => expect(copyButton).toBeEnabled());
         await userEvent.click(copyButton);
 
@@ -1095,9 +1091,7 @@ describe('IssuePreview', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
-      body: {
-        pullRequests: [linkedPullRequest],
-      },
+      body: {pullRequests: [linkedPullRequest]},
     });
 
     render(<IssuePreview groupId={group.id} />, {organization});
@@ -1536,7 +1530,7 @@ describe('IssuePreview', () => {
 
   describe('out of Seer credits', () => {
     const creditCheckOrganization = OrganizationFixture({
-      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+      features: ['token-billed-seer-enabled'],
     });
     const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
 

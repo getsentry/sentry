@@ -15,8 +15,6 @@ import {TableNoDataPanel} from 'sentry/components/tables/tableNoDataPanel';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {formatFloat} from 'sentry/utils/number/formatFloat';
-import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {getPaginationProps} from 'sentry/utils/pagination';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -25,10 +23,13 @@ import {
   type ClassifiedConversation,
   type ClassifiedConversationSortKey,
 } from 'sentry/views/classifiers/hooks/useClassifiedConversations';
+import {useClassifierOutput} from 'sentry/views/classifiers/hooks/useClassifierOutput';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
 import {getResultAttributeKey} from 'sentry/views/classifiers/utils';
 import {ConversationCell} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils/urlParams';
+
+import {ResultAttributeName} from './resultAttributeName';
 
 type ColumnKey = 'conversation' | ClassifiedConversationSortKey;
 
@@ -42,23 +43,6 @@ const FLEXIBLE_CONVERSATION_COLUMN = {
   conversation: `minmax(${COL_WIDTH_MINIMUM}px, 1fr)`,
 };
 
-function ClassifierResult({
-  outputType,
-  value,
-}: {
-  outputType: TelemetryClassifier['outputType'];
-  value: number | null;
-}) {
-  if (value === null) {
-    return <Text variant="muted">&mdash;</Text>;
-  }
-  return (
-    <Text tabular>
-      {outputType === 'binary' ? formatPercentage(value, 0) : formatFloat(value, 2)}
-    </Text>
-  );
-}
-
 interface ClassifiedConversationsTableProps {
   classifier: TelemetryClassifier;
 }
@@ -70,6 +54,8 @@ export function ClassifiedConversationsTable({
   const navigate = useNavigate();
   const {data, isFetching, error, pageLinks, setCursor, sort, setSort} =
     useClassifiedConversations(classifier);
+  const {isFiltered, output} = useClassifierOutput(classifier);
+  const showResultColumn = !isFiltered;
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
   const [columnWidths, setColumnWidths] = useState<Partial<Record<ColumnKey, number>>>(
     {}
@@ -84,18 +70,18 @@ export function ClassifiedConversationsTable({
         name: t('Conversation'),
         width: columnWidths.conversation ?? DEFAULT_COLUMN_WIDTHS.conversation,
       },
-      {
-        key: 'result',
-        name: getResultAttributeKey(classifier.resultAttribute),
-        width: columnWidths.result ?? DEFAULT_COLUMN_WIDTHS.result,
-      },
-      {
-        key: 'age',
-        name: t('Age'),
-        width: columnWidths.age ?? DEFAULT_COLUMN_WIDTHS.age,
-      },
+      ...(showResultColumn
+        ? [
+            {
+              key: 'result' as const,
+              name: getResultAttributeKey(classifier.resultAttribute),
+              width: columnWidths.result ?? DEFAULT_COLUMN_WIDTHS.result,
+            },
+          ]
+        : []),
+      {key: 'age', name: t('Age'), width: columnWidths.age ?? DEFAULT_COLUMN_WIDTHS.age},
     ],
-    [classifier.resultAttribute, columnWidths]
+    [classifier.resultAttribute, columnWidths, showResultColumn]
   );
 
   const handleResizeColumn = useCallback(
@@ -124,12 +110,22 @@ export function ClassifiedConversationsTable({
         direction = 'desc';
       }
       return {
-        align: sortKey === 'age' ? 'right' : undefined,
+        align: 'right',
         direction,
         onSort: () => setSort(direction === 'desc' ? sortKey : `-${sortKey}`),
       };
     },
     [setSort, sort]
+  );
+
+  const renderHeadCell = useCallback(
+    (column: GridColumnOrder<ColumnKey>) =>
+      column.key === 'result' ? (
+        <ResultAttributeName resultAttribute={classifier.resultAttribute} />
+      ) : (
+        column.name
+      ),
+    [classifier.resultAttribute]
   );
 
   const renderBodyCell = useCallback(
@@ -138,14 +134,18 @@ export function ClassifiedConversationsTable({
         case 'conversation':
           return <ConversationCell conversation={row.conversation} />;
         case 'result':
-          return (
-            <ClassifierResult outputType={classifier.outputType} value={row.result} />
+          return row.result === null ? (
+            <Text variant="muted" align="right">
+              &mdash;
+            </Text>
+          ) : (
+            <output.ResultCell classifier={classifier} value={row.result} />
           );
         case 'age':
           return (
             <Text align="right" variant="muted">
               {row.classifiedAt ? (
-                <TimeSince unitStyle="extraShort" date={row.classifiedAt} />
+                <TimeSince unitStyle="narrow" date={row.classifiedAt} />
               ) : (
                 '—'
               )}
@@ -155,7 +155,7 @@ export function ClassifiedConversationsTable({
           return null;
       }
     },
-    [classifier.outputType]
+    [classifier, output]
   );
 
   const handleRowClick = useCallback(
@@ -185,6 +185,7 @@ export function ClassifiedConversationsTable({
         bodyStyle={{marginBottom: 0}}
         grid={{
           getColumnSort,
+          renderHeadCell,
           renderBodyCell,
           onResizeColumn: handleResizeColumn,
           staticColumnWidths,

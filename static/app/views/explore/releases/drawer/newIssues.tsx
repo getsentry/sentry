@@ -17,10 +17,7 @@ export function NewIssues({release, projectId}: Props) {
   const location = useLocation();
   const {data: releaseDetails} = useReleaseDetails({release});
   const queryParams = {
-    ...getReleaseParams({
-      location,
-      releaseBounds: getReleaseBounds(releaseDetails),
-    }),
+    ...getReleaseParams({location, releaseBounds: getReleaseBounds(releaseDetails)}),
     project: projectId,
     limit: 10,
     sort: IssueSortOptions.FREQ,

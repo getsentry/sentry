@@ -4,6 +4,9 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
+from taskbroker_client.task import Task
+
 from sentry.cadence.models import ScheduledTrigger, ScheduledTriggerType, ScheduleType
 from sentry.cadence.registry import (
     TriggerFiring,
@@ -22,6 +25,7 @@ from sentry.cadence.tasks import (
     cadence_tick,
 )
 from sentry.models.organization import Organization
+from sentry.taskworker.namespaces import cadence_tasks, issues_tasks
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
@@ -39,6 +43,12 @@ def cadence_metric_calls(mock: MagicMock) -> list[tuple[tuple[Any, ...], dict[st
 
 def test_every_trigger_type_has_a_handler() -> None:
     assert set(trigger_type_registry.registrations) == set(ScheduledTriggerType)
+
+
+@pytest.mark.parametrize("task", [cadence_tick, cadence_sweep, cadence_sweep_worker])
+def test_cadence_alias_is_registered_while_issues_remains_primary(task: Task[[], None]) -> None:
+    assert task.namespace is issues_tasks
+    assert cadence_tasks.contains(task.name)
 
 
 class CadenceTickTestCase(TestCase):

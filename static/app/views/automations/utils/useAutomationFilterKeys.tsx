@@ -16,10 +16,7 @@ const ACTION_TYPE_VALUES = Object.values(ActionType).sort();
 
 const AUTOMATION_FILTER_KEYS: Record<
   string,
-  {
-    fieldDefinition: FieldDefinition;
-    predefined?: boolean;
-  }
+  {fieldDefinition: FieldDefinition; predefined?: boolean}
 > = {
   name: {
     fieldDefinition: {
@@ -52,11 +49,7 @@ const AUTOMATION_FILTER_KEYS: Record<
 
 const convertToSearchItem = (value: string) => {
   const escapedValue = escapeTagValue(value);
-  return {
-    value: escapedValue,
-    desc: value,
-    type: ItemType.TAG_VALUE,
-  };
+  return {value: escapedValue, desc: value, type: ItemType.TAG_VALUE};
 };
 
 export function useAutomationFilterKeys(): {
@@ -102,8 +95,5 @@ export function useAutomationFilterKeys(): {
     return AUTOMATION_FILTER_KEYS[key]?.fieldDefinition ?? null;
   }, []);
 
-  return {
-    filterKeys,
-    getFieldDefinition,
-  };
+  return {filterKeys, getFieldDefinition};
 }

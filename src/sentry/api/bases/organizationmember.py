@@ -26,7 +26,7 @@ from .organization import OrganizationEndpoint, OrganizationPermission
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["member:read", "member:write", "member:admin"],
+        "GET": ["member:read", "member:write", "member:admin", "membership:read"],
         "POST": ["member:write", "member:admin", "member:invite"],
         "PUT": ["member:write", "member:admin"],
         "DELETE": ["member:admin"],
@@ -134,7 +134,7 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
 
         om_id = kwargs.get("id")
         if isinstance(om_id, int):
-            invite = OrganizationMemberInvite.objects.filter(organization_member_id=om_id).first()
+            invite = OrganizationMemberInvite.objects.filter(organization_member_id=om_id).first()  # noqa: S035
             if invite is not None:
                 raise ResourceDoesNotExist
 

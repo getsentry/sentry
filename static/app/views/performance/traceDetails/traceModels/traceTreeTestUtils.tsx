@@ -104,9 +104,7 @@ export function makeParentAutogroup(
   overrides: Partial<TraceTree.ChildrenAutogroup> = {}
 ): TraceTree.ChildrenAutogroup {
   return {
-    autogrouped_by: {
-      op: overrides.op ?? 'op',
-    },
+    autogrouped_by: {op: overrides.op ?? 'op'},
     ...overrides,
   } as TraceTree.ChildrenAutogroup;
 }

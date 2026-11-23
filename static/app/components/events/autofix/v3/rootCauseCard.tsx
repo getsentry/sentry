@@ -16,7 +16,7 @@ import {
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {OUT_OF_CREDITS_STEP_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
+import {STOPPED_STEP_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
 import {useOutOfCreditsRetry} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -67,6 +67,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
 
   const isOutOfCredits = isOutOfCreditsSection(section);
   const outOfCreditsRetry = useOutOfCreditsRetry('root_cause', {
+    billingFeature: isSingleRun ? undefined : autofix.runState?.billing_feature,
     enabled: isOutOfCredits,
   });
 
@@ -89,10 +90,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
       prompt={rethinkPrompt}
     />
   ) : null;
-  const rethinkInChat = useRethinkInChat({
-    prompt: rethinkPrompt,
-    step: 'root_cause',
-  });
+  const rethinkInChat = useRethinkInChat({prompt: rethinkPrompt, step: 'root_cause'});
 
   const evidence = useAutofixSectionEvidence({section});
   const evidenceDetails =
@@ -172,7 +170,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
         <Fragment>
           <ArtifactPartialDetails blocks={section.blocks} />
           {evidenceDetails}
-          <OutOfCreditsStatus message={OUT_OF_CREDITS_STEP_MESSAGE.root_cause}>
+          <OutOfCreditsStatus message={STOPPED_STEP_MESSAGE.root_cause}>
             {resetPrompt ?? (
               <Flex>
                 <Button

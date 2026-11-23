@@ -35,7 +35,7 @@ from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
-from sentry.seer.autofix.feature.dispatch import check_autofix_billing
+from sentry.seer.autofix.feature.dispatch import check_autofix_billing, get_run_billing_feature
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_automation_handoff,
@@ -65,7 +65,7 @@ from sentry.seer.entrypoints.types import (
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access
-from sentry.sentry_apps.event_types import INTERNAL_SEER_EVENT_TYPES, SentryAppEventType
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -184,6 +184,7 @@ class SeerAutofixOperator[CachePayloadT]:
         try:
             check_autofix_billing(
                 group.organization,
+                SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
                 SeerOperation.AUTOFIX_ROOT_CAUSE,
                 is_new_run=True,
                 # Free cohort orgs have no subscription, so the quota check always fails for them.
@@ -221,10 +222,12 @@ class SeerAutofixOperator[CachePayloadT]:
     ) -> None:
         from sentry.seer.autofix.autofix_agent import (
             get_autofix_agent_state,
+            get_autofix_run_state,
             trigger_autofix_agent,
             trigger_push_changes,
         )
         from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
+        from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
         from sentry.seer.autofix.steps import AutofixStep
 
         event_lifecyle = SeerOperatorEventLifecycleMetric(
@@ -245,6 +248,17 @@ class SeerAutofixOperator[CachePayloadT]:
                 existing_state = get_autofix_agent_state(
                     group.organization, group.id, sources=(AUTOFIX_FEATURE_ID,)
                 )
+                if run_id is not None and (
+                    existing_state is None or existing_state.run_id != run_id
+                ):
+                    existing_state = get_autofix_run_state(group, run_id)
+                single_run_state = (
+                    get_autofix_agent_state(
+                        group.organization, group.id, sources=(SINGLE_RUN_FEATURE_ID,)
+                    )
+                    if run_id is None
+                    else None
+                )
             except Exception as e:
                 with SeerOperatorEventLifecycleMetric(
                     interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
@@ -255,27 +269,39 @@ class SeerAutofixOperator[CachePayloadT]:
                     )
                 lifecycle.record_failure(failure_reason=e)
                 return
-            if existing_state:
-                has_complete_stage = get_autofix_explorer_status(stopping_point, existing_state)
+            blocking_state = existing_state
+            has_complete_stage = (
+                get_autofix_explorer_status(stopping_point, existing_state)
+                if existing_state
+                else None
+            )
+            if (
+                has_complete_stage is None
+                and single_run_state is not None
+                and single_run_state.status != "error"
+            ):
+                blocking_state = single_run_state
+                has_complete_stage = single_run_state.status != "processing"
+            if blocking_state:
                 lifecycle.add_extras(
                     {
-                        "existing_run_id": str(existing_state.run_id),
-                        "existing_run_status": str(existing_state.status),
+                        "existing_run_id": str(blocking_state.run_id),
+                        "existing_run_status": str(blocking_state.status),
                     }
                 )
 
-                # For now, we don't support re-runs over slack -- it causes a confusing UX without
-                # reliably being able to edit messages.
-                if has_complete_stage is not None:
-                    with SeerOperatorEventLifecycleMetric(
-                        interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ALREADY_EXISTS,
-                        entrypoint_key=self.entrypoint.key,
-                    ).capture():
-                        self.entrypoint.on_trigger_autofix_already_exists(
-                            run_id=existing_state.run_id,
-                            has_complete_stage=has_complete_stage,
-                        )
-                    return
+            # For now, we don't support re-runs over slack -- it causes a confusing UX without
+            # reliably being able to edit messages.
+            if blocking_state and has_complete_stage is not None:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ALREADY_EXISTS,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_autofix_already_exists(
+                        run_id=blocking_state.run_id,
+                        has_complete_stage=has_complete_stage,
+                    )
+                return
 
             try:
                 if not run_id:
@@ -306,8 +332,10 @@ class SeerAutofixOperator[CachePayloadT]:
                             group.organization.id,
                             referrer="autofix_open_pr_slack",
                         ),
+                        state=existing_state,
                     )
                 else:
+                    assert existing_state is not None
                     # NOTE: Stopping point here is really just what
                     # step to run next. Not the same as the stopping_point
                     # argument supported by `trigger_autofix_agent` which allows one
@@ -317,6 +345,7 @@ class SeerAutofixOperator[CachePayloadT]:
                         step=AutofixStep.from_autofix_stopping_point(stopping_point),
                         referrer=AutofixReferrer.SLACK,
                         run_id=run_id,
+                        billing_feature=get_run_billing_feature(existing_state),
                         user=user,
                     )
             except NoSeerQuotaException:
@@ -922,7 +951,7 @@ def process_autofix_updates(
 
         if (
             event_type not in SEER_EVENT_TO_ACTIVITY_TYPE
-            and event_type not in INTERNAL_SEER_EVENT_TYPES
+            and event_type != SentryAppEventType.SEER_ERRORED
         ):
             lifecycle.record_halt(halt_reason="skipped")
             return

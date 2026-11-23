@@ -21,9 +21,7 @@ export const replay: OnboardingConfig = {
           type: 'text',
           text: tct(
             'You need a minimum version 8.9.1 of [code:@sentry/solid] in order to use Session Replay. You do not need to install any additional packages.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         installSnippetBlock,

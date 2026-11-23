@@ -284,7 +284,10 @@ def proxy_cell_request(cell: Cell, request: Any, timeout: float | None = None) -
     return proxy_request(request, cell.name, target_url, headers, timeout)
 
 
-def proxy_control_request(request: Any) -> Any:
-    target_url = build_proxied_url(app.config.endpoints.control, request.path)
-    headers = build_proxied_headers(request, app.config.endpoints.control, pass_host=True)
-    return proxy_request(request, "control", target_url, headers, app.config.proxy.timeout)
+def proxy_control_request(request: Any, upstream: str | None = None) -> Any:
+    base_url = app.config.endpoints.control.get(upstream)
+    label = f"control-{upstream}" if upstream and (base_url is not None) else "control"
+    base_url = base_url or app.config.endpoints.control[None]
+    target_url = build_proxied_url(base_url, request.path)
+    headers = build_proxied_headers(request, base_url, pass_host=True)
+    return proxy_request(request, label, target_url, headers, app.config.proxy.timeout)

@@ -83,11 +83,7 @@ export function AddOpButton({
       label: t('Logical Group'),
       details: t('Combine multiple assertions with AND/OR logic'),
       onAction: () => {
-        const andOp: UptimeAndOp = {
-          id: uniqueId(),
-          op: UptimeOpType.AND,
-          children: [],
-        };
+        const andOp: UptimeAndOp = {id: uniqueId(), op: UptimeOpType.AND, children: []};
         onAddOp(andOp);
       },
     },

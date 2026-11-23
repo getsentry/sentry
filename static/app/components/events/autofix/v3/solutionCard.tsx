@@ -14,7 +14,7 @@ import {
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {OUT_OF_CREDITS_STEP_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
+import {STOPPED_STEP_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
 import {useOutOfCreditsRetry} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -48,6 +48,7 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
 
   const isOutOfCredits = isOutOfCreditsSection(section);
   const outOfCreditsRetry = useOutOfCreditsRetry('solution', {
+    billingFeature: autofix.runState?.billing_feature,
     enabled: isOutOfCredits,
   });
 
@@ -70,10 +71,7 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
       prompt={rethinkPrompt}
     />
   ) : null;
-  const rethinkInChat = useRethinkInChat({
-    prompt: rethinkPrompt,
-    step: 'solution',
-  });
+  const rethinkInChat = useRethinkInChat({prompt: rethinkPrompt, step: 'solution'});
 
   return (
     <ArtifactCard
@@ -121,7 +119,7 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
       ) : isOutOfCredits ? (
         <Fragment>
           <ArtifactPartialDetails blocks={section.blocks} />
-          <OutOfCreditsStatus message={OUT_OF_CREDITS_STEP_MESSAGE.solution}>
+          <OutOfCreditsStatus message={STOPPED_STEP_MESSAGE.solution}>
             {resetPrompt ?? (
               <Flex>
                 <Button

@@ -81,6 +81,7 @@ function getSentryIntegrations() {
     Sentry.featureFlagsIntegration(),
     Sentry.consoleLoggingIntegration(),
     Sentry.userTimingIntegration(),
+    Sentry.experimentalReportSdkConfigIntegration(),
   ];
 
   return integrations;

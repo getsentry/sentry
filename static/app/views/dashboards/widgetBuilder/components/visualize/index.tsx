@@ -458,6 +458,10 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
         field.kind as FieldValueKind
       )
     )?.length ?? 0) >= MAX_METRICS_ALLOWED;
+  const maxMetricsTooltip = t(
+    'A widget can have up to %s metrics and equations.',
+    MAX_METRICS_ALLOWED
+  );
 
   return (
     <Fragment>
@@ -893,20 +897,14 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                                       const newFields = cloneDeep(fields);
                                       newFields[index]!.alias = e.target.value;
                                       dispatch(
-                                        {
-                                          type: updateAction,
-                                          payload: newFields,
-                                        },
+                                        {type: updateAction, payload: newFields},
                                         {debounceUrl: true}
                                       );
                                     }}
                                     onBlur={e => {
                                       const newFields = cloneDeep(fields);
                                       newFields[index]!.alias = e.target.value;
-                                      dispatch({
-                                        type: updateAction,
-                                        payload: newFields,
-                                      });
+                                      dispatch({type: updateAction, payload: newFields});
                                       trackAnalytics(
                                         'dashboards_views.widget_builder.change',
                                         {
@@ -1023,6 +1021,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
               <AddButton
                 variant="link"
                 disabled={disableTransactionWidget || hasMaxMetrics}
+                tooltipProps={hasMaxMetrics ? {title: maxMetricsTooltip} : undefined}
                 aria-label={
                   isTimeSeriesWidget
                     ? t('Add Series')

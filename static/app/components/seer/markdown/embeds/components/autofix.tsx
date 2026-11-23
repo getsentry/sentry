@@ -44,9 +44,9 @@ import {
 } from 'sentry/components/seer/autofixChatContext';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {
-  getOutOfCreditsPRsMessage,
+  getStoppedPRsMessage,
   OUT_OF_CREDITS_RETRY_TOOLTIP,
-  OUT_OF_CREDITS_STEP_MESSAGE,
+  STOPPED_STEP_MESSAGE,
 } from 'sentry/components/seer/outOfCredits/messages';
 import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {useOutOfCreditsRetry} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
@@ -270,9 +270,8 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   const {runState, isLoading, isPolling} = autofix;
   const {isBusy, sendMessage} = useAutofixChat();
   const isRefetching =
-    useIsFetching({
-      queryKey: explorerAutofixApiOptions(organization.slug, id).queryKey,
-    }) > 0;
+    useIsFetching({queryKey: explorerAutofixApiOptions(organization.slug, id).queryKey}) >
+    0;
 
   const sections = useMemo(() => getOrderedAutofixSections(runState), [runState]);
   const section = useMemo(() => findStepSection(sections, step), [sections, step]);
@@ -312,6 +311,7 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   // A read-only conversation offers no retry to pay for.
   const stoppedStep = section ? getOutOfCreditsStep(section) : null;
   const stepRetry = useOutOfCreditsRetry(stoppedStep ?? step, {
+    billingFeature: runState?.billing_feature,
     enabled: defined(stoppedStep) && !!sendMessage,
   });
   // Draft a pull request retries a create that failed for credits. The credit
@@ -323,6 +323,7 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   const showsNextAction =
     section?.status === 'completed' && (canCreatePR || !!pendingNextStep);
   const creditCheck = useAutofixCreditCheck(canCreatePR ? 'create_pr' : pendingNextStep, {
+    billingFeature: runState?.billing_feature,
     // A read-only conversation offers nothing to pay for.
     enabled: showsNextAction && !!sendMessage,
   });
@@ -459,13 +460,11 @@ function AutofixRefBody({
     let outOfCreditsStatus: ReactNode = null;
     if (outOfCreditsPullRequests.length > 0) {
       outOfCreditsStatus = (
-        <Text variant="danger">
-          {getOutOfCreditsPRsMessage(outOfCreditsPullRequests)}
-        </Text>
+        <Text variant="danger">{getStoppedPRsMessage(outOfCreditsPullRequests)}</Text>
       );
     } else if (iterationOutOfCredits) {
       outOfCreditsStatus = (
-        <Text variant="danger">{OUT_OF_CREDITS_STEP_MESSAGE.pr_iteration}</Text>
+        <Text variant="danger">{STOPPED_STEP_MESSAGE.pr_iteration}</Text>
       );
     }
 
@@ -599,7 +598,7 @@ function OutOfCreditsStepBody({
     <Stack gap="lg">
       <StoppedStepText blocks={getStoppedStepBlocks(section)} />
       {patchesByRepo.size > 0 && <CodeChangesBody patchesByRepo={patchesByRepo} />}
-      <Text variant="danger">{OUT_OF_CREDITS_STEP_MESSAGE[stoppedStep]}</Text>
+      <Text variant="danger">{STOPPED_STEP_MESSAGE[stoppedStep]}</Text>
     </Stack>
   );
 }

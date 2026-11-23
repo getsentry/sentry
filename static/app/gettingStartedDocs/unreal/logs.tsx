@@ -50,9 +50,7 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Logs for Unreal Engine are supported in Sentry Unreal Engine SDK version [code:1.2.0] and above.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
       ],
@@ -72,9 +70,7 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Open your project settings: [strong:Project Settings > Plugins > Sentry] and check the [strong:Enable Structured Logging] option.',
-            {
-              strong: <strong />,
-            }
+            {strong: <strong />}
           ),
         },
         {
@@ -99,9 +95,6 @@ SentrySubsystem->InitializeWithSettings(FConfigureSettingsNativeDelegate::Create
     },
   ],
   verify: (params: DocsParams) => [
-    {
-      type: StepType.VERIFY,
-      content: [logsVerify(params)],
-    },
+    {type: StepType.VERIFY, content: [logsVerify(params)]},
   ],
 };

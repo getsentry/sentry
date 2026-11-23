@@ -3,9 +3,7 @@ import type {TraceTree} from './traceTree';
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 export class TraceTreeEventDispatcher {
   listeners: {[K in keyof TraceTree.TraceTreeEvents]: Set<TraceTree.TraceTreeEvents[K]>} =
-    {
-      'trace timeline change': new Set(),
-    };
+    {'trace timeline change': new Set()};
 
   on<K extends keyof TraceTree.TraceTreeEvents>(
     event: K,

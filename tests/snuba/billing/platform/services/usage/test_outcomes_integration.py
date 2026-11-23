@@ -6,9 +6,15 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.billing.v1.data_category_pb2 import DataCategory as ProtoDataCategory
+from sentry_protos.billing.v1.services.usage.v1.endpoint_usage_by_project_pb2 import (
+    GetUsageByProjectRequest,
+)
 from sentry_protos.billing.v1.services.usage.v1.endpoint_usage_pb2 import GetUsageRequest
 
 from sentry.billing.platform.services.usage._outcomes_query import query_outcomes_usage
+from sentry.billing.platform.services.usage._project_outcomes_query import (
+    query_project_outcomes_usage,
+)
 from sentry.billing.platform.services.usage.service import UsageService
 from sentry.constants import DataCategory
 from sentry.testutils.cases import OutcomesSnubaTest, TestCase
@@ -243,40 +249,62 @@ class TestOutcomesIntegration(OutcomesSnubaTest, TestCase):
 
         assert len(response.days) == 0
 
-    def test_end_date_inclusive(self) -> None:
-        """Data on the last included day (end date) must be returned.
+    def _store_outcomes_before_and_on_end_day(self) -> datetime:
+        """Store 77 accepted errors the day before the returned midnight and 5 after it."""
+        day_midnight = _now.replace(hour=0, minute=0, second=0, microsecond=0)
+        for data_time, quantity in (
+            (day_midnight - timedelta(days=1) + timedelta(hours=6), 77),
+            (day_midnight + timedelta(hours=6), 5),
+        ):
+            self.store_outcomes(
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "timestamp": data_time,
+                    "outcome": Outcome.ACCEPTED,
+                    "reason": "none",
+                    "category": DataCategory.ERROR,
+                    "quantity": quantity,
+                },
+            )
+        return day_midnight
 
-        The proto end field is inclusive — midnight of the last day to include.
-        Without the +1 day conversion in the CH backend, this day would be
-        excluded because Snuba uses half-open intervals.
-        """
-        # Store data at 6am on _now's date
-        data_time = _now.replace(hour=6, minute=0, second=0, microsecond=0)
-        self.store_outcomes(
-            {
-                "org_id": self.organization.id,
-                "project_id": self.project.id,
-                "timestamp": data_time,
-                "outcome": Outcome.ACCEPTED,
-                "reason": "none",
-                "category": DataCategory.ERROR,
-                "quantity": 77,
-            },
-        )
+    def test_end_date_is_exclusive(self) -> None:
+        """Data on the end day belongs to the next window and must not be returned."""
+        day_midnight = self._store_outcomes_before_and_on_end_day()
 
-        # Pass end = midnight of the SAME day as the data.
-        # This is how getsentry callers construct the request (inclusive end).
-        day_midnight = data_time.replace(hour=0, minute=0, second=0, microsecond=0)
         request = _make_request(
             org_id=self.organization.id,
             start=day_midnight - timedelta(days=1),
-            end=day_midnight,  # inclusive: midnight of the data day
+            end=day_midnight,
         )
         response = query_outcomes_usage(request)
 
-        # The data on this day MUST be included
         assert len(response.days) == 1
         assert response.days[0].usage[0].data.accepted == 77
+        # Callers persist last_usage_ts as the rollover watermark, so it must
+        # not reach into the next window either.
+        last_usage = response.last_usage_ts.ToDatetime(tzinfo=UTC)
+        assert day_midnight - timedelta(days=1) <= last_usage < day_midnight
+
+    def test_project_end_date_is_exclusive(self) -> None:
+        """The per-project query excludes the end day the same way."""
+        day_midnight = self._store_outcomes_before_and_on_end_day()
+
+        request = GetUsageByProjectRequest(
+            organization_id=self.organization.id,
+            start=_make_timestamp(day_midnight - timedelta(days=1)),
+            end=_make_timestamp(day_midnight),
+        )
+        response = query_project_outcomes_usage(request)
+
+        assert len(response.projects) == 1
+        project_usage = response.projects[0]
+        assert project_usage.project_id == self.project.id
+        assert len(project_usage.days) == 1
+        assert project_usage.days[0].usage[0].data.accepted == 77
+        last_usage = response.last_usage_ts.ToDatetime(tzinfo=UTC)
+        assert day_midnight - timedelta(days=1) <= last_usage < day_midnight
 
     def test_category_filter(self) -> None:
         self.store_outcomes(

@@ -9,6 +9,7 @@ import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
+import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 import {ToggleCard} from '@sentry/scraps/toggleCard';
@@ -20,7 +21,7 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {seerCreditChecksQueryKey} from 'sentry/utils/seer/useSeerCreditCheck';
+import {seerCreditChecksFilter} from 'sentry/utils/seer/useSeerCreditCheck';
 
 import {AuthenticatePayment} from 'getsentry/components/authenticatePayment';
 import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
@@ -42,6 +43,11 @@ interface AutoTopUpModalOptions {
 }
 
 type AutoTopUpModalProps = AutoTopUpModalOptions & ModalRenderProps;
+
+type AutoTopUpSettings = Pick<
+  SeerWalletAutoTopUp,
+  'enabled' | 'thresholdCredits' | 'topUpCredits' | 'dailySpendCapCents'
+>;
 
 type AutoTopUpFormProps = AutoTopUpModalProps & {
   autoTopUp: SeerWalletAutoTopUp;
@@ -69,13 +75,14 @@ type PaymentRequiredResponse = {
  */
 type PendingPayment = {
   invoiceGuid: string;
-  settings: SeerWalletAutoTopUp;
+  settings: AutoTopUpSettings;
   detail?: string;
   verification?: PaymentVerification;
 };
 
 function parseWholeNumber(value: string) {
-  return Math.max(0, parseInt(value.replace(/\D/g, ''), 10) || 0);
+  const digits = value.replace(/\D/g, '');
+  return digits ? parseInt(digits, 10) : null;
 }
 
 function toWholeDollarCents(cents: number) {
@@ -83,15 +90,10 @@ function toWholeDollarCents(cents: number) {
 }
 
 function getInitialAmount(autoTopUp: SeerWalletAutoTopUp, creditPriceCents: number) {
+  // Turning off keeps the amount, so this is also what turning back on shows. Until
+  // the first save, the API returns the minimum, which is the first preset.
   const savedCents = toWholeDollarCents(autoTopUp.topUpCredits * creditPriceCents);
-  if (AMOUNT_PRESETS_CENTS.includes(savedCents)) {
-    return {cents: savedCents, isCustom: false};
-  }
-  // Turning on starts from a preset rather than an amount the user never picked.
-  if (!autoTopUp.enabled) {
-    return {cents: DEFAULT_AMOUNT_CENTS, isCustom: false};
-  }
-  return {cents: savedCents, isCustom: true};
+  return {cents: savedCents, isCustom: !AMOUNT_PRESETS_CENTS.includes(savedCents)};
 }
 
 /**
@@ -161,15 +163,21 @@ function AutoTopUpForm({
   purchased,
 }: AutoTopUpFormProps) {
   const queryClient = useQueryClient();
-  const isTurningOn = !autoTopUp.enabled;
-  // The backend only bills an auto-reload once the balance is below the threshold.
-  const isChargedNow = isTurningOn && balanceCredits < autoTopUp.thresholdCredits;
+  // The daily usage limit applies whether or not auto-reload is on, so the form
+  // saves with the switch in either position.
+  const [isEnabled, setIsEnabled] = useState(autoTopUp.enabled);
+  const isTurningOn = isEnabled && !autoTopUp.enabled;
+  const isTurningOff = !isEnabled && autoTopUp.enabled;
+  // The backend bills an auto-reload once the balance is at or below the threshold.
+  const isChargedNow = isTurningOn && balanceCredits <= autoTopUp.thresholdCredits;
   const [isConfirmingTurnOff, setIsConfirmingTurnOff] = useState(false);
   const [initialAmount] = useState(() => getInitialAmount(autoTopUp, creditPriceCents));
   const [amountCents, setAmountCents] = useState(initialAmount.cents);
   const [isCustomAmount, setIsCustomAmount] = useState(initialAmount.isCustom);
   const [dailyLimitCents, setDailyLimitCents] = useState(
-    toWholeDollarCents(autoTopUp.dailySpendCapCents)
+    autoTopUp.dailySpendCapCents === null
+      ? null
+      : toWholeDollarCents(autoTopUp.dailySpendCapCents)
   );
   const [error, setError] = useState<string | null>(null);
   const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null);
@@ -183,11 +191,24 @@ function AutoTopUpForm({
       queryKey: seerWalletBalanceOptions(organization).queryKey,
     });
     // Turning on auto-reload can unblock Seer, so let gated buttons recheck.
-    queryClient.invalidateQueries({queryKey: seerCreditChecksQueryKey(organization)});
+    queryClient.invalidateQueries(seerCreditChecksFilter(organization));
+  };
+
+  // The credit amount is hidden while auto-reload is off, so saving then keeps
+  // the saved amount for when it's turned back on.
+  const topUpCredits = isEnabled
+    ? Math.floor(amountCents / creditPriceCents)
+    : autoTopUp.topUpCredits;
+  const isAmountTooLow = topUpCredits < autoTopUp.minTopUpCredits;
+  const enteredSettings: AutoTopUpSettings = {
+    enabled: isEnabled,
+    thresholdCredits: autoTopUp.thresholdCredits,
+    topUpCredits,
+    dailySpendCapCents: dailyLimitCents,
   };
 
   const {mutate: save, isPending} = useMutation({
-    mutationFn: (data: SeerWalletAutoTopUp) =>
+    mutationFn: (data: AutoTopUpSettings) =>
       fetchMutation<SeerWalletAutoTopUp>({
         url: getApiUrl('/customers/$organizationIdOrSlug/seer-wallet/auto-top-up/', {
           path: {organizationIdOrSlug: organization.slug},
@@ -197,12 +218,12 @@ function AutoTopUpForm({
       }),
     onSuccess: data => {
       refreshWallet();
-      if (!data.enabled) {
-        toast.success(t('Auto-reload turned off'));
-      } else if (isTurningOn) {
+      if (data.enabled === autoTopUp.enabled) {
+        toast.success(t('Settings saved'));
+      } else if (data.enabled) {
         toast.success(t('Auto-reload turned on'));
       } else {
-        toast.success(t('Auto-reload settings saved'));
+        toast.success(t('Auto-reload turned off'));
       }
       closeModal();
     },
@@ -283,13 +304,18 @@ function AutoTopUpForm({
         </Body>
         <Footer>
           <Grid flow="column" align="center" gap="md">
-            <Button onClick={() => setIsConfirmingTurnOff(false)}>
+            <Button
+              onClick={() => {
+                setIsEnabled(true);
+                setIsConfirmingTurnOff(false);
+              }}
+            >
               {t('Keep it on')}
             </Button>
             <Button
               variant="danger"
               busy={isPending}
-              onClick={() => save({...autoTopUp, enabled: false})}
+              onClick={() => save(enteredSettings)}
             >
               {t('Turn off')}
             </Button>
@@ -322,72 +348,96 @@ function AutoTopUpForm({
               {error}
             </Alert>
           )}
-          <Stack gap="lg">
-            <Stack gap="xs">
-              <Text id="seer-auto-load-amount-label" bold>
-                {t('Credit amount')}
-              </Text>
-              <Text>
-                {tct(
-                  'Whenever your credits drop below [threshold], purchase this amount',
-                  {
-                    threshold: displayPrice({
-                      cents: autoTopUp.thresholdCredits * creditPriceCents,
-                    }),
-                  }
-                )}
-              </Text>
-            </Stack>
-            <Stack gap="md">
-              <Grid
-                role="radiogroup"
-                aria-labelledby="seer-auto-load-amount-label"
-                columns={`repeat(${AMOUNT_PRESETS_CENTS.length + 1}, minmax(0, 1fr))`}
-                gap="sm"
-              >
-                {AMOUNT_PRESETS_CENTS.map(cents => {
-                  const isSelected = !isCustomAmount && cents === amountCents;
-                  return (
-                    <AmountCard
-                      key={cents}
-                      value={String(cents)}
-                      checked={isSelected}
-                      onChange={() => {
-                        setAmountCents(cents);
-                        setIsCustomAmount(false);
-                      }}
-                    >
-                      <Text bold variant={isSelected ? 'accent' : 'primary'}>
-                        {displayPrice({cents})}
-                      </Text>
-                      <Text size="sm" variant="muted" align="center">
-                        {tct('[credits] credits', {
-                          credits: Math.floor(cents / creditPriceCents).toLocaleString(),
-                        })}
-                      </Text>
-                    </AmountCard>
-                  );
-                })}
-                <AmountCard
-                  value="custom"
-                  checked={isCustomAmount}
-                  onChange={() => setIsCustomAmount(true)}
+          <Flex justify="between" align="center" gap="md">
+            <Text as="label" htmlFor="seer-auto-reload-enabled" bold>
+              {t('Auto-reload enabled')}
+            </Text>
+            <Switch
+              id="seer-auto-reload-enabled"
+              size="lg"
+              checked={isEnabled}
+              onChange={e => setIsEnabled(e.target.checked)}
+            />
+          </Flex>
+          {isEnabled && (
+            <Stack gap="lg">
+              <Stack gap="xs">
+                <Text id="seer-auto-load-amount-label" bold>
+                  {t('Credit amount')}
+                </Text>
+                <Text>
+                  {tct(
+                    'Whenever your credits are at or below [threshold], purchase this amount',
+                    {
+                      threshold: displayPrice({
+                        cents: autoTopUp.thresholdCredits * creditPriceCents,
+                      }),
+                    }
+                  )}
+                </Text>
+              </Stack>
+              <Stack gap="md">
+                <Grid
+                  role="radiogroup"
+                  aria-labelledby="seer-auto-load-amount-label"
+                  columns={`repeat(${AMOUNT_PRESETS_CENTS.length + 1}, minmax(0, 1fr))`}
+                  gap="sm"
                 >
-                  <Text bold variant={isCustomAmount ? 'accent' : 'primary'}>
-                    {t('Custom')}
+                  {AMOUNT_PRESETS_CENTS.map(cents => {
+                    const isSelected = !isCustomAmount && cents === amountCents;
+                    return (
+                      <AmountCard
+                        key={cents}
+                        value={String(cents)}
+                        checked={isSelected}
+                        onChange={() => {
+                          setAmountCents(cents);
+                          setIsCustomAmount(false);
+                        }}
+                      >
+                        <Text bold variant={isSelected ? 'accent' : 'primary'}>
+                          {displayPrice({cents})}
+                        </Text>
+                        <Text size="sm" variant="muted" align="center">
+                          {tct('[credits] credits', {
+                            credits: Math.floor(
+                              cents / creditPriceCents
+                            ).toLocaleString(),
+                          })}
+                        </Text>
+                      </AmountCard>
+                    );
+                  })}
+                  <AmountCard
+                    value="custom"
+                    checked={isCustomAmount}
+                    onChange={() => setIsCustomAmount(true)}
+                  >
+                    <Text bold variant={isCustomAmount ? 'accent' : 'primary'}>
+                      {t('Custom')}
+                    </Text>
+                  </AmountCard>
+                </Grid>
+                {isCustomAmount && (
+                  <DollarInput
+                    aria-label={t('Custom credit amount')}
+                    cents={amountCents}
+                    creditPriceCents={creditPriceCents}
+                    onChange={cents => setAmountCents(cents ?? 0)}
+                  />
+                )}
+                {isAmountTooLow && (
+                  <Text size="sm" variant="danger">
+                    {tct('The credit amount must be at least [price].', {
+                      price: displayPrice({
+                        cents: autoTopUp.minTopUpCredits * creditPriceCents,
+                      }),
+                    })}
                   </Text>
-                </AmountCard>
-              </Grid>
-              {isCustomAmount && (
-                <DollarInput
-                  aria-label={t('Custom credit amount')}
-                  cents={amountCents}
-                  creditPriceCents={creditPriceCents}
-                  onChange={setAmountCents}
-                />
-              )}
+                )}
+              </Stack>
             </Stack>
-          </Stack>
+          )}
           <Stack gap="lg">
             <Stack gap="xs">
               <Text as="label" htmlFor="seer-auto-load-daily-limit" bold>
@@ -401,8 +451,14 @@ function AutoTopUpForm({
               id="seer-auto-load-daily-limit"
               cents={dailyLimitCents}
               creditPriceCents={creditPriceCents}
+              placeholder={t('No limit')}
               onChange={setDailyLimitCents}
             />
+            {dailyLimitCents === 0 && (
+              <Text size="sm" variant="warning">
+                {t('A $0 limit turns off all Seer usage.')}
+              </Text>
+            )}
           </Stack>
           {isChargedNow && (
             <DueNow justify="between" align="center" gap="md" padding="lg" radius="md">
@@ -427,35 +483,21 @@ function AutoTopUpForm({
         </Stack>
       </Body>
       <Footer>
-        <Flex justify={isTurningOn ? 'end' : 'between'} align="center" width="100%">
-          {!isTurningOn && (
-            <Button variant="link" onClick={() => setIsConfirmingTurnOff(true)}>
-              {t('Turn off auto-reload')}
-            </Button>
-          )}
-          <Grid flow="column" align="center" gap="md">
-            <Button onClick={closeModal}>{t('Cancel')}</Button>
-            <Button
-              variant="primary"
-              busy={isPending}
-              disabled={amountCents <= 0}
-              onClick={() =>
-                save({
-                  enabled: true,
-                  thresholdCredits: autoTopUp.thresholdCredits,
-                  topUpCredits: Math.floor(amountCents / creditPriceCents),
-                  dailySpendCapCents: dailyLimitCents,
-                })
-              }
-            >
-              {isChargedNow
-                ? tct('Turn on and pay [price] + tax', {price: amountPrice})
-                : isTurningOn
-                  ? t('Turn on')
-                  : t('Save')}
-            </Button>
-          </Grid>
-        </Flex>
+        <Grid flow="column" align="center" gap="md">
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <Button
+            variant="primary"
+            busy={isPending}
+            disabled={isAmountTooLow}
+            onClick={() =>
+              isTurningOff ? setIsConfirmingTurnOff(true) : save(enteredSettings)
+            }
+          >
+            {isChargedNow
+              ? tct('Save and pay [price] + tax', {price: amountPrice})
+              : t('Save')}
+          </Button>
+        </Grid>
       </Footer>
     </Fragment>
   );
@@ -463,7 +505,7 @@ function AutoTopUpForm({
 
 function getPendingPayment(
   error: unknown,
-  settings: SeerWalletAutoTopUp
+  settings: AutoTopUpSettings
 ): PendingPayment | null {
   if (!(error instanceof RequestError) || error.status !== 402) {
     return null;
@@ -593,11 +635,15 @@ function DollarInput({
   onChange,
   ...inputProps
 }: {
-  cents: number;
+  cents: number | null;
   creditPriceCents: number;
-  onChange: (cents: number) => void;
+  /**
+   * Called with null when the input is cleared.
+   */
+  onChange: (cents: number | null) => void;
   'aria-label'?: string;
   id?: string;
+  placeholder?: string;
 }) {
   return (
     <InputGroup>
@@ -607,16 +653,21 @@ function DollarInput({
       <InputGroup.Input
         {...inputProps}
         inputMode="numeric"
-        value={(cents / 100).toLocaleString()}
-        onChange={e => onChange(parseWholeNumber(e.target.value) * 100)}
+        value={cents === null ? '' : (cents / 100).toLocaleString()}
+        onChange={e => {
+          const dollars = parseWholeNumber(e.target.value);
+          onChange(dollars === null ? null : dollars * 100);
+        }}
       />
-      <InputGroup.TrailingItems disablePointerEvents>
-        <Text variant="muted">
-          {tct('[credits] credits', {
-            credits: Math.floor(cents / creditPriceCents).toLocaleString(),
-          })}
-        </Text>
-      </InputGroup.TrailingItems>
+      {cents !== null && (
+        <InputGroup.TrailingItems disablePointerEvents>
+          <Text variant="muted">
+            {tct('[credits] credits', {
+              credits: Math.floor(cents / creditPriceCents).toLocaleString(),
+            })}
+          </Text>
+        </InputGroup.TrailingItems>
+      )}
     </InputGroup>
   );
 }
@@ -631,7 +682,5 @@ const modalCss = css`
 `;
 
 export function openSeerAutoTopUpModal(options: AutoTopUpModalOptions) {
-  openModal(deps => <AutoTopUpModal {...deps} {...options} />, {
-    modalCss,
-  });
+  openModal(deps => <AutoTopUpModal {...deps} {...options} />, {modalCss});
 }

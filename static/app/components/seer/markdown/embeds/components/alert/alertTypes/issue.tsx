@@ -1,6 +1,7 @@
 import {IconSiren} from '@sentry/icons/siren';
 import {useQuery} from '@tanstack/react-query';
 
+import {getDuration} from '@sentry/scraps/duration';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -13,7 +14,6 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t, tn} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConditionsPanel} from 'sentry/views/automations/components/conditionsPanel';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
@@ -22,10 +22,7 @@ function issueAlertApiOptions(organizationSlug: string, automationId: string) {
   return apiOptions.as<Automation>()(
     '/organizations/$organizationIdOrSlug/workflows/$workflowId/',
     {
-      path: {
-        organizationIdOrSlug: organizationSlug,
-        workflowId: automationId,
-      },
+      path: {organizationIdOrSlug: organizationSlug, workflowId: automationId},
       staleTime: 30_000,
     }
   );
@@ -93,10 +90,7 @@ export function IssueAlertBlock({id, name}: EmbedOutput<'alert'>) {
     data: automation,
     isError,
     isPending,
-  } = useQuery({
-    ...issueAlertApiOptions(organization.slug, id),
-    retry: false,
-  });
+  } = useQuery({...issueAlertApiOptions(organization.slug, id), retry: false});
 
   return (
     <SeerEmbedBlock

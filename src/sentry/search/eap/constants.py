@@ -192,7 +192,6 @@ FALSEY_VALUES = {"0", "false"}
 BOOLEAN_VALUES = TRUTHY_VALUES.union(FALSEY_VALUES)
 
 PROJECT_FIELDS = {"project", "project.slug", "project.name"}
-REVERSE_CONTEXT_ERROR = "Unknown value {} for filter {}, expecting one of: {}"
 
 RESPONSE_CODE_MAP = {
     1: ["100", "101", "102"],

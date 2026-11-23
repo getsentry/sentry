@@ -397,14 +397,11 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             group_id_sort = "-group_id" if len(group_categories) > 1 else "group_id"
             orderby = [f"-{sort_field}", group_id_sort]
 
-        pinned_query_partial: SearchQueryPartial = cast(
-            SearchQueryPartial,
-            functools.partial(
-                query_partial,
-                groupby=["group_id"],
-                having=having,
-                orderby=orderby,
-            ),
+        pinned_query_partial: SearchQueryPartial = functools.partial(
+            query_partial,
+            groupby=["group_id"],
+            having=having,
+            orderby=orderby,
         )
 
         query_builder = get_search_strategy(
@@ -474,19 +471,16 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         ]
 
         # common pinned parameters that won't change based off datasource
-        query_partial: IntermediateSearchQueryPartial = cast(
-            IntermediateSearchQueryPartial,
-            functools.partial(
-                aliased_query_params,
-                start=start,
-                end=end,
-                limit=limit,
-                offset=offset,
-                referrer=referrer,
-                totals=True,  # Needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
-                turbo=get_sample,  # Turn off FINAL when in sampling mode
-                sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
-            ),
+        query_partial: IntermediateSearchQueryPartial = functools.partial(
+            aliased_query_params,
+            start=start,
+            end=end,
+            limit=limit,
+            offset=offset,
+            referrer=referrer,
+            totals=True,  # Needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
+            turbo=get_sample,  # Turn off FINAL when in sampling mode
+            sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
         )
 
         group_categories = group_categories_from_search_filters(search_filters or ())

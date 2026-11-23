@@ -115,17 +115,14 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${groupId}/`
   );
-  const issueDetailsLocation = {
-    pathname: issueDetailsUrl,
-    query: {referrer: 'inbox'},
-  };
+  const issueDetailsLocation = {pathname: issueDetailsUrl, query: {referrer: 'inbox'}};
 
   useMarkPreviewedGroupSeen(group);
   useTrackPreviewedGroup(group);
 
   return (
     <AnalyticsArea name="issue_inbox" overrideParent>
-      <Container padding="xs 2xl" borderBottom="muted">
+      <Container padding="xs 2xl" borderBottom="secondary">
         <Flex align="center" justify="between" flex="1" gap="md">
           {group && project ? (
             <IssueIdBreadcrumb group={group} project={project} />
@@ -205,10 +202,7 @@ function IssuePreviewContent() {
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${group.id}/`
   );
-  const issueDetailsLocation = {
-    pathname: issueDetailsUrl,
-    query: {referrer: 'inbox'},
-  };
+  const issueDetailsLocation = {pathname: issueDetailsUrl, query: {referrer: 'inbox'}};
   function openSeer(action?: string) {
     navigate(
       makeSeerLocation({
@@ -275,7 +269,7 @@ function IssuePreviewContent() {
       <Flex
         paddingTop="sm"
         paddingBottom="lg"
-        borderBottom="muted"
+        borderBottom="secondary"
         justify="between"
         align="center"
         wrap="wrap"
@@ -334,7 +328,7 @@ function IssuePreviewContent() {
               </ErrorBoundary>
             </Container>
           )}
-          <Container borderTop="muted" paddingTop="xl">
+          <Container borderTop="secondary" paddingTop="xl">
             <IssuePreviewTimeline
               key={group.id}
               group={group}

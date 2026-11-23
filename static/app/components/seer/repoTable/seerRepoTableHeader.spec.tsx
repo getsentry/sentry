@@ -12,10 +12,7 @@ import {SeerRepoTableHeader} from './seerRepoTableHeader';
 describe('SeerRepoTableHeader', () => {
   const repository: RepositoryWithSettings = {
     ...RepositoryFixture({id: '1'}),
-    settings: {
-      enabledCodeReview: true,
-      codeReviewTriggers: ['on_ready_for_review'],
-    },
+    settings: {enabledCodeReview: true, codeReviewTriggers: ['on_ready_for_review']},
   };
 
   it.each([

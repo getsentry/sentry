@@ -37,9 +37,7 @@ import {
 } from 'getsentry/utils/dataCategory';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-const COMMON_BUTTON_PROPS: Partial<ButtonProps> = {
-  size: 'xs',
-};
+const COMMON_BUTTON_PROPS: Partial<ButtonProps> = {size: 'xs'};
 
 /**
  * Categories that are ineligible for PAYG (pay-as-you-go/on-demand) billing.
@@ -396,11 +394,7 @@ function QuotaExceededContent({
             <Button
               aria-label={t('Dismiss alert for the rest of the billing cycle')}
               onClick={() =>
-                onClick({
-                  eventTypes,
-                  categories: exceededCategories,
-                  isManual: true,
-                })
+                onClick({eventTypes, categories: exceededCategories, isManual: true})
               }
               {...COMMON_BUTTON_PROPS}
             >
@@ -480,9 +474,7 @@ export function PrimaryNavigationQuotaExceeded({
       -1 *
       getDaysSinceDate(subscription?.onDemandPeriodEnd ?? moment().utc().toISOString()),
     isDismissed: isSnoozedForCurrentPeriod,
-    options: {
-      enabled: promptsToCheck.length > 0,
-    },
+    options: {enabled: promptsToCheck.length > 0},
   });
 
   const {
@@ -581,10 +573,7 @@ export function PrimaryNavigationQuotaExceeded({
         analyticsKey="billingStatus"
         label={t('Billing Status')}
         indicator="warning"
-        buttonProps={{
-          ...overlayTriggerProps,
-          icon: <IconWarning />,
-        }}
+        buttonProps={{...overlayTriggerProps, icon: <IconWarning />}}
       />
       {isOpen && (
         <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>

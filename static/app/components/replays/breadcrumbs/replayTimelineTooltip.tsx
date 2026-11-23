@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Overlay} from '@sentry/scraps/overlay';
 import {Text} from '@sentry/scraps/text';
 
-import {getFormattedDate, shouldUse24Hours} from 'sentry/utils/dates';
+import {formatChartDateTime} from 'sentry/components/charts/formatChartDateTime';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {divide} from 'sentry/utils/number/divide';
 import {toPercent} from 'sentry/utils/number/toPercent';
@@ -13,9 +13,7 @@ import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPref
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 
-type Props = {
-  container: HTMLElement;
-};
+type Props = {container: HTMLElement};
 
 export function TimelineTooltip({container}: Props) {
   const replay = useReplayReader();
@@ -64,11 +62,7 @@ export function TimelineTooltip({container}: Props) {
     >
       <Text size="sm" tabular style={{fontWeight: 'normal'}}>
         {timestampType === 'absolute'
-          ? getFormattedDate(
-              startTimestamp + (lastHoverTime ?? 0),
-              shouldUse24Hours() ? 'HH:mm:ss.SSS' : 'hh:mm:ss.SSS',
-              {local: true}
-            )
+          ? formatChartDateTime(startTimestamp + (lastHoverTime ?? 0), 'replayTime')
           : formatDuration({
               duration: [lastHoverTime ?? 0, 'ms'],
               precision: 'ms',

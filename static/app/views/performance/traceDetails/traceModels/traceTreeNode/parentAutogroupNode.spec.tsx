@@ -14,18 +14,13 @@ import {ParentAutogroupNode} from './parentAutogroupNode';
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
-): TraceTreeNodeExtra => ({
-  organization: OrganizationFixture(),
-  ...overrides,
-});
+): TraceTreeNodeExtra => ({organization: OrganizationFixture(), ...overrides});
 
 describe('ParentAutogroupNode', () => {
   describe('constructor', () => {
     it('should initialize with basic properties', () => {
       const extra = createMockExtra();
-      const autogroupValue = makeParentAutogroup({
-        autogrouped_by: {op: 'db.query'},
-      });
+      const autogroupValue = makeParentAutogroup({autogrouped_by: {op: 'db.query'}});
       const headSpanValue = makeEAPSpan({
         event_id: 'head-span',
         op: 'db.query',
@@ -60,21 +55,10 @@ describe('ParentAutogroupNode', () => {
 
     it('should initialize with parent node', () => {
       const extra = createMockExtra();
-      const parentValue = makeEAPSpan({
-        event_id: 'parent',
-        is_transaction: true,
-      });
-      const autogroupValue = makeParentAutogroup({
-        autogrouped_by: {op: 'http.request'},
-      });
-      const headSpanValue = makeEAPSpan({
-        event_id: 'head-span',
-        op: 'http.request',
-      });
-      const tailSpanValue = makeEAPSpan({
-        event_id: 'tail-span',
-        op: 'http.request',
-      });
+      const parentValue = makeEAPSpan({event_id: 'parent', is_transaction: true});
+      const autogroupValue = makeParentAutogroup({autogrouped_by: {op: 'http.request'}});
+      const headSpanValue = makeEAPSpan({event_id: 'head-span', op: 'http.request'});
+      const tailSpanValue = makeEAPSpan({event_id: 'tail-span', op: 'http.request'});
 
       const parentNode = new EapSpanNode(null, parentValue, extra);
       const headNode = new EapSpanNode(parentNode, headSpanValue, extra);
@@ -153,9 +137,7 @@ describe('ParentAutogroupNode', () => {
 
     it('should return correct drawerTabsTitle', () => {
       const extra = createMockExtra();
-      const autogroupValue = makeParentAutogroup({
-        autogrouped_by: {op: 'db.query'},
-      });
+      const autogroupValue = makeParentAutogroup({autogrouped_by: {op: 'db.query'}});
       const headSpanValue = makeEAPSpan({event_id: 'head'});
       const tailSpanValue = makeEAPSpan({event_id: 'tail'});
 
@@ -174,9 +156,7 @@ describe('ParentAutogroupNode', () => {
 
     it('should return correct drawerTabsTitle without operation', () => {
       const extra = createMockExtra();
-      const autogroupValue = makeParentAutogroup({
-        autogrouped_by: {op: ''},
-      });
+      const autogroupValue = makeParentAutogroup({autogrouped_by: {op: ''}});
       const headSpanValue = makeEAPSpan({event_id: 'head'});
       const tailSpanValue = makeEAPSpan({event_id: 'tail'});
 
@@ -220,9 +200,7 @@ describe('ParentAutogroupNode', () => {
 
     it('should return fallback traceHeaderTitle when op is empty', () => {
       const extra = createMockExtra();
-      const autogroupValue = makeParentAutogroup({
-        autogrouped_by: {op: ''},
-      });
+      const autogroupValue = makeParentAutogroup({autogrouped_by: {op: ''}});
       const headSpanValue = makeEAPSpan({event_id: 'head'});
       const tailSpanValue = makeEAPSpan({event_id: 'tail'});
 
@@ -236,10 +214,7 @@ describe('ParentAutogroupNode', () => {
         tailNode
       );
 
-      expect(node.traceHeaderTitle).toEqual({
-        title: 'Trace',
-        subtitle: undefined,
-      });
+      expect(node.traceHeaderTitle).toEqual({title: 'Trace', subtitle: undefined});
     });
 
     it('should return head as directChildren when expanded', () => {
@@ -433,10 +408,7 @@ describe('ParentAutogroupNode', () => {
   });
 
   describe('expand functionality', () => {
-    const createMockTraceTree = (): TraceTree =>
-      ({
-        list: [] as any[],
-      }) as TraceTree;
+    const createMockTraceTree = (): TraceTree => ({list: [] as any[]}) as TraceTree;
 
     it('should expand and add head and its visible children to tree list', () => {
       const extra = createMockExtra();
@@ -688,9 +660,7 @@ describe('ParentAutogroupNode', () => {
   describe('matchWithFreeText', () => {
     it('should match by operation', () => {
       const extra = createMockExtra();
-      const autogroupValue = makeParentAutogroup({
-        autogrouped_by: {op: 'db.query'},
-      });
+      const autogroupValue = makeParentAutogroup({autogrouped_by: {op: 'db.query'}});
       const headSpanValue = makeEAPSpan({event_id: 'head'});
       const tailSpanValue = makeEAPSpan({event_id: 'tail'});
 

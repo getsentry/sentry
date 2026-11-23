@@ -12,10 +12,7 @@ export function useBillingDetails() {
   return useQuery({
     ...apiOptions.as<BillingDetails>()(
       '/customers/$organizationIdOrSlug/billing-details/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        staleTime: 0,
-      }
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
     ),
     retry: (failureCount, error) => {
       if (

@@ -1,8 +1,9 @@
+import {getDuration} from '@sentry/scraps/duration';
+
 import type {Series} from 'sentry/types/echarts';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 // Import the field mapping from dashboard config
 import {FIELD_TO_METRICS_EXPRESSION} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
@@ -19,10 +20,7 @@ export function transformMetricsResponseToSeries(
 ): Series {
   const field = fieldsToDerivedMetrics(aggregate);
   if (!data?.intervals) {
-    return {
-      seriesName: field,
-      data: [],
-    };
+    return {seriesName: field, data: []};
   }
 
   return {
@@ -84,7 +82,7 @@ export function getReleasesSeriesQueryOptions({
         field: [field],
         includeSeries: 1,
         includeTotals: 0,
-        interval: getDuration(interval, 0, false, true),
+        interval: getDuration(interval, {style: 'narrow'}),
         orderBy: field,
         per_page: 1,
         project: [projectId],

@@ -50,9 +50,7 @@ export function AutomationsTableActions({
     if (allInQuerySelected) {
       return tct(
         'Are you sure you want to enable all [queryCount] alerts that match the search?',
-        {
-          queryCount,
-        }
+        {queryCount}
       );
     }
     return tn(
@@ -66,9 +64,7 @@ export function AutomationsTableActions({
     if (allInQuerySelected) {
       return tct(
         'Are you sure you want to disable all [queryCount] alerts that match the search?',
-        {
-          queryCount,
-        }
+        {queryCount}
       );
     }
     return tn(
@@ -98,9 +94,7 @@ export function AutomationsTableActions({
     if (allInQuerySelected) {
       return tct(
         'Are you sure you want to delete all [queryCount] alerts that match the search?',
-        {
-          queryCount,
-        }
+        {queryCount}
       );
     }
     return tn(

@@ -30,11 +30,6 @@ interface PreprodSearchBarProps {
    * When true, parens and logical operators (AND, OR) will be marked as invalid.
    */
   disallowLogicalOperators?: boolean;
-  /**
-   * List of attribute keys whose values should be entered as free text instead
-   * of fetched from the trace item attribute values endpoint.
-   */
-  freeformKeys?: string[];
   onChange?: (query: string, state: {queryIsValid: boolean}) => void;
   onSearch?: (query: string) => void;
   portalTarget?: HTMLElement | null;
@@ -62,24 +57,6 @@ function filterToAllowedKeys(
   return result;
 }
 
-function markFreeformKeys(
-  attributes: TagCollection,
-  freeformKeys?: string[]
-): TagCollection {
-  const freeformKeySet = new Set(freeformKeys);
-  const result: TagCollection = {};
-  for (const key in attributes) {
-    const tag = attributes[key];
-    if (!tag) {
-      continue;
-    }
-    result[key] = matchesKeyOrArrayName(tag, key, freeformKeySet)
-      ? {...tag, predefined: true}
-      : tag;
-  }
-  return result;
-}
-
 /**
  * A reusable search bar component for preprod/mobile build data.
  * Automatically fetches available attributes from the EAP /attribute endpoint.
@@ -91,7 +68,6 @@ export function PreprodSearchBar({
   initialQuery,
   projects,
   allowedKeys,
-  freeformKeys,
   onChange,
   onSearch,
   portalTarget,
@@ -114,25 +90,6 @@ export function PreprodSearchBar({
     usePreprodItemAttributes({}, 'boolean', hiddenKeys);
   const {attributes: rawArrayAttributes, secondaryAliases: rawArraySecondaryAliases} =
     usePreprodItemAttributes({enabled: supportsArrays}, 'array', hiddenKeys);
-
-  const stringAttributes = useMemo(
-    () =>
-      markFreeformKeys(
-        allowedKeys
-          ? filterToAllowedKeys(rawStringAttributes, allowedKeys)
-          : rawStringAttributes,
-        freeformKeys
-      ),
-    [allowedKeys, freeformKeys, rawStringAttributes]
-  );
-
-  const stringSecondaryAliases = useMemo(
-    () =>
-      allowedKeys
-        ? filterToAllowedKeys(rawStringSecondaryAliases, allowedKeys)
-        : rawStringSecondaryAliases,
-    [allowedKeys, rawStringSecondaryAliases]
-  );
 
   const numberAttributes = useMemo(
     () =>
@@ -170,13 +127,36 @@ export function PreprodSearchBar({
     if (!supportsArrays) {
       return {};
     }
-    return markFreeformKeys(
-      allowedKeys
-        ? filterToAllowedKeys(rawArrayAttributes, allowedKeys)
-        : rawArrayAttributes,
-      freeformKeys
-    );
-  }, [allowedKeys, freeformKeys, rawArrayAttributes, supportsArrays]);
+    return allowedKeys
+      ? filterToAllowedKeys(rawArrayAttributes, allowedKeys)
+      : rawArrayAttributes;
+  }, [allowedKeys, rawArrayAttributes, supportsArrays]);
+
+  const {stringAttributes, shadowedStringAttributes} = useMemo(() => {
+    const allowed = allowedKeys
+      ? filterToAllowedKeys(rawStringAttributes, allowedKeys)
+      : rawStringAttributes;
+    const arrayNames = new Set(Object.values(arrayAttributes).map(tag => tag.name));
+    const entries = Object.entries(allowed);
+    return {
+      stringAttributes: Object.fromEntries(
+        entries.filter(([key]) => !arrayNames.has(key))
+      ),
+      shadowedStringAttributes: Object.fromEntries(
+        entries.filter(([key]) => arrayNames.has(key))
+      ),
+    };
+  }, [allowedKeys, arrayAttributes, rawStringAttributes]);
+
+  const stringSecondaryAliases = useMemo(
+    () => ({
+      ...(allowedKeys
+        ? filterToAllowedKeys(rawStringSecondaryAliases, allowedKeys)
+        : rawStringSecondaryAliases),
+      ...shadowedStringAttributes,
+    }),
+    [allowedKeys, rawStringSecondaryAliases, shadowedStringAttributes]
+  );
 
   const arraySecondaryAliases = useMemo(() => {
     if (!supportsArrays) {

@@ -119,6 +119,20 @@ await sentry.getOrganizationIssueEvent({ path, query: { collapse: [] } }); // in
 
 Standalone operations, bound methods, and `narrowError_*` wrappers behave the same way. The operation catalog describes the API itself, so it does not list these defaults.
 
+### Query serialization
+
+The client writes the query string the way `query-string@7`'s `stringify` does with its default options. Keys are sorted, `null` becomes a bare key, `undefined` is omitted, and arrays repeat the key (`field=id&field=title`). Keys and values are percent-encoded, including `!'()*`. Objects, which query-string doesn't encode, are written in `deepObject` style (`filter[status]=open`):
+
+```ts
+import { createSentryClient } from "@sentry/api";
+
+const sentry = createSentryClient({ baseUrl: "https://sentry.example.com" });
+sentry.client.buildUrl({ url: "/organizations/", query: { sortBy: "date", query: null, cursor: undefined } });
+// https://sentry.example.com/api/0/organizations/?query&sortBy=date
+```
+
+Pass `querySerializer`, a function that takes the query object and returns the string after `?`, to write it some other way.
+
 ### Operation discovery
 
 `@sentry/api/operations` exports a readonly catalog for offline discovery, without importing the client, validators, or transport:
@@ -373,8 +387,8 @@ For endpoints with an existing query, serialized query keys replace all existing
 occurrences of those keys. Explicit `null` input keys also remove existing values,
 even with custom serializers; the serialized output can then add them back.
 Unrelated repeated parameters and their encoding are retained, as is custom
-query-serializer output. The default serializer omits `null` and `undefined`:
-`null` clears the original value, while `undefined` leaves it unchanged.
+query-serializer output. With the default serializer, `null` replaces the
+original values with a bare key, while `undefined` leaves them unchanged.
 Literal URL fragments are removed; encoded `%23` values are retained. These
 rules also apply to ordinary requests through the same URL builder.
 
