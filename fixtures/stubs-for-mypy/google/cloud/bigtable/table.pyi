@@ -2,7 +2,10 @@ from collections.abc import Iterable
 from typing import Any
 
 from .row import PartialRowData, Row
+from .row_data import Retry
 from .row_set import RowSet
+
+DEFAULT_RETRY: Retry
 
 class Table:
     def read_row(

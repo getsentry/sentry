@@ -16,11 +16,13 @@ from uuid import uuid4
 import pytest
 import requests
 from django.conf import settings
+from django.core import mail
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import transaction
+from django.db import connections, transaction
 from django.http import HttpResponse
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.test import APIClient
@@ -31,6 +33,7 @@ from sentry.attachments.base import CachedAttachment
 from sentry.auth import access
 from sentry.auth.superuser import SESSION_KEY, Superuser, get_superuser_access_expiry
 from sentry.flags.models import PROVIDER_MAP, ActionEnum, CreatedByTypeEnum, FlagAuditLogModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.issues.endpoints.group_tags import GroupTagsEndpoint
@@ -48,12 +51,16 @@ from sentry.roles import organization_roles
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.seer.signed_seer_api import _resolve_viewer_context
-from sentry.service_accounts.models import GRANTABLE_SCOPES
+from sentry.service_accounts.models import GRANTABLE_SCOPES, ServiceAccountToken
+from sentry.service_accounts.tokens import generate_token as generate_service_account_token
+from sentry.service_accounts.tokens import stored_token_fields
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, OurLogTestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.task_runner import BurstTaskRunner
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
@@ -343,6 +350,15 @@ class MatrixAuthentication(StrEnum):
     SCOPED_DOWN_AGENT_TOKEN = "scoped_down_agent_token"
     APPROVED_AGENT_TOKEN = "approved_agent_token"
     SERVICE_ACCOUNT_VIEWER_CONTEXT = "service_account_viewer_context"
+    SERVICE_ACCOUNT_TOKEN = "service_account_token"
+
+
+# The same service account, authenticated through each path. Both must give every row the
+# same outcome, except the rows in SERVICE_ACCOUNT_TOKEN_USER_REQUIRED.
+SERVICE_ACCOUNT_AUTHENTICATIONS = (
+    MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT,
+    MatrixAuthentication.SERVICE_ACCOUNT_TOKEN,
+)
 
 
 @dataclass(frozen=True)
@@ -364,6 +380,7 @@ class PublicMutationEndpoint:
     method: str
     allowed_scopes: frozenset[str]
     silo_mode: SiloMode | None
+    idempotent: bool = False
 
     @property
     def test_id(self) -> str:
@@ -492,6 +509,7 @@ def _public_mutation_endpoints() -> tuple[PublicMutationEndpoint, ...]:
             method,
             frozenset(allowed_scopes),
             silo_mode,
+            idempotent=method in (view.idempotent_methods or ()),
         )
         endpoints.setdefault((path, method), endpoint)
     assert endpoints
@@ -610,6 +628,20 @@ OUTER_BOUNDARY_MUTATION_STATUSES = {
 
 AGENT_SUDO_BOUNDARY_MUTATIONS = frozenset({("TeamDetailsEndpoint", "DELETE")})
 
+_OUTBOX_TABLES = frozenset({"sentry_controloutbox", "sentry_regionoutbox"})
+# A replayed idempotent write may enqueue these: they replicate the object's current
+# state, so a second message for an unchanged row is a no-op. Audit log entries,
+# signals, and other events are not.
+REPLAY_SAFE_OUTBOX_CATEGORIES = frozenset(
+    category for category in OutboxCategory if category.name.endswith("_UPDATE")
+)
+
+# Tasks that recompute derived state from the database, so running one again after an
+# unchanged write leaves the same result.
+REPLAY_CONVERGING_TASKS = frozenset({"sentry.tasks.update_code_owners_schema"})
+
+_INSERT_TABLE = re.compile(r'^\s*INSERT INTO "?([\w.]+)"?', re.IGNORECASE)
+
 # Public rows that are also user-global: agent tokens and service accounts must never read
 # a person's account, so those credentials are denied rather than matching the oracle.
 USER_GLOBAL_ENDPOINT_NAMES = frozenset(
@@ -619,7 +651,7 @@ NON_PERSON_AUTHENTICATIONS = frozenset(
     {
         MatrixAuthentication.AGENT_TOKEN,
         MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
-        MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT,
+        *SERVICE_ACCOUNT_AUTHENTICATIONS,
     }
 )
 # Org auth tokens can only be managed without a token (a session, or a viewer context,
@@ -695,6 +727,11 @@ SERVICE_ACCOUNT_USER_REQUIRED = frozenset(
     }
 )
 
+# Rows that start a Seer run. Seer's callbacks get a viewer context that names the service
+# account but not the token, so the token's narrower scopes would be lost. Only the token is
+# denied with user-required; the service account's viewer context still matches the oracle.
+SERVICE_ACCOUNT_TOKEN_USER_REQUIRED = frozenset({"GroupAutofix_post"})
+
 
 PUBLIC_GET_AUTHENTICATIONS = (
     MatrixAuthentication.SESSION,
@@ -702,7 +739,7 @@ PUBLIC_GET_AUTHENTICATIONS = (
     MatrixAuthentication.VIEWER_CONTEXT,
     MatrixAuthentication.AGENT_TOKEN,
     MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
-    MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT,
+    *SERVICE_ACCOUNT_AUTHENTICATIONS,
 )
 PUBLIC_MUTATION_AUTHENTICATIONS = tuple(MatrixAuthentication)
 
@@ -1155,6 +1192,10 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
 
     Endpoint-specific tests remain responsible for response payload semantics; this
     matrix is the source of truth for authentication and permission outcomes.
+
+    The same fixtures also back ``test_idempotent_replay_*``: every write an endpoint
+    lists in ``idempotent_methods`` is sent twice, and the second request must succeed
+    without persisting rows, audit log entries, or other events, or queueing tasks.
 
     Run the complete matrix with ``-m seer_agent_token_matrix``. Use normal pytest
     name filtering for focused iteration (for example, ``-k private_helper``).
@@ -2389,14 +2430,32 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             ),
             key=SECRET,
         )
+        self._service_account_token = generate_service_account_token(
+            self.org.slug, "https://test-region.sentry.io"
+        )
+        stored = stored_token_fields(self._service_account_token)
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            ServiceAccountToken.objects.create(
+                service_account=service_account,
+                organization_id=self.org.id,
+                name="permission-matrix",
+                token_hashed=stored.token_hashed,
+                token_last_characters=stored.token_last_characters,
+                scope_list=sorted(SERVICE_ACCOUNT_SCOPES),
+                created_by=self.owner,
+            )
 
     def _assert_service_account_outcome(
         self,
         endpoint: PublicGetEndpoint | PublicMutationEndpoint,
+        authentication: MatrixAuthentication,
         authorization_oracle: Response,
         response: Response,
     ) -> None:
-        if endpoint.test_id in SERVICE_ACCOUNT_USER_REQUIRED:
+        if endpoint.test_id in SERVICE_ACCOUNT_USER_REQUIRED or (
+            authentication is MatrixAuthentication.SERVICE_ACCOUNT_TOKEN
+            and endpoint.test_id in SERVICE_ACCOUNT_TOKEN_USER_REQUIRED
+        ):
             assert response.status_code == 403, (endpoint.path_template, response.content)
             assert json.loads(response.content)["detail"]["code"] == "user-required"
             return
@@ -2410,14 +2469,14 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             response.content,
         )
 
-    def _assert_service_account_user_global_get_denied(self, endpoint: PublicGetEndpoint) -> None:
+    def _assert_service_account_user_global_get_denied(
+        self, endpoint: PublicGetEndpoint, authentication: MatrixAuthentication
+    ) -> None:
         self._create_matrix_service_account()
         assert endpoint.silo_mode is not None
         with assume_test_silo_mode(endpoint.silo_mode):
             session_response = self.client.get(endpoint.path_template)
-            response = self._request(
-                endpoint.path_template, MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT
-            )
+            response = self._request(endpoint.path_template, authentication)
 
         assert session_response.status_code == 200, session_response.content
         assert response.status_code in {401, 403}, response.content
@@ -2465,6 +2524,11 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
                 path, HTTP_X_VIEWER_CONTEXT=self._service_account_context
             )
             return service_account_response
+        if authentication is MatrixAuthentication.SERVICE_ACCOUNT_TOKEN:
+            service_account_token_response: Response = client.get(
+                path, HTTP_AUTHORIZATION=f"Bearer {self._service_account_token}"
+            )
+            return service_account_token_response
         if authentication in {
             MatrixAuthentication.AGENT_TOKEN,
             MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
@@ -2499,6 +2563,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             )
         elif authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
             headers["HTTP_X_VIEWER_CONTEXT"] = self._service_account_context
+        elif authentication is MatrixAuthentication.SERVICE_ACCOUNT_TOKEN:
+            headers["HTTP_AUTHORIZATION"] = f"Bearer {self._service_account_token}"
         elif authentication in {
             MatrixAuthentication.AGENT_TOKEN,
             MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
@@ -2617,7 +2683,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             with self.feature(FLAG):
                 agent_bearer = self._mint_agent_token(requested_scopes=requested_scopes)
             agent_scopes = frozenset(agent_token.decode_agent_token(agent_bearer)["scopes"])
-        if authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
+        if authentication in SERVICE_ACCOUNT_AUTHENTICATIONS:
             self._create_matrix_service_account()
         if endpoint.endpoint_name == "SeerModelsEndpoint":
             cache.set(SEER_MODELS_CACHE_KEY, {"models": ["matrix-model"]})
@@ -2688,7 +2754,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
                     MatrixAuthentication.USER_TOKEN,
                     user_token_scopes=agent_scopes,
                 )
-            elif authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
+            elif authentication in SERVICE_ACCOUNT_AUTHENTICATIONS:
                 authorization_oracle = self._request(
                     path,
                     MatrixAuthentication.USER_TOKEN,
@@ -2716,8 +2782,10 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
                 response.content,
             )
             return
-        if authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
-            self._assert_service_account_outcome(endpoint, authorization_oracle, response)
+        if authentication in SERVICE_ACCOUNT_AUTHENTICATIONS:
+            self._assert_service_account_outcome(
+                endpoint, authentication, authorization_oracle, response
+            )
             return
 
         # Successful representations can legitimately differ by credential (for
@@ -2744,6 +2812,49 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             authorization_oracle.content,
             response.content,
         )
+
+    def _downstream_scope(self, endpoint: PublicMutationEndpoint) -> Any:
+        """Stub services outside Sentry that a mutation would otherwise call."""
+        if endpoint.endpoint_name == "GroupAutofixEndpoint":
+            downstream_scope = ExitStack()
+            downstream_scope.enter_context(
+                patch(
+                    "sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent",
+                    return_value=SimpleNamespace(seer_run_state_id=1, uuid=uuid4()),
+                )
+            )
+            downstream_scope.enter_context(
+                patch(
+                    "sentry.seer.endpoints.group_ai_autofix.is_single_run_record",
+                    return_value=False,
+                )
+            )
+            # Kickoffs are gated on Seer setup (SCM integration + linked repos)
+            # mirroring the frontend; that gate is owned by test_group_ai_autofix,
+            # so assume a configured project and keep this matrix about auth.
+            downstream_scope.enter_context(
+                patch(
+                    "sentry.seer.endpoints.group_ai_autofix.has_supported_scm_integration",
+                    return_value=True,
+                )
+            )
+            downstream_scope.enter_context(
+                patch(
+                    "sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos",
+                    return_value=True,
+                )
+            )
+            return downstream_scope
+        if endpoint.endpoint_name == "SentryAppInstallationExternalIssueActionsEndpoint":
+            return patch(
+                "sentry.sentry_apps.external_requests.issue_link_requester.IssueLinkRequester.run",
+                return_value={
+                    "project": "Matrix",
+                    "identifier": "1",
+                    "webUrl": "https://example.com/issues/1",
+                },
+            )
+        return nullcontext()
 
     def _assert_public_mutation_authentication(
         self,
@@ -2780,7 +2891,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
                     requested_scopes=requested_scopes,
                 )
             agent_scopes = frozenset(agent_token.decode_agent_token(agent_bearer)["scopes"])
-        if authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
+        if authentication in SERVICE_ACCOUNT_AUTHENTICATIONS:
             self._create_matrix_service_account()
 
         silo_scope = (
@@ -2788,47 +2899,11 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             if endpoint.silo_mode is not None
             else nullcontext()
         )
-        if endpoint.endpoint_name == "GroupAutofixEndpoint":
-            downstream_scope: Any = ExitStack()
-            downstream_scope.enter_context(
-                patch(
-                    "sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent",
-                    return_value=SimpleNamespace(seer_run_state_id=1, uuid=uuid4()),
-                )
-            )
-            downstream_scope.enter_context(
-                patch(
-                    "sentry.seer.endpoints.group_ai_autofix.is_single_run_record",
-                    return_value=False,
-                )
-            )
-            # Kickoffs are gated on Seer setup (SCM integration + linked repos)
-            # mirroring the frontend; that gate is owned by test_group_ai_autofix,
-            # so assume a configured project and keep this matrix about auth.
-            downstream_scope.enter_context(
-                patch(
-                    "sentry.seer.endpoints.group_ai_autofix.has_supported_scm_integration",
-                    return_value=True,
-                )
-            )
-            downstream_scope.enter_context(
-                patch(
-                    "sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos",
-                    return_value=True,
-                )
-            )
-        elif endpoint.endpoint_name == "SentryAppInstallationExternalIssueActionsEndpoint":
-            downstream_scope = patch(
-                "sentry.sentry_apps.external_requests.issue_link_requester.IssueLinkRequester.run",
-                return_value={
-                    "project": "Matrix",
-                    "identifier": "1",
-                    "webUrl": "https://example.com/issues/1",
-                },
-            )
-        else:
-            downstream_scope = nullcontext()
-        with silo_scope, downstream_scope, self.feature(self._feature_flags(endpoint)):
+        with (
+            silo_scope,
+            self._downstream_scope(endpoint),
+            self.feature(self._feature_flags(endpoint)),
+        ):
             # The session control proves the fixture can execute the operation. Roll it
             # back before replaying the same mutation with each matrix credential.
             baseline = self._rolled_back_mutation_request(
@@ -2852,7 +2927,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
                     MatrixAuthentication.USER_TOKEN,
                     user_token_scopes=agent_scopes,
                 )
-            elif authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
+            elif authentication in SERVICE_ACCOUNT_AUTHENTICATIONS:
                 authorization_oracle = self._rolled_back_mutation_request(
                     endpoint,
                     path,
@@ -2896,8 +2971,10 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
                 response.content,
             )
             return
-        if authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
-            self._assert_service_account_outcome(endpoint, authorization_oracle, response)
+        if authentication in SERVICE_ACCOUNT_AUTHENTICATIONS:
+            self._assert_service_account_outcome(
+                endpoint, authentication, authorization_oracle, response
+            )
             return
 
         if (
@@ -2932,6 +3009,89 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             response.content,
         )
 
+    @staticmethod
+    def _table_rows(database: str, table: str) -> set[tuple[Any, ...]]:
+        columns = "id, category" if table in _OUTBOX_TABLES else "id"
+        with connections[database].cursor() as cursor:
+            cursor.execute(f'SELECT {columns} FROM "{table}"')
+            return set(cursor.fetchall())
+
+    def _assert_idempotent_replay(self, endpoint: PublicMutationEndpoint) -> None:
+        """Resend a write declared in `idempotent_methods` and check it changes nothing.
+
+        The declaration stays the source of truth: this only exercises one payload.
+        """
+        path = self._path(endpoint)
+        payload = self._mutation_payload(endpoint)
+        silo_scope = (
+            assume_test_silo_mode(endpoint.silo_mode)
+            if endpoint.silo_mode is not None
+            else nullcontext()
+        )
+        with (
+            silo_scope,
+            self._downstream_scope(endpoint),
+            self.feature(self._feature_flags(endpoint)),
+        ):
+            first = self._mutation_request(endpoint, path, payload, MatrixAuthentication.SESSION)
+            assert first.status_code < 400, (endpoint.endpoint_name, endpoint.method, first.content)
+
+            emails_sent = len(mail.outbox)
+            with assume_test_silo_mode(SiloMode.MONOLITH):
+                savepoints = {
+                    database: transaction.savepoint(using=database)
+                    for database in settings.DATABASES
+                }
+            with ExitStack() as stack:
+                captured = {
+                    database: stack.enter_context(CaptureQueriesContext(connections[database]))
+                    for database in settings.DATABASES
+                }
+                burst = stack.enter_context(BurstTaskRunner())
+                # Exits first, so callbacks run while queries and tasks are still captured.
+                for database in settings.DATABASES:
+                    stack.enter_context(self.captureOnCommitCallbacks(using=database, execute=True))
+                replay = self._mutation_request(
+                    endpoint, path, payload, MatrixAuthentication.SESSION
+                )
+
+            # An INSERT can fail and be swallowed, as get_or_create does. Compare rows
+            # with and without the replay to keep only inserts that persisted.
+            tables = {
+                (database, match.group(1))
+                for database, context in captured.items()
+                for query in context.captured_queries
+                if (match := _INSERT_TABLE.match(query["sql"]))
+            }
+            with assume_test_silo_mode(SiloMode.MONOLITH):
+                with_replay = {key: self._table_rows(*key) for key in tables}
+                for database, savepoint in reversed(savepoints.items()):
+                    transaction.savepoint_rollback(savepoint, using=database)
+                new_rows = {key: rows - self._table_rows(*key) for key, rows in with_replay.items()}
+
+        assert replay.status_code < 400, (endpoint.endpoint_name, endpoint.method, replay.content)
+        inserted = sorted(
+            table for (_db, table), rows in new_rows.items() if rows and table not in _OUTBOX_TABLES
+        )
+        assert not inserted, (endpoint.endpoint_name, endpoint.method, "inserted rows", inserted)
+        outbox_events = sorted(
+            {
+                OutboxCategory(category).name
+                for (_db, table), rows in new_rows.items()
+                if table in _OUTBOX_TABLES
+                for _id, category in rows
+                if category not in REPLAY_SAFE_OUTBOX_CATEGORIES
+            }
+        )
+        assert not outbox_events, (endpoint.endpoint_name, endpoint.method, "outbox", outbox_events)
+        queued = sorted(
+            task.name
+            for task, _args, _kwargs in burst.queue
+            if task.name not in REPLAY_CONVERGING_TASKS
+        )
+        assert not queued, (endpoint.endpoint_name, endpoint.method, "queued tasks", queued)
+        assert len(mail.outbox) == emails_sent, (endpoint.endpoint_name, endpoint.method)
+
 
 def _mark_service_account_gap[F: Callable[..., None]](test: F, test_id: str) -> F:
     gap = SERVICE_ACCOUNT_KNOWN_GAPS.get(test_id)
@@ -2949,10 +3109,13 @@ def _install_matrix_row_tests[E: (PublicGetEndpoint, PublicMutationEndpoint)](
     """Generate real unittest methods because pytest cannot parametrize APITestCase.
 
     Each endpoint gets one method that checks every credential as a subtest. A known
-    service-account gap gets its own strict-xfail method so fixing it still fails.
+    service-account gap gets a strict-xfail method per service-account credential so
+    fixing it on either path still fails.
     """
-    # The service-account cell enables a feature for the rest of its test, so it runs last.
-    assert MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT is authentications[-1]
+    # The service-account cells enable a feature for the rest of their test, so they run last.
+    assert (
+        authentications[-len(SERVICE_ACCOUNT_AUTHENTICATIONS) :] == SERVICE_ACCOUNT_AUTHENTICATIONS
+    )
 
     def install(name: str, test: Callable[[AgentTokenPublicGetMatrixTest], None]) -> None:
         test.__name__ = name
@@ -2970,20 +3133,23 @@ def _install_matrix_row_tests[E: (PublicGetEndpoint, PublicMutationEndpoint)](
 
         return test_matrix_row
 
-    def gap_test(endpoint: E) -> Callable[[AgentTokenPublicGetMatrixTest], None]:
+    def gap_test(
+        endpoint: E, authentication: MatrixAuthentication
+    ) -> Callable[[AgentTokenPublicGetMatrixTest], None]:
         def test_gap_cell(self: AgentTokenPublicGetMatrixTest) -> None:
-            assert_cell(self, endpoint, MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT)
+            assert_cell(self, endpoint, authentication)
 
         return _mark_service_account_gap(test_gap_cell, endpoint.test_id)
 
     for index, endpoint in enumerate(endpoints):
         name = f"{prefix}_{index:03d}_{endpoint.test_id}"
         if endpoint.test_id in SERVICE_ACCOUNT_KNOWN_GAPS:
-            install(name, row_test(endpoint, authentications[:-1]))
             install(
-                f"{name}_{MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT.value}",
-                gap_test(endpoint),
+                name,
+                row_test(endpoint, authentications[: -len(SERVICE_ACCOUNT_AUTHENTICATIONS)]),
             )
+            for authentication in SERVICE_ACCOUNT_AUTHENTICATIONS:
+                install(f"{name}_{authentication.value}", gap_test(endpoint, authentication))
         else:
             install(name, row_test(endpoint, authentications))
 
@@ -3012,6 +3178,27 @@ _install_matrix_row_tests(
         endpoint, authentication, require_actionable_scope_denial=True
     ),
 )
+
+
+def _install_idempotent_replay_tests() -> None:
+    """One test per write an endpoint declares in `idempotent_methods`."""
+    # Issue routes reach the same view and method under two paths.
+    endpoints = {
+        endpoint.test_id: endpoint for endpoint in PUBLIC_MUTATION_ENDPOINTS if endpoint.idempotent
+    }
+    for test_id, endpoint in endpoints.items():
+
+        def test_replay(
+            self: AgentTokenPublicGetMatrixTest,
+            endpoint: PublicMutationEndpoint = endpoint,
+        ) -> None:
+            self._assert_idempotent_replay(endpoint)
+
+        test_replay.__name__ = f"test_idempotent_replay_{test_id}"
+        setattr(AgentTokenPublicGetMatrixTest, test_replay.__name__, test_replay)
+
+
+_install_idempotent_replay_tests()
 
 
 def _install_disallowed_agent_token_boundary_matrix_tests() -> None:
@@ -3056,17 +3243,19 @@ _install_user_global_boundary_matrix_tests()
 
 def _install_service_account_user_global_matrix_tests() -> None:
     for index, endpoint in enumerate(USER_GLOBAL_GET_ENDPOINTS):
+        for authentication in SERVICE_ACCOUNT_AUTHENTICATIONS:
 
-        def test_matrix_cell(
-            self: AgentTokenPublicGetMatrixTest,
-            endpoint: PublicGetEndpoint = endpoint,
-        ) -> None:
-            self._assert_service_account_user_global_get_denied(endpoint)
+            def test_matrix_cell(
+                self: AgentTokenPublicGetMatrixTest,
+                endpoint: PublicGetEndpoint = endpoint,
+                authentication: MatrixAuthentication = authentication,
+            ) -> None:
+                self._assert_service_account_user_global_get_denied(endpoint, authentication)
 
-        test_matrix_cell.__name__ = (
-            f"test_user_global_get_{index:03d}_{endpoint.test_id}_service_account_viewer_context"
-        )
-        setattr(AgentTokenPublicGetMatrixTest, test_matrix_cell.__name__, test_matrix_cell)
+            test_matrix_cell.__name__ = (
+                f"test_user_global_get_{index:03d}_{endpoint.test_id}_{authentication.value}"
+            )
+            setattr(AgentTokenPublicGetMatrixTest, test_matrix_cell.__name__, test_matrix_cell)
 
 
 _install_service_account_user_global_matrix_tests()

@@ -23,10 +23,7 @@ describe('ApiApplications', () => {
   });
 
   it('renders empty', async () => {
-    MockApiClient.addMockResponse({
-      url: '/api-applications/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/api-applications/', body: []});
 
     render(
       <Container containerType="inline-size">
@@ -68,10 +65,7 @@ describe('ApiApplications', () => {
     const apiApp = ApiApplicationFixture();
     delete apiApp.dateCreated;
 
-    MockApiClient.addMockResponse({
-      url: '/api-applications/',
-      body: [apiApp],
-    });
+    MockApiClient.addMockResponse({url: '/api-applications/', body: [apiApp]});
 
     render(
       <Container containerType="inline-size">
@@ -107,16 +101,10 @@ describe('ApiApplications', () => {
   });
 
   it('creates confidential application via modal', async () => {
-    MockApiClient.addMockResponse({
-      url: '/api-applications/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/api-applications/', body: []});
     const createApplicationRequest = MockApiClient.addMockResponse({
       url: '/api-applications/',
-      body: ApiApplicationFixture({
-        id: '234',
-        isPublic: false,
-      }),
+      body: ApiApplicationFixture({id: '234', isPublic: false}),
       method: 'POST',
     });
 
@@ -143,10 +131,7 @@ describe('ApiApplications', () => {
 
     expect(createApplicationRequest).toHaveBeenCalledWith(
       '/api-applications/',
-      expect.objectContaining({
-        method: 'POST',
-        data: {isPublic: false},
-      })
+      expect.objectContaining({method: 'POST', data: {isPublic: false}})
     );
 
     await waitFor(() => {
@@ -160,16 +145,10 @@ describe('ApiApplications', () => {
   });
 
   it('creates public application via modal', async () => {
-    MockApiClient.addMockResponse({
-      url: '/api-applications/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/api-applications/', body: []});
     const createApplicationRequest = MockApiClient.addMockResponse({
       url: '/api-applications/',
-      body: ApiApplicationFixture({
-        id: '345',
-        isPublic: true,
-      }),
+      body: ApiApplicationFixture({id: '345', isPublic: true}),
       method: 'POST',
     });
 
@@ -194,10 +173,7 @@ describe('ApiApplications', () => {
 
     expect(createApplicationRequest).toHaveBeenCalledWith(
       '/api-applications/',
-      expect.objectContaining({
-        method: 'POST',
-        data: {isPublic: true},
-      })
+      expect.objectContaining({method: 'POST', data: {isPublic: true}})
     );
 
     await waitFor(() => {
@@ -212,10 +188,7 @@ describe('ApiApplications', () => {
 
   it('deletes application', async () => {
     const apiApp = ApiApplicationFixture({id: '123'});
-    MockApiClient.addMockResponse({
-      url: '/api-applications/',
-      body: [apiApp],
-    });
+    MockApiClient.addMockResponse({url: '/api-applications/', body: [apiApp]});
     const deleteApplicationRequest = MockApiClient.addMockResponse({
       url: '/api-applications/123/',
       method: 'DELETE',

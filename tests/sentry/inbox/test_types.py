@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from threading import Barrier
 from typing import Any, assert_type
@@ -11,6 +11,12 @@ from openapi_schema_validator import OAS30Validator
 
 from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.constants import ObjectStatus
+from sentry.inbox.event_data import (
+    InboxEventData,
+    InboxEventDataResponse,
+    IssueMentionedDataResponse,
+    NotebookParticipantAddedDataResponse,
+)
 from sentry.inbox.event_retention import cleanup_inbox_item_events
 from sentry.inbox.issue import ISSUE_USER_MENTIONED, IssueMentionedData
 from sentry.inbox.item_retention import cleanup_inbox_items
@@ -19,14 +25,15 @@ from sentry.inbox.response_types import (
     InboxCountResponse,
     InboxItemEventResponse,
     InboxItemResponse,
+    InboxSubjectResponse,
 )
 from sentry.inbox.types import (
     SYSTEM_ACTOR,
     InboxActor,
-    InboxEventData,
     InboxEventSummary,
     InboxEventType,
     InboxItemType,
+    InboxSubject,
 )
 from sentry.issues.comments import create_comment
 from sentry.models.group import Group
@@ -53,9 +60,9 @@ class StubItemType[SubjectT](InboxItemType[SubjectT]):
     def get_organization_id(self, subject: SubjectT) -> int:
         raise NotImplementedError
 
-    def get_titles(
+    def get_subjects(
         self, *, organization: Organization, subject_ids: Sequence[str]
-    ) -> dict[str, str]:
+    ) -> Mapping[str, InboxSubject]:
         raise NotImplementedError
 
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
@@ -83,10 +90,22 @@ class ReferenceItemType(StubItemType[SubjectReference]):
 class MentionedData(InboxEventData):
     comment_id: int
 
+    def serialize(self) -> IssueMentionedDataResponse:
+        return {"commentId": str(self.comment_id)}
+
 
 @dataclass(frozen=True, kw_only=True)
 class StructuredData(InboxEventData):
     details: dict[str, Any]
+
+    def serialize(self) -> InboxEventDataResponse:
+        raise NotImplementedError
+
+
+@dataclass(frozen=True, kw_only=True)
+class EmptyData(InboxEventData):
+    def serialize(self) -> NotebookParticipantAddedDataResponse:
+        return {}
 
 
 def test_data_from_payload_ignores_unknown_keys() -> None:
@@ -126,9 +145,7 @@ def test_idempotency_key_sorts_nested_data() -> None:
 
 
 @dataclass(frozen=True, kw_only=True)
-class LinkedMentionData(InboxEventData):
-    comment_id: int
-
+class LinkedMentionData(MentionedData):
     def get_url(self, subject_url: str) -> str:
         return urlsplit(subject_url)._replace(fragment=f"comment-{self.comment_id}").geturl()
 
@@ -173,6 +190,34 @@ def test_event_url() -> None:
 )
 def test_response_types_support_openapi(response_type: type) -> None:
     OAS30Validator.check_schema(resolve_type_hint(response_type))
+
+
+def test_subject_response_schema() -> None:
+    schema = resolve_type_hint(InboxSubjectResponse)
+    assert all(
+        {"id", "type", "title", "metadata"} <= set(variant["required"])
+        for variant in schema["anyOf"]
+    )
+
+    validator = OAS30Validator(schema)
+    issue = {
+        "id": "1",
+        "type": "issue",
+        "title": "Issue",
+        "metadata": {"shortId": "WEB-1", "project": {"id": "2", "slug": "web"}},
+    }
+    notebook = {"id": "1", "type": "notebook", "title": "Notebook", "metadata": {}}
+
+    assert validator.is_valid(issue)
+    assert validator.is_valid(notebook)
+    assert not validator.is_valid({**issue, "metadata": {}})
+    assert not validator.is_valid({**notebook, "type": "unknown"})
+    assert not validator.is_valid({**issue, "title": None})
+    assert not validator.is_valid({**issue, "metadata": {"shortId": "WEB-1"}})
+    assert not validator.is_valid(
+        {**issue, "metadata": {"shortId": None, "project": {"id": "2", "slug": "web"}}}
+    )
+    assert not validator.is_valid({**notebook, "metadata": issue["metadata"]})
 
 
 @patch.dict(inbox_item_type_registry.registrations, clear=True)
@@ -655,13 +700,13 @@ class RecordTest(TestCase):
             event_type="test.reference.updated",
             summary=InboxEventSummary.ISSUE_USER_MENTIONED,
             item_type=item_type,
-            data_class=InboxEventData,
+            data_class=EmptyData,
             notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
         )
 
         event_type.record(
             subject=SubjectReference(organization_id=self.organization.id, subject_id="period-1"),
-            data=InboxEventData(),
+            data=EmptyData(),
             recipient_user_ids=[self.user.id],
             actor=SYSTEM_ACTOR,
         )

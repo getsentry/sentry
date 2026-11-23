@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 import moment from 'moment-timezone';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Container, Grid} from '@sentry/scraps/layout';
 
 import {restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
 import {useSessionsRequest} from 'sentry/components/charts/useSessionsRequest';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {DateTime} from 'sentry/components/dateTime';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import {TransactionsList} from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -73,10 +73,7 @@ enum TransactionsListOption {
   IMPROVEMENT = 'improved',
 }
 
-type RouteParams = {
-  orgId: string;
-  release: string;
-};
+type RouteParams = {orgId: string; release: string};
 
 function ReleaseOverview() {
   const {
@@ -119,10 +116,7 @@ function ReleaseOverview() {
     isLoading: thisReleaseReloading,
     isError: thisReleaseErrored,
     data: thisRelease,
-  } = useSessionsRequest({
-    ...sessionsRequestProps,
-    query: searchReleaseVersion(version),
-  });
+  } = useSessionsRequest({...sessionsRequestProps, query: searchReleaseVersion(version)});
 
   const getPageDateTime = (): DateTimeObject => {
     const query = location.query;
@@ -138,10 +132,7 @@ function ReleaseOverview() {
     }
 
     if (start && end) {
-      return {
-        start: moment.utc(start).format(),
-        end: moment.utc(end).format(),
-      };
+      return {start: moment.utc(start).format(), end: moment.utc(end).format()};
     }
 
     return {};
@@ -166,10 +157,7 @@ function ReleaseOverview() {
   ): EventView => {
     const {environments} = selection;
 
-    const {start, end, statsPeriod} = getReleaseParams({
-      location,
-      releaseBounds,
-    });
+    const {start, end, statsPeriod} = getReleaseParams({location, releaseBounds});
 
     const baseQuery: NewQuery = {
       id: undefined,
@@ -205,10 +193,7 @@ function ReleaseOverview() {
   const getReleaseTrendView = (projectId: number, versionDate: string): EventView => {
     const {environments} = selection;
 
-    const {start, end, statsPeriod} = getReleaseParams({
-      location,
-      releaseBounds,
-    });
+    const {start, end, statsPeriod} = getReleaseParams({location, releaseBounds});
 
     const trendView = EventView.fromSavedQuery({
       id: undefined,
@@ -346,8 +331,14 @@ function ReleaseOverview() {
                               {releaseBoundsLabel}
                               <br />
                               <ReleaseBoundsDescription primary={defaultDateTimeSelected}>
-                                <DateTime date={releaseBounds.releaseStart} />
-                                –<DateTime date={releaseBounds.releaseEnd} />
+                                {releaseBounds.releaseStart && (
+                                  <DateTime date={releaseBounds.releaseStart} />
+                                )}
+                                {releaseBounds.releaseEnd && (
+                                  <Fragment>
+                                    –<DateTime date={releaseBounds.releaseEnd} />
+                                  </Fragment>
+                                )}
                               </ReleaseBoundsDescription>
                             </Fragment>
                           ),

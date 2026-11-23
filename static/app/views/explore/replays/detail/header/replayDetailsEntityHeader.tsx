@@ -3,10 +3,10 @@ import {IconCalendar} from '@sentry/icons/calendar';
 import {PlatformIcon} from 'platformicons';
 
 import {Tag} from '@sentry/scraps/badge';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import {useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -63,10 +63,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
     },
   };
 
-  const errorsTab = {
-    ...location,
-    query: {...location.query, t_main: TabKey.ERRORS},
-  };
+  const errorsTab = {...location, query: {...location.query, t_main: TabKey.ERRORS}};
 
   const userSearchQuery = replayRecord ? getUserSearchQuery(replayRecord.user) : null;
   const replaysIndexUrl =
@@ -124,11 +121,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
       title: replaysIndexUrl
         ? {...title, type: 'link' as const, to: replaysIndexUrl}
         : {...title, type: 'text' as const},
-      people: {
-        users: viewers.users,
-        label: t('Viewed by'),
-        isLoading: viewers.isPending,
-      },
+      people: {users: viewers.users, label: t('Viewed by'), isLoading: viewers.isPending},
       stats: {
         label: t('Replay stats'),
         items: [
@@ -169,7 +162,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
                 type: 'text',
                 value:
                   prefs.timestampType === 'absolute' ? (
-                    <DateTime year timeZone date={replayRecord.started_at} />
+                    <DateTime date={replayRecord.started_at} year="always" showTimezone />
                   ) : (
                     <TimeSince date={replayRecord.started_at} />
                   ),
@@ -223,11 +216,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
       readerResult={readerResult}
       renderArchived={() => (
         <EntityHeader
-          title={{
-            type: 'text',
-            label: t('Session replay'),
-            value: t('Deleted Replay'),
-          }}
+          title={{type: 'text', label: t('Session replay'), value: t('Deleted Replay')}}
         />
       )}
       renderError={() => null}

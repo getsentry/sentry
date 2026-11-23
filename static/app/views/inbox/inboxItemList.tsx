@@ -1,4 +1,4 @@
-import {useId} from 'react';
+import {Fragment, useId} from 'react';
 import styled from '@emotion/styled';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconDelete} from '@sentry/icons/delete';
@@ -19,6 +19,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {UnreadIndicator} from 'sentry/components/unreadIndicator';
 import {t} from 'sentry/locale';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import * as qs from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
@@ -26,7 +27,7 @@ import {
   updateInboxItemsMutationOptions,
 } from './inboxApiOptions';
 import type {InboxFilters, InboxItem} from './types';
-import {getInboxItemPath, INBOX_SUBJECT_CONFIG} from './utils';
+import {INBOX_SUBJECT_CONFIG} from './utils';
 
 interface InboxItemListProps {
   filters: InboxFilters;
@@ -59,8 +60,9 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
   const organization = useOrganization();
   const checkboxState = useListItemCheckboxContext();
   const checkboxId = useId();
-  const SubjectIcon = INBOX_SUBJECT_CONFIG[item.subjectType].icon;
-  const title = item.title ?? t('Unavailable');
+  const {type, title, metadata} = item.subject;
+  const SubjectIcon = INBOX_SUBJECT_CONFIG[type].icon;
+  const {pathname, search, hash} = new URL(item.url);
   const queryClient = useQueryClient();
   const {mutate: updateInboxItems, isPending: isUpdating} = useMutation(
     updateInboxItemsMutationOptions({organization, queryClient})
@@ -82,7 +84,7 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
       {props => (
         <ItemRow {...props} data-inbox-item data-selected={isSelected}>
           <InteractionStateLayer />
-          <Grid columns="max-content 8px minmax(0, 1fr)" gap="xs md" align="center">
+          <Grid columns="max-content 8px minmax(0, 1fr)" gap="xs" align="center">
             <Container
               column="1 / 2"
               row="1 / span 2"
@@ -110,10 +112,7 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
                 {linkProps => (
                   <ItemLink
                     {...linkProps}
-                    to={{
-                      pathname: getInboxItemPath(organization, item),
-                      query: {...filters},
-                    }}
+                    to={{pathname, query: {...filters, ...qs.parse(search)}, hash}}
                     aria-current={isSelected ? 'true' : undefined}
                   >
                     <SubjectIcon size="sm" />
@@ -133,13 +132,13 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
                   <Text data-inbox-item-timestamp size="sm" variant="muted" wrap="nowrap">
                     <TimeSince
                       date={item.lastActivityAt}
-                      unitStyle="extraShort"
+                      unitStyle="narrow"
                       suffix=""
                       disabledAbsoluteTooltip
                     />
                   </Text>
                 </Container>
-                <Container column="1" row="1">
+                <Flex column="1" row="1" height="0" align="center">
                   {actionProps => (
                     <ItemActions {...actionProps}>
                       <DropdownMenu
@@ -191,14 +190,21 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
                       />
                     </ItemActions>
                   )}
-                </Container>
+                </Flex>
               </Grid>
             </Flex>
-            <Container column="3" row="2" minWidth={0}>
-              <Text size="sm" variant="muted" ellipsis>
+            <Stack column="3" row="2" gap="xs" minWidth={0}>
+              {type === 'issue' && (
+                <Fragment>
+                  <Text size="sm" variant="muted" ellipsis>
+                    {metadata.shortId}
+                  </Text>
+                </Fragment>
+              )}
+              <Text size="sm" ellipsis>
                 {item.latestEvent.summary}
               </Text>
-            </Container>
+            </Stack>
           </Grid>
         </ItemRow>
       )}
@@ -210,7 +216,7 @@ const ItemRow = styled('li')`
   list-style: none;
 
   &:hover,
-  &:focus-within,
+  &:has([aria-haspopup]:focus-visible),
   &:has([aria-expanded='true']) {
     [data-inbox-item-timestamp] {
       opacity: 0;
@@ -235,7 +241,7 @@ const ItemActions = styled('div')`
   pointer-events: none;
 
   [data-inbox-item]:hover &,
-  [data-inbox-item]:focus-within &,
+  &:has(:focus-visible),
   &:has([aria-expanded='true']) {
     opacity: 1;
     pointer-events: auto;

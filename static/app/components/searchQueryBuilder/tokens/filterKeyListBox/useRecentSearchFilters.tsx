@@ -50,13 +50,7 @@ function getTokensFromQuery({
   return getFiltersFromParsedQuery(parsed);
 }
 
-type FilterCounter = Record<
-  string,
-  {
-    count: number;
-    token: TokenResult<Token.FILTER>;
-  }
->;
+type FilterCounter = Record<string, {count: number; token: TokenResult<Token.FILTER>}>;
 
 function getFiltersFromRecentSearches(
   recentSearchesData: RecentSearch[] | undefined,
@@ -99,10 +93,7 @@ function getFiltersFromRecentSearches(
       if (acc[filter]) {
         acc[filter].count += 1;
       } else {
-        acc[filter] = {
-          token,
-          count: 1,
-        };
+        acc[filter] = {token, count: 1};
       }
       return acc;
     }, Object.create(null));

@@ -41,7 +41,7 @@
 
 ### Frontend API Calls
 
-Use `apiOptions` with `useQuery` from TanStack Query; **never** use the deprecated `useApiQuery`/`getApiQueryData`/`setApiQueryData`. `staleTime` is required. For the full guide (conditional fetching, no call-site generics, response headers/pagination) → use the **`frontend-data-fetching`** skill.
+Use `apiOptions` with `useQuery` from TanStack Query; `staleTime` is required. Never build or index api query keys by hand: use `apiOptions.queryFilter` for cache filters, and `parseQueryKey`/`safeParseQueryKey` to read a key. For the full guide (conditional fetching, no call-site generics, response headers/pagination) → use the **`frontend-data-fetching`** skill.
 
 ### API URLs the Browser Loads Directly
 
@@ -135,7 +135,7 @@ For worked examples of all of the above, use the **`design-system`** skill.
 
 ## React Testing
 
-`test-ci` runs each workspace with its scoped Jest config, with up to two workspaces in parallel. File arguments select tests across workspaces. App, lint, and test-support suites share the global CI test list and load balancing. Standalone packages run once on shard 0 in CI. New small standalone suites can use `runOnFirstShard` from `scripts/jestSingleShard.js`; larger suites can use the shared scoped config. Balance reports are written per workspace under `.artifacts/jest-balance/` and merged by CI.
+`test-ci` runs each workspace with its scoped Jest config, one workspace at a time. File arguments select tests across workspaces. App, lint, and test-support suites share the global CI test list and load balancing. Standalone packages run once on shard 0 in CI. New small standalone suites can use `runOnFirstShard` from `scripts/jestSingleShard.js`; larger suites can use the shared scoped config. Balance reports are written per workspace under `.artifacts/jest-balance/` and merged by CI.
 
 `pnpm test` uses one Jest watcher for app, lint, and test-support tests. `pnpm test-all` runs all workspace test scripts once with watch mode disabled.
 

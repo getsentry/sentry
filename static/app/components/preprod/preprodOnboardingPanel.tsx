@@ -106,7 +106,7 @@ export function PreprodOnboardingPanel({platform, onDocsClick}: Props) {
             display={{sm: 'none', '2xl': 'block'}}
             flex={1}
             minWidth={0}
-            borderLeft="muted"
+            borderLeft="secondary"
             paddingLeft="xl"
           >
             <iframe
@@ -114,12 +114,7 @@ export function PreprodOnboardingPanel({platform, onDocsClick}: Props) {
               src={PREPROD_ONBOARDING_ARCADE_URL}
               loading="lazy"
               allowFullScreen
-              style={{
-                width: '100%',
-                height: '360px',
-                border: 0,
-                colorScheme: 'auto',
-              }}
+              style={{width: '100%', height: '360px', border: 0, colorScheme: 'auto'}}
             />
           </Container>
         </Flex>

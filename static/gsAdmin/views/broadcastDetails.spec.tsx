@@ -35,16 +35,11 @@ describe('Broadcast Details', () => {
       earlyAdopter: true,
     };
 
-    MockApiClient.addMockResponse({
-      url: `/broadcasts/${broadcast.id}/`,
-      body: broadcast,
-    });
+    MockApiClient.addMockResponse({url: `/broadcasts/${broadcast.id}/`, body: broadcast});
 
     render(<BroadcastDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/_admin/broadcasts/${broadcast.id}/`,
-        },
+        location: {pathname: `/_admin/broadcasts/${broadcast.id}/`},
         route: '/_admin/broadcasts/:broadcastId/',
       },
     });
@@ -76,9 +71,7 @@ describe('Broadcast Details', () => {
 
   it('updates targeting and omits a cleared optional URL', async () => {
     ConfigStore.loadInitialData(
-      ConfigFixture({
-        user: UserFixture({permissions: new Set(['broadcasts.admin'])}),
-      })
+      ConfigFixture({user: UserFixture({permissions: new Set(['broadcasts.admin'])})})
     );
     MockApiClient.addMockResponse({
       url: '/broadcasts/1359/',
@@ -153,9 +146,7 @@ describe('Broadcast Details', () => {
   });
   it('omits unchanged empty optional fields when saving', async () => {
     ConfigStore.loadInitialData(
-      ConfigFixture({
-        user: UserFixture({permissions: new Set(['broadcasts.admin'])}),
-      })
+      ConfigFixture({user: UserFixture({permissions: new Set(['broadcasts.admin'])})})
     );
     MockApiClient.addMockResponse({
       url: '/broadcasts/1359/',
@@ -214,9 +205,7 @@ describe('Broadcast Details', () => {
 
   it('shows backend validation errors on the affected field', async () => {
     ConfigStore.loadInitialData(
-      ConfigFixture({
-        user: UserFixture({permissions: new Set(['broadcasts.admin'])}),
-      })
+      ConfigFixture({user: UserFixture({permissions: new Set(['broadcasts.admin'])})})
     );
     MockApiClient.addMockResponse({
       url: '/broadcasts/1359/',

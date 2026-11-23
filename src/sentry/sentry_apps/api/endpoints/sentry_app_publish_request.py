@@ -77,9 +77,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
         sentry_app.status = SentryAppStatus.PUBLISH_REQUEST_INPROGRESS
         sentry_app.save()
 
-        org_mapping = OrganizationMapping.objects.filter(
-            organization_id=sentry_app.owner_id
-        ).first()
+        org_mapping = OrganizationMapping.objects.get_or_none(organization_id=sentry_app.owner_id)
         if not org_mapping:
             return Response(
                 {"detail": "Cannot publish a custom integration without an organization"},

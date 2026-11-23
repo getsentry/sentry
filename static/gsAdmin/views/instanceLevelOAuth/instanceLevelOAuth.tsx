@@ -1,8 +1,8 @@
 import {Button} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {ResultGrid} from 'sentry/components/resultGrid';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
@@ -19,7 +19,7 @@ const getRow = (row: any) => [
     {row.clientID}
   </SimpleTable.RowCell>,
   <SimpleTable.RowCell key="created" justify="end">
-    <DateTime date={row.dateAdded} dateOnly year />
+    <DateTime date={row.dateAdded} mode="date" year="always" />
   </SimpleTable.RowCell>,
 ];
 

@@ -8,9 +8,10 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {ProjectKey} from 'sentry/types/project';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 
-type Props = {
-  projectKey: ProjectKey;
-} & Pick<RouteComponentProps, 'routes' | 'location' | 'params'>;
+type Props = {projectKey: ProjectKey} & Pick<
+  RouteComponentProps,
+  'routes' | 'location' | 'params'
+>;
 
 export function LoaderScript({projectKey, routes, params, location}: Props) {
   const loaderLink = projectKey.dsn.cdn;
@@ -38,9 +39,7 @@ export function LoaderScript({projectKey, routes, params, location}: Props) {
       <Text size="sm" variant="muted">
         {tct(
           'You can [configureLink:configure] the Loader Script to enable/disable Performance, Replay, and more.',
-          {
-            configureLink: <Link to={editUrl} />,
-          }
+          {configureLink: <Link to={editUrl} />}
         )}
       </Text>
     </Stack>

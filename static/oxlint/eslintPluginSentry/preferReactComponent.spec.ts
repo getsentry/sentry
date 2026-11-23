@@ -3,11 +3,7 @@ import {RuleTester} from 'oxlint/plugins-dev';
 import {preferReactComponent} from './preferReactComponent';
 
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parserOptions: {
-      ecmaFeatures: {jsx: true},
-    },
-  },
+  languageOptions: {parserOptions: {ecmaFeatures: {jsx: true}}},
 });
 
 ruleTester.run('prefer-react-component', preferReactComponent, {

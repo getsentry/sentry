@@ -79,6 +79,10 @@ Run these tests locally with the `--migrations` and `--reuse-db` flags. On the f
 
 When authoring or reviewing a data migration, inspect the live model's save hooks and explicitly perform required side effects. Keep using `apps.get_model()`; importing the live model is not a safe workaround.
 
+### Tables on Separate Databases
+
+Some production tables live on separate Postgres databases. `RunPython` and `SafeRunSQL` need `hints={"tables": [...]}`. The operation runs only on the database those tables resolve to, and they must all resolve to the same one, so list the tables it writes. To find which database a table is on, use the **`django-queries`** skill.
+
 ### Adding Columns
 
 - Use `db_default=<value>` instead of `default=<value>` for columns with defaults

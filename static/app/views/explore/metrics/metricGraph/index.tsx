@@ -210,11 +210,7 @@ function Graph({
           // using the shared formatter to preserve "(no value)" and release formatting.
           // Clear groupBy so formatTimeSeriesLabel uses yAxis instead
           const groupByLabel = formatTimeSeriesLabel(s);
-          return {
-            ...s,
-            yAxis: `${groupByLabel} : ${parsed.name}`,
-            groupBy: undefined,
-          };
+          return {...s, yAxis: `${groupByLabel} : ${parsed.name}`, groupBy: undefined};
         }
 
         return {...s, yAxis: parsed.name};
@@ -311,7 +307,7 @@ function Graph({
                 'No application metrics found for this time period. If this is unexpected, try updating your filters or [link:learn more] about how to use application metrics.',
                 {
                   link: (
-                    <ExternalLink href="https://docs.sentry.io/product/explore/metrics/">
+                    <ExternalLink href="https://docs.sentry.io/product/metrics/">
                       {t('learn more')}
                     </ExternalLink>
                   ),

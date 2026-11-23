@@ -117,6 +117,10 @@ ALWAYS_RUN_TESTS: set[str] = {
     # Counts request.user patterns by parsing every file in src/ with ast, so it
     # reads source without executing it and coverage never links it to a change.
     "tests/sentry/auth/test_principal.py",
+    # Finds SentryAPIException subclasses via __subclasses__() at collection time and
+    # parses each __init__ with inspect.getsource + ast, so an exception edited in any
+    # module never runs under this test's coverage context.
+    "tests/sentry/apidocs/test_error_codes.py",
 }
 
 # Seer public-API matrix discovers published mutations at collection time, so

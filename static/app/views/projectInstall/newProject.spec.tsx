@@ -22,9 +22,7 @@ describe('NewProject', () => {
 
   it('renders the SCM flow when SCM project creation is enabled', () => {
     render(<NewProject />, {
-      organization: OrganizationFixture({
-        features: ['onboarding-scm-project-creation'],
-      }),
+      organization: OrganizationFixture({features: ['onboarding-scm-project-creation']}),
     });
 
     expect(screen.getByText('SCM project creation')).toBeInTheDocument();

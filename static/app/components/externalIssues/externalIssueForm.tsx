@@ -70,10 +70,7 @@ const MESSAGES_BY_ACTION = {
   create: t('Successfully created issue.'),
 };
 
-const SUBMIT_LABEL_BY_ACTION = {
-  link: t('Link Issue'),
-  create: t('Create Issue'),
-};
+const SUBMIT_LABEL_BY_ACTION = {link: t('Link Issue'), create: t('Create Issue')};
 
 interface ExternalIssueFormProps extends ModalRenderProps {
   group: Group;
@@ -95,11 +92,7 @@ function makeIntegrationIssueConfigApiOptions({
   return apiOptions.as<IntegrationIssueConfig>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/$integrationId/',
     {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        issueId: groupId,
-        integrationId,
-      },
+      path: {organizationIdOrSlug: orgSlug, issueId: groupId, integrationId},
       query: {action},
       staleTime: Infinity,
     }
@@ -347,10 +340,7 @@ export function ExternalIssueForm({
           c => !existingValues.has(String(c[0]))
         );
         if (missingChoices.length > 0) {
-          return {
-            ...field,
-            choices: [...(field.choices ?? []), ...missingChoices],
-          };
+          return {...field, choices: [...(field.choices ?? []), ...missingChoices]};
         }
       }
       return field;
@@ -361,10 +351,7 @@ export function ExternalIssueForm({
     (fieldName: string, value: unknown) => {
       if (Object.hasOwn(dynamicFieldValues, fieldName)) {
         setDynamicFieldValue(fieldName, value);
-        refetchWithDynamicFields({
-          ...dynamicFieldValues,
-          [fieldName]: value,
-        });
+        refetchWithDynamicFields({...dynamicFieldValues, [fieldName]: value});
       }
     },
     [dynamicFieldValues, refetchWithDynamicFields, setDynamicFieldValue]

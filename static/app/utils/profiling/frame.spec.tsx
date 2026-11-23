@@ -37,13 +37,7 @@ describe('Frame', () => {
     }
     expect(
       new Frame(
-        {
-          key: 0,
-          name: 'foo',
-          line: undefined,
-          column: undefined,
-          file: 'bar.js',
-        },
+        {key: 0, name: 'foo', line: undefined, column: undefined, file: 'bar.js'},
         'javascript'
       ).is_browser_extension
     ).toBe(false);
@@ -80,29 +74,15 @@ describe('Frame', () => {
       ['C:\\Program Files (x86)\\node_modules\\sentry\\file.js', 'sentry'],
     ])('%s -> %s', (path, expected) => {
       expect(
-        new Frame(
-          {
-            key: 0,
-            name: 'Foo',
-            path,
-            line: undefined,
-            column: undefined,
-          },
-          'node'
-        ).module
+        new Frame({key: 0, name: 'Foo', path, line: undefined, column: undefined}, 'node')
+          .module
       ).toBe(expected);
     });
   });
 
   it('formats getSourceLocation', () => {
     const frame = new Frame(
-      {
-        key: 0,
-        name: 'testFunction',
-        file: 'test.js',
-        line: 10,
-        column: 5,
-      },
+      {key: 0, name: 'testFunction', file: 'test.js', line: 10, column: 5},
       'javascript'
     );
     expect(frame.getSourceLocation()).toBe('test.js:10:5');
@@ -110,13 +90,7 @@ describe('Frame', () => {
 
   it('formats getSourceLocation when file is unknown', () => {
     const frame = new Frame(
-      {
-        key: 0,
-        name: 'testFunction',
-        file: undefined,
-        line: undefined,
-        column: undefined,
-      },
+      {key: 0, name: 'testFunction', file: undefined, line: undefined, column: undefined},
       'javascript'
     );
     expect(frame.getSourceLocation()).toBe('<unknown>:<unknown line>:<unknown column>');

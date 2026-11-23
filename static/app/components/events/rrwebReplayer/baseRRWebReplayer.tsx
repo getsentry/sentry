@@ -22,10 +22,7 @@ function BaseRRWebReplayerComponent({events, className}: Props) {
     }
 
     // eslint-disable-next-line no-new
-    new RRWebPlayer({
-      target: playerEl.current,
-      props: {events, autoPlay: false},
-    });
+    new RRWebPlayer({target: playerEl.current, props: {events, autoPlay: false}});
   }, [events]);
 
   useEffect(() => initPlayer(), [initPlayer]);

@@ -36,6 +36,7 @@ import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 
+import {useBandTooltips} from './bands/bandTooltip';
 import {mergeChartBands} from './bands/mergeChartBands';
 import type {AreaChartProps} from './areaChart';
 import {AreaChart} from './areaChart';
@@ -133,11 +134,8 @@ function Chart({
 }: ChartProps) {
   const [seriesSelection, setSeriesSelection] = useState<Record<string, boolean>>({});
   const chartRef = useRef<ReactEchartsRef>(null);
-  const droppedDataBand = useDroppedDataBand({
-    chartRef,
-    droppedData,
-    utc: zoomRenderProps.utc,
-  });
+  const droppedDataBand = useDroppedDataBand({droppedData});
+  const bands = useBandTooltips([droppedDataBand], {chartRef, utc: zoomRenderProps.utc});
 
   function handleLegendSelectChanged(legendChange: any) {
     const {selected} = legendChange;
@@ -203,13 +201,7 @@ function Chart({
     : seriesSelection;
 
   const legend = showLegend
-    ? {
-        right: 16,
-        top: 12,
-        data,
-        selected,
-        ...legendOptions,
-      }
+    ? {right: 16, top: 12, data, selected, ...legendOptions}
     : undefined;
 
   let series = Array.isArray(releaseSeries)
@@ -257,15 +249,13 @@ function Chart({
       yAxes: [chartOptionsProp?.yAxis ?? defaultYAxis],
       series: additionalSeries,
     },
-    [droppedDataBand]
+    bands
   );
 
   const chartOptions = {
     colors: chartColors,
     grid: band.grid,
-    seriesOptions: {
-      showSymbol: false,
-    },
+    seriesOptions: {showSymbol: false},
     tooltip: {
       trigger: 'axis' as const,
       truncate: 80,

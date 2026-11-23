@@ -8,7 +8,6 @@ from unittest import mock
 import orjson
 import pytest
 import sentry_kafka_schemas
-from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
@@ -2346,7 +2345,7 @@ def test_schema_examples(buffer: SpansBuffer, example: dict[str, object]) -> Non
     # It's not explicitly written anywhere that the spans schema in
     # buffered-segments is the same one as the input schema, but right now
     # that's what it is.
-    get_topic_codec(Topic.INGEST_SPANS).validate(cast(SpanEvent, output_span.payload))
+    get_topic_codec(Topic.INGEST_SPANS).validate(output_span.payload)
 
     # Validate that the assembled segment conforms to the buffered-segments
     # schema. Nothing produces to or consumes that topic anymore, but the schema

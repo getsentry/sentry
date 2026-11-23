@@ -4,17 +4,26 @@ import {escape} from 'sentry/utils';
 
 /**
  * Annotations attach data to a span of text with characters that survive parsing
- * the text, like JSON, and never show up in it: an opening mark, the data, a
- * separator, the annotated text, and a closing mark. The marks are Unicode
- * noncharacters, which are reserved for internal use and never appear in real
- * text, unlike the private use area, where icon fonts live. The data is shifted
- * into the private use area, but is only read between an opening mark and a
- * separator.
+ * the text, like JSON, and never show up in it: an opening mark, a reference to
+ * the data, a separator, the annotated text, and a closing mark. The marks are
+ * Unicode noncharacters, which are reserved for internal use and never appear in
+ * real text, unlike the private use area, where icon fonts live. The reference
+ * is written in the private use area, but is only read between an opening mark
+ * and a separator.
+ *
+ * The data itself stays in memory, so text that isn't rendered as annotations,
+ * like code, only carries a few marks. Each distinct data is kept once for the
+ * life of the page, so data should come from a small set, like the rule that
+ * changed the text, not be unique to each annotation.
  */
 const OPEN = '\uFDD0';
 const SEPARATOR = '\uFDD1';
 const CLOSE = '\uFDD2';
-const DATA_OFFSET = 0xe100;
+const REFERENCE_OFFSET = 0xe100;
+const REFERENCE_BASE = 0x80;
+
+const annotationData: string[] = [];
+const referenceByData = new Map<string, number>();
 
 const ANNOTATION_RE = /^\uFDD0([\uE100-\uE17F]*)\uFDD1([^\uFDD0-\uFDD2]*)\uFDD2/;
 // Also matches the marks of an annotation that was cut, like a missing separator.
@@ -32,11 +41,23 @@ export interface AnnotationToken {
 export type AnnotationSegment = string | {data: string; text: string};
 
 export function annotate(text: string, data: string): string {
-  // Percent-encoding keeps the data within the shifted ASCII range.
-  const encoded = Array.from(encodeURIComponent(data), char =>
-    String.fromCharCode(DATA_OFFSET + char.charCodeAt(0))
-  ).join('');
-  return `${OPEN}${encoded}${SEPARATOR}${text}${CLOSE}`;
+  let reference = referenceByData.get(data);
+  if (reference === undefined) {
+    reference = annotationData.push(data) - 1;
+    referenceByData.set(data, reference);
+  }
+  return `${OPEN}${encodeReference(reference)}${SEPARATOR}${text}${CLOSE}`;
+}
+
+/** Writes the reference in base 128, one private use character per digit. */
+function encodeReference(reference: number): string {
+  let encoded = '';
+  let rest = reference;
+  do {
+    encoded = String.fromCharCode(REFERENCE_OFFSET + (rest % REFERENCE_BASE)) + encoded;
+    rest = Math.floor(rest / REFERENCE_BASE);
+  } while (rest > 0);
+  return encoded;
 }
 
 export function hasAnnotations(text: string): boolean {
@@ -104,15 +125,13 @@ export function splitAnnotations(text: string): AnnotationSegment[] {
   return segments;
 }
 
+/** Looks up the data of a reference. Unknown references have no data. */
 function decode(encoded: string): string {
-  const percentEncoded = Array.from(encoded, char =>
-    String.fromCharCode(char.charCodeAt(0) - DATA_OFFSET)
-  ).join('');
-  try {
-    return decodeURIComponent(percentEncoded);
-  } catch {
-    return '';
+  let reference = 0;
+  for (const char of encoded) {
+    reference = reference * REFERENCE_BASE + char.charCodeAt(0) - REFERENCE_OFFSET;
   }
+  return (encoded && annotationData[reference]) || '';
 }
 
 export const annotationExtension: TokenizerAndRendererExtension = {

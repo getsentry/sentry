@@ -3,16 +3,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {FrameRegisters} from 'sentry/components/events/interfaces/frame/frameRegisters';
 
 describe('FrameRegisters', () => {
-  const defaultProps = {
-    deviceArch: undefined,
-    meta: undefined,
-  };
+  const defaultProps = {deviceArch: undefined, meta: undefined};
   it('renders defined registers and skips registers without a value', () => {
-    const registers = {
-      r10: '0x00007fff9300bf70',
-      r11: null,
-      r12: '0x0000000000000000',
-    };
+    const registers = {r10: '0x00007fff9300bf70', r11: null, r12: '0x0000000000000000'};
 
     render(<FrameRegisters {...defaultProps} registers={registers} />);
     expect(screen.getByText('Registers')).toBeInTheDocument();
@@ -22,14 +15,9 @@ describe('FrameRegisters', () => {
   });
 
   it('changes every register and copies the displayed value', async () => {
-    Object.assign(navigator, {
-      clipboard: {writeText: jest.fn().mockResolvedValue('')},
-    });
+    Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
 
-    const registers = {
-      r0: '0x000000000000000a',
-      r1: '0x000000000000000b',
-    };
+    const registers = {r0: '0x000000000000000a', r1: '0x000000000000000b'};
 
     render(<FrameRegisters {...defaultProps} registers={registers} />);
     await userEvent.click(screen.getByRole('radio', {name: 'Decimal'}));

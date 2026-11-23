@@ -40,10 +40,7 @@ describe('AssertionOpJsonPath', () => {
 
   it('renders placeholder text', async () => {
     await renderOp(
-      makeJsonPathOp({
-        value: '',
-        operand: {jsonpath_op: 'literal', value: ''},
-      })
+      makeJsonPathOp({value: '', operand: {jsonpath_op: 'literal', value: ''}})
     );
 
     expect(screen.getByPlaceholderText('$.status')).toBeInTheDocument();
@@ -131,11 +128,7 @@ describe('AssertionOpJsonPath', () => {
   });
 
   it('shows < and > comparisons as disabled for non-numeric operand values', async () => {
-    await renderOp(
-      makeJsonPathOp({
-        operand: {jsonpath_op: 'literal', value: 'ok'},
-      })
-    );
+    await renderOp(makeJsonPathOp({operand: {jsonpath_op: 'literal', value: 'ok'}}));
 
     const comparisonButton = screen.getByTestId('json-path-operators-trigger');
     await userEvent.click(comparisonButton);
@@ -152,10 +145,7 @@ describe('AssertionOpJsonPath', () => {
   it('enables < and > comparisons for numeric operand values', async () => {
     function Stateful() {
       const [state, setState] = useState({
-        ...makeJsonPathOp({
-          operator: defaultOperator,
-          operand: defaultOperand,
-        }),
+        ...makeJsonPathOp({operator: defaultOperator, operand: defaultOperand}),
       });
       return (
         <AssertionOpJsonPath
