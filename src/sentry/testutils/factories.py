@@ -675,8 +675,8 @@ class Factories:
                         shard_scope=OutboxScope.USER_SCOPE, shard_identifier=user_id
                     )
                 )
-            for outbox in pending_user_outboxes:
-                outbox.drain_shard()
+                for outbox in pending_user_outboxes:
+                    outbox.drain_shard()
 
         if team_roles:
             for team, role in team_roles:
