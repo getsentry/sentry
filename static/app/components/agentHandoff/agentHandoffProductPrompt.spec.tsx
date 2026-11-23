@@ -51,10 +51,9 @@ describe('AgentHandoffProductPrompt', () => {
       {organization}
     );
 
-    expect(screen.getByRole('link', {name: 'View all instructions'})).toHaveAttribute(
-      'href',
-      'https://sentry.io/agent-handoff.md'
-    );
+    expect(
+      screen.queryByRole('link', {name: 'View all instructions'})
+    ).not.toBeInTheDocument();
     expect(screen.getByText(/Read and follow/)).toHaveTextContent(
       'Read and follow https://sentry-jest-tests.example.com/agent-handoff.md verbatim to set up tracing. Your handoff code is sntryh_****.'
     );
@@ -89,8 +88,10 @@ describe('AgentHandoffProductPrompt', () => {
       {organization}
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Advanced options'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: /Use IP pinning/}));
+    const ipPinning = screen.getByRole('checkbox', {name: 'Only allow this network'});
+    expect(ipPinning).toBeChecked();
+    await userEvent.click(ipPinning);
+    expect(ipPinning).not.toBeChecked();
 
     expect(
       screen.getByText(/anyone with this prompt can use its handoff code/)

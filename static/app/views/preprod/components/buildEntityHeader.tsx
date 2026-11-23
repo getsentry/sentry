@@ -4,7 +4,6 @@ import {IconJson} from '@sentry/icons/json';
 import {IconTag} from '@sentry/icons/tag';
 
 import {Tag} from '@sentry/scraps/badge';
-import {DateTime} from '@sentry/scraps/dateTime';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -117,11 +116,9 @@ export function BuildEntityHeader({
           },
           dateBuiltOrAdded
             ? {
-                type: 'text',
+                type: 'date',
                 label: appInfo?.date_built ? t('Built') : t('Uploaded'),
-                value: (
-                  <DateTime date={dateBuiltOrAdded} precision="second" showTimezone />
-                ),
+                date: dateBuiltOrAdded,
                 leadingGraphic: <IconClock size="md" />,
               }
             : null,
