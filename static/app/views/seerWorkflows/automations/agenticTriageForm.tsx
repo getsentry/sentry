@@ -54,10 +54,7 @@ function getSchema(allowNoProjects: boolean) {
     name: z.string().trim().min(1, t('Give your automation a name.')).max(64),
     enabled: z.boolean(),
     projects: z
-      .object({
-        allProjects: z.boolean(),
-        projectIds: z.array(z.string()),
-      })
+      .object({allProjects: z.boolean(), projectIds: z.array(z.string())})
       .refine(
         projects =>
           allowNoProjects || projects.allProjects || projects.projectIds.length > 0,
@@ -149,7 +146,7 @@ export function AgenticTriageForm(props: Props) {
   const savedEnvironment =
     props.mode === 'edit' ? (props.config.environments[0] ?? '') : '';
   // Keeps a saved environment outside the presets selectable
-  const environments =
+  const environmentOptions =
     !savedEnvironment || ENVIRONMENTS.includes(savedEnvironment)
       ? ENVIRONMENTS
       : [...ENVIRONMENTS, savedEnvironment];
@@ -164,16 +161,21 @@ export function AgenticTriageForm(props: Props) {
       projectIds: value.projects.allProjects
         ? [ALL_PROJECTS_ID]
         : value.projects.projectIds.map(Number),
-      environments: value.environment ? [value.environment] : [],
       serviceAccount: {
         scopes: value.scopes,
-        projectIds: getServiceAccountProjectIds(value.serviceAccountProjects).map(Number),
+        projectIds: getServiceAccountProjectIds(
+          value.serviceAccountProjects,
+          [],
+          value.projects.allProjects ? [] : value.projects.projectIds
+        ).map(Number),
         allProjects: value.serviceAccountProjects.allProjects,
       },
     };
+    const environments = value.environment ? [value.environment] : [];
     if (props.mode === 'create') {
       const config = await createConfig.mutateAsync({
         ...fields,
+        environments,
         enabled: value.enabled,
         strategy: 'agentic_triage_v2',
         name: value.name,
@@ -182,7 +184,11 @@ export function AgenticTriageForm(props: Props) {
       navigate(getAutomationDetailPath(organization.slug, config.id));
       return config;
     }
-    const config = await updateConfig.mutateAsync({...fields, name: props.name});
+    const config = await updateConfig.mutateAsync({
+      ...fields,
+      environments,
+      name: props.name,
+    });
     toast.success(t('Automation saved.'));
     props.onSaved();
     return config;
@@ -238,6 +244,9 @@ export function AgenticTriageForm(props: Props) {
     state => state.values.serviceAccountProjects
   );
   const scopes = useStore(form.store, state => state.values.scopes);
+  // Projects in the automation's scope are always granted to its service account
+  const scopeProjects = useStore(form.store, state => state.values.projects);
+  const scopeProjectIds = scopeProjects.allProjects ? [] : scopeProjects.projectIds;
 
   return (
     <Container maxWidth="960px" width="100%" containerType="inline-size">
@@ -299,7 +308,23 @@ export function AgenticTriageForm(props: Props) {
                         <ProjectSelector
                           value={field.state.value}
                           disabled={readOnly}
-                          onChange={field.handleChange}
+                          onChange={next => {
+                            // A project leaves the grant when it leaves the scope
+                            const dropped = new Set(
+                              scopeProjectIds.filter(
+                                id => next.allProjects || !next.projectIds.includes(id)
+                              )
+                            );
+                            if (dropped.size > 0) {
+                              form.setFieldValue('serviceAccountProjects', {
+                                ...serviceAccountProjects,
+                                projectIds: serviceAccountProjects.projectIds.filter(
+                                  id => !dropped.has(id)
+                                ),
+                              });
+                            }
+                            field.handleChange(next);
+                          }}
                           emptyMessage={
                             hasNoProjects
                               ? t('No projects')
@@ -322,7 +347,7 @@ export function AgenticTriageForm(props: Props) {
                       disabled={readOnly}
                       options={[
                         {value: ALL_ENVIRONMENTS, label: t('All environments')},
-                        ...environments.map(environment => ({
+                        ...environmentOptions.map(environment => ({
                           value: environment,
                           label: environment,
                         })),
@@ -364,6 +389,7 @@ export function AgenticTriageForm(props: Props) {
                   <Disclosure.Title>
                     <ServiceAccountSummary
                       access={serviceAccountProjects}
+                      scopeProjectIds={scopeProjectIds}
                       scopes={scopes}
                     />
                   </Disclosure.Title>
@@ -377,11 +403,12 @@ export function AgenticTriageForm(props: Props) {
                                 <Stack gap="lg" width="100%">
                                   <Text size="sm" variant="muted">
                                     {t(
-                                      'Add the projects this automation should be able to look into.'
+                                      'Projects in the automation scope are always included. Add any others an investigation should look into, like upstream services.'
                                     )}
                                   </Text>
                                   <ProjectSelector
                                     value={field.state.value}
+                                    scopeProjectIds={scopeProjectIds}
                                     disabled={readOnly}
                                     onChange={field.handleChange}
                                     emptyMessage={t(

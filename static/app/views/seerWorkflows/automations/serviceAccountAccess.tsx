@@ -21,10 +21,7 @@ import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
-export type ProjectSelection = {
-  allProjects: boolean;
-  projectIds: string[];
-};
+export type ProjectSelection = {allProjects: boolean; projectIds: string[]};
 
 /**
  * Its projectIds are granted on top of the connected monitors' projects
@@ -48,17 +45,22 @@ const PERMISSION_COLUMNS: TableColumnConfig[] = [
 ];
 
 /**
- * The connected monitors' projects are always granted
+ * The projects of the connected monitors and of the automation's scope are always granted
  */
 export function getServiceAccountProjectIds(
   access: ServiceAccountProjectAccess,
-  monitors: MetricDetector[] = []
+  monitors: MetricDetector[] = [],
+  scopeProjectIds: string[] = []
 ): string[] {
   if (access.allProjects) {
     return [];
   }
   return [
-    ...new Set([...monitors.map(monitor => monitor.projectId), ...access.projectIds]),
+    ...new Set([
+      ...monitors.map(monitor => monitor.projectId),
+      ...scopeProjectIds,
+      ...access.projectIds,
+    ]),
   ].sort((a, b) => Number(a) - Number(b));
 }
 
@@ -103,6 +105,7 @@ export function getPermissionLevel(
 export function ServiceAccountSummary({
   access,
   monitors,
+  scopeProjectIds,
   scopes,
 }: {
   access: ServiceAccountProjectAccess;
@@ -111,8 +114,16 @@ export function ServiceAccountSummary({
    * Omit when the automation has no monitors
    */
   monitors?: MetricDetector[];
+  /**
+   * Projects the automation is scoped to, which are always granted
+   */
+  scopeProjectIds?: string[];
 }) {
-  const projectCount = getServiceAccountProjectIds(access, monitors).length;
+  const projectCount = getServiceAccountProjectIds(
+    access,
+    monitors,
+    scopeProjectIds
+  ).length;
   const selected = new Set(scopes);
   const levels = PERMISSIONS.map(permission => getPermissionLevel(permission, selected));
   let projects = tn('%s project', '%s projects', projectCount);
@@ -166,12 +177,14 @@ export function useHasAllProjectsAccess(): boolean {
 }
 
 /**
- * Picks all projects or a list of them. Projects of the given monitors are
- * always included and can't be removed; omit monitors for a plain project list.
+ * Picks all projects or a list of them. Projects of the given monitors or
+ * automation scope are always included and can't be removed; omit both for a
+ * plain project list.
  */
 export function ProjectSelector({
   value,
   monitors,
+  scopeProjectIds,
   disabled,
   emptyMessage,
   onChange,
@@ -181,6 +194,10 @@ export function ProjectSelector({
   onChange: (value: ProjectSelection) => void;
   value: ProjectSelection;
   monitors?: MetricDetector[];
+  /**
+   * Projects the automation is scoped to
+   */
+  scopeProjectIds?: string[];
 }) {
   const {projects} = useProjects();
   // Only global roles can grant all projects, or narrow an account that has them
@@ -190,13 +207,20 @@ export function ProjectSelector({
   for (const monitor of monitors ?? []) {
     monitorCounts.set(monitor.projectId, (monitorCounts.get(monitor.projectId) ?? 0) + 1);
   }
-  const grantedIds = new Set(getServiceAccountProjectIds(value, monitors));
+  const scopeIds = new Set(scopeProjectIds);
+  const isLocked = (projectId: string) =>
+    monitorCounts.has(projectId) || scopeIds.has(projectId);
+  const lockedCount = new Set([...monitorCounts.keys(), ...scopeIds]).size;
+  const showReason = monitors !== undefined || scopeProjectIds !== undefined;
+  const grantedIds = new Set(
+    getServiceAccountProjectIds(value, monitors, scopeProjectIds)
+  );
   const granted = projects
     .filter(project => grantedIds.has(project.id))
     .sort((a, b) => a.slug.localeCompare(b.slug));
   const addable = projects.filter(
     project =>
-      !monitorCounts.has(project.id) &&
+      !isLocked(project.id) &&
       (project.hasAccess || value.projectIds.includes(project.id))
   );
 
@@ -224,8 +248,12 @@ export function ProjectSelector({
       {!value.allProjects && (
         <Flex align="center" justify="between" gap="md">
           <Text size="sm" variant="muted">
-            {monitors
-              ? `${tn('%s project', '%s projects', granted.length)} · ${t('%s from connected monitors', monitorCounts.size)}`
+            {showReason
+              ? `${tn('%s project', '%s projects', granted.length)} · ${
+                  monitors
+                    ? t('%s from connected monitors', lockedCount)
+                    : t('%s from automation scope', lockedCount)
+                }`
               : tn('%s project', '%s projects', granted.length)}
           </Text>
           <CompactSelect
@@ -239,7 +267,7 @@ export function ProjectSelector({
               label: project.slug,
               leadingItems: <ProjectAvatar project={project} size={16} />,
             }))}
-            value={value.projectIds.filter(id => !monitorCounts.has(id))}
+            value={value.projectIds.filter(id => !isLocked(id))}
             onChange={selected =>
               onChange({...value, projectIds: selected.map(option => option.value)})
             }
@@ -254,11 +282,11 @@ export function ProjectSelector({
       )}
       {!value.allProjects && (
         <SimpleTable
-          columns={monitors ? PROJECT_COLUMNS_WITH_REASON : PROJECT_COLUMNS}
+          columns={showReason ? PROJECT_COLUMNS_WITH_REASON : PROJECT_COLUMNS}
           header={
             <SimpleTable.HeaderRow>
               <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
-              {monitors && (
+              {showReason && (
                 <SimpleTable.HeaderCell>{t('Included because')}</SimpleTable.HeaderCell>
               )}
               <SimpleTable.HeaderCell />
@@ -268,35 +296,40 @@ export function ProjectSelector({
           {granted.length === 0 && <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>}
           {granted.map(project => {
             const monitorCount = monitorCounts.get(project.id);
+            let reason = t('Added manually');
+            if (monitorCount) {
+              reason = tn('%s connected monitor', '%s connected monitors', monitorCount);
+            } else if (scopeIds.has(project.id)) {
+              reason = t('Automation scope');
+            }
             return (
               <SimpleTable.Row key={project.id}>
                 <SimpleTable.RowCell>
                   <ProjectBadge project={project} avatarSize={16} disableLink />
                 </SimpleTable.RowCell>
-                {monitors && (
+                {showReason && (
                   <SimpleTable.RowCell>
                     <Text size="sm" variant="muted">
-                      {monitorCount
-                        ? tn(
-                            '%s connected monitor',
-                            '%s connected monitors',
-                            monitorCount
-                          )
-                        : t('Added manually')}
+                      {reason}
                     </Text>
                   </SimpleTable.RowCell>
                 )}
                 <SimpleTable.RowCell justify="end">
-                  {monitorCount ? (
+                  {isLocked(project.id) ? (
                     <Button
                       size="xs"
                       variant="transparent"
                       icon={<IconLock locked />}
-                      aria-label={t(
-                        '%s is included by its connected monitors',
-                        project.slug
-                      )}
-                      tooltipProps={{title: t('Included by its connected monitors')}}
+                      aria-label={
+                        monitorCount
+                          ? t('%s is included by its connected monitors', project.slug)
+                          : t('%s is included by automation scope', project.slug)
+                      }
+                      tooltipProps={{
+                        title: monitorCount
+                          ? t('Included by its connected monitors')
+                          : t('Included by automation scope'),
+                      }}
                       disabled
                     />
                   ) : (
