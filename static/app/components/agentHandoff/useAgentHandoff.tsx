@@ -1,4 +1,5 @@
 import {useRef} from 'react';
+import * as Sentry from '@sentry/react';
 import {useMutation} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 
@@ -108,6 +109,9 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
         },
       });
       handoff.current = {...minted, ...promptContext};
+      // Tags feedback, errors, and replays from this session so they can be joined to
+      // the agent_handoff.* analytics events for the agent run.
+      Sentry.setTag('agent_handoff.id', minted.handoffId);
 
       return {
         handoffId: minted.handoffId,
