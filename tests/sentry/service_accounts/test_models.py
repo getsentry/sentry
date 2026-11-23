@@ -483,7 +483,7 @@ class ServiceAccountTokenReplicaServiceTest(TestCase):
 
     def test_upsert_for_deleted_account_still_replicates(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
-            assert self.service_account.deactivate()
+            assert self.service_account.deactivate() is not None
             self.token.update(date_deactivated=timezone.now())
         self.upsert()
 

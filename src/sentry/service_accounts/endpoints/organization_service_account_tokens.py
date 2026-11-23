@@ -144,16 +144,6 @@ class DisallowAgentTokenWrites(BasePermission):
         return request.method in SAFE_METHODS or not is_agent_auth(request.auth)
 
 
-def _audit_log_data(service_account: ServiceAccount, token: ServiceAccountToken) -> dict[str, Any]:
-    # Never the token or its hash.
-    return {
-        "name": token.name,
-        "scopes": sorted(token.scope_list),
-        "service_account_id": service_account.id,
-        "service_account_name": service_account.name,
-    }
-
-
 class ServiceAccountTokenEndpointBase(ServiceAccountScopedEndpointBase):
     # A token outlives whoever minted it, so only a person signed in as themselves may
     # manage tokens: not a service account, a Seer agent, or an impersonating admin.
@@ -255,6 +245,15 @@ class OrganizationServiceAccountTokenIndexEndpoint(ServiceAccountTokenEndpointBa
         try:
             # Binds `token` before the flush runs, so it's set when only replication fails.
             with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccountToken))):
+                # Locks out a concurrent delete, which deactivates the account's tokens under
+                # the same lock, so it can't miss this one.
+                if (
+                    ServiceAccount.objects.select_for_update()
+                    .filter(id=service_account.id, is_active=True)
+                    .first()  # noqa: S035
+                    is None
+                ):
+                    raise ResourceDoesNotExist
                 token = ServiceAccountToken.objects.create(
                     service_account=service_account,
                     organization_id=organization.id,
@@ -281,7 +280,7 @@ class OrganizationServiceAccountTokenIndexEndpoint(ServiceAccountTokenEndpointBa
             organization=organization,
             target_object=token.id,
             event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_ADD"),
-            data=_audit_log_data(service_account, token),
+            data=token.get_audit_log_data(service_account),
         )
         response: ServiceAccountTokenResponse = serialize(
             token, request.user, serializer=ServiceAccountTokenSerializer()
@@ -347,6 +346,6 @@ class OrganizationServiceAccountTokenDetailsEndpoint(ServiceAccountTokenEndpoint
             organization=organization,
             target_object=token.id,
             event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_REMOVE"),
-            data=_audit_log_data(service_account, token),
+            data=token.get_audit_log_data(service_account),
         )
         return Response(status=204)

@@ -1,18 +1,22 @@
 import pytest
 from django.db import router, transaction
 
+from sentry import audit_log
 from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc.service import RpcValidationException
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.service_accounts.models import (
     ServiceAccount,
     ServiceAccountProject,
     ServiceAccountProjectReplica,
     ServiceAccountReplica,
+    ServiceAccountToken,
     parse_grantable_scopes,
 )
 from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.service_accounts.services.service_account import service_account_service
+from sentry.service_accounts.tokens import stored_token_fields
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
@@ -303,6 +307,40 @@ class ServiceAccountServiceTest(TestCase):
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert not ServiceAccount.objects.get(id=account_id).is_active
+
+    def test_delete_service_account_deactivates_tokens(self) -> None:
+        account_id = self.create()
+        stored = stored_token_fields("plaintext-deploys")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ServiceAccountToken.objects.create(
+                service_account_id=account_id,
+                organization_id=self.organization.id,
+                name="deploys",
+                token_hashed=stored.token_hashed,
+                token_last_characters=stored.token_last_characters,
+                scope_list=["event:read"],
+            )
+
+        service_account_service.delete_service_account(
+            organization_id=self.organization.id, service_account_id=account_id
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token.refresh_from_db()
+            assert token.date_deactivated is not None
+            entry = AuditLogEntry.objects.get(
+                event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_REMOVE")
+            )
+        assert entry.target_object == token.id
+        assert entry.actor_id is None
+        assert entry.actor_label == "Sentry"
+        assert entry.data == {
+            "name": "deploys",
+            "scopes": ["event:read"],
+            "service_account_id": account_id,
+            "service_account_name": "seer-agent",
+            "reason": "service_account_deleted",
+        }
 
     def test_deleted_service_account_is_hidden(self) -> None:
         account_id = self.create()

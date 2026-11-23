@@ -49,6 +49,7 @@ from sentry.organizations.services.organization import (
 from sentry.service_accounts.models import (
     GRANTABLE_SCOPES,
     MAX_NAME_LENGTH,
+    SERVICE_ACCOUNT_DELETED_REASON,
     ServiceAccount,
     ServiceAccountOwnerKind,
     ServiceAccountProject,
@@ -476,7 +477,8 @@ class OrganizationServiceAccountDetailsEndpoint(ServiceAccountScopedEndpointBase
             serialize(service_account, request.user, serializer=ServiceAccountSerializer())
         )
         service_account_id = service_account.id
-        if not service_account.deactivate():
+        deactivated_tokens = service_account.deactivate()
+        if deactivated_tokens is None:
             # Deleted by another request after convert_args loaded it.
             raise ResourceDoesNotExist
         self.create_audit_entry(
@@ -486,4 +488,15 @@ class OrganizationServiceAccountDetailsEndpoint(ServiceAccountScopedEndpointBase
             event=audit_log.get_event_id("SERVICE_ACCOUNT_REMOVE"),
             data=audit_data,
         )
+        for token in deactivated_tokens:
+            self.create_audit_entry(
+                request,
+                organization=organization,
+                target_object=token.id,
+                event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_REMOVE"),
+                data={
+                    **token.get_audit_log_data(service_account),
+                    "reason": SERVICE_ACCOUNT_DELETED_REASON,
+                },
+            )
         return Response(status=204)
