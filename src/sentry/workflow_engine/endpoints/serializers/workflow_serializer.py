@@ -48,6 +48,7 @@ ActionTypeName = Literal[
     "plugin",
     "webhook",
     "seer_investigation",
+    "add_to_inbox",
 ]
 LogicTypeName = Literal["any", "any-short", "all", "none"]
 
