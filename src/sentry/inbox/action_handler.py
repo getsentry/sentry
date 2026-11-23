@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from functools import partial
 from typing import override
 
 from sentry.inbox.issue_activity import issue_activity_inbox_calls
@@ -13,7 +13,7 @@ from sentry.workflow_engine.types import (
 )
 
 
-def _inbox_calls(event_data: WorkflowEventData) -> list[Callable[[], None]]:
+def _inbox_calls(event_data: WorkflowEventData) -> list[partial[None]]:
     activity = event_data.event
     group = event_data.group
     if (
