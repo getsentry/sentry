@@ -1,12 +1,18 @@
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 from rest_framework.response import Response
 
+from sentry.api.endpoints.organization_trace_item_attributes_ranked import (
+    get_attribute_names_window,
+)
+from sentry.search.eap.constants import EAP_FULL_FIDELITY_QUERY_DAYS
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.options import override_options
+from sentry.utils import snuba_rpc
 
 
 class OrganizationTraceItemsAttributesRankedEndpointTest(
@@ -523,3 +529,51 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert response.status_code == 200, response.data
         assert response.data["cohort1Total"] == 1
         assert response.data["cohort2Total"] == 1
+
+    @patch(
+        "sentry.api.endpoints.organization_trace_item_attributes_ranked.snuba_rpc.attribute_names_rpc",
+        wraps=snuba_rpc.attribute_names_rpc,
+    )
+    def test_looks_up_attribute_names_within_retention_when_window_is_older(
+        self, mock_attribute_names_rpc: MagicMock
+    ) -> None:
+        start = before_now(days=45)
+
+        response = self.do_request(
+            query={
+                "query_1": "span.duration:<=100",
+                "query_2": "",
+                "project": self.project.id,
+                "start": start.isoformat(),
+                "end": (start + timedelta(hours=1)).isoformat(),
+            }
+        )
+
+        assert response.status_code == 200, response.data
+        meta = mock_attribute_names_rpc.call_args.args[0].meta
+        assert meta.start_timestamp.ToDatetime(tzinfo=UTC) >= before_now(
+            days=EAP_FULL_FIDELITY_QUERY_DAYS + 2
+        )
+        assert meta.end_timestamp.ToDatetime(tzinfo=UTC) > datetime.now(UTC)
+
+
+# Falls in the week of Monday 2024-02-26, whose names bucket expires on 2024-03-27
+NAMES_BUCKET_BOUNDARY_START = datetime(2024, 2, 27, 10, tzinfo=UTC)
+
+
+@freeze_time("2024-03-26T12:00:00")
+def test_get_attribute_names_window_keeps_window_when_its_week_is_within_retention() -> None:
+    start = NAMES_BUCKET_BOUNDARY_START
+
+    window = get_attribute_names_window(start, start + timedelta(hours=1))
+
+    assert window == (datetime(2024, 2, 27, tzinfo=UTC), datetime(2024, 2, 28, tzinfo=UTC))
+
+
+@freeze_time("2024-03-27T12:00:00")
+def test_get_attribute_names_window_uses_retention_window_when_its_week_has_expired() -> None:
+    start = NAMES_BUCKET_BOUNDARY_START
+
+    window = get_attribute_names_window(start, start + timedelta(hours=1))
+
+    assert window == (datetime(2024, 2, 26, tzinfo=UTC), datetime(2024, 3, 28, tzinfo=UTC))
