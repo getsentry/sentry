@@ -137,7 +137,7 @@ class ArtifactBundle(Model):
         try:
             with response.payload:
                 shutil.copyfileobj(response.payload, contents)
-        except BaseException:
+        except Exception:
             contents.close()
             raise
         contents.seek(0)
