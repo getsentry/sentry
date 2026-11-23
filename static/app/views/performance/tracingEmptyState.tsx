@@ -1,6 +1,5 @@
 import {type ReactNode, useEffect} from 'react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
 import {createSerializer, parseAsInteger, parseAsString} from 'nuqs';
 import {useStore} from 'zustand';
 import {useShallow} from 'zustand/react/shallow';
@@ -34,11 +33,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
-import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
-import {useTracesApiOptions} from 'sentry/views/explore/hooks/useTraces';
 
 import {traceAnalytics} from './traceDetails/traceAnalytics';
+import {useFirstTrace} from './useFirstTrace';
 
 const TRACING_BENEFITS = [
   t('See related errors, logs, replays, and metrics alongside each trace'),
@@ -195,28 +193,21 @@ function TracingManualSetup({
   return <ManualSetupSteps project={project} steps={tracingSteps} />;
 }
 
-type Props = {organization: Organization; project: Project};
+type Props = {
+  organization: Organization;
+  project: Project;
+  onFirstTraceReady?: () => void;
+};
 
-export function TracingEmptyState({organization, project}: Props) {
+export function TracingEmptyState({organization, project, onFirstTraceReady}: Props) {
   const noPerformanceSupport = doesNotSupportPerformance(project);
 
-  const firstIssue = useEventWaiter({
-    eventType: 'transaction',
+  const {received, traceId} = useFirstTrace({
     organization,
     project,
     disabled: noPerformanceSupport,
+    onReady: onFirstTraceReady,
   });
-  const received = !!firstIssue;
-
-  const tracesQuery = useQuery({
-    ...useTracesApiOptions({limit: 1, sort: 'timestamp'}),
-    enabled: received,
-    refetchInterval: query => {
-      const trace = query.state.data?.json?.data?.[0]?.trace;
-      return trace ? false : 5000;
-    },
-  });
-  const traceId = tracesQuery.data?.data[0]?.trace;
 
   const currentPlatform = project.platform
     ? platforms.find(p => p.id === project.platform)
