@@ -258,7 +258,7 @@ describe('WidgetBuilderSlideout', () => {
             query: {
               field: [],
               yAxis: ['count()'],
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.LINE,
             },
           },
@@ -338,7 +338,7 @@ describe('WidgetBuilderSlideout', () => {
             query: {
               field: ['count()'],
               yAxis: [],
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.TABLE,
             },
           },
@@ -381,10 +381,7 @@ describe('WidgetBuilderSlideout', () => {
         initialRouterConfig: {
           location: {
             pathname: '/dashboards/',
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.BIG_NUMBER,
-            },
+            query: {dataset: WidgetType.ERRORS, displayType: DisplayType.BIG_NUMBER},
           },
         },
       }
@@ -444,7 +441,7 @@ describe('WidgetBuilderSlideout', () => {
           location: {
             pathname: '/dashboards/1/',
             query: {
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.LINE,
               yAxis: ['count()'],
               thresholds: '{"max_values":{"max1":100,"max2":200},"unit":null}',
@@ -490,7 +487,7 @@ describe('WidgetBuilderSlideout', () => {
           location: {
             pathname: '/dashboards/1/',
             query: {
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.LINE,
               yAxis: ['count()'],
               thresholds:
@@ -648,12 +645,9 @@ describe('WidgetBuilderSlideout', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('should show deprecation alert when flag enabled', async () => {
+  it('should show deprecation alert for transaction widgets', async () => {
     const organizationWithFeature = OrganizationFixture({
-      features: [
-        'discover-saved-queries-deprecation',
-        'performance-transaction-deprecation-banner',
-      ],
+      features: ['performance-transaction-deprecation-banner'],
     });
     render(
       <WidgetBuilderProvider>
@@ -692,10 +686,7 @@ describe('WidgetBuilderSlideout', () => {
 
   it('links to the spans dataset keeping only the page filters when editing a transaction widget', async () => {
     const organizationWithFeature = OrganizationFixture({
-      features: [
-        'discover-saved-queries-deprecation',
-        'performance-transaction-deprecation-banner',
-      ],
+      features: ['performance-transaction-deprecation-banner'],
     });
     render(
       <WidgetBuilderProvider>
@@ -733,45 +724,6 @@ describe('WidgetBuilderSlideout', () => {
       'href',
       '/dashboards/1/?environment=prod&project=1&project=2&statsPeriod=7d&utc=true'
     );
-  });
-
-  it('should not show deprecation alert when flag enabled', async () => {
-    render(
-      <WidgetBuilderProvider>
-        <WidgetBuilderSlideout
-          dashboard={DashboardFixture([])}
-          dashboardFilters={{release: undefined}}
-          onClose={jest.fn()}
-          onQueryConditionChange={jest.fn()}
-          onSave={jest.fn()}
-          setIsPreviewDraggable={jest.fn()}
-          openWidgetTemplates={false}
-          setOpenWidgetTemplates={jest.fn()}
-        />
-      </WidgetBuilderProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          route: '/dashboards/:widgetIndex/',
-          location: {
-            pathname: '/dashboards/1/',
-            query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
-          },
-        },
-      }
-    );
-    renderGlobalModal();
-
-    await waitFor(() => {
-      expect(
-        screen.queryByText(
-          /You may have limited functionality due to the ongoing migration of transactions to spans/i
-        )
-      ).not.toBeInTheDocument();
-    });
-    expect(
-      screen.queryByTestId('transaction-widget-disabled-wrapper')
-    ).not.toBeInTheDocument();
   });
 
   it('should not show the query filter builder if the widget is an issue and a chart display type', async () => {

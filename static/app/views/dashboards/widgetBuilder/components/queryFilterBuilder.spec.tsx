@@ -167,11 +167,7 @@ describe('QueryFilterBuilder', () => {
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname/',
-            query: {
-              query: [],
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.LINE,
-            },
+            query: {query: [], dataset: WidgetType.ERRORS, displayType: DisplayType.LINE},
           },
         },
       }
@@ -207,37 +203,7 @@ describe('QueryFilterBuilder', () => {
     expect(await screen.findByText('+ Add Filter')).toBeInTheDocument();
   });
 
-  it('disables search bar when transaction widget type and discover-saved-queries-deprecation feature flag', async () => {
-    const organizationWithFeature = OrganizationFixture({
-      features: ['discover-saved-queries-deprecation'],
-    });
-
-    render(
-      <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
-      </WidgetBuilderProvider>,
-      {
-        organization: organizationWithFeature,
-        initialRouterConfig: {
-          location: {
-            pathname: '/mock-pathname/',
-            query: {
-              query: [],
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.LINE,
-            },
-          },
-        },
-      }
-    );
-
-    const searchBar = await screen.findByPlaceholderText(
-      'Search for events, users, tags, and more'
-    );
-    expect(searchBar).toBeDisabled();
-  });
-
-  it('enables search bar when transaction widget type but no discover-saved-queries-deprecation feature flag', async () => {
+  it('disables search bar for transaction widgets', async () => {
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
@@ -260,6 +226,6 @@ describe('QueryFilterBuilder', () => {
     const searchBar = await screen.findByPlaceholderText(
       'Search for events, users, tags, and more'
     );
-    expect(searchBar).toBeEnabled();
+    expect(searchBar).toBeDisabled();
   });
 });
