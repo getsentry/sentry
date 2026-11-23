@@ -26,6 +26,8 @@ TIMEZONE_CHOICES = get_timezone_choices()
 # STACKTRACE_ORDER_CHOICES below reads its values from the enum itself.
 StacktraceOrderValue = Literal["-1", "1", "2"]
 Theme = Literal["light", "dark", "system"]
+ThemeVariantLight = Literal["default"]
+ThemeVariantDark = Literal["default", "ash", "midnight"]
 DefaultIssueEvent = Literal["recommended", "latest", "oldest"]
 
 # Annotating the choices ties them to the Literal types above: a choice value that is
@@ -41,6 +43,15 @@ THEME_CHOICES: "tuple[tuple[Theme, _StrPromise], ...]" = (
     ("dark", _("Dark")),
     ("system", _("Default to system")),
 )
+# Which palette applies within each color scheme. `theme` still picks the scheme.
+THEME_VARIANT_LIGHT_CHOICES: "tuple[tuple[ThemeVariantLight, _StrPromise], ...]" = (
+    ("default", _("Default")),
+)
+THEME_VARIANT_DARK_CHOICES: "tuple[tuple[ThemeVariantDark, _StrPromise], ...]" = (
+    ("default", _("Default")),
+    ("ash", _("Ash")),
+    ("midnight", _("Midnight")),
+)
 DEFAULT_ISSUE_EVENT_CHOICES: "tuple[tuple[DefaultIssueEvent, _StrPromise], ...]" = (
     ("recommended", _("Recommended")),
     ("latest", _("Latest")),
@@ -55,6 +66,8 @@ DisplayPreferenceField = Literal[
     "timezone",
     "clock24Hours",
     "theme",
+    "themeVariantLight",
+    "themeVariantDark",
     "defaultIssueEvent",
     "prefersIssueDetailsStreamlinedUI",
 ]
@@ -72,6 +85,8 @@ class DisplayPreferencesData(TypedDict, total=False):
     timezone: str
     clock24Hours: bool
     theme: Theme
+    themeVariantLight: ThemeVariantLight
+    themeVariantDark: ThemeVariantDark
     defaultIssueEvent: DefaultIssueEvent
     prefersIssueDetailsStreamlinedUI: bool
 
@@ -82,6 +97,8 @@ class DisplayPreferencesData(TypedDict, total=False):
 # field added to the serializer but not to this map validates and is then never written.
 DISPLAY_PREFERENCE_OPTION_KEYS: Mapping[DisplayPreferenceField, str] = {
     "theme": "theme",
+    "themeVariantLight": "theme_variant_light",
+    "themeVariantDark": "theme_variant_dark",
     "language": "language",
     "timezone": "timezone",
     "stacktraceOrder": "stacktrace_order",

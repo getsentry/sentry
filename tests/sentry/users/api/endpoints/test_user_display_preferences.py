@@ -25,6 +25,8 @@ class UserDisplayPreferencesGetTest(APITestCase):
 
         assert response.data == {
             "theme": "system",
+            "themeVariantLight": "default",
+            "themeVariantDark": "default",
             "language": "en",
             "stacktraceOrder": -1,
             "defaultIssueEvent": "recommended",
@@ -77,6 +79,8 @@ class UserDisplayPreferencesPutTest(APITestCase):
         response = self.get_success_response(
             "me",
             theme="light",
+            themeVariantLight="default",
+            themeVariantDark="midnight",
             language="es",
             stacktraceOrder="1",
             defaultIssueEvent="latest",
@@ -87,6 +91,8 @@ class UserDisplayPreferencesPutTest(APITestCase):
 
         assert response.data == {
             "theme": "light",
+            "themeVariantLight": "default",
+            "themeVariantDark": "midnight",
             "language": "es",
             "stacktraceOrder": 1,
             "defaultIssueEvent": "latest",
@@ -100,6 +106,12 @@ class UserDisplayPreferencesPutTest(APITestCase):
 
         assert "theme" in response.data
         assert UserOption.objects.get_value(user=self.user, key="theme") is None
+
+    def test_rejects_an_invalid_theme_variant(self) -> None:
+        response = self.get_error_response("me", themeVariantDark="chartreuse", status_code=400)
+
+        assert "themeVariantDark" in response.data
+        assert UserOption.objects.get_value(user=self.user, key="theme_variant_dark") is None
 
     def test_ignores_account_fields(self) -> None:
         # The whole point of this endpoint: a caller that can write preferences must not

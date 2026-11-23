@@ -67,6 +67,8 @@ class UserDetailsGetTest(UserDetailsTest):
 
         assert resp.data["id"] == str(self.user.id)
         assert resp.data["options"]["theme"] == "system"
+        assert resp.data["options"]["themeVariantLight"] == "default"
+        assert resp.data["options"]["themeVariantDark"] == "default"
         assert resp.data["options"]["defaultIssueEvent"] == "recommended"
         assert resp.data["options"]["timezone"] == "UTC"
         assert resp.data["options"]["language"] == "en"
@@ -260,6 +262,32 @@ class UserDetailsUpdateTest(UserDetailsTest):
         )
 
         assert not UserOption.objects.get_value(user=self.user, key="extra")
+
+    def test_theme_variants_round_trip(self) -> None:
+        resp = self.get_success_response(
+            "me",
+            options={"theme": "dark", "themeVariantLight": "default", "themeVariantDark": "ash"},
+        )
+
+        assert resp.data["options"]["theme"] == "dark"
+        assert resp.data["options"]["themeVariantLight"] == "default"
+        assert resp.data["options"]["themeVariantDark"] == "ash"
+        assert UserOption.objects.get_value(user=self.user, key="theme_variant_light") == "default"
+        assert UserOption.objects.get_value(user=self.user, key="theme_variant_dark") == "ash"
+
+        self.get_success_response("me", options={"themeVariantDark": "midnight"})
+
+        resp = self.get_success_response("me", method="get")
+        assert resp.data["options"]["theme"] == "dark"
+        assert resp.data["options"]["themeVariantLight"] == "default"
+        assert resp.data["options"]["themeVariantDark"] == "midnight"
+
+    def test_rejects_invalid_theme_variants(self) -> None:
+        self.get_error_response("me", options={"themeVariantDark": "chartreuse"}, status_code=400)
+        self.get_error_response("me", options={"themeVariantLight": "midnight"}, status_code=400)
+
+        assert UserOption.objects.get_value(user=self.user, key="theme_variant_dark") is None
+        assert UserOption.objects.get_value(user=self.user, key="theme_variant_light") is None
 
     def test_saving_changes_value(self) -> None:
         """
