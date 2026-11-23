@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import jsonschema
 import pytest
+from django.test import override_settings
 
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import (
@@ -1050,3 +1051,108 @@ def test_create_feedback_truncates_ai_labels_max_json_length(
     assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(
         ["a" * (MAX_AI_LABELS_JSON_LENGTH - 50)]
     )
+
+
+@pytest.fixture
+def mock_spam_shadow_score() -> Iterator[MagicMock]:
+    with patch("sentry.feedback.usecases.ingest.create_feedback.spam_shadow_score") as mck:
+        yield mck
+
+
+SPAM_SHADOW_URL = "http://seer-spam:9091"
+
+
+@django_db_all
+@pytest.mark.parametrize("llm_is_spam", [True, False])
+@patch("sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled", return_value=True)
+@patch("sentry.feedback.usecases.ingest.create_feedback.is_spam_seer")
+def test_create_feedback_enqueues_spam_shadow(
+    mock_is_spam_seer: MagicMock,
+    mock_spam_detection_enabled: MagicMock,
+    default_project: Project,
+    mock_produce_occurrence_to_kafka: MagicMock,
+    mock_spam_shadow_score: MagicMock,
+    set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
+    llm_is_spam: bool,
+) -> None:
+    mock_is_spam_seer.return_value = llm_is_spam
+    event = mock_feedback_event(default_project.id, message="Shadow me")
+
+    with (
+        set_sentry_option("feedback.spam-shadow.sample-rate", 1.0),
+        override_settings(SEER_FEEDBACK_SPAM_URL=SPAM_SHADOW_URL),
+    ):
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    mock_spam_shadow_score.delay.assert_called_once_with(
+        organization_id=default_project.organization_id,
+        project_id=default_project.id,
+        feedback_event_id=event["event_id"],
+        feedback_message="Shadow me",
+        llm_is_spam=llm_is_spam,
+    )
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    ("sample_rate", "url", "spam_enabled", "llm_is_spam"),
+    [
+        pytest.param(0.0, SPAM_SHADOW_URL, True, False, id="rate_zero"),
+        pytest.param(1.0, None, True, False, id="url_unset"),
+        pytest.param(1.0, SPAM_SHADOW_URL, True, None, id="llm_failed"),
+        pytest.param(1.0, SPAM_SHADOW_URL, False, None, id="spam_detection_disabled"),
+    ],
+)
+@patch("sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled")
+@patch("sentry.feedback.usecases.ingest.create_feedback.is_spam_seer")
+def test_create_feedback_skips_spam_shadow(
+    mock_is_spam_seer: MagicMock,
+    mock_spam_detection_enabled: MagicMock,
+    default_project: Project,
+    mock_produce_occurrence_to_kafka: MagicMock,
+    mock_spam_shadow_score: MagicMock,
+    set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
+    sample_rate: float,
+    url: str | None,
+    spam_enabled: bool,
+    llm_is_spam: bool | None,
+) -> None:
+    mock_spam_detection_enabled.return_value = spam_enabled
+    mock_is_spam_seer.return_value = llm_is_spam
+    event = mock_feedback_event(default_project.id)
+
+    with (
+        set_sentry_option("feedback.spam-shadow.sample-rate", sample_rate),
+        override_settings(SEER_FEEDBACK_SPAM_URL=url),
+    ):
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    mock_spam_shadow_score.delay.assert_not_called()
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+
+
+@django_db_all
+@patch("sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled", return_value=True)
+@patch("sentry.feedback.usecases.ingest.create_feedback.is_spam_seer", return_value=False)
+def test_create_feedback_spam_shadow_enqueue_error_does_not_break_ingest(
+    mock_is_spam_seer: MagicMock,
+    mock_spam_detection_enabled: MagicMock,
+    default_project: Project,
+    mock_produce_occurrence_to_kafka: MagicMock,
+    mock_spam_shadow_score: MagicMock,
+    set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
+) -> None:
+    mock_spam_shadow_score.delay.side_effect = Exception("taskbroker unavailable")
+    event = mock_feedback_event(default_project.id)
+
+    with (
+        set_sentry_option("feedback.spam-shadow.sample-rate", 1.0),
+        override_settings(SEER_FEEDBACK_SPAM_URL=SPAM_SHADOW_URL),
+    ):
+        result = create_feedback_issue(
+            event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
+
+    assert result is not None
+    mock_spam_shadow_score.delay.assert_called_once()
+    assert mock_produce_occurrence_to_kafka.call_count == 1

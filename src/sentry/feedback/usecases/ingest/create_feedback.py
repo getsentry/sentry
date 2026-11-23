@@ -7,9 +7,12 @@ from datetime import UTC, datetime
 from typing import Any, TypedDict
 from uuid import UUID, uuid4
 
+from django.conf import settings
+
 from sentry import options
 from sentry.constants import DataCategory
 from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, FeedbackCreationSource
+from sentry.feedback.tasks.spam_shadow import spam_shadow_score
 from sentry.feedback.usecases.label_generation import (
     AI_LABEL_TAG_PREFIX,
     MAX_AI_LABELS,
@@ -434,6 +437,23 @@ def create_feedback_issue(
                 new_substatus=GroupSubStatus.FOREVER,
             ),
         )
+
+    # Shadow-score a sample of LLM-classified feedbacks with Seer's spam classifier, to compare
+    # against the LLM verdict. This is fire-and-forget and must never affect ingestion.
+    if is_message_spam is not None and settings.SEER_FEEDBACK_SPAM_URL:
+        try:
+            if random.random() < options.get("feedback.spam-shadow.sample-rate"):
+                spam_shadow_score.delay(
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    feedback_event_id=event["event_id"],
+                    feedback_message=feedback_message,
+                    llm_is_spam=is_message_spam,
+                )
+                metrics.incr("feedback.spam_shadow.enqueued")
+        except Exception:
+            logger.exception("Error enqueuing spam shadow score", extra={"project_id": project.id})
+            metrics.incr("feedback.spam_shadow.enqueue_error")
 
     metrics.incr(
         "feedback.create_feedback_issue.produced_occurrence",

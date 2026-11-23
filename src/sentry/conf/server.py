@@ -918,6 +918,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.demo_mode.tasks",
     "sentry.dynamic_sampling.per_org.feature_cache",
     "sentry.dynamic_sampling.per_org.scheduler",
+    "sentry.feedback.tasks.spam_shadow",
     "sentry.feedback.tasks.update_user_reports",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
@@ -3471,6 +3472,9 @@ SEER_PREVENT_AI_URL = SEER_DEFAULT_URL  # for local development, these share a U
 SEER_FIXABILITY_TIMEOUT = 0.6  # 600 milliseconds
 
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+
+# Shadow spam classifier for User Feedback. Runs on its own Seer deployment; unset means no traffic.
+SEER_FEEDBACK_SPAM_URL: str | None = None
 
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL

@@ -1,8 +1,8 @@
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 import orjson
 from django.conf import settings
-from urllib3 import BaseHTTPResponse, Retry
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
@@ -14,6 +14,33 @@ seer_summarization_connection_pool = connection_from_url(
     retries=0,
     maxsize=10,  # Max persisted connections. If the number of concurrent requests exceeds this, temporary connections are created.
 )
+
+# Connection pool for the shadow spam classifier, which runs on its own Seer deployment.
+# Created lazily since SEER_FEEDBACK_SPAM_URL is unset by default.
+_seer_feedback_spam_connection_pool: HTTPConnectionPool | None = None
+
+
+def _get_seer_feedback_spam_connection_pool() -> HTTPConnectionPool:
+    global _seer_feedback_spam_connection_pool
+    if _seer_feedback_spam_connection_pool is None:
+        if not settings.SEER_FEEDBACK_SPAM_URL:
+            raise ValueError("SEER_FEEDBACK_SPAM_URL is not configured")
+        _seer_feedback_spam_connection_pool = connection_from_url(
+            settings.SEER_FEEDBACK_SPAM_URL,
+            timeout=settings.SEER_DEFAULT_TIMEOUT,
+            retries=0,
+            maxsize=10,
+        )
+    return _seer_feedback_spam_connection_pool
+
+
+class SpamShadowScoreRequest(TypedDict):
+    organization_id: int
+    project_id: int
+    feedback_event_id: str
+    feedback_message: str
+    llm_is_spam: bool
+    log_mismatch_message: NotRequired[bool]
 
 
 class SpamDetectionRequest(TypedDict):
@@ -118,6 +145,22 @@ def make_summarize_feedbacks_request(
     return make_signed_seer_api_request(
         seer_summarization_connection_pool,
         "/v1/automation/summarize/feedback/summarize",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        retries=retries,
+        viewer_context=viewer_context,
+    )
+
+
+def make_spam_shadow_score_request(
+    body: SpamShadowScoreRequest,
+    timeout: int | float | None = None,
+    retries: int | None | Retry = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        _get_seer_feedback_spam_connection_pool(),
+        "/v0/feedback/spam-score",
         body=orjson.dumps(body),
         timeout=timeout,
         retries=retries,
