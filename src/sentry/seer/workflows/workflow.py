@@ -51,9 +51,9 @@ from sentry.service_accounts.services.service_account import (
 logger = logging.getLogger(__name__)
 
 SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,)
-# What each seeded default runs. Seer loads the night shift prompt from its skill.
+# What each seeded default runs. Seer loads the agentic triage prompt from its skill.
 SEER_DEFAULT_ACTION_SETTINGS: dict[SeerWorkflowStrategy, dict[str, Any]] = {
-    SeerWorkflowStrategy.SCHEDULED_INVESTIGATION: {"skill": "night_shift"},
+    SeerWorkflowStrategy.SCHEDULED_INVESTIGATION: {"skill": "agentic_triage"},
 }
 
 
