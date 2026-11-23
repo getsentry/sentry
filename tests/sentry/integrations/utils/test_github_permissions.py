@@ -188,6 +188,13 @@ def test_a_mistyped_required_level_stops_enforcing_rather_than_raising(
             "example-user",
             "https://github.com/settings/installations/123/permissions/update",
         ),
+        (
+            "example.ghe.com:123",
+            "Organization",
+            "example-org",
+            "https://example.ghe.com/organizations/example-org"
+            "/settings/installations/123/permissions/update",
+        ),
         ("123", "Organization", "", None),
         ("", "User", "example-user", None),
     ],

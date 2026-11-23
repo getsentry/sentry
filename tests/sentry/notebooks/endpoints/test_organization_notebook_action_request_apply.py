@@ -779,9 +779,8 @@ class OrganizationNotebookActionRequestApplyTest(APITestCase):
         )
         conditions = self.conditions()
 
-        with self.feature("organizations:discover-saved-queries-deprecation"):
-            dry_run = self.apply(action_request, dryRun=True)
-            response = self.apply(action_request)
+        dry_run = self.apply(action_request, dryRun=True)
+        response = self.apply(action_request)
 
         assert dry_run.status_code == 400
         assert dry_run.data["code"] == "validation_failed"

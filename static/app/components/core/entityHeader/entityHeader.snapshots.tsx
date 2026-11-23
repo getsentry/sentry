@@ -1,5 +1,6 @@
 import {MemoryRouter} from 'react-router';
 
+import {DateTimeProvider} from '@sentry/scraps/dateTime';
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 
@@ -275,5 +276,38 @@ describe('EntityHeader', () => {
       </MemoryRouter>
     ),
     {viewport: 240, tags: {area: 'core'}}
+  );
+
+  // The harness does not freeze time, so the relative date is anchored to the
+  // render rather than fixed: it always reads "5min ago". The provider pins
+  // the absolute one's timezone and clock.
+  it.snapshot(
+    'dates',
+    () => (
+      <DateTimeProvider value={{timezone: 'America/Los_Angeles', clock: '12'}}>
+        <EntityHeader
+          title={{type: 'text', label: 'Replay user', value: 'anonymous@example.com'}}
+          metadata={{
+            label: 'Replay properties',
+            items: [
+              {
+                label: 'Started at',
+                type: 'date',
+                mode: 'full',
+                date: '2025-06-09T04:05:09Z',
+              },
+              {
+                label: 'Last seen',
+                type: 'date',
+                mode: 'full',
+                date: new Date(Date.now() - 5 * 60 * 1000),
+                format: 'relative',
+              },
+            ],
+          }}
+        />
+      </DateTimeProvider>
+    ),
+    {viewport: 640, tags: {area: 'core'}}
   );
 });

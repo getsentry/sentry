@@ -44,6 +44,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
 )
+from sentry.seer.credits import SeerCreditDenialReason
 from sentry.seer.entrypoints.cache import SeerOperatorInvestigationCache
 from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
@@ -92,7 +93,7 @@ class MockAutofixEntrypoint(SeerAutofixEntrypoint[MockCachePayload]):
     def __init__(self) -> None:
         self.thread_id = str(uuid.uuid4())
         self.autofix_errors: list[str] = []
-        self.autofix_out_of_credits: list[bool] = []
+        self.autofix_out_of_credits: list[tuple[bool, SeerCreditDenialReason | None]] = []
         self.autofix_run_ids: list[int] = []
         self.autofix_update_cache_payloads: list[object] = []
         self.autofix_already_exists_states: list[tuple[int, bool]] = []
@@ -110,8 +111,10 @@ class MockAutofixEntrypoint(SeerAutofixEntrypoint[MockCachePayload]):
     def on_trigger_autofix_error(self, *, error: str) -> None:
         self.autofix_errors.append(error)
 
-    def on_trigger_autofix_out_of_credits(self, *, started: bool) -> None:
-        self.autofix_out_of_credits.append(started)
+    def on_trigger_autofix_out_of_credits(
+        self, *, started: bool, denial_reason: SeerCreditDenialReason | None
+    ) -> None:
+        self.autofix_out_of_credits.append((started, denial_reason))
 
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
         self.autofix_run_ids.append(run_id)
@@ -408,7 +411,7 @@ class SeerOperatorTest(TestCase):
                 group=self.group, user=self.user, stopping_point=AutofixStoppingPoint.ROOT_CAUSE
             )
 
-        assert self.entrypoint.autofix_out_of_credits == [False]
+        assert self.entrypoint.autofix_out_of_credits == [(False, None)]
         assert self.entrypoint.autofix_errors == []
         assert self.entrypoint.autofix_run_ids == []
         # Running out of credits is not counted as a trigger error.
@@ -422,7 +425,7 @@ class SeerOperatorTest(TestCase):
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state", return_value=None)
     @patch(
         "sentry.seer.autofix.autofix_agent.trigger_autofix_agent",
-        side_effect=SeerOutOfCreditsException(),
+        side_effect=SeerOutOfCreditsException("daily_cap_exceeded"),
     )
     def test_trigger_autofix_out_of_credits_after_the_run_started(
         self,
@@ -445,7 +448,7 @@ class SeerOperatorTest(TestCase):
             run_id=MOCK_RUN_ID,
         )
 
-        assert self.entrypoint.autofix_out_of_credits == [True]
+        assert self.entrypoint.autofix_out_of_credits == [(True, "daily_cap_exceeded")]
         assert self.entrypoint.autofix_errors == []
         assert self.entrypoint.autofix_run_ids == []
         assert_halt_metric(mock_record, "not_enough_seer_credits")
