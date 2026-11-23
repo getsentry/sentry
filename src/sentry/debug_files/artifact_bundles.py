@@ -243,8 +243,8 @@ def maybe_renew_artifact_bundles(used_artifact_bundles: dict[int, datetime]) -> 
 @traces.trace
 def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now: datetime) -> None:
     metrics.incr("artifact_bundle_renewal.need_renewal")
-    bundles = ArtifactBundle.objects.filter(id=artifact_bundle_id, date_added__lte=threshold_date)
-    bundle = bundles.get_or_none()
+    query = ArtifactBundle.objects.filter(id=artifact_bundle_id, date_added__lte=threshold_date)
+    bundle = query.get_or_none()
     if bundle is None:
         return
 
@@ -252,6 +252,8 @@ def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now
     # Objectstore has extended the expiry, so a failed request is retried on the next access.
     if bundle.storage_path is not None:
         try:
+            # Use `at` to align the deadline with the `date_added` we write below.
+            # A retried `from_now` would push it further out.
             bundle.get_objectstore_session().extend_expiry(
                 bundle.storage_path, at=now + artifact_bundle_retention()
             )
@@ -272,7 +274,7 @@ def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now
         )
     ):
         # Assembly and other renewals refresh date_added, so recheck the age on update.
-        updated_rows_count = bundles.update(date_added=now)
+        updated_rows_count = query.update(date_added=now)
         # We want to make cascading queries only if there were actual changes in the db. Nothing reads `date_added`
         # from the rows linked to the bundle, so with `date-only-on-bundle` they aren't renewed, which spares
         # rewriting every URL index and debug-ID row of the bundle.

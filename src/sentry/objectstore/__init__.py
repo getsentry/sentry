@@ -106,7 +106,6 @@ class UsecaseId(Enum):
             case UsecaseId.DEBUG_FILES:
                 return ObjectstoreClientUsecase(
                     self.value,
-                    compression="zstd",
                     expiration_policy=TimeToIdle(
                         timedelta(
                             days=90 + options.get("system.debug-files-renewal-age-threshold-days")
@@ -121,8 +120,11 @@ class UsecaseId(Enum):
             case UsecaseId.ARTIFACT_BUNDLES:
                 from sentry.models.artifactbundle import artifact_bundle_retention
 
+                # Bundles are ZIP archives, which are already compressed.
                 return ObjectstoreClientUsecase(
-                    self.value, expiration_policy=TimeToIdle(artifact_bundle_retention())
+                    self.value,
+                    compression="none",
+                    expiration_policy=TimeToIdle(artifact_bundle_retention()),
                 )
             case UsecaseId.PREPROD | UsecaseId.PREPROD_SNAPSHOTS | UsecaseId.PREPROD_SIZE:
                 return ObjectstoreClientUsecase(
