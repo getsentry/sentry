@@ -117,7 +117,7 @@ def get_eap_aggregation_value(
     end: datetime,
     alert_rule_id: int | None = None,
 ) -> float | None:
-    comparison_aggregate: None | float = None
+    baseline_value: None | float = None
     try:
         rpc_time_series_request = entity_subscription.build_rpc_request(
             query=snuba_query.query,
@@ -134,7 +134,7 @@ def get_eap_aggregation_value(
 
         rpc_response = snuba_rpc.timeseries_rpc([rpc_time_series_request])[0]
         if len(rpc_response.result_timeseries):
-            comparison_aggregate = rpc_response.result_timeseries[0].data_points[0].data
+            baseline_value = rpc_response.result_timeseries[0].data_points[0].data
 
     except InvalidSearchQuery:
         # Queries with invalid search syntax are user configuration errors and
@@ -158,7 +158,7 @@ def get_eap_aggregation_value(
             },
         )
         return None
-    return coerce_aggregation_value(comparison_aggregate)
+    return coerce_aggregation_value(baseline_value)
 
 
 def get_aggregation_value(
@@ -171,7 +171,7 @@ def get_aggregation_value(
     end: datetime,
     alert_rule_id: int | None = None,
 ) -> float | None:
-    comparison_aggregate: None | float = None
+    baseline_value: None | float = None
     try:
         # TODO: determine whether we need to include the subscription query_extra here
         query_builder = entity_subscription.build_query_builder(
@@ -194,7 +194,7 @@ def get_aggregation_value(
         )
         query_builder.limit = Limit(1)
         results = query_builder.run_query(referrer="subscription_processor.comparison_query")
-        comparison_aggregate = list(results["data"][0].values())[0]
+        baseline_value = list(results["data"][0].values())[0]
 
     except InvalidIssueSearchQuery:
         # Queries that reference non-existent issue IDs are not useful and
@@ -217,7 +217,7 @@ def get_aggregation_value(
             },
         )
         return None
-    return coerce_aggregation_value(comparison_aggregate)
+    return coerce_aggregation_value(baseline_value)
 
 
 def get_comparison_aggregation_value(
@@ -246,7 +246,7 @@ def get_comparison_aggregation_value(
     query_type = SnubaQuery.Type(snuba_query.type)
 
     if query_type == SnubaQuery.Type.PERFORMANCE and dataset == Dataset.EventsAnalyticsPlatform:
-        comparison_aggregate = get_eap_aggregation_value(
+        baseline_value = get_eap_aggregation_value(
             entity_subscription,
             subscription_update,
             snuba_query,
@@ -258,7 +258,7 @@ def get_comparison_aggregation_value(
         )
 
     else:
-        comparison_aggregate = get_aggregation_value(
+        baseline_value = get_aggregation_value(
             entity_subscription,
             subscription_update,
             snuba_query,
@@ -269,11 +269,11 @@ def get_comparison_aggregation_value(
             alert_rule_id,
         )
 
-    if not comparison_aggregate:
+    if not baseline_value:
         metrics.incr("incidents.alert_rules.skipping_update_comparison_value_invalid")
         return None
 
-    return (evaluation_value / comparison_aggregate) * 100
+    return (evaluation_value / baseline_value) * 100
 
 
 def calculate_event_date_from_update_date(update_date: datetime, time_window: int) -> datetime:
