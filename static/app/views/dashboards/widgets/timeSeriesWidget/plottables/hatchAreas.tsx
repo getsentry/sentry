@@ -12,8 +12,8 @@ import type {
 
 type HatchAreasConfig = {
   /**
-   * Hatch color. Areas are hatched over a transparent fill, so grid lines show
-   * through the gaps between stripes
+   * Hatch color. Areas are hatched over a transparent fill, so the data and grid
+   * lines show through the gaps between stripes
    */
   color: string;
   /**
@@ -39,7 +39,7 @@ type HatchAreasPlottingOptions = {
 
 /**
  * Hatched areas that span the full height of the plot over stretches of time, drawn
- * behind the data. Unlike time series plottables, it has no data of its own,
+ * over the data. Unlike time series plottables, it has no data of its own,
  * so it never takes up a Y axis, a legend item, or a tooltip row.
  */
 export class HatchAreas implements Plottable {
@@ -102,8 +102,8 @@ export class HatchAreas implements Plottable {
         // Mapping only `x` keeps the timestamps out of the Y axis extent
         encode: {x: [0, 1]},
         renderItem: this.renderItem,
-        // Behind line, area, and bar series, which default to 2
-        z: 1,
+        // Over line, area, and bar series, which default to 2
+        z: 3,
         clip: true,
         silent: true,
         animation: false,

@@ -19,17 +19,12 @@ describe('Bars', () => {
     yAxisPosition: 'left' as const,
   };
 
-  it.each([
-    {segmentBy: [], opacities: [1, 1, 1]},
-    {segmentBy: ['completeness'], opacities: [1, 1, 0.5]},
-    {segmentBy: ['confidence'], opacities: [1, 0.45, 1]},
-    {segmentBy: ['completeness', 'confidence'], opacities: [1, 0.45, 0.5]},
-  ] as const)('segments by $segmentBy', ({segmentBy, opacities}) => {
-    const [series] = new Bars(timeSeries).toSeries({...plottingOptions, segmentBy});
+  it('dims incomplete bars', () => {
+    const [series] = new Bars(timeSeries).toSeries(plottingOptions);
     const getColor = series!.itemStyle!.color as (params: {dataIndex: number}) => string;
 
     expect(
       timeSeries.values.map((_, dataIndex) => color(getColor({dataIndex})).alpha())
-    ).toEqual(opacities);
+    ).toEqual([1, 1, 0.5]);
   });
 });

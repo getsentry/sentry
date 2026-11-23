@@ -2,12 +2,10 @@ import type {LineSeriesOption} from 'echarts';
 
 import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
-import {segmentTimeSeriesByDisplayStyle} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
-import {LOW_CONFIDENCE_OPACITY} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
+import {segmentTimeSeriesByIncompleteData} from 'sentry/utils/timeSeries/segmentTimeSeriesByIncompleteData';
 
 import {
   ContinuousTimeSeries,
-  DEFAULT_SEGMENT_BY,
   type ContinuousTimeSeriesPlottingOptions,
 } from './continuousTimeSeries';
 import type {Plottable} from './plottable';
@@ -15,11 +13,8 @@ import type {Plottable} from './plottable';
 export class Area extends ContinuousTimeSeries implements Plottable {
   toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions): LineSeriesOption[] {
     const {config = {}} = this;
-    const segmentBy = plottingOptions.segmentBy ?? DEFAULT_SEGMENT_BY;
 
     const color = plottingOptions.color ?? config.color ?? undefined;
-
-    const plottableSeries: LineSeriesOption[] = [];
 
     const commonOptions = {
       name: this.name,
@@ -31,50 +26,30 @@ export class Area extends ContinuousTimeSeries implements Plottable {
     // ECharts groups stacks by name, even when series use different Y axes.
     const stackPrefix = plottingOptions.yAxisPosition;
 
-    const segments = segmentTimeSeriesByDisplayStyle(this.timeSeries, {segmentBy});
+    return segmentTimeSeriesByIncompleteData(this.timeSeries).map(
+      ([timeSeries, isIncomplete], index) => {
+        const data = scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
+          item => this.toDataPoint(item)
+        );
 
-    segments.forEach(([timeSeries, style], index) => {
-      const data = scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
-        item => this.toDataPoint(item, segmentBy)
-      );
-
-      if (style === 'incomplete') {
-        plottableSeries.push(
-          createLineSeries({
+        if (isIncomplete) {
+          return createLineSeries({
             ...commonOptions,
             stack: `incomplete-${stackPrefix}-${index}`,
             data,
             lineStyle: {type: 'dotted'},
             areaStyle: {color, opacity: 0.8},
             silent: true,
-          })
-        );
-      }
+          });
+        }
 
-      if (style === 'lowConfidence') {
-        plottableSeries.push(
-          createLineSeries({
-            ...commonOptions,
-            stack: `lowConfidence-${stackPrefix}-${index}`,
-            data,
-            lineStyle: {opacity: LOW_CONFIDENCE_OPACITY},
-            areaStyle: {color, opacity: LOW_CONFIDENCE_OPACITY},
-          })
-        );
+        return createLineSeries({
+          ...commonOptions,
+          stack: `complete-${stackPrefix}-${index}`,
+          areaStyle: {color, opacity: 1},
+          data,
+        });
       }
-
-      if (style === 'normal') {
-        plottableSeries.push(
-          createLineSeries({
-            ...commonOptions,
-            stack: `complete-${stackPrefix}-${index}`,
-            areaStyle: {color, opacity: 1},
-            data,
-          })
-        );
-      }
-    });
-
-    return plottableSeries;
+    );
   }
 }

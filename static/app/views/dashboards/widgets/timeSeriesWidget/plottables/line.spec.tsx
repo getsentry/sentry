@@ -1,7 +1,5 @@
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {defined} from 'sentry/utils/defined';
-
 import {Line} from './line';
 
 describe('Line', () => {
@@ -19,59 +17,25 @@ describe('Line', () => {
     yAxisPosition: 'left' as const,
   };
 
-  it.each([
-    {segmentBy: [], lineStyles: [[undefined, undefined]]},
-    {
-      segmentBy: ['completeness'],
-      lineStyles: [
-        [undefined, undefined],
-        ['dotted', undefined],
-      ],
-    },
-    {
-      segmentBy: ['confidence'],
-      lineStyles: [
-        [undefined, undefined],
-        [undefined, 0.45],
-        [undefined, undefined],
-      ],
-    },
-    {
-      segmentBy: ['completeness', 'confidence'],
-      lineStyles: [
-        [undefined, undefined],
-        [undefined, 0.45],
-        ['dotted', undefined],
-      ],
-    },
-  ] as const)('segments by $segmentBy', ({segmentBy, lineStyles}) => {
-    const series = new Line(timeSeries).toSeries({...plottingOptions, segmentBy});
+  it('draws complete data normally and incomplete data dotted', () => {
+    const series = new Line(timeSeries).toSeries(plottingOptions);
 
-    expect(series.map(s => [s.lineStyle?.type, s.lineStyle?.opacity])).toEqual(
-      lineStyles
-    );
+    expect(series.map(s => s.lineStyle?.type)).toEqual([undefined, 'dotted']);
   });
 
-  it.each([
-    {segmentBy: [], flags: [{}, {}, {}]},
-    {segmentBy: ['completeness'], flags: [{}, {}, {completeness: 'incomplete'}]},
-    {segmentBy: ['confidence'], flags: [{}, {confidence: 'low'}, {}]},
-  ] as const)('attaches flags for $segmentBy to data points', ({segmentBy, flags}) => {
-    const series = new Line(timeSeries).toSeries({...plottingOptions, segmentBy});
+  it('attaches confidence to data points', () => {
+    const series = new Line(timeSeries).toSeries(plottingOptions);
     const dataPoints = series.flatMap(s => s.data as Array<Record<string, unknown>>);
 
-    const flagsByTimestamp = new Map(
-      dataPoints.map(({value, confidence, completeness}) => [
+    const confidenceByTimestamp = new Map(
+      dataPoints.map(({value, confidence}) => [
         (value as [number, number])[0],
-        {
-          ...(defined(confidence) && {confidence}),
-          ...(defined(completeness) && {completeness}),
-        },
+        confidence,
       ])
     );
 
-    expect(timeSeries.values.map(item => flagsByTimestamp.get(item.timestamp))).toEqual(
-      flags
-    );
+    expect(
+      timeSeries.values.map(item => confidenceByTimestamp.get(item.timestamp))
+    ).toEqual([undefined, 'low', undefined]);
   });
 });

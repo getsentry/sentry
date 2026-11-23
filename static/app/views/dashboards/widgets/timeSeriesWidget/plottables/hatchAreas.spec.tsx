@@ -27,7 +27,7 @@ describe('HatchAreas', () => {
     expect(new HatchAreas([], config).isEmpty).toBe(true);
   });
 
-  it('draws a hatched area across the full plot height behind the data', () => {
+  it('draws a hatched area across the full plot height over the data', () => {
     const [series] = new HatchAreas([{start: 1_000, end: 3_000}], config).toSeries();
 
     expect(series).toEqual(
@@ -36,7 +36,7 @@ describe('HatchAreas', () => {
         encode: {x: [0, 1]},
         silent: true,
         tooltip: {show: false},
-        z: 1,
+        z: 3,
       })
     );
 

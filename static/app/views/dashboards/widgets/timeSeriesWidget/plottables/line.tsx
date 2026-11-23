@@ -2,15 +2,10 @@ import type {LineSeriesOption} from 'echarts';
 
 import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
-import {
-  segmentTimeSeriesByDisplayStyle,
-  type TimeSeriesDisplayStyle,
-} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
-import {LOW_CONFIDENCE_OPACITY} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
+import {segmentTimeSeriesByIncompleteData} from 'sentry/utils/timeSeries/segmentTimeSeriesByIncompleteData';
 
 import {
   ContinuousTimeSeries,
-  DEFAULT_SEGMENT_BY,
   type ContinuousTimeSeriesPlottingOptions,
 } from './continuousTimeSeries';
 import type {Plottable} from './plottable';
@@ -18,7 +13,6 @@ import type {Plottable} from './plottable';
 export class Line extends ContinuousTimeSeries implements Plottable {
   toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions) {
     const {config = {}} = this;
-    const segmentBy = plottingOptions.segmentBy ?? DEFAULT_SEGMENT_BY;
 
     const color = plottingOptions.color ?? config.color ?? undefined;
 
@@ -29,22 +23,15 @@ export class Line extends ContinuousTimeSeries implements Plottable {
       yAxisIndex: plottingOptions.yAxisPosition === 'left' ? 0 : 1,
     };
 
-    const segments = segmentTimeSeriesByDisplayStyle(this.timeSeries, {segmentBy});
-
-    return segments.map(([timeSeries, style]) =>
-      createLineSeries({
-        ...commonOptions,
-        ...STYLE_OPTIONS[style],
-        data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(item =>
-          this.toDataPoint(item, segmentBy)
-        ),
-      })
+    return segmentTimeSeriesByIncompleteData(this.timeSeries).map(
+      ([timeSeries, isIncomplete]) =>
+        createLineSeries({
+          ...commonOptions,
+          ...(isIncomplete && {lineStyle: {type: 'dotted'}, silent: true}),
+          data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(item =>
+            this.toDataPoint(item)
+          ),
+        })
     );
   }
 }
-
-const STYLE_OPTIONS: Record<TimeSeriesDisplayStyle, Partial<LineSeriesOption>> = {
-  normal: {},
-  lowConfidence: {lineStyle: {opacity: LOW_CONFIDENCE_OPACITY}},
-  incomplete: {lineStyle: {type: 'dotted'}, silent: true},
-};

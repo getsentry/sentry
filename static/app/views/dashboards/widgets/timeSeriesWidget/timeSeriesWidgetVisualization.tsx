@@ -46,7 +46,6 @@ import {getUserTimezone} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {mergeTimeRanges} from 'sentry/utils/timeSeries/mergeTimeRanges';
-import type {TimeSeriesSegmentField} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
@@ -226,10 +225,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // TODO: It would be polite to also scan for gaps (i.e., the items don't all
   // have the same difference in `timestamp`s) even though this is rare, since
   // the backend zerofills the data
-
-  const segmentBy: readonly TimeSeriesSegmentField[] = props.showConfidence
-    ? ['completeness', 'confidence']
-    : ['completeness'];
 
   const chartRef = useRef<ReactEchartsRef | null>(null);
   const connectChartRef = useCallback((e: ReactEchartsRef | null) => {
@@ -447,7 +442,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined)
         );
 
-        if (isLowConfidenceDataPoint(valueFormatterParams.data)) {
+        if (props.showConfidence && isLowConfidenceDataPoint(valueFormatterParams.data)) {
           return `${formattedValue} <span style="color: ${theme.tokens.content.warning}">${escape(t('(Low confidence)'))}</span>`;
         }
 
@@ -660,7 +655,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const thresholdMaxOffset = 10;
 
-  const lowConfidenceAreas = segmentBy.includes('confidence')
+  const lowConfidenceAreas = props.showConfidence
     ? new HatchAreas(
         mergeTimeRanges(
           props.plottables
@@ -719,7 +714,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       color,
       yAxisPosition: getYAxisPosition(plottable),
       unit: unitForType[plottable.dataType ?? FALLBACK_TYPE],
-      segmentBy,
       theme,
       maxOffset: thresholdMaxOffset,
       bounds: dataBounds,
