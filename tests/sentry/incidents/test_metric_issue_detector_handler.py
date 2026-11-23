@@ -7,13 +7,13 @@ from sentry.api.serializers import serialize
 from sentry.incidents.grouptype import MetricIssue, MetricIssueDetectorHandler
 from sentry.incidents.typings.metric_issue_evidence import MetricIssueOccurrenceResponse
 from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.incidents.utils.types import ProcessedSubscriptionUpdate
+from sentry.incidents.utils.types import StaticDetectorDataPacket
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.workflow_engine.models import DataCondition, DataPacket, DetectorState
+from sentry.workflow_engine.models import DataCondition, DetectorState
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.data_packet import process_data_packet
 from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueTest
@@ -381,17 +381,17 @@ class TestMetricIssueOccurrenceResponse(BaseMetricIssueTest):
 
 
 class TestMetricIssueDetectorActivationId(BaseMetricIssueTest):
-    def firing_packet(self, time_jump: int) -> DataPacket[ProcessedSubscriptionUpdate]:
+    def firing_packet(self, time_jump: int) -> StaticDetectorDataPacket:
         value = self.critical_detector_trigger.comparison + 1
 
         return self.create_subscription_packet(value, time_jump)
 
-    def resolution_packet(self, time_jump: int) -> DataPacket[ProcessedSubscriptionUpdate]:
+    def resolution_packet(self, time_jump: int) -> StaticDetectorDataPacket:
         value = self.resolve_detector_trigger.comparison - 1
 
         return self.create_subscription_packet(value, time_jump)
 
-    def fingerprint(self, packet: DataPacket[ProcessedSubscriptionUpdate]) -> list[str]:
+    def fingerprint(self, packet: StaticDetectorDataPacket) -> list[str]:
         detector_result = self.process_packet_and_return_result(packet)
 
         assert detector_result is not None

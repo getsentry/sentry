@@ -16,6 +16,7 @@ from sentry.incidents.utils.query_helpers import (
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
 from sentry.incidents.utils.types import (
     AnomalyDetectionProcessedSubscriptionUpdate,
+    MetricDetectorDataPacket,
     MetricDetectorProcessedSubscriptionUpdate,
     ProcessedSubscriptionUpdate,
     QuerySubscriptionUpdate,
@@ -29,7 +30,7 @@ from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
 from sentry.utils.memory import track_memory_usage
 from sentry.workflow_engine.caches.detector import get_detectors_by_data_source
-from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.processors.data_packet import process_data_packet
 
 logger = logging.getLogger(__name__)
@@ -182,7 +183,7 @@ class SubscriptionProcessor:
 
     def _create_data_packet(
         self, subscription_update: QuerySubscriptionUpdate
-    ) -> DataPacket[MetricDetectorProcessedSubscriptionUpdate] | None:
+    ) -> MetricDetectorDataPacket | None:
         extracted_value = self._extract_value_from_update(subscription_update)
 
         if extracted_value is None:
@@ -242,7 +243,9 @@ class SubscriptionProcessor:
             )
             return None
 
-        return DataPacket(source_id=self.subscription_id, packet=processed_subscription_update)
+        return MetricDetectorDataPacket(
+            source_id=self.subscription_id, packet=processed_subscription_update
+        )
 
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> bool:
         """

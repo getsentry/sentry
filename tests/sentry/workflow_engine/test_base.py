@@ -11,7 +11,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.incidents.utils.types import ProcessedSubscriptionUpdate
+from sentry.incidents.utils.types import ProcessedSubscriptionUpdate, StaticDetectorDataPacket
 from sentry.integrations.services.integration.service import integration_service
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -29,7 +29,6 @@ from sentry.utils.registry import AlreadyRegisteredError
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
-    DataPacket,
     DataSource,
     Detector,
     DetectorWorkflow,
@@ -264,7 +263,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
 
     def create_test_query_data_source(
         self, detector: Detector
-    ) -> tuple[SnubaQuery, QuerySubscription, DataSource, DataPacket[ProcessedSubscriptionUpdate]]:
+    ) -> tuple[SnubaQuery, QuerySubscription, DataSource, StaticDetectorDataPacket]:
         """
         Create a DataSource and DataPacket for testing; this will create a QuerySubscriptionUpdate and link it to a data_source.
 
@@ -314,7 +313,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
             )
 
         # Create a data_packet from the update for testing
-        data_packet = DataPacket[ProcessedSubscriptionUpdate](
+        data_packet = StaticDetectorDataPacket(
             source_id=str(subscription_update.subscription_id),
             packet=subscription_update,
         )

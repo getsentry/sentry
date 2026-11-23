@@ -29,7 +29,7 @@ from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
 from sentry.incidents.utils.types import (
-    MetricDetectorProcessedSubscriptionUpdate,
+    MetricDetectorDataPacket,
     ProcessedSubscriptionUpdate,
 )
 from sentry.investigations.services.breached_metrics import code_mode_dataset
@@ -42,7 +42,7 @@ from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
 from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
-from sentry.workflow_engine.models import DataCondition, DataPacket, DataSourceDetector, Detector
+from sentry.workflow_engine.models import DataCondition, DataSourceDetector, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -166,7 +166,7 @@ def create_synthetic_breach(context: SyntheticBreachContext) -> tuple[Group, str
     submitted_at = timezone.now()
     breach_start = submitted_at - timedelta(minutes=15)
     value = synthetic_value(context.condition)
-    packet = DataPacket[MetricDetectorProcessedSubscriptionUpdate](
+    packet = MetricDetectorDataPacket(
         source_id=str(context.subscription.id),
         packet=ProcessedSubscriptionUpdate(
             entity="admin-synthetic-metric-breach",

@@ -8,6 +8,7 @@ from sentry.incidents.utils.constants import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION as DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
 )
 from sentry.workflow_engine.handlers.detector.base import EvidenceData
+from sentry.workflow_engine.models.data_source import DataPacket
 
 
 class QuerySubscriptionUpdateValues(TypedDict):
@@ -51,6 +52,12 @@ class AnomalyDetectionProcessedSubscriptionUpdate:
 MetricDetectorProcessedSubscriptionUpdate = (
     ProcessedSubscriptionUpdate | AnomalyDetectionProcessedSubscriptionUpdate
 )
+
+
+MetricDetectorDataPacket = DataPacket[MetricDetectorProcessedSubscriptionUpdate]
+StaticDetectorDataPacket = DataPacket[ProcessedSubscriptionUpdate]
+PercentDetectorDataPacket = DataPacket[ProcessedSubscriptionUpdate]
+AnomalyDetectionDataPacket = DataPacket[AnomalyDetectionProcessedSubscriptionUpdate]
 
 
 MetricResult = float | AnomalyDetectionEvaluationValues

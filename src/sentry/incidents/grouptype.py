@@ -11,6 +11,7 @@ from sentry.incidents.models.alert_rule import AlertRuleDetectionType, Compariso
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.incidents.utils.types import (
     AnomalyDetectionProcessedSubscriptionUpdate,
+    MetricDetectorDataPacket,
     MetricDetectorProcessedSubscriptionUpdate,
     MetricResult,
 )
@@ -24,7 +25,6 @@ from sentry.workflow_engine.handlers.detector import DetectorOccurrence, Statefu
 from sentry.workflow_engine.handlers.detector.base import EventData
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
-from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
@@ -45,7 +45,7 @@ class MetricIssueDetectorHandler(
     def build_detector_evidence_data(
         self,
         group_evaluation: DataConditionGroupEvaluation | None,
-        data_packet: DataPacket[MetricDetectorProcessedSubscriptionUpdate],
+        data_packet: MetricDetectorDataPacket,
         priority: DetectorPriorityLevel,
     ) -> dict[str, Any]:
         try:
@@ -64,7 +64,7 @@ class MetricIssueDetectorHandler(
     def create_occurrence(
         self,
         evaluation: DetectorEvaluation,
-        data_packet: DataPacket[MetricDetectorProcessedSubscriptionUpdate],
+        data_packet: MetricDetectorDataPacket,
     ) -> tuple[DetectorOccurrence, EventData]:
         priority = evaluation.priority
 
@@ -119,14 +119,10 @@ class MetricIssueDetectorHandler(
             },
         )
 
-    def extract_dedupe_value(
-        self, data_packet: DataPacket[MetricDetectorProcessedSubscriptionUpdate]
-    ) -> int:
+    def extract_dedupe_value(self, data_packet: MetricDetectorDataPacket) -> int:
         return int(data_packet.packet.timestamp.timestamp())
 
-    def extract_value(
-        self, data_packet: DataPacket[MetricDetectorProcessedSubscriptionUpdate]
-    ) -> MetricResult:
+    def extract_value(self, data_packet: MetricDetectorDataPacket) -> MetricResult:
         if isinstance(data_packet.packet, AnomalyDetectionProcessedSubscriptionUpdate):
             return data_packet.packet.values
         return data_packet.packet.values["value"]
