@@ -24,17 +24,15 @@ function useReminderData() {
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
   const hasTokenBasedSeer = isTokenBilledSeerEnabled(organization);
   const hasLegacySeer = organization.features.includes('seer-added');
-  const hasCodeReviewBeta = organization.features.includes('code-review-beta');
 
   const analyticsParams = useMemo(() => {
     return {
       can_write_settings: canWrite,
-      has_code_review_beta: hasCodeReviewBeta,
       has_legacy_seer: hasLegacySeer,
       has_seat_based_seer: hasSeatBasedSeer,
       has_token_based_seer: hasTokenBasedSeer,
     };
-  }, [canWrite, hasSeatBasedSeer, hasTokenBasedSeer, hasLegacySeer, hasCodeReviewBeta]);
+  }, [canWrite, hasSeatBasedSeer, hasTokenBasedSeer, hasLegacySeer]);
 
   const {
     isPending,

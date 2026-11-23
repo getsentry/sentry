@@ -22,11 +22,8 @@ export default function SeerAutomation() {
   const organization = useOrganization();
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
   const hasLegacySeer = organization.features.includes('seer-added');
-  const hasCodeReviewBeta = organization.features.includes('code-review-beta');
   const showNoActiveSeerSubscriptionBanner =
-    !hasSeatBasedSeer &&
-    (hasLegacySeer || hasCodeReviewBeta) &&
-    subscription?.canSelfServe;
+    !hasSeatBasedSeer && hasLegacySeer && subscription?.canSelfServe;
 
   if (showNewSeer(organization)) {
     return (

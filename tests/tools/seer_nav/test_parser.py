@@ -209,7 +209,6 @@ def test_show_new_seer_becomes_its_flag_checks() -> None:
                 {
                     "all": [
                         {"not": {"flag": "seer-added"}},
-                        {"not": {"flag": "code-review-beta"}},
                         {"flag": "seer-user-billing-launch"},
                     ]
                 },

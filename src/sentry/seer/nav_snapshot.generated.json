@@ -355,11 +355,6 @@
                   }
                 },
                 {
-                  "not": {
-                    "flag": "code-review-beta"
-                  }
-                },
-                {
                   "flag": "seer-user-billing-launch"
                 }
               ]
@@ -387,11 +382,6 @@
                 }
               },
               {
-                "not": {
-                  "flag": "code-review-beta"
-                }
-              },
-              {
                 "flag": "seer-user-billing-launch"
               }
             ]
@@ -403,14 +393,7 @@
       "crumbs": "Settings → Seer → Code Review",
       "path": "/settings/seer/repos/",
       "when": {
-        "any": [
-          {
-            "flag": "seat-based-seer-enabled"
-          },
-          {
-            "flag": "code-review-beta"
-          }
-        ]
+        "flag": "seat-based-seer-enabled"
       }
     },
     {
@@ -431,11 +414,6 @@
                   {
                     "not": {
                       "flag": "seer-added"
-                    }
-                  },
-                  {
-                    "not": {
-                      "flag": "code-review-beta"
                     }
                   },
                   {
@@ -467,11 +445,6 @@
               {
                 "not": {
                   "flag": "seer-added"
-                }
-              },
-              {
-                "not": {
-                  "flag": "code-review-beta"
                 }
               },
               {

@@ -288,9 +288,7 @@ function getOrganizationNavigationConfiguration({
           description: t("Manage Seer's automated code review settings"),
           id: 'seer-code-review',
           show: ({organization}) =>
-            !!organization &&
-            (organization.features.includes('seat-based-seer-enabled') ||
-              organization.features.includes('code-review-beta')),
+            !!organization && organization.features.includes('seat-based-seer-enabled'),
         },
         {
           path: `${organizationSettingsPathPrefix}/seer/connectors/`,

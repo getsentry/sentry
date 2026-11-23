@@ -43,22 +43,6 @@ describe('showNewSeer', () => {
     });
   });
 
-  describe('code-review-beta trial', () => {
-    it('returns false when code-review-beta is present', () => {
-      const organization = OrganizationFixture({features: ['code-review-beta']});
-
-      expect(showNewSeer(organization)).toBe(false);
-    });
-
-    it('returns false even with launch flags when code-review-beta is present', () => {
-      const organization = OrganizationFixture({
-        features: ['code-review-beta', 'seer-user-billing-launch'],
-      });
-
-      expect(showNewSeer(organization)).toBe(false);
-    });
-  });
-
   describe('seer-user-billing-launch flag', () => {
     it('returns true when seer-user-billing-launch is present', () => {
       const organization = OrganizationFixture({features: ['seer-user-billing-launch']});
