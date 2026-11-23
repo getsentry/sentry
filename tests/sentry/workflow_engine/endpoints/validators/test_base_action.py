@@ -15,6 +15,11 @@ def test_investigation_settings_require_the_seer_configuration_api() -> None:
         BaseActionValidator().validate_type(Action.Type.SEER_INVESTIGATION)
 
 
+def test_inbox_action_cannot_be_configured_in_an_alert() -> None:
+    with pytest.raises(ValidationError, match="managed internally"):
+        BaseActionValidator().validate_type(Action.Type.ADD_TO_INBOX)
+
+
 @mock.patch(
     "sentry.workflow_engine.registry.action_handler_registry.get",
     return_value=MockActionHandler,
