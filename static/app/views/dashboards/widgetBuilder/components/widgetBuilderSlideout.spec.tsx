@@ -726,6 +726,47 @@ describe('WidgetBuilderSlideout', () => {
     );
   });
 
+  it('should not show deprecation alert for non-transaction widgets', async () => {
+    const organizationWithFeature = OrganizationFixture({
+      features: ['performance-transaction-deprecation-banner'],
+    });
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithFeature,
+        initialRouterConfig: {
+          route: '/dashboards/:widgetIndex/',
+          location: {
+            pathname: '/dashboards/1/',
+            query: {dataset: WidgetType.ERRORS, displayType: DisplayType.LINE},
+          },
+        },
+      }
+    );
+    renderGlobalModal();
+
+    expect(await screen.findByText('Visualize')).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        /Editing of transaction-based widgets is disabled, as we migrate to the span dataset/i
+      )
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('transaction-widget-disabled-wrapper')
+    ).not.toBeInTheDocument();
+  });
+
   it('should not show the query filter builder if the widget is an issue and a chart display type', async () => {
     render(
       <WidgetBuilderProvider>

@@ -228,4 +228,26 @@ describe('QueryFilterBuilder', () => {
     );
     expect(searchBar).toBeDisabled();
   });
+
+  it('enables search bar for non-transaction widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {query: [], dataset: WidgetType.ERRORS, displayType: DisplayType.LINE},
+          },
+        },
+      }
+    );
+
+    const searchBar = await screen.findByPlaceholderText(
+      'Search for events, users, tags, and more'
+    );
+    expect(searchBar).toBeEnabled();
+  });
 });
