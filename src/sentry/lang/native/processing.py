@@ -601,7 +601,9 @@ def _process_flamegraphs(symbolicator: Symbolicator, data: Any) -> bool:
                 reason = "merge_error"
                 output = merge_frames(payload, symbolication_input.frame_ids, resolved_stacktraces)
                 reason = "save_error"
-                attachments_changed |= flamegraphs.save(attachment_index, output)
+                if flamegraphs.save(attachment_index, output):
+                    attachments_changed = True
+                    metrics.incr("process.native.flamegraph.processed")
             except SymbolicationTimeout as error:
                 sentry_sdk.capture_exception(error)
                 metrics.incr("process.native.flamegraph.skipped", tags={"reason": "timeout"})

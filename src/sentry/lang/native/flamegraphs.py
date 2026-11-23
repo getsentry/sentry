@@ -5,6 +5,7 @@ from typing import Any, TypedDict
 import rapidjson
 import sentry_sdk
 from rest_framework import serializers
+from sentry_sdk import traces
 
 from sentry import features
 from sentry.attachments import (
@@ -165,6 +166,8 @@ class Flamegraphs:
         for index, attachment in enumerate(self._attachments):
             if attachment.type != "event.flamegraph":
                 continue
+            # Lets dashboards compare received against processed plus skipped to spot dropped attachments.
+            metrics.incr("process.native.flamegraph.received")
             reason = "load_error"
             try:
                 try:
@@ -208,6 +211,17 @@ class Flamegraphs:
                 sentry_sdk.capture_exception(error)
                 metrics.incr("process.native.flamegraph.skipped", tags={"reason": reason})
                 continue
+            # Span attributes instead of Datadog distributions, which veneur fans out into seven
+            # per-host series each and would add thousands of billed custom metrics.
+            span = traces.get_current_span()
+            if span:
+                span.set_attributes(
+                    {
+                        "flamegraph.size": len(raw),
+                        "flamegraph.frames": len(payload["frames"]),
+                        "flamegraph.nodes": len(payload["nodes"]),
+                    }
+                )
             yield index, payload
 
     def save(self, attachment_index: int, payload: dict[str, Any]) -> bool:

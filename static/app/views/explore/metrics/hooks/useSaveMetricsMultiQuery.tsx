@@ -1,14 +1,14 @@
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 import {useMutation} from '@tanstack/react-query';
+import {useQueryStates} from 'nuqs';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {decodeScalar, encodeSort} from 'sentry/utils/queryString';
+import {encodeSort} from 'sentry/utils/queryString';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useInvalidateSavedQueries,
@@ -16,6 +16,7 @@ import {
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {serializeAggregateFields} from 'sentry/views/explore/queryParams/aggregateField';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {
   isVisualize,
   isVisualizeFunction,
@@ -24,9 +25,9 @@ import {
 const METRICS_DATASET = 'metrics';
 
 export function useSaveMetricsMultiQuery() {
-  const location = useLocation();
-  const id = decodeScalar(location.query.id);
-  const title = decodeScalar(location.query.title);
+  const [savedQueryParams] = useQueryStates({id: parseAsScalar, title: parseAsScalar});
+  const id = savedQueryParams.id ?? undefined;
+  const title = savedQueryParams.title ?? undefined;
 
   const metricQueries = useMultiMetricsQueryParams();
 

@@ -5,6 +5,10 @@ import {parseAsStringLiteral, useQueryStates} from 'nuqs';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
+import {
+  type CollapsibleExpandAll,
+  CollapsibleExpandAllContext,
+} from 'sentry/components/ai/chat/collapsibleContent';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -39,6 +43,7 @@ export const CONVERSATION_VIEW_TABS: readonly ConversationViewTab[] = [
 interface ConversationViewContentProps {
   activeTab: ConversationViewTab;
   conversation: UseConversationsOptions;
+  expandAll?: CollapsibleExpandAll | null;
   focusedTool?: string | null;
   /** The transcript, for a page that already built it. Passed to `MessagesPanel`. */
   messages?: ConversationMessage[];
@@ -57,6 +62,7 @@ export function ConversationViewContent({
   onDeselectSpan,
   onViewTimeline,
   focusedTool,
+  expandAll = null,
 }: ConversationViewContentProps) {
   const isTimeline = activeTab === 'timeline';
 
@@ -205,14 +211,16 @@ export function ConversationViewContent({
               />
             )}
             {isTranscript ? (
-              <MessagesPanel
-                isLoading={isLoading}
-                nodes={nodes}
-                messages={messages}
-                selectedNodeId={displayedNode?.id ?? null}
-                onSelectNode={handleSelectAndOpenDetail}
-                onViewTimeline={onViewTimeline}
-              />
+              <CollapsibleExpandAllContext value={expandAll}>
+                <MessagesPanel
+                  isLoading={isLoading}
+                  nodes={nodes}
+                  messages={messages}
+                  selectedNodeId={displayedNode?.id ?? null}
+                  onSelectNode={handleSelectAndOpenDetail}
+                  onViewTimeline={onViewTimeline}
+                />
+              </CollapsibleExpandAllContext>
             ) : (
               <AiSpanTimeline
                 isLoading={isLoading}

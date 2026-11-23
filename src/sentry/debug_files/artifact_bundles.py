@@ -10,6 +10,7 @@ from django.conf import settings
 from django.db import router
 from django.db.models import Count, Exists, OuterRef
 from django.utils import timezone
+from objectstore_client import ObjectNotFound
 from sentry_redis_tools.clients import RedisCluster
 from sentry_sdk import traces
 
@@ -22,6 +23,7 @@ from sentry.models.artifactbundle import (
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
+    artifact_bundle_retention,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -157,11 +159,9 @@ def index_urls_in_bundle(
     skip_debug_id_names = options.get("sourcemaps.artifact-bundles.index-skip-debug-id-names")
 
     # We first open up the bundle and extract all the things we want to index from it.
-    if existing_archive is None:
-        assert artifact_bundle.file is not None
-        archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
-    else:
-        archive = existing_archive
+    archive = existing_archive or ArtifactBundleArchive(
+        artifact_bundle.get_file(), build_memory_map=False
+    )
     urls_to_index = []
     skipped_urls = 0
     try:
@@ -243,6 +243,26 @@ def maybe_renew_artifact_bundles(used_artifact_bundles: dict[int, datetime]) -> 
 @traces.trace
 def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now: datetime) -> None:
     metrics.incr("artifact_bundle_renewal.need_renewal")
+    query = ArtifactBundle.objects.filter(id=artifact_bundle_id, date_added__lte=threshold_date)
+    bundle = query.get_or_none()
+    if bundle is None:
+        return
+
+    # Do network I/O before the transaction. Only advance the database timestamp after
+    # Objectstore has extended the expiry, so a failed request is retried on the next access.
+    if bundle.storage_path is not None:
+        try:
+            # Use `at` to align the deadline with the `date_added` we write below.
+            # A retried `from_now` would push it further out.
+            bundle.get_objectstore_session().extend_expiry(
+                bundle.storage_path, at=now + artifact_bundle_retention()
+            )
+        except ObjectNotFound:
+            return
+        except Exception:
+            logger.exception("artifact_bundle.objectstore_renewal_failed")
+            return
+
     # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
     with atomic_transaction(
         using=(
@@ -253,11 +273,8 @@ def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now
             router.db_for_write(ArtifactBundleIndex),
         )
     ):
-        # We check again for the date_added condition in order to achieve consistency, this is done because
-        # the `can_be_renewed` call is using a time which differs from the one of the actual update in the db.
-        updated_rows_count = ArtifactBundle.objects.filter(
-            id=artifact_bundle_id, date_added__lte=threshold_date
-        ).update(date_added=now)
+        # Assembly and other renewals refresh date_added, so recheck the age on update.
+        updated_rows_count = query.update(date_added=now)
         # We want to make cascading queries only if there were actual changes in the db. Nothing reads `date_added`
         # from the rows linked to the bundle, so with `date-only-on-bundle` they aren't renewed, which spares
         # rewriting every URL index and debug-ID row of the bundle.

@@ -1395,9 +1395,6 @@
   "views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
-  "views/explore/components/attributeBreakdowns/floatingTrigger.tsx": {
-    "@sentry/prefer-nuqs": {"count": 1}
-  },
   "views/explore/components/attributeBreakdowns/styles.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
@@ -1423,7 +1420,6 @@
   "views/explore/conversations/components/messagesPanel.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 1}
   },
-  "views/explore/conversations/onboarding.tsx": {"@sentry/prefer-nuqs": {"count": 1}},
   "views/explore/hooks/useTraceItemDetails.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {"count": 2}
   },
@@ -1438,7 +1434,6 @@
     "@sentry/require-fake-timer-cleanup": {"count": 1}
   },
   "views/explore/logs/logsOnboarding.tsx": {
-    "@sentry/prefer-nuqs": {"count": 1},
     "@sentry/scraps/no-dom-coupling": {"count": 2},
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
@@ -1467,13 +1462,8 @@
     "@sentry/scraps/no-dom-coupling": {"count": 1},
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
-  "views/explore/metrics/metricsHeatMap.tsx": {"@sentry/prefer-nuqs": {"count": 1}},
   "views/explore/metrics/metricsOnboarding.tsx": {
-    "@sentry/prefer-nuqs": {"count": 1},
     "@sentry/scraps/no-dom-coupling": {"count": 1}
-  },
-  "views/explore/metrics/metricsTabSeerComboBox.tsx": {
-    "@sentry/prefer-nuqs": {"count": 1}
   },
   "views/explore/metrics/metricToolbar/metricSelector/metricSelector.tsx": {
     "@sentry/scraps/prefer-container-responsive-props": {"count": 14}
@@ -1629,14 +1619,8 @@
   "views/explore/replays/selectors/projectInfo.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
-  "views/explore/savedFormulas/savedFormulasTable.tsx": {
-    "@sentry/prefer-nuqs": {"count": 1}
-  },
   "views/explore/savedQueries/exploreParams.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 1}
-  },
-  "views/explore/savedQueries/savedQueriesLandingContent.tsx": {
-    "@sentry/prefer-nuqs": {"count": 1}
   },
   "views/explore/savedQueries/savedQueriesTable.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 2},
