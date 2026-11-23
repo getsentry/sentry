@@ -28,11 +28,7 @@ describe('AccountAppearance', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     ConfigStore.set('user', user);
-    MockApiClient.addMockResponse({
-      url: '/users/me/',
-      method: 'GET',
-      body: user,
-    });
+    MockApiClient.addMockResponse({url: '/users/me/', method: 'GET', body: user});
   });
 
   describe('without theme-variants', () => {

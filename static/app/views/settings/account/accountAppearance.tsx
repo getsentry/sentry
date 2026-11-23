@@ -18,9 +18,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 import {THEME_OPTIONS, themeSchema} from './accountDetails';
 
-const appearanceSchema = z.object({
-  theme: themeSchema,
-});
+const appearanceSchema = z.object({theme: themeSchema});
 
 const themeMutationOptions = mutationOptions({
   mutationFn: (options: Partial<User['options']>) => {
