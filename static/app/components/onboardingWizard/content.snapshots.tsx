@@ -84,25 +84,31 @@ const partialBeyondBasics = [
   makeTask(OnboardingTaskKey.SECOND_PLATFORM, 'Add Sentry to other parts of your app'),
 ];
 
+const partialGettingStarted = [
+  makeTask(OnboardingTaskKey.FIRST_PROJECT, 'Create your first project', 'complete'),
+  makeTask(OnboardingTaskKey.FIRST_EVENT, 'Capture your first error'),
+  makeTask(OnboardingTaskKey.INVITE_MEMBER, 'Invite your team'),
+];
+
 describe('OnboardingSidebarContent', () => {
   it.snapshot(
     'getting-started-in-progress',
     () => {
-      mockTasks(
-        [
-          makeTask(
-            OnboardingTaskKey.FIRST_PROJECT,
-            'Create your first project',
-            'complete'
-          ),
-          makeTask(OnboardingTaskKey.FIRST_EVENT, 'Capture your first error'),
-          makeTask(OnboardingTaskKey.INVITE_MEMBER, 'Invite your team'),
-        ],
-        partialBeyondBasics
-      );
+      mockTasks(partialGettingStarted, partialBeyondBasics);
       return <QuickStart />;
     },
     {interaction: {hover: 'text=Invite your team'}}
+  );
+
+  it.snapshot(
+    'expanded-group-header-hover',
+    () => {
+      mockTasks(partialGettingStarted, partialBeyondBasics);
+      return <QuickStart />;
+    },
+    // The collapse button is hidden until its header is hovered. Hover it to
+    // capture the group caret in line with the task carets below it.
+    {interaction: {hover: 'div:has(> [aria-label="Collapse"])'}}
   );
 
   it.snapshot(
