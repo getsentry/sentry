@@ -2,6 +2,10 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {annotate, hasAnnotations} from '@sentry/scraps/markdown/annotation';
 
+import {
+  type CollapsibleExpandAll,
+  CollapsibleExpandAllContext,
+} from 'sentry/components/ai/chat/collapsibleContent';
 import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -487,14 +491,17 @@ describe('MessagesPanel', () => {
     expect(screen.queryByText('3 tool calls')).not.toBeInTheDocument();
   });
 
-  it('collapses a long run of tool calls behind a summary and expands on click', async () => {
-    render(
-      <MessagesPanel
-        nodes={createNodesWithToolCalls(['t1', 't2', 't3', 't4', 't5']) as any}
-        selectedNodeId={null}
-        onSelectNode={mockOnSelectNode}
-      />
+  it('collapses a long run of tool calls behind a summary and expands on click or with expand all', async () => {
+    const renderPanel = (expandAll: CollapsibleExpandAll | null) => (
+      <CollapsibleExpandAllContext value={expandAll}>
+        <MessagesPanel
+          nodes={createNodesWithToolCalls(['t1', 't2', 't3', 't4', 't5']) as any}
+          selectedNodeId={null}
+          onSelectNode={mockOnSelectNode}
+        />
+      </CollapsibleExpandAllContext>
     );
+    const {rerender} = render(renderPanel(null));
 
     // Collapsed by default: the summary is shown inside a closed details.
     const summary = screen.getByText('5 tool calls');
@@ -507,6 +514,12 @@ describe('MessagesPanel', () => {
     expect(details).toHaveAttribute('open');
     expect(screen.getByText('t1')).toBeInTheDocument();
     expect(screen.getByText('t5')).toBeInTheDocument();
+
+    rerender(renderPanel({generation: 1, open: false}));
+    expect(details).not.toHaveAttribute('open');
+
+    rerender(renderPanel({generation: 2, open: true}));
+    expect(details).toHaveAttribute('open');
   });
 
   it('shows the error count in the tool call summary', () => {

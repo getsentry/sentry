@@ -231,6 +231,37 @@ describe('Composer', () => {
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
+  it('filters a large suggestion list and selects a matching mention', async () => {
+    const height = jest
+      .spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
+      .mockReturnValue(200);
+    const suggestions = Array.from({length: 50}, (_, index) => ({
+      id: `user:${index}`,
+      label: `Person${index}`,
+    }));
+    const source: TestComposerSource = {
+      ...MEMBER_SOURCE,
+      getSuggestions: query =>
+        suggestions.filter(suggestion => suggestion.label.includes(query)),
+    };
+
+    render(<ControlledComposer sources={[source]} />);
+    const textbox = getEditor();
+    await userEvent.type(textbox, '@');
+    expect(await screen.findByRole('option', {name: 'Person0'})).toBeVisible();
+    expect(screen.queryByRole('option', {name: 'Person49'})).not.toBeInTheDocument();
+
+    await userEvent.keyboard('Person49');
+    await screen.findByRole('option', {name: 'Person49'});
+    await userEvent.keyboard('{Enter}');
+
+    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(
+      '@Person49 |user:49'
+    );
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    height.mockRestore();
+  });
+
   it('selects the current suggestion with Tab', async () => {
     render(<ControlledComposer />);
 

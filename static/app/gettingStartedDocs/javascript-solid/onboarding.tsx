@@ -1,5 +1,8 @@
 import {Fragment} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {tracePropagationBlock} from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
   DocsParams,
@@ -43,6 +46,13 @@ const getVerifySnippet = (params: DocsParams) => {
 export const onboarding: OnboardingConfig = {
   introduction: () => (
     <Fragment>
+      <Alert variant="info">
+        {tct('Using Solid 2? Follow the [link:Solid 2 guide] instead.', {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/solid/solid-2/" />
+          ),
+        })}
+      </Alert>
       <p>
         {tct(
           "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",

@@ -1129,6 +1129,11 @@ class RPCBase:
     def build_top_event_conditions(
         cls, resolver: SearchResolver, top_events: EAPResponse, groupby_columns: list[str]
     ) -> Any:
+        exact_resolver = resolver
+        if resolver.params.case_insensitive:
+            exact_params = resolver.params.copy()
+            exact_params.case_insensitive = False
+            exact_resolver = replace(resolver, params=exact_params)
         conditions = []
         other_conditions = []
         for event in top_events["data"]:
@@ -1144,7 +1149,7 @@ class RPCBase:
                         ]
                 else:
                     value = event[key]
-                resolved_term, context = resolver.resolve_term(
+                resolved_term, context = exact_resolver.resolve_term(
                     SearchFilter(
                         key=SearchKey(name=key),
                         operator="=",
@@ -1153,7 +1158,7 @@ class RPCBase:
                 )
                 if resolved_term is not None:
                     row_conditions.extend(resolved_term)
-                other_term, context = resolver.resolve_term(
+                other_term, context = exact_resolver.resolve_term(
                     SearchFilter(
                         key=SearchKey(name=key),
                         operator="!=",

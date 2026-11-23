@@ -2429,11 +2429,11 @@ requires-dist = [
     { name = "sentry-kafka-schemas", specifier = ">=3.0.2" },
     { name = "sentry-ophio", specifier = ">=1.3.1" },
     { name = "sentry-options", specifier = ">=1.2.15" },
-    { name = "sentry-protos", specifier = ">=0.124.1" },
+    { name = "sentry-protos", specifier = ">=0.128.0" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.10.2" },
     { name = "sentry-scm", specifier = ">=4.0.0" },
-    { name = "sentry-sdk", extras = ["http2"], specifier = ">=3.0.0rc1" },
+    { name = "sentry-sdk", extras = ["http2"], specifier = ">=3.0.1b2" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "sentry-viewercontext", specifier = ">=0.2.0" },
     { name = "simplejson", specifier = ">=3.17.6" },
@@ -2610,7 +2610,7 @@ wheels = [
 
 [[package]]
 name = "sentry-protos"
-version = "0.124.1"
+version = "0.128.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "grpc-stubs" },
@@ -2618,7 +2618,7 @@ dependencies = [
     { name = "protobuf" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.124.1-py3-none-any.whl", hash = "sha256:219f7f78edbce4ab49af5c71545b1ac07c128561f993caf963e98ffaa3fc0346" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.128.0-py3-none-any.whl", hash = "sha256:ea5fcfa4da5c705fffdd83a06c77521c6d4be86bd61c13878473534c6ef321f5" },
 ]
 
 [[package]]
@@ -2662,14 +2662,14 @@ wheels = [
 
 [[package]]
 name = "sentry-sdk"
-version = "3.0.0rc1"
+version = "3.0.1b2"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "certifi" },
     { name = "urllib3" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_sdk-3.0.0rc1-py3-none-any.whl", hash = "sha256:4574e57e9b00965574115c3c604df1335a6dfb9a0ffa5dbec38b0b4e60e47601" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_sdk-3.0.1b2-py3-none-any.whl", hash = "sha256:1deb2e2ca609193db3bcebe7f9ecd3596097a0401d36a639ee499d08878dd2c2" },
 ]
 
 [package.optional-dependencies]
