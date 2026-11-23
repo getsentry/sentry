@@ -62,6 +62,7 @@ class NotebookWriterTest(APITestCase):
         """An account linked to `project_ids`, or to every project when it's None."""
         service_account = self.create_service_account(
             organization=self.organization,
+            name="all-projects" if project_ids is None else "limited-projects",
             scope_list=["org:read"],
             project_ids=project_ids or (),
             all_projects=project_ids is None,
@@ -108,6 +109,18 @@ class NotebookWriterTest(APITestCase):
         self.login_as(self.user)
         assert self.client.get(url).status_code == 403
 
+    def test_project_limited_reads_exclude_unscoped_notebooks(self) -> None:
+        restricted, _ = self.service_account_client([self.project.id])
+        unrestricted, _ = self.service_account_client()
+        index = self.url("sentry-api-0-organization-notebooks")
+        detail = self.url(
+            "sentry-api-0-organization-notebook-details", notebook_id=self.notebook.id
+        )
+        assert restricted.get(index).data == []
+        assert restricted.get(detail).status_code == 403
+        assert [item["id"] for item in unrestricted.get(index).data] == [str(self.notebook.id)]
+        assert unrestricted.get(detail).status_code == 200
+
     def test_disabled_investigations_blocks_workflow_notebook_producer(self) -> None:
         url = self.url("sentry-api-0-organization-notebook-workflow", workflow_run_id=uuid4())
         agent = self.agent_client()
@@ -137,6 +150,9 @@ class NotebookWriterTest(APITestCase):
         other_org = self.viewer_client(actor, self.create_organization().id)
         assert other_org.put(writer_url, body).status_code == 403
         system = self.viewer_client(actor, self.organization.id)
+        with self.feature({"organizations:investigations": False}):
+            assert system.put(writer_url, body).status_code == 404
+        assert agent.get(url).data["writerRunUuid"] is None
         receipt = system.put(writer_url, body)
         assert receipt.status_code == 200, receipt.data
         assert system.put(writer_url, body).data == receipt.data

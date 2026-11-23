@@ -2,7 +2,7 @@
 
 from datetime import timedelta
 from typing import Any
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from django.db import router, transaction
 from django.db.models import Case, DateTimeField, Value, When
@@ -12,11 +12,15 @@ from rest_framework.exceptions import APIException
 
 from sentry.investigations.models import WorkflowNodeRun, WorkflowRun
 from sentry.models.organization import Organization
-from sentry.notebooks.models import Notebook
+from sentry.notebooks.models import Notebook, NotebookSourceType
 from sentry.notebooks.services import NotebookValidationError
 from sentry.notebooks.services.workflow import open_workflow_notebook
 
 PAUSED_RECOVERY_INTERVAL = timedelta(hours=1)
+
+
+def metric_workflow_request_id(notebook_id: int) -> UUID:
+    return uuid5(NAMESPACE_URL, f"sentry:metric-investigation-v2:{notebook_id}")
 
 
 class StaleWorkflow(APIException):
@@ -110,6 +114,12 @@ def create_run(
                         organization,
                         run.uuid,
                         destination=target,
+                        generate_placeholder_title=(
+                            target is not None
+                            and target.source_type == NotebookSourceType.METRIC_OPEN_PERIOD
+                            and (target.source_key or "").startswith("v2:")
+                            and run.request_id == metric_workflow_request_id(target.id)
+                        ),
                         title=definition["name"],
                         project_ids=destination["projectIds"],
                         creator={

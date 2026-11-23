@@ -6,6 +6,9 @@ from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry.investigations.models import WorkflowNodeRun, WorkflowRun
+from sentry.investigations.services.workflow_runtime import metric_workflow_request_id
+from sentry.notebooks.models import NotebookSourceType, NotebookWorkflowRun
+from sentry.notebooks.services.notebooks import default_notebook_title
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
@@ -65,6 +68,22 @@ class WorkflowStorageTest(APITestCase):
             },
             "destination": {"projectIds": []},
         }
+
+    def test_monitor_launch_can_name_its_preallocated_draft(self) -> None:
+        notebook = self.create_notebook(
+            organization=self.organization,
+            source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
+            source_key="v2:metric:example",
+            source_revision=1,
+            title=default_notebook_title(NotebookSourceType.METRIC_OPEN_PERIOD),
+        )
+        self.checkpoint["request_id"] = str(metric_workflow_request_id(notebook.id))
+        self.payload["destination"] = {"projectIds": [], "notebookId": str(notebook.id)}
+        response = self.client.post(self.url, self.payload, format="json", **self.system)
+        assert response.status_code == 200, response.data
+        assert not NotebookWorkflowRun.objects.get(
+            notebook=notebook, run_id=self.run_id
+        ).preserve_title
 
     def test_atomic_creation_checkpoint_activity_and_notebook_projection(self) -> None:
         def create() -> Response:
