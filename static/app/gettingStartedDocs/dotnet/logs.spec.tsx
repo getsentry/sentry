@@ -68,6 +68,9 @@ describe('dotnet logs onboarding docs', () => {
         )
       )
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/builder\.WebHost/))
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'logs documentation'})).toHaveAttribute(
       'href',
       'https://docs.sentry.io/platforms/dotnet/guides/maui/logs/'

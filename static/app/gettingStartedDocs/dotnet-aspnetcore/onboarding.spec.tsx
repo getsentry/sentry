@@ -86,6 +86,9 @@ describe('aspnetcore onboarding docs', () => {
     expect(
       screen.getByText(textWithMarkupMatcher(/app\.Logger\.LogInformation/))
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/call builder\.WebHost\.UseSentry instead/))
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'logs documentation'})).toHaveAttribute(
       'href',
       'https://docs.sentry.io/platforms/dotnet/guides/aspnetcore/logs/'

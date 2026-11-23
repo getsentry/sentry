@@ -27,6 +27,7 @@ Install-Package Sentry.EntityFramework -Version ${getPackageVersion(
 const getConfigureSnippet = (params: DocsParams) => `
 using System;
 using System.Configuration;
+using System.Web;
 using System.Web.Mvc;
 using System.Web.Routing;
 using Sentry;

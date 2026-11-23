@@ -87,7 +87,8 @@ ${logger}.LogWarning("A {Parameter} log message", "formatted");`,
 /**
  * @param logger For platforms that keep the `EnableLogs` opt-in, in the `UseSentry`
  * callback or in `appsettings.json`: the `ILogger` the verify snippet logs through. Leave
- * it out for platforms that call `SentrySdk.Init`.
+ * it out for platforms that call `SentrySdk.Init`. For `app.Logger`, the Configure step
+ * also says that 6.x has `UseSentry` on `builder.WebHost`, not on the builder.
  * @param sdkPackage The NuGet package the platform's onboarding installs, when that isn't
  * `Sentry`. Installing `Sentry` at a newer major version than the platform's package
  * breaks the app, at build or at startup.
@@ -169,6 +170,17 @@ export const logs = ({
     options.EnableLogs = true;
 });`,
                   },
+              ...(logger === 'app.Logger'
+                ? ([
+                    {
+                      type: 'text',
+                      text: tct(
+                        'On SDK versions before [code:7.0.0], call [code:builder.WebHost.UseSentry] instead.',
+                        {code: <code />}
+                      ),
+                    },
+                  ] satisfies ContentBlock[])
+                : []),
             ] satisfies ContentBlock[])
           : ([
               {

@@ -14,12 +14,14 @@ import {
   type DotNetSdkPackage,
 } from './utils';
 
+// The attributes are a Dictionary, not a collection expression, which needs C# 12: .NET
+// Framework projects default to C# 7.3. An array is ambiguous between two overloads.
 const METRICS_EMIT_SNIPPET = `SentrySdk.Metrics.EmitCounter("button_click", 5,
-    [new KeyValuePair<string, object>("browser", "Firefox"), new KeyValuePair<string, object>("app_version", "1.0.0")]);
+    new Dictionary<string, object> { ["browser"] = "Firefox", ["app_version"] = "1.0.0" });
 SentrySdk.Metrics.EmitDistribution("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
-    [new KeyValuePair<string, object>("page", "/home")]);
+    new Dictionary<string, object> { ["page"] = "/home" });
 SentrySdk.Metrics.EmitGauge("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
-    [new KeyValuePair<string, object>("page", "/home")]);`;
+    new Dictionary<string, object> { ["page"] = "/home" });`;
 
 export const metricsVerify = (params: DocsParams): ContentBlock => ({
   type: 'conditional',

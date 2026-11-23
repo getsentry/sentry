@@ -12,7 +12,11 @@ describe('metrics', () => {
     renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.METRICS]});
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/SentrySdk\.Metrics\.EmitCounter/))
+      screen.getByText(
+        textWithMarkupMatcher(
+          /SentrySdk\.Metrics\.EmitCounter\("button_click", 5,\s+new Dictionary<string, object> \{ \["browser"\] = "Firefox"/
+        )
+      )
     ).toBeInTheDocument();
   });
 

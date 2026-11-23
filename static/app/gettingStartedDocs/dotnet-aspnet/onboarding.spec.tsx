@@ -37,6 +37,9 @@ describe('aspnet onboarding docs', () => {
         textWithMarkupMatcher(/Install-Package Sentry\.EntityFramework -Version 2\.88\.8/)
       )
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/using System\.Web;/))
+    ).toBeInTheDocument();
   });
 
   it('renders performance onboarding docs correctly', async () => {
@@ -77,6 +80,10 @@ describe('aspnet onboarding docs', () => {
     expect(
       screen.getByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'logs documentation'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/dotnet/guides/aspnet/logs/'
+    );
   });
 
   it('renders the metrics onboarding for this platform', async () => {
