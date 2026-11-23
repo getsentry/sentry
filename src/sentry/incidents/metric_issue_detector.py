@@ -247,7 +247,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 raise serializers.ValidationError("Too many conditions")
 
         if "config" in attrs:
-            self._validate_config(attrs["config"])
+            self._validate_config(attrs)
 
         if "data_sources" in attrs:
             self._validate_data_sources(attrs)
@@ -285,7 +285,8 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         self.validate_eap_rule(attrs)
         self._validate_metric_subscription_allowed(attrs)
 
-    def _validate_config(self, config: Any) -> None:
+    def _validate_config(self, attrs: dict[str, Any]) -> None:
+        config = attrs.get("config")
         if not isinstance(config, dict):
             raise serializers.ValidationError({"config": ["`config` must be an object."]})
 
