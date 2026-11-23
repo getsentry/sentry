@@ -16,7 +16,7 @@ class OrganizationMetricDetectorQuotaTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_counts_enabled_metric_detectors(self, _limit: mock.MagicMock) -> None:
+    def test_counts_enabled_metric_detectors(self, _mock_get_limit: mock.MagicMock) -> None:
         self.create_detector(project=self.project, type=MetricIssue.slug, enabled=True)
         self.create_detector(project=self.project, type=MetricIssue.slug, enabled=False)
 
@@ -24,7 +24,7 @@ class OrganizationMetricDetectorQuotaTest(APITestCase):
 
         assert response.data == {"count": 1, "limit": 3, "hasReachedLimit": False}
 
-    def test_has_reached_limit(self, _limit: mock.MagicMock) -> None:
+    def test_has_reached_limit(self, _mock_get_limit: mock.MagicMock) -> None:
         for _ in range(3):
             self.create_detector(project=self.project, type=MetricIssue.slug, enabled=True)
 
@@ -40,7 +40,9 @@ class OrganizationMetricDetectorQuotaTest(APITestCase):
 
         assert response.data == {"count": -1, "limit": -1, "hasReachedLimit": False}
 
-    def test_counts_projects_the_user_is_not_a_member_of(self, _limit: mock.MagicMock) -> None:
+    def test_counts_projects_the_user_is_not_a_member_of(
+        self, _mock_get_limit: mock.MagicMock
+    ) -> None:
         member_team = self.create_team(organization=self.organization)
         other_team = self.create_team(organization=self.organization)
         other_project = self.create_project(organization=self.organization, teams=[other_team])

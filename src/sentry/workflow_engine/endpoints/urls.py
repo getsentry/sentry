@@ -60,7 +60,7 @@ organization_urlpatterns = [
         name="sentry-api-0-organization-detector-count",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/detectors/metric-quota/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/detectors/metric-detector-quota/$",
         OrganizationMetricDetectorQuotaEndpoint.as_view(),
         name="sentry-api-0-organization-metric-detector-quota",
     ),
