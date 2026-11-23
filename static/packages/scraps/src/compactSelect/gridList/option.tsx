@@ -41,7 +41,7 @@ export interface GridListOptionProps<
  * A <li /> element with accessibile behaviors & attributes.
  * https://react-spectrum.adobe.com/react-aria/useGridList.html
  */
-function GridListOptionImpl<T extends ListItemBase>({
+export const GridListOption = memo(function GridListOption<T extends ListItemBase>({
   node,
   listState,
   size,
@@ -185,7 +185,4 @@ function GridListOptionImpl<T extends ListItemBase>({
       data-test-id={node.key}
     />
   );
-}
-
-// `memo` drops the type parameter, so restore the generic signature.
-export const GridListOption = memo(GridListOptionImpl) as typeof GridListOptionImpl;
+});
