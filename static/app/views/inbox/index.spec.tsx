@@ -5,7 +5,14 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {InboxItemFixture} from 'sentry-fixture/inboxItem';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PRELOAD_HANDLE} from 'sentry/router/preload';
 import {buildRoutes} from 'sentry/router/routes';
@@ -188,16 +195,79 @@ describe('Inbox', () => {
   it('links to the Inbox notification settings', async () => {
     render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
-    const settingsButton = await screen.findByRole('button', {
-      name: 'Inbox notification settings',
-    });
-    expect(settingsButton).toHaveAttribute(
-      'href',
-      '/settings/account/notifications/inbox/'
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Inbox actions'}));
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Notification settings'})
+    ).toHaveAttribute('href', '/settings/account/notifications/inbox/');
+  });
 
-    await userEvent.hover(settingsButton);
-    expect(await screen.findByText('Go to Inbox settings')).toBeInTheDocument();
+  it.each(['Mark all as read', 'Remove all read'])('can cancel %s', async action => {
+    const removeRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/inbox/',
+      method: 'DELETE',
+    });
+    render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Inbox actions'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: action}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Cancel'}));
+
+    expect(markReadRequest).not.toHaveBeenCalled();
+    expect(removeRequest).not.toHaveBeenCalled();
+    expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(2);
+    expect(
+      screen.getByRole('link', {name: readNotebookItem.subject.title})
+    ).toBeInTheDocument();
+  });
+
+  it('marks the entire inbox as read after confirmation', async () => {
+    render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Inbox actions'}));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Mark all as read'})
+    );
+    expect(markReadRequest).not.toHaveBeenCalled();
+    await userEvent.click(await screen.findByRole('button', {name: 'Mark all as read'}));
+
+    expect(markReadRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/inbox/',
+      expect.objectContaining({method: 'PUT', query: {}, data: {isRead: true}})
+    );
+    expect(screen.queryByTestId('unread-inbox-item-indicator')).not.toBeInTheDocument();
+  });
+
+  it('removes only read items across the inbox after confirmation', async () => {
+    const removeRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/inbox/',
+      method: 'DELETE',
+      statusCode: 204,
+    });
+    render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
+    renderGlobalModal();
+
+    await screen.findByRole('link', {name: readNotebookItem.subject.title});
+    await userEvent.click(screen.getByRole('button', {name: 'Inbox actions'}));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Remove all read'})
+    );
+    expect(removeRequest).not.toHaveBeenCalled();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/inbox/',
+      body: [issueItem, notebookItem],
+    });
+    await userEvent.click(await screen.findByRole('button', {name: 'Remove all read'}));
+
+    expect(removeRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/inbox/',
+      expect.objectContaining({method: 'DELETE', query: {is_read: 'true'}})
+    );
+    expect(
+      screen.queryByRole('link', {name: readNotebookItem.subject.title})
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(2);
   });
 
   it('shows an error state when items fail to load', async () => {
