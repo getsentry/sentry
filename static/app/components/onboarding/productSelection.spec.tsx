@@ -127,6 +127,36 @@ describe('Onboarding Product Selection', () => {
     );
   });
 
+  it('drops disabled products from the URL selection', async () => {
+    const handleLoad = jest.fn();
+    const initialQuery = {
+      product: [ProductSolution.METRICS, ProductSolution.PERFORMANCE_MONITORING],
+    };
+
+    const {router} = render(
+      <ProductSelection
+        organization={organization}
+        platform="python"
+        onLoad={handleLoad}
+      />,
+      {initialRouterConfig: {location: {pathname: '/', query: initialQuery}}}
+    );
+
+    expect(
+      screen.getByRole('presentation', {name: 'Application Metrics'})
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('presentation', {name: 'Application Metrics'})
+    ).not.toBeChecked();
+    expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeChecked();
+    expect(handleLoad).toHaveBeenCalledWith([ProductSolution.PERFORMANCE_MONITORING]);
+    await waitFor(() =>
+      expect(router.location.query).toEqual({
+        product: ProductSolution.PERFORMANCE_MONITORING,
+      })
+    );
+  });
+
   it('does not render Session Replay if not available for the platform', () => {
     platformProductAvailability['javascript-react'] = [
       ProductSolution.PERFORMANCE_MONITORING,
