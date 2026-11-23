@@ -65,7 +65,7 @@ describe('useSeerAutoReloadModalLink', () => {
     // The modal gets the reason from the link.
     expect(
       await screen.findByText(
-        'Your organization hit its daily Seer usage limit. Only owners and billing members can manage auto-reload, so ask your admin to increase the limit.'
+        'Your organization hit its daily Seer usage limit. Only owners and billing members can change the limit, so ask your admin to raise it.'
       )
     ).toBeInTheDocument();
     expect(router.location.pathname).toBe(`/organizations/${organization.slug}/issues/`);

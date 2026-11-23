@@ -825,7 +825,7 @@ describe('openSeerAutoTopUpModal', () => {
 
       expect(
         await screen.findByText(
-          'Your organization hit its daily Seer usage limit. Only owners and billing members can manage auto-reload, so ask your admin to increase the limit.'
+          'Your organization hit its daily Seer usage limit. Only owners and billing members can change the limit, so ask your admin to raise it.'
         )
       ).toBeInTheDocument();
       await userEvent.click(await screen.findByRole('button', {name: 'Contact Admin'}));
@@ -852,7 +852,7 @@ describe('openSeerAutoTopUpModal', () => {
 
       expect(
         screen.getByText(
-          'Only owners and billing members can manage auto-reload. Ask your admin to turn it on or increase your daily usage limit.'
+          'Only owners and billing members can manage auto-reload. Ask your admin to turn it on or raise the daily usage limit.'
         )
       ).toBeInTheDocument();
       await userEvent.click(await screen.findByRole('button', {name: 'Contact Admin'}));
@@ -928,7 +928,7 @@ describe('openSeerAutoTopUpModal', () => {
 
         expect(
           await screen.findByText(
-            'Your organization hit its daily Seer usage limit. Only owners and billing members can manage auto-reload, so ask your admin to increase the limit.'
+            'Your organization hit its daily Seer usage limit. Only owners and billing members can change the limit, so ask your admin to raise it.'
           )
         ).toBeInTheDocument();
         // Tests run in UTC with the clock frozen at 2017-10-17T02:41:20Z, so the
@@ -1051,7 +1051,7 @@ describe('openSeerAutoTopUpModal', () => {
 
       expect(
         screen.getByText(
-          'Your organization ran out of Seer credits. Only owners and billing members can manage auto-reload, so ask your admin to turn it on.'
+          'Your organization ran out of Seer credits. Only owners and billing members can manage auto-reload, so ask your admin to check it.'
         )
       ).toBeInTheDocument();
       expect(
