@@ -20,7 +20,15 @@ class SeerInvestigationActionHandler(ActionHandler):
     group = ActionHandler.Group.OTHER
     required_features = (FeatureGate("organizations:seer-automations"),)
     config_schema = {"type": "object", "properties": {}, "additionalProperties": False}
-    data_schema = {"type": "object", "properties": {}, "additionalProperties": False}
+    # Mirrors the strategy's ``action_settings_type``, which is what validates writes.
+    data_schema = {
+        "type": "object",
+        "properties": {
+            "prompt": {"type": "string", "minLength": 1, "maxLength": 4096},
+            "skill": {"type": "string", "enum": ["agentic_triage"]},
+        },
+        "additionalProperties": False,
+    }
 
     @classmethod
     @override

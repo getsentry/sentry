@@ -47,6 +47,7 @@ from sentry.seer.workflows.base import (
     SelectedMonitors,
     SelectedProjects,
     WorkflowUpdateError,
+    get_config_action_settings_bulk,
 )
 from sentry.seer.workflows.breached_metrics import (
     ConnectedMonitor,
@@ -463,10 +464,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 
         grant: SeerServiceAccountGrant = data["serviceAccount"]
         check_can_grant_service_account(grant, request, organization, self)
-        extras = SeerWorkflowConfigExtras(
-            trigger_settings=data.get("triggerSettings"),
-            action_settings=data.get("actionSettings"),
-        )
+        extras = SeerWorkflowConfigExtras(trigger_settings=data.get("triggerSettings"))
         try:
             if strategy is SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
                 workflow = SeerWorkflow.create(
@@ -478,6 +476,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                     name=data.get("name"),
                     created_by_id=acting_user_id(request.user),
                     extras=extras,
+                    action_settings=data.get("actionSettings"),
                     service_account_grant=grant,
                 )
             elif strategy is SeerWorkflowStrategy.SCHEDULED_INVESTIGATION:
@@ -495,6 +494,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                     name=data.get("name"),
                     created_by_id=acting_user_id(request.user),
                     extras=extras,
+                    action_settings=data.get("actionSettings"),
                     service_account_grant=grant,
                 )
             else:
@@ -876,6 +876,7 @@ def serialize_workflow_configs(
     )
     last_runs_by_config_id = {run.config_id: run for run in last_runs}
     next_run_times = get_next_run_times(configs)
+    action_settings = get_config_action_settings_bulk(configs)
     return {
         "configs": [
             serialize_workflow_config(
@@ -889,6 +890,7 @@ def serialize_workflow_configs(
                     else None
                 ),
                 next_run_at=next_run_times.get(config.id),
+                action_settings=action_settings.get(config.id, {}),
             )
             for config in configs
         ]
@@ -959,6 +961,7 @@ def serialize_workflow_config(
     last_run: WorkflowConfigLastRun | None,
     service_account: SeerServiceAccountResponse | None,
     next_run_at: datetime | None,
+    action_settings: dict[str, Any],
 ) -> SeerWorkflowConfigResponse:
     extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
     filters = SeerWorkflowFilters.parse_obj(config.filters)
@@ -991,7 +994,7 @@ def serialize_workflow_config(
         "outputPolicy": config.output_policy,
         "seededDefault": extras.seeded_default,
         "triggerSettings": extras.trigger_settings or {},
-        "actionSettings": extras.action_settings or {},
+        "actionSettings": action_settings,
         "nextRunAt": next_run_at,
         "dateAdded": config.date_added,
         "dateUpdated": config.date_updated,

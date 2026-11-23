@@ -526,7 +526,8 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["actionSettings"] == {"prompt": "Check checkout latency"}
         config.refresh_from_db()
         assert config.extras["trigger_settings"] == response.data["triggerSettings"]
-        assert config.extras["action_settings"] == response.data["actionSettings"]
+        workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
+        assert workflow.action_settings == response.data["actionSettings"]
 
         self.get_error_response(
             self.organization.slug,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
@@ -33,6 +33,7 @@ from sentry.seer.workflows.base import (
     SeerServiceAccountGrant,
     SelectedMonitors,
     WorkflowUpdateError,
+    get_config_action_settings_bulk,
     lock_config,
     validate_service_account_grant,
 )
@@ -93,13 +94,14 @@ class SeerWorkflow:
                     organization_id=organization_id,
                     strategy=strategy.value,
                     filters=SeerWorkflowFilters(all_projects=True).dict(),
-                    extras=SeerWorkflowConfigExtras(
-                        seeded_default=strategy,
-                        action_settings=SEER_DEFAULT_ACTION_SETTINGS.get(strategy),
-                    ).dict(exclude_none=True),
+                    extras=SeerWorkflowConfigExtras(seeded_default=strategy).dict(
+                        exclude_none=True
+                    ),
                 )
                 update = ConfigUpdate(LockedConfig(config), get_definition(strategy))
                 update.setup_backing_workflow(name=None, created_by_id=None, enabled=False)
+                if (action_settings := SEER_DEFAULT_ACTION_SETTINGS.get(strategy)) is not None:
+                    update.set_action_settings(action_settings)
                 config.save(using=database, update_fields=sorted(update.dirty_fields))
 
     @overload
@@ -116,6 +118,7 @@ class SeerWorkflow:
         name: str | None = ...,
         created_by_id: int | None = ...,
         extras: SeerWorkflowConfigExtras | None = ...,
+        action_settings: Mapping[str, Any] | None = ...,
         service_account_grant: SeerServiceAccountGrant,
     ) -> SeerWorkflow: ...
 
@@ -133,6 +136,7 @@ class SeerWorkflow:
         name: str | None = ...,
         created_by_id: int | None = ...,
         extras: SeerWorkflowConfigExtras | None = ...,
+        action_settings: Mapping[str, Any] | None = ...,
         service_account_grant: SeerServiceAccountGrant,
     ) -> SeerWorkflow: ...
 
@@ -149,6 +153,7 @@ class SeerWorkflow:
         name: str | None = None,
         created_by_id: int | None = None,
         extras: SeerWorkflowConfigExtras | None = None,
+        action_settings: Mapping[str, Any] | None = None,
         service_account_grant: SeerServiceAccountGrant,
     ) -> SeerWorkflow:
         """
@@ -169,6 +174,7 @@ class SeerWorkflow:
         extras = extras or SeerWorkflowConfigExtras()
         definition = get_definition(strategy)
         definition.validate_settings(extras)
+        definition.validate_action_settings(action_settings)
         scopes = validate_service_account_grant(organization_id, service_account_grant)
 
         database = router.db_for_write(SeerWorkflowConfig)
@@ -211,6 +217,8 @@ class SeerWorkflow:
                     name=name, created_by_id=created_by_id, enabled=enabled
                 )
                 update.set_scope(scope)
+                if action_settings:
+                    update.set_action_settings(action_settings)
                 if update.dirty_fields:
                     config.save(using=database, update_fields=sorted(update.dirty_fields))
                 definition.sync(config)
@@ -241,6 +249,11 @@ class SeerWorkflow:
     @property
     def extras(self) -> SeerWorkflowConfigExtras:
         return SeerWorkflowConfigExtras.parse_obj(self.get_config().extras)
+
+    @property
+    def action_settings(self) -> dict[str, Any]:
+        """What the automation's investigation action runs, such as a prompt or a skill."""
+        return get_config_action_settings_bulk([self.get_config()]).get(self.config_id, {})
 
     @property
     def filters(self) -> SeerWorkflowFilters:

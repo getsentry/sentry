@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -34,7 +34,7 @@ from sentry.service_accounts.models import (
 )
 from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.utils import json
-from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.models import Action, Workflow
 from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
@@ -234,18 +234,14 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
 
     def validate_settings(self, extras: SeerWorkflowConfigExtras) -> tuple[BaseModel, BaseModel]:
         """Return the parsed trigger and action settings."""
-        try:
-            return (
-                self.settings_type.parse_obj(extras.trigger_settings or {}),
-                self.action_settings_type.parse_obj(extras.action_settings or {}),
-            )
-        except ValidationError as e:
-            raise WorkflowUpdateError(
-                "; ".join(
-                    f"{'.'.join(str(part) for part in error['loc'])}: {error['msg']}"
-                    for error in e.errors()
-                )
-            ) from e
+        return (
+            _parse_settings(self.settings_type, extras.trigger_settings),
+            _parse_settings(NoSettings, extras.action_settings),
+        )
+
+    def validate_action_settings(self, action_settings: Mapping[str, Any] | None) -> BaseModel:
+        """Parse what the automation's investigation action stores in its ``data``."""
+        return _parse_settings(self.action_settings_type, action_settings)
 
     def has_quota_available(self, config: SeerWorkflowConfig) -> bool:
         """Allow runs until automation quota enforcement is implemented."""
@@ -375,6 +371,15 @@ class ConfigUpdate:
             self.config.filters = filters.dict()
             self.mark("filters")
 
+    def _investigation_action(self) -> Action:
+        try:
+            return Action.objects.get(
+                type=Action.Type.SEER_INVESTIGATION,
+                dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow=self._backing_workflow(),
+            )
+        except Action.DoesNotExist as e:
+            raise WorkflowUpdateError("The automation has no investigation action") from e
+
     def _backing_workflow(self) -> Workflow:
         workflow = self.config.backing_workflow
         if workflow is None:
@@ -386,10 +391,13 @@ class ConfigUpdate:
         extras.trigger_settings = trigger_settings
         self.set_extras(extras)
 
-    def set_action_settings(self, action_settings: dict[str, Any]) -> None:
-        extras = SeerWorkflowConfigExtras.parse_obj(self.config.extras)
-        extras.action_settings = action_settings
-        self.set_extras(extras)
+    def set_action_settings(self, action_settings: Mapping[str, Any]) -> None:
+        data = self.definition.validate_action_settings(action_settings).dict(exclude_none=True)
+        action = self._investigation_action()
+        if action.data != data:
+            action.data = data
+            action.save(update_fields=["data", "date_updated"])
+            self.mark_related_changed()
 
     def set_extras(self, extras: SeerWorkflowConfigExtras) -> None:
         self.definition.validate_settings(extras)
@@ -462,3 +470,34 @@ class ConfigUpdate:
         the workflow's organization.
         """
         self.definition.set_scope(self, selection)
+
+
+def get_config_action_settings_bulk(
+    configs: Sequence[SeerWorkflowConfig],
+) -> dict[int, dict[str, Any]]:
+    """Return what each config's investigation action stores in its ``data``, by config ID."""
+    config_ids_by_workflow_id = {
+        config.backing_workflow_id: config.id
+        for config in configs
+        if config.backing_workflow_id is not None
+    }
+    workflow_path = (
+        "dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow_id"
+    )
+    actions = Action.objects.filter(
+        type=Action.Type.SEER_INVESTIGATION,
+        **{f"{workflow_path}__in": config_ids_by_workflow_id},
+    ).values_list(workflow_path, "data")
+    return {config_ids_by_workflow_id[workflow_id]: data for workflow_id, data in actions}
+
+
+def _parse_settings(model: type[BaseModel], settings: Mapping[str, Any] | None) -> BaseModel:
+    try:
+        return model.parse_obj(settings or {})
+    except ValidationError as e:
+        raise WorkflowUpdateError(
+            "; ".join(
+                f"{'.'.join(str(part) for part in error['loc'])}: {error['msg']}"
+                for error in e.errors()
+            )
+        ) from e

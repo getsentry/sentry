@@ -58,6 +58,13 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
+from sentry.workflow_engine.models import (
+    Action,
+    DataConditionGroup,
+    DataConditionGroupAction,
+    Workflow,
+    WorkflowDataConditionGroup,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -162,6 +169,14 @@ class ScheduleDefinition(AutomationDefinition[ScheduledRunInputs]):
     settings_type = ScheduleSettings
     action_settings_type = ScheduledInvestigationSettings
     scoped_by: Literal["projects", "monitors"] = "projects"
+
+    def setup(self, update: ConfigUpdate, workflow: Workflow) -> None:
+        action = Action.objects.create(type=Action.Type.SEER_INVESTIGATION, config={}, data={})
+        action_group = DataConditionGroup.objects.create(
+            organization_id=update.config.organization_id, logic_type=DataConditionGroup.Type.ALL
+        )
+        WorkflowDataConditionGroup.objects.create(workflow=workflow, condition_group=action_group)
+        DataConditionGroupAction.objects.create(condition_group=action_group, action=action)
 
     def projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
         projects = Project.objects.filter(
