@@ -3,6 +3,7 @@ import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
@@ -14,7 +15,11 @@ import {InboxIssuePreview} from './inboxIssuePreview';
 describe('InboxIssuePreview', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
-  const group = GroupFixture({project});
+  const group = GroupFixture({
+    project,
+    firstSeen: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    lastSeen: new Date(Date.now() - 60 * 1000).toISOString(),
+  });
   const event = EventFixture({id: 'event-id', projectID: project.id});
 
   beforeEach(() => {
@@ -88,8 +93,12 @@ describe('InboxIssuePreview', () => {
     expect(
       within(sidebar).getByRole('button', {name: 'Modify issue priority'})
     ).toBeInTheDocument();
-    expect(within(sidebar).getByText('First seen')).toBeInTheDocument();
-    expect(within(sidebar).getByText('Last seen')).toBeInTheDocument();
+    expect(within(sidebar).getByRole('heading', {name: 'Last seen'})).toBeInTheDocument();
+    expect(
+      within(sidebar).getByRole('heading', {name: 'First seen'})
+    ).toBeInTheDocument();
+    expect(sidebar).toHaveTextContent(/Last seen\s*1min ago\s*First seen\s*2d ago/);
+    expect(sidebar).not.toHaveTextContent('in release');
     expect(await within(sidebar).findByText('No related resources')).toBeInTheDocument();
     expect(
       await within(sidebar).findByRole('heading', {name: 'External links', level: 3})
@@ -97,6 +106,23 @@ describe('InboxIssuePreview', () => {
     expect(
       within(sidebar).queryByRole('button', {name: 'Collapse Section'})
     ).not.toBeInTheDocument();
+  });
+
+  it('pairs each timestamp with its release', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
+      body: {
+        firstRelease: ReleaseFixture({version: '1.0.0'}),
+        lastRelease: ReleaseFixture({version: '1.1.0'}),
+      },
+    });
+
+    render(<InboxIssuePreview groupId={group.id} />, {organization});
+
+    const sidebar = await screen.findByRole('complementary', {name: 'Issue overview'});
+    expect(await within(sidebar).findByRole('link', {name: '1.1.0'})).toBeInTheDocument();
+    expect(sidebar).toHaveTextContent(/Last seen\s*1min ago\s*in release\s*1\.1\.0/);
+    expect(sidebar).toHaveTextContent(/First seen\s*2d ago\s*in release\s*1\.0\.0/);
   });
 
   it('links to the linked investigation and the top related issues', async () => {
