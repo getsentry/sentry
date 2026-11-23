@@ -3,6 +3,7 @@ import moment from 'moment-timezone';
 
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {DataCategory} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {
   ErrorsUpsellFooter,
@@ -32,7 +33,8 @@ export function useMaxPickableDays({
     function getMaxPickableDaysFor(dataCategory: DataCategory) {
       const maxPickableDays = getMaxPickableDaysBySubscription(
         dataCategory,
-        subscription
+        subscription,
+        organization
       );
       if (defined(maxPickableDays)) {
         return maxPickableDays;
@@ -46,7 +48,8 @@ export function useMaxPickableDays({
 
 function getMaxPickableDaysBySubscription(
   dataCategory: DataCategory,
-  subscription: Subscription | null
+  subscription: Subscription | null,
+  organization: Organization
 ): MaxPickableDaysOptions | undefined {
   switch (dataCategory) {
     case DataCategory.SPANS:
@@ -77,13 +80,13 @@ function getMaxPickableDaysBySubscription(
       };
     }
     case DataCategory.TRACE_METRICS: {
-      // Only the standard retention counts. Every plan includes 13 months of
-      // downsampled retention for trace metrics, which may be removed, so the
-      // picker goes past 30 days only when a longer standard retention is set.
-      const maxPickableDays = Math.max(
-        30,
-        subscription?.effectiveRetentions?.traceMetric?.standard ?? 30
-      );
+      // Downsampled retention for trace metrics may be removed, so only flagged
+      // orgs get a range longer than 30 days.
+      const maxPickableDays = organization.features.includes(
+        'dashboards-tracemetrics-90-day-range'
+      )
+        ? 90
+        : 30;
       return {maxPickableDays, maxUpgradableDays: maxPickableDays, defaultPeriod: '24h'};
     }
     case DataCategory.LOG_BYTE:
