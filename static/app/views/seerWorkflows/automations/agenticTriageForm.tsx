@@ -163,12 +163,16 @@ export function AgenticTriageForm(props: Props) {
         : value.projects.projectIds.map(Number),
       serviceAccount: {
         scopes: value.scopes,
-        projectIds: getServiceAccountProjectIds(
-          value.serviceAccountProjects,
-          [],
-          value.projects.allProjects ? [] : value.projects.projectIds
-        ).map(Number),
-        allProjects: value.serviceAccountProjects.allProjects,
+        // An automation scoped to all projects needs a service account that reaches them
+        projectIds: value.projects.allProjects
+          ? []
+          : getServiceAccountProjectIds(
+              value.serviceAccountProjects,
+              [],
+              value.projects.projectIds
+            ).map(Number),
+        allProjects:
+          value.projects.allProjects || value.serviceAccountProjects.allProjects,
       },
     };
     const environments = value.environment ? [value.environment] : [];
@@ -361,18 +365,14 @@ export function AgenticTriageForm(props: Props) {
 
           <FormSection title={t('Actions')}>
             <form.FieldGroup>
-              {/* Not configurable yet, so these show the fixed behavior */}
+              {/* Not configurable yet, so this shows the fixed behavior */}
               <DisplayField.Row
                 label={t('Start investigations')}
-                hintText={t('Automatically investigate connected monitor breaches.')}
+                hintText={t(
+                  '(mock) Automatically investigate connected monitor breaches.'
+                )}
               >
                 <Switch checked disabled aria-label={t('Start investigations')} />
-              </DisplayField.Row>
-              <DisplayField.Row
-                label={t('Send notifications')}
-                hintText={t('Post findings to alert targets of the connected monitors')}
-              >
-                <Switch checked disabled aria-label={t('Send notifications')} />
               </DisplayField.Row>
             </form.FieldGroup>
           </FormSection>
@@ -388,7 +388,11 @@ export function AgenticTriageForm(props: Props) {
                 <Disclosure>
                   <Disclosure.Title>
                     <ServiceAccountSummary
-                      access={serviceAccountProjects}
+                      access={
+                        scopeProjects.allProjects
+                          ? {...serviceAccountProjects, allProjects: true}
+                          : serviceAccountProjects
+                      }
                       scopeProjectIds={scopeProjectIds}
                       scopes={scopes}
                     />
@@ -409,6 +413,7 @@ export function AgenticTriageForm(props: Props) {
                                   <ProjectSelector
                                     value={field.state.value}
                                     scopeProjectIds={scopeProjectIds}
+                                    scopeAllProjects={scopeProjects.allProjects}
                                     disabled={readOnly}
                                     onChange={field.handleChange}
                                     emptyMessage={t(

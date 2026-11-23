@@ -185,6 +185,7 @@ export function ProjectSelector({
   value,
   monitors,
   scopeProjectIds,
+  scopeAllProjects = false,
   disabled,
   emptyMessage,
   onChange,
@@ -194,6 +195,10 @@ export function ProjectSelector({
   onChange: (value: ProjectSelection) => void;
   value: ProjectSelection;
   monitors?: MetricDetector[];
+  /**
+   * Whether the automation is scoped to all projects, which forces all projects here
+   */
+  scopeAllProjects?: boolean;
   /**
    * Projects the automation is scoped to
    */
@@ -207,6 +212,7 @@ export function ProjectSelector({
   for (const monitor of monitors ?? []) {
     monitorCounts.set(monitor.projectId, (monitorCounts.get(monitor.projectId) ?? 0) + 1);
   }
+  const allProjects = value.allProjects || scopeAllProjects;
   const scopeIds = new Set(scopeProjectIds);
   const isLocked = (projectId: string) =>
     monitorCounts.has(projectId) || scopeIds.has(projectId);
@@ -233,19 +239,23 @@ export function ProjectSelector({
       >
         <Flex>
           <Tooltip
-            disabled={canToggleAllProjects}
-            title={t('Only roles with access to all projects can change this.')}
+            disabled={canToggleAllProjects && !scopeAllProjects}
+            title={
+              scopeAllProjects
+                ? t('Included by automation scope')
+                : t('Only roles with access to all projects can change this.')
+            }
           >
             <Switch
               aria-label={t('All projects')}
-              checked={value.allProjects}
-              disabled={disabled || !canToggleAllProjects}
+              checked={allProjects}
+              disabled={disabled || !canToggleAllProjects || scopeAllProjects}
               onChange={() => onChange({...value, allProjects: !value.allProjects})}
             />
           </Tooltip>
         </Flex>
       </DisplayField.Row>
-      {!value.allProjects && (
+      {!allProjects && (
         <Flex align="center" justify="between" gap="md">
           <Text size="sm" variant="muted">
             {showReason
@@ -280,7 +290,7 @@ export function ProjectSelector({
           />
         </Flex>
       )}
-      {!value.allProjects && (
+      {!allProjects && (
         <SimpleTable
           columns={showReason ? PROJECT_COLUMNS_WITH_REASON : PROJECT_COLUMNS}
           header={

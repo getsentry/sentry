@@ -340,13 +340,17 @@ export function MetricAutomationForm(props: Props) {
               {/* Not configurable yet, so these show the fixed behavior */}
               <DisplayField.Row
                 label={t('Start investigations')}
-                hintText={t('Automatically investigate connected monitor breaches.')}
+                hintText={t(
+                  '(mock) Automatically investigate connected monitor breaches.'
+                )}
               >
                 <Switch checked disabled aria-label={t('Start investigations')} />
               </DisplayField.Row>
               <DisplayField.Row
                 label={t('Send notifications')}
-                hintText={t('Post findings to alert targets of the connected monitors')}
+                hintText={t(
+                  '(mock) Post findings to alert targets of the connected monitors'
+                )}
               >
                 <Switch checked disabled aria-label={t('Send notifications')} />
               </DisplayField.Row>
