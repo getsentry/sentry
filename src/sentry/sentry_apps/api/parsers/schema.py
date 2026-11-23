@@ -141,7 +141,8 @@ SCHEMA = {
                 "required_fields": {"$ref": "#/definitions/fieldset"},
                 "optional_fields": {"$ref": "#/definitions/fieldset"},
             },
-            "required": ["type", "uri", "required_fields"],
+            "required": ["type", "uri"],
+            "anyOf": [{"required": ["required_fields"]}, {"required": ["optional_fields"]}],
         },
         "alert-rule-action": {
             "type": "object",
@@ -203,6 +204,18 @@ DEFAULT_TEXT_TYPES = ["issue.title", "issue.description"]
 TEXT_COMPONENTS = ["text", "textarea"]
 
 UiElementSchema = Mapping[str, Any]
+
+
+def allows_empty_alert_settings(schema: UiElementSchema) -> bool:
+    for element in schema.get("elements", []):
+        if isinstance(element, dict) and element.get("type") == "alert-rule-action":
+            settings = element.get("settings")
+            return (
+                isinstance(settings, dict)
+                and bool(settings.get("optional_fields"))
+                and not settings.get("required_fields")
+            )
+    return False
 
 
 def validate_component(schema: UiElementSchema) -> None:

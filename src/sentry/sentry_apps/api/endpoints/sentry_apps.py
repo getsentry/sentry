@@ -112,7 +112,11 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 status=403,
             )
 
-        serializer = SentryAppParser(data=data, access=request.access, context={"request": request})
+        serializer = SentryAppParser(
+            data=data,
+            access=request.access,
+            context={"request": request, "organization": organization},
+        )
 
         if serializer.is_valid():
             validated_data = serializer.validated_data

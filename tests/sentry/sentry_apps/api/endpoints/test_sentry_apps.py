@@ -794,6 +794,17 @@ class PostSentryAppsTest(SentryAppsTest):
         with pytest.raises(SentryAppInstallationToken.DoesNotExist):
             SentryAppInstallationToken.objects.get(sentry_app_installation=sentry_app_installation)
 
+    def test_optional_only_alert_schema(self) -> None:
+        component = self.create_alert_rule_action_schema()
+        del component["settings"]["required_fields"]
+        data = self.get_data(isInternal=True, isAlertable=True, schema={"elements": [component]})
+        response = self.get_error_response(**data, status_code=400)
+        assert "required_fields" in response.data["schema"][0]
+
+        with self.feature("organizations:integrations-optional-alert-settings"):
+            response = self.get_success_response(**data, status_code=201)
+        assert response.data["schema"] == {"elements": [component]}
+
     def test_no_author_public_integration(self) -> None:
         response = self.get_error_response(**self.get_data(author=None), status_code=400)
         assert response.data == {"author": ["author required for public integrations"]}

@@ -240,6 +240,21 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
                 application_id=self.unpublished_app.application_id
             ).exists()
 
+    def test_update_optional_only_alert_schema(self) -> None:
+        component = self.create_alert_rule_action_schema()
+        del component["settings"]["required_fields"]
+        schema = {"elements": [component]}
+        with self.feature("organizations:integrations-optional-alert-settings"):
+            self.get_success_response(
+                self.internal_integration.slug, schema=schema, status_code=200
+            )
+
+        component["title"] = "Notify a channel"
+        response = self.get_success_response(
+            self.internal_integration.slug, schema=schema, status_code=200
+        )
+        assert response.data["schema"] == schema
+
     @override_options({"staff.ga-rollout": True})
     def test_update_internal_app(self) -> None:
         with outbox_runner():

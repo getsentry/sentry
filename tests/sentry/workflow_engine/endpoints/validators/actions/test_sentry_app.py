@@ -61,6 +61,48 @@ class TestSentryAppActionValidator(BaseWorkflowTest):
         assert result is True
         validator.save()
 
+    @mock.patch(
+        "sentry.rules.actions.sentry_apps.utils.app_service.trigger_sentry_app_action_creators"
+    )
+    def test_optional_settings_use_app_validation(self, trigger: mock.MagicMock) -> None:
+        component = self.create_alert_rule_action_schema()
+        del component["settings"]["required_fields"]
+        app = self.create_sentry_app(
+            organization=self.organization, schema={"elements": [component]}, is_alertable=True
+        )
+        install = self.create_sentry_app_installation(slug=app.slug, organization=self.organization)
+        config = {"targetType": ActionType.SENTRY_APP, "targetIdentifier": str(app.id)}
+        trigger.return_value = RpcAlertRuleActionResult(success=True, message="success")
+        action = None
+        overrides: list[list[dict[str, str]] | None] = [
+            None,
+            [{"name": "points", "value": "3"}],
+            [],
+        ]
+        for settings in overrides:
+            data = {} if settings is None else {"settings": settings}
+            validator = BaseActionValidator(
+                instance=action,
+                data={"type": Action.Type.SENTRY_APP, "config": config, "data": data},
+                context={"organization": self.organization},
+            )
+            assert validator.is_valid(), validator.errors
+            action = validator.save()
+            expected = settings or []
+            assert action.data == {"settings": expected}
+            trigger.assert_called_once_with(install_uuid=install.uuid, fields=expected)
+            trigger.reset_mock()
+
+        trigger.return_value = RpcAlertRuleActionResult(
+            success=False, message="Rejected", error_type=SentryAppErrorType.SENTRY
+        )
+        validator = BaseActionValidator(
+            data={"type": Action.Type.SENTRY_APP, "config": config, "data": {}},
+            context={"organization": self.organization},
+        )
+        assert not validator.is_valid()
+        assert "nonFieldErrors" in validator.errors
+
     def test_validate_rejects_non_list_settings(self) -> None:
         validator = BaseActionValidator(
             data={

@@ -87,6 +87,7 @@ class RpcSentryApp(RpcModel):
     webhook_url: str | None = None
     webhook_headers: list[str] = Field(repr=False, default_factory=list)
     is_alertable: bool = False
+    allows_empty_alert_settings: bool = False
     is_disabled: bool = False
     is_published: bool = False
     is_unpublished: bool = False

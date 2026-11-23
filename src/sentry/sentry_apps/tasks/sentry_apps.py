@@ -812,7 +812,7 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
         assert id is not None
 
         settings = f.kwargs.get("schema_defined_settings")
-        if settings:
+        if settings is not None:
             extra_kwargs["additional_payload_key"] = "issue_alert"
             extra_kwargs["additional_payload"] = {
                 "id": int(id),

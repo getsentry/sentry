@@ -98,6 +98,30 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         assert action["formFields"] == alert_element["settings"]
         assert alert_element["title"] in action["label"]
 
+    def test_optional_only_action_delivers_empty_settings(self) -> None:
+        event = self.get_group_event()
+        del self.schema["elements"][0]["settings"]["required_fields"]
+        app = self.create_sentry_app(
+            organization=event.organization, is_alertable=True, schema=self.schema
+        )
+        install = self.create_sentry_app_installation(
+            slug=app.slug, organization=event.organization
+        )
+        rule = self.get_rule(data={"sentryAppInstallationUuid": install.uuid})
+        rule.self_validate()
+        [future] = rule.after(event)
+        assert future.kwargs["schema_defined_settings"] == []
+
+    def test_webhook_only_action_with_empty_list_delivers_generic_payload(self) -> None:
+        event = self.get_group_event()
+        app = self.create_sentry_app(organization=event.organization, is_alertable=True)
+        install = self.create_sentry_app_installation(
+            slug=app.slug, organization=event.organization
+        )
+        rule = self.get_rule(data={"sentryAppInstallationUuid": install.uuid, "settings": []})
+        [future] = rule.after(event)
+        assert future.kwargs["schema_defined_settings"] is None
+
     def test_self_validate(self) -> None:
         self.organization = self.create_organization()
         self.app = self.create_sentry_app(

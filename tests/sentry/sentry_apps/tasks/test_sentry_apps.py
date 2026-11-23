@@ -305,6 +305,20 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         )
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+    def test_send_alert_event_with_empty_settings(self, safe_urlopen: MagicMock) -> None:
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        future = RuleFuture(
+            context=create_notification_action_context(self.rule),
+            kwargs={"sentry_app": self.sentry_app, "schema_defined_settings": []},
+        )
+        with self.tasks():
+            notify_sentry_app(GroupEvent.from_event(event, event.group), [future])
+        issue_alert = json.loads(safe_urlopen.call_args.kwargs["data"])["data"]["issue_alert"]
+        assert issue_alert["id"] == self.rule.id
+        assert issue_alert["settings"] == []
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_send_alert_event_with_additional_payload(
         self, mock_record: MagicMock, safe_urlopen: MagicMock

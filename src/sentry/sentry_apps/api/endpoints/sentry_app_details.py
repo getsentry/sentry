@@ -167,7 +167,10 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             partial=True,
             access=request.access,
             active_staff=is_active_staff(request),
-            context={"request": request},
+            context={
+                "request": request,
+                "organization": owner_context.organization if owner_context else None,
+            },
         )
 
         if serializer.is_valid():

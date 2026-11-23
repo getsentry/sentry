@@ -218,6 +218,11 @@ class TestBuildWorkflowData(BaseWorkflowTest):
         result = _build_workflow_data(invocation, self.organization, rpc_install)
         assert result["settings"] == settings
 
+        action.data = {"settings": []}
+        assert "settings" not in _build_workflow_data(invocation, self.organization, rpc_install)
+        rpc_install.sentry_app.allows_empty_alert_settings = True
+        assert _build_workflow_data(invocation, self.organization, rpc_install)["settings"] == []
+
 
 class TestSentryAppActivityHandlerInvokeAction(BaseWorkflowTest):
     def setUp(self) -> None:

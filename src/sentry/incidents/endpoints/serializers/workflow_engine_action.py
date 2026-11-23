@@ -14,6 +14,7 @@ from sentry.notifications.models.notificationaction import ActionService, Action
 from sentry.notifications.notification_action.group_type_notification_registry.handlers.metric_alert_registry_handler import (
     MetricAlertRegistryHandler,
 )
+from sentry.sentry_apps.services.app import app_service
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction
@@ -30,10 +31,24 @@ class WorkflowEngineActionSerializer(Serializer[dict[str, Any]]):
             )
         }
         targets_by_action_id = MetricAlertRegistryHandler.get_targets(item_list)
+        # Historical webhook-only actions can have the same empty list as an optional-only form.
+        empty_settings_app_ids = {
+            int(item.config["target_identifier"])
+            for item in item_list
+            if item.type == Action.Type.SENTRY_APP and item.data.get("settings") == []
+        }
+        optional_settings_app_ids = set()
+        if empty_settings_app_ids:
+            apps = app_service.get_sentry_apps_by_ids(ids=list(empty_settings_app_ids))
+            optional_settings_app_ids = {
+                str(app.id) for app in apps if app.allows_empty_alert_settings
+            }
         return {
             item: {
                 "aarta": aarta_by_action_id.get(item.id),
                 "target": targets_by_action_id.get(item.id),
+                "allows_empty_settings": item.config.get("target_identifier")
+                in optional_settings_app_ids,
             }
             for item in item_list
         }
@@ -102,7 +117,9 @@ class WorkflowEngineActionSerializer(Serializer[dict[str, Any]]):
         }
 
         # Check if action is a Sentry App that has Alert Rule UI Component settings
-        if sentry_app_id and sentry_app_config:
+        if sentry_app_id and (
+            sentry_app_config or (sentry_app_config == [] and attrs["allows_empty_settings"])
+        ):
             result["settings"] = sentry_app_config
 
         return result

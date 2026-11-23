@@ -257,27 +257,22 @@ class SentryAppActionValidatorHandler:
             "sentryAppInstallationUuid": installation.uuid,
         }
 
-        if not settings:
-            # XXX: it's only ok to not pass settings if there is no sentry app schema
-            # this means the app doesn't expect any settings
+        if not settings and not installation.sentry_app.allows_empty_alert_settings:
             components = app_service.find_app_components(app_id=installation.sentry_app.id)
-            if any(
-                component.app_schema
-                for component in components
-                if component.type == "alert-rule-action"
-            ):
+            if any(c.type == "alert-rule-action" and c.app_schema for c in components):
                 raise ValidationError("'settings' is a required property")
+            return self.validated_data
 
-        else:
-            # Sentry app config blob expects value to be a string
-            for setting in settings:
-                if setting.get("value") is not None and not isinstance(setting["value"], str):
-                    setting["value"] = json.dumps(setting["value"])
-            try:
-                # Only call creator for Sentry Apps with UI Components (settings) for actions
-                validate_sentry_app_action(action)
-            except SentryAppBaseError as e:
-                raise ValidationError(e.message) from e
+        self.validated_data["data"]["settings"] = settings
+
+        # Sentry app config blob expects value to be a string
+        for setting in settings:
+            if setting.get("value") is not None and not isinstance(setting["value"], str):
+                setting["value"] = json.dumps(setting["value"])
+        try:
+            validate_sentry_app_action(action)
+        except SentryAppBaseError as e:
+            raise ValidationError(e.message) from e
 
         return self.validated_data
 

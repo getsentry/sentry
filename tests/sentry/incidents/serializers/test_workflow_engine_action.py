@@ -135,6 +135,28 @@ class TestActionSerializer(TestWorkflowEngineSerializer):
         }
         assert serialized == expected
 
+    def test_empty_settings_only_for_apps_with_optional_fields(self) -> None:
+        component = self.create_alert_rule_action_schema()
+        del component["settings"]["required_fields"]
+        actions = []
+        for schema in ({"elements": [component]}, {}):
+            app = self.create_sentry_app(
+                organization=self.organization, schema=schema, is_alertable=True
+            )
+            actions.append(
+                self.create_action(
+                    type=Action.Type.SENTRY_APP,
+                    config={
+                        "target_identifier": str(app.id),
+                        "target_type": ActionTarget.SENTRY_APP,
+                    },
+                    data={"settings": []},
+                )
+            )
+        optional, webhook = serialize(actions, self.user, WorkflowEngineActionSerializer())
+        assert optional["settings"] == []
+        assert "settings" not in webhook
+
     def test_sentry_app_action(self) -> None:
         sentry_app = self.create_sentry_app(
             organization=self.organization,

@@ -177,7 +177,7 @@ def _build_workflow_data(
     )
 
     settings = invocation.action.data.get("settings")
-    if settings:
+    if settings or (settings == [] and install.sentry_app.allows_empty_alert_settings):
         workflow_data["settings"] = settings
 
     return workflow_data

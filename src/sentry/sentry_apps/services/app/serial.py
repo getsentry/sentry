@@ -1,6 +1,7 @@
 from sentry.constants import SentryAppStatus
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
+from sentry.sentry_apps.api.parsers.schema import allows_empty_alert_settings
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
@@ -43,6 +44,7 @@ def serialize_sentry_app(
         webhook_url=app.webhook_url,
         webhook_headers=app.webhook_headers,
         is_alertable=app.is_alertable,
+        allows_empty_alert_settings=allows_empty_alert_settings(app.schema),
         is_disabled=app.is_disabled,
         is_published=app.status == SentryAppStatus.PUBLISHED,
         is_unpublished=app.status == SentryAppStatus.UNPUBLISHED,

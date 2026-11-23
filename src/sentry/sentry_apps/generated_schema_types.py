@@ -78,7 +78,7 @@ class SentryAppAlertRuleSettings(TypedDict):
     type: Literal["alert-rule-settings"]
     description: NotRequired[str]
     uri: SentryAppUri
-    required_fields: SentryAppFieldset
+    required_fields: NotRequired[SentryAppFieldset]
     optional_fields: NotRequired[SentryAppFieldset]
 
 

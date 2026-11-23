@@ -9,13 +9,18 @@ from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
+from sentry import features
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import build_typed_list
 from sentry.auth.access import Access
 from sentry.integrations.models.integration_feature import Feature
 from sentry.models.apiscopes import ApiScopes
-from sentry.sentry_apps.api.parsers.schema import UiElementSchema, validate_ui_element_schema
+from sentry.sentry_apps.api.parsers.schema import (
+    UiElementSchema,
+    allows_empty_alert_settings,
+    validate_ui_element_schema,
+)
 from sentry.sentry_apps.models.sentry_app import (
     UUID_CHARS_IN_SLUG,
     VALID_EVENTS,
@@ -227,6 +232,19 @@ class SentryAppParser(Serializer):
                 return None
 
         return get_current_value
+
+    def validate_schema(self, value: UiElementSchema | None) -> UiElementSchema | None:
+        if value and allows_empty_alert_settings(value):
+            if self.instance and allows_empty_alert_settings(self.instance.schema):
+                return value
+            organization = self.context.get("organization")
+            if not organization or not features.has(
+                "organizations:integrations-optional-alert-settings", organization
+            ):
+                raise ValidationError(
+                    "'required_fields' is a required property for element of type 'alert-rule-action'"
+                )
+        return value
 
     def validate_name(self, value: str) -> str:
         max_length = 64 - UUID_CHARS_IN_SLUG - 1  # -1 comes from the - before the UUID bit

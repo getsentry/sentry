@@ -108,13 +108,15 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
 
         alert_rule_component = self._get_alert_rule_component(sentry_app.id, sentry_app.name)
 
-        incoming_settings = self.data.get("settings")
-        if not incoming_settings:
+        schema = alert_rule_component.app_schema.get("settings", {})
+        incoming_settings = self.data.get("settings", [])
+        if not isinstance(incoming_settings, list) or (
+            not incoming_settings and schema.get("required_fields")
+        ):
             raise ValidationError(f"{sentry_app.name} requires settings to configure alert rules.")
 
         # Ensure required fields are provided and valid
         valid_fields = set()
-        schema = alert_rule_component.app_schema.get("settings", {})
         for required_field in schema.get("required_fields", []):
             field_name = required_field.get("name")
             field_value = self._get_setting_value(field_name)
@@ -144,10 +146,12 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
         self, event: GroupEvent, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture]:
         sentry_app = self._get_sentry_app(event)
+        settings = self.get_option("settings")
+        # Older webhook-only actions can also have an empty settings list.
+        if not settings:
+            settings = [] if sentry_app and sentry_app.allows_empty_alert_settings else None
         yield self.future(
-            notify_sentry_app,
-            sentry_app=sentry_app,
-            schema_defined_settings=self.get_option("settings"),
+            notify_sentry_app, sentry_app=sentry_app, schema_defined_settings=settings
         )
 
     def render_label(self) -> str:

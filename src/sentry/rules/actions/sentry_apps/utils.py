@@ -10,7 +10,7 @@ from sentry.sentry_apps.utils.alert_rule_action import raise_alert_rule_action_r
 
 def validate_sentry_app_action(action: Mapping[str, Any]) -> str:
     result = app_service.trigger_sentry_app_action_creators(
-        fields=action["settings"], install_uuid=action.get("sentryAppInstallationUuid")
+        fields=action.get("settings", []), install_uuid=action.get("sentryAppInstallationUuid")
     )
     # Bubble up errors from Sentry App to the UI
     if not result.success:
