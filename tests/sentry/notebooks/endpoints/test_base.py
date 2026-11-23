@@ -62,6 +62,7 @@ class NotebookWriterTest(APITestCase):
         """An account linked to `project_ids`, or to every project when it's None."""
         service_account = self.create_service_account(
             organization=self.organization,
+            name=f"notebook-writer-{uuid4().hex[:8]}",
             scope_list=["org:read"],
             project_ids=project_ids or (),
             all_projects=project_ids is None,
@@ -98,10 +99,16 @@ class NotebookWriterTest(APITestCase):
         self.create_notebook_project(self.notebook, self.project)
         listing = restricted.get(self.url("sentry-api-0-organization-notebooks"))
         assert [item["id"] for item in listing.data] == [str(self.notebook.id)]
-        # Project deletion can remove a link after a workflow published its evidence.
-        NotebookProject.objects.filter(
-            notebook_id=opened.data["notebookId"], project=other
-        ).delete()
+        all_projects, _ = self.service_account_client()
+        assert all_projects.get(details).status_code == 200
+        other.delete()
+        published = Notebook.objects.get(pk=opened.data["notebookId"])
+        assert list(published.projects.values_list("id", flat=True)) == [self.project.id]
+        assert set(published.evidence_project_links.values_list("project_id", flat=True)) == {
+            self.project.id,
+            None,
+        }
+        assert all_projects.get(details).status_code == 200
         assert restricted.get(details).status_code == 403
         listing = restricted.get(self.url("sentry-api-0-organization-notebooks"))
         assert [item["id"] for item in listing.data] == [str(self.notebook.id)]

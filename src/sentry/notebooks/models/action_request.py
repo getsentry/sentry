@@ -41,10 +41,10 @@ class NotebookActionRequest(DefaultFieldsModel):
         # The unique constraint leads with notebook, so it serves per-notebook reads.
         db_index=False,
     )
-    # The producer's key; a later request with the same key updates this row.
     workflow_run = FlexibleForeignKey(
         "notebooks.NotebookWorkflowRun", null=True, on_delete=models.CASCADE
     )
+    # The producer's key; a later request with the same key updates this row.
     key = models.CharField(max_length=64)
     producer_revision = BoundedPositiveIntegerField()
     # Each producer can designate one live primary next step.

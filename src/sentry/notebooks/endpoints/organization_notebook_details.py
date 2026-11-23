@@ -33,7 +33,7 @@ from sentry.notebooks.endpoints.validators import (
     NotebookDeleteValidator,
     NotebookUpdateValidator,
 )
-from sentry.notebooks.models import Notebook
+from sentry.notebooks.models import Notebook, WorkflowEvidenceScope
 from sentry.notebooks.services.producer import archive_notebook
 
 
@@ -79,7 +79,7 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
             NotebookDetailsSerializer(access=request.access),
         )
         # An in-flight scan can discover evidence outside the initial project selection.
-        if notebook.workflow_project_ids is not None and (
+        if notebook.workflow_evidence_scope != WorkflowEvidenceScope.NONE and (
             not isinstance(request.access, ServiceAccountAccess)
             or service_account_reaches(request.access, [])
         ):

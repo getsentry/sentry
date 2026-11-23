@@ -6,6 +6,7 @@ from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry.investigations.models import WorkflowNodeRun, WorkflowRun
+from sentry.notebooks.models import Notebook, NotebookSourceType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
@@ -160,6 +161,34 @@ class WorkflowStorageTest(APITestCase):
         assert final["elapsedSeconds"] == 557
         # Signing in as a member cannot grant access to the worker API.
         assert self.client.get(self.url).status_code in (401, 403)
+
+    def test_specific_breach_must_resolve_unless_a_destination_is_explicit(self) -> None:
+        self.payload["definition"]["name"] = "breached_metrics"
+        self.checkpoint["input"] = {
+            "detector_id": 1,
+            "seed": {"metricIssueId": 1, "openPeriodId": 1},
+        }
+        response = self.client.post(self.url, self.payload, format="json", **self.system)
+        assert response.status_code == 400, response.data
+        assert not WorkflowRun.objects.filter(uuid=self.run_id).exists()
+        assert not Notebook.objects.filter(organization=self.organization).exists()
+
+        target = self.create_notebook(organization=self.organization, created_by=self.user)
+        self.payload["destination"]["notebookId"] = target.id
+        response = self.client.post(self.url, self.payload, format="json", **self.system)
+        assert response.status_code == 200, response.data
+        assert WorkflowRun.objects.get(uuid=self.run_id).checkpoint["notebook_id"] == target.id
+
+    def test_monitor_without_a_breach_reference_gets_a_manual_notebook(self) -> None:
+        self.payload["definition"]["name"] = "breached_metrics"
+        self.checkpoint["input"] = {"detector_id": 1, "seed": {}}
+        response = self.client.post(self.url, self.payload, format="json", **self.system)
+        assert response.status_code == 200, response.data
+        notebook = Notebook.objects.get(
+            pk=WorkflowRun.objects.get(uuid=self.run_id).checkpoint["notebook_id"]
+        )
+        assert notebook.source_type == NotebookSourceType.MANUAL
+        assert notebook.source_key is None
 
     def test_rejects_cross_org_and_rolls_back_an_invalid_graph(self) -> None:
         self.leaf["organization_id"] += 1

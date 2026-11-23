@@ -106,7 +106,8 @@ class OrganizationInvestigationStartEndpoint(OrganizationNotebooksBaseEndpoint):
             request_id = uuid5(NAMESPACE_URL, f"sentry:metric-investigation-v2:{investigation.id}")
             run = WorkflowRun.objects.filter(
                 organization=organization,
-                request_id=request_id,
+                uuid__in=investigation.notebookworkflowrun_set.values("run_id"),
+                definition__name="breached_metrics",
                 checkpoint__notebook_id=investigation.id,
             )
             if not run.exists():

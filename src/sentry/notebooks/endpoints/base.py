@@ -86,8 +86,8 @@ def require_project_access(request: Request, project_ids: Collection[int]) -> No
 def require_notebook_project_access(request: Request, notebook: Notebook) -> None:
     if isinstance(request.access, ServiceAccountAccess):
         require_project_access(request, list(notebook.projects.values_list("id", flat=True)))
-        if notebook.workflow_project_ids is not None:
-            require_project_access(request, notebook.workflow_project_ids)
+        if (evidence := notebook.workflow_evidence_project_ids()) is not None:
+            require_project_access(request, evidence)
 
 
 def require_notebook_writer(request: Request, notebook: Notebook | None = None) -> int | None:

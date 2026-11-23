@@ -18,7 +18,14 @@ from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.services.orchestration_events import complete_report_metadata
 from sentry.models.organization import Organization
 from sentry.notebooks.contracts import MAX_MARKDOWN_CHARS
-from sentry.notebooks.models import Notebook, NotebookBlock, NotebookBlockKind, NotebookWorkflowRun
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookBlock,
+    NotebookBlockKind,
+    NotebookEvidenceProject,
+    NotebookWorkflowRun,
+    WorkflowEvidenceScope,
+)
 from sentry.notebooks.services.action_requests import sync_snapshot_action_requests
 from sentry.notebooks.services.notebooks import (
     _validate_project_ids,
@@ -64,11 +71,19 @@ def open_workflow_notebook(
             raise ConflictError("Archived notebooks are read-only.")
         evidence = _validate_project_ids(organization.id, project_ids)
         validate_evidence_scope(list(notebook.projects.values_list("id", flat=True)), evidence)
-        prior = notebook.workflow_project_ids
-        if prior is not None:
-            evidence = sorted(set(prior).union(evidence)) if prior and evidence else []
-        if evidence != prior:
-            notebook.update(workflow_project_ids=evidence)
+        if notebook.workflow_evidence_scope != WorkflowEvidenceScope.ORGANIZATION:
+            scope = WorkflowEvidenceScope.ORGANIZATION
+            if evidence:
+                scope = WorkflowEvidenceScope.PROJECTS
+                NotebookEvidenceProject.objects.bulk_create(
+                    [
+                        NotebookEvidenceProject(notebook=notebook, project_id=pid)
+                        for pid in evidence
+                    ],
+                    ignore_conflicts=True,
+                )
+            if notebook.workflow_evidence_scope != scope:
+                notebook.update(workflow_evidence_scope=scope)
         return notebook
 
 

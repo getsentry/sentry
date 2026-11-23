@@ -38,7 +38,13 @@ from sentry.notebooks.endpoints.serializers import (
     NotebookSerializerResponse,
 )
 from sentry.notebooks.endpoints.validators import NotebookCreateValidator
-from sentry.notebooks.models import Notebook, NotebookProject, NotebookStatus
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookEvidenceProject,
+    NotebookProject,
+    NotebookStatus,
+    WorkflowEvidenceScope,
+)
 from sentry.notebooks.services.producer import filter_by_run_status, known_run_statuses
 from sentry.notebooks.services.producer_sources import ProducerSource
 from sentry.notebooks.telemetry import record_notebook_started
@@ -170,12 +176,17 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
         ).filter(Q(source_key__isnull=True) | ~Exists(newer_lineage_revision))
         if isinstance(request.access, ServiceAccountAccess) and not request.access.has_all_projects:
             projects = NotebookProject.objects.filter(notebook_id=OuterRef("pk"))
+            evidence = NotebookEvidenceProject.objects.filter(notebook_id=OuterRef("pk"))
             allowed = list(request.access.accessible_project_ids)
             notebooks = notebooks.filter(
                 Exists(projects),
                 ~Exists(projects.exclude(project_id__in=allowed)),
-                Q(workflow_project_ids__isnull=True)
-                | (Q(workflow_project_ids__contained_by=allowed) & ~Q(workflow_project_ids=[])),
+                Q(workflow_evidence_scope=WorkflowEvidenceScope.NONE)
+                | (
+                    Q(workflow_evidence_scope=WorkflowEvidenceScope.PROJECTS)
+                    & Exists(evidence)
+                    & ~Exists(evidence.exclude(project_id__in=allowed))
+                ),
             )
         query = request.GET.get("query")
         if query:

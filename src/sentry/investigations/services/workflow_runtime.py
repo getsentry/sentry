@@ -8,13 +8,19 @@ from django.db import router, transaction
 from django.db.models import Case, DateTimeField, Value, When
 from django.utils import timezone
 from rest_framework import serializers
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, PermissionDenied
 
 from sentry.investigations.models import WorkflowNodeRun, WorkflowRun
+from sentry.investigations.services.actor_access import actor_can_investigate
+from sentry.investigations.services.breached_metrics import resolve_investigation_source
+from sentry.investigations.services.orchestration import (
+    get_or_create_metric_workflow_notebook,
+)
 from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook
-from sentry.notebooks.services import NotebookValidationError
+from sentry.notebooks.services import NotebookSourceNotFound, NotebookValidationError
 from sentry.notebooks.services.workflow import open_workflow_notebook
+from sentry.viewer_context import ActorId, ActorType
 
 PAUSED_RECOVERY_INTERVAL = timedelta(hours=1)
 
@@ -68,6 +74,59 @@ def save_nodes(run: WorkflowRun, values: list[dict[str, Any]]) -> None:
         )
 
 
+def _breach_source(
+    definition: dict[str, Any],
+    workflow_input: dict[str, Any],
+    destination: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Read the breach identity from Seer's normalized input when the caller chose no notebook."""
+    if (
+        definition["name"] != "breached_metrics"
+        or not definition.get("notebook")
+        or destination is None
+        or destination.get("notebookId") is not None
+    ):
+        return None
+    seed = workflow_input.get("seed", {})
+    if not isinstance(seed, dict):
+        return None
+    source = seed.get("sentrySource")
+    if source is None:
+        if seed.get("openPeriodId") is None or seed.get("metricIssueId") is None:
+            return None
+        source = {
+            "type": "metric_open_period",
+            "ref": {"groupId": seed["metricIssueId"], "openPeriodId": seed["openPeriodId"]},
+        }
+    if not isinstance(source, dict):
+        raise serializers.ValidationError({"source": "Expected a metric open period."})
+    return source
+
+
+def _breach_notebook(
+    organization: Organization,
+    source: dict[str, Any],
+    detector_id: int,
+    project_ids: list[int],
+    creator: ActorId,
+) -> Notebook:
+    resolved = resolve_investigation_source(
+        organization=organization, source=source, accessible_project_ids=set(project_ids)
+    )
+    if str(detector_id) != resolved.source["snapshot"]["monitor"]["id"]:
+        raise NotebookValidationError({"source": "The open period belongs to a different monitor."})
+    notebook, _ = get_or_create_metric_workflow_notebook(
+        organization=organization,
+        creator=creator,
+        title=None,
+        resolved_source=resolved,
+        # As on the monitor page, leave the selection open for related evidence.
+        project_ids=[],
+        filters={},
+    )
+    return notebook
+
+
 def create_run(
     organization: Organization,
     checkpoint: dict[str, Any],
@@ -83,6 +142,12 @@ def create_run(
         or identity["actor_type"] != "user"
     ):
         raise serializers.ValidationError("Invalid workflow owner.")
+    source = _breach_source(definition, checkpoint["input"], destination)
+    creator = ActorId(ActorType.USER, identity["actor_id"])
+    if source is not None and not actor_can_investigate(
+        organization=organization, actor=creator, project_ids=[]
+    ):
+        raise PermissionDenied
     with transaction.atomic(using=router.db_for_write(WorkflowRun)):
         run, created = WorkflowRun.objects.get_or_create(
             organization=organization,
@@ -106,6 +171,14 @@ def create_run(
                     if target is None:
                         raise serializers.ValidationError("Unknown notebook.")
                 try:
+                    if source is not None:
+                        target = _breach_notebook(
+                            organization,
+                            source,
+                            checkpoint["input"]["detector_id"],
+                            destination["projectIds"],
+                            creator,
+                        )
                     notebook = open_workflow_notebook(
                         organization,
                         run.uuid,
@@ -118,6 +191,10 @@ def create_run(
                             "created_by_service_account_id": None,
                         },
                     )
+                except NotebookSourceNotFound as exc:
+                    raise serializers.ValidationError(
+                        {"source": "Unknown metric open period."}
+                    ) from exc
                 except NotebookValidationError as exc:
                     raise serializers.ValidationError(exc.errors) from exc
                 run.checkpoint = {**checkpoint, "notebook_id": notebook.id}
