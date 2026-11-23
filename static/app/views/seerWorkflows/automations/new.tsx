@@ -31,11 +31,17 @@ const strategyParser = parseAsStringLiteral(STRATEGIES)
   .withDefault('breached_metric_investigation')
   .withOptions({clearOnDefault: false});
 
-function getSubtitle(strategy: (typeof STRATEGIES)[number]): string {
+/**
+ * Empty for strategies without a subtitle
+ */
+function getSubtitle(strategy: WorkflowStrategy): string {
   if (strategy === 'scheduled_investigation') {
     return t('Configure Seer to periodically investigate your issues.');
   }
-  return t('Connect metric monitors so Seer can investigate what caused a breach.');
+  if (strategy === 'breached_metric_investigation') {
+    return t('Connect metric monitors so Seer can investigate what caused a breach.');
+  }
+  return '';
 }
 
 export default function NewAutomationPage() {
@@ -81,13 +87,10 @@ export default function NewAutomationPage() {
                 <CompactSelect
                   value={strategy}
                   onChange={option => setStrategy(option.value)}
-                  options={[
-                    {value: 'breached_metric_investigation', label: t('Breached Metric')},
-                    {
-                      value: 'scheduled_investigation',
-                      label: t('Scheduled Investigation'),
-                    },
-                  ]}
+                  options={STRATEGIES.map(value => ({
+                    value,
+                    label: STRATEGY_META[value].label,
+                  }))}
                 />
               </DisplayField.Row>
             </FieldGroup>

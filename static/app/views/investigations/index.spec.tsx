@@ -143,7 +143,7 @@ describe('Explore Investigations', () => {
     });
 
     expect(await screen.findByText('Ivy Sanders Schneider')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Breached metrics · Run 42'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Breached Metrics · Run 42'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/seer/automations/7/runs/'
     );
@@ -169,9 +169,9 @@ describe('Explore Investigations', () => {
 
     renderView();
 
-    expect(await screen.findByText('Breached metrics · Run 42')).toBeInTheDocument();
+    expect(await screen.findByText('Breached Metrics · Run 42')).toBeInTheDocument();
     expect(
-      screen.queryByRole('link', {name: 'Breached metrics · Run 42'})
+      screen.queryByRole('link', {name: 'Breached Metrics · Run 42'})
     ).not.toBeInTheDocument();
   });
 

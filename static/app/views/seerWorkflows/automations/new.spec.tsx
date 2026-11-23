@@ -31,7 +31,7 @@ describe('NewAutomationPage', () => {
       initialRouterConfig: {location: {pathname}},
     });
 
-    expect(screen.getByRole('button', {name: 'Breached Metric'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Breached Metrics'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Connect monitors'})).toBeInTheDocument();
     expect(screen.getByText(metricSubtitle)).toBeInTheDocument();
     expect(screen.queryByText('Environments')).not.toBeInTheDocument();
@@ -61,7 +61,7 @@ describe('NewAutomationPage', () => {
       initialRouterConfig: {location: {pathname}},
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Breached Metric'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Breached Metrics'}));
     await userEvent.click(screen.getByRole('option', {name: 'Scheduled Investigation'}));
 
     await waitFor(() =>
@@ -75,7 +75,7 @@ describe('NewAutomationPage', () => {
 
     // Picking the default strategy keeps it in the URL
     await userEvent.click(screen.getByRole('button', {name: 'Scheduled Investigation'}));
-    await userEvent.click(screen.getByRole('option', {name: 'Breached Metric'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Breached Metrics'}));
 
     await waitFor(() =>
       expect(router.location.query.strategy).toBe('breached_metric_investigation')
@@ -90,7 +90,7 @@ describe('NewAutomationPage', () => {
       initialRouterConfig: {location: {pathname, query: {strategy: 'nonsense'}}},
     });
 
-    expect(screen.getByRole('button', {name: 'Breached Metric'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Breached Metrics'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Connect monitors'})).toBeInTheDocument();
     expect(screen.getByText(metricSubtitle)).toBeInTheDocument();
   });

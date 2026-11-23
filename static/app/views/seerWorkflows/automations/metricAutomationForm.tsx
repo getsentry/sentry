@@ -130,7 +130,7 @@ export function MetricAutomationForm(props: Props) {
       name:
         props.mode === 'create'
           ? t('Breached Metric Investigation')
-          : (props.config.name ?? t('Breached metrics')),
+          : (props.config.name ?? t('Breached Metrics')),
       monitorIds: props.mode === 'create' ? [] : props.config.monitorIds.map(String),
       serviceAccountProjects: getServiceAccountProjectSelection(serviceAccount),
       scopes:

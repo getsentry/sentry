@@ -115,7 +115,7 @@ describe('RunsTable', () => {
       'href',
       `/organizations/${organization.slug}/seer/automations/7/`
     );
-    expect(screen.getByRole('link', {name: 'Scheduled investigation'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Scheduled Investigation'})).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/seer/automations/8/`
     );
@@ -301,7 +301,7 @@ describe('RunsTable', () => {
     expect(await screen.findByText('Succeeded')).toBeInTheDocument();
     expect(screen.queryByText('Automation')).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('link', {name: 'Breached metrics'})
+      screen.queryByRole('link', {name: 'Breached Metrics'})
     ).not.toBeInTheDocument();
     // Status, result, trigger, started
     const cells = screen.getAllByRole('cell');

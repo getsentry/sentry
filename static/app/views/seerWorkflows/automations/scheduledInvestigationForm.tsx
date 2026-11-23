@@ -330,9 +330,7 @@ export function ScheduledInvestigationForm(
               {/* Not configurable yet, so this shows the fixed behavior */}
               <DisplayField.Row
                 label={t('Start investigations')}
-                hintText={t(
-                  '(mock) Automatically investigate connected monitor breaches.'
-                )}
+                hintText={t('(mock) Automatically investigate new issues')}
               >
                 <Switch checked disabled aria-label={t('Start investigations')} />
               </DisplayField.Row>
