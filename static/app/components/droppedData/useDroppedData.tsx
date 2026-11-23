@@ -1,10 +1,9 @@
 import {useQuery} from '@tanstack/react-query';
 
-import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
+import {chartStaleTime} from 'sentry/components/charts/chartStaleTime';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -12,30 +11,20 @@ import {
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
 
+import type {OutcomeRow} from './types';
+
 const REFERRER = 'api.explore.dropped-data-annotations';
 
 interface DroppedEventsResponse {
-  acceptedEvents: DroppedEventsBucket[];
-  droppedEvents: DroppedEventsBucket[];
-  meta: {
-    dataset: string;
-    end: number;
-    interval: number;
-    start: number;
-  };
+  acceptedEvents: OutcomeRow[];
+  droppedEvents: OutcomeRow[];
+  meta: {dataset: string; end: number; interval: number; start: number};
 }
 
-export function makeDroppedDataQueryKeyPrefix(organizationSlug: string) {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/events-dropped/', {
-      path: {organizationIdOrSlug: organizationSlug},
-    }),
-  ] as const;
-}
-
-interface UseDroppedDataParams {
+export interface UseDroppedDataParams {
   dataset: DiscoverDatasets;
   interval: string;
+  projects?: number[];
 }
 
 interface UseDroppedDataQueryOptions {
@@ -43,10 +32,10 @@ interface UseDroppedDataQueryOptions {
 }
 
 /**
- * Dropped and accepted events for the current page filters.
+ * Dropped and accepted events for the current page filters
  */
 export function useDroppedData(
-  {dataset, interval}: UseDroppedDataParams,
+  {dataset, interval, projects}: UseDroppedDataParams,
   {enabled = true}: UseDroppedDataQueryOptions = {}
 ) {
   const organization = useOrganization();
@@ -55,7 +44,7 @@ export function useDroppedData(
   );
   const {isReady: arePageFiltersReady, selection} = usePageFilters();
 
-  const {data, isPending, isError, refetch} = useQuery({
+  const {data, isPending, isLoading, isError, refetch} = useQuery({
     ...apiOptions.as<DroppedEventsResponse>()(
       '/organizations/$organizationIdOrSlug/events-dropped/',
       {
@@ -65,10 +54,10 @@ export function useDroppedData(
           interval,
           referrer: REFERRER,
           ...normalizeDateTimeParams(selection.datetime),
-          project: selection.projects,
+          project: projects ?? selection.projects,
           environment: selection.environments,
         },
-        staleTime: Infinity,
+        staleTime: chartStaleTime(selection.datetime, interval),
       }
     ),
     retry: shouldRetryHandler,
@@ -81,6 +70,7 @@ export function useDroppedData(
     droppedEvents: data?.droppedEvents,
     acceptedEvents: data?.acceptedEvents,
     isPending,
+    isLoading,
     isError,
     refetch,
   };

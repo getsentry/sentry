@@ -1,3 +1,4 @@
+from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.caches.workflow import (
@@ -8,11 +9,57 @@ from sentry.workflow_engine.caches.workflow import (
     _workflow_cache,
     _WorkflowCacheKey,
     _WorkflowsByDetector,
+    get_activity_workflows_by_organization,
     get_workflows_by_detectors,
     invalidate_processing_workflows,
 )
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.workflow import Workflow
+
+
+class TestActivityWorkflowsByOrganization(TestCase):
+    def test_only_enabled_inbox_workflows_in_organization(self) -> None:
+        inbox = self.create_workflow(type=Workflow.Type.INBOX)
+        second = self.create_workflow(type=Workflow.Type.INBOX)
+        self.create_workflow(type=Workflow.Type.ALERT)
+        self.create_workflow(type=Workflow.Type.SEER_INVESTIGATION)
+        self.create_workflow(type=Workflow.Type.INBOX, enabled=False)
+        self.create_workflow(type=Workflow.Type.INBOX, status=ObjectStatus.PENDING_DELETION)
+        self.create_workflow(type=Workflow.Type.INBOX, status=ObjectStatus.DELETION_IN_PROGRESS)
+        other_org = self.create_organization()
+        other = self.create_workflow(organization=other_org, type=Workflow.Type.INBOX)
+
+        assert get_activity_workflows_by_organization(self.organization.id, None) == {inbox, second}
+        assert get_activity_workflows_by_organization(other_org.id, None) == {other}
+        assert get_activity_workflows_by_organization(self.organization.id, None) == {inbox, second}
+
+    def test_environment_filter_reuses_organization_cache(self) -> None:
+        global_workflow = self.create_workflow(type=Workflow.Type.INBOX)
+        environment = self.create_environment()
+        other_environment = self.create_environment(name="other")
+        scoped = self.create_workflow(type=Workflow.Type.INBOX, environment=environment)
+        other = self.create_workflow(type=Workflow.Type.INBOX, environment=other_environment)
+        organization_id = self.organization.id
+
+        with self.assertNumQueries(1):
+            assert get_activity_workflows_by_organization(organization_id, None) == {
+                global_workflow
+            }
+        with self.assertNumQueries(0):
+            workflows = get_activity_workflows_by_organization(organization_id, environment)
+            assert workflows == {global_workflow, scoped}
+            assert {workflow.environment for workflow in workflows} == {None, environment}
+            assert get_activity_workflows_by_organization(organization_id, other_environment) == {
+                global_workflow,
+                other,
+            }
+
+    def test_empty_result_is_cached(self) -> None:
+        organization_id = self.organization.id
+        with self.assertNumQueries(1):
+            assert get_activity_workflows_by_organization(organization_id, None) == set()
+        with self.assertNumQueries(0):
+            assert get_activity_workflows_by_organization(organization_id, None) == set()
 
 
 class TestProcessingWorkflowCacheAccess(TestCase):
@@ -310,7 +357,7 @@ class TestQueryWorkflowsByDetectorIds(TestCase):
         self.create_detector_workflow(detector=self.detector2, workflow=self.workflow2)
 
     def test_single_detector(self) -> None:
-        result = _query_workflows_by_detector_ids([self.detector1.id], self.environment)
+        result = _query_workflows_by_detector_ids([self.detector1.id], self.environment.id)
 
         # Env-specific workflow should be in env_workflows, global should be empty
         assert result.global_workflows.mapping == {self.detector1.id: set()}
@@ -318,7 +365,7 @@ class TestQueryWorkflowsByDetectorIds(TestCase):
 
     def test_multiple_detectors(self) -> None:
         result = _query_workflows_by_detector_ids(
-            [self.detector1.id, self.detector2.id], self.environment
+            [self.detector1.id, self.detector2.id], self.environment.id
         )
 
         assert result.global_workflows.mapping == {
@@ -345,7 +392,7 @@ class TestQueryWorkflowsByDetectorIds(TestCase):
         workflow_no_env = self.create_workflow()
         self.create_detector_workflow(detector=self.detector1, workflow=workflow_no_env)
 
-        result = _query_workflows_by_detector_ids([self.detector1.id], self.environment)
+        result = _query_workflows_by_detector_ids([self.detector1.id], self.environment.id)
 
         # Global workflow should be in global_workflows
         assert workflow_no_env in result.global_workflows.mapping.get(self.detector1.id, set())
@@ -359,20 +406,20 @@ class TestQueryWorkflowsByDetectorIds(TestCase):
         self.workflow1.enabled = False
         self.workflow1.save()
 
-        result = _query_workflows_by_detector_ids([self.detector1.id], self.environment)
+        result = _query_workflows_by_detector_ids([self.detector1.id], self.environment.id)
 
         assert result.global_workflows.mapping == {self.detector1.id: set()}
         assert result.env_workflows.mapping == {self.detector1.id: set()}
 
     def test_empty_detector_ids(self) -> None:
-        result = _query_workflows_by_detector_ids([], self.environment)
+        result = _query_workflows_by_detector_ids([], self.environment.id)
 
         assert result.global_workflows.mapping == {}
         assert result.env_workflows.mapping == {}
 
     def test_all_workflows_helper(self) -> None:
         result = _query_workflows_by_detector_ids(
-            [self.detector1.id, self.detector2.id], self.environment
+            [self.detector1.id, self.detector2.id], self.environment.id
         )
 
         # all_workflows should combine both global and env workflows

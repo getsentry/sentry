@@ -13,6 +13,7 @@ from django.urls import reverse
 from objectstore_client import (
     Client,
     MetricsBackend,
+    SecretKey,
     Session,
     TimeToIdle,
     TimeToLive,
@@ -87,6 +88,7 @@ class UsecaseId(Enum):
 
     ATTACHMENTS = "attachments"
     DEBUG_FILES = "debug_files"
+    ARTIFACT_BUNDLES = "artifact_bundles"
     PROFILE_ATTACHMENTS = "profile_attachments"
     # Deprecated: retained for migration compatibility only.
     # Use PREPROD_SIZE or PREPROD_SNAPSHOTS for new code.
@@ -104,7 +106,6 @@ class UsecaseId(Enum):
             case UsecaseId.DEBUG_FILES:
                 return ObjectstoreClientUsecase(
                     self.value,
-                    compression="zstd",
                     expiration_policy=TimeToIdle(
                         timedelta(
                             days=90 + options.get("system.debug-files-renewal-age-threshold-days")
@@ -115,6 +116,15 @@ class UsecaseId(Enum):
                 return ObjectstoreClientUsecase(
                     self.value,
                     expiration_policy=TimeToLive(timedelta(days=default_attachment_retention())),
+                )
+            case UsecaseId.ARTIFACT_BUNDLES:
+                from sentry.models.artifactbundle import artifact_bundle_retention
+
+                # Bundles are ZIP archives, which are already compressed.
+                return ObjectstoreClientUsecase(
+                    self.value,
+                    compression="none",
+                    expiration_policy=TimeToIdle(artifact_bundle_retention()),
                 )
             case UsecaseId.PREPROD | UsecaseId.PREPROD_SNAPSHOTS | UsecaseId.PREPROD_SIZE:
                 return ObjectstoreClientUsecase(
@@ -129,11 +139,15 @@ def _create_client() -> Client:
     # Initialize the `TokenGenerator` if key parameters are found.
     token_generator = None
     if signing_key_options := options.get("token_generator"):
-        # We require the `kid` and `secret_key` keys be set, other options are optional
-        if signing_key_options.get("kid") and signing_key_options.get("secret_key"):
-            token_generator = TokenGenerator(
-                **signing_key_options,
-            )
+        # We require the `kid` and `secret_key` keys be set, other options
+        # (`expiry_seconds`, `permissions`) are optional token defaults.
+        kid = signing_key_options.get("kid")
+        secret_key = signing_key_options.get("secret_key")
+        if kid and secret_key:
+            token_defaults = {
+                k: v for k, v in signing_key_options.items() if k not in ("kid", "secret_key")
+            }
+            token_generator = TokenGenerator(SecretKey(kid, secret_key), **token_defaults)
 
     return Client(
         options["base_url"],
@@ -161,33 +175,38 @@ def _get_client() -> Client:
 _USECASES: dict[UsecaseId, ObjectstoreClientUsecase] = {}
 
 
-def get_session(usecase: UsecaseId, project: Project | int, *, org: int | None = None) -> Session:
-    """Return an Objectstore session scoped to a project.
+def get_session(
+    usecase: UsecaseId, project: Project | int | None, org: int | None = None
+) -> Session:
+    """Return an Objectstore session scoped to an organization and optionally a project.
 
-    There are two ways to construct a session:
-    - Project model: ``get_session(UsecaseId.ATTACHMENTS, project)``
-    - Project and org IDs: ``get_session(UsecaseId.ATTACHMENTS, project_id, org=org_id)``
+    Pass a project model, a project ID with its organization ID, or an organization ID alone::
 
-    When passing a project model, ``org`` is optional and must match the
-    project's organization. It is required when passing a project ID.
+        get_session(UsecaseId.ATTACHMENTS, project)
+        get_session(UsecaseId.ATTACHMENTS, project_id, org_id)
+        get_session(UsecaseId.ARTIFACT_BUNDLES, project=None, org=org_id)
+
+    An explicit organization ID must match the project model's organization.
     """
-    if isinstance(project, int):
+    if project is None:
+        if org is None:
+            raise ValueError("project or org is required")
+        scope = {"org": org}
+    elif isinstance(project, int):
         if org is None:
             raise TypeError("org is required when project is an ID")
-        project_id = project
-        org_id = org
+        scope = {"org": org, "project": project}
     else:
-        project_id = project.id
-        org_id = project.organization_id
-        if org is not None and org != org_id:
+        if org is not None and org != project.organization_id:
             raise ValueError("project does not belong to org")
+        scope = {"org": project.organization_id, "project": project.id}
 
     objectstore_usecase = _USECASES.get(usecase)
     if objectstore_usecase is None:
         objectstore_usecase = usecase.create()
         _USECASES[usecase] = objectstore_usecase
 
-    return _get_client().session(objectstore_usecase, org=org_id, project=project_id)
+    return _get_client().session(objectstore_usecase, **scope)
 
 
 _IS_SYMBOLICATOR_CONTAINER: bool | None = None
@@ -263,6 +282,7 @@ def get_download_redirect_url(
     org: int,
     key: str,
     token_validity: timedelta | None = None,
+    inline: bool = False,
 ) -> str:
     """
     Returns the URL that `request` should be redirected to in order to download the object at `key`
@@ -270,17 +290,26 @@ def get_download_redirect_url(
 
     Internal callers (e.g. Symbolicator) are redirected straight to Objectstore's internal URL, while
     external callers are redirected to the cell proxy, which forwards the request to Objectstore.
+
+    Set `inline=True` to serve the object with `Content-Disposition: inline`, allowing the browser
+    to display it instead of downloading it. Defaults to `attachment` disposition.
     """
     from sentry.api.utils import generate_locality_url
     from sentry.auth import system
 
-    if system.is_internal_ip(request):
-        return get_internal_download_url(session, key, token_validity)
+    is_internal = system.is_internal_ip(request)
 
     if token_validity is None:
         token_validity = REDIRECT_VALIDITY
 
-    presigned_url = session.object_url(key, token_validity=token_validity)
+    presigned_url = session.object_url(
+        key,
+        token_validity=token_validity,
+        response_content_disposition="inline" if inline else None,
+    )
+
+    if is_internal:
+        return _maybe_rewrite_internal_url(presigned_url)
 
     parts = urlsplit(presigned_url)
     proxy_path = reverse(

@@ -2,28 +2,26 @@ import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {FieldKind} from 'sentry/utils/fields';
+
+import type {DashboardDetails, GlobalFilter, Widget} from './types';
+import {DisplayType, WidgetType} from './types';
 import {
   eventViewFromWidget,
   flattenErrors,
   getCurrentPageFilters,
+  getDashboardFiltersFromURL,
   getFieldsFromEquations,
   getNumEquations,
   getSavedFiltersAsPageFilters,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   hasUnsavedFilterChanges,
-} from 'sentry/views/dashboards/utils';
+} from './utils';
 
 describe('Dashboards util', () => {
   const selection = {
-    datetime: {
-      period: '7d',
-      utc: null,
-      start: null,
-      end: null,
-    },
+    datetime: {period: '7d', utc: null, start: null, end: null},
     environments: [],
     projects: [],
   };
@@ -59,19 +57,10 @@ describe('Dashboards util', () => {
     it('uses the dashboard default when no datetime is saved', () => {
       expect(
         getSavedFiltersAsPageFilters(
-          DashboardFixture([], {
-            environment: ['production'],
-            projects: [1],
-            utc: false,
-          })
+          DashboardFixture([], {environment: ['production'], projects: [1], utc: false})
         )
       ).toEqual({
-        datetime: {
-          end: null,
-          period: '24h',
-          start: null,
-          utc: false,
-        },
+        datetime: {end: null, period: '24h', start: null, utc: false},
         environments: ['production'],
         projects: [1],
       });
@@ -261,11 +250,7 @@ describe('Dashboards util', () => {
   describe('flattenErrors', () => {
     it('flattens nested errors', () => {
       const errorResponse = {
-        widgets: [
-          {
-            title: ['Ensure this field has no more than 3 characters.'],
-          },
-        ],
+        widgets: [{title: ['Ensure this field has no more than 3 characters.']}],
       };
       expect(flattenErrors(errorResponse, {})).toEqual({
         title: 'Ensure this field has no more than 3 characters.',
@@ -302,46 +287,26 @@ describe('Dashboards util', () => {
 
   describe('hasUnsavedFilterChanges', () => {
     it('ignores the order of projects', () => {
-      const initialDashboard = {
-        projects: [1, 2],
-      } as DashboardDetails;
-      const location = {
-        ...LocationFixture(),
-        query: {
-          project: ['2', '1'],
-        },
-      };
+      const initialDashboard = {projects: [1, 2]} as DashboardDetails;
+      const location = {...LocationFixture(), query: {project: ['2', '1']}};
 
       expect(hasUnsavedFilterChanges(initialDashboard, location)).toBe(false);
     });
 
     it('ignores the order of environments', () => {
-      const initialDashboard = {
-        environment: ['alpha', 'beta'],
-      } as DashboardDetails;
-      const location = {
-        ...LocationFixture(),
-        query: {
-          environment: ['beta', 'alpha'],
-        },
-      };
+      const initialDashboard = {environment: ['alpha', 'beta']} as DashboardDetails;
+      const location = {...LocationFixture(), query: {environment: ['beta', 'alpha']}};
 
       expect(hasUnsavedFilterChanges(initialDashboard, location)).toBe(false);
     });
 
     it('ignores the order of releases', () => {
-      const initialDashboard = {
-        filters: {
-          release: ['v1', 'v2'],
-        },
-      } as DashboardDetails;
+      const initialDashboard = {filters: {release: ['v1', 'v2']}} as DashboardDetails;
 
       expect(
         hasUnsavedFilterChanges(initialDashboard, {
           ...LocationFixture(),
-          query: {
-            release: ['v2', 'v1'],
-          },
+          query: {release: ['v2', 'v1']},
         })
       ).toBe(false);
     });
@@ -350,12 +315,7 @@ describe('Dashboards util', () => {
 
 describe('getCurrentPageFilters', () => {
   it('returns empty array for environment when not defined in location query', () => {
-    const location = LocationFixture({
-      query: {
-        project: '1',
-        statsPeriod: '7d',
-      },
-    });
+    const location = LocationFixture({query: {project: '1', statsPeriod: '7d'}});
 
     const result = getCurrentPageFilters(location);
 
@@ -366,11 +326,7 @@ describe('getCurrentPageFilters', () => {
 
   it('returns empty array for environment when environment is undefined', () => {
     const location = LocationFixture({
-      query: {
-        project: '1',
-        environment: undefined,
-        statsPeriod: '7d',
-      },
+      query: {project: '1', environment: undefined, statsPeriod: '7d'},
     });
 
     const result = getCurrentPageFilters(location);
@@ -380,11 +336,7 @@ describe('getCurrentPageFilters', () => {
 
   it('returns empty array for environment when environment is null', () => {
     const location = LocationFixture({
-      query: {
-        project: '1',
-        environment: null,
-        statsPeriod: '7d',
-      },
+      query: {project: '1', environment: null, statsPeriod: '7d'},
     });
 
     const result = getCurrentPageFilters(location);
@@ -394,11 +346,7 @@ describe('getCurrentPageFilters', () => {
 
   it('converts single environment string to array', () => {
     const location = LocationFixture({
-      query: {
-        project: '1',
-        environment: 'production',
-        statsPeriod: '7d',
-      },
+      query: {project: '1', environment: 'production', statsPeriod: '7d'},
     });
 
     const result = getCurrentPageFilters(location);
@@ -408,15 +356,93 @@ describe('getCurrentPageFilters', () => {
 
   it('preserves environment array when already an array', () => {
     const location = LocationFixture({
-      query: {
-        project: '1',
-        environment: ['production', 'staging'],
-        statsPeriod: '7d',
-      },
+      query: {project: '1', environment: ['production', 'staging'], statsPeriod: '7d'},
     });
 
     const result = getCurrentPageFilters(location);
 
     expect(result.environment).toEqual(['production', 'staging']);
+  });
+});
+
+describe('getDashboardFiltersFromURL', () => {
+  const globalFilter: GlobalFilter = {
+    dataset: WidgetType.SPANS,
+    tag: {key: 'browser.name', name: 'browser.name', kind: FieldKind.TAG},
+    value: 'browser.name:[Chrome]',
+    isTemporary: true,
+  };
+
+  it('round trips global filters serialized as JSON', () => {
+    const serialized = JSON.stringify(globalFilter);
+    const location = LocationFixture({query: {globalFilter: serialized}});
+
+    const result = getDashboardFiltersFromURL(location)?.globalFilter;
+
+    expect(result).toEqual([globalFilter]);
+    expect(result?.map(filter => JSON.stringify(filter))).toEqual([serialized]);
+  });
+
+  it('keeps the original key order and extra keys of global filters', () => {
+    const serialized = JSON.stringify({
+      value: 'browser.name:[Chrome]',
+      tag: {
+        name: 'browser.name',
+        key: 'browser.name',
+        predefined: false,
+        totalValues: 12,
+        values: ['Chrome', 'Firefox'],
+      },
+      dataset: WidgetType.DISCOVER,
+      extra: 'kept',
+    });
+    const location = LocationFixture({query: {globalFilter: [serialized]}});
+
+    const result = getDashboardFiltersFromURL(location)?.globalFilter;
+
+    expect(result?.map(filter => JSON.stringify(filter))).toEqual([serialized]);
+  });
+
+  it('returns an empty list when global filters were cleared', () => {
+    const location = LocationFixture({query: {globalFilter: ''}});
+
+    const result = getDashboardFiltersFromURL(location);
+
+    expect(result).toEqual({globalFilter: []});
+  });
+
+  it('returns an empty list when every global filter is malformed', () => {
+    const location = LocationFixture({query: {globalFilter: JSON.stringify({x: 1})}});
+
+    const result = getDashboardFiltersFromURL(location);
+
+    expect(result).toEqual({globalFilter: []});
+  });
+
+  it('drops malformed global filters and keeps valid ones', () => {
+    const location = LocationFixture({
+      query: {
+        globalFilter: [
+          '{',
+          'null',
+          '5',
+          '"text"',
+          '[]',
+          JSON.stringify({x: 1}),
+          JSON.stringify({...globalFilter, dataset: 'unknown'}),
+          JSON.stringify({...globalFilter, tag: 'browser.name'}),
+          JSON.stringify({...globalFilter, tag: {key: 'browser.name'}}),
+          JSON.stringify({...globalFilter, tag: {name: 'browser.name'}}),
+          JSON.stringify({...globalFilter, tag: {...globalFilter.tag, kind: 'unknown'}}),
+          JSON.stringify({...globalFilter, value: ['browser.name:[Chrome]']}),
+          JSON.stringify({...globalFilter, isTemporary: 'true'}),
+          JSON.stringify(globalFilter),
+        ],
+      },
+    });
+
+    const result = getDashboardFiltersFromURL(location)?.globalFilter;
+
+    expect(result).toEqual([globalFilter]);
   });
 });

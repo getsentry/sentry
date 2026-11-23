@@ -1,32 +1,5 @@
 import MockDate from 'mockdate';
 
-/**
- * Emotion injects its styles through the CSSOM (`insertRule`), so they are not
- * reflected in `getComputedStyle` under jsdom. Read the generated rules for an
- * element directly off `document.styleSheets` instead.
- * @deprecated if you have to inspect the styles, use a visual regression (snapshot) test instead.
- */
-export function getEmotionRules(element: HTMLElement): string[] {
-  const classes = element.className.split(' ').filter(cls => cls.startsWith('css-'));
-  const rules: string[] = [];
-  for (const sheet of Array.from(document.styleSheets)) {
-    let sheetRules: CSSRuleList;
-    try {
-      sheetRules = sheet.cssRules;
-    } catch {
-      continue;
-    }
-    for (const rule of Array.from(sheetRules)) {
-      if (classes.some(cls => rule.cssText.includes(cls))) {
-        // CSSOM formatting varies between DOM implementations. Tests care about
-        // the generated declarations, not whether an at-rule contains newlines.
-        rules.push(rule.cssText.replace(/\s+/g, ' '));
-      }
-    }
-  }
-  return rules;
-}
-
 // Taken from https://stackoverflow.com/a/56859650/1015027
 function findTextWithMarkup(contentNode: null | Element, textMatch: string | RegExp) {
   const hasText = (node: Element): boolean => {
@@ -83,14 +56,16 @@ export function setWindowLocation(url: string) {
  * Mocks window.matchMedia to always return the provided `matches`.
  */
 export function mockMatchMedia(matches: boolean) {
-  jest.spyOn(window, 'matchMedia').mockImplementation(() => ({
-    matches,
-    media: '',
-    onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  }));
+  jest
+    .spyOn(window, 'matchMedia')
+    .mockImplementation(() => ({
+      matches,
+      media: '',
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    }));
 }

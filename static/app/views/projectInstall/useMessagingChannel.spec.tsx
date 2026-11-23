@@ -10,8 +10,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {IntegrationChannel} from 'sentry/views/projectInstall/messagingIntegrationTypes';
-import {useMessagingChannel} from 'sentry/views/projectInstall/useMessagingChannel';
+import type {IntegrationChannel} from './messagingIntegrationTypes';
+import {useMessagingChannel} from './useMessagingChannel';
 
 const organization = OrganizationFixture();
 
@@ -44,14 +44,7 @@ function renderChannel(
   {channel, setChannel = jest.fn(), options}: RenderChannelOpts = {}
 ) {
   return renderHookWithProviders(
-    () =>
-      useMessagingChannel({
-        channel,
-        integration,
-        provider,
-        setChannel,
-        options,
-      }),
+    () => useMessagingChannel({channel, integration, provider, setChannel, options}),
     {organization}
   );
 }

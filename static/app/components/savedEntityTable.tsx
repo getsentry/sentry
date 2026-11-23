@@ -12,17 +12,18 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {Placeholder} from 'sentry/components/placeholder';
-import {ProjectList} from 'sentry/components/projectList';
-import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {getAbsoluteSummary} from 'sentry/components/timeRangeSelector/utils';
-import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import type {AvatarUser} from 'sentry/types/user';
 import {useProjects} from 'sentry/utils/useProjects';
+
+import {ProvidedFormattedQuery} from './searchQueryBuilder/formattedQuery';
+import {SimpleTable} from './tables/simpleTable';
+import {getAbsoluteSummary} from './timeRangeSelector/utils';
+import {EmptyStateWarning} from './emptyStateWarning';
+import {Placeholder} from './placeholder';
+import {ProjectList} from './projectList';
+import {TimeSince} from './timeSince';
 
 type SavedEntityTableProps = {
   children: ReactNode;
@@ -86,10 +87,7 @@ SavedEntityTable.HeaderCell = SimpleTable.HeaderCell;
 
 SavedEntityTable.Row = styled(SimpleTable.Row, {
   shouldForwardProp: prop => prop !== 'isFirst' && prop !== 'disableHover',
-})<{
-  isFirst: boolean;
-  disableHover?: boolean;
-}>`
+})<{isFirst: boolean; disableHover?: boolean}>`
   height: 40px;
 
   &:last-child {
@@ -107,9 +105,7 @@ SavedEntityTable.Row = styled(SimpleTable.Row, {
 
 SavedEntityTable.Cell = styled(SimpleTable.RowCell, {
   shouldForwardProp: prop => prop !== 'hasButton',
-})<{
-  hasButton?: boolean;
-}>`
+})<{hasButton?: boolean}>`
   height: 40px;
 
   /* Buttons already provide some padding */

@@ -1,19 +1,16 @@
 import {useMemo} from 'react';
-import {useLocation as useReactRouter6Location} from 'react-router';
+import {useLocation as useReactRouterLocation} from 'react-router';
 import type {Location, Query} from 'history';
 
-import {location6ToLocation3} from './reactRouter6Compat/location';
+import {toLegacyLocation} from 'sentry/router/legacy/location';
 
 export type QueryParamValue<T = string> = T | T[] | null | undefined;
 type DefaultQuery<T = string> = Record<string, QueryParamValue<T>>;
 
 export function useLocation<Q extends Query = DefaultQuery>(): Location<Q> {
-  const router6Location = useReactRouter6Location();
+  const routerLocation = useReactRouterLocation();
 
-  const location = useMemo(
-    () => location6ToLocation3<Q>(router6Location),
-    [router6Location]
-  );
+  const location = useMemo(() => toLegacyLocation<Q>(routerLocation), [routerLocation]);
 
   return location;
 }

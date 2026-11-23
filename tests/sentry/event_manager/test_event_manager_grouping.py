@@ -328,7 +328,7 @@ class GroupHashCachingTest(TestCase):
         )
 
     def test_handles_new_secondary_grouphash(self) -> None:
-        # This follows the exact same logic as the `test_handles_existing_secondary_grouphash` test
+        # This follows the exact same logic as the `test_handles_existing_secondary_grouphash_*` tests
         # above
         self.run_test(
             grouphash_exists=False,
@@ -365,7 +365,7 @@ class GroupHashCachingTest(TestCase):
 
     def test_handles_new_grouphash_object(self) -> None:
         # This follows the exact same logic as  the
-        # `test_handles_existing_primary_grouphash_without_group` test above
+        # `test_handles_existing_grouphash_object_without_group` test above
         self.run_test(
             grouphash_exists=False,
             grouphash_has_group=False,  # It can't if it doesn't exist yet
@@ -655,7 +655,9 @@ class PlaceholderTitleTest(TestCase):
         (None, None, None),
     ],
 )
-def test_get_updated_group_title(existing_title, incoming_title, expected_title) -> None:
+def test_get_updated_group_title(
+    existing_title: str | None, incoming_title: str | None, expected_title: str | None
+) -> None:
     existing_data = {"title": existing_title} if existing_title is not None else {}
     incoming_data = {"title": incoming_title} if incoming_title is not None else {}
 
@@ -709,7 +711,7 @@ class EventManagerGroupingMetricsTest(TestCase):
     @mock.patch("sentry.event_manager.metrics.incr")
     def test_adds_correct_tags_to_avg_calculations_per_event_metrics(
         self, mock_metrics_incr: MagicMock
-    ):
+    ) -> None:
         project = self.project
 
         in_transition_cases: list[Any] = [
@@ -765,7 +767,7 @@ def test_records_hash_comparison_metric(
     secondary_hashes: list[str],
     expected_tag: str,
     default_project: Project,
-):
+) -> None:
     project = default_project
     project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
     project.update_option("sentry:secondary_grouping_config", NO_MSG_PARAM_CONFIG)

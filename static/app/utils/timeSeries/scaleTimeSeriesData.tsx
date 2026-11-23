@@ -2,10 +2,12 @@ import partialRight from 'lodash/partialRight';
 
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
+import {convertFraction} from 'sentry/utils/unitConversion/convertFraction';
 import {convertRate} from 'sentry/utils/unitConversion/convertRate';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';
 import {
   isADurationUnit,
+  isAFractionUnit,
   isARateUnit,
   isASizeUnit,
   isAUnitConvertibleFieldType,
@@ -39,7 +41,8 @@ export function scaleTimeSeriesData(
   if (
     (sourceType === 'duration' && !isADurationUnit(destinationUnit)) ||
     (sourceType === 'size' && !isASizeUnit(destinationUnit)) ||
-    (sourceType === 'rate' && !isARateUnit(destinationUnit))
+    (sourceType === 'rate' && !isARateUnit(destinationUnit)) ||
+    (sourceType === 'percentage' && !isAFractionUnit(destinationUnit))
   ) {
     return timeSeries;
   }
@@ -63,21 +66,20 @@ export function scaleTimeSeriesData(
       sourceUnit ?? FALLBACK_UNIT_FOR_FIELD_TYPE.rate,
       destinationUnit
     );
+  } else if (sourceType === 'percentage') {
+    scaler = partialRight(
+      convertFraction,
+      sourceUnit ?? FALLBACK_UNIT_FOR_FIELD_TYPE.percentage,
+      destinationUnit
+    );
   }
 
   return {
     ...timeSeries,
     values: timeSeries.values.map(datum => {
       const {value} = datum;
-      return {
-        ...datum,
-        value: value === null ? null : scaler(value),
-      };
+      return {...datum, value: value === null ? null : scaler(value)};
     }),
-    meta: {
-      ...timeSeries.meta,
-      valueType: sourceType,
-      valueUnit: destinationUnit,
-    },
+    meta: {...timeSeries.meta, valueType: sourceType, valueUnit: destinationUnit},
   };
 }

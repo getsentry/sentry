@@ -4,11 +4,11 @@ import {IconClose} from '@sentry/icons/close';
 import {IconDelete} from '@sentry/icons/delete';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Input} from '@sentry/scraps/input';
 import {Grid} from '@sentry/scraps/layout';
 
-import {Confirm} from 'sentry/components/confirm';
-import {DateTime} from 'sentry/components/dateTime';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -83,7 +83,7 @@ function Device(props: DeviceProps) {
       <PanelItem key={device.name}>
         <DeviceInformation>
           {device.name}
-          <FadedDateTime date={device.timestamp} />
+          {device.timestamp && <FadedDateTime date={device.timestamp} />}
         </DeviceInformation>
         <Grid flow="column" align="center" gap="md">
           <Button size="sm" onClick={() => setEditting(true)}>
@@ -120,7 +120,7 @@ function Device(props: DeviceProps) {
             setDeviceName(e.target.value);
           }}
         />
-        <FadedDateTime date={device.timestamp} />
+        {device.timestamp && <FadedDateTime date={device.timestamp} />}
       </DeviceInformation>
       <Grid flow="column" align="center" gap="md">
         <Button

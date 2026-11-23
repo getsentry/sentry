@@ -25,6 +25,7 @@ from sentry.models.project import Project
 from sentry.types.activity import ActivityType
 from sentry.types.group import IGNORED_SUBSTATUS_CHOICES, GroupSubStatus
 from sentry.utils import metrics
+from sentry.utils.dates import parse_timestamp
 
 logger = logging.getLogger(__name__)
 
@@ -216,7 +217,7 @@ def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
         "new_substatus": payload.get("new_substatus", None),
         "detector_id": payload.get("detector_id", None),
         "activity_data": payload.get("activity_data", None),
-        "update_date": payload.get("update_date", None),
+        "update_date": parse_timestamp(payload.get("update_date", None)),
     }
 
     process_occurrence_data(data)

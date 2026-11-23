@@ -6,7 +6,14 @@ import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {PlanTier} from 'getsentry-test/planTier';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
@@ -15,10 +22,9 @@ import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 import {hasOnDemandBudgetsFeature} from 'getsentry/views/spendLimits/utils';
 
 function getSeerOption() {
-  const optionText = screen.getByText(/\/ active contributor \/ month/);
-  const option = optionText.closest('[role="checkbox"]');
-  expect(option).toBeInTheDocument();
-  return option!;
+  return within(screen.getByTestId(`product-option-${AddOnCategory.SEER}`)).getByRole(
+    'checkbox'
+  );
 }
 
 async function assertCheckoutSteps({
@@ -51,7 +57,6 @@ async function assertCheckoutSteps({
 describe('Legacy Tier Checkout', () => {
   let mockResponse: any;
 
-  const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
 
@@ -81,18 +86,14 @@ describe('Legacy Tier Checkout', () => {
   });
 
   it('renders for AM2', async () => {
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockResponse).toHaveBeenCalledWith(
         `/customers/${organization.slug}/billing-config/`,
-        expect.objectContaining({
-          method: 'GET',
-          data: {tier: 'checkout'},
-        })
+        expect.objectContaining({method: 'GET', data: {tier: 'checkout'}})
       );
     });
 
@@ -100,18 +101,14 @@ describe('Legacy Tier Checkout', () => {
   });
 
   it('renders for AM1', async () => {
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockResponse).toHaveBeenCalledWith(
         `/customers/${organization.slug}/billing-config/`,
-        expect.objectContaining({
-          method: 'GET',
-          data: {tier: 'checkout'},
-        })
+        expect.objectContaining({method: 'GET', data: {tier: 'checkout'}})
       );
     });
 
@@ -134,18 +131,14 @@ describe('Legacy Tier Checkout', () => {
     });
     SubscriptionStore.set(organization.slug, am2BizSubscription);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockResponse).toHaveBeenCalledWith(
         `/customers/${organization.slug}/billing-config/`,
-        expect.objectContaining({
-          method: 'GET',
-          data: {tier: 'checkout'},
-        })
+        expect.objectContaining({method: 'GET', data: {tier: 'checkout'}})
       );
     });
 
@@ -157,7 +150,6 @@ describe('Legacy Tier Checkout', () => {
 });
 
 describe('Default Tier Checkout', () => {
-  const api = new MockApiClient();
   const organization = OrganizationFixture({});
   let mockBillingConfigResponse: any;
 
@@ -185,18 +177,14 @@ describe('Default Tier Checkout', () => {
   });
 
   it('renders', async () => {
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
         `/customers/${organization.slug}/billing-config/`,
-        expect.objectContaining({
-          method: 'GET',
-          data: {tier: 'checkout'},
-        })
+        expect.objectContaining({method: 'GET', data: {tier: 'checkout'}})
       );
     });
 
@@ -204,24 +192,17 @@ describe('Default Tier Checkout', () => {
   });
 
   it('renders for new customers (default free plan)', async () => {
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 'am3_f',
-    });
+    const sub = SubscriptionFixture({organization, plan: 'am3_f'});
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
         `/customers/${organization.slug}/billing-config/`,
-        expect.objectContaining({
-          method: 'GET',
-          data: {tier: 'checkout'},
-        })
+        expect.objectContaining({method: 'GET', data: {tier: 'checkout'}})
       );
     });
 
@@ -239,28 +220,20 @@ describe('Default Tier Checkout', () => {
       partner: {
         isActive: true,
         externalId: 'yuh',
-        partnership: {
-          id: 'FOO',
-          displayName: 'FOO',
-          supportNote: '',
-        },
+        partnership: {id: 'FOO', displayName: 'FOO', supportNote: ''},
         name: '',
       },
     });
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
         `/customers/${organization.slug}/billing-config/`,
-        expect.objectContaining({
-          method: 'GET',
-          data: {tier: 'checkout'},
-        })
+        expect.objectContaining({method: 'GET', data: {tier: 'checkout'}})
       );
     });
 
@@ -286,28 +259,20 @@ describe('Default Tier Checkout', () => {
       partner: {
         isActive: true,
         externalId: 'foo',
-        partnership: {
-          id: 'XX',
-          displayName: 'BAR',
-          supportNote: '',
-        },
+        partnership: {id: 'XX', displayName: 'BAR', supportNote: ''},
         name: '',
       },
     });
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
         `/customers/${organization.slug}/billing-config/`,
-        expect.objectContaining({
-          method: 'GET',
-          data: {tier: 'checkout'},
-        })
+        expect.objectContaining({method: 'GET', data: {tier: 'checkout'}})
       );
     });
 
@@ -329,28 +294,20 @@ describe('Default Tier Checkout', () => {
       partner: {
         isActive: true,
         externalId: 'foo',
-        partnership: {
-          id: 'XX',
-          displayName: 'BAR',
-          supportNote: '',
-        },
+        partnership: {id: 'XX', displayName: 'BAR', supportNote: ''},
         name: '',
       },
     });
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
         `/customers/${organization.slug}/billing-config/`,
-        expect.objectContaining({
-          method: 'GET',
-          data: {tier: 'checkout'},
-        })
+        expect.objectContaining({method: 'GET', data: {tier: 'checkout'}})
       );
     });
 
@@ -371,28 +328,20 @@ describe('Default Tier Checkout', () => {
       partner: {
         isActive: true,
         externalId: 'foo',
-        partnership: {
-          id: 'XX',
-          displayName: 'XX',
-          supportNote: '',
-        },
+        partnership: {id: 'XX', displayName: 'XX', supportNote: ''},
         name: '',
       },
     });
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
         `/customers/${organization.slug}/billing-config/`,
-        expect.objectContaining({
-          method: 'GET',
-          data: {tier: 'checkout'},
-        })
+        expect.objectContaining({method: 'GET', data: {tier: 'checkout'}})
       );
     });
 
@@ -410,18 +359,14 @@ describe('Default Tier Checkout', () => {
     });
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
         `/customers/${organization.slug}/billing-config/`,
-        expect.objectContaining({
-          method: 'GET',
-          data: {tier: 'checkout'},
-        })
+        expect.objectContaining({method: 'GET', data: {tier: 'checkout'}})
       );
     });
     expect(hasOnDemandBudgetsFeature(organization, sub)).toBe(false);
@@ -451,26 +396,19 @@ describe('Default Tier Checkout', () => {
     };
     sub.addOns = {
       ...sub.addOns,
-      [AddOnCategory.SEER]: {
-        ...sub.addOns?.[AddOnCategory.SEER]!,
-        enabled: true,
-      },
+      [AddOnCategory.SEER]: {...sub.addOns?.[AddOnCategory.SEER]!, enabled: true},
     };
 
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
         `/customers/${organization.slug}/billing-config/`,
-        expect.objectContaining({
-          method: 'GET',
-          data: {tier: 'checkout'},
-        })
+        expect.objectContaining({method: 'GET', data: {tier: 'checkout'}})
       );
     });
 
@@ -512,18 +450,14 @@ describe('Default Tier Checkout', () => {
     };
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
         `/customers/${organization.slug}/billing-config/`,
-        expect.objectContaining({
-          method: 'GET',
-          data: {tier: 'checkout'},
-        })
+        expect.objectContaining({method: 'GET', data: {tier: 'checkout'}})
       );
     });
 
@@ -572,10 +506,7 @@ describe('Default Tier Checkout', () => {
     // set all add-ons as unavailable so we don't check for them in order to skip the step
     sub.addOns = {
       ...sub.addOns,
-      [AddOnCategory.SEER]: {
-        ...sub.addOns?.[AddOnCategory.SEER]!,
-        isAvailable: false,
-      },
+      [AddOnCategory.SEER]: {...sub.addOns?.[AddOnCategory.SEER]!, isAvailable: false},
       [AddOnCategory.LEGACY_SEER]: {
         ...sub.addOns?.[AddOnCategory.LEGACY_SEER]!,
         isAvailable: false,
@@ -584,18 +515,14 @@ describe('Default Tier Checkout', () => {
 
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
         `/customers/${organization.slug}/billing-config/`,
-        expect.objectContaining({
-          method: 'GET',
-          data: {tier: 'checkout'},
-        })
+        expect.objectContaining({method: 'GET', data: {tier: 'checkout'}})
       );
     });
 
@@ -640,25 +567,17 @@ describe('Default Tier Checkout', () => {
   });
 
   it('does not reset plan selection when subscription store updates', async () => {
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 'am3_f',
-      isFree: true,
-    });
+    const sub = SubscriptionFixture({organization, plan: 'am3_f', isFree: true});
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
         `/customers/${organization.slug}/billing-config/`,
-        expect.objectContaining({
-          method: 'GET',
-          data: {tier: 'checkout'},
-        })
+        expect.objectContaining({method: 'GET', data: {tier: 'checkout'}})
       );
     });
 
@@ -719,18 +638,14 @@ describe('Default Tier Checkout', () => {
 
     SubscriptionStore.set(organization.slug, trialSub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
         `/customers/${organization.slug}/billing-config/`,
-        expect.objectContaining({
-          method: 'GET',
-          data: {tier: 'checkout'},
-        })
+        expect.objectContaining({method: 'GET', data: {tier: 'checkout'}})
       );
     });
 

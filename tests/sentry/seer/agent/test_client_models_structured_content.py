@@ -10,7 +10,7 @@ from __future__ import annotations
 from sentry.seer.agent.client_models import SeerRunState, ToolResult
 
 
-def test_structured_content_is_parsed_from_seer():
+def test_structured_content_is_parsed_from_seer() -> None:
     result = ToolResult(
         tool_call_id="t1",
         tool_call_function="sentry_api_execute",
@@ -24,12 +24,12 @@ def test_structured_content_is_parsed_from_seer():
     }
 
 
-def test_structured_content_defaults_to_none_for_old_seer():
+def test_structured_content_defaults_to_none_for_old_seer() -> None:
     result = ToolResult(tool_call_id="t1", tool_call_function="todo_write", content="{}")
     assert result.structuredContent is None
 
 
-def test_structured_content_round_trips_to_the_frontend_dict():
+def test_structured_content_round_trips_to_the_frontend_dict() -> None:
     payload = {"navigation": [{"kind": "get_trace_waterfall", "params": {"trace_id": "abc"}}]}
     result = ToolResult(
         tool_call_id="t1",
@@ -42,7 +42,7 @@ def test_structured_content_round_trips_to_the_frontend_dict():
     assert result.dict()["structuredContent"] == payload
 
 
-def test_in_flight_tool_activity_reaches_the_frontend():
+def test_in_flight_tool_activity_reaches_the_frontend() -> None:
     live_calls = [{"id": 1, "kind": "api", "title": "Searching issues"}]
     progress = [{"token": "call-1", "progress": 1, "message": "Searching issues"}]
     state = SeerRunState(

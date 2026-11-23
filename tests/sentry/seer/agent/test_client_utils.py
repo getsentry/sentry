@@ -25,7 +25,7 @@ from sentry.seer.models.run import SeerRunType
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import make_request
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -84,6 +84,7 @@ class CollectUserOrgContextTest(TestCase):
 
     def test_collect_context_with_member(self) -> None:
         """Test context collection for a user who is an organization member"""
+        self.user.name = "Alice"
         context = collect_user_org_context(self.user, self.organization)
 
         assert context is not None
@@ -110,6 +111,19 @@ class CollectUserOrgContextTest(TestCase):
         assert all_project_slugs == {"project-1", "project-2", "other-project"}
         all_project_ids = {p["id"] for p in context["all_org_projects"]}
         assert all_project_ids == {self.project1.id, self.project2.id, self.other_project.id}
+
+    @mock.patch("sentry.seer.agent.client_utils.user_option_service.get_many", return_value=[])
+    def test_skip_project_and_team_queries(self, mock_options: mock.MagicMock) -> None:
+        user = self.user
+        organization = self.organization
+        with self.assertNumQueries(0):
+            context = collect_user_org_context(user, organization, include_projects_and_teams=False)
+
+        mock_options.assert_called_once_with(filter={"user_ids": [user.id], "key": "timezone"})
+        assert context["user_id"] == user.id
+        assert "all_org_projects" not in context
+        assert "user_projects" not in context
+        assert "user_teams" not in context
 
     def test_collect_context_with_multiple_teams(self) -> None:
         """Test context collection for a user in multiple teams"""
@@ -474,22 +488,22 @@ class TestGetProxyHeaders(TestCase):
         # Outside any viewer_context_scope — nothing to encode.
         assert get_proxy_headers() is None
 
-    def test_viewer_context_without_user_returns_none(self) -> None:
-        # System-only context (no user_id) shouldn't produce callback auth —
-        # callbacks only make sense for user-initiated runs.
-        with viewer_context_scope(ViewerContext(organization_id=42)):
-            assert get_proxy_headers() is None
+    def test_system_viewer_context_propagates(self) -> None:
+        with viewer_context_scope(
+            ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=42)
+        ):
+            assert get_proxy_headers() is not None
 
     @override_settings(SEER_API_SHARED_SECRET="")
     def test_no_shared_secret_returns_none(self) -> None:
         with viewer_context_scope(
-            ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER)
+            ViewerContext(actor=Actor(type=ActorType.USER, actor_id=7), organization_id=42)
         ):
             assert get_proxy_headers() is None
 
     def test_returns_single_jwt_header(self) -> None:
         with viewer_context_scope(
-            ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER)
+            ViewerContext(actor=Actor(type=ActorType.USER, actor_id=7), organization_id=42)
         ):
             headers = get_proxy_headers()
         assert headers is not None
@@ -499,7 +513,7 @@ class TestGetProxyHeaders(TestCase):
 
     def test_jwt_payload_carries_viewer_fields(self) -> None:
         with viewer_context_scope(
-            ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER)
+            ViewerContext(actor=Actor(type=ActorType.USER, actor_id=7), organization_id=42)
         ):
             headers = get_proxy_headers()
         assert headers is not None
@@ -510,8 +524,8 @@ class TestGetProxyHeaders(TestCase):
             issuer="sentry",
         )
         assert decoded["organization_id"] == 42
-        assert decoded["user_id"] == 7
-        assert decoded["actor_type"] == "user"
+        assert decoded["actor"]["id"] == 7
+        assert decoded["actor"]["type"] == "user"
         # Standard JWT claims present
         assert "iat" in decoded
         assert "exp" in decoded
@@ -566,7 +580,7 @@ class EnqueueSeerRunSanitizeTest(TestCase):
 class FetchRunStatusesTest(TestCase):
     _PATCH = "sentry.seer.agent.client_utils.make_signed_seer_api_request"
 
-    def _response(self, status: int, payload: dict) -> mock.Mock:
+    def _response(self, status: int, payload: dict[str, Any]) -> mock.Mock:
         response = mock.Mock(status=status)
         response.json.return_value = payload
         return response

@@ -1,14 +1,14 @@
-import {
-  COMPONENT_CATEGORY_ORDER,
-  validateComponentCategory,
-} from 'sentry/stories/componentCategories';
+import {COMPONENT_CATEGORY_ORDER, validateComponentCategory} from './componentCategories';
 
 describe('validateComponentCategory', () => {
   it.each(COMPONENT_CATEGORY_ORDER)(
     'accepts the %s core component category',
     category => {
       expect(() =>
-        validateComponentCategory('components/core/button/button.mdx', category)
+        validateComponentCategory('app/components/core/avatar/avatar.mdx', category)
+      ).not.toThrow();
+      expect(() =>
+        validateComponentCategory('packages/scraps/src/button/button.mdx', category)
       ).not.toThrow();
     }
   );
@@ -17,8 +17,15 @@ describe('validateComponentCategory', () => {
     'rejects the %s core component category',
     category => {
       expect(() =>
-        validateComponentCategory('components/core/button/button.mdx', category)
-      ).toThrow('components/core/button/button.mdx has an invalid component category');
+        validateComponentCategory('app/components/core/avatar/avatar.mdx', category)
+      ).toThrow(
+        'app/components/core/avatar/avatar.mdx has an invalid component category'
+      );
+      expect(() =>
+        validateComponentCategory('packages/scraps/src/button/button.mdx', category)
+      ).toThrow(
+        'packages/scraps/src/button/button.mdx has an invalid component category'
+      );
     }
   );
 
@@ -26,14 +33,14 @@ describe('validateComponentCategory', () => {
     'allows %s documents to omit a category',
     section => {
       expect(() =>
-        validateComponentCategory(`components/core/${section}/example.mdx`, undefined)
+        validateComponentCategory(`app/components/core/${section}/example.mdx`, undefined)
       ).not.toThrow();
     }
   );
 
   it('does not apply core category validation to other MDX files', () => {
     expect(() =>
-      validateComponentCategory('components/featureShowcase.mdx', 'overlay')
+      validateComponentCategory('app/components/featureShowcase.mdx', 'overlay')
     ).not.toThrow();
   });
 });

@@ -4,8 +4,10 @@ from urllib.parse import parse_qs, urlparse
 
 import responses
 from django.urls import reverse
+from requests import PreparedRequest
 
 from fixtures.integrations.stub_service import StubService
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.project_management.metrics import ProjectManagementActionType
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.metrics import EventLifecycle, IntegrationEventLifecycleMetric
@@ -51,7 +53,7 @@ def _assert_search_outcome(
 @control_silo_test
 class JiraSearchEndpointTest(APITestCase):
     @cached_property
-    def integration(self):
+    def integration(self) -> Integration:
         integration = self.create_provider_integration(
             provider="jira",
             name="Jira Cloud",
@@ -89,7 +91,10 @@ class JiraSearchEndpointTest(APITestCase):
     @responses.activate
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event", autospec=True)
     def test_issue_search_id(self, mock_record: mock.MagicMock) -> None:
-        def responder(request):
+        def responder(
+            request: PreparedRequest,
+        ) -> tuple[int, dict[str, str], str]:
+            assert request.url is not None
             query = parse_qs(urlparse(request.url).query)
             assert 'id="hsp-1"' == query["jql"][0]
             data = StubService.get_stub_json("jira", "search_response.json")
@@ -156,7 +161,10 @@ class JiraSearchEndpointTest(APITestCase):
             json=[{"key": "HSP", "id": "10000"}],
         )
 
-        def responder(request):
+        def responder(
+            request: PreparedRequest,
+        ) -> tuple[int, dict[str, str], str]:
+            assert request.url is not None
             query = parse_qs(urlparse(request.url).query)
             assert "HSP" == query["project"][0]
             assert "bob" == query["query"][0]
@@ -212,7 +220,10 @@ class JiraSearchEndpointTest(APITestCase):
     @responses.activate
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event", autospec=True)
     def test_customfield_search(self, mock_record: mock.MagicMock) -> None:
-        def responder(request):
+        def responder(
+            request: PreparedRequest,
+        ) -> tuple[int, dict[str, str], str]:
+            assert request.url is not None
             query = parse_qs(urlparse(request.url).query)
             assert "cf[0123]" == query["fieldName"][0]
             assert "sp" == query["fieldValue"][0]

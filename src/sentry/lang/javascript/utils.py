@@ -18,7 +18,7 @@ JAVASCRIPT_PLATFORMS = ("javascript", "node")
 
 
 def get_source_context(
-    source: list[bytes], lineno: int, context=LINES_OF_CONTEXT
+    source: list[bytes], lineno: int, context: int = LINES_OF_CONTEXT
 ) -> tuple[list[bytes] | None, bytes | None, list[bytes] | None]:
     if not source:
         return None, None, None
@@ -47,41 +47,6 @@ def get_source_context(
         post_context = []
 
     return pre_context or None, context_line, post_context or None
-
-
-def trim_line(line: str, column=0) -> str:
-    """
-    Trims a line down to a goal of 140 characters, with a little
-    wiggle room to be sensible and tries to trim around the given
-    `column`. So it tries to extract 60 characters before and after
-    the provided `column` and yield a better context.
-    """
-    line = line.strip("\r\n")
-    ll = len(line)
-    if ll <= 150:
-        return line
-    if column > ll:
-        column = ll
-    start = max(column - 60, 0)
-    # Round down if it brings us close to the edge
-    if start < 5:
-        start = 0
-    end = min(start + 140, ll)
-    # Round up to the end if it's close
-    if end > ll - 5:
-        end = ll
-    # If we are bumped all the way to the end,
-    # make sure we still get a full 140 characters in the line
-    if end == ll:
-        start = max(end - 140, 0)
-    line = line[start:end]
-    if end < ll:
-        # we've snipped from the end
-        line += " {snip}"
-    if start > 0:
-        # we've snipped from the beginning
-        line = "{snip} " + line
-    return line
 
 
 UNKNOWN_MODULE = "<unknown module>"

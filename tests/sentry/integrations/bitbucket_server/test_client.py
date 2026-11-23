@@ -5,6 +5,7 @@ from django.test import override_settings
 from requests import Request
 
 from fixtures.bitbucket_server import REPO
+from sentry.integrations.bitbucket_server.client import BitbucketServerWebhookData
 from sentry.integrations.bitbucket_server.integration import BitbucketServerIntegration
 from sentry.integrations.bitbucket_server.utils import BitbucketServerAPIPath
 from sentry.models.repository import Repository
@@ -106,6 +107,43 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
 
         assert len(responses.calls) == 1
         assert "oauth_consumer_key" in responses.calls[0].request.headers["Authorization"]
+
+    @responses.activate
+    def test_get_hook(self) -> None:
+        hook = {
+            "id": 79,
+            "name": "sentry-bitbucket-server-repo-hook",
+            "url": "https://sentry.example.com/webhook",
+            "active": True,
+            "events": ["repo:refs_changed"],
+        }
+        responses.add(
+            responses.GET,
+            f"{self.bb_server_client.base_url}/rest/api/1.0/projects/PROJ/repos/repository-name/webhooks/79",
+            json=hook,
+        )
+
+        assert self.bb_server_client.get_hook("PROJ", "repository-name", 79) == hook
+
+    @responses.activate
+    def test_update_hook(self) -> None:
+        hook: BitbucketServerWebhookData = {
+            "name": "sentry-bitbucket-server-repo-hook",
+            "url": "https://sentry.example.com/webhook",
+            "active": False,
+            "events": ["repo:refs_changed"],
+            "configuration": {"secret": "webhook-secret"},
+        }
+        responses.add(
+            responses.PUT,
+            f"{self.bb_server_client.base_url}/rest/api/1.0/projects/PROJ/repos/repository-name/webhooks/79",
+            json={"id": 79, **hook},
+        )
+
+        result = self.bb_server_client.update_hook("PROJ", "repository-name", 79, hook)
+
+        assert result == {"id": 79, **hook}
+        assert orjson.loads(responses.calls[0].request.body) == hook
 
     @responses.activate
     def test_check_file(self) -> None:

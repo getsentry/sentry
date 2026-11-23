@@ -1,13 +1,14 @@
 import styled from '@emotion/styled';
 import {IconArrow} from '@sentry/icons/arrow';
 
-import type {SuggestionSection} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/types';
 import {
   TermOperator,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t, tn} from 'sentry/locale';
+
+import type {SuggestionSection} from './types';
 
 const RELATIVE_DATE_INPUT_REGEX = /^(\d+)\s*([mhdw]?)/;
 const RELATIVE_DATE_UNITS = ['m', 'h', 'd', 'w'] as const;

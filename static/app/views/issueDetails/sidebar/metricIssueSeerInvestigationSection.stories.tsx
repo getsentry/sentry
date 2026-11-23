@@ -4,6 +4,7 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import * as Storybook from 'sentry/stories';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupOpenPeriod} from 'sentry/types/group';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -15,7 +16,8 @@ import type {
   InvestigationDetail,
   InvestigationOrchestration,
 } from 'sentry/views/investigations/types';
-import {MetricIssueSeerInvestigationSection} from 'sentry/views/issueDetails/sidebar/metricDetectorTriggeredSection';
+
+import {MetricIssueSeerInvestigationSection} from './metricDetectorTriggeredSection';
 
 const INVESTIGATION_ID = '4567';
 
@@ -68,7 +70,7 @@ class FixtureQueryClient extends QueryClient {
 
   override defaultQueryOptions: QueryClient['defaultQueryOptions'] = options => {
     const defaulted = super.defaultQueryOptions(options);
-    const url = String(defaulted.queryKey[0]);
+    const url = safeParseQueryKey(defaulted.queryKey)?.url ?? '';
     const queryFn = () => Promise.resolve({json: this.respond(url), headers: {}});
     // Each fixture matches the response type of the query that asked for it.
     return {...defaulted, queryFn: queryFn as never};
@@ -131,6 +133,72 @@ export default Storybook.story('Metric issue — Seer investigation section', st
             phase: 'investigating',
             status: 'processing',
             hypotheses: InvestigationHypothesesFixture(),
+          })}
+        />
+      </Storybook.Demo>
+    </Fragment>
+  ));
+
+  story('With tool calls', () => (
+    <Fragment>
+      <p>
+        The status line carries the calls behind the current phase, drawn exactly as on
+        the investigation page: the latest call on its own line, and, once there is
+        history behind it, as the toggle for the earlier calls.
+      </p>
+      <Storybook.Demo direction="column" align="stretch" maxHeight="none">
+        <SectionWithFixtures
+          {...runningInvestigation({
+            phase: 'broad_scan',
+            status: 'processing',
+            broadScan: {
+              status: 'running',
+              summary: null,
+              toolActivity: [
+                {
+                  id: 'scan-1',
+                  kind: 'tool',
+                  status: 'running',
+                  title: 'Querying spans for the breached transaction',
+                },
+              ],
+              error: null,
+            },
+            hypotheses: [],
+          })}
+        />
+      </Storybook.Demo>
+      <Storybook.Demo direction="column" align="stretch" maxHeight="none">
+        <SectionWithFixtures
+          {...runningInvestigation({
+            phase: 'broad_scan',
+            status: 'processing',
+            broadScan: {
+              status: 'running',
+              summary: null,
+              toolActivity: [
+                {
+                  id: 'scan-1',
+                  kind: 'tool',
+                  status: 'completed',
+                  title: 'Listing project releases',
+                },
+                {
+                  id: 'scan-2',
+                  kind: 'api',
+                  status: 'failed',
+                  title: 'Fetched deploy history',
+                },
+                {
+                  id: 'scan-3',
+                  kind: 'tool',
+                  status: 'running',
+                  title: 'Querying spans for the breached transaction',
+                },
+              ],
+              error: null,
+            },
+            hypotheses: [],
           })}
         />
       </Storybook.Demo>

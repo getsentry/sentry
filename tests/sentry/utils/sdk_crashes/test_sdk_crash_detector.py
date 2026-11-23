@@ -116,7 +116,7 @@ def test_sdk_crash_ignore_matchers(
     frames: list[dict[str, str]],
     is_crash: bool,
     description: str,
-):
+) -> None:
     empty_cocoa_config.sdk_crash_ignore_matchers = set(ignore_matchers)
     empty_cocoa_config.sdk_frame_config.path_patterns = {"**"}
 

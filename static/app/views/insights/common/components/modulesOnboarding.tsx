@@ -16,7 +16,7 @@ import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Panel} from 'sentry/components/panels/panel';
@@ -57,9 +57,9 @@ export function ModulesOnboardingPanel({
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
   return (
     <Panel>
-      <Container>
+      <Container padding="3xl" minHeight="160px" overflow="hidden" position="relative">
         <Flex align="stretch" wrap="wrap-reverse" gap="3xl">
-          <ModuleInfo>
+          <Container flex="5" width="100%">
             <Fragment>
               <Header>{emptyStateContent.heading}</Header>
               <p>{emptyStateContent.description}</p>
@@ -75,10 +75,10 @@ export function ModulesOnboardingPanel({
                 </ul>
               </ValueProp>
             </SplitContainer>
-          </ModuleInfo>
-          <Sidebar>
+          </Container>
+          <Container flex="3" position="relative">
             <PerfImage src={emptyStateImg} />
-          </Sidebar>
+          </Container>
         </Flex>
         <LinkButton variant="primary" external href={docLink}>
           {t('Read the docs')}
@@ -100,7 +100,7 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
   const [hoveredIcon, setHoveredIcon] = useState<PlatformKey | null>(null);
 
   return (
-    <ModulePreviewContainer>
+    <Container flex="2" padding="2xl" background="secondary" width="100%">
       <ModulePreviewImage src={emptyStateContent.imageSrc} />
       {emptyStateContent.supportedSdks && (
         <SupportedSdkContainer>
@@ -122,25 +122,13 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
           </Flex>
         </SupportedSdkContainer>
       )}
-    </ModulePreviewContainer>
+    </Container>
   );
 }
-
-const Sidebar = styled('div')`
-  position: relative;
-  flex: 3;
-`;
 
 const PerfImage = styled('img')`
   max-width: 100%;
   min-width: 200px;
-`;
-
-const Container = styled('div')`
-  position: relative;
-  overflow: hidden;
-  min-height: 160px;
-  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Header = styled('h3')`
@@ -153,24 +141,12 @@ const SplitContainer = styled(Panel)`
   overflow: hidden;
 `;
 
-const ModuleInfo = styled('div')`
-  flex: 5;
-  width: 100%;
-`;
-
 const ModulePreviewImage = styled('img')`
   max-width: 100%;
   display: block;
   margin: auto;
   margin-bottom: ${p => p.theme.space.xl};
   object-fit: contain;
-`;
-
-const ModulePreviewContainer = styled('div')`
-  flex: 2;
-  width: 100%;
-  padding: ${p => p.theme.space['2xl']};
-  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const SupportedSdkContainer = styled('div')`
@@ -216,10 +192,7 @@ const EMPTY_STATE_CONTENT: Record<ModulesWithOnboarding, EmptyStateContent> = {
     heading: t("Don't lose your user's attention before your app loads"),
     description: tct(
       'Monitor cold and warm [dataTypePlural] and track down the operations and releases contributing to regressions.',
-      {
-        dataTypePlural:
-          MODULE_DATA_TYPES_PLURAL[ModuleName.APP_START].toLocaleLowerCase(),
-      }
+      {dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.APP_START].toLocaleLowerCase()}
     ),
     valuePropDescription: tct('Mobile [dataType] insights give you visibility into:', {
       dataType: MODULE_DATA_TYPES[ModuleName.APP_START],
@@ -360,9 +333,7 @@ const EMPTY_STATE_CONTENT: Record<ModulesWithOnboarding, EmptyStateContent> = {
     heading: t('Ensure your background jobs aren’t being sent to /dev/null'),
     description: tct(
       'Understand the health and performance impact that [dataTypePlural] have on your application and diagnose errors tied to jobs.',
-      {
-        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.QUEUE].toLocaleLowerCase(),
-      }
+      {dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.QUEUE].toLocaleLowerCase()}
     ),
     valuePropDescription: tct('[dataType] insights give you visibility into:', {
       dataType: MODULE_DATA_TYPES[ModuleName.QUEUE],
@@ -419,9 +390,7 @@ const EMPTY_STATE_CONTENT: Record<ModulesWithOnboarding, EmptyStateContent> = {
     heading: t("Get insights about your application's session health"),
     description: tct(
       'Understand the frequency of handled errors and crashes compared to healthy sessions.',
-      {
-        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.SESSIONS].toLocaleLowerCase(),
-      }
+      {dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.SESSIONS].toLocaleLowerCase()}
     ),
     valuePropDescription: tct('[dataType] insights include:', {
       dataType: MODULE_DATA_TYPES[ModuleName.SESSIONS],

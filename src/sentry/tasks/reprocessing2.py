@@ -19,6 +19,7 @@ from sentry.issues.action_log import (
 from sentry.models.project import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
 from sentry.search.eap.occurrences.query_utils import build_group_id_in_filter
+from sentry.seer.similarity.utils import project_uses_seer_similarity
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.reprocessing import reprocessing_store
@@ -362,7 +363,7 @@ def finish_reprocessing(project_id: int, group_id: int) -> None:
     eventstream.backend.exclude_groups(project_id, [group_id])
 
     # Don't do MinHash work if we use embeddings-based similarity.
-    if not group.project.get_option("sentry:similarity_backfill_completed"):
+    if not project_uses_seer_similarity(group.project):
         from sentry import similarity
 
         similarity.delete(None, group)

@@ -1,7 +1,8 @@
 import {useContext} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
-import {OrganizationContext} from 'sentry/utils/organizationContext';
+
+import {OrganizationContext} from './organizationContext';
 
 interface Options<AllowNull extends boolean = boolean> {
   /**

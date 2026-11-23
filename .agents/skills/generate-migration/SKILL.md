@@ -44,7 +44,7 @@ The exception to the above: a migration that **backfills or transforms data** is
 
 Set `app`, `migrate_from` (the migration just before yours), and `migrate_to` (yours). Seed pre-migration rows in `setup_before_migration(self, apps)` using the **historical** model registry (`apps.get_model("sentry", "MyModel")`) — not a direct `from sentry.models...` import, since the current model may not match the schema at `migrate_from`. Then assert the post-migration state.
 
-**Write exactly one `test_*` method.** `setUp` runs the full migrate-down → seed → migrate-up cycle on _every_ test method, so each extra method pays for another round trip with no added coverage. Cover multiple cases by seeding all of them in `setup_before_migration` and asserting each in the single test body.
+**Write exactly one `test_*` method.** `setUp` runs the full migrate-down → seed → migrate-up cycle on _every_ test method, so each extra method pays for another round trip with no added coverage. Cover multiple cases by seeding all of them in `setup_before_migration` and asserting each in the single test body, with `self.subTest()` per case. `TestMigrations` raises on a second test method unless the class sets `allow_multiple_tests = True`; set it only when the cases can't share one migration run. Don't use `SnubaTestCase` unless the migration reads from Snuba.
 
 ```python
 from sentry.testutils.cases import TestMigrations
@@ -78,6 +78,10 @@ Run these tests locally with the `--migrations` and `--reuse-db` flags. On the f
 `apps.get_model()` returns a historical model class without custom `save()` methods. Signals it emits use the historical class as sender, so receivers scoped to the live model, such as cache invalidation hooks, do not run.
 
 When authoring or reviewing a data migration, inspect the live model's save hooks and explicitly perform required side effects. Keep using `apps.get_model()`; importing the live model is not a safe workaround.
+
+### Tables on Separate Databases
+
+Some production tables live on separate Postgres databases. `RunPython` and `SafeRunSQL` need `hints={"tables": [...]}`. The operation runs only on the database those tables resolve to, and they must all resolve to the same one, so list the tables it writes. To find which database a table is on, use the **`django-queries`** skill.
 
 ### Adding Columns
 

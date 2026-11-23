@@ -25,10 +25,7 @@ import {GlobalStyles} from 'admin/globalStyles';
 
 const ADMIN_SIDEBAR_COLLAPSED_KEY = 'getsentryAdminSidebarCollapsed';
 
-const themes = {
-  darkTheme,
-  lightTheme,
-};
+const themes = {darkTheme, lightTheme};
 
 type ThemeName = keyof typeof themes;
 
@@ -169,7 +166,7 @@ export function Layout() {
                   <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
                   <NavLink to="/_admin/seer/">Seer</NavLink>
                 </Navigation>
-                <SidebarActions>
+                <Stack align="start" gap="md">
                   <ThemeToggle
                     variant="transparent"
                     size="zero"
@@ -183,7 +180,7 @@ export function Layout() {
                   >
                     {isDark ? 'Light mode' : 'Dark mode'}
                   </ThemeToggle>
-                </SidebarActions>
+                </Stack>
               </Sidebar>
               <Stack
                 minWidth={0}
@@ -302,13 +299,6 @@ const Sidebar = styled('section')<{isCollapsed?: boolean; isOpen?: boolean}>`
       transform 0.2s ease,
       visibility 0s linear ${p => (p.isOpen ? '0s' : '0.2s')};
   }
-`;
-
-const SidebarActions = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: ${p => p.theme.space.md};
 `;
 
 const CollapseButton = styled(Button)`

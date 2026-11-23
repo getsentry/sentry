@@ -3,7 +3,7 @@ from __future__ import annotations
 import types
 from collections.abc import Sequence
 from datetime import timedelta
-from typing import Any
+from typing import Any, Literal
 
 import sentry_sdk
 from snuba_sdk import Column, Condition
@@ -146,12 +146,12 @@ def timeseries_query(
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
-    allow_metric_aggregates=True,
+    allow_metric_aggregates: bool = True,
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
     has_metrics: bool = True,
     on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type=None,
+    on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
@@ -332,26 +332,26 @@ def top_events_timeseries(
 
 
 def histogram_query(
-    fields,
-    user_query,
-    snuba_params,
-    num_buckets,
-    precision=0,
-    min_value=None,
-    max_value=None,
-    data_filter=None,
-    group_by=None,
-    order_by=None,
-    limit_by=None,
-    histogram_rows=None,
-    extra_conditions=None,
-    normalize_results=True,
-    on_demand_metrics_enabled=False,
-    on_demand_metrics_type=None,
+    fields: list[str],
+    user_query: str,
+    snuba_params: SnubaParams,
+    num_buckets: int,
+    precision: int = 0,
+    min_value: float | None = None,
+    max_value: float | None = None,
+    data_filter: Literal["exclude_outliers"] | None = None,
+    group_by: list[str] | None = None,
+    order_by: list[str] | None = None,
+    limit_by: list[str] | None = None,
+    histogram_rows: int | None = None,
+    extra_conditions: list[Condition] | None = None,
+    normalize_results: bool = True,
+    on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
     *,
     referrer: str,
-):
+) -> dict[str, object] | EventsResponse:
     """
     High-level API for doing arbitrary user timeseries queries against events.
     this API should match that of sentry.snuba.discover.histogram_query

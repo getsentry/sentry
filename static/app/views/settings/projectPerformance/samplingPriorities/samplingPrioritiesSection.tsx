@@ -4,16 +4,13 @@ import {LinkButton} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 
 import {useSamplingPriorityMutationOptions} from './useSamplingPriorityMutationOptions';
 
-type SamplingPrioritiesSectionProps = {
-  hasWriteAccess: boolean;
-  project: DetailedProject;
-};
+type SamplingPrioritiesSectionProps = {hasWriteAccess: boolean; project: DetailedProject};
 
 export function SamplingPrioritiesSection({
   hasWriteAccess,

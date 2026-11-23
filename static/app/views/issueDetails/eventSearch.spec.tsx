@@ -6,7 +6,8 @@ import {TagsFixture} from 'sentry-fixture/tags';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {EventSearch} from 'sentry/views/issueDetails/eventSearch';
+
+import {EventSearch} from './eventSearch';
 
 const mockHandleSearch = jest.fn();
 
@@ -35,13 +36,7 @@ describe('EventSearch', () => {
     });
     mockTagKeyQuery = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/tags/${tagKey}/values/`,
-      body: [
-        {
-          key: tagKey,
-          name: tagValue,
-          value: tagValue,
-        },
-      ],
+      body: [{key: tagKey, name: tagValue, value: tagValue}],
       method: 'GET',
     });
   });

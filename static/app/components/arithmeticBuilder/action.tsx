@@ -1,17 +1,14 @@
 import {useCallback, useMemo, useState} from 'react';
 import type {Key} from '@react-types/shared';
 
-import {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import type {Token} from 'sentry/components/arithmeticBuilder/token';
 import {defined} from 'sentry/utils/defined';
 
-type ArithmeticBuilderUpdateResetFocusOverrideAction = {
-  type: 'RESET_FOCUS_OVERRIDE';
-};
+import {Expression} from './expression';
+import type {Token} from './token';
 
-export type FocusOverride = {
-  itemKey: Key;
-};
+type ArithmeticBuilderUpdateResetFocusOverrideAction = {type: 'RESET_FOCUS_OVERRIDE'};
+
+export type FocusOverride = {itemKey: Key};
 
 type ArithmeticBuilderDeleteAction = {
   token: Token;
@@ -61,10 +58,7 @@ export function useArithmeticBuilderAction({
   updateExpression,
 }: UseArithmeticBuilderActionOptions): {
   dispatch: (action: ArithmeticBuilderAction) => void;
-  state: {
-    expression: Expression;
-    focusOverride: FocusOverride | null;
-  };
+  state: {expression: Expression; focusOverride: FocusOverride | null};
 } {
   const [expressionString, setExpressionString] = useState(initialExpression);
   const [prevInitialExpression, setPrevInitialExpression] = useState(initialExpression);
@@ -105,13 +99,7 @@ export function useArithmeticBuilderAction({
     [expressionString, references, updateExpression]
   );
 
-  const state = useMemo(
-    () => ({
-      expression,
-      focusOverride,
-    }),
-    [expression, focusOverride]
-  );
+  const state = useMemo(() => ({expression, focusOverride}), [expression, focusOverride]);
 
   return {state, dispatch};
 }

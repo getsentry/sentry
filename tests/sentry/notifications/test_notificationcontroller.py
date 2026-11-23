@@ -14,13 +14,13 @@ from sentry.types.actor import Actor, ActorType
 
 
 def add_notification_setting_option(
-    scope_type,
-    scope_identifier,
-    type,
-    value,
-    user_id=None,
-    team_id=None,
-):
+    scope_type: NotificationScopeEnum,
+    scope_identifier: int,
+    type: NotificationSettingEnum,
+    value: NotificationSettingsOptionEnum,
+    user_id: int | None = None,
+    team_id: int | None = None,
+) -> NotificationSettingOption:
     return NotificationSettingOption.objects.create(
         scope_type=scope_type.value,
         scope_identifier=scope_identifier,
@@ -32,14 +32,14 @@ def add_notification_setting_option(
 
 
 def add_notification_setting_provider(
-    scope_type,
-    scope_identifier,
-    provider,
-    type,
-    value,
-    user_id=None,
-    team_id=None,
-):
+    scope_type: NotificationScopeEnum,
+    scope_identifier: int,
+    provider: ExternalProviderEnum,
+    type: NotificationSettingEnum,
+    value: NotificationSettingsOptionEnum,
+    user_id: int | None = None,
+    team_id: int | None = None,
+) -> NotificationSettingProvider:
     return NotificationSettingProvider.objects.create(
         scope_type=scope_type.value,
         scope_identifier=scope_identifier,
@@ -213,6 +213,49 @@ class NotificationControllerTest(TestCase):
             value=NotificationSettingsOptionEnum.ALWAYS.value,
         )
         assert filtered_providers == [self.setting_providers[0]]
+
+    def test_filter_settings_by_recipient(self) -> None:
+        other_user = self.create_user()
+        self.create_member(user=other_user, organization=self.organization, teams=[self.team])
+        other_user_option = add_notification_setting_option(
+            scope_type=NotificationScopeEnum.USER,
+            scope_identifier=other_user.id,
+            type=NotificationSettingEnum.DEPLOY,
+            value=NotificationSettingsOptionEnum.NEVER,
+            user_id=other_user.id,
+        )
+        team_option = add_notification_setting_option(
+            scope_type=NotificationScopeEnum.TEAM,
+            scope_identifier=self.team.id,
+            type=NotificationSettingEnum.DEPLOY,
+            value=NotificationSettingsOptionEnum.ALWAYS,
+            team_id=self.team.id,
+        )
+        team_provider = add_notification_setting_provider(
+            scope_type=NotificationScopeEnum.TEAM,
+            scope_identifier=self.team.id,
+            provider=ExternalProviderEnum.SLACK,
+            type=NotificationSettingEnum.DEPLOY,
+            value=NotificationSettingsOptionEnum.ALWAYS,
+            team_id=self.team.id,
+        )
+        controller = NotificationController(
+            recipients=[self.user, other_user, self.team],
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+        )
+
+        assert controller._filter_options(user_id=self.user.id) == self.setting_options
+        assert controller._filter_options(user_id=other_user.id) == [other_user_option]
+        assert controller._filter_options(team_id=self.team.id) == [team_option]
+        assert controller._filter_options(
+            user_id=self.user.id, type=NotificationSettingEnum.DEPLOY.value
+        ) == [self.setting_options[0]]
+        assert controller._filter_options(user_id=self.create_user().id) == []
+
+        assert controller._filter_providers(user_id=self.user.id) == self.setting_providers
+        assert controller._filter_providers(team_id=self.team.id) == [team_provider]
+        assert controller._filter_providers(user_id=other_user.id) == []
 
     def test_layering(self) -> None:
         NotificationSettingOption.objects.all().delete()

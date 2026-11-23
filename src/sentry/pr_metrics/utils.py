@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import cast
 
 from django.db.models import Q
 from django.utils import timezone
@@ -89,7 +88,7 @@ def is_activity_tracking_enabled(
             verdict = (
                 PullRequestMetrics.objects.filter(pull_request=pr)
                 .values_list("verdict", flat=True)
-                .first()
+                .get_or_none()
             )
             if verdict is not None and verdict != PullRequestVerdict.WAITING_EVENT_COOLDOWN:
                 return False
@@ -221,12 +220,12 @@ def load_activity_document(pull_request: PullRequest) -> ActivityDoc | None:
     absent (return None) so readers fall back to the legacy store instead of
     computing zeroed metrics from a phantom, empty document.
     """
-    row = PullRequestActivityLog.objects.filter(pull_request=pull_request).first()
+    row = PullRequestActivityLog.objects.get_or_none(pull_request=pull_request)
     if row is None:
         return None
     if not (row.data and row.data.get("version")):
         return None
-    return cast(ActivityDoc, row.data)
+    return row.data
 
 
 def resolved_group_ids(pull_request: PullRequest) -> list[int]:
@@ -250,10 +249,13 @@ def resolved_group_ids(pull_request: PullRequest) -> list[int]:
     else:
         shas = _commit_shas_from_activity(pull_request)
     if shas:
-        commit_ids = Commit.objects.filter(
-            repository_id=pull_request.repository_id,
-            key__in=shas,
-        ).values("id")
+        # As a subquery inside the OR, postgres scans every commit GroupLink
+        commit_ids = list(
+            Commit.objects.filter(
+                repository_id=pull_request.repository_id,
+                key__in=shas,
+            ).values_list("id", flat=True)
+        )
         combined = pr_filter | Q(
             linked_type=GroupLink.LinkedType.commit,
             relationship=GroupLink.Relationship.resolves,
@@ -277,7 +279,7 @@ def seer_run_link_for_pull_request(pull_request: PullRequest) -> tuple[list[int]
     link = (
         SeerRunPullRequest.objects.select_related("seer_run__agent")
         .filter(pull_request=pull_request)
-        .first()
+        .get_or_none()
     )
     if link is None:
         return [], None

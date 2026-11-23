@@ -1,6 +1,7 @@
 from django.test import override_settings
 from django.urls import re_path
 from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
 
 from sentry.api.base import Endpoint
 from sentry.api.utils import handle_query_errors
@@ -14,15 +15,15 @@ from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded, SnubaRPCUnavailabl
 class RateLimitedEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
-    def get(self, request):
+    def get(self, request: Request) -> None:
         raise RateLimitExceeded(
             "Rate limit exceeded. Please try your query with a smaller date range or fewer projects."
         )
 
-    def post(self, request):
+    def post(self, request: Request) -> None:
         raise SnubaRPCRateLimitExceeded("Snuba is tired")
 
-    def put(self, request):
+    def put(self, request: Request) -> None:
         with handle_query_errors():
             raise SnubaRPCUnavailable("Snuba is unavailable")
 

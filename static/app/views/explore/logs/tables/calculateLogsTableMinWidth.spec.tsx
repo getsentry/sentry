@@ -1,4 +1,4 @@
-import {calculateLogsTableMinWidth} from 'sentry/views/explore/logs/tables/calculateLogsTableMinWidth';
+import {calculateLogsTableMinWidth} from './calculateLogsTableMinWidth';
 
 describe('calculateLogsTableMinWidth', () => {
   it.each([

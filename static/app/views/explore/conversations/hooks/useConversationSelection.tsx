@@ -2,8 +2,9 @@ import {useCallback, useMemo} from 'react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useFocusedToolSpan} from 'sentry/views/explore/conversations/hooks/useFocusedToolSpan';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+
+import {useFocusedToolSpan} from './useFocusedToolSpan';
 
 interface UseConversationSelectionOptions {
   isLoading: boolean;

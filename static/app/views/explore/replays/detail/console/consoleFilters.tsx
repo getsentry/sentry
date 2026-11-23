@@ -3,12 +3,11 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {SearchBar} from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import {type useConsoleFilters} from 'sentry/views/explore/replays/detail/console/useConsoleFilters';
 import {FiltersGrid} from 'sentry/views/explore/replays/detail/filtersGrid';
 
-type Props = {
-  frames: undefined | unknown[];
-} & ReturnType<typeof useConsoleFilters>;
+import {type useConsoleFilters} from './useConsoleFilters';
+
+type Props = {frames: undefined | unknown[]} & ReturnType<typeof useConsoleFilters>;
 
 export function Filters({
   frames,

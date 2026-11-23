@@ -1,27 +1,21 @@
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
+import {useQueryState} from 'nuqs';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {useAddMetricToDashboard} from 'sentry/views/explore/metrics/hooks/useAddMetricToDashboard';
-import {useSaveMetricsMultiQuery} from 'sentry/views/explore/metrics/hooks/useSaveMetricsMultiQuery';
-import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {
   isVisualize,
   isVisualizeEquation,
@@ -32,26 +26,32 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
+import {useAddMetricToDashboard} from './hooks/useAddMetricToDashboard';
+import {useSaveMetricsMultiQuery} from './hooks/useSaveMetricsMultiQuery';
 import {
   canUseMetricsAlertsUI,
   canUseMetricsEquationsInAlerts,
   canUseMetricsSavedQueriesUI,
 } from './metricsFlags';
+import {
+  useMetricsQueryParamsHasTransformations,
+  useMultiMetricsQueryParams,
+} from './multiMetricsQueryParams';
 
 interface UseSaveAsMetricItemsOptions {
   interval: string;
 }
 
 export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
-  const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const {saveQuery, updateQuery} = useSaveMetricsMultiQuery();
-  const id = decodeScalar(location.query.id);
-  const {data: savedQuery} = useGetSavedQuery(id);
+  const [id] = useQueryState('id', parseAsScalar);
+  const {data: savedQuery} = useGetSavedQuery(id ?? undefined);
 
   const metricQueries = useMultiMetricsQueryParams();
+  const hasTransformations = useMetricsQueryParamsHasTransformations();
   const {addToDashboard} = useAddMetricToDashboard();
 
   const project =
@@ -73,16 +73,16 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
         label: <span>{t('Existing Query')}</span>,
         onAction: async () => {
           try {
-            addLoadingMessage(t('Updating query...'));
+            toast.loading(t('Updating query...'));
             await updateQuery();
-            addSuccessMessage(t('Query updated successfully'));
+            toast.success(t('Query updated successfully'));
             trackAnalytics('metrics.save_as', {
               save_type: 'update_query',
               ui_source: 'searchbar',
               organization,
             });
           } catch (error) {
-            addErrorMessage(t('Failed to update query'));
+            toast.error(t('Failed to update query'));
             Sentry.captureException(error);
           }
         },
@@ -159,8 +159,17 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
         };
       });
 
-    return [getSaveAsAlertMenuItem({alertsUrls, submenu: true})];
-  }, [metricQueries, organization, project, pageFilters, options.interval]);
+    return [
+      getSaveAsAlertMenuItem({alertsUrls, submenu: true, disabled: hasTransformations}),
+    ];
+  }, [
+    metricQueries,
+    organization,
+    project,
+    pageFilters,
+    options.interval,
+    hasTransformations,
+  ]);
 
   const addToDashboardItems = useMemo(() => {
     return [

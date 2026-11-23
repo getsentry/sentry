@@ -101,6 +101,33 @@ export function CompletedDemo() {
 </ThinkingBlock>
 ```
 
+## Without the icon
+
+Pass `showIcon={false}` when the block sits beside a spinning Seer of its own,
+so the same loading state isn't shown twice. The disclosure's chevron leads the
+title instead.
+
+export function WithoutIconDemo() {
+  const [start] = useState(() => new Date());
+  return (
+    <ThinkingBlock title="Querying spans..." startTime={start} showIcon={false}>
+      <Text size="sm" monospace variant="muted">
+        Searching project data.
+      </Text>
+    </ThinkingBlock>
+  );
+}
+
+<Storybook.Demo>
+  <WithoutIconDemo />
+</Storybook.Demo>
+
+```jsx
+<ThinkingBlock title="Querying spans..." startTime={new Date()} showIcon={false}>
+  …
+</ThinkingBlock>
+```
+
 ## Duration formats
 
 Under a minute the timer shows tenths of a second ("5.3s"). From a minute on it

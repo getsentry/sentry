@@ -11,6 +11,8 @@ class DeleteDebugFilesTest(TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self) -> None:
         dif = self.create_dif_file()
         dif2 = self.create_dif_file()
+        assert dif.file is not None
+        assert dif2.file is not None
 
         # NOTE: Its great that I pass the object directly to schedule a deletion task.
         # What is this even testing? I could as well just call `.delete()` directly?

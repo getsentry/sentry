@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -8,7 +8,7 @@ from tests.sentry.feedback import MockSeerResponse
 
 @pytest.mark.parametrize("response_is_spam", [True, False])
 @patch("sentry.feedback.usecases.spam_detection.make_spam_detection_request")
-def test_is_spam_seer_success(mock_make_seer_request, response_is_spam):
+def test_is_spam_seer_success(mock_make_seer_request: MagicMock, response_is_spam: object) -> None:
     mock_make_seer_request.return_value = MockSeerResponse(200, {"is_spam": response_is_spam})
     if response_is_spam:
         assert is_spam_seer("Test feedback message", 1) is True
@@ -18,7 +18,7 @@ def test_is_spam_seer_success(mock_make_seer_request, response_is_spam):
 
 
 @patch("sentry.feedback.usecases.spam_detection.make_spam_detection_request")
-def test_is_spam_seer_exception(mock_make_seer_request):
+def test_is_spam_seer_exception(mock_make_seer_request: MagicMock) -> None:
     mock_make_seer_request.side_effect = Exception("Network error")
     assert is_spam_seer("Test feedback message", 1) is None
     mock_make_seer_request.assert_called_once()
@@ -26,7 +26,7 @@ def test_is_spam_seer_exception(mock_make_seer_request):
 
 @pytest.mark.parametrize("status_code", [400, 401, 403, 404, 429, 500, 502, 503, 504])
 @patch("sentry.feedback.usecases.spam_detection.make_spam_detection_request")
-def test_is_spam_seer_http_error(mock_make_seer_request, status_code):
+def test_is_spam_seer_http_error(mock_make_seer_request: MagicMock, status_code: int) -> None:
     mock_make_seer_request.return_value = MockSeerResponse(status_code, {})
     assert is_spam_seer("Test feedback message", 1) is None
     mock_make_seer_request.assert_called_once()
@@ -44,7 +44,9 @@ def test_is_spam_seer_http_error(mock_make_seer_request, status_code):
     ],
 )
 @patch("sentry.feedback.usecases.spam_detection.make_spam_detection_request")
-def test_is_spam_seer_invalid_response(mock_make_seer_request, invalid_response):
+def test_is_spam_seer_invalid_response(
+    mock_make_seer_request: MagicMock, invalid_response: object
+) -> None:
     mock_make_seer_request.return_value = MockSeerResponse(200, invalid_response)
     assert is_spam_seer("Test feedback message", 1) is None
     mock_make_seer_request.assert_called_once()

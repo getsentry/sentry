@@ -15,6 +15,10 @@ import {DataCategory} from 'sentry/types/core';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 
+import {
+  hasPaidSeer,
+  SeerPricingChangeAlert,
+} from 'getsentry/components/ai/seerPricingChangeAlert';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
 import {
@@ -122,9 +126,7 @@ function PanelHeader({
           }}
           analyticsEventName="Subscription Settings: Product Link Clicked"
           analyticsEventKey="subscription_settings.product_link_clicked"
-          analyticsParams={{
-            product: selectedProduct,
-          }}
+          analyticsParams={{product: selectedProduct}}
         />
       )}
     </Flex>
@@ -211,6 +213,10 @@ export function ProductBreakdownPanel({
   }
 
   const shouldShowUpgradeCta = !potentialProductTrial && !isEnabled;
+  const shouldShowSeerPricingChangeAlert =
+    (selectedProduct === AddOnCategory.SEER ||
+      selectedProduct === AddOnCategory.LEGACY_SEER) &&
+    hasPaidSeer(subscription);
 
   return (
     <Container
@@ -243,6 +249,11 @@ export function ProductBreakdownPanel({
           )}
           {isEnabled && (
             <Fragment>
+              {shouldShowSeerPricingChangeAlert && (
+                <Container padding="xl">
+                  <SeerPricingChangeAlert />
+                </Container>
+              )}
               {breakdownInfo}
               <UsageCharts
                 selectedProduct={selectedProduct}

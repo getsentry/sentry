@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.models.pullrequest import PullRequestLifecycleState
 from sentry.seer.autofix.issue_search import autofix_state_filter
 from sentry.testutils.cases import TestCase
@@ -19,13 +20,11 @@ class AutofixStateFilterTest(TestCase):
 
     def _matching_group_ids(self, values: list[str]) -> set[int]:
         q = autofix_state_filter(values, [self.project], recency_window=RECENCY_WINDOW)
-        from sentry.models.group import Group
-
         return set(Group.objects.filter(q, project=self.project).values_list("id", flat=True))
 
-    def _create_merged_pr_run(self, group):
+    def _create_merged_pr_run(self, group: Group, source: str = "autofix") -> None:
         run = self.create_seer_run(organization=self.organization)
-        self.create_seer_agent_run(run, source="autofix", project=self.project, group=group)
+        self.create_seer_agent_run(run, source=source, project=self.project, group=group)
         repo = self.create_repo(self.project, name="getsentry/sentry")
         pr = self.create_pull_request(
             repository_id=repo.id, organization_id=self.organization.id, key="101"
@@ -52,6 +51,13 @@ class AutofixStateFilterTest(TestCase):
 
         assert self._matching_group_ids(["merged"]) == {self.group1.id}
         assert self._matching_group_ids(["review_pr"]) == {self.group2.id}
+
+    def test_merged_includes_single_runs(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
+        self._create_merged_pr_run(self.group1, source="autofix_single_run")
+
+        assert self._matching_group_ids(["merged"]) == {self.group1.id}
+        assert self._matching_group_ids(["review_pr"]) == set()
 
     def test_merged_scoped_to_latest_run(self) -> None:
         self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)

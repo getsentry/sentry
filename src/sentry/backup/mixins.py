@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 from sentry.backup.dependencies import ImportKind, dependencies, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -36,7 +38,7 @@ class OverwritableConfigMixin:
                 # If all of the fields in the unique set are NULL, we'll avoid a collision, so exit
                 # early and write a new entry.
                 if len(query) > 0:
-                    existing = self.__class__.objects.filter(**query).first()  # type: ignore[attr-defined]
+                    existing = self.__class__.objects.filter(**query).first()  # type: ignore[attr-defined]  # noqa: S035
                     if existing:
                         # Re-use the existing data if config overwrite is disabled.
                         if not flags.overwrite_configs:
@@ -49,4 +51,7 @@ class OverwritableConfigMixin:
                         return (self.pk, ImportKind.Overwrite)
 
         # Does not have a single colliding unique field - write as usual.
-        return super().write_relocation_import(scope, flags)  # type: ignore[misc]
+        return cast(
+            "tuple[int, ImportKind] | None",
+            super().write_relocation_import(scope, flags),  # type: ignore[misc]
+        )

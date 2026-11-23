@@ -27,7 +27,7 @@ class CheckinPayload(TypedDict):
     status: str
     environment: NotRequired[str]
     duration: NotRequired[int]
-    monitor_config: NotRequired[dict]
+    monitor_config: NotRequired[dict[str, object]]
     contexts: NotRequired[CheckinContexts]
 
 
@@ -78,11 +78,11 @@ class CheckinItem:
     """
 
     @cached_property
-    def valid_monitor_slug(self):
+    def valid_monitor_slug(self) -> str:
         return slugify_monitor_slug(self.payload["monitor_slug"])
 
     @property
-    def processing_key(self):
+    def processing_key(self) -> str:
         """
         This key is used to uniquely identify the check-in group this check-in
         belongs to. Check-ins grouped together will never be processed in

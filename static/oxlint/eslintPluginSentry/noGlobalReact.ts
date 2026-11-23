@@ -3,9 +3,7 @@ import {defineRule} from '@oxlint/plugins';
 export const noGlobalReact = defineRule({
   meta: {
     type: 'problem',
-    docs: {
-      description: 'Require explicit imports for React types and values.',
-    },
+    docs: {description: 'Require explicit imports for React types and values.'},
     schema: [],
     messages: {
       forbidden:

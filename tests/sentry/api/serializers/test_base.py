@@ -1,4 +1,7 @@
+from collections.abc import Mapping, Sequence
+
 from sentry.api.serializers import Serializer, serialize
+from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -7,26 +10,46 @@ class Foo:
     pass
 
 
-class FooSerializer(Serializer):
-    def serialize(self, *args, **kwargs):
+class FooSerializer(Serializer[str]):
+    def serialize(self, *args: object, **kwargs: object) -> str:
         return "lol"
 
 
-class VariadicSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kw):
+class VariadicSerializer(Serializer[dict[str, object]]):
+    def serialize(
+        self,
+        obj: object,
+        attrs: Mapping[object, object],
+        user: object,
+        **kw: object,
+    ) -> dict[str, object]:
         return {"kw": kw}
 
 
-class FailingChildSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+class FailingChildSerializer(Serializer[dict[str, object]]):
+    def serialize(
+        self,
+        obj: object,
+        attrs: Mapping[object, object],
+        user: object,
+        **kwargs: object,
+    ) -> dict[str, object]:
         raise Exception
 
 
-class ParentSerializer(Serializer):
-    def get_attrs(self, item_list, user, **kwargs):
+class ParentSerializer(Serializer[dict[str, object]]):
+    def get_attrs(
+        self, item_list: Sequence[object], user: object, **kwargs: object
+    ) -> dict[object, dict[str, object]]:
         return {item: {"child_data": Foo()} for item in item_list}
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: object,
+        attrs: Mapping[object, object],
+        user: object,
+        **kwargs: object,
+    ) -> dict[str, object]:
         return {
             "parent": "something",
             "child": serialize(attrs["child_data"], serializer=FailingChildSerializer()),
@@ -78,3 +101,22 @@ class BaseSerializerTest(TestCase):
         result = serialize(foo, serializer=ParentSerializer())
         assert result["parent"] == "something"
         assert result["child"] is None
+
+
+class ActorSerializerTest(TestCase):
+    def test_user(self) -> None:
+        user = self.create_user(email="actor@example.com", name="Actor User")
+        result = serialize(user, self.user, ActorSerializer())
+
+        assert result == {
+            "type": "user",
+            "id": str(user.id),
+            "name": user.get_display_name(),
+            "email": user.email,
+        }
+
+    def test_team(self) -> None:
+        team = self.create_team(name="Actor Team", slug="actor-team")
+        result = serialize(team, self.user, ActorSerializer())
+
+        assert result == {"type": "team", "id": str(team.id), "name": team.slug}

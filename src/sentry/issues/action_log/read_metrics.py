@@ -8,11 +8,18 @@ ACTIVITY_READ_METRIC = "issues.action_log.activity_read"
 
 
 class ActivityReadResult(StrEnum):
-    #: The log backed the response.
+    """Read-path outcomes, not an inventory of every table queried."""
+
+    #: Direct comment-list reads bypass the GAL gate. Activity owns comment state;
+    #: GAL may still supply source metadata.
+    ACTIVITY = "activity"
+    #: The GAL gate is open and the GAL path is used. For feeds, this combines
+    #: Activity comments with non-comment GAL entries.
     GAL = "group_action_log"
-    #: The gate was open, or the flag was on, but we served Activity anyway.
+    #: The read flag is on, but backfill is incomplete or the log is empty.
+    #: Feed callers fall back to Activity for both comments and non-comments.
     FELL_BACK = "fell_back"
-    #: The read flag is off for this project, so the log was never consulted.
+    #: The read flag is off. Feed callers use Activity for the entire feed.
     FLAG_OFF = "flag_off"
 
 
@@ -36,10 +43,11 @@ def record_activity_read(
     reason: ActivityReadFallbackReason | None = None,
 ) -> None:
     """
-    Record the outcome of one attempt to serve activity from the action log.
+    Record the source/outcome of an activity read.
 
     Called once per read: by ``should_serve_action_log_activity`` when the gate closes,
     otherwise by the caller once it knows whether the read produced anything.
+    Direct Activity readers report ACTIVITY without consulting the gate.
     """
     tags = {"endpoint": endpoint, "result": result.value}
     if reason is not None:

@@ -11,6 +11,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
+from sentry.auth.principal import require_user
 from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.models.user import User
 from sentry.users.models.userpermission import UserPermission
@@ -54,7 +55,7 @@ class UserPermissionDetailsEndpoint(UserEndpoint):
                 audit_logger.info(
                     "user.add-permission",
                     extra={
-                        "actor_id": request.user.id,
+                        "actor_id": require_user(request).id,
                         "user_id": user.id,
                         "permission_name": permission_name,
                     },
@@ -78,7 +79,7 @@ class UserPermissionDetailsEndpoint(UserEndpoint):
                 audit_logger.info(
                     "user.delete-permission",
                     extra={
-                        "actor_id": request.user.id,
+                        "actor_id": require_user(request).id,
                         "user_id": user.id,
                         "permission_name": permission_name,
                     },

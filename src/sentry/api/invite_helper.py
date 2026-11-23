@@ -8,6 +8,7 @@ from django.http.request import HttpRequest
 from django.utils.crypto import constant_time_compare
 
 from sentry import audit_log
+from sentry.auth.email import emails_match
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.organizations.services.organization import (
@@ -48,7 +49,6 @@ class InviteDetails:
 
 
 def get_invite_details(request: HttpRequest) -> InviteDetails:
-    """Returns tuple of (token, member_id) from request session"""
     return InviteDetails(
         invite_token=request.session.get("invite_token", None),
         invite_member_id=request.session.get("invite_member_id", None),
@@ -201,6 +201,19 @@ class ApiInviteHelper:
             self.token,
         )
         return tokens_are_equal
+
+    @property
+    def invite_is_valid(self) -> bool:
+        return self.member_pending and self.invite_approved and self.valid_token
+
+    def is_valid_invite_for_email(self, email: str) -> bool:
+        member = self.invite_context.member
+        return (
+            member is not None
+            and bool(member.email)
+            and self.invite_is_valid
+            and emails_match(member.email, email)
+        )
 
     @property
     def user_authenticated(self) -> bool:

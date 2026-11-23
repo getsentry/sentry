@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {captureProjectCreationFailure} from 'sentry/components/onboarding/captureProjectCreationFailure';
+import {captureProjectCreationFailure} from './captureProjectCreationFailure';
 
 describe('captureProjectCreationFailure', () => {
   const organization = OrganizationFixture();

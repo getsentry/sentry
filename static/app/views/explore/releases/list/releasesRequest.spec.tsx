@@ -13,10 +13,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {HealthStatsPeriodOption} from 'sentry/types/release';
-import {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
-import ReleasesRequest, {
-  type ReleasesRequestRenderProps,
-} from 'sentry/views/explore/releases/list/releasesRequest';
+
+import {ReleasesDisplayOption} from './releasesDisplayOptions';
+import ReleasesRequest, {type ReleasesRequestRenderProps} from './releasesRequest';
 
 describe('ReleasesRequest', () => {
   const {organization} = initializeOrg();
@@ -25,12 +24,7 @@ describe('ReleasesRequest', () => {
   const selection = {
     projects: [projectId],
     environments: [],
-    datetime: {
-      period: '14d',
-      start: null,
-      end: null,
-      utc: false,
-    },
+    datetime: {period: '14d', start: null, end: null, utc: false},
   };
 
   let requestForAutoHealthStatsPeriodSessionHistogram: jest.Mock;
@@ -189,12 +183,7 @@ describe('ReleasesRequest', () => {
           'e102abb2c46e7fe8686441091005c12aed90da99',
         ]}
         organization={organization}
-        location={{
-          ...location,
-          query: {
-            project: [`${projectId}`],
-          },
-        }}
+        location={{...location, query: {project: [`${projectId}`]}}}
         display={[ReleasesDisplayOption.SESSIONS]}
         selection={selection}
       >
@@ -419,12 +408,7 @@ describe('ReleasesRequest', () => {
           'e102abb2c46e7fe8686441091005c12aed90da99',
         ]}
         organization={organization}
-        location={{
-          ...location,
-          query: {
-            project: [`${projectId}`],
-          },
-        }}
+        location={{...location, query: {project: [`${projectId}`]}}}
         display={[ReleasesDisplayOption.USERS]}
         selection={selection}
       >
@@ -647,12 +631,7 @@ describe('ReleasesRequest', () => {
           'e102abb2c46e7fe8686441091005c12aed90da99',
         ]}
         organization={organization}
-        location={{
-          ...location,
-          query: {
-            project: [`${projectId}`],
-          },
-        }}
+        location={{...location, query: {project: [`${projectId}`]}}}
         display={[ReleasesDisplayOption.SESSIONS]}
         selection={selection}
         healthStatsPeriod={HealthStatsPeriodOption.AUTO}

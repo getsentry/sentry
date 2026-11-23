@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, TypedDict, cast
 
 import sentry_sdk
 from django.db import IntegrityError
-from django.db.models import F, Q
+from django.db.models import F, Model, Q, QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.serializers import ListField
+from rest_framework.serializers import CharField, ListField
 from sentry_sdk import traces
 
 from sentry import analytics, release_health
@@ -60,6 +61,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
@@ -101,14 +103,14 @@ from sentry.utils.sdk import bind_organization_context
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
 
 
-def get_stats_period_detail(key, choices):
+def get_stats_period_detail(key: str, choices: Iterable[str]) -> str:
     return ERR_INVALID_STATS_PERIOD % (key, ", ".join("'%s'" % x for x in choices))
 
 
 _release_suffix = re.compile(r"^(.*)\s+\(([^)]+)\)\s*$")
 
 
-def add_environment_to_queryset(queryset, filter_params):
+def add_environment_to_queryset(queryset: Any, filter_params: Mapping[str, Any]) -> Any:
     if "environment" in filter_params:
         return queryset.filter(
             releaseprojectenvironment__environment__name__in=filter_params["environment"],
@@ -117,14 +119,19 @@ def add_environment_to_queryset(queryset, filter_params):
     return queryset
 
 
-def add_date_filter_to_queryset(queryset, filter_params):
+def add_date_filter_to_queryset(queryset: Any, filter_params: Mapping[str, Any]) -> Any:
     """Once date has been coalesced over released and added, use it to filter releases"""
     if filter_params["start"] and filter_params["end"]:
         return queryset.filter(date__gte=filter_params["start"], date__lte=filter_params["end"])
     return queryset
 
 
-def _filter_releases_by_query(queryset, organization, query, filter_params):
+def _filter_releases_by_query(
+    queryset: Any,
+    organization: Organization,
+    query: str,
+    filter_params: Mapping[str, Any],
+) -> Any:
     search_filters = parse_search_query(query)
     for search_filter in search_filters:
         if search_filter.key.name == FINALIZED_KEY:
@@ -192,9 +199,12 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
         if search_filter.key.name == SEMVER_BUILD_ALIAS:
             (operator, negated) = handle_operator_negation(search_filter.operator)
+            django_op = OPERATOR_TO_DJANGO.get(operator)
+            if django_op is None:
+                raise InvalidSearchQuery(f"Invalid operator for search key '{SEMVER_BUILD_ALIAS}'")
             queryset = queryset.filter_by_semver_build(
                 organization.id,
-                OPERATOR_TO_DJANGO[operator],
+                django_op,
                 search_filter.value.raw_value,
                 negated=negated,
             )
@@ -220,8 +230,19 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
     return queryset
 
 
+class _ProjectsErrorResponse(TypedDict):
+    projects: list[str]
+
+
+class _RefsErrorResponse(TypedDict):
+    refs: list[str]
+
+
 class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
-    projects = ListField(help_text="A list of project slugs that are involved in this release.")
+    projects = ListField(
+        child=CharField(),
+        help_text="A list of project slugs that are involved in this release.",
+    )
     headCommits = ListField(
         child=ReleaseHeadCommitSerializerDeprecated(),
         required=False,
@@ -237,7 +258,7 @@ class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
 
 
 @traces.trace
-def debounce_update_release_health_data(organization, project_ids: list[int]):
+def debounce_update_release_health_data(organization: Organization, project_ids: list[int]) -> None:
     """This causes a flush of snuba health data to the postgres tables once
     per minute for the given projects.
     """
@@ -336,6 +357,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -446,7 +468,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         # health data in the last 24 hours.
         debounce_update_release_health_data(organization, filter_params["project_id"])
 
-        queryset = Release.objects.filter(organization_id=organization.id)
+        queryset: QuerySet[Release] = Release.objects.filter(organization_id=organization.id)
         queryset = filter_releases_by_environments(
             queryset,
             filter_params["project_id"],
@@ -483,7 +505,11 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
             paginator_kwargs["order_by"] = "-build_number"
         elif sort == "semver":
-            queryset = queryset.annotate_prerelease_column().annotate_build_code_column()
+            queryset = (
+                cast(ReleaseQuerySet, queryset)
+                .annotate_prerelease_column()
+                .annotate_build_code_column()
+            )
 
             semver_cols = Release.SEMVER_COLS_WITH_BUILD_CODE
             order_by = [F(col).desc(nulls_last=True) for col in semver_cols]
@@ -504,7 +530,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     status=400,
                 )
 
-            def qs_load_func(queryset, total_offset, qs_offset, limit):
+            def qs_load_func(
+                queryset: ReleaseQuerySet, total_offset: int, qs_offset: int, limit: int
+            ) -> list[Release]:
                 # We want to fetch at least total_offset + limit releases to check, to make sure
                 # we're not fetching only releases that were on previous pages.
                 release_versions = list(
@@ -682,7 +710,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     status=400,
                 )
 
-            def qs_load_func(queryset, total_offset, qs_offset, limit):
+            def qs_load_func(
+                queryset: ReleaseQuerySet, total_offset: int, qs_offset: int, limit: int
+            ) -> list[Release]:
                 # We want to fetch at least total_offset + limit releases to check, to make sure
                 # we're not fetching only releases that were on previous pages.
                 release_versions = list(
@@ -782,7 +812,12 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
     )
     def post(
         self, request: Request, organization: Organization
-    ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
+    ) -> (
+        Response[ReleaseSerializerResponse]
+        | Response[_ProjectsErrorResponse]
+        | Response[_RefsErrorResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Create a new release for the given organization. Releases are used by Sentry to
         improve error reporting by correlating first-seen events with the release that may
@@ -919,7 +954,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     )
                 fetch_commits = not commit_list
                 try:
-                    release.set_refs(refs, request.user.id, fetch=fetch_commits)
+                    release.set_refs(refs, acting_user_id(request.user), fetch=fetch_commits)
                 except InvalidRepository as e:
                     scope.set_tag("failure_reason", "InvalidRepository")
                     scope.set_attribute("failure_reason", "InvalidRepository")
@@ -936,7 +971,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
             analytics.record(
                 ReleaseCreatedEvent(
-                    user_id=request.user.id if request.user and request.user.id else None,
+                    user_id=acting_user_id(request.user),
                     organization_id=organization.id,
                     project_ids=[project.id for project in projects],
                     user_agent=request.META.get("HTTP_USER_AGENT", ""),
@@ -950,9 +985,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
             scope.set_tag("success_status", status)
             scope.set_attribute("success_status", status)
-            data: ReleaseSerializerResponse = serialize(
-                release, request.user, no_snuba_for_release_creation=True
-            )
+            data: ReleaseSerializerResponse = serialize(release, request.user, skip_snuba=True)
             return Response(data, status=status)
         scope.set_tag("failure_reason", "serializer_error")
         scope.set_attribute("failure_reason", "serializer_error")
@@ -1050,17 +1083,18 @@ class ReleasesMergingOffsetPaginator(OffsetPaginator):
 
     def __init__(
         self,
-        queryset,
-        data_load_func,
-        apply_to_queryset,
+        queryset: ReleaseQuerySet,
+        data_load_func: Callable[..., list[object]],
+        apply_to_queryset: Callable[[ReleaseQuerySet, list[object]], ReleaseQuerySet],
         project_ids: list[int],
-        key_from_data=None,
-        max_limit=MAX_LIMIT,
-        on_results=None,
-        data_count_func=None,
-        queryset_load_func=None,
-    ):
+        key_from_data: Callable[[object], object] | None = None,
+        max_limit: int = MAX_LIMIT,
+        on_results: Callable[[Sequence[Model]], Sequence[Model]] | None = None,
+        data_count_func: Callable[[], int] | None = None,
+        queryset_load_func: Callable[[ReleaseQuerySet, int, int, int], list[Release]] | None = None,
+    ) -> None:
         super().__init__(queryset, max_limit=max_limit, on_results=on_results)
+        self.release_queryset = queryset
         self.data_load_func = data_load_func
         self.apply_to_queryset = apply_to_queryset
         self.key_from_data = key_from_data or (lambda x: x)
@@ -1068,7 +1102,14 @@ class ReleasesMergingOffsetPaginator(OffsetPaginator):
         self.queryset_load_func = queryset_load_func
         self.project_ids = project_ids
 
-    def get_result(self, limit=100, cursor=None):  # type: ignore[override]
+    def get_result(
+        self,
+        limit: int = 100,
+        cursor: Any = None,
+        count_hits: bool = False,
+        known_hits: int | None = None,
+        max_hits: int | None = None,
+    ) -> CursorResult[Release]:
         if cursor is None:
             cursor = Cursor(0, 0, 0)
 
@@ -1088,7 +1129,7 @@ class ReleasesMergingOffsetPaginator(OffsetPaginator):
         # This is the reason we defined our own merging paginator. We need to look up the
         # project_id since it doesn't exist on the model. This was previously accomplished with a
         # join (and a distinct clause for other reasons) but it was horribly slow.
-        queryset = self.apply_to_queryset(self.queryset, primary_results)
+        queryset = self.apply_to_queryset(self.release_queryset, primary_results)
         releases = list(queryset)
         releases_projects = list(
             ReleaseProject.objects.filter(
@@ -1101,7 +1142,7 @@ class ReleasesMergingOffsetPaginator(OffsetPaginator):
 
         results = []
         for row in primary_results:
-            model = mapping.get(self.key_from_data(row))
+            model = mapping.get(cast("tuple[int, str]", self.key_from_data(row)))
             if model is not None:
                 results.append(model)
 
@@ -1113,7 +1154,7 @@ class ReleasesMergingOffsetPaginator(OffsetPaginator):
             total_offset = offset + len(results)
             qs_offset = max(0, total_offset - total_data_count)
             qs_results = self.queryset_load_func(
-                self.queryset, total_offset, qs_offset, extra_limit
+                self.release_queryset, total_offset, qs_offset, extra_limit
             )
             results.extend(qs_results)
             has_more = len(qs_results) == extra_limit
@@ -1125,6 +1166,6 @@ class ReleasesMergingOffsetPaginator(OffsetPaginator):
         prev_cursor = Cursor(limit, page - 1, True, page > 0)
 
         if self.on_results:
-            results = self.on_results(results)
+            results = cast("list[Release]", self.on_results(results))
 
         return CursorResult(results=results, next=next_cursor, prev=prev_cursor)

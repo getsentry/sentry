@@ -1,6 +1,6 @@
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
+import {useCaseInsensitivity} from './hooks';
 
 describe('useCaseSensitivity', () => {
   it('should return the correct case sensitivity', () => {
@@ -11,11 +11,7 @@ describe('useCaseSensitivity', () => {
 
     const {result: caseSensitivityFalse} = renderHookWithProviders(
       () => useCaseInsensitivity(),
-      {
-        initialRouterConfig: {
-          location: {pathname: '/', query: {}},
-        },
-      }
+      {initialRouterConfig: {location: {pathname: '/', query: {}}}}
     );
     expect(caseSensitivityFalse.current[0]).toBeNull();
 
@@ -24,6 +20,12 @@ describe('useCaseSensitivity', () => {
       {initialRouterConfig: {location: {pathname: '/', query: {caseInsensitive: '1'}}}}
     );
     expect(caseSensitivityTrue.current[0]).toBe(true);
+
+    const {result: explicitCaseSensitivity} = renderHookWithProviders(
+      () => useCaseInsensitivity(),
+      {initialRouterConfig: {location: {pathname: '/', query: {caseInsensitive: '0'}}}}
+    );
+    expect(explicitCaseSensitivity.current[0]).toBe(false);
   });
 
   it('should set the case sensitivity', async () => {
@@ -35,6 +37,9 @@ describe('useCaseSensitivity', () => {
 
     await act(() => setCaseSensitivity(true));
     await waitFor(() => expect(router.location.query.caseInsensitive).toBe('1'));
+
+    await act(() => setCaseSensitivity(false));
+    await waitFor(() => expect(router.location.query.caseInsensitive).toBe('0'));
 
     await act(() => setCaseSensitivity(null));
     await waitFor(() => expect(router.location.query.caseInsensitive).toBeUndefined());

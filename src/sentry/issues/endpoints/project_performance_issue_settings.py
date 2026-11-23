@@ -1,3 +1,4 @@
+from collections.abc import Iterable, Mapping
 from enum import Enum
 from typing import Any
 
@@ -236,7 +237,9 @@ def get_management_options() -> list[str]:
     ]
 
 
-def get_disabled_threshold_options(payload, current_settings):
+def get_disabled_threshold_options(
+    payload: Iterable[str], current_settings: Mapping[str, object]
+) -> list[str]:
     """
     Returns the option keys that are disabled, based on the current management settings.
     """
@@ -245,7 +248,11 @@ def get_disabled_threshold_options(payload, current_settings):
     for option in payload:
         if option not in management_options:
             manage_detector_setting = thresholds_to_manage_map.get(option)
-            is_threshold_enabled = current_settings.get(manage_detector_setting)
+            is_threshold_enabled = (
+                current_settings.get(manage_detector_setting)
+                if manage_detector_setting is not None
+                else None
+            )
             if not is_threshold_enabled:
                 options.append(option)
     return options
@@ -279,12 +286,7 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectSettingPermission,)
 
-    def has_feature(self, project, request) -> bool:
-        return features.has(
-            "organizations:performance-view", project.organization, actor=request.user
-        )
-
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Retrieve performance issue settings
         ``````````````````
@@ -297,15 +299,9 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         :auth: required
         """
 
-        if not self.has_feature(project, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
-
         return Response(get_merged_settings(project))
 
     def put(self, request: Request, project: Project) -> Response:
-        if not self.has_feature(project, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
-
         internal_only_settings = [setting.value for setting in InternalProjectOptions]
         threshold_settings = [setting.value for setting in ConfigurableThresholds]
         allowed_settings_options = [*internal_only_settings, *threshold_settings]
@@ -358,7 +354,6 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         if body_has_admin_options or body_has_management_options:
             self.create_audit_entry(
                 request=self.request,
-                actor=request.user,
                 organization=project.organization,
                 target_object=project.id,
                 event=audit_log.get_event_id("PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE"),
@@ -368,9 +363,6 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         return Response(data)
 
     def delete(self, request: Request, project: Project) -> Response:
-        if not self.has_feature(project, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
-
         # Use raw project overrides (not merged with defaults) to determine disabled options.
         # This preserves existing behavior: if no explicit _enabled setting exists, we treat
         # the detector as "unset" and preserve its thresholds, even if it's enabled by default.

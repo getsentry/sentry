@@ -13,28 +13,19 @@ import type {Project} from 'sentry/types/project';
 import {DemoTourStep, SharedTourElement} from 'sentry/utils/demoMode/demoTours';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AutofixPanelProvider} from 'sentry/views/issueDetails/autofix/context';
-import {
-  IssueDetailsContextProvider,
-  useIssueDetails,
-} from 'sentry/views/issueDetails/context';
-import {EventDetailsHeader} from 'sentry/views/issueDetails/eventDetailsHeader';
-import {IssueEventNavigation} from 'sentry/views/issueDetails/eventNavigation';
-import {GroupHeader} from 'sentry/views/issueDetails/header/header';
-import {
-  IssueDetailsTour,
-  IssueDetailsTourContext,
-} from 'sentry/views/issueDetails/issueDetailsTour';
-import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
-import {IssueDetailsSidebar} from 'sentry/views/issueDetails/sidebar/sidebar';
-import {ToggleSidebar} from 'sentry/views/issueDetails/sidebar/toggleSidebar';
-import {Tab} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {
-  useIsSampleEvent,
-  getGroupReprocessingStatus,
-  ReprocessingStatus,
-} from 'sentry/views/issueDetails/utils';
+
+import {AutofixPanelProvider} from './autofix/context';
+import {GroupHeader} from './header/header';
+import {IssueDetailsSidebar} from './sidebar/sidebar';
+import {ToggleSidebar} from './sidebar/toggleSidebar';
+import {IssueDetailsContextProvider, useIssueDetails} from './context';
+import {EventDetailsHeader} from './eventDetailsHeader';
+import {IssueEventNavigation} from './eventNavigation';
+import {IssueDetailsTour, IssueDetailsTourContext} from './issueDetailsTour';
+import {SampleEventAlert} from './sampleEventAlert';
+import {Tab} from './types';
+import {useGroupDetailsRoute} from './useGroupDetailsRoute';
+import {useIsSampleEvent, getGroupReprocessingStatus, ReprocessingStatus} from './utils';
 
 function GroupLayoutBody({children}: {children: React.ReactNode}) {
   const {isSidebarOpen} = useIssueDetails();
@@ -69,6 +60,18 @@ function EventDetailsSection({children}: {children: React.ReactNode}) {
     <EventSection as="section" background="secondary">
       {children}
     </EventSection>
+  );
+}
+
+// Fill the column beside the sidebar so a short tab keeps the secondary
+// background and the scroll position stable. Below this width the sidebar
+// stacks under the content, and the floor would only push it a full viewport
+// down. That is the common case once the Seer panel narrows the app content.
+function EventDetailsContent({children}: {children: React.ReactNode}) {
+  return (
+    <Container padding="0 xl 2xl xl" minHeight={{zero: 'auto', '4xl': '100vh'}}>
+      {children}
+    </Container>
   );
 }
 
@@ -244,7 +247,7 @@ export function GroupDetailsLayout({
                         hasToggleSidebar={!hasFilterBar}
                       />
                     )}
-                  <ContentPadding>{children}</ContentPadding>
+                  <EventDetailsContent>{children}</EventDetailsContent>
                 </EventDetailsSection>
               ) : (
                 <SharedTourElement<IssueDetailsTour>
@@ -268,7 +271,7 @@ export function GroupDetailsLayout({
                               hasToggleSidebar={!hasFilterBar}
                             />
                           )}
-                        <ContentPadding>{children}</ContentPadding>
+                        <EventDetailsContent>{children}</EventDetailsContent>
                       </EventDetailsSection>
                     </div>
                   )}
@@ -329,18 +332,5 @@ const NavigationSidebarWrapper = styled(Sticky, {
 
   &[data-stuck] {
     z-index: ${p => p.theme.zIndex.stickyHeader + 1};
-  }
-`;
-
-const ContentPadding = styled('div')`
-  padding: 0 var(--issue-details-inset, ${p => p.theme.space['2xl']})
-    ${p => p.theme.space['2xl']} var(--issue-details-inset, ${p => p.theme.space['2xl']});
-
-  /* Fill the column beside the sidebar so a short tab keeps the secondary
-     background and the scroll position stable. Below this width the sidebar
-     stacks under the content, and the floor would only push it a full viewport
-     down. That is the common case once the Seer panel narrows the app content. */
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    min-height: 100vh;
   }
 `;

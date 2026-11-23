@@ -2,20 +2,20 @@ import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconRefresh} from '@sentry/icons/refresh';
 import {useQueryClient} from '@tanstack/react-query';
+import {useStore} from 'zustand';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Grid, type GridProps, Stack} from '@sentry/scraps/layout';
+import {Grid, type GridProps, Stack, Container} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Switch} from '@sentry/scraps/switch';
+import {toast} from '@sentry/scraps/toast';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -25,7 +25,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
-import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {groupQueryFilter} from 'sentry/views/issueDetails/useGroup';
 
 interface ShareIssueModalProps extends ModalRenderProps {
   event: Event | null;
@@ -60,8 +60,10 @@ export function ShareIssueModal({
   );
 
   const urlRef = useRef<UrlRef>(null);
-  const groups = useLegacyStore(GroupStore);
-  const group = (groups as Group[]).find(item => item.id === groupId);
+  const group = useStore(
+    GroupStore,
+    state => state.find(item => item.id === groupId) as Group | undefined
+  );
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
@@ -106,18 +108,13 @@ export function ShareIssueModal({
         orgId: organization.slug,
         projectId: projectSlug,
         itemIds: [groupId],
-        data: {
-          isPublic: reshare ?? !isPublished,
-        },
+        data: {isPublic: reshare ?? !isPublished},
       });
-      queryClient.invalidateQueries({
-        queryKey: groupQueryKey({
-          organizationSlug: organization.slug,
-          groupId,
-        }),
-      });
+      queryClient.invalidateQueries(
+        groupQueryFilter({organizationSlug: organization.slug, groupId})
+      );
     } catch {
-      addErrorMessage(t('Error sharing'));
+      toast.error(t('Error sharing'));
       // oxlint-disable-next-line react/todo
     } finally {
       setLoading(false);
@@ -153,10 +150,7 @@ export function ShareIssueModal({
               onClick={handleCopyMarkdownLink}
               analyticsEventKey="issue_details.copy_issue_markdown_link_clicked"
               analyticsEventName="Issue Details: Copy Issue Markdown Link"
-              analyticsParams={{
-                ...getAnalyticsDataForGroup(group),
-                streamline: true,
-              }}
+              analyticsParams={{...getAnalyticsDataForGroup(group), streamline: true}}
             >
               {t('Copy as Markdown')}
             </Button>
@@ -181,10 +175,7 @@ export function ShareIssueModal({
                       ...getAnalyticsDataForEvent(event),
                       streamline: true,
                     }
-                  : {
-                      ...getAnalyticsDataForGroup(group),
-                      streamline: true,
-                    }
+                  : {...getAnalyticsDataForGroup(group), streamline: true}
               }
             >
               {t('Copy Link')}
@@ -193,7 +184,7 @@ export function ShareIssueModal({
           {hasPublicShare && (
             <Fragment>
               <SectionDivider orientation="horizontal" />
-              <SwitchWrapper>
+              <Grid align="center" gap="xl" columns="1fr max-content max-content">
                 <div>
                   <Title>{t('Create a public link')}</Title>
                   <SubText>
@@ -207,7 +198,7 @@ export function ShareIssueModal({
                   size="lg"
                   onChange={handlePublicShare}
                 />
-              </SwitchWrapper>
+              </Grid>
               {group && !loading && isPublished && shareUrl && (
                 <Fragment>
                   <UrlContainer>
@@ -227,7 +218,7 @@ export function ShareIssueModal({
                       analyticsEventName="Issue Details: Publish Issue Modal Generate New URL"
                     />
                   </UrlContainer>
-                  <ButtonContainer>
+                  <Container alignSelf="flex-end">
                     <Button
                       size="sm"
                       variant="primary"
@@ -242,7 +233,7 @@ export function ShareIssueModal({
                     >
                       {t('Copy Public Link')}
                     </Button>
-                  </ButtonContainer>
+                  </Container>
                 </Fragment>
               )}
             </Fragment>
@@ -293,13 +284,6 @@ const StyledButtonBar = styled((props: GridProps) => (
   justify-content: flex-end;
 `;
 
-const SwitchWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content max-content;
-  align-items: center;
-  gap: ${p => p.theme.space.xl};
-`;
-
 const Title = styled('div')`
   padding-right: ${p => p.theme.space['3xl']};
   white-space: nowrap;
@@ -314,8 +298,4 @@ const ReshareButton = styled(Button)`
   border-radius: 0;
   height: 100%;
   flex-shrink: 0;
-`;
-
-const ButtonContainer = styled('div')`
-  align-self: flex-end;
 `;

@@ -6,19 +6,7 @@ import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCu
 
 type RecordType = {
   offsetMs: number;
-  data?:
-    | Record<string, any>
-    | {
-        nodeId: number;
-        label?: string;
-      }
-    | {
-        element: {
-          element: string;
-          target: string[];
-        };
-        label: string;
-      };
+  data?: Record<string, any> | {nodeId: number; label?: string};
 };
 
 function getNodeIdAndLabel(record: RecordType) {
@@ -26,16 +14,6 @@ function getNodeIdAndLabel(record: RecordType) {
     return;
   }
   const data = record.data;
-  if (
-    'element' in data &&
-    'target' in data.element &&
-    Array.isArray(data.element.target)
-  ) {
-    return {
-      selector: data.element.target.join(' '),
-      annotation: data.label,
-    };
-  }
   if ('nodeId' in data) {
     return {nodeIds: [data.nodeId], annotation: record.data.label};
   }
@@ -55,10 +33,7 @@ export function useCrumbHandlers() {
   const mouseEnterCallback = useRef<{
     id: RecordType | null;
     timeoutId: NodeJS.Timeout | null;
-  }>({
-    id: null,
-    timeoutId: null,
-  });
+  }>({id: null, timeoutId: null});
 
   const onMouseEnter = useCallback(
     (record: RecordType, nodeId?: number) => {
@@ -117,9 +92,5 @@ export function useCrumbHandlers() {
     [setCurrentTime]
   );
 
-  return {
-    onMouseEnter,
-    onMouseLeave,
-    onClickTimestamp,
-  };
+  return {onMouseEnter, onMouseLeave, onClickTimestamp};
 }

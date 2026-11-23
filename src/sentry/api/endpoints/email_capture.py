@@ -13,7 +13,7 @@ from sentry.utils.marketo_client import MarketoClient
 client = MarketoClient()
 
 
-class EmailCaptureSerializer(CamelSnakeSerializer):
+class EmailCaptureSerializer(CamelSnakeSerializer[dict[str, str]]):
     email = serializers.EmailField(required=True)
 
 

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from django.db import router, transaction
 from django.db.models.signals import pre_delete, pre_save
@@ -61,7 +61,7 @@ def invalidate_processing_workflows_cache_delete_relationship(
     # If we don't have a workflow (e.g., during cascade delete), we should
     # invalidate all environments related to the detector
     try:
-        env_id = instance.workflow.environment_id
+        env_id: int | None | Literal["default"] = instance.workflow.environment_id
     except Workflow.DoesNotExist:
         env_id = DEFAULT_VALUE
 

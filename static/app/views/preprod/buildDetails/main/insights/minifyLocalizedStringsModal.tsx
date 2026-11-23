@@ -1,14 +1,12 @@
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
-import {
-  CodeBlockWrapper,
-  InlineCode,
-} from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
+
+import {CodeBlockWrapper, InlineCode} from './insightInfoModal';
 
 const COMMENT_EXAMPLE = `/* Title for the expired code alert. */
 "code_expired" = "Code Expired";`;
@@ -88,11 +86,7 @@ function getMinifyLocalizedStringsContent() {
               <Text>
                 {tct(
                   'In Xcode, open [menu] and add a new Run Script phase after the localized resources step.',
-                  {
-                    menu: (
-                      <InlineCode>Build Phases → + → New Run Script Phase</InlineCode>
-                    ),
-                  }
+                  {menu: <InlineCode>Build Phases → + → New Run Script Phase</InlineCode>}
                 )}
               </Text>
             </li>

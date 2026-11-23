@@ -3,7 +3,10 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
@@ -179,6 +182,30 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
                 ErrorDetail(string="Single view cannot take up multiple positions", code="invalid")
             ]
         }
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:granular-permission-scopes")
+    def test_user_preference_write_can_reorder(self) -> None:
+        self.star_views([self.views[0].id, self.views[1].id])
+        self._use_token(["user_preference:write"])
+        response = self.client.put(
+            self.url, data={"view_ids": [self.views[1].id, self.views[0].id]}, format="json"
+        )
+        assert response.status_code == 204, response.content
+
+    @with_feature("organizations:granular-permission-scopes")
+    def test_user_preference_read_cannot_reorder(self) -> None:
+        self.star_views([self.views[0].id, self.views[1].id])
+        self._use_token(["user_preference:read"])
+        response = self.client.put(
+            self.url, data={"view_ids": [self.views[1].id, self.views[0].id]}, format="json"
+        )
+        assert response.status_code == 403
 
 
 class OrganizationGroupSearchViewStarredOrderTransactionTest(TestCase):

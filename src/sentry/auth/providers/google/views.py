@@ -34,7 +34,7 @@ class FetchUser(AuthView):
         try:
             id_token = data["id_token"]
         except KeyError:
-            logger.exception("Missing id_token in OAuth response: %s", data)
+            logger.exception("Missing id_token in OAuth response, keys: %s", sorted(data))
             return pipeline.error(ERR_INVALID_RESPONSE)
 
         try:
@@ -50,7 +50,7 @@ class FetchUser(AuthView):
             return pipeline.error(ERR_INVALID_RESPONSE)
 
         if not payload.get("email"):
-            logger.error("Missing email in id_token payload: %s", id_token)
+            logger.error("Missing email in id_token payload, claims: %s", sorted(payload))
             return pipeline.error(ERR_INVALID_RESPONSE)
 
         # support legacy style domains with pure domain regexp

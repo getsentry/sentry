@@ -1,7 +1,6 @@
 import {lazy, Suspense, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfaces/performance/utils';
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
@@ -17,6 +16,8 @@ import {useTraceEventView} from 'sentry/views/performance/traceDetails/useTraceE
 import {useTraceQueryParams} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
 import {useTraceStateAnalytics} from 'sentry/views/performance/traceDetails/useTraceStateAnalytics';
 
+import {TRACE_WATERFALL_PREFERENCES_KEY} from './utils';
+
 const LazyIssuesTraceWaterfall = lazy(() =>
   import('sentry/views/performance/traceDetails/issuesTraceWaterfall').then(module => ({
     default: module.IssuesTraceWaterfall,
@@ -26,23 +27,14 @@ const LazyIssuesTraceWaterfall = lazy(() =>
 const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
     minimized: true,
-    sizes: {
-      'drawer left': 0.33,
-      'drawer right': 0.33,
-      'drawer bottom': 0.4,
-    },
+    sizes: {'drawer left': 0.33, 'drawer right': 0.33, 'drawer bottom': 0.4},
     layoutOptions: [],
   },
   missing_instrumentation: true,
-  autogroup: {
-    parent: true,
-    sibling: true,
-  },
+  autogroup: {parent: true, sibling: true},
   compressed_timeline: false,
   layout: 'drawer bottom',
-  list: {
-    width: 0.5,
-  },
+  list: {width: 0.5},
 };
 
 interface SpanEvidenceTraceViewProps {
@@ -94,12 +86,7 @@ function SpanEvidenceTraceViewImpl({
     tree,
   });
 
-  const rootEventResults = useTraceRootEvent({
-    tree,
-    logs: undefined,
-    timestamp,
-    traceId,
-  });
+  const rootEventResults = useTraceRootEvent({tree, logs: undefined, timestamp, traceId});
 
   const params = useTraceQueryParams({timestamp});
   const traceEventView = useTraceEventView(traceId, params);

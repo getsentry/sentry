@@ -9,7 +9,7 @@ from urllib3.response import HTTPResponse
 from sentry.deletions.tasks.seer import notify_seer_repository_deleted
 from sentry.seer.code_review.utils import SeerEndpoint
 from sentry.testutils.cases import TestCase
-from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
+from sentry.viewer_context import Actor, ActorType, ViewerContext, decode_viewer_context
 
 
 class NotifySeerRepositoryDeletedTest(TestCase):
@@ -46,8 +46,7 @@ class NotifySeerRepositoryDeletedTest(TestCase):
             key="viewer-context-test-secret",
         )
         assert viewer_context == ViewerContext(
-            organization_id=self.organization_id,
-            actor_type=ActorType.SYSTEM,
+            actor=Actor(type=ActorType.SYSTEM), organization_id=self.organization_id
         )
 
     @patch("sentry.seer.code_review.utils.make_seer_request")

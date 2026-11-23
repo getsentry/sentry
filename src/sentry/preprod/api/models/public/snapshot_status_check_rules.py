@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.project import Project
 from sentry.preprod.vcs.status_checks.snapshots.config import (
     ENABLED_DEFAULT,
@@ -18,15 +19,28 @@ from sentry.preprod.vcs.status_checks.snapshots.config import (
 
 
 class SnapshotStatusCheckRulesResponseDict(TypedDict):
-    failOnAdded: bool
-    failOnRemoved: bool
-    failOnChanged: bool
-    failOnRenamed: bool
+    failOnAdded: Annotated[
+        bool, ApiDescription("Whether the snapshot status check fails when snapshots are added")
+    ]
+    failOnRemoved: Annotated[
+        bool, ApiDescription("Whether the snapshot status check fails when snapshots are removed")
+    ]
+    failOnChanged: Annotated[
+        bool, ApiDescription("Whether the snapshot status check fails when snapshots change")
+    ]
+    failOnRenamed: Annotated[
+        bool, ApiDescription("Whether the snapshot status check fails when snapshots are renamed")
+    ]
 
 
 class ProjectSnapshotStatusCheckRulesResponseDict(TypedDict):
-    enabled: bool
-    rules: SnapshotStatusCheckRulesResponseDict
+    enabled: Annotated[
+        bool, ApiDescription("Whether snapshot status checks are enabled for the project")
+    ]
+    rules: Annotated[
+        SnapshotStatusCheckRulesResponseDict,
+        ApiDescription("Which snapshot changes make the status check fail"),
+    ]
 
 
 def create_project_snapshot_status_check_rules_response(

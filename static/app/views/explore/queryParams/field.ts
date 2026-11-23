@@ -1,9 +1,5 @@
-import type {Location} from 'history';
-
-import {decodeList} from 'sentry/utils/queryString';
-
-export function getFieldsFromLocation(location: Location, key: string): string[] | null {
-  const fields = decodeList(location.query?.[key]).filter(Boolean);
+export function getFields(rawFields: readonly string[]): string[] | null {
+  const fields = rawFields.filter(Boolean);
 
   if (fields.length) {
     return fields;

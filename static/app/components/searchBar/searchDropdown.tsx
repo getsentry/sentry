@@ -6,9 +6,9 @@ import {IconOpen} from '@sentry/icons/open';
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Container} from '@sentry/scraps/layout';
+import {Overlay} from '@sentry/scraps/overlay';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Overlay} from 'sentry/components/overlay';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {HighlightQuery} from 'sentry/components/searchSyntax/renderer';
 import {t, tct} from 'sentry/locale';
@@ -97,9 +97,7 @@ export function SearchDropdown({
   );
 }
 
-type HeaderItemProps = {
-  group: SearchGroup;
-};
+type HeaderItemProps = {group: SearchGroup};
 
 function HeaderItem({group}: HeaderItemProps) {
   return (
@@ -221,10 +219,7 @@ function ItemTitle({item, searchSubstring, isChild}: ItemTitleProps) {
   );
 }
 
-type KindTagProps = {
-  kind: FieldKind;
-  deprecated?: boolean;
-};
+type KindTagProps = {kind: FieldKind; deprecated?: boolean};
 
 function KindTag({kind, deprecated}: KindTagProps) {
   if (deprecated) {
@@ -382,9 +377,7 @@ function DropdownDocumentation({
   return <Documentation>{documentation}</Documentation>;
 }
 
-type QueryItemProps = {
-  item: SearchItem;
-};
+type QueryItemProps = {item: SearchItem};
 
 function QueryItem({item}: QueryItemProps) {
   if (!item.value) {

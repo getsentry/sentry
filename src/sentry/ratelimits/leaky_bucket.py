@@ -33,16 +33,27 @@ class LeakyBucketLimitInfo:
 class LeakyBucketRateLimiter:
     NAMESPACE = "leaky_bucket_limiter"
 
+    class Unavailable(Exception):
+        pass
+
     class LimitExceeded(Exception):
         def __init__(self, info: LeakyBucketLimitInfo) -> None:
             self.info = info
 
-    def __init__(self, burst_limit: int, drip_rate: int, key: str | None = None) -> None:
+    def __init__(
+        self,
+        burst_limit: int,
+        drip_rate: int,
+        key: str | None = None,
+        *,
+        fail_open: bool = True,
+    ) -> None:
         cluster_key = settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER
         self.client = redis.redis_clusters.get(cluster_key)
         self.burst_limit = burst_limit
         self.drip_rate = drip_rate
         self.default_key = key
+        self.fail_open = fail_open
 
     def _redis_key(self, key: str | None = None) -> str:
         key = key or self.default_key
@@ -93,10 +104,12 @@ class LeakyBucketRateLimiter:
                 float(wait_time),
             )
             return LeakyBucketLimitInfo(bucket_size, drip_rate, last_drip, current_level, wait_time)
-        except Exception:
+        except Exception as e:
             logger.exception(
                 "Could not determine leaky bucket limiter state", dict(redis_key=redis_key)
             )
+            if not self.fail_open:
+                raise self.Unavailable from e
         # fail open
         return LeakyBucketLimitInfo(self.burst_limit, self.drip_rate)
 

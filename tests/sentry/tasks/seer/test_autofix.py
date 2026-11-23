@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 from unittest.mock import ANY, MagicMock, Mock, call, patch
 
 import orjson
@@ -7,6 +8,7 @@ from django.test import override_settings
 from django.utils import timezone
 from urllib3.response import HTTPResponse
 
+from sentry.models.organization import Organization
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.exceptions import IssueSummaryUnavailable
 from sentry.seer.autofix.utils import get_seer_seat_based_tier_cache_key
@@ -29,17 +31,16 @@ from sentry.tasks.seer.autofix import (
 )
 from sentry.tasks.seer.autofix_issue_data import (
     FEATURE_FLAG,
-    _parse_response,
     _select_candidates,
     judge_issue_data,
     schedule_judging,
     schedule_judging_for_org,
 )
 from sentry.testutils.cases import TestCase as SentryTestCase
-from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     decode_viewer_context,
@@ -258,7 +259,11 @@ class TestSummarizeIssue(SentryTestCase):
 
 
 class TestAutofixIssueDataJudge(SentryTestCase):
-    def _create_agentic_triage_run(self, organization, **kwargs):
+    def _create_agentic_triage_run(
+        self,
+        organization: Organization,
+        **kwargs: Any,
+    ) -> SeerWorkflowRun:
         config = SeerWorkflowConfig.get_or_create_for_strategy(
             organization.id, SeerWorkflowStrategy.AGENTIC_TRIAGE
         )
@@ -323,13 +328,6 @@ class TestAutofixIssueDataJudge(SentryTestCase):
             10,
         ]
 
-    def test_accepts_all_verdicts(self) -> None:
-        for verdict in ("fixable", "not_fixable", "uncertain"):
-            response = _parse_response(
-                json.dumps({"verdict": verdict, "confidence": "high", "reason": "Evidence"})
-            )
-            assert response.verdict == verdict
-
     @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
     @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
     def test_judges_blinded_issue_data_and_records_verdict(
@@ -352,10 +350,12 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         mock_urlopen.return_value = HTTPResponse(
             orjson.dumps(
                 {
-                    "content": json.dumps(
-                        {"verdict": verdict, "confidence": "high", "reason": "Evidence"}
-                    ),
-                    "model": "claude-opus-4-8@default",
+                    "result": {
+                        "verdict": verdict,
+                        "confidence": "high",
+                        "reason": "Evidence",
+                        "model": "claude-opus-4-8@default",
+                    }
                 }
             ),
             status=200,
@@ -369,15 +369,21 @@ class TestAutofixIssueDataJudge(SentryTestCase):
             key="viewer-context-test-secret",
         )
         assert viewer_context == ViewerContext(
-            organization_id=self.organization.id,
-            actor_type=ActorType.SYSTEM,
+            actor=Actor(type=ActorType.SYSTEM), organization_id=self.organization.id
         )
         assert get_viewer_context() is None
-        prompt = json.loads(orjson.loads(mock_urlopen.call_args.kwargs["body"])["prompt"])
-        assert prompt == {
-            "event_id": event_id,
-            "event": {"entries": []},
-            "issue": {"title": "Example"},
+        request_body = orjson.loads(mock_urlopen.call_args.kwargs["body"])
+        assert request_body == {
+            "oneshot_id": "autofix_issue_data_judge",
+            "payload": {
+                "issue_data": {
+                    "event_id": event_id,
+                    "event": {"entries": []},
+                    "issue": {"title": "Example"},
+                    "status": "skip",
+                    "reason": "hidden",
+                }
+            },
         }
 
         issue_data.refresh_from_db()
@@ -388,7 +394,7 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         assert issue_data.judge_review["model"] == "claude-opus-4-8@default"
         assert issue_data.judge_review["prompt_version"] == "2"
 
-    @patch("sentry.tasks.seer.autofix_issue_data.make_llm_generate_request")
+    @patch("sentry.tasks.seer.autofix_issue_data.run_oneshot")
     def test_skips_stale_event(self, mock_request: MagicMock) -> None:
         group = self.create_group(project=self.project, seer_fixability_score=0.1)
         issue_data = self.create_seer_autofix_issue_data(group)
@@ -583,3 +589,26 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         # Cache should be set to True to prevent race conditions
         assert cache.get(cache_key) is True
+
+    def test_token_billed_org_keeps_repo_config(self) -> None:
+        repository = self.create_repo(project=self.project)
+        seer_repository = self.create_seer_project_repository(
+            project=self.project, repository=repository
+        )
+        self.organization.update_option("agentic-triage-free-cohort", True)
+
+        with self.feature("organizations:token-billed-seer-enabled"):
+            configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        assert SeerProjectRepository.objects.filter(id=seer_repository.id).exists()
+        assert self.organization.get_option("agentic-triage-free-cohort", False) is True
+
+    def test_token_billed_does_not_set_seat_based_tier_cache(self) -> None:
+        self.create_project(organization=self.organization)
+        cache_key = get_seer_seat_based_tier_cache_key(self.organization.id)
+        cache.delete(cache_key)
+
+        with self.feature("organizations:token-billed-seer-enabled"):
+            configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        assert cache.get(cache_key) is None

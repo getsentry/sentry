@@ -1,8 +1,16 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
-import {ResultGrid} from 'sentry/components/resultGrid';
 import {ConfigStore} from 'sentry/stores/configStore';
+
+import {SimpleTable} from './tables/simpleTable';
+import {ResultGrid} from './resultGrid';
 
 describe('ResultGrid', () => {
   const endpoint = '/test-endpoint/';
@@ -26,9 +34,11 @@ describe('ResultGrid', () => {
       <ResultGrid
         endpoint={endpoint}
         path={path}
-        columns={[<th key="h">Name</th>]}
+        columns={[{key: 'h', label: 'Name'}]}
         keyForRow={row => row.id}
-        columnsForRow={row => [<td key="c">{row.name}</td>]}
+        columnsForRow={row => [
+          <SimpleTable.RowCell key="c">{row.name}</SimpleTable.RowCell>,
+        ]}
         defaultSort="id"
         hasSearch
         {...extraProps}
@@ -53,6 +63,85 @@ describe('ResultGrid', () => {
     expect(screen.getByText('beta')).toBeInTheDocument();
     expect(screen.queryByText('Hold on to your butts!')).not.toBeInTheDocument();
     expect(mock).toHaveBeenCalled();
+  });
+
+  it('renders the headers and cells in column order when a column hides its label', async () => {
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'GET',
+      body: [{id: '1', name: 'alpha'}],
+    });
+
+    render(
+      <ExampleBasicResultGrid
+        inPanel
+        panelTitle="Things"
+        columns={[
+          {key: 'name', label: 'Name'},
+          {key: 'actions', label: 'Actions', hideLabel: true},
+        ]}
+        columnsForRow={row => [
+          <SimpleTable.RowCell key="name">{row.name}</SimpleTable.RowCell>,
+          <SimpleTable.RowCell key="actions">edit</SimpleTable.RowCell>,
+        ]}
+      />
+    );
+
+    const table = await screen.findByRole('table', {name: 'Things'});
+    const row = await within(table).findByRole('row', {name: /alpha/});
+
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map(header => header.textContent)
+    ).toEqual(['Name', '']);
+    expect(
+      within(table).getByRole('columnheader', {name: 'Actions'})
+    ).toBeInTheDocument();
+    expect(
+      within(row)
+        .getAllByRole('cell')
+        .map(cell => cell.textContent)
+    ).toEqual(['alpha', 'edit']);
+  });
+
+  it('skips rows when their columns are empty', async () => {
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'GET',
+      body: [
+        {id: '1', name: 'alpha'},
+        {id: '2', name: 'hidden'},
+      ],
+    });
+
+    render(
+      <ExampleBasicResultGrid
+        columnsForRow={row =>
+          row.name === 'hidden'
+            ? []
+            : [<SimpleTable.RowCell key="c">{row.name}</SimpleTable.RowCell>]
+        }
+      />
+    );
+
+    expect(await screen.findByText('alpha')).toBeInTheDocument();
+    expect(screen.queryByText('hidden')).not.toBeInTheDocument();
+    expect(within(screen.getAllByRole('rowgroup')[1]!).getAllByRole('row')).toHaveLength(
+      1
+    );
+  });
+
+  it('shows the empty state when every row is skipped', async () => {
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'GET',
+      body: [{id: '1', name: 'hidden'}],
+    });
+
+    render(<ExampleBasicResultGrid columnsForRow={() => []} />);
+
+    expect(await screen.findByText('No results')).toBeInTheDocument();
   });
 
   it('updates the query string when a search is submitted', async () => {
@@ -159,8 +248,10 @@ function renderGrid(
       endpoint="/customers/"
       path="/_admin/customers/"
       method="GET"
-      columns={[<th key="name">Customer</th>]}
-      columnsForRow={(row: any) => [<td key="name">{row.name}</td>]}
+      columns={[{key: 'name', label: 'Customer'}]}
+      columnsForRow={(row: any) => [
+        <SimpleTable.RowCell key="name">{row.name}</SimpleTable.RowCell>,
+      ]}
       {...extraProps}
     />,
     {
@@ -183,10 +274,7 @@ describe('ResultGrid region probing', () => {
 
   it('points the user to another region when the default region is empty', async () => {
     // Default region (us) has no matches.
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/us/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/us/customers/', body: []});
     // The org actually lives in the de region.
     MockApiClient.addMockResponse({
       url: '/_admin/cells/de/customers/',
@@ -199,10 +287,7 @@ describe('ResultGrid region probing', () => {
   });
 
   it('switches to the matching region when the hint is clicked', async () => {
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/us/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/us/customers/', body: []});
     const deRequest = MockApiClient.addMockResponse({
       url: '/_admin/cells/de/customers/',
       body: [{id: '1', name: 'Acme'}],
@@ -223,10 +308,7 @@ describe('ResultGrid region probing', () => {
   });
 
   it('does not probe other regions when there is no search query', async () => {
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/us/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/us/customers/', body: []});
     const deRequest = MockApiClient.addMockResponse({
       url: '/_admin/cells/de/customers/',
       body: [{id: '1', name: 'Acme'}],
@@ -242,10 +324,7 @@ describe('ResultGrid region probing', () => {
 
   it('does not probe other regions on a paginated (non-first) empty page', async () => {
     // The current region has results on earlier pages; this later page is empty.
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/us/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/us/customers/', body: []});
     const deRequest = MockApiClient.addMockResponse({
       url: '/_admin/cells/de/customers/',
       body: [{id: '1', name: 'Acme'}],
@@ -357,14 +436,8 @@ describe('ResultGrid region probing', () => {
   });
 
   it('does not show a hint when another region is also empty', async () => {
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/us/customers/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/de/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/us/customers/', body: []});
+    MockApiClient.addMockResponse({url: '/_admin/cells/de/customers/', body: []});
 
     renderGrid('acme');
 
@@ -403,10 +476,7 @@ describe('ResultGrid probeAllRegions', () => {
   });
 
   it('flags other regions when the active region is empty', async () => {
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/us/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/us/customers/', body: []});
     MockApiClient.addMockResponse({
       url: '/_admin/cells/de/customers/',
       body: [{id: '2', name: 'Beta'}],
@@ -446,10 +516,7 @@ describe('ResultGrid probeAllRegions', () => {
       url: '/_admin/cells/us/customers/',
       body: [{id: '1', name: 'Acme'}],
     });
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/de/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/de/customers/', body: []});
 
     renderGrid(undefined, {}, allRegionsProps);
 
@@ -530,20 +597,20 @@ describe('ResultGrid allowAllRegions', () => {
       url: '/_admin/cells/us/customers/',
       body: [{id: '1', name: 'Acme', members: 5}],
     });
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/de/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/de/customers/', body: []});
 
     renderGrid(
       undefined,
       {},
       {
         ...allRegionsProps,
-        columns: [<th key="name">Customer</th>, <th key="joined">Joined</th>],
+        columns: [
+          {key: 'name', label: 'Customer'},
+          {key: 'joined', label: 'Joined'},
+        ],
         columnsForRow: (row: any) => [
-          <td key="name">{row.name}</td>,
-          <td key="joined">2024</td>,
+          <SimpleTable.RowCell key="name">{row.name}</SimpleTable.RowCell>,
+          <SimpleTable.RowCell key="joined">2024</SimpleTable.RowCell>,
         ],
         regionColumnIndex: 1,
       }
@@ -595,14 +662,8 @@ describe('ResultGrid allowAllRegions', () => {
   });
 
   it('shows "No results" only once every region has answered empty', async () => {
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/us/customers/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/de/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/us/customers/', body: []});
+    MockApiClient.addMockResponse({url: '/_admin/cells/de/customers/', body: []});
 
     renderGrid(undefined, {}, allRegionsProps);
 
@@ -726,9 +787,7 @@ describe('ResultGrid allowAllRegions', () => {
           return Promise.resolve([
             [{id: '1', name: 'Acme', members: 5}],
             'success',
-            {
-              getResponseHeader: () => null,
-            },
+            {getResponseHeader: () => null},
           ]);
         }
         return Promise.reject(new Error('Failed to fetch'));
@@ -798,10 +857,7 @@ describe('ResultGrid allowAllRegions', () => {
       match: [MockApiClient.matchData({cursor: '0:1:0'})],
       body: [{id: '2', name: 'Beta', members: 4}],
     });
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/de/customers/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/_admin/cells/de/customers/', body: []});
 
     renderGrid(undefined, {}, allRegionsProps);
 

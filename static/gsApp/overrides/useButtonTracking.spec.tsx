@@ -1,9 +1,9 @@
-import {createMemoryRouter} from 'react-router';
+import {createMemoryRouter, useLocation, useNavigate} from 'react-router';
+import {RouterProvider} from 'react-router/dom';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
-import {TestRouterProvider} from 'sentry-test/reactRouter';
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 
@@ -21,7 +21,8 @@ describe('buttonTracking', () => {
 
   const wrapper = ({children}: ButtonProps) => (
     <OrganizationContext value={organization}>
-      <TestRouterProvider
+      <RouterProvider
+        useTransitions={false}
         router={createMemoryRouter(
           [
             {
@@ -56,15 +57,10 @@ describe('buttonTracking', () => {
 
   const anonymousWrapper = ({children}: ButtonProps) => (
     <OrganizationContext value={null}>
-      <TestRouterProvider
+      <RouterProvider
+        useTransitions={false}
         router={createMemoryRouter(
-          [
-            {
-              path: '/auth/login/',
-              handle: {path: '/auth/login/'},
-              element: children,
-            },
-          ],
+          [{path: '/auth/login/', handle: {path: '/auth/login/'}, element: children}],
           {initialEntries: ['/auth/login/']}
         )}
       />
@@ -76,9 +72,7 @@ describe('buttonTracking', () => {
   });
 
   it('calls rawTrackAnalyticsEvent with default values', () => {
-    const {result} = renderHook(useButtonTracking, {
-      wrapper,
-    });
+    const {result} = renderHook(useButtonTracking, {wrapper});
 
     result.current({clickType: 'button', 'aria-label': 'Create Alert'});
 
@@ -92,10 +86,27 @@ describe('buttonTracking', () => {
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
   });
 
-  it('does not set a default Reload event key for links', () => {
-    const {result} = renderHook(useButtonTracking, {
-      wrapper,
+  it('returns the same function after navigating', async () => {
+    const {result} = renderHook(
+      () => ({
+        location: useLocation(),
+        navigate: useNavigate(),
+        track: useButtonTracking(),
+      }),
+      {wrapper}
+    );
+    const initialTrack = result.current.track;
+
+    act(() => {
+      result.current.navigate(`/settings/${organization.slug}/${project.slug}/?query=1`);
     });
+
+    await waitFor(() => expect(result.current.location.search).toBe('?query=1'));
+    expect(result.current.track).toBe(initialTrack);
+  });
+
+  it('does not set a default Reload event key for links', () => {
+    const {result} = renderHook(useButtonTracking, {wrapper});
 
     result.current({clickType: 'link', 'aria-label': 'Open Issues'});
 
@@ -110,9 +121,7 @@ describe('buttonTracking', () => {
   });
 
   it('preserves an explicit Reload event key for links', () => {
-    const {result} = renderHook(useButtonTracking, {
-      wrapper,
-    });
+    const {result} = renderHook(useButtonTracking, {wrapper});
 
     result.current({
       clickType: 'link',
@@ -131,9 +140,7 @@ describe('buttonTracking', () => {
   });
 
   it('calls rawTrackAnalyticsEvent with data', () => {
-    const {result} = renderHook(useButtonTracking, {
-      wrapper,
-    });
+    const {result} = renderHook(useButtonTracking, {wrapper});
 
     result.current({
       clickType: 'button',
@@ -156,9 +163,7 @@ describe('buttonTracking', () => {
   });
 
   it('calls rawTrackAnalyticsEvent with new event names', () => {
-    const {result} = renderHook(useButtonTracking, {
-      wrapper,
-    });
+    const {result} = renderHook(useButtonTracking, {wrapper});
 
     result.current({
       clickType: 'button',
@@ -178,9 +183,7 @@ describe('buttonTracking', () => {
   });
 
   it('tracks explicit events without an organization', () => {
-    const {result} = renderHook(useButtonTracking, {
-      wrapper: anonymousWrapper,
-    });
+    const {result} = renderHook(useButtonTracking, {wrapper: anonymousWrapper});
 
     result.current({
       clickType: 'button',
@@ -201,9 +204,7 @@ describe('buttonTracking', () => {
   });
 
   it('does not track automatic button events without an organization', () => {
-    const {result} = renderHook(useButtonTracking, {
-      wrapper: anonymousWrapper,
-    });
+    const {result} = renderHook(useButtonTracking, {wrapper: anonymousWrapper});
 
     result.current({clickType: 'button', 'aria-label': 'Uninstrumented'});
 

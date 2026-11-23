@@ -92,7 +92,8 @@ def detect_breakpoints(
 
     if response.status >= 200 and response.status < 300:
         try:
-            return json.loads(response.data)
+            payload = json.loads(response.data)
+            return payload
         except ValueError as e:
             # seer failed to return valid json, report the error
             # and assume no breakpoints were found

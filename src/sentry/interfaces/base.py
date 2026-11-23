@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from html import escape
 from typing import Any, ClassVar, Self
 
@@ -71,42 +71,42 @@ class Interface:
         self._data = data or {}
 
     @classproperty
-    def path(cls):
+    def path(cls: type[Interface]) -> str:
         """The 'path' of the interface which is the root key in the data."""
         return cls.__name__.lower()
 
     @classproperty
-    def external_type(cls):
+    def external_type(cls: type[Interface]) -> str:
         """The external name of the interface.  This is mostly the same as
         path with some small differences (message, debugmeta).
         Also used as the display name for grouping strategy hints.
         """
         return cls.path
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(self, type(other)):
             return False
-        return self._data == other._data
+        return self._data == getattr(other, "_data", None)
 
-    def __getstate__(self):
+    def __getstate__(self) -> dict[str, Any]:
         return {"_data": self._data}
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Mapping[str, Any]) -> None:
         self.__dict__.update(state)
         if not hasattr(self, "_data"):
             self._data = {}
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         return self._data[name]
 
-    def __setattr__(self, name, value) -> None:
+    def __setattr__(self, name: str, value: Any) -> None:
         if name == "_data":
             self.__dict__["_data"] = value
         else:
             self._data[name] = value
 
     @classmethod
-    def to_python(cls, data) -> Self | None:
+    def to_python(cls, data: Any) -> Self | None:
         """Creates a python interface object from the given raw data.
 
         This function can assume fully normalized and valid data. It can create
@@ -118,20 +118,27 @@ class Interface:
 
         return cls(data)
 
-    def get_raw_data(self):
+    def get_raw_data(self) -> dict[str, Any]:
         """Returns the underlying raw data."""
         return self._data
 
-    def get_api_context(self, is_public=False, platform=None):
+    def get_api_context(
+        self, is_public: bool = False, platform: str | None = None
+    ) -> Mapping[str, Any]:
         return self.to_json()
 
-    def get_api_meta(self, meta, is_public=False, platform=None):
+    def get_api_meta(
+        self,
+        meta: Mapping[str, Any],
+        is_public: bool = False,
+        platform: str | None = None,
+    ) -> Mapping[str, Any] | None:
         return meta
 
-    def to_json(self):
+    def to_json(self) -> Any:
         return prune_empty_keys(self._data)
 
-    def get_title(self):
+    def get_title(self) -> str:
         return _(type(self).__name__)
 
     def get_display_score(self) -> int:
@@ -140,13 +147,13 @@ class Interface:
     def get_score(self) -> int:
         return self.score
 
-    def iter_tags(self):
+    def iter_tags(self) -> Iterator[tuple[str, str]]:
         return iter(())
 
-    def to_string(self, event) -> str:
+    def to_string(self, event: Any) -> str:
         return ""
 
-    def to_email_html(self, event, **kwargs):
+    def to_email_html(self, event: Any, **kwargs: Any) -> str:
         body = self.to_string(event)
         if not body:
             return ""

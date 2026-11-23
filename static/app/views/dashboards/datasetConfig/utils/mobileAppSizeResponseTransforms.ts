@@ -1,80 +1,71 @@
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
-import type {
-  EventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {SizeUnit} from 'sentry/utils/discover/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import type {WidgetQuery} from 'sentry/views/dashboards/types';
+import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {
-  isEventsStats,
-  isEventsTimeSeriesResponse,
-  isMultiSeriesEventsStats,
-} from 'sentry/views/dashboards/utils/isEventsStats';
-import {
-  transformTimeSeriesResponseToSeries,
-  type WidgetSeries,
-} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
+  transformTimeSeriesResponse,
+  type WidgetTimeSeries,
+} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
+import type {TimeSeriesItem} from 'sentry/views/dashboards/widgets/common/types';
 
-function buildSeriesResultMap<T extends AggregationOutputType | DataUnit>(
-  data: EventsStats | MultiSeriesEventsStats | EventsTimeSeriesResponse,
-  widgetQuery: WidgetQuery,
-  value: T
-): Record<string, T> {
-  const result: Record<string, T> = {};
-
-  for (const aggregate of widgetQuery.aggregates ?? []) {
-    result[aggregate] = value;
-  }
-
-  if (isMultiSeriesEventsStats(data)) {
-    for (const seriesName of Object.keys(data)) {
-      result[seriesName] = value;
-    }
-  }
-
-  return result;
-}
-
-function transformTimeSeriesResponse(
+function transformTimeSeries(
   data: EventsTimeSeriesResponse,
-  widgetQuery: WidgetQuery
-): WidgetSeries[] {
-  const aggregate = widgetQuery.aggregates?.[0] || widgetQuery.fields?.[0] || 'App Size';
-  const series = transformTimeSeriesResponseToSeries(data, widgetQuery);
+  widget: Widget,
+  queryIndex: number
+): WidgetTimeSeries[] {
+  const isSingleUngroupedSeries =
+    data.timeSeries.length === 1 && !data.timeSeries[0]!.groupBy?.length;
 
-  if (series.length === 1 && !series[0]!.timeSeries?.groupBy?.length) {
-    const seriesName = widgetQuery.name || aggregate;
+  const series = transformTimeSeriesResponse(data, widget, queryIndex, {
+    meta: {valueType: 'size', valueUnit: SizeUnit.BYTE},
+    getSeriesName: isSingleUngroupedSeries
+      ? (_timeSeries, widgetQuery) =>
+          widgetQuery.name ||
+          widgetQuery.aggregates?.[0] ||
+          widgetQuery.fields?.[0] ||
+          'App Size'
+      : undefined,
+  });
 
-    return [{...removeEmptyBuckets(series[0]!), seriesName}];
+  // Stacked bars line up by bucket index, so removing empty buckets shifts
+  // grouped series onto the wrong timestamps. Empty buckets already render as
+  // nothing in a bar chart.
+  if (widget.displayType === DisplayType.BAR) {
+    return series;
   }
 
-  return series.map(removeEmptyBuckets);
+  return series.map(item => ({
+    ...item,
+    timeSeries: {
+      ...item.timeSeries,
+      values: carryForwardLastBuild(item.timeSeries.values),
+    },
+  }));
 }
 
-function removeEmptyBuckets(series: WidgetSeries): WidgetSeries {
-  const values = (series.timeSeries?.values ?? []).filter(
-    ({value}) => value !== null && value !== undefined && value !== 0
-  );
-
-  return {
-    ...series,
-    data: values.map(({timestamp, value}) => ({name: timestamp, value: value!})),
-    timeSeries: series.timeSeries ? {...series.timeSeries, values} : undefined,
-  };
+/**
+ * A bucket without a build is empty, but the app is still the size of its
+ * last build. Lines show that size instead of dropping to zero. Buckets before
+ * the first build in range stay empty.
+ */
+function carryForwardLastBuild(values: TimeSeriesItem[]): TimeSeriesItem[] {
+  let lastValue: number | null = null;
+  return values.map(item => {
+    // Matches the legacy empty bucket check. No real build has a size of 0.
+    if (item.value === null || item.value === 0) {
+      return {...item, value: lastValue};
+    }
+    lastValue = item.value;
+    return item;
+  });
 }
 
 export const mobileAppSizeResponseTransforms: Pick<
-  DatasetConfig<
-    EventsStats | MultiSeriesEventsStats | EventsTimeSeriesResponse,
-    TableData
-  >,
-  'transformTable' | 'transformSeries' | 'getSeriesResultType' | 'getSeriesResultUnit'
+  DatasetConfig<EventsTimeSeriesResponse, TableData>,
+  'transformTable' | 'transformTimeSeries'
 > = {
   transformTable: (
     data: TableData,
@@ -84,74 +75,5 @@ export const mobileAppSizeResponseTransforms: Pick<
   ): TableData => {
     return data;
   },
-  transformSeries: (
-    data: EventsStats | MultiSeriesEventsStats | EventsTimeSeriesResponse,
-    widgetQuery: WidgetQuery,
-    _organization: Organization
-  ): Series[] => {
-    if (!data) {
-      return [];
-    }
-
-    if (isEventsTimeSeriesResponse(data)) {
-      return transformTimeSeriesResponse(data, widgetQuery);
-    }
-
-    const aggregate =
-      widgetQuery.aggregates?.[0] || widgetQuery.fields?.[0] || 'App Size';
-
-    if (isEventsStats(data)) {
-      const seriesData = data.data
-        .filter(
-          ([, values]) =>
-            values[0]?.count !== null &&
-            values[0]?.count !== undefined &&
-            values[0]?.count !== 0
-        )
-        .map(([timestamp, values]) => ({
-          name: timestamp * 1000,
-          value: values[0]!.count,
-        }));
-
-      const seriesName = widgetQuery.name || aggregate;
-
-      return [{seriesName, data: seriesData}];
-    }
-
-    const multiResponse = data;
-    const seriesWithOrder: Array<{order: number; series: Series}> = [];
-
-    for (const [groupName, groupData] of Object.entries(multiResponse)) {
-      if (!groupData?.data || !Array.isArray(groupData.data)) {
-        continue;
-      }
-
-      const seriesData = groupData.data
-        .filter(
-          ([, values]) =>
-            values[0]?.count !== null &&
-            values[0]?.count !== undefined &&
-            values[0]?.count !== 0
-        )
-        .map(([timestamp, values]) => ({
-          name: timestamp * 1000,
-          value: values[0]!.count,
-        }));
-
-      const seriesName = widgetQuery.name
-        ? `${widgetQuery.name} : ${groupName}`
-        : groupName;
-
-      seriesWithOrder.push({
-        order: groupData.order ?? 0,
-        series: {seriesName, data: seriesData},
-      });
-    }
-
-    return seriesWithOrder.sort((a, b) => a.order - b.order).map(item => item.series);
-  },
-  getSeriesResultType: (data, widgetQuery) =>
-    buildSeriesResultMap(data, widgetQuery, 'size'),
-  getSeriesResultUnit: (data, widgetQuery) =>
-    buildSeriesResultMap(data, widgetQuery, SizeUnit.BYTE),
+  transformTimeSeries,
 };

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Any, cast
 
 from sentry.replays.testutils import (
     mock_replay,
@@ -11,7 +12,7 @@ from sentry.replays.testutils import (
 from sentry.testutils.cases import ReplaysAcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
-FEATURE_NAME = ["organizations:session-replay", "organizations:performance-view"]
+FEATURE_NAME = ["organizations:session-replay"]
 
 
 @no_silo_test
@@ -63,7 +64,9 @@ class ReplayDetailsTest(ReplaysAcceptanceTestCase):
             ),
         ]
         for segment_id, segment in enumerate(segments):
-            self.store_replay_segments(replay_id, self.project.id, segment_id, segment)
+            self.store_replay_segments(
+                replay_id, self.project.id, segment_id, cast("dict[str, Any]", segment)
+            )
 
     def test_console_tab(self) -> None:
         with self.feature(FEATURE_NAME):

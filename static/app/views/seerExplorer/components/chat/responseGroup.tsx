@@ -2,16 +2,19 @@ import {Fragment, memo, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {MessageRow, ThinkingBlock} from '@sentry/scraps/chat';
+import {AssistantMessage, MessageRow, ThinkingBlock} from '@sentry/scraps/chat';
 import {Container} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {STOPPED_CHAT_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
 import {t} from 'sentry/locale';
 import {callRecordLabel, visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
-import type {
-  Block,
-  PendingUserInput,
-  SeerExplorerRunId,
+import {
+  isSeerErrorBlock,
+  type Block,
+  type PendingUserInput,
+  type SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
 
@@ -137,10 +140,17 @@ export function deriveThinkingTitle(group: Block[]): string {
 interface ResponseGroupProps {
   blockIndex: number;
   group: Block[];
+  /** When the response ended, for one that ended without a settled answer. */
+  endedAt?: string;
   getPageReferrer?: () => string;
   interactionPending?: boolean;
   /** The conversation's newest todo snapshot, from `findLatestTodos`. */
   latestTodos?: LatestTodos | null;
+  /**
+   * The run stopped here because the organization ran out of Seer credits.
+   * Only set on the conversation's last response.
+   */
+  outOfCredits?: boolean;
   pendingInput?: PendingUserInput | null;
   readOnly?: boolean;
   runId?: SeerExplorerRunId;
@@ -177,10 +187,12 @@ export const ResponseGroup = memo(function ResponseGroup({
   latestTodos,
   getPageReferrer,
   interactionPending,
+  outOfCredits,
   pendingInput,
   readOnly,
   runId,
   showThinking,
+  endedAt,
 }: ResponseGroupProps) {
   // `answer` identifies the block whose content is the visible response — used to exclude it
   // from the ThinkingBlock trace. `settledAnswer` is the same block once it has finished
@@ -189,6 +201,7 @@ export const ResponseGroup = memo(function ResponseGroup({
   const answer = finalAnswer(group);
   const settledAnswer = answer && !answer.loading ? answer : null;
   const active = group.some(block => block.loading);
+  const showOutOfCredits = outOfCredits && !active;
 
   // The reasoning trace is everything except the answer's content: thinking prose (gated on the
   // `showThinking` toggle), any intermediate narration, and the tool calls.
@@ -205,11 +218,10 @@ export const ResponseGroup = memo(function ResponseGroup({
 
   const [startTime] = useState(() => new Date(group[0]!.timestamp));
   // `settledAnswer` is the stable "response is done" signal. `block.loading` flickers false
-  // between tool calls, but answer settles once
-  const endTime =
-    !settledAnswer || pendingInput
-      ? undefined
-      : new Date(group[group.length - 1]!.timestamp);
+  // between tool calls, but answer settles once.
+  // Without a settled answer, end at `endedAt` if the caller passed it.
+  const endTimestamp = settledAnswer ? group[group.length - 1]!.timestamp : endedAt;
+  const endTime = !endTimestamp || pendingInput ? undefined : new Date(endTimestamp);
 
   return (
     <Container width="100%" position="relative" flexShrink={0} data-block-wrapper="">
@@ -265,7 +277,8 @@ export const ResponseGroup = memo(function ResponseGroup({
           </MessageRow>
         ) : null}
 
-        {settledAnswer ? (
+        {/* Seer's plain-text error block gives way to a line saying why it stopped. */}
+        {settledAnswer && !(showOutOfCredits && isSeerErrorBlock(settledAnswer)) ? (
           <AssistantBlock
             block={settledAnswer}
             blockIndex={blockIndex + group.length - 1}
@@ -275,15 +288,31 @@ export const ResponseGroup = memo(function ResponseGroup({
             compact={hasTrace}
           />
         ) : null}
+        {showOutOfCredits ? <OutOfCreditsMessage compact={hasTrace} /> : null}
       </motion.div>
     </Container>
   );
 }, areResponseGroupPropsEqual);
 
+/**
+ * Why the run stopped. The out-of-credits alert above the composer offers the
+ * way out, so this has no CTA of its own.
+ */
+function OutOfCreditsMessage({compact}: {compact: boolean}) {
+  return (
+    <MessageRow from="assistant" density={compact ? 'compact' : undefined}>
+      <AssistantMessage>
+        <Text variant="muted">{STOPPED_CHAT_MESSAGE}</Text>
+      </AssistantMessage>
+    </MessageRow>
+  );
+}
+
 // The response's raw reasoning. When it sits between tool calls it is set apart with extra vertical
 // space (`data-spaced`); leading or trailing reasoning gets none so it stays tight against the
-// answer or the block edge.
-const ThinkingProse = styled('div')`
+// answer or the block edge. Shared with the investigation status block, which draws its agent's
+// reasoning the same way.
+export const ThinkingProse = styled('div')`
   min-width: 0;
   font-family: ${p => p.theme.font.family.sans};
   font-size: ${p => p.theme.font.size.sm};

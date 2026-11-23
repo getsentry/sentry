@@ -20,6 +20,7 @@ from sentry.projects.services.project import (
 )
 from sentry.projects.services.project.model import ProjectUpdateArgs
 from sentry.projects.services.project.serial import ProjectUpdateArgsSerializer, serialize_project
+from sentry.seer.similarity.utils import set_default_project_similarity_grouping
 from sentry.signals import project_created
 from sentry.users.services.user import RpcUser
 
@@ -31,7 +32,7 @@ class DatabaseBackedProjectService(ProjectService):
                 id=id, organization=organization_id
             )
         except ValueError:
-            project = Project.objects.filter(id=id, organization=organization_id).first()
+            project = Project.objects.get_or_none(id=id, organization=organization_id)
         except Project.DoesNotExist:
             return None
         if project:
@@ -39,9 +40,9 @@ class DatabaseBackedProjectService(ProjectService):
         return None
 
     def get_by_slug(self, *, organization_id: int, slug: str) -> RpcProject | None:
-        project: Project | None = Project.objects.filter(
+        project: Project | None = Project.objects.get_or_none(
             slug=slug, organization=organization_id
-        ).first()
+        )
         if project:
             return serialize_project(project)
         return None
@@ -132,6 +133,7 @@ class DatabaseBackedProjectService(ProjectService):
                     project.add_team(team)
 
             set_default_symbol_sources(project)
+            set_default_project_similarity_grouping(project)
 
             project_created.send_robust(
                 project=project,

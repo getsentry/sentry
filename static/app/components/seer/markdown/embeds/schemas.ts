@@ -9,12 +9,7 @@ const isoTimestampSchema = z.iso.datetime({offset: true});
 const pageFilterTimestampSchema = z.iso.datetime({offset: true, local: true});
 
 const chartSeriesDataSchema = z
-  .array(
-    z.object({
-      x: z.union([z.string(), z.number()]),
-      y: z.number(),
-    })
-  )
+  .array(z.object({x: z.union([z.string(), z.number()]), y: z.number()}))
   .min(1)
   .max(200);
 
@@ -101,13 +96,13 @@ interface SeerEmbedSchema {
 }
 
 /**
- * Autofix is a Seer plan entitlement, and the two plan shapes grant it under
- * different flags: seat-based plans and legacy usage-based ones. Matching the
- * pair is the same test the frontend's `orgHasSeerAccess` makes.
+ * Autofix is a Seer plan entitlement. Seat-based, legacy usage-based and
+ * token-billed plans each grant it under their own flag.
  */
 const SEER_PLAN_AUTOFIX_FEATURES = [
   'organizations:seat-based-seer-enabled',
   'organizations:seer-added',
+  'organizations:token-billed-seer-enabled',
 ];
 
 export const SEER_EMBED_SCHEMAS = {
@@ -148,16 +143,8 @@ export const SEER_EMBED_SCHEMAS = {
       'the widget titles, queries, visualizations, or values as text. ' +
       'Never use a markdown link for dashboard references.',
     level: ['inline', 'block'],
-    schema: z.object({
-      id: idString,
-      title: z.string().min(1).optional(),
-    }),
-    examples: [
-      {
-        label: 'Dashboard',
-        data: {id: '123', title: 'Application health'},
-      },
-    ],
+    schema: z.object({id: idString, title: z.string().min(1).optional()}),
+    examples: [{label: 'Dashboard', data: {id: '123', title: 'Application health'}}],
   },
   dsn: {
     description:
@@ -166,10 +153,7 @@ export const SEER_EMBED_SCHEMAS = {
     level: ['block'],
     schema: z.object({value: z.string()}),
     examples: [
-      {
-        label: 'DSN',
-        data: {value: 'https://examplePublicKey@o0.ingest.sentry.io/0'},
-      },
+      {label: 'DSN', data: {value: 'https://examplePublicKey@o0.ingest.sentry.io/0'}},
     ],
   },
   user: {
@@ -177,11 +161,7 @@ export const SEER_EMBED_SCHEMAS = {
       'Mention a Sentry user or team inline. Renders an avatar and display name. ' +
       'Use the actor type ("user" or "team") and the actor\'s ID and name.',
     level: ['inline'],
-    schema: z.object({
-      id: z.string(),
-      type: z.enum(['user', 'team']),
-      name: z.string(),
-    }),
+    schema: z.object({id: z.string(), type: z.enum(['user', 'team']), name: z.string()}),
     examples: [
       {label: 'User', data: {id: '1', type: 'user', name: 'Jane Doe'}},
       {label: 'Team', data: {id: '2', type: 'team', name: 'platform'}},
@@ -199,7 +179,8 @@ export const SEER_EMBED_SCHEMAS = {
       'Inline: renders a compact link with the short id. ' +
       'Block: renders a full interactive issue row with title, events, ' +
       'assignee, and trend graph — do NOT duplicate any of that data as text. ' +
-      'When referencing 2+ issues, use `issuesQuery` with an issue ID search. ' +
+      'When referencing 2+ issues, use one `issuesQuery` listing their short IDs, ' +
+      'e.g. `issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX]`. ' +
       'Never use `docs` or markdown links for issue references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -251,18 +232,12 @@ export const SEER_EMBED_SCHEMAS = {
       {
         label: 'Inline',
         level: 'inline',
-        data: {
-          id: '4c1f2e3d1234567890',
-          eventTimestamp: '2026-08-25T16:37:12Z',
-        },
+        data: {id: '4c1f2e3d1234567890', eventTimestamp: '2026-08-25T16:37:12Z'},
       },
       {
         label: 'Block',
         level: 'block',
-        data: {
-          id: '4c1f2e3d1234567890',
-          eventTimestamp: '2026-08-25T16:37:12Z',
-        },
+        data: {id: '4c1f2e3d1234567890', eventTimestamp: '2026-08-25T16:37:12Z'},
       },
     ],
   },
@@ -276,16 +251,8 @@ export const SEER_EMBED_SCHEMAS = {
       'and recent deploys. Do not duplicate that data as text. ' +
       'Never use a markdown link for release references.',
     level: ['inline', 'block'],
-    schema: z.object({
-      version: z.string().min(1),
-      projectId: idString.optional(),
-    }),
-    examples: [
-      {
-        label: 'Release',
-        data: {version: 'example-app@1.2.3', projectId: '1'},
-      },
-    ],
+    schema: z.object({version: z.string().min(1), projectId: idString.optional()}),
+    examples: [{label: 'Release', data: {version: 'example-app@1.2.3', projectId: '1'}}],
   },
   chart: {
     description:
@@ -441,59 +408,61 @@ export const SEER_EMBED_SCHEMAS = {
   },
   alert: {
     description:
-      'The ONLY way to reference a Sentry alert. ' +
-      'Use `id` exactly as the alerts API returns it, and set `kind` to match: ' +
-      '"metric" for a metric alert, "issue" for an issue alert, "uptime" for an ' +
-      'uptime alert, "cron" for a cron alert. ' +
+      'The ONLY way to reference a Sentry Alert. ' +
+      'Monitors decide when data becomes an issue; an Alert is the rule that runs ' +
+      'actions (email, Slack, tickets, webhooks) when issues from its projects or ' +
+      'connected Monitors match its triggers and filters. ' +
+      "Use the Alert's id from the workflows API (`/workflows/`, " +
+      'get_organization_workflow / list_organization_workflows) with `kind` ' +
+      '"issue". This holds for every Alert, including one connected to a metric, ' +
+      'cron, or uptime Monitor. ' +
+      'Reference the Monitor itself with the `monitor` embed, never with this one. ' +
       'Include the API-provided name when available. ' +
       'Inline: renders a compact link. ' +
-      'Block: renders alert conditions and configured actions, plus the ' +
-      'underlying rule configuration for metric, uptime, and cron alerts. ' +
+      "Block: renders the Alert's settings, conditions, and actions. " +
       'Do not duplicate those details as text. ' +
       'Never use a markdown link for alert references.',
     level: ['inline', 'block'],
     schema: z.object({
       id: z.string().min(1),
-      kind: z.enum(['metric', 'issue', 'uptime', 'cron']),
+      kind: z
+        .enum(['metric', 'issue', 'uptime', 'cron'])
+        .describe(
+          'Always "issue" for an Alert. "metric", "uptime", and "cron" are legacy ' +
+            'values that expect a Monitor (detector) id; do not use them.'
+        ),
       name: z.string().min(1).optional(),
     }),
     examples: [
       {
-        label: 'Metric alert',
-        data: {id: '4521', kind: 'metric', name: 'Checkout p95 latency'},
-      },
-      {label: 'Issue alert', data: {id: '881', kind: 'issue'}},
-      {
-        label: 'Uptime alert',
-        data: {id: '774', kind: 'uptime', name: 'Checkout availability'},
+        label: 'Alert',
+        data: {id: '881', kind: 'issue', name: 'New checkout issues to #checkout'},
       },
       {
-        label: 'Cron alert',
-        data: {id: '9931', kind: 'cron', name: 'nightly-sync'},
+        label: 'Alert connected to a metric Monitor',
+        data: {id: '6120', kind: 'issue', name: 'High error rate email'},
       },
     ],
   },
   monitor: {
     description:
-      'The ONLY way to reference a Sentry monitor (error, metric, cron, uptime, ' +
-      'or mobile build detector). Use the numeric id from the detectors API ' +
-      '(get_organization_detector / list_organization_detectors) — do NOT use the ' +
-      '"id" field from the monitors API, which is a GUID and will not work here. ' +
+      'The ONLY way to reference a Sentry Monitor. ' +
+      'A Monitor decides when data becomes an issue: a metric, cron, uptime, or ' +
+      "mobile builds Monitor, or a project's default Error or Issue Stream Monitor. " +
+      'Use the numeric id from the detectors API (`/detectors/`, ' +
+      'get_organization_detector / list_organization_detectors). ' +
+      'Do NOT use the GUID `id` from the Crons API (`/monitors/`, ' +
+      'list_organization_monitors); look up the cron Monitor in the detectors API ' +
+      'instead. ' +
+      'To reference an Alert that acts on issues from a Monitor, use the `alert` ' +
+      'embed. ' +
       'Include the API-provided name when available. ' +
       'Inline: renders a compact link. ' +
-      'Block: loads the live monitor and renders its type-specific configuration/rules. ' +
+      'Block: loads the live Monitor and renders its type-specific configuration. ' +
       'Never use a markdown link for monitor references.',
     level: ['inline', 'block'],
-    schema: z.object({
-      id: z.string().min(1),
-      name: z.string().min(1).optional(),
-    }),
-    examples: [
-      {
-        label: 'Monitor',
-        data: {id: '9931', name: 'nightly-billing-sync'},
-      },
-    ],
+    schema: z.object({id: z.string().min(1), name: z.string().min(1).optional()}),
+    examples: [{label: 'Monitor', data: {id: '9931', name: 'nightly-billing-sync'}}],
   },
   savedIssueView: {
     description:
@@ -505,10 +474,7 @@ export const SEER_EMBED_SCHEMAS = {
       'Do not duplicate the issue titles, event counts, priorities, or assignees as text. ' +
       'Never use a markdown link for issue view references.',
     level: ['inline', 'block'],
-    schema: z.object({
-      id: z.string().min(1),
-      name: z.string().min(1).optional(),
-    }),
+    schema: z.object({id: z.string().min(1), name: z.string().min(1).optional()}),
     examples: [
       {label: 'Saved issue view', data: {id: '77', name: 'Unresolved in checkout'}},
     ],
@@ -608,10 +574,7 @@ export const SEER_EMBED_SCHEMAS = {
       'do NOT duplicate any of that data as text. ' +
       'Never use a markdown link for profile references.',
     level: ['inline', 'block'],
-    schema: z.object({
-      projectSlug: z.string().min(1),
-      profileId: z.string().min(1),
-    }),
+    schema: z.object({projectSlug: z.string().min(1), profileId: z.string().min(1)}),
     examples: [
       {
         label: 'Inline',
@@ -780,9 +743,11 @@ export const SEER_EMBED_SCHEMAS = {
   },
   issuesQuery: {
     description:
-      'The ONLY way to list multiple Sentry issues. Accepts any issue search terms, ' +
-      'including a specific list of issue IDs such as ' +
-      '`issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX]`. ' +
+      'The ONLY way to list multiple Sentry issues. Accepts any issue search terms. ' +
+      'To list several specific issues, put their short IDs in ONE `issue:` filter: ' +
+      '`issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX]`. Never repeat the `issue:` filter — ' +
+      'space-separated terms are ANDed and an issue has a single short ID, so ' +
+      '`issue:JAVASCRIPT-22SP issue:JAVASCRIPT-39HX` matches nothing. ' +
       'The `issue:` filter only accepts short IDs — to search by numeric group ID, ' +
       'use `issue.id:[7716642857,7716642858]` instead. ' +
       'Inline renders a link; block renders the first five matching issues with ' +

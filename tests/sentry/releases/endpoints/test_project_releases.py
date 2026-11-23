@@ -1,8 +1,10 @@
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from functools import cached_property
 
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.response import Response
 
 from sentry.api.serializers.rest_framework.release import ReleaseWithVersionSerializer
 from sentry.constants import BAD_RELEASE_CHARS, MAX_VERSION_LENGTH
@@ -10,7 +12,8 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.environment import Environment
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.release import Release
+from sentry.models.project import Project
+from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
@@ -189,12 +192,12 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         self.env2 = env2
         self.env3 = env3
 
-    def make_environment(self, name, project):
+    def make_environment(self, name: str, project: Project) -> Environment:
         env = Environment.objects.create(organization_id=project.organization_id, name=name)
         env.add_project(project)
         return env
 
-    def assert_releases(self, response, releases):
+    def assert_releases(self, response: Response, releases: Sequence[Release]) -> None:
         assert response.status_code == 200, response.content
         assert len(response.data) == len(releases)
 
@@ -202,7 +205,13 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         releases_versions = sorted(r.version for r in releases)
         assert response_versions == releases_versions
 
-    def assert_release_details(self, release, new_issues_count, first_seen, last_seen):
+    def assert_release_details(
+        self,
+        release: Mapping[str, object],
+        new_issues_count: int,
+        first_seen: object,
+        last_seen: object,
+    ) -> None:
         assert release["newGroups"] == new_issues_count
         assert release["firstEvent"] == first_seen
         assert release["lastEvent"] == last_seen
@@ -256,7 +265,9 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         self.assert_releases(response, [])
 
     def test_new_issues_last_seen_first_seen(self) -> None:
-        def sort_releases_by_version(releases):
+        def sort_releases_by_version(
+            releases: Sequence[Mapping[str, str]],
+        ) -> list[Mapping[str, str]]:
             return sorted(releases, key=lambda release: release["version"])
 
         url = reverse(
@@ -322,6 +333,79 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
 
 
 class ProjectReleaseCreateTest(APITestCase):
+    def projects_of_two_teams(self, *, open_membership: bool) -> tuple[Project, Project]:
+        """Returns (project, other_project), each owned by its own team."""
+        self.organization.flags.allow_joinleave = open_membership
+        self.organization.save()
+        project = self.create_project(teams=[self.create_team(organization=self.organization)])
+        other_project = self.create_project(
+            teams=[self.create_team(organization=self.organization)]
+        )
+        return project, other_project
+
+    def log_in_member_of(self, project: Project) -> None:
+        user = self.create_user()
+        self.create_member(
+            teams=list(project.teams.all()), user=user, organization=project.organization
+        )
+        self.login_as(user=user)
+
+    def releases_url(self, project: Project) -> str:
+        return reverse(
+            "sentry-api-0-project-releases",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+
+    def test_existing_release_of_project_of_another_team(self) -> None:
+        project, other_project = self.projects_of_two_teams(open_membership=False)
+        release = self.create_release(other_project, version="1.2.1")
+        self.log_in_member_of(project)
+
+        response = self.client.post(
+            self.releases_url(project), data={"version": "1.2.1", "status": "archived"}
+        )
+
+        assert response.status_code == 403, response.content
+        assert not ReleaseProject.objects.filter(release=release, project=project).exists()
+        assert Release.objects.get(id=release.id).status == ReleaseStatus.OPEN
+
+    def test_existing_release_of_project_of_another_team_open_membership(self) -> None:
+        project, other_project = self.projects_of_two_teams(open_membership=True)
+        release = self.create_release(other_project, version="1.2.1")
+        self.log_in_member_of(project)
+
+        response = self.client.post(self.releases_url(project), data={"version": "1.2.1"})
+
+        assert response.status_code == 201, response.content
+        assert ReleaseProject.objects.filter(release=release, project=project).exists()
+
+    def test_existing_release_of_project_of_another_team_org_auth_token(self) -> None:
+        project, other_project = self.projects_of_two_teams(open_membership=False)
+        release = self.create_release(other_project, version="1.2.1")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token_str = generate_token(self.organization.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=self.organization.id,
+                name="token 1",
+                token_hashed=hash_token(token_str),
+                token_last_characters="ABCD",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+
+        with outbox_runner():
+            response = self.client.post(
+                self.releases_url(project),
+                data={"version": "1.2.1"},
+                HTTP_AUTHORIZATION=f"Bearer {token_str}",
+            )
+
+        assert response.status_code == 201, response.content
+        assert ReleaseProject.objects.filter(release=release, project=project).exists()
+
     def test_minimal(self) -> None:
         self.login_as(user=self.user)
 
@@ -596,7 +680,7 @@ class ProjectReleaseCreateTest(APITestCase):
 
 class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
     @cached_property
-    def url(self):
+    def url(self) -> str:
         return reverse(
             "sentry-api-0-project-releases",
             kwargs={

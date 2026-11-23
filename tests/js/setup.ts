@@ -68,27 +68,45 @@ resetMockDate();
 /**
  * Mocks
  */
-// jsdom does not lay out elements. Skip Popper's geometry work and the React
-// updates it schedules; overlay interactions still use the real component code.
-// Positioning tests can opt back in with jest.unmock('react-popper').
-jest.mock('react-popper', () => {
-  const update = () => Promise.resolve({});
-  const forceUpdate = () => {};
-  const usePopper: typeof import('react-popper').usePopper = (
-    _reference,
-    _popper,
-    options = {}
-  ) => ({
-    styles: {
-      popper: {position: options.strategy ?? 'absolute', left: 0, top: 0},
-      arrow: {position: 'absolute'},
-    },
-    attributes: {},
-    state: null,
-    update,
-    forceUpdate,
-  });
-  return {...jest.requireActual('react-popper'), usePopper};
+// jsdom does not lay out elements. Skip Floating UI's geometry work and the
+// React updates it schedules; overlay interactions still use the real component
+// code. Positioning tests can opt back in with jest.unmock('@floating-ui/react-dom').
+jest.mock('@floating-ui/react-dom', () => {
+  const {useState} = jest.requireActual<typeof import('react')>('react');
+  const update = () => {};
+  const useFloating: typeof import('@floating-ui/react-dom').useFloating = ({
+    placement = 'bottom',
+    strategy = 'absolute',
+  } = {}) => {
+    const [refs] = useState(() => {
+      const reference: {current: any} = {current: null};
+      const floating: {current: HTMLElement | null} = {current: null};
+      return {
+        reference,
+        floating,
+        setReference: (node: unknown) => {
+          reference.current = node;
+        },
+        setFloating: (node: HTMLElement | null) => {
+          floating.current = node;
+        },
+      };
+    });
+
+    return {
+      x: 0,
+      y: 0,
+      placement,
+      strategy,
+      middlewareData: {},
+      isPositioned: false,
+      update,
+      refs,
+      elements: {reference: null, floating: null},
+      floatingStyles: {position: strategy, left: 0, top: 0},
+    };
+  };
+  return {...jest.requireActual('@floating-ui/react-dom'), useFloating};
 });
 
 jest.mock('lodash/debounce', () =>
@@ -112,9 +130,9 @@ jest
   .mockImplementation(props => props.children as ReactElement);
 
 jest.mock('@sentry-internal/global-search', () => ({
-  SentryGlobalSearch: jest.fn().mockImplementation(() => ({
-    query: jest.fn().mockResolvedValue([]),
-  })),
+  SentryGlobalSearch: jest
+    .fn()
+    .mockImplementation(() => ({query: jest.fn().mockResolvedValue([])})),
 }));
 
 jest.mock('sentry/utils/testableWindowLocation', () => ({
@@ -123,28 +141,21 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
    * instead of mocking properties on the testableLocation object.
    * Use this mock for checking if window.location.assign was called.
    */
-  testableWindowLocation: {
-    assign: jest.fn(),
-    replace: jest.fn(),
-    reload: jest.fn(),
-  },
+  testableWindowLocation: {assign: jest.fn(), replace: jest.fn(), reload: jest.fn()},
 }));
 
 // The hooks below reset state only when its module is already loaded. Check
 // require.cache to avoid loading the module and its imports into every spec.
-// Close any open modals before each test
 beforeEach(() => {
-  if (require.resolve('sentry/stores/modalStore') in require.cache) {
+  if (require.resolve('@sentry/scraps/modal') in require.cache) {
     jest
-      .requireActual<typeof import('sentry/stores/modalStore')>(
-        'sentry/stores/modalStore'
-      )
-      .ModalStore.closeModal();
+      .requireActual<typeof import('@sentry/scraps/modal')>('@sentry/scraps/modal')
+      .closeModal();
   }
 });
 afterEach(() => {
-  // Toasts are held by sonner, so there are none to dismiss until it is loaded.
-  if (require.resolve('sonner') in require.cache) {
+  // Avoid loading the toast module into tests that do not use it.
+  if (require.resolve('@sentry/scraps/toast') in require.cache) {
     const {toast} =
       jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
     act(() => void toast.dismiss());
@@ -200,19 +211,14 @@ jest.mock('@sentry/react', function sentryReact() {
     browserTracingIntegration: jest.fn().mockReturnValue({}),
     browserProfilingIntegration: jest.fn().mockReturnValue({}),
     addEventProcessor: jest.fn(),
-    BrowserClient: jest.fn().mockReturnValue({
-      captureEvent: jest.fn(),
-    }),
+    BrowserClient: jest.fn().mockReturnValue({captureEvent: jest.fn()}),
     startInactiveSpan: () => ({
       end: jest.fn(),
       setStatus: jest.fn(),
-      startChild: jest.fn().mockReturnValue({
-        end: jest.fn(),
-      }),
-      spanContext: jest.fn().mockReturnValue({
-        spanId: 'test-span-id',
-        traceId: 'test-trace-id',
-      }),
+      startChild: jest.fn().mockReturnValue({end: jest.fn()}),
+      spanContext: jest
+        .fn()
+        .mockReturnValue({spanId: 'test-span-id', traceId: 'test-trace-id'}),
     }),
     logger: {
       warn: jest.fn(),
@@ -229,13 +235,15 @@ jest.mock('@sentry/react', function sentryReact() {
 ConfigStore.loadInitialData(ConfigFixture());
 
 // Default browser timezone to UTC
-jest.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockImplementation(() => ({
-  locale: 'en-US',
-  calendar: 'gregory',
-  numberingSystem: 'latn',
-  timeZone: 'UTC',
-  timeZoneName: 'short',
-}));
+jest
+  .spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions')
+  .mockImplementation(() => ({
+    locale: 'en-US',
+    calendar: 'gregory',
+    numberingSystem: 'latn',
+    timeZone: 'UTC',
+    timeZoneName: 'short',
+  }));
 
 /**
  * Test Globals
@@ -331,11 +339,7 @@ HTMLElement.prototype.setPointerCapture ??= jest.fn();
 window.ResizeObserver = MockResizeObserver;
 
 // Mock the crypto.subtle API for Gravatar
-Object.defineProperty(global.self, 'crypto', {
-  value: {
-    subtle: webcrypto.subtle,
-  },
-});
+Object.defineProperty(global.self, 'crypto', {value: {subtle: webcrypto.subtle}});
 
 if (typeof globalThis.structuredClone !== 'function') {
   const nodeUtil = require('node:util') as {

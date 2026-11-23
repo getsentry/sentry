@@ -1,14 +1,23 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
+import {ExceptionValueFixture} from 'sentry-fixture/exceptionValue';
 import {FrameFixture} from 'sentry-fixture/frame';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {StacktraceType} from 'sentry/types/stacktrace';
+
+import {SharedIssueStackTrace} from './sharedIssueStackTrace';
 
 type StacktraceWithFrames = StacktraceType & {
   frames: NonNullable<StacktraceType['frames']>;
@@ -24,19 +33,12 @@ function makeStackTraceData(): {
   const entry = EventEntryStacktraceFixture();
 
   return {
-    event: EventFixture({
-      platform: 'python',
-      projectID: '1',
-      entries: [entry],
-    }),
+    event: EventFixture({platform: 'python', projectID: '1', entries: [entry]}),
     stacktrace: {
       ...entry.data,
       hasSystemFrames: true,
       frames:
-        entry.data.frames?.map((frame, index) => ({
-          ...frame,
-          inApp: index >= 2,
-        })) ?? [],
+        entry.data.frames?.map((frame, index) => ({...frame, inApp: index >= 2})) ?? [],
     },
   };
 }
@@ -67,6 +69,10 @@ function makeCopyTestData() {
 
 describe('IssueStackTrace', () => {
   beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
     localStorage.clear();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
@@ -91,10 +97,7 @@ describe('IssueStackTrace', () => {
       ...event,
       entries: [
         ...event.entries,
-        {
-          type: 'threads' as const,
-          data: {values: [{id: 0, current: true}]},
-        },
+        {type: 'threads' as const, data: {values: [{id: 0, current: true}]}},
       ],
     });
 
@@ -239,6 +242,67 @@ describe('IssueStackTrace', () => {
     });
   });
 
+  describe.each([
+    {view: 'issue details', StackTrace: IssueStackTrace},
+    {view: 'shared issue', StackTrace: SharedIssueStackTrace},
+  ])('$view', ({StackTrace}) => {
+    it.each(['missing', 'empty'])(
+      'opens the first available stack trace when the outer trace is %s',
+      async outerTrace => {
+        const {event, stacktrace} = makeStackTraceData();
+        const innerException = ExceptionValueFixture({
+          type: 'InnerError',
+          value: 'inner failure',
+          stacktrace: {
+            ...stacktrace,
+            frames: [
+              FrameFixture({
+                filename: 'app/main.py',
+                inApp: true,
+                lineNo: 42,
+                context: [
+                  [41, 'before_failure'],
+                  [42, 'raise ValueError()'],
+                ],
+                vars: null,
+              }),
+            ],
+          },
+        });
+        const values = [
+          {...innerException, type: 'OlderError'},
+          innerException,
+          {
+            ...innerException,
+            type: 'OuterError',
+            value: 'outer failure',
+            stacktrace: outerTrace === 'missing' ? null : {...stacktrace, frames: []},
+          },
+        ];
+
+        render(<StackTrace event={event} values={values} />);
+
+        expect(await screen.findByRole('button', {name: 'OuterError'})).toHaveAttribute(
+          'aria-expanded',
+          'true'
+        );
+        expect(screen.getByRole('button', {name: 'InnerError'})).toHaveAttribute(
+          'aria-expanded',
+          'true'
+        );
+        expect(screen.getByRole('button', {name: 'OlderError'})).toHaveAttribute(
+          'aria-expanded',
+          'false'
+        );
+        expect(
+          await within(screen.getByRole('group', {name: 'InnerError'})).findByText(
+            'before_failure'
+          )
+        ).toBeVisible();
+      }
+    );
+  });
+
   it('shares display options across chained issue exceptions', async () => {
     const {event, stacktrace} = makeStackTraceData();
     render(
@@ -337,16 +401,7 @@ describe('IssueStackTrace', () => {
         entries: {
           [entryIndex]: {
             data: {
-              values: {
-                0: {
-                  value: {
-                    '': {
-                      rem: [['project:0', 's', 0, 0]],
-                      len: 18,
-                    },
-                  },
-                },
-              },
+              values: {0: {value: {'': {rem: [['project:0', 's', 0, 0]], len: 18}}}},
             },
           },
         },
@@ -841,12 +896,7 @@ describe('IssueStackTrace', () => {
             type: 'ValueError',
             value: 'value error',
             module: null,
-            mechanism: {
-              handled: true,
-              type: 'chained',
-              exception_id: 1,
-              parent_id: 0,
-            },
+            mechanism: {handled: true, type: 'chained', exception_id: 1, parent_id: 0},
             stacktrace: minimalStacktrace,
             threadId: null,
             rawStacktrace: null,
@@ -870,12 +920,7 @@ describe('IssueStackTrace', () => {
             type: 'TypeError',
             value: 'type error',
             module: null,
-            mechanism: {
-              handled: true,
-              type: 'chained',
-              exception_id: 3,
-              parent_id: 2,
-            },
+            mechanism: {handled: true, type: 'chained', exception_id: 3, parent_id: 2},
             stacktrace: minimalStacktrace,
             threadId: null,
             rawStacktrace: null,
@@ -884,12 +929,7 @@ describe('IssueStackTrace', () => {
             type: 'KeyError',
             value: 'key error',
             module: null,
-            mechanism: {
-              handled: true,
-              type: 'chained',
-              exception_id: 4,
-              parent_id: 2,
-            },
+            mechanism: {handled: true, type: 'chained', exception_id: 4, parent_id: 2},
             stacktrace: minimalStacktrace,
             threadId: null,
             rawStacktrace: null,

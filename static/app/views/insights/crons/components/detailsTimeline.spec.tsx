@@ -10,8 +10,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTimeline';
 import {MonitorStatus, type MonitorEnvironment} from 'sentry/views/insights/crons/types';
+
+import {DetailsTimeline} from './detailsTimeline';
 
 function makeEnvironment(name: string): MonitorEnvironment {
   return {
@@ -136,10 +137,7 @@ describe('DetailsTimeline', () => {
     const {router} = render(<DetailsTimeline monitor={monitor} />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/monitors/1/',
-          query: {statsPeriod: '7d', project: '1'},
-        },
+        location: {pathname: '/monitors/1/', query: {statsPeriod: '7d', project: '1'}},
       },
     });
 

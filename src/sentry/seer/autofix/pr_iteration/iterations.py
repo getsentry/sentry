@@ -73,6 +73,14 @@ def iteration_repos(iteration: Iteration) -> set[str]:
     }
 
 
+def is_pr_feedback_turn(state: SeerRunState) -> bool:
+    for block in reversed(state.blocks):
+        step = (block.message.metadata or {}).get("step")
+        if step is not None:
+            return step == AutofixStep.PR_ITERATION.value
+    return False
+
+
 def get_latest_iteration_index(state: SeerRunState) -> int:
     try:
         iterations = get_iterations(state)
@@ -89,9 +97,3 @@ def get_open_iteration_index(state: SeerRunState) -> int:
     the agent starts it, so the index is one past the last one the state holds.
     """
     return get_latest_iteration_index(state) + 1
-
-
-def get_iteration_for_insert_index(state: SeerRunState, insert_index: int) -> int:
-    block = state.blocks[insert_index]
-    metadata = block.message.metadata or {}
-    return int(metadata["iteration_index"])

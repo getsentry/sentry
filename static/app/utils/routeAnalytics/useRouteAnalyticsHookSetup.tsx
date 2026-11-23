@@ -1,7 +1,8 @@
 import {useContext} from 'react';
 
-import {registerSetOrganizationCallback} from 'sentry/utils/routeAnalytics/setOrganizationCallback';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
+
+import {registerSetOrganizationCallback} from './setOrganizationCallback';
 
 /**
  * Sets the organization for route analytics events.

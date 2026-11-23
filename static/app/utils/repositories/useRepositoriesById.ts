@@ -2,11 +2,12 @@ import {useMemo} from 'react';
 import {useInfiniteQuery} from '@tanstack/react-query';
 
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
   organizationRepositoriesInfiniteOptions,
   selectUniqueRepos,
-} from 'sentry/utils/repositories/repoQueryOptions';
-import {useOrganization} from 'sentry/utils/useOrganization';
+} from './repoQueryOptions';
 
 export function useRepositoriesById() {
   const organization = useOrganization();

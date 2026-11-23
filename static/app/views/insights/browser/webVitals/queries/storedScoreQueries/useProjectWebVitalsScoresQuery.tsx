@@ -23,11 +23,11 @@ export const useProjectWebVitalsScoresQuery = ({
   if (transaction) {
     search.addFilterValue('transaction', transaction);
   }
-  if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
+  if (browserTypes?.length) {
+    search.addFilterValueList(SpanFields.BROWSER_NAME, browserTypes);
   }
-  if (subregions) {
-    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
+  if (subregions?.length) {
+    search.addFilterValueList(SpanFields.USER_GEO_SUBREGION, subregions);
   }
 
   const result = useSpans(
@@ -63,9 +63,7 @@ export const useProjectWebVitalsScoresQuery = ({
   );
 
   const finalData: Array<
-    (typeof result.data)[0] & {
-      'avg(measurements.score.total)': number;
-    }
+    (typeof result.data)[0] & {'avg(measurements.score.total)': number}
   > = result.data.map(row => {
     // Map performance_score(measurements.score.total) to avg(measurements.score.total) so we don't have to handle both keys in the UI
     return {

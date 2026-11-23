@@ -3,8 +3,9 @@ import {FrameFixture} from 'sentry-fixture/frame';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Template} from 'sentry/components/events/interfaces/template';
 import {EntryType} from 'sentry/types/event';
+
+import {Template} from './template';
 
 it('renders template source context expanded in the new stack trace', () => {
   const frame = FrameFixture({
@@ -39,11 +40,7 @@ it('preserves redaction metadata on template variables', () => {
         _meta: {
           entries: {
             0: {
-              data: {
-                values: {
-                  vars: {password: {'': {rem: [['!config', 's', 0, 0]]}}},
-                },
-              },
+              data: {values: {vars: {password: {'': {rem: [['!config', 's', 0, 0]]}}}}},
             },
           },
         },

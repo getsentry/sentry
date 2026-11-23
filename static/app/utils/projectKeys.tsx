@@ -2,15 +2,13 @@ import {skipToken} from '@tanstack/react-query';
 
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
+
+import {apiOptions} from './api/apiOptions';
 
 interface ProjectKeysParameters {
   orgSlug: Organization['slug'];
   projSlug?: Project['slug'];
-  query?: {
-    cursor?: string;
-    per_page?: number;
-  };
+  query?: {cursor?: string; per_page?: number};
 }
 
 export function projectKeysApiOptions(params: ProjectKeysParameters) {
@@ -18,10 +16,7 @@ export function projectKeysApiOptions(params: ProjectKeysParameters) {
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/',
     {
       path: params.projSlug
-        ? {
-            organizationIdOrSlug: params.orgSlug,
-            projectIdOrSlug: params.projSlug,
-          }
+        ? {organizationIdOrSlug: params.orgSlug, projectIdOrSlug: params.projSlug}
         : skipToken,
       query: params.query,
       staleTime: 0,

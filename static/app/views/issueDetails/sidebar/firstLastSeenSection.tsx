@@ -136,7 +136,7 @@ function ReleaseText({
           {t('in release')}{' '}
         </Text>
       </Container>
-      <ReleaseVersionWrapper>
+      <Flex as="span" align="center" minWidth="0" maxWidth="100%" overflow="hidden">
         <VersionHoverCard
           organization={organization}
           projectSlug={project.slug}
@@ -144,7 +144,7 @@ function ReleaseText({
         >
           <ReleaseVersion version={release.version} projectId={project.id} truncate />
         </VersionHoverCard>
-      </ReleaseVersionWrapper>
+      </Flex>
     </Grid>
   );
 }
@@ -156,14 +156,6 @@ function ReleaseTextPlaceholder() {
     </Container>
   );
 }
-
-const ReleaseVersionWrapper = styled('span')`
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-`;
 
 const ReleaseVersion = styled(Version)`
   display: block;

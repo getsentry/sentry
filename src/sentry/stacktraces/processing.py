@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any, NamedTuple
 from urllib.parse import urlparse
 
@@ -44,10 +44,10 @@ class StacktraceInfo(NamedTuple):
         return _safe_get_frames(self.stacktrace)
 
 
-def _safe_get_frames(stacktrace) -> Sequence[dict[str, Any]]:
+def _safe_get_frames(stacktrace: Mapping[str, Any] | None) -> Sequence[dict[str, Any]]:
     frames = []
     if stacktrace and stacktrace.get("frames"):
-        frames = [frame for frame in stacktrace.get("frames") if frame]
+        frames = [frame for frame in stacktrace.get("frames") or () if frame]
     return frames
 
 
@@ -309,7 +309,9 @@ def _trim_function_name(frame: dict[str, Any], platform: str | None) -> None:
         frame["function"] = trimmed_function
 
 
-def get_crash_frame_from_event_data(data, frame_filter=None):
+def get_crash_frame_from_event_data(
+    data: Mapping[str, Any], frame_filter: Callable[[dict[str, Any]], bool] | None = None
+) -> dict[str, Any] | None:
     """
     Return the highest (closest to the crash) in-app frame in the top stacktrace
     which doesn't fail the given filter test.
@@ -347,3 +349,4 @@ def get_crash_frame_from_event_data(data, frame_filter=None):
 
     if default:
         return default
+    return None

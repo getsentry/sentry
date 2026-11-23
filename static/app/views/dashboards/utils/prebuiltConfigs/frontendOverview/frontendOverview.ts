@@ -7,11 +7,6 @@ import type {
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
-  DASHBOARD_DESCRIPTION,
-  DASHBOARD_TITLE,
-  FRONTEND_SDK_NAMES,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/settings';
-import {
   WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
@@ -25,6 +20,8 @@ import {
   WEB_VITALS_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {DASHBOARD_DESCRIPTION, DASHBOARD_TITLE, FRONTEND_SDK_NAMES} from './settings';
 
 const BASE_QUERY = new MutableSearch('');
 BASE_QUERY.addOp('(');
@@ -234,13 +231,7 @@ const TRANSACTIONS_TABLE: PrebuiltWidget = {
       orderby: `-equation|sum_if(\`${SpanFields.IS_TRANSACTION}:true\`,${SpanFields.SPAN_DURATION})`,
     },
   ],
-  layout: {
-    x: 0,
-    y: 7,
-    w: 6,
-    h: 6,
-    minH: TABLE_MIN_HEIGHT,
-  },
+  layout: {x: 0, y: 7, w: 6, h: 6, minH: TABLE_MIN_HEIGHT},
 };
 
 export const FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {

@@ -13,10 +13,10 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
@@ -27,11 +27,8 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import type {
-  DashboardDetails,
-  DashboardListItem,
-  DashboardPermissions,
-} from 'sentry/views/dashboards/types';
+
+import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
 
 const TEAMS_PER_PAGE = 100;
 const MAX_TEAM_PAGES = 10;

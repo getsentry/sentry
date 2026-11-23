@@ -1,12 +1,37 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {ConversationViewContent} from './conversationView';
 
+jest.mock('sentry/utils/analytics');
+
 const CONVERSATION_ID = 'conv-1';
+const originalIntersectionObserver = window.IntersectionObserver;
+let triggerIntersection: ((isIntersecting: boolean) => void) | undefined;
+
+class MockIntersectionObserver {
+  constructor(callback: IntersectionObserverCallback) {
+    triggerIntersection = isIntersecting =>
+      callback(
+        [{isIntersecting} as IntersectionObserverEntry],
+        this as unknown as IntersectionObserver
+      );
+  }
+
+  observe() {}
+  disconnect() {}
+}
 
 function spanFixture(overrides: Record<string, unknown>) {
   return {
@@ -45,20 +70,28 @@ const CONVERSATION_BODY = [
   }),
 ];
 
-function mockConversation() {
-  MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
-    body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
+function mockConversation(
+  spans = CONVERSATION_BODY,
+  {cursor, nextCursor}: {cursor?: string; nextCursor?: string} = {}
+) {
+  const url = `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`;
+  const request = MockApiClient.addMockResponse({
+    url,
+    match: [MockApiClient.matchQuery({cursor})],
+    body: {conversationId: CONVERSATION_ID, title: null, spans},
+    headers: nextCursor
+      ? {
+          Link: `<${url}?cursor=${nextCursor}>; rel="next"; results="true"; cursor="${nextCursor}"`,
+        }
+      : undefined,
   });
   // The detail pane fetches full attributes per span; keep it empty.
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/trace-items/attributes/',
     body: [],
   });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/projects/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
+  return request;
 }
 
 function renderView(
@@ -81,6 +114,9 @@ function detailPane() {
 
 describe('ConversationViewContent', () => {
   beforeEach(() => {
+    window.IntersectionObserver =
+      MockIntersectionObserver as unknown as typeof IntersectionObserver;
+    triggerIntersection = undefined;
     // jsdom implements neither scroll API the view relies on: the detail pane
     // calls scrollTo, and switching tabs reveals a selected span via scrollIntoView.
     Element.prototype.scrollTo = jest.fn();
@@ -91,6 +127,11 @@ describe('ConversationViewContent', () => {
       PageFiltersStore.init();
     });
     mockConversation();
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/dashboards/', body: []});
+  });
+
+  afterAll(() => {
+    window.IntersectionObserver = originalIntersectionObserver;
   });
 
   it('opens no span by default on the transcript', async () => {
@@ -98,6 +139,99 @@ describe('ConversationViewContent', () => {
 
     expect(await screen.findByText('First answer')).toBeInTheDocument();
     expect(detailPane()).not.toBeInTheDocument();
+  });
+
+  it('requests a Code Mode summary only when its details are opened', async () => {
+    mockConversation([
+      CONVERSATION_BODY[0]!,
+      spanFixture({
+        span_id: 'tool-span',
+        parent_span: 'span-a',
+        'span.name': 'execute_code',
+        'precise.start_ts': 1000.1,
+        'precise.finish_ts': 1000.2,
+        'gen_ai.operation.type': 'tool',
+        'gen_ai.tool.name': 'execute_code',
+        'gen_ai.tool.call.arguments': JSON.stringify({
+          code: 'print(42)',
+          language: 'python',
+        }),
+      }),
+    ]);
+    const request = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/1/ai/code-explanation/',
+      method: 'POST',
+      body: {summary: 'Print a number'},
+    });
+
+    const {rerender} = render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+      />
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Select tool call execute_code'})
+    ).toBeInTheDocument();
+    expect(request).not.toHaveBeenCalled();
+    expect(screen.queryByRole('heading', {name: 'Summary'})).not.toBeInTheDocument();
+
+    rerender(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+        selectedSpanId="tool-span"
+      />
+    );
+    expect(await screen.findByText('Print a number')).toBeInTheDocument();
+  });
+
+  it('loads the next page when the pagination footer is visible', async () => {
+    MockApiClient.clearMockResponses();
+    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+    const nextRequest = mockConversation([CONVERSATION_BODY[1]!], {
+      cursor: 'next',
+      nextCursor: 'last',
+    });
+
+    renderView({activeTab: 'timeline'});
+    expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
+    expect(nextRequest).not.toHaveBeenCalled();
+
+    const scrollContainer = document.querySelector<HTMLElement>('[data-scrollable]')!;
+    expect(
+      scrollContainer.querySelector('[data-test-id="loading-indicator"]')
+    ).toBeInTheDocument();
+    act(() => triggerIntersection?.(true));
+
+    await waitFor(() => expect(nextRequest).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('second turn')).toBeInTheDocument();
+    expect(
+      scrollContainer.querySelector('[data-test-id="loading-indicator"]')
+    ).toBeInTheDocument();
+  });
+
+  it('keeps loaded spans visible and offers retry when pagination fails', async () => {
+    MockApiClient.clearMockResponses();
+    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+    const nextRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+      match: [MockApiClient.matchQuery({cursor: 'next'})],
+      statusCode: 500,
+    });
+
+    renderView();
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+
+    act(() => triggerIntersection?.(true));
+
+    const retry = await screen.findByRole('button', {name: 'Retry'});
+    expect(screen.getByText('First answer')).toBeInTheDocument();
+    expect(nextRequest).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(retry);
+    await waitFor(() => expect(nextRequest).toHaveBeenCalledTimes(2));
   });
 
   it('opens the first span by default on the timeline', async () => {
@@ -123,6 +257,140 @@ describe('ConversationViewContent', () => {
     expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
   });
 
+  it('loads later pages to resolve a deep-linked span', async () => {
+    MockApiClient.clearMockResponses();
+    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+    const nextRequest = mockConversation([CONVERSATION_BODY[1]!], {cursor: 'next'});
+
+    renderView({activeTab: 'transcript', selectedSpanId: 'span-b'});
+
+    expect(await screen.findByText('ID: span-b')).toBeInTheDocument();
+    expect(nextRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('searches the transcript and selects the span with the match', async () => {
+    const onSelectSpan = jest.fn();
+    renderView({onSelectSpan});
+    await screen.findByText('Second answer');
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search in transcript'}),
+      'second answer{Enter}'
+    );
+
+    expect(await screen.findByText('1/1')).toBeInTheDocument();
+    expect(onSelectSpan).toHaveBeenCalledWith('span-b');
+
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Search in transcript'}));
+    expect(screen.queryByText('1/1')).not.toBeInTheDocument();
+  });
+
+  it('loads later pages until the search finds a match', async () => {
+    MockApiClient.clearMockResponses();
+    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+    const nextRequest = mockConversation([CONVERSATION_BODY[1]!], {cursor: 'next'});
+    const onSelectSpan = jest.fn();
+    renderView({onSelectSpan});
+    await screen.findByText('First answer');
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search in transcript'}),
+      'second answer{Enter}'
+    );
+
+    expect(await screen.findByText('1/1')).toBeInTheDocument();
+    expect(nextRequest).toHaveBeenCalledTimes(1);
+    expect(onSelectSpan).toHaveBeenCalledWith('span-b');
+  });
+
+  it('shows no results once every page is searched', async () => {
+    MockApiClient.clearMockResponses();
+    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+    const nextRequest = mockConversation([CONVERSATION_BODY[1]!], {cursor: 'next'});
+    const onSelectSpan = jest.fn();
+    renderView({onSelectSpan});
+    await screen.findByText('First answer');
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search in transcript'}),
+      'not in this conversation{Enter}'
+    );
+
+    expect(await screen.findByText('No results')).toBeInTheDocument();
+    expect(nextRequest).toHaveBeenCalledTimes(1);
+    expect(onSelectSpan).not.toHaveBeenCalled();
+    expect(trackAnalytics).not.toHaveBeenCalledWith(
+      'conversations.detail.span-limit-reached',
+      expect.anything()
+    );
+  });
+
+  describe('at the span limit', () => {
+    afterEach(() => {
+      try {
+        cleanup();
+        jest.runOnlyPendingTimers();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('reports when the span limit stops a search', async () => {
+      MockApiClient.clearMockResponses();
+      mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+      let page = 1;
+      const nextRequest = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+        match: [MockApiClient.matchQuery({cursor: 'next'})],
+        body: () => {
+          page++;
+          return {
+            conversationId: CONVERSATION_ID,
+            title: null,
+            spans: [{...CONVERSATION_BODY[1]!, span_id: `span-${page}`}],
+          };
+        },
+        headers: {
+          Link: `</organizations/org-slug/agents/conversations/${CONVERSATION_ID}/?cursor=next>; rel="next"; results="true"; cursor="next"`,
+        },
+      });
+      jest.useFakeTimers();
+      renderView({onSelectSpan: jest.fn()});
+      await screen.findByText('First answer');
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Search in transcript'}),
+        'not in this conversation{Enter}',
+        {delay: null}
+      );
+      await act(() => jest.runAllTimersAsync());
+
+      expect(screen.getByText('No results')).toBeInTheDocument();
+      expect(nextRequest).toHaveBeenCalledTimes(99);
+      expect(trackAnalytics).toHaveBeenCalledTimes(1);
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'conversations.detail.span-limit-reached',
+        expect.objectContaining({organization: expect.anything()})
+      );
+    });
+  });
+
+  it('does not show the timeline default while a deep link is unresolved', async () => {
+    MockApiClient.clearMockResponses();
+    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+      match: [MockApiClient.matchQuery({cursor: 'next'})],
+      statusCode: 500,
+    });
+
+    renderView({activeTab: 'timeline', selectedSpanId: 'span-b'});
+
+    expect(await screen.findByRole('button', {name: 'Retry'})).toBeInTheDocument();
+    expect(screen.queryByText('ID: span-a')).not.toBeInTheDocument();
+    expect(detailPane()).not.toBeInTheDocument();
+  });
+
   it('shows the span ID of the open span', async () => {
     renderView({activeTab: 'transcript', selectedSpanId: 'span-a'});
 
@@ -142,10 +410,7 @@ describe('ConversationViewContent', () => {
   });
 
   it('scrolls the selected span into view when switching tabs', async () => {
-    const {rerender} = renderView({
-      activeTab: 'transcript',
-      selectedSpanId: 'span-a',
-    });
+    const {rerender} = renderView({activeTab: 'transcript', selectedSpanId: 'span-a'});
 
     // Wait for the deep-linked selection to render before asserting the switch.
     expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();

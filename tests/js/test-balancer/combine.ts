@@ -5,9 +5,11 @@ import {join, resolve} from 'node:path';
 //
 //   artifacts/
 //     jest-balance-0/
-//       jest-balance-0.json
+//       static%2Fapp.json
+//       static%2FgsApp.json
 //     jest-balance-1/
-//       jest-balance-1.json
+//       static%2Fapp.json
+//       static%2FgsApp.json
 //     ...
 //
 // This script merges them into a single jest-balance.json at the repo root.

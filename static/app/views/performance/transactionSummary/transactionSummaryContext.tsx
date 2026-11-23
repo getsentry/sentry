@@ -2,7 +2,8 @@ import {createContext, useContext} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
+
+import type {TransactionThresholdMetric} from './transactionThresholdModal';
 
 export type TransactionSummaryContext = {
   organization: Organization;

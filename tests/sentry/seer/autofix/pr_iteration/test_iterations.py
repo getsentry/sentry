@@ -5,7 +5,6 @@ import pytest
 from sentry.seer.agent.client_models import MemoryBlock, Message, SeerRunState
 from sentry.seer.autofix.pr_iteration.errors import PrIterationError
 from sentry.seer.autofix.pr_iteration.iterations import (
-    get_iteration_for_insert_index,
     get_iterations,
     get_latest_iteration_index,
 )
@@ -114,7 +113,3 @@ class TestIterationHelpers(TestCase):
     def test_get_latest_iteration_index_returns_most_recent(self) -> None:
         state = _state_with_blocks([_iteration_block(1), _iteration_block(2)])
         assert get_latest_iteration_index(state) == 2
-
-    def test_get_iteration_for_insert_index(self) -> None:
-        state = _state_with_blocks([_iteration_block(1), _iteration_block(2)])
-        assert get_iteration_for_insert_index(state, 1) == 2

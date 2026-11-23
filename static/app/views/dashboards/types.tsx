@@ -1,14 +1,15 @@
 import type {Layout} from 'react-grid-layout';
 
+import type {QuerySpeed} from 'sentry/components/querySpeedMenu';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
-import type {AxisRange} from 'sentry/views/dashboards/utils/axisRange';
-import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import type {TimeSeriesMeta} from 'sentry/views/dashboards/widgets/common/types';
 
+import type {AxisRange} from './utils/axisRange';
+import type {PrebuiltDashboardId} from './utils/prebuiltConfigs';
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
+import type {TimeSeriesMeta} from './widgets/common/types';
 
 export enum DashboardFilter {
   ONLY_FAVORITES = 'onlyFavorites',
@@ -113,21 +114,19 @@ export type WidgetQuery = {
   linkedDashboards?: LinkedDashboard[];
   // Aggregate selected for the Big Number widget builder
   selectedAggregate?: number;
+  // Use only the query name or group value as the series label.
+  // Frontend-only (prebuilt dashboards). Not stored in the backend.
+  seriesLabel?: 'query' | 'group';
   // Links the widget query to a slide out panel if exists.
   // TODO: currently not stored in the backend, only used
   // by prebuilt dashboards in the frontend.
   slideOutId?: SlideoutId;
+  transformations?: Record<string, string[]>;
 };
 
 type WidgetChangedReason = {
-  equations: Array<{
-    equation: string;
-    reason: string | string[];
-  }> | null;
-  orderby: Array<{
-    orderby: string;
-    reason: string | string[];
-  }> | null;
+  equations: Array<{equation: string; reason: string | string[]}> | null;
+  orderby: Array<{orderby: string; reason: string | string[]}> | null;
   selected_columns: string[];
 };
 
@@ -155,14 +154,9 @@ export type Widget = {
 };
 
 // We store an explicit set of keys in the backend now
-export type WidgetLayout = Pick<Layout, 'h' | 'w' | 'x' | 'y'> & {
-  minH: number;
-};
+export type WidgetLayout = Pick<Layout, 'h' | 'w' | 'x' | 'y'> & {minH: number};
 
-type WidgetPreview = {
-  displayType: DisplayType;
-  layout: WidgetLayout | null;
-};
+type WidgetPreview = {displayType: DisplayType; layout: WidgetLayout | null};
 
 export type DashboardPermissions = {
   isEditableByEveryone: boolean;
@@ -210,6 +204,11 @@ export type GlobalFilter = {
 };
 
 /**
+ * Saved on the dashboard. `normal` is the default when the field is unset.
+ */
+export type DashboardQueryPriority = QuerySpeed;
+
+/**
  * Saved dashboard with widgets
  */
 export type DashboardDetails = {
@@ -226,6 +225,7 @@ export type DashboardDetails = {
   period?: string;
   permissions?: DashboardPermissions;
   prebuiltId?: PrebuiltDashboardId;
+  queryPriority?: DashboardQueryPriority;
   start?: string;
   utc?: boolean;
 };

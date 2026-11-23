@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import re
 import uuid
+from collections.abc import Generator
 from datetime import datetime, timedelta
 from unittest import mock
 from unittest.mock import call
 from urllib.robotparser import RobotFileParser
 
+import pytest
+import responses
 from django.utils import timezone
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
@@ -23,7 +27,6 @@ from sentry.uptime.autodetect.ranking import (
 )
 from sentry.uptime.autodetect.tasks import (
     LAST_PROCESSED_KEY,
-    ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS,
     SCHEDULER_LOCK_KEY,
     check_url_robots_txt,
     get_robots_txt_parser,
@@ -227,6 +230,16 @@ class ProcessProjectUrlRankingTest(UptimeTestCase):
 
 @freeze_time()
 class ProcessCandidateUrlTest(UptimeTestCase):
+    @pytest.fixture(autouse=True)
+    def mock_robots_txt_not_found(self) -> Generator[None]:
+        # The generated test domains don't exist, so give them no robots.txt
+        # rather than letting the fetch go out to the network.
+        with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
+            rsps.add(
+                responses.GET, re.compile(r"https://sentry-[0-9a-f]{8}\.io/robots\.txt"), status=404
+            )
+            yield
+
     @with_feature("organizations:uptime")
     def test_succeeds_new(self) -> None:
         url = make_unique_test_url()
@@ -260,9 +273,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
     def test_succeeds_existing_subscription_other_project(self) -> None:
         other_project = self.create_project()
         url = make_unique_test_url()
-        uptime_subscription = self.create_uptime_subscription(
-            url=url, interval_seconds=ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS
-        )
+        uptime_subscription = self.create_uptime_subscription(url=url, interval_seconds=3600)
         self.create_uptime_detector(project=other_project, uptime_subscription=uptime_subscription)
         assert not is_url_auto_monitored_for_project(self.project, url)
         assert process_candidate_url(self.project, 100, url, 50)

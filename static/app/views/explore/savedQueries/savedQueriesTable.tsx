@@ -1,26 +1,21 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+import {useQueryState} from 'nuqs';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Container} from '@sentry/scraps/layout';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDeleteQuery} from 'sentry/views/explore/hooks/useDeleteQuery';
 import {
@@ -34,13 +29,15 @@ import {
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useFromSavedQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
-import {ExploreParams} from 'sentry/views/explore/savedQueries/exploreParams';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   confirmDeleteSavedQuery,
   getSavedQueryTraceItemUrl,
   getYAxisDiscoverSavedQuery,
 } from 'sentry/views/explore/utils';
+
+import {ExploreParams} from './exploreParams';
 
 type Props = {
   title: string;
@@ -62,14 +59,15 @@ export function SavedQueriesTable({
   hideIfEmpty = false,
 }: Props) {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const cursor = decodeScalar(location.query[cursorKey]);
+  const [cursor, setCursor] = useQueryState(
+    cursorKey,
+    parseAsScalar.withOptions({history: 'push'})
+  );
   const {data, isLoading, pageLinks, isFetched, isError} = useGetSavedQueries({
     sortBy: ['starred', sort],
     exclude: mode === 'owned' ? 'shared' : mode === 'shared' ? 'owned' : undefined, // Inverse because this is an exclusion
     perPage,
-    cursor,
+    cursor: cursor ?? undefined,
     query: searchQuery,
   });
 
@@ -117,7 +115,7 @@ export function SavedQueriesTable({
       starQuery({queryId: Number(query.id), queryType: query.queryType}, starred).catch(
         () => {
           // If the starQuery call fails, we need to revert the starredKeys state
-          addErrorMessage(t('Unable to star query'));
+          toast.error(t('Unable to star query'));
           if (starred) {
             setStarredKeys(prev => prev.filter(starredKey => starredKey !== key));
           } else {
@@ -132,10 +130,7 @@ export function SavedQueriesTable({
   const getHandleUpdateFromSavedQuery = useCallback(
     (savedQuery: CombinedSavedQuery) => {
       return ({name}: {name: string}) => {
-        return updateQueryFromSavedQuery({
-          ...savedQuery,
-          name,
-        } as CombinedSavedQuery);
+        return updateQueryFromSavedQuery({...savedQuery, name} as CombinedSavedQuery);
       };
     },
     [updateQueryFromSavedQuery]
@@ -148,11 +143,8 @@ export function SavedQueriesTable({
     } as CombinedSavedQuery);
   };
 
-  const handleCursor: CursorHandler = (_cursor, pathname, query) => {
-    navigate({
-      pathname,
-      query: {...query, [cursorKey]: _cursor},
-    });
+  const handleCursor: CursorHandler = newCursor => {
+    void setCursor(newCursor ?? null);
   };
 
   const debouncedOnClick = useMemo(
@@ -160,13 +152,13 @@ export function SavedQueriesTable({
       debounce(
         (query: CombinedSavedQuery, starred: boolean) => {
           if (starred) {
-            addLoadingMessage(t('Unstarring query...'));
+            toast.loading(t('Unstarring query...'));
             starQueryHandler(query, false);
-            addSuccessMessage(t('Query unstarred'));
+            toast.success(t('Query unstarred'));
           } else {
-            addLoadingMessage(t('Starring query...'));
+            toast.loading(t('Starring query...'));
             starQueryHandler(query, true);
-            addSuccessMessage(t('Query starred'));
+            toast.success(t('Query starred'));
           }
         },
         1000,
@@ -253,6 +245,7 @@ export function SavedQueriesTable({
                     visualizes={query.query[0].visualize}
                     groupBys={query.query[0].groupby}
                     agent={query.agent}
+                    errorsOnly={query.errorsOnly}
                   />
                 ) : (
                   <StyledExploreParams
@@ -315,12 +308,12 @@ export function SavedQueriesTable({
                       key: 'duplicate',
                       label: t('Duplicate'),
                       onAction: async () => {
-                        addLoadingMessage(t('Duplicating query...'));
+                        toast.loading(t('Duplicating query...'));
                         try {
                           await duplicateQuery(query);
-                          addSuccessMessage(t('Query duplicated'));
+                          toast.success(t('Query duplicated'));
                         } catch (error) {
-                          addErrorMessage(t('Unable to duplicate query'));
+                          toast.error(t('Unable to duplicate query'));
                         }
                       },
                     },
@@ -334,15 +327,15 @@ export function SavedQueriesTable({
                             onAction: () => {
                               confirmDeleteSavedQuery({
                                 handleDelete: async () => {
-                                  addLoadingMessage(t('Deleting query...'));
+                                  toast.loading(t('Deleting query...'));
                                   try {
                                     await deleteQuery({
                                       queryId: Number(query.id),
                                       queryType: query.queryType,
                                     });
-                                    addSuccessMessage(t('Query deleted'));
+                                    toast.success(t('Query deleted'));
                                   } catch (error) {
-                                    addErrorMessage(t('Unable to delete query'));
+                                    toast.error(t('Unable to delete query'));
                                   }
                                 },
                                 savedQuery: query,
@@ -357,7 +350,7 @@ export function SavedQueriesTable({
           );
         })}
       </SavedEntityTable>
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      <Pagination {...getPaginationProps(pageLinks)} onCursor={handleCursor} />
     </Container>
   );
 }

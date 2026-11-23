@@ -5,9 +5,10 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useMultiQueryTimeseries} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {useMultiQueryTimeseries} from './useMultiQueryTimeseries';
 
 jest.mock('sentry/views/explore/multiQueryMode/locationUtils');
 
@@ -19,21 +20,19 @@ describe('useMultiQueryTimeseries', () => {
     jest.clearAllMocks();
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
-    jest.mocked(useReadQueriesFromLocation).mockReturnValue([
-      {
-        query: 'test value',
-        groupBys: [],
-        sortBys: [],
-        yAxes: [],
-        chartType: ChartType.LINE,
-        fields: [],
-      },
-    ]);
+    jest
+      .mocked(useReadQueriesFromLocation)
+      .mockReturnValue([
+        {
+          query: 'test value',
+          groupBys: [],
+          sortBys: [],
+          yAxes: [],
+          chartType: ChartType.LINE,
+          fields: [],
+        },
+      ]);
 
     const mockTimeSeries = TimeSeriesFixture();
 
@@ -44,16 +43,8 @@ describe('useMultiQueryTimeseries', () => {
           {
             ...mockTimeSeries,
             yAxis: 'count(message)',
-            values: [
-              {
-                ...mockTimeSeries.values[0]!,
-                value: 0,
-              },
-            ],
-            meta: {
-              ...mockTimeSeries.meta,
-              dataScanned: 'partial',
-            },
+            values: [{...mockTimeSeries.values[0]!, value: 0}],
+            meta: {...mockTimeSeries.meta, dataScanned: 'partial'},
           },
         ],
       },
@@ -73,12 +64,7 @@ describe('useMultiQueryTimeseries', () => {
       ],
       method: 'GET',
     });
-    renderHookWithProviders(() =>
-      useMultiQueryTimeseries({
-        enabled: true,
-        index: 0,
-      })
-    );
+    renderHookWithProviders(() => useMultiQueryTimeseries({enabled: true, index: 0}));
 
     expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
     expect(mockNormalRequestUrl).toHaveBeenCalledWith(

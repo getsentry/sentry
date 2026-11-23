@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableResponse
@@ -14,7 +14,7 @@ from sentry.testutils.cases import TestCase
 
 class TestQueryPreprodSizeMetrics(TestCase):
     @patch("sentry.preprod.eap.read.snuba_rpc.table_rpc")
-    def test_query_builds_request_correctly(self, mock_rpc):
+    def test_query_builds_request_correctly(self, mock_rpc: MagicMock) -> None:
         mock_rpc.return_value = [
             TraceItemTableResponse(
                 meta=ResponseMeta(),
@@ -59,7 +59,7 @@ class TestQueryPreprodSizeMetrics(TestCase):
         assert request.filter.comparison_filter.value.val_str == "com.example.app"
 
     @patch("sentry.preprod.eap.read.snuba_rpc.table_rpc")
-    def test_query_without_filters(self, mock_rpc):
+    def test_query_without_filters(self, mock_rpc: MagicMock) -> None:
         mock_rpc.return_value = [
             TraceItemTableResponse(
                 meta=ResponseMeta(),
@@ -82,7 +82,7 @@ class TestQueryPreprodSizeMetrics(TestCase):
         assert not request.HasField("filter")
 
     @patch("sentry.preprod.eap.read.snuba_rpc.table_rpc")
-    def test_query_raises_on_empty_response(self, mock_rpc):
+    def test_query_raises_on_empty_response(self, mock_rpc: MagicMock) -> None:
         mock_rpc.return_value = []
 
         with pytest.raises(ValueError, match="No response from Snuba RPC"):

@@ -171,11 +171,89 @@ describe('CacheLifecycleSection', () => {
     expect(getFactValue('Read')).toHaveTextContent('0.21ms');
     expect(screen.getByText('Expires')).toBeInTheDocument();
     expect(screen.getByText('41s later')).toBeInTheDocument();
-    expect(getFactValue('TTL')).toHaveTextContent('50s');
+    expect(getFactValue('TTL')).toHaveTextContent('50s after fill');
     // Without a span link, there is no origin to open.
     expect(
       screen.queryByRole('button', {name: 'Open origin span'})
     ).not.toBeInTheDocument();
+  });
+
+  it('shows the expiry before a read of an expired entry', () => {
+    render(
+      <TestSection
+        node={makeCacheNode('cache.get')}
+        attributes={makeCacheAttributes({
+          operation: 'get',
+          hit: false,
+          itemAgeSeconds: 30,
+          ttlSeconds: 10,
+        })}
+        location={location}
+        organization={organization}
+        onTabScrollToNode={jest.fn()}
+      />
+    );
+
+    expect(screen.queryByText('Expires')).not.toBeInTheDocument();
+    expect(screen.getByText('20s earlier')).toBeInTheDocument();
+    expect(getFactValue('TTL')).toHaveTextContent('10s after fill');
+    // Time order: filled, expired, then this read.
+    expect(screen.getByText('Expired')).toAppearBefore(screen.getByText('Cache miss'));
+  });
+
+  it('shows an age of 0 as under a second', () => {
+    render(
+      <TestSection
+        node={makeCacheNode('cache.get')}
+        attributes={makeCacheAttributes({
+          operation: 'get',
+          hit: true,
+          itemAgeSeconds: 0,
+          ttlSeconds: 2,
+        })}
+        location={location}
+        organization={organization}
+        onTabScrollToNode={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText('<1s earlier')).toBeInTheDocument();
+    expect(screen.getByText('2s later')).toBeInTheDocument();
+  });
+
+  it('describes a zero ttl as expiring at fill', () => {
+    render(
+      <TestSection
+        node={makeCacheNode('cache.get')}
+        attributes={makeCacheAttributes({
+          operation: 'get',
+          hit: false,
+          itemAgeSeconds: 3,
+          ttlSeconds: 0,
+        })}
+        location={location}
+        organization={organization}
+        onTabScrollToNode={jest.fn()}
+      />
+    );
+
+    expect(getFactValue('TTL')).toHaveTextContent('0s, expires at fill');
+  });
+
+  it('shows the absolute time when hovering a relative time', async () => {
+    render(
+      <TestSection
+        node={makeCacheNode('cache.get')}
+        attributes={makeCacheAttributes({operation: 'get', hit: true})}
+        location={location}
+        organization={organization}
+        onTabScrollToNode={jest.fn()}
+      />
+    );
+
+    await userEvent.hover(screen.getByText('this span'));
+
+    expect(await screen.findByText(/\d{1,2}:\d{2}:\d{2}/)).toBeInTheDocument();
   });
 
   it('loads the linked fill span and shows the origin details', async () => {
@@ -407,7 +485,7 @@ describe('CacheLifecycleSection', () => {
     expect(getFactValue('Source')).toHaveTextContent(SOURCE_FILE);
     expect(screen.getByText('Expires')).toBeInTheDocument();
     expect(screen.getByText('50s later')).toBeInTheDocument();
-    expect(getFactValue('TTL')).toHaveTextContent('50s');
+    expect(getFactValue('TTL')).toHaveTextContent('50s after fill');
   });
 
   it('hides the expiry row when the put span has no ttl', () => {

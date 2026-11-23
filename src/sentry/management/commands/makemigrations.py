@@ -47,7 +47,7 @@ class Command(makemigrations.Command):
     on master that doesn't exist in a branch.
     """
 
-    def handle(self, *app_labels, **options):
+    def handle(self, *app_labels: str, **options: object) -> None:
         if not options["name"] and not options.get("check_changes"):
             self.stderr.write(
                 "Please name your migrations using `-n <migration_name>`. "

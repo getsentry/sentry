@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {AddressElement, useElements, useStripe} from '@stripe/react-stripe-js';
 import type {StripeAddressElementChangeEvent} from '@stripe/stripe-js';
+import {useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {InfoTip} from '@sentry/scraps/info';
@@ -16,8 +17,6 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 
 import {StripeWrapper} from 'getsentry/components/stripeWrapper';
 import type {BillingDetails} from 'getsentry/types';
@@ -58,14 +57,12 @@ type State = {
 const GOOGLE_MAPS_API_KEY = ConfigStore.get('getsentry.googleMapsApiKey');
 
 function BillingDetailsFormFields({
-  form,
   initialData,
   handleStripeFormChange,
   state,
   taxFieldInfo,
   onSubmitDisabled,
 }: {
-  form: FormModel;
   handleStripeFormChange: (data: StripeAddressElementChangeEvent) => void;
   onSubmitDisabled: (disabled: boolean) => void;
   state: State;
@@ -119,7 +116,6 @@ function BillingDetailsFormFields({
                 'If provided, all billing-related notifications will be sent to this address'
               )}
               placeholder={t('name@example.com (optional)')}
-              value={form.getValue('billingEmail') ?? ''}
             />
           )}
           {stripeIsLoading && <LoadingIndicator />}
@@ -127,10 +123,7 @@ function BillingDetailsFormFields({
             options={{
               mode: 'billing',
               autocomplete: GOOGLE_MAPS_API_KEY
-                ? {
-                    mode: 'google_maps_api',
-                    apiKey: GOOGLE_MAPS_API_KEY,
-                  }
+                ? {mode: 'google_maps_api', apiKey: GOOGLE_MAPS_API_KEY}
                 : {
                     mode: 'automatic', // if our key isn't available, see if we can use Stripe's
                   },
@@ -168,7 +161,6 @@ function BillingDetailsFormFields({
                 "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
                 {taxNumberName: <strong>{taxFieldInfo.taxNumberName}</strong>}
               )}
-              value={form.getValue('taxNumber') ?? ''}
               placeholder={taxFieldInfo.placeholder}
             />
           )}
@@ -183,11 +175,9 @@ function CustomBillingDetailsFormField({
   label,
   help,
   placeholder,
-  value,
 }: {
   inputName: string;
   label: string;
-  value: string;
   help?: React.ReactNode;
   placeholder?: string;
 }) {
@@ -199,12 +189,7 @@ function CustomBillingDetailsFormField({
         </Text>
         <InfoTip title={help} size="sm" />
       </Flex>
-      <StyledTextField
-        name={inputName}
-        placeholder={placeholder}
-        value={value}
-        aria-label={label}
-      />
+      <StyledTextField name={inputName} placeholder={placeholder} aria-label={label} />
     </Stack>
   );
 }
@@ -243,7 +228,7 @@ export function BillingDetailsForm({
     showTaxNumber:
       !!initialData?.taxNumber || countryHasSalesTax(initialData?.countryCode),
   });
-  const location = useLocation();
+  const [referrer] = useQueryState('referrer');
 
   const taxFieldInfo = useMemo(
     () => getTaxFieldInfo(state.countryCode),
@@ -251,11 +236,7 @@ export function BillingDetailsForm({
   );
 
   const updateCountryCodeState = (countryCode: string) =>
-    setState({
-      ...state,
-      countryCode,
-      showTaxNumber: countryHasSalesTax(countryCode),
-    });
+    setState({...state, countryCode, showTaxNumber: countryHasSalesTax(countryCode)});
 
   const handleStripeFormChange = (data: any) => {
     form.setValue('companyName', data.value.name);
@@ -271,9 +252,7 @@ export function BillingDetailsForm({
   useEffect(() => {
     const requiredFields = ['addressLine1', 'countryCode'];
     requiredFields.forEach(field => {
-      form.setFieldDescriptor(field, {
-        required: true,
-      });
+      form.setFieldDescriptor(field, {required: true});
     });
 
     return () => {
@@ -292,7 +271,7 @@ export function BillingDetailsForm({
       trackGetsentryAnalytics(analyticsEvent, {
         organization,
         isStripeComponent: true,
-        referrer: decodeScalar(location.query?.referrer),
+        referrer: referrer || undefined,
       });
     }
     onSubmitSuccess(data);
@@ -318,7 +297,6 @@ export function BillingDetailsForm({
         onCancel={onCancel}
       >
         <BillingDetailsFormFields
-          form={form}
           initialData={initialData}
           handleStripeFormChange={handleStripeFormChange}
           state={state}

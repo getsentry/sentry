@@ -37,6 +37,7 @@ class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="createOrganizationExternalUser",

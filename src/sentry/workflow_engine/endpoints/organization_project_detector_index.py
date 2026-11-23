@@ -43,6 +43,7 @@ class OrganizationProjectDetectorIndexEndpoint(ProjectEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.ALERTS_MONITORS
     permission_classes = (OrganizationProjectDetectorPermission,)
 

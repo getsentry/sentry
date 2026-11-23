@@ -6,10 +6,10 @@ import sortBy from 'lodash/sortBy';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getFileName} from 'sentry/components/events/interfaces/debugMeta/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
@@ -223,10 +223,7 @@ export function DebugImageDetails({
     ...apiOptions.as<DebugFile[]>()(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: projSlug,
-        },
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projSlug},
         query: {
           debug_id: image?.debug_id,
           code_id: image?.code_id,
@@ -254,7 +251,6 @@ export function DebugImageDetails({
 
   const {code_file, status} = image ?? {};
   const candidates = getCandidates({debugFiles, image, isLoading: isPending});
-  const baseUrl = api.baseUrl;
   const fileName = getFileName(code_file);
   const haveCandidatesUnappliedDebugFile = candidates.some(
     candidate => candidate.download.status === CandidateDownloadStatus.UNAPPLIED
@@ -274,16 +270,13 @@ export function DebugImageDetails({
     try {
       await api.requestPromise(
         getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projSlug,
-          },
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projSlug},
         }),
         {method: 'DELETE', query: {id: debugId}}
       );
       refetch();
     } catch {
-      addErrorMessage(t('An error occurred while deleting the debug file.'));
+      toast.error(t('An error occurred while deleting the debug file.'));
     }
   };
 
@@ -325,7 +318,6 @@ export function DebugImageDetails({
                 candidates={candidates}
                 organization={organization}
                 projSlug={projSlug}
-                baseUrl={baseUrl}
                 isLoading={shouldShowLoadingIndicator}
                 eventDateReceived={event.dateReceived}
                 onDelete={handleDelete}

@@ -1,5 +1,7 @@
 import {Fragment, useEffect} from 'react';
+import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {
   act,
@@ -22,7 +24,7 @@ const organization = OrganizationFixture({
   features: ['investigations'],
   openMembership: true,
 });
-const detailUrl = '/organizations/org-slug/investigations/investigation-1/';
+const detailUrl = '/organizations/org-slug/notebooks/investigation-1/';
 const commentsUrl = `${detailUrl}comments/`;
 
 const otherDrawer = {open: () => {}, close: () => {}};
@@ -45,10 +47,10 @@ function renderPage(query: Record<string, string> = {}, extra?: React.ReactNode)
       organization,
       initialRouterConfig: {
         location: {
-          pathname: '/organizations/org-slug/explore/investigations/investigation-1/',
+          pathname: '/organizations/org-slug/seer/investigations/investigation-1/',
           query,
         },
-        route: '/organizations/:orgId/explore/investigations/:investigationId/',
+        route: '/organizations/:orgId/seer/investigations/:investigationId/',
       },
     }
   );
@@ -75,7 +77,7 @@ describe('BlockCommentsDrawer', () => {
     MockApiClient.addMockResponse({url: commentsUrl, body: []});
   });
 
-  it("opens from a block's menu and lists its comments oldest first", async () => {
+  it("lists a block's comments oldest first", async () => {
     const request = mockBlockComments([
       InvestigationCommentFixture({id: '2', body: 'Second', blockId: 'block-1'}),
       InvestigationCommentFixture({id: '1', body: 'First', blockId: 'block-1'}),
@@ -83,9 +85,8 @@ describe('BlockCommentsDrawer', () => {
     renderPage();
 
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Cell actions for Summary'})
+      await screen.findByRole('button', {name: 'Comment on Summary'})
     );
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Comment'}));
 
     const drawer = await screen.findByRole('complementary', {name: 'Block comments'});
     expect(
@@ -127,26 +128,75 @@ describe('BlockCommentsDrawer', () => {
 
     expect(request).toHaveBeenCalledWith(
       commentsUrl,
-      expect.objectContaining({data: {body: 'Check this', blockId: 'block-1'}})
+      expect.objectContaining({
+        data: {body: 'Check this', blockId: 'block-1', mentions: []},
+      })
     );
   });
 
-  it('keeps an unsent reply for the block', async () => {
+  it('restores mentions in a block draft and clears the draft after posting', async () => {
     mockBlockComments([]);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [MemberFixture({user: UserFixture({id: '1', name: 'Alice Example'})})],
+    });
+    const request = MockApiClient.addMockResponse({
+      url: commentsUrl,
+      method: 'POST',
+      body: InvestigationCommentFixture({blockId: 'block-1'}),
+    });
     const {unmount} = renderPage({comments: 'open', commentsBlock: 'block-1'});
 
     const drawer = await screen.findByRole('complementary', {name: 'Block comments'});
     const editor = await within(drawer).findByRole('combobox', {name: 'Add a comment'});
     // user-event does not yet recognize contenteditable="plaintext-only".
     editor.setAttribute('contenteditable', 'true');
-    await userEvent.type(editor, 'Half a thought');
+    await userEvent.type(editor, 'Check @ali');
+    await userEvent.click(await screen.findByRole('option', {name: /Alice Example/}));
     unmount();
 
-    renderPage({comments: 'open', commentsBlock: 'block-1'});
+    const reopenedPage = renderPage({comments: 'open', commentsBlock: 'block-1'});
     const reopened = await screen.findByRole('complementary', {name: 'Block comments'});
+    const restoredEditor = await within(reopened).findByRole('combobox', {
+      name: 'Add a comment',
+    });
+    expect(restoredEditor).toHaveTextContent('Check @Alice Example');
+    await userEvent.click(within(reopened).getByRole('button', {name: 'Comment'}));
+
+    await waitFor(() => expect(restoredEditor).toHaveTextContent(/^$/));
+    expect(request).toHaveBeenCalledWith(
+      commentsUrl,
+      expect.objectContaining({
+        data: {
+          body: 'Check **@Alice Example**',
+          blockId: 'block-1',
+          mentions: ['user:1'],
+        },
+      })
+    );
+    reopenedPage.unmount();
+
+    renderPage({comments: 'open', commentsBlock: 'block-1'});
+    const cleared = await screen.findByRole('complementary', {name: 'Block comments'});
     expect(
-      await within(reopened).findByRole('combobox', {name: 'Add a comment'})
-    ).toHaveTextContent('Half a thought');
+      await within(cleared).findByRole('combobox', {name: 'Add a comment'})
+    ).toHaveTextContent(/^$/);
+  });
+
+  it('restores drafts saved before mention support', async () => {
+    mockBlockComments([]);
+    localStorage.setItem(
+      'investigation-comment-drafts',
+      JSON.stringify({
+        'investigation-1:block-1': {text: 'Old draft', savedAt: Date.now()},
+      })
+    );
+    renderPage({comments: 'open', commentsBlock: 'block-1'});
+
+    const drawer = await screen.findByRole('complementary', {name: 'Block comments'});
+    expect(
+      await within(drawer).findByRole('combobox', {name: 'Add a comment'})
+    ).toHaveTextContent('Old draft');
   });
 
   it('highlights the comment in the URL', async () => {
@@ -245,7 +295,7 @@ describe('BlockCommentsDrawer', () => {
     });
     renderPage();
 
-    await screen.findByRole('button', {name: 'Cell actions for Summary'});
+    await screen.findByRole('button', {name: 'Block actions for Summary'});
     await waitFor(() => expect(counts).toHaveBeenCalled());
     expect(
       screen.queryByRole('button', {name: 'Comment on Summary'})

@@ -2,7 +2,6 @@ import {useMemo, useState, type ReactNode} from 'react';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useCrossEventQueries} from 'sentry/views/explore/hooks/useCrossEventQueries';
 import {
   defaultAggregateFields,
   defaultAggregateSortBys,
@@ -15,6 +14,8 @@ import {defaultCursor} from 'sentry/views/explore/queryParams/cursor';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import type {CrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
+
+import {useCrossEventQueries} from './useCrossEventQueries';
 
 const mockSetQueryParams = jest.fn();
 const ALL_CROSS_EVENT_DATASETS_AVAILABLE: CrossEventDatasetAvailability = {
@@ -218,11 +219,7 @@ describe('useCrossEventQueries', () => {
   it('matches both !has:metric.unit and metric.unit:none when unit is absent', () => {
     const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: wrapper([
-        {
-          type: 'metrics',
-          query: '',
-          metric: {name: 'my_metric', type: 'counter'},
-        },
+        {type: 'metrics', query: '', metric: {name: 'my_metric', type: 'counter'}},
       ]),
       initialProps: ALL_CROSS_EVENT_DATASETS_AVAILABLE,
     });

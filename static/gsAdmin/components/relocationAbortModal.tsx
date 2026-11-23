@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -35,7 +35,7 @@ export function RelocationAbortModal({
         options: {host: relocation.region.url},
       }),
     onSuccess: rawRelocation => {
-      addSuccessMessage(
+      toast.success(
         'This relocation will be immediately halted at the next opportunity.'
       );
       onSuccess?.(rawRelocation);
@@ -44,12 +44,12 @@ export function RelocationAbortModal({
     onError: (error: unknown) => {
       const fallback = 'Failed to abort relocation.';
       if (!(error instanceof RequestError)) {
-        addErrorMessage(fallback);
+        toast.error(fallback);
         return;
       }
       const detail = error.responseJSON?.detail;
       const message = typeof detail === 'string' ? detail : detail?.message;
-      addErrorMessage(message ?? fallback);
+      toast.error(message ?? fallback);
     },
   });
 

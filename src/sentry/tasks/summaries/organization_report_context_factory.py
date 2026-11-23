@@ -324,8 +324,7 @@ class OrganizationReportContextFactory:
                 self._append_project_key_issues(ctx)
                 self._hydrate_key_error_issues(ctx)
                 self._hydrate_key_performance_issues(ctx)
-                if features.has("organizations:weekly-report-past-issues", self.organization):
-                    self._append_project_past_resolved_issues(ctx)
+                self._append_project_past_resolved_issues(ctx)
                 if features.has("organizations:weekly-report-spans-chart", self.organization):
                     self._append_organization_top_spans(ctx)
 

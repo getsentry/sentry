@@ -3,11 +3,12 @@ import {Fragment, useCallback, useEffect} from 'react';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
 import type {Team} from 'sentry/types/organization';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {useAggregatedQueryKeys} from 'sentry/utils/api/useAggregatedQueryKeys';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+
+import {apiOptions} from './apiOptions';
+import type {ParsedQueryKey} from './apiQueryKey';
+import {useAggregatedQueryKeys} from './useAggregatedQueryKeys';
 
 type TeamSlugsById = Record<string, undefined | string>;
 
@@ -35,8 +36,8 @@ export default Storybook.story('useAggregatedQueryKeys', story => {
       onError: useCallback(() => {}, []),
       // Other components cache their own /teams/ lists; only fold in the
       // responses to our id lookups.
-      queryFilter: useCallback((queryKey: readonly unknown[]) => {
-        const search = safeParseQueryKey(queryKey)?.options.query?.query;
+      queryFilter: useCallback((parsedQueryKey: ParsedQueryKey) => {
+        const search = parsedQueryKey.options.query?.query;
         return typeof search === 'string' && search.startsWith('id:');
       }, []),
       responseReducer: useCallback((prevState, response) => {

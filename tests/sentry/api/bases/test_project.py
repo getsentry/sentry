@@ -11,6 +11,7 @@ from sentry.api.bases.project import (
 )
 from sentry.auth.access import from_request
 from sentry.db.models.fields.bounded import BoundedBigAutoField
+from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
@@ -18,7 +19,13 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.requests import drf_request_from_request
 from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
-from sentry.viewer_context import ViewerContext, get_viewer_context, viewer_context_scope
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 
 class ProjectPermissionBase(TestCase):
@@ -30,7 +37,7 @@ class ProjectPermissionBase(TestCase):
         self,
         method: str,
         obj: Project,
-        auth: ApiToken | None = None,
+        auth: ApiToken | ApiKey | None = None,
         user: User | None = None,
         is_superuser: bool | None = None,
         is_staff: bool | None = None,
@@ -56,12 +63,14 @@ class ProjectEndpointViewerContextTest(TestCase):
         request = drf_request_from_request(raw_request)
         request._request.organization = None
 
-        with viewer_context_scope(ViewerContext(user_id=self.user.id)):
+        with viewer_context_scope(
+            ViewerContext(actor=Actor(type=ActorType.USER, actor_id=self.user.id))
+        ):
             endpoint.convert_args(request, self.organization.slug, self.project.slug)
             ctx = get_viewer_context()
 
         assert ctx is not None
-        assert ctx.user_id == self.user.id
+        assert ctx.actor.actor_id == self.user.id
         assert ctx.organization_id == self.organization.id
 
     def test_convert_args_with_out_of_range_project_id(self) -> None:

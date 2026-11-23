@@ -13,10 +13,13 @@ defaults:
     #      bash --noprofile --norc -eo pipefail {0}
     shell: bash --noprofile --norc -eo pipefail -ux {0}
 
+permissions:
+  contents: read
+
 jobs:
   did-migration-change:
     name: check if any migration changes
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04-arm
     timeout-minutes: 3
     permissions:
       contents: read
@@ -28,6 +31,8 @@ jobs:
     steps:
       - name: Checkout sentry
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Match migration files
         uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
@@ -38,20 +43,25 @@ jobs:
 
   sql:
     name: Generate SQL
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04-arm
     timeout-minutes: 8
 
     needs: did-migration-change
     if: needs.did-migration-change.outputs.added == 'true'
+    permissions:
+      contents: read
+      # getsentry/action-migrations posts the generated SQL as a PR comment.
+      pull-requests: write
 
     steps:
       # Checkout master to run all merged migrations.
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           ref: master
+          persist-credentials: true
 
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         with:
           mode: migrations
 
@@ -63,6 +73,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           clean: false
+          persist-credentials: true
 
       - name: Get changed migration files
         id: file

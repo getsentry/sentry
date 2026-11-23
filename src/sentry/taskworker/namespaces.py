@@ -28,6 +28,11 @@ buffer_tasks = app.taskregistry.create_namespace(
     app_feature="errors",
 )
 
+cadence_tasks = app.taskregistry.create_namespace(
+    "cadence",
+    app_feature="shared",
+)
+
 conduit_tasks = app.taskregistry.create_namespace(
     "conduit",
     app_feature="conduit",
@@ -346,6 +351,11 @@ symbolication_jvm_tasks = app.taskregistry.create_namespace(
 gpu_crash_dump_tasks = app.taskregistry.create_namespace(
     "gpu.crash_dump",
     app_feature="errors",
+)
+
+telemetry_classifiers_tasks = app.taskregistry.create_namespace(
+    "telemetry.classifiers",
+    app_feature="telemetry_classifiers",
 )
 
 telemetry_experience_tasks = app.taskregistry.create_namespace(

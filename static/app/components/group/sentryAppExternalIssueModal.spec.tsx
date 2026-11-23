@@ -8,17 +8,13 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 
 import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {openSentryAppIssueModal} from 'sentry/components/group/sentryAppExternalIssueModal';
+import {openSentryAppIssueModal} from './sentryAppExternalIssueModal';
 
 describe('openSentryAppIssueModal', () => {
   const group = GroupFixture();
   const sentryApp = SentryAppFixture();
   const component = SentryAppComponentFixture({
-    sentryApp: {
-      uuid: sentryApp.uuid,
-      slug: sentryApp.slug,
-      name: sentryApp.name,
-    },
+    sentryApp: {uuid: sentryApp.uuid, slug: sentryApp.slug, name: sentryApp.name},
   });
   // unable to use the selectByValue here so remove the select option
   component.schema.create.required_fields.pop();
@@ -32,10 +28,6 @@ describe('openSentryAppIssueModal', () => {
   const event = EventFixture();
 
   beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: `/sentry-apps/${sentryApp.slug}/interaction/`,
-      method: 'POST',
-    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/external-issues/',
       body: [],
@@ -54,7 +46,7 @@ describe('openSentryAppIssueModal', () => {
       group,
       event,
       sentryAppComponent: component,
-      sentryAppInstallation: install,
+      sentryAppInstallationUuid: install.uuid,
     });
 
     renderGlobalModal();
@@ -83,7 +75,7 @@ describe('openSentryAppIssueModal', () => {
       group,
       event: undefined,
       sentryAppComponent: component,
-      sentryAppInstallation: install,
+      sentryAppInstallationUuid: install.uuid,
     });
 
     renderGlobalModal();
@@ -102,7 +94,7 @@ describe('openSentryAppIssueModal', () => {
       group,
       event,
       sentryAppComponent: component,
-      sentryAppInstallation: install,
+      sentryAppInstallationUuid: install.uuid,
     });
     const {waitForModalToHide} = renderGlobalModal();
 
@@ -117,11 +109,7 @@ describe('openSentryAppIssueModal', () => {
     expect(request).toHaveBeenCalledWith(
       submitUrl,
       expect.objectContaining({
-        data: expect.objectContaining({
-          action: 'link',
-          issue: '99',
-          groupId: group.id,
-        }),
+        data: expect.objectContaining({action: 'link', issue: '99', groupId: group.id}),
       })
     );
   });
@@ -137,7 +125,7 @@ describe('openSentryAppIssueModal', () => {
       group,
       event,
       sentryAppComponent: component,
-      sentryAppInstallation: install,
+      sentryAppInstallationUuid: install.uuid,
     });
     const {waitForModalToHide} = renderGlobalModal();
 

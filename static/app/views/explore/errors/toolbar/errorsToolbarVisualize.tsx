@@ -11,7 +11,8 @@ import {
   ToolbarVisualizeAddChart,
   ToolbarVisualizeAddEquation,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
-import {ErrorsToolbarVisualizeItem as ToolbarVisualizeItem} from 'sentry/views/explore/errors/toolbar/errorsToolbarVisualizeItem';
+
+import {ErrorsToolbarVisualizeItem as ToolbarVisualizeItem} from './errorsToolbarVisualizeItem';
 
 export function ErrorsToolbarVisualize() {
   return (

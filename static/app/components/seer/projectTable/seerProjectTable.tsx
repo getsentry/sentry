@@ -24,21 +24,21 @@ import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
-import {ProjectTableHeader} from 'sentry/components/seer/projectTable/seerProjectTableHeader';
 import {t, tct} from 'sentry/locale';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
+import {isTokenBilledSeerEnabled} from 'sentry/utils/seer/isTokenBilledSeerEnabled';
 import {
   seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
@@ -47,7 +47,12 @@ import {
   seerAgentProviderNameSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
 import {
+  NON_GITHUB_PR_ITERATION_WARNING,
+  PR_ITERATION_OPTIONS,
+} from 'sentry/utils/seer/prIteration';
+import {
   fetchProjectHasNonGithubRepo,
+  isGitHubDotComProvider,
   prefetchAllSeerProjectRepos,
 } from 'sentry/utils/seer/seerProjectRepos';
 import {
@@ -66,6 +71,8 @@ import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {ProjectTableHeader} from './seerProjectTableHeader';
+
 const estimateSize = () => 41;
 
 const TABLE_COLUMNS: TableColumnConfig[] = [
@@ -75,11 +82,6 @@ const TABLE_COLUMNS: TableColumnConfig[] = [
   {key: 'fixes', width: '1fr'},
   {key: 'automation_steps', width: '1fr'},
   {key: 'pr_iteration', width: '1fr'},
-];
-
-const PR_ITERATION_OPTIONS = [
-  {value: true, label: t('On')},
-  {value: false, label: t('Off')},
 ];
 
 export function SeerProjectTable() {
@@ -150,11 +152,7 @@ export function SeerProjectTable() {
   const queryOptions = infiniteQueryOptions({
     ...getInfiniteSeerProjectsSettingsQueryOptions({
       organization,
-      query: {
-        per_page: 25,
-        query: mutableSearch,
-        sortBy,
-      },
+      query: {per_page: 25, query: mutableSearch, sortBy},
     }),
     select: ({pages}) => pages.flatMap(page => page.json),
   });
@@ -182,9 +180,11 @@ export function SeerProjectTable() {
                 {t('Enable Autofix on a Project')}
               </Heading>
               <Text variant="muted" size="md">
-                {t(
-                  'Add projects here in order to enable Autofix. Each project must be associated with a repository in order for Autofix to work.'
-                )}
+                {isTokenBilledSeerEnabled(organization)
+                  ? t('Link a repository to a project so Seer can read your code.')
+                  : t(
+                      'Add projects here in order to enable Autofix. Each project must be associated with a repository in order for Autofix to work.'
+                    )}
               </Text>
               <Flex>
                 <AddProjectButton disabled={!canWrite} />
@@ -231,7 +231,7 @@ export function SeerProjectTable() {
       <ListItemCheckboxProvider
         hits={data?.length ?? 0}
         knownIds={data?.map(item => String(item.projectId)) ?? []}
-        endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
+        endpointOptions={parseQueryKey(queryOptions.queryKey).options}
       >
         <InfiniteTable.Table columns={TABLE_COLUMNS}>
           <ProjectTableHeader
@@ -336,7 +336,6 @@ export function SeerProjectTable() {
                               menuPortalTarget={document.body}
                               onChange={field.handleChange}
                               options={stoppingPointOptions}
-                              // @ts-expect-error: Select component does not have a size prop defined
                               size="xs"
                               value={field.state.value}
                             />
@@ -346,33 +345,13 @@ export function SeerProjectTable() {
                     </InfiniteTable.RowCell>
                     <InfiniteTable.RowCell>
                       <Stack align="stretch" flex="1">
-                        <AutoSaveForm
+                        <PrIterationSelectCell
                           key={bulkEditVersion}
-                          name="prIteration"
-                          schema={seerProjectSettingsSchema}
+                          projectSlug={item.projectSlug}
                           initialValue={item.prIteration}
-                          mutationOptions={getMutateSeerProjectSettingsOptions({
-                            organization,
-                            project: {slug: item.projectSlug},
-                            queryClient,
-                          })}
-                        >
-                          {field => (
-                            <field.Select
-                              aria-label={t(
-                                'Auto-iterate on PRs for %s',
-                                item.projectSlug
-                              )}
-                              disabled={isRowDisabled}
-                              menuPortalTarget={document.body}
-                              onChange={field.handleChange}
-                              options={PR_ITERATION_OPTIONS}
-                              // @ts-expect-error: Select component does not have a size prop defined
-                              size="xs"
-                              value={field.state.value}
-                            />
-                          )}
-                        </AutoSaveForm>
+                          disabled={isRowDisabled}
+                          repoProviders={item.repoProviders}
+                        />
                       </Stack>
                     </InfiniteTable.RowCell>
                   </InfiniteTable.Row>
@@ -422,7 +401,10 @@ function AgentSelectCell({
           disabled={disabled}
           menuPortalTarget={document.body}
           multiple={false}
-          onMenuOpen={() => {
+          onOpenChange={isOpen => {
+            if (!isOpen) {
+              return;
+            }
             // Warm the cache so the on-change check below usually resolves from
             // cache instead of blocking on a fetch.
             void prefetchAllSeerProjectRepos({
@@ -444,11 +426,11 @@ function AgentSelectCell({
                   queryClient,
                 });
               } catch {
-                addErrorMessage(t('Could not verify repositories. Please try again.'));
+                toast.error(t('Could not verify repositories. Please try again.'));
                 return;
               }
               if (hasNonGithubRepo) {
-                addErrorMessage(NON_GITHUB_HANDOFF_WARNING);
+                toast.error(NON_GITHUB_HANDOFF_WARNING);
                 return;
               }
             }
@@ -456,9 +438,54 @@ function AgentSelectCell({
             field.handleBlur();
           }}
           options={agentSelectOptions}
-          // @ts-expect-error: Select component does not have a size prop defined
           size="xs"
           value={field.state.value}
+        />
+      )}
+    </AutoSaveForm>
+  );
+}
+
+interface PrIterationSelectCellProps {
+  disabled: boolean;
+  initialValue: boolean;
+  projectSlug: string;
+  repoProviders: string[] | undefined;
+}
+
+function PrIterationSelectCell({
+  disabled,
+  initialValue,
+  projectSlug,
+  repoProviders,
+}: PrIterationSelectCellProps) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  // Auto-Iterate only runs on github.com PRs. Older responses don't list the
+  // providers, so the control stays available until they do.
+  const unavailable =
+    repoProviders !== undefined && !repoProviders.some(isGitHubDotComProvider);
+
+  return (
+    <AutoSaveForm
+      name="prIteration"
+      schema={seerProjectSettingsSchema}
+      initialValue={initialValue}
+      mutationOptions={getMutateSeerProjectSettingsOptions({
+        organization,
+        project: {slug: projectSlug},
+        queryClient,
+      })}
+    >
+      {field => (
+        <field.Select
+          aria-label={t('Auto-iterate on PRs for %s', projectSlug)}
+          disabled={unavailable ? NON_GITHUB_PR_ITERATION_WARNING : disabled}
+          menuPortalTarget={document.body}
+          onChange={field.handleChange}
+          options={PR_ITERATION_OPTIONS}
+          size="xs"
+          value={unavailable ? false : field.state.value}
         />
       )}
     </AutoSaveForm>
@@ -479,6 +506,7 @@ function AddProjectButton({disabled}: {disabled: boolean}) {
         // oxlint-disable-next-line react/todo
         try {
           const {ProjectAddRepoModal} =
+            // oxlint-disable-next-line react/todo
             await import('sentry/components/seer/projectAddRepoModal/projectAddRepoModal');
 
           openModal(

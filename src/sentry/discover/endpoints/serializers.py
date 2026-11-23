@@ -1,11 +1,11 @@
-from collections.abc import Sequence
+from collections.abc import Iterable, Mapping, Sequence
+from typing import Any
 
 import sentry_sdk
 from django.db.models import Count, Max, QuerySet
 from rest_framework import serializers
 from rest_framework.serializers import ListField
 
-import sentry
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.discover.models import (
@@ -164,12 +164,12 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         2: {"groupby", "rollup", "aggregations", "conditions", "limit"},
     }
 
-    def validate_projects(self, projects):
+    def validate_projects(self, projects: Iterable[int]) -> set[int]:
         from sentry.api.validators import validate_project_ids
 
         return validate_project_ids(projects, self.context["params"]["project_id"])
 
-    def validate_queryDataset(self, value):
+    def validate_queryDataset(self, value: str) -> int | None:
         dataset = DiscoverSavedQueryTypes.get_id_for_type_name(value)
         if dataset == DiscoverSavedQueryTypes.DISCOVER or dataset is None:
             sentry_sdk.set_context(
@@ -184,21 +184,17 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                 "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
             )
 
-        if (
-            sentry.features.has(
-                "organizations:discover-saved-queries-deprecation",
-                self.context["organization"],
-                actor=self.context["user"],
-            )
-            and dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE
-        ):
+        if dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE:
             raise serializers.ValidationError(
                 f"The Transactions dataset is being deprecated. Please append the `is_transaction:true` filter in the Trace Explorer product in Sentry or use the `/organizations/{self.context['organization'].slug}/explore/saved/` endpoint with the filter to save new transaction queries."
             )
 
         return dataset
 
-    def validate(self, data):
+    def validate(
+        self,
+        data: dict[str, Any],
+    ) -> dict[str, Any]:
         query = {}
         query_keys = [
             "environment",
@@ -275,7 +271,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             "query_dataset": data["queryDataset"],
         }
 
-    def validate_version_fields(self, version, query):
+    def validate_version_fields(self, version: int, query: Mapping[str, object]) -> None:
         try:
             not_allowed = self.disallowed_fields[version]
         except KeyError:
@@ -286,6 +282,14 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                 "You cannot use the %s attribute(s) with the selected version"
                 % ", ".join(sorted(bad_fields))
             )
+
+
+class DiscoverHomepageQuerySerializer(DiscoverSavedQuerySerializer):
+    def get_fields(self) -> dict[str, serializers.Field[Any, Any, Any, Any]]:
+        fields = super().get_fields()
+        # The homepage query has no name, so callers don't send one.
+        fields["name"] = serializers.HiddenField(default="")
+        return fields
 
 
 class TeamKeyTransactionSerializer(serializers.Serializer):
@@ -317,7 +321,10 @@ class TeamKeyTransactionSerializer(serializers.Serializer):
 
         return teams
 
-    def validate(self, data):
+    def validate(
+        self,
+        data: dict[str, Any],
+    ) -> dict[str, Any]:
         data = super().validate(data)
         if self.context.get("mode") == "create":
             team = data["team"]

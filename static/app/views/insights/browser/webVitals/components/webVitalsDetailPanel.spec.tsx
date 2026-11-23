@@ -4,7 +4,8 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {WebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/webVitalsDetailPanel';
+
+import {WebVitalsDetailPanel} from './webVitalsDetailPanel';
 
 describe('WebVitalsDetailPanel', () => {
   const organization = OrganizationFixture();
@@ -16,15 +17,11 @@ describe('WebVitalsDetailPanel', () => {
 
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [],
-      },
+      body: {data: []},
     });
     eventsStatsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
-      body: {
-        timeSeries: [],
-      },
+      body: {timeSeries: []},
     });
   });
 
@@ -33,9 +30,7 @@ describe('WebVitalsDetailPanel', () => {
   });
 
   it('renders correctly with empty results', async () => {
-    render(<WebVitalsDetailPanel webVital="lcp" />, {
-      organization,
-    });
+    render(<WebVitalsDetailPanel webVital="lcp" />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     // Raw web vital metric tile queries
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -129,5 +124,52 @@ describe('WebVitalsDetailPanel', () => {
     expect(
       screen.getByText(/Largest Contentful Paint \(LCP\) measures the render/)
     ).toBeInTheDocument();
+  });
+
+  it('sends browser and subregion filters as lists', async () => {
+    render(<WebVitalsDetailPanel webVital="lcp" />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/insights/browser/pageloads/`,
+          query: {
+            'browser.name': ['Chrome', 'Chrome Mobile'],
+            'user.geo.subregion': ['21', '154'],
+          },
+        },
+        route: '/organizations/:orgId/insights/browser/pageloads/',
+      },
+    });
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+    const listFilters =
+      'user.geo.subregion:[21,154] browser.name:[Chrome,"Chrome Mobile"]';
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: `span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] ${listFilters}`,
+        }),
+      })
+    );
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: `span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] browser.name:[Chrome,"Chrome Mobile"] user.geo.subregion:[21,154]`,
+        }),
+      })
+    );
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      3,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: `span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] avg(measurements.score.total):>=0 count_scores(measurements.score.lcp):>0 browser.name:[Chrome,"Chrome Mobile"] user.geo.subregion:[21,154]`,
+        }),
+      })
+    );
   });
 });

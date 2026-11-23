@@ -10,18 +10,19 @@ from __future__ import annotations
 import logging
 import re
 import time
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from typing import Any, Literal, NotRequired, TypedDict
 
 import orjson
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
+from django.http import HttpRequest
 from django.utils.timezone import now
 from rest_framework.request import Request
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
 from sentry import features
+from sentry.auth.principal import RequestPrincipal, acting_user
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.outbox import (
     CellOutbox,
@@ -41,8 +42,6 @@ from sentry.seer.models import SeerApiError, SeerUnavailableError
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
-from sentry.users.models.user import User as SentryUser
-from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user_option import user_option_service
 from sentry.users.services.user_option.service import get_option_from_list
 from sentry.utils import metrics
@@ -90,6 +89,7 @@ class UserOrgContext(TypedDict):
 
 class AgentChatRequest(TypedDict):
     organization_id: int
+    billing_feature: NotRequired[int]
     query: str
     run_id: int | None
     insert_index: int | None
@@ -106,7 +106,6 @@ class AgentChatRequest(TypedDict):
     query_metadata: NotRequired[dict[str, str]]
     artifact_key: NotRequired[str]
     artifact_schema: NotRequired[dict[str, Any]]
-    custom_tools: NotRequired[list[dict[str, Any]]]
     on_completion_hook: NotRequired[dict[str, Any]]
     category_key: NotRequired[str]
     category_value: NotRequired[str]
@@ -132,7 +131,7 @@ class AgentPrStateRequest(TypedDict):
 
 
 class AgentRunOptions(TypedDict):
-    enable_code_mode_tools: NotRequired[Literal["off", "on", "only"]]
+    enable_code_mode_tools: NotRequired[Literal["off", "only"]]
     enable_assisted_query_code_mode: NotRequired[bool]
     enable_frontend_code_search: NotRequired[bool | None]
     is_context_engine_enabled: NotRequired[bool]
@@ -140,13 +139,18 @@ class AgentRunOptions(TypedDict):
     enable_coding: NotRequired[bool]
     enable_pr_context_tools: NotRequired[bool]
     enable_write_pull_request: NotRequired[bool]
+    enable_investigation_tools: NotRequired[bool]
+    enable_inbox_tools: NotRequired[bool]
+    enable_scm_connect_prompt: NotRequired[bool]
     enable_tool_summary: NotRequired[bool]
     embed_widgets: NotRequired[list[dict[str, Any]] | None]
     enable_streaming: NotRequired[bool]
+    pin_to_pr_head: NotRequired[bool]
 
 
 class SeerFeatureRunRequest(TypedDict):
     feature_id: str
+    billing_feature: NotRequired[int]
     payload: dict[str, Any]
     agent_run_options: NotRequired[AgentRunOptions]
     user_org_context: NotRequired[UserOrgContext]
@@ -390,7 +394,7 @@ def get_agent_state_from_pr_id(
 
 def has_seer_agent_access_with_detail(
     organization: Organization | RpcOrganization,
-    actor: SentryUser | AnonymousUser | RpcUser | None = None,
+    actor: RequestPrincipal | None = None,
 ) -> tuple[bool, str | None]:
     """
     Check if the actor has access to Seer Agent.
@@ -419,89 +423,77 @@ def has_seer_agent_access_with_detail(
 
 
 def collect_user_org_context(
-    user: SentryUser | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     organization: Organization,
-    request: Request | None = None,
+    request: HttpRequest | Request | None = None,
+    *,
+    include_projects_and_teams: bool = True,
+    priority_project_repo_ids: Collection[int] = (),
 ) -> UserOrgContext:
-    """Collect user and organization context for a new agent run."""
-    all_projects = Project.objects.filter(
-        organization=organization, status=ObjectStatus.ACTIVE
-    ).values("id", "slug")
+    """Collect sender context and optionally the organization's projects and teams."""
+    context = UserOrgContext(org_slug=organization.slug)
+    sender = acting_user(user) if user is not None else None
 
-    prefs_by_pid = bulk_read_preferences_from_sentry_db(
-        organization.id, [p["id"] for p in all_projects]
-    )
-    repos_by_pid = {
-        str(pid): [repo.dict() for repo in pref.repositories] for pid, pref in prefs_by_pid.items()
-    }
-
-    all_org_projects: list[UserOrgContextProject] = [
-        {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
-        for p in all_projects
-    ]
-
-    if user is None or isinstance(user, AnonymousUser):
-        return {
-            "org_slug": organization.slug,
-            "all_org_projects": all_org_projects,
-        }
-
-    try:
-        member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
-    except OrganizationMember.DoesNotExist:
-        # User is not a member of this organization (e.g., superuser accessing foreign org)
-        logger.warning(
-            "User attempted to access Seer Agent for organization they are not a member of",
-            extra={
-                "user_id": user.id,
-                "organization_id": organization.id,
-                "organization_slug": organization.slug,
-            },
+    if include_projects_and_teams:
+        all_projects = Project.objects.filter(
+            organization=organization, status=ObjectStatus.ACTIVE
+        ).values("id", "slug")
+        prefs_by_pid = bulk_read_preferences_from_sentry_db(
+            organization.id,
+            [p["id"] for p in all_projects],
+            limit_repos=True,
+            priority_project_repo_ids=priority_project_repo_ids,
         )
-        return {
-            "org_slug": organization.slug,
-            "all_org_projects": all_org_projects,
+        repos_by_pid = {
+            str(pid): [repo.dict() for repo in pref.repositories]
+            for pid, pref in prefs_by_pid.items()
         }
-    user_teams: list[UserOrgContextTeam] = [
-        {"id": t.id, "slug": t.slug} for t in member.get_teams()
-    ]
-    my_projects = (
-        Project.objects.filter(
-            organization=organization,
-            teams__organizationmember__user_id=user.id,
-            status=ObjectStatus.ACTIVE,
+        context["all_org_projects"] = [
+            {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
+            for p in all_projects
+        ]
+        if sender is None:
+            return context
+
+        try:
+            member = OrganizationMember.objects.get(organization=organization, user_id=sender.id)
+        except OrganizationMember.DoesNotExist:
+            # A superuser accessing another organization may not be a member.
+            logger.warning(
+                "User attempted to access Seer Agent for organization they are not a member of",
+                extra={
+                    "user_id": sender.id,
+                    "organization_id": organization.id,
+                    "organization_slug": organization.slug,
+                },
+            )
+            return context
+        context["user_teams"] = [{"id": t.id, "slug": t.slug} for t in member.get_teams()]
+        my_projects = (
+            Project.objects.filter(
+                organization=organization,
+                teams__organizationmember__user_id=sender.id,
+                status=ObjectStatus.ACTIVE,
+            )
+            .distinct()
+            .values("id", "slug")
         )
-        .distinct()
-        .values("id", "slug")
-    )
-    user_projects: list[UserOrgContextProject] = [
-        {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
-        for p in my_projects
-    ]
+        context["user_projects"] = [
+            {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
+            for p in my_projects
+        ]
 
-    # Handle name attribute - SentryUser has name
-    user_name: str | None = None
-    if isinstance(user, (SentryUser, RpcUser)):
-        user_name = user.name
-
-    # Get user's timezone setting (IANA timezone name, e.g., "America/Los_Angeles")
-    user_options = user_option_service.get_many(filter={"user_ids": [user.id], "key": "timezone"})
-    user_timezone = get_option_from_list(user_options, key="timezone")
-
-    # Get IP address from http request, if provided
-    user_ip: str | None = request.META.get("REMOTE_ADDR") if request else None
-
-    return {
-        "org_slug": organization.slug,
-        "user_id": user.id,
-        "user_ip": user_ip,
-        "user_name": user_name,
-        "user_email": user.email,
-        "user_timezone": user_timezone,
-        "user_teams": user_teams,
-        "user_projects": user_projects,
-        "all_org_projects": all_org_projects,
-    }
+    if sender is not None:
+        user_options = user_option_service.get_many(
+            filter={"user_ids": [sender.id], "key": "timezone"}
+        )
+        context["user_id"] = sender.id
+        context["user_email"] = sender.email
+        context["user_timezone"] = get_option_from_list(user_options, key="timezone")
+        context["user_ip"] = request.META.get("REMOTE_ADDR") if request is not None else None
+        if sender.name.strip():
+            context["user_name"] = sender.name
+    return context
 
 
 def get_proxy_headers() -> dict[str, str] | None:
@@ -515,7 +507,7 @@ def get_proxy_headers() -> dict[str, str] | None:
     from sentry.viewer_context import encode_viewer_context, get_viewer_context
 
     ctx = get_viewer_context()
-    if ctx is None or ctx.user_id is None:
+    if ctx is None:
         return None
 
     if not settings.SEER_API_SHARED_SECRET:

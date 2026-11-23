@@ -1,3 +1,6 @@
+from unittest.mock import patch
+
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.discover.models import (
@@ -6,13 +9,13 @@ from sentry.discover.models import (
     DiscoverSavedQueryStarred,
     DiscoverSavedQueryTypes,
 )
-from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
-from sentry.explore.translation.discover_translation import (
-    translate_discover_query_to_explore_query,
-)
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
@@ -412,6 +415,27 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         values = [int(item["createdBy"]["id"]) for item in response.data]
         assert values == [self.user.id, uhoh_user.id, whoops_user.id]
 
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_sorts_by_myqueries(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org, project_ids=self.project_ids
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with self.feature(self.feature_name):
+            response = self.client.get(
+                self.url, {"sortBy": "myqueries"}, HTTP_X_VIEWER_CONTEXT=viewer_context
+            )
+        assert response.status_code == 200, response.content
+        assert [query["name"] for query in response.data] == ["Test query"]
+
     def test_get_expired_query(self) -> None:
         query = {
             "start": before_now(days=90).isoformat(),
@@ -576,6 +600,86 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.data["range"] == "24h"
         assert "start" not in response.data
         assert "end" not in response.data
+        model = DiscoverSavedQuery.objects.get(id=response.data["id"])
+        assert model.created_by_id == self.user.id
+        assert model.created_by_service_account_id is None
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    def test_post_as_service_account(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org,
+            scope_list=["org:read", "project:read"],
+            project_ids=self.project_ids,
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+        with self.feature([self.feature_name, "organizations:service-accounts"]):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Service account query",
+                    "projects": self.project_ids,
+                    "fields": [],
+                    "range": "24h",
+                    "limit": 20,
+                    "conditions": [],
+                    "aggregations": [],
+                    "orderby": "-time",
+                },
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+        assert response.status_code == 201, response.content
+        model = DiscoverSavedQuery.objects.get(id=response.data["id"])
+        assert model.created_by_id is None
+        assert model.created_by_service_account_id == service_account.id
+        assert model.created_by_org_auth_token_id is None
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_post_starred_as_service_account(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org, project_ids=self.project_ids
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with (
+            self.feature(self.feature_name),
+            patch(
+                "sentry.discover.endpoints.discover_saved_queries.sentry_sdk.capture_exception"
+            ) as capture_exception,
+        ):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Service account query",
+                    "projects": self.project_ids,
+                    "fields": [],
+                    "range": "24h",
+                    "limit": 20,
+                    "conditions": [],
+                    "aggregations": [],
+                    "orderby": "-time",
+                    "starred": True,
+                },
+                format="json",
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+
+        assert response.status_code == 201, response.content
+        query = DiscoverSavedQuery.objects.get(id=response.data["id"])
+        assert not DiscoverSavedQueryStarred.objects.filter(discover_saved_query=query).exists()
+        capture_exception.assert_not_called()
 
     def test_post_duplicated_query_keeps_starred_status(self) -> None:
         """Duplicating a starred query re-posts the serialized row, starred flag and all,
@@ -743,79 +847,6 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
             )
         assert response.status_code == 201, response.content
         assert response.data["projects"] == [-1]
-
-    def test_post_e2e_test_with_translation(self) -> None:
-        with self.feature(self.feature_name):
-            response = self.client.post(
-                self.url,
-                {
-                    "name": "Query to translate",
-                    "projects": self.project_ids,
-                    "fields": [
-                        "title",
-                        "count()",
-                        "count_web_vitals(measurements.lcp,good)",
-                        "any(span.duration)",
-                    ],
-                    "range": "7d",
-                    "query": "event.type:transaction browser.name:Firefox",
-                    "yAxis": ["count()"],
-                    "version": 2,
-                    "queryDataset": "transaction-like",
-                },
-            )
-        assert response.status_code == 201, response.content
-
-        assert DiscoverSavedQuery.objects.filter(name="Query to translate").exists()
-        saved_query = DiscoverSavedQuery.objects.filter(name="Query to translate").first()
-        assert saved_query is not None
-        assert saved_query.dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE
-        assert saved_query.query == {
-            "fields": [
-                "title",
-                "count()",
-                "count_web_vitals(measurements.lcp,good)",
-                "any(span.duration)",
-            ],
-            "range": "7d",
-            "query": "event.type:transaction browser.name:Firefox",
-            "yAxis": ["count()"],
-        }
-
-        translated_query = translate_discover_query_to_explore_query(saved_query)
-        saved_query.refresh_from_db()
-        assert saved_query.explore_query is not None
-        assert saved_query.explore_query.id == translated_query.id
-
-        assert ExploreSavedQuery.objects.filter(id=translated_query.id).exists()
-
-        assert translated_query.dataset == ExploreSavedQueryDataset.SEGMENT_SPANS
-        explore_query = translated_query.query
-        assert explore_query["query"][0]["fields"] == ["id", "transaction"]
-        assert explore_query["range"] == "7d"
-        assert (
-            explore_query["query"][0]["query"]
-            == "(is_transaction:1 browser.name:Firefox) AND is_transaction:1"
-        )
-        assert explore_query["query"][0]["mode"] == "samples"
-        assert explore_query["query"][0]["aggregateField"] == [
-            {
-                "yAxes": ["count(span.duration)"],
-                "chartType": 2,
-            }
-        ]
-        assert explore_query["query"][0]["orderby"] == ""
-        assert explore_query["query"][0]["aggregateOrderby"] is None
-        assert explore_query["end"] is None
-        assert explore_query["environment"] == []
-        assert explore_query["interval"] is None
-        assert explore_query["start"] is None
-
-        assert translated_query.changed_reason == {
-            "columns": ["count_web_vitals(measurements.lcp,good)", "any(span.duration)"],
-            "equations": [],
-            "orderby": [],
-        }
 
     def test_save_with_project(self) -> None:
         with self.feature(self.feature_name):
@@ -1115,11 +1146,8 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert data["display"] == "releases"
         assert data["version"] == 2
 
-    def test_post_transactions_query_with_deprecation_flag(self) -> None:
-        with (
-            self.feature(self.feature_name),
-            self.feature("organizations:discover-saved-queries-deprecation"),
-        ):
+    def test_post_transactions_query_is_deprecated(self) -> None:
+        with self.feature(self.feature_name):
             response = self.client.post(
                 self.url,
                 {
@@ -1139,3 +1167,76 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
             f"The Transactions dataset is being deprecated. Please append the `is_transaction:true` filter in the Trace Explorer product in Sentry or use the `/organizations/{self.org.slug}/explore/saved/` endpoint with the filter to save new transaction queries."
             in response_data["queryDataset"][0]
         )
+
+
+@with_feature(["organizations:granular-permission-scopes", "organizations:discover-query"])
+class DiscoverSavedQueryScopeTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.org = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.org)
+        self.saved_query = self.create_discover_saved_query(
+            organization=self.org,
+            projects=[self.project],
+            created_by_id=self.user.id,
+            name="Test query",
+            version=2,
+        )
+        self.url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+        self.details_url = reverse(
+            "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.saved_query.id]
+        )
+        self.query_data = {
+            "projects": [self.project.id],
+            "fields": ["count()"],
+            "range": "24h",
+            "version": 2,
+            "queryDataset": "error-events",
+        }
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def test_read_scope_can_read(self) -> None:
+        self._use_token(["saved_query:read"])
+        assert self.client.get(self.url).status_code == 200
+        assert self.client.get(self.details_url).status_code == 200
+
+    def test_read_scope_cannot_create(self) -> None:
+        self._use_token(["saved_query:read"])
+        response = self.client.post(self.url, {"name": "Created", **self.query_data}, format="json")
+        assert response.status_code == 403
+        assert not DiscoverSavedQuery.objects.filter(name="Created").exists()
+
+    def test_read_scope_cannot_delete(self) -> None:
+        self._use_token(["saved_query:read"])
+        assert self.client.delete(self.details_url).status_code == 403
+        assert DiscoverSavedQuery.objects.filter(id=self.saved_query.id).exists()
+
+    def test_write_scope_can_create_update_and_delete(self) -> None:
+        self._use_token(["saved_query:write"])
+        response = self.client.post(self.url, {"name": "Created", **self.query_data}, format="json")
+        assert response.status_code == 201, response.content
+
+        response = self.client.put(
+            self.details_url, {"name": "Renamed", **self.query_data}, format="json"
+        )
+        assert response.status_code == 200, response.content
+        self.saved_query.refresh_from_db()
+        assert self.saved_query.name == "Renamed"
+
+        assert self.client.delete(self.details_url).status_code == 204
+        assert not DiscoverSavedQuery.objects.filter(id=self.saved_query.id).exists()
+
+    def test_write_scope_cannot_read(self) -> None:
+        # Write does not imply read.
+        self._use_token(["saved_query:write"])
+        assert self.client.get(self.url).status_code == 403
+        assert self.client.get(self.details_url).status_code == 403
+
+    def test_read_and_write_scopes_can_read_and_write(self) -> None:
+        self._use_token(["saved_query:read", "saved_query:write"])
+        assert self.client.get(self.details_url).status_code == 200
+        assert self.client.delete(self.details_url).status_code == 204

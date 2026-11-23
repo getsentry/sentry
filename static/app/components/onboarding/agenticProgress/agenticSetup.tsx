@@ -1,15 +1,18 @@
+import {IconChevron} from '@sentry/icons/chevron';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {AgentHandoffFlow} from 'sentry/components/agentHandoff/types';
 import {ScmCollapsibleReveal} from 'sentry/components/onboarding/scm/scmCollapsibleReveal';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 import {AgenticProgress} from './agenticProgressList';
 import {AgentSetupCard, type AgentSetupCopySource} from './agentSetupCard';
+import {SetupCardFrame} from './setupCardFrame';
 import type {AgenticProgressRun} from './types';
 
 const MotionContainer = motion.create(Container);
@@ -19,35 +22,37 @@ interface AgenticSetupProps {
   feedbackSource: string;
   hasInitFailed: boolean;
   hasProgressFailed: boolean;
+  hasRunFailed: boolean;
   isAgentConnected: boolean;
   issueLinkReferrer: string;
-  /** The host supplies the action for continuing with browser setup. */
-  manualSetup: React.ReactNode;
-  onCopyCommand: (source: AgentSetupCopySource) => void;
+  onCopyCommand: (source: AgentSetupCopySource, handoffId: string) => void;
   onRefresh: () => void;
   onRetry: () => void;
   onSelectSnippet: (source: AgentSetupCopySource) => void;
-  prompt: string;
+  /** The host supplies the action for continuing with browser setup. */
+  onSetupInBrowser: () => void;
   run: AgenticProgressRun | undefined;
-  onboardingCode?: string;
+  handoffFlow?: AgentHandoffFlow;
+  /** Rendered at the end of the row under the progress list. */
+  metaAction?: React.ReactNode;
 }
 
 export function AgenticSetup({
   hasInitFailed,
   isAgentConnected,
-  onboardingCode,
   onCopyCommand,
   onRetry,
   onSelectSnippet,
-  manualSetup,
-  prompt,
+  onSetupInBrowser,
   feedbackSource,
   issueLinkReferrer,
   hasProgressFailed,
+  hasRunFailed,
   onRefresh,
   run,
+  handoffFlow = AgentHandoffFlow.ONBOARDING,
+  metaAction,
 }: AgenticSetupProps) {
-  const hasRunFailed = run?.runStatus === 'failed' || run?.runStatus === 'cancelled';
   const showsProgress =
     Boolean(run) && (isAgentConnected || run?.runStatus === 'completed' || hasRunFailed);
 
@@ -63,7 +68,7 @@ export function AgenticSetup({
             </Button>
           }
         >
-          {t('Could not start setup, so the prompt below will not report progress.')}
+          {t('Could not prepare agent setup. Try again or set up manually.')}
         </Alert>
       </ScmCollapsibleReveal>
 
@@ -102,8 +107,8 @@ export function AgenticSetup({
             >
               <AgenticProgress
                 run={run}
-                onboardingCode={onboardingCode}
                 issueLinkReferrer={issueLinkReferrer}
+                metaAction={metaAction}
               />
             </MotionContainer>
           ) : (
@@ -116,14 +121,15 @@ export function AgenticSetup({
               exit={{opacity: 0}}
               transition={CARD_MORPH_TRANSITION}
             >
-              <AgentSetupCard
-                feedbackSource={feedbackSource}
-                hasSetupFailed={hasInitFailed}
-                onboardingCode={onboardingCode}
-                onCopyCommand={onCopyCommand}
-                onSelectSnippet={onSelectSnippet}
-                prompt={prompt}
-              />
+              <SetupCardFrame>
+                <AgentSetupCard
+                  feedbackSource={feedbackSource}
+                  flow={handoffFlow}
+                  onCopyCommand={onCopyCommand}
+                  onSelectSnippet={onSelectSnippet}
+                  run={run}
+                />
+              </SetupCardFrame>
             </MotionContainer>
           )}
         </AnimatePresence>
@@ -136,13 +142,25 @@ export function AgenticSetup({
       </ScmCollapsibleReveal>
 
       <ScmCollapsibleReveal open={!showsProgress || hasRunFailed}>
-        <Stack gap="2xl" align="center" width="100%">
-          <Text variant="muted" size="md" bold>
-            {t('or')}
-          </Text>
-
-          {manualSetup}
-        </Stack>
+        <Container width="100%">
+          {buttonProps => (
+            <Button
+              {...buttonProps}
+              variant="transparent"
+              onClick={onSetupInBrowser}
+              data-test-id="onboarding-setup-in-browser"
+            >
+              <Flex as="span" align="center" gap="sm">
+                <Text variant="secondary">
+                  {tct('Prefer to do it yourself? [manual]', {
+                    manual: <Text variant="accent">{t('Set up manually')}</Text>,
+                  })}
+                </Text>
+                <IconChevron direction="right" size="sm" variant="accent" />
+              </Flex>
+            </Button>
+          )}
+        </Container>
       </ScmCollapsibleReveal>
     </Stack>
   );

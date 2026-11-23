@@ -127,6 +127,15 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
+    def get_proxy_user_id_for_provider(self, *, organization_id: int, provider: str) -> int | None:
+        """
+        Get the proxy user id of the sentry app installed for `provider` in an organization,
+        e.g. the SCIM internal integration for an auth provider.
+        """
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
     def find_alertable_services(self, *, organization_id: int) -> list[RpcSentryAppService]:
         pass
 

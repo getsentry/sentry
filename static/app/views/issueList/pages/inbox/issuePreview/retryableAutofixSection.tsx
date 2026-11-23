@@ -2,7 +2,6 @@ import {createContext, use} from 'react';
 import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Button} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
 
 import {
   type AutofixExplorerStep,
@@ -37,11 +36,7 @@ export function RetryableAutofixSection({
   readOnly?: boolean;
 }) {
   const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
-    useResetAutofixStep({
-      autofix,
-      section,
-      step,
-    });
+    useResetAutofixStep({autofix, section, step});
 
   return (
     <RetryableAutofixSectionContext
@@ -83,14 +78,12 @@ function ResetPrompt({
   const {handleReset, setShouldShowReset, shouldShowReset} = useRetryableAutofixSection();
 
   return shouldShowReset ? (
-    <Container paddingBottom="xl">
-      <AutofixResetPrompt
-        onClosePrompt={() => setShouldShowReset(false)}
-        onReset={handleReset}
-        placeholder={placeholder}
-        prompt={prompt}
-      />
-    </Container>
+    <AutofixResetPrompt
+      onClosePrompt={() => setShouldShowReset(false)}
+      onReset={handleReset}
+      placeholder={placeholder}
+      prompt={prompt}
+    />
   ) : null;
 }
 

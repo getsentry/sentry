@@ -12,21 +12,23 @@ import {WorkflowEngineListLayout} from 'sentry/components/workflowEngine/layout/
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';
-import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorListContent';
-import {DetectorListHeader} from 'sentry/views/detectors/list/common/detectorListHeader';
-import {InsightsRedirectNotice} from 'sentry/views/detectors/list/common/insightsRedirectNotice';
-import {useDetectorListQuery} from 'sentry/views/detectors/list/common/useDetectorListQuery';
 import {
   MonitorViewContext,
   type MonitorViewContextValue,
 } from 'sentry/views/detectors/monitorViewContext';
 import {
   checkStatusPrecedent,
+  MAX_BUCKET_INTERVAL,
   statusToText,
   tickStyle,
 } from 'sentry/views/insights/uptime/timelineConfig';
 import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
+
+import {DetectorListActions} from './common/detectorListActions';
+import {DetectorListContent} from './common/detectorListContent';
+import {DetectorListHeader} from './common/detectorListHeader';
+import {InsightsRedirectNotice} from './common/insightsRedirectNotice';
+import {useDetectorListQuery} from './common/useDetectorListQuery';
 
 function VisualizationCell({detector}: {detector: UptimeDetector}) {
   const uptimeDetectorId = detector.id;
@@ -34,7 +36,10 @@ function VisualizationCell({detector}: {detector: UptimeDetector}) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions({elementRef});
   const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 1000});
-  const timeWindowConfig = useTimeWindowConfig({timelineWidth});
+  const timeWindowConfig = useTimeWindowConfig({
+    timelineWidth,
+    maxBucketInterval: MAX_BUCKET_INTERVAL,
+  });
 
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({
     detectorIds: [uptimeDetectorId],
@@ -42,7 +47,12 @@ function VisualizationCell({detector}: {detector: UptimeDetector}) {
   });
 
   return (
-    <SimpleTable.RowCell column="-3 / -1" padding="lg 0" borderLeft="muted" height="100%">
+    <SimpleTable.RowCell
+      column="-3 / -1"
+      padding="lg 0"
+      borderLeft="secondary"
+      height="100%"
+    >
       <Flex width="100%" height="100%" ref={elementRef} align="center">
         {isPending ? (
           <CheckInPlaceholder />
@@ -73,13 +83,14 @@ export default function UptimeDetectorsList() {
 
   const contextValue = useMemo<MonitorViewContextValue>(
     () => ({
+      maxBucketInterval: MAX_BUCKET_INTERVAL,
       renderVisualization: ({detector}) => {
         if (!detector) {
           return (
             <SimpleTable.RowCell
               column="-3 / -1"
               padding="lg 0"
-              borderLeft="muted"
+              borderLeft="secondary"
               height="100%"
             >
               <CheckInPlaceholder />

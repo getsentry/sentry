@@ -20,6 +20,9 @@ from sentry.utils.snuba import raw_snql_query
 from tests.sentry.feedback import mock_feedback_event
 
 
+# Snowflake org and project ids repeat when two tests start in the same second, so reset Snuba
+# rather than read back a previous test's rows for "our" project.
+@pytest.mark.usefixtures("reset_snuba")
 class TestLabelQuery(APITestCase):
     def setUp(self) -> None:
         super().setUp()

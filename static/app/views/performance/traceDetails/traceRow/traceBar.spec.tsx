@@ -21,10 +21,8 @@ import {TraceScheduler} from 'sentry/views/performance/traceDetails/traceRendere
 import {TraceTimeCompression} from 'sentry/views/performance/traceDetails/traceRenderers/traceTimeCompression';
 import {TraceView} from 'sentry/views/performance/traceDetails/traceRenderers/traceView';
 import {VirtualizedViewManager} from 'sentry/views/performance/traceDetails/traceRenderers/virtualizedViewManager';
-import {
-  AutogroupedTraceBar,
-  InvisibleTraceBar,
-} from 'sentry/views/performance/traceDetails/traceRow/traceBar';
+
+import {AutogroupedTraceBar, InvisibleTraceBar} from './traceBar';
 
 function CompressionLayoutEffect({
   children,
@@ -269,10 +267,7 @@ describe.each(['sibling', 'parent'] as const)('AutogroupedTraceBar (%s)', groupi
     issueKind => {
       const organization = OrganizationFixture();
       const spans = [0, 225, 450, 675, 900].map(start =>
-        makeEAPSpan({
-          start_timestamp: start / 1000,
-          end_timestamp: (start + 100) / 1000,
-        })
+        makeEAPSpan({start_timestamp: start / 1000, end_timestamp: (start + 100) / 1000})
       );
       if (issueKind === 'error' || issueKind === 'combined') {
         spans[4]!.errors = [makeEAPError({start_timestamp: 0.9})];

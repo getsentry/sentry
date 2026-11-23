@@ -1,10 +1,10 @@
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import {Priority} from 'sentry/views/automations/components/actionFilters/constants';
-import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 
+import {Priority} from './actionFilters/constants';
 import {useAutomationBuilderReducer} from './automationBuilderContext';
+import {dataConditionNodesMap} from './dataConditionNodes';
 
 describe('useAutomationBuilderReducer', () => {
   it('falls back to true for when conditions without a defaultComparison', () => {

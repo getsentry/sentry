@@ -25,7 +25,7 @@ def report_hydration_error_issue_with_replay_event(
     timestamp: float,
     url: str | None,
     replay_event: dict[str, Any],
-):
+) -> None:
     metrics.incr("replay.hydration_error_issue_creation_with_replay_event")
 
     # Seconds since epoch is UTC.
@@ -66,7 +66,7 @@ def report_rage_click_issue_with_replay_event(
     node: dict[str, Any],
     component_name: str | None,
     replay_event: dict[str, Any],
-):
+) -> None:
     metrics.incr("replay.rage_click_issue_creation_with_replay_event")
 
     # Seconds since epoch is UTC.
@@ -128,7 +128,10 @@ def report_rage_click_issue_with_replay_event(
     )
 
 
-def _make_contexts(replay_id, replay_event):
+def _make_contexts(
+    replay_id: str,
+    replay_event: dict[str, Any],
+) -> dict[str, Any]:
     contexts = {"replay": {"replay_id": replay_id}}
 
     if replay_event.get("trace_ids"):
@@ -146,7 +149,11 @@ def _make_contexts(replay_id, replay_event):
     return contexts
 
 
-def _make_tags(replay_id, url, replay_event):
+def _make_tags(
+    replay_id: str,
+    url: str | None,
+    replay_event: dict[str, Any],
+) -> dict[str, Any]:
     tags = {"replayId": replay_id, "url": url}
     if replay_event.get("tags"):
         tags.update(replay_event["tags"])
@@ -154,7 +161,7 @@ def _make_tags(replay_id, url, replay_event):
     return tags
 
 
-def _make_clicked_element(node):
+def _make_clicked_element(node: dict[str, Any]) -> str:
     element = node.get("tagName", "")
     if "attributes" in node:
         for key, value in node["attributes"].items():

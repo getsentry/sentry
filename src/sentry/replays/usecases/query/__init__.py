@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -41,6 +41,7 @@ from sentry import options
 from sentry.api.event_search import (
     ParenExpression,
     QueryToken,
+    SearchBoolean,
     SearchFilter,
     SearchKey,
     SearchValue,
@@ -50,7 +51,7 @@ from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
 from sentry.replays.lib.new_query.fields import ColumnField, ExpressionField, FieldProtocol
 from sentry.replays.usecases.query.errors import RetryAggregated
-from sentry.replays.usecases.query.fields import ComputedField, TagField
+from sentry.replays.usecases.query.fields import ComputedField
 from sentry.utils.snuba import RateLimitExceeded, raw_snql_query
 
 VIEWED_BY_ME_KEY_ALIASES = ["viewed_by_me", "seen_by_me"]
@@ -109,6 +110,8 @@ def handle_search_filters(
     search_filters: Sequence[QueryToken],
 ) -> list[Condition]:
     """Convert search filters to snuba conditions."""
+    validate_boolean_operators(search_filters)
+
     result: list[Condition] = []
     look_back = None
     for search_filter in search_filters:
@@ -153,11 +156,32 @@ def handle_search_filters(
     return result
 
 
+def validate_boolean_operators(search_filters: Sequence[QueryToken]) -> None:
+    """Reject dangling or adjacent boolean operators.
+
+    Mirrors the sanitization in the event search query builders so replays return the same
+    errors for the same malformed queries.
+    """
+    previous: QueryToken | None = None
+    for term in search_filters:
+        if SearchBoolean.is_operator(term):
+            if previous is None:
+                raise ParseError(f"Condition is missing on the left side of '{term}' operator")
+            if SearchBoolean.is_operator(previous):
+                raise ParseError(
+                    f"Missing condition in between two condition operators: '{previous} {term}'"
+                )
+        previous = term
+
+    if SearchBoolean.is_operator(previous):
+        raise ParseError(f"Condition is missing on the right side of '{previous}' operator")
+
+
 def attempt_compressed_condition(
     result: list[Expression],
     condition: Condition,
     condition_type: And | Or,
-):
+) -> None:
     """Unnecessary query optimization.
 
     Improves legibility for query debugging. Clickhouse would flatten these nested OR statements
@@ -180,7 +204,7 @@ def search_filter_to_condition(
         return field.apply(search_filter)
 
     if "*" in search_config:
-        field = cast(TagField, search_config["*"])
+        field = search_config["*"]
         return field.apply(search_filter)
 
     return None
@@ -234,7 +258,7 @@ def query_using_optimized_search(
     request_user_id: int | None = None,
     preferred_source: PREFERRED_SOURCE = "scalar",
     referrer: str | None = None,
-):
+) -> QueryResponse:
     tenant_id = _make_tenant_id(organization)
 
     # Environments is provided to us outside of the ?query= url parameter. It's stil filtered like
@@ -325,7 +349,7 @@ def _query_using_scalar_strategy(
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
-):
+) -> tuple[Query, str, str]:
     can_scalar_search = can_scalar_search_subquery(search_filters, period_start)
     can_scalar_sort = sort_is_scalar_compatible(sort or DEFAULT_SORT_FIELD)
     if not can_scalar_search or not can_scalar_sort:
@@ -383,7 +407,7 @@ def _query_using_aggregated_strategy(
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
-):
+) -> tuple[Query, str, str]:
     orderby = handle_ordering(
         agg_sort_config,
         sort or "-" + DEFAULT_SORT_FIELD,
@@ -427,6 +451,12 @@ def make_full_aggregation_query(
 
     select = select_from_fields(fields, user_id=request_user_id)
 
+    try:
+        padded_start = period_start - timedelta(hours=1)
+        padded_end = period_end + timedelta(hours=1)
+    except OverflowError:
+        raise ParseError("Invalid date range: start or end is out of range")
+
     return Query(
         match=Entity("replays"),
         select=select,
@@ -438,8 +468,8 @@ def make_full_aggregation_query(
             # We can scan an extended time range to account for replays which span either end of
             # the range.  These timestamps are an optimization and could be removed with minimal
             # performance impact.  It's a point query.  Its super fast.
-            Condition(Column("timestamp"), Op.GTE, period_start - timedelta(hours=1)),
-            Condition(Column("timestamp"), Op.LT, period_end + timedelta(hours=1)),
+            Condition(Column("timestamp"), Op.GTE, padded_start),
+            Condition(Column("timestamp"), Op.LT, padded_end),
         ],
         # NOTE: Refer to this note: "make_scalar_search_conditions_query".
         #

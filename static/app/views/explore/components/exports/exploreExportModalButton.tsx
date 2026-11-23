@@ -4,12 +4,10 @@ import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
 
 import {t} from 'sentry/locale';
-import {ExploreExportModal} from 'sentry/views/explore/components/exports/exploreExportModal';
-import type {
-  ExploreExportConfig,
-  ExploreExportModalCloseReason,
-} from 'sentry/views/explore/components/exports/types';
 import {getExportDisabledTooltip} from 'sentry/views/explore/components/getExportDisabledTooltip';
+
+import {ExploreExportModal} from './exploreExportModal';
+import type {ExploreExportConfig, ExploreExportModalCloseReason} from './types';
 
 const GLOBAL_MODAL_DISMISS_TO_CLOSE_REASON = {
   'backdrop-click': 'backdrop_click',

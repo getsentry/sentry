@@ -4,7 +4,7 @@ import {BillingStatFixture} from 'getsentry-test/fixtures/billingStat';
 import {CustomerUsageFixture} from 'getsentry-test/fixtures/customerUsage';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {UsageTotalFixture} from 'getsentry-test/fixtures/usageTotal';
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
@@ -37,28 +37,15 @@ describe('UsageCharts', () => {
   }
 
   it('renders', async () => {
-    const subscription = SubscriptionFixture({
-      organization,
-    });
-    subscription.categories.errors = {
-      ...subscription.categories.errors!,
-      usage: 50,
-    };
+    const subscription = SubscriptionFixture({organization});
+    subscription.categories.errors = {...subscription.categories.errors!, usage: 50};
     SubscriptionStore.set(organization.slug, subscription);
     const usageData = CustomerUsageFixture({
-      totals: {
-        [DataCategory.ERRORS]: totals,
-      },
-      stats: {
-        [DataCategory.ERRORS]: stats,
-      },
+      totals: {[DataCategory.ERRORS]: totals},
+      stats: {[DataCategory.ERRORS]: stats},
     });
     await act(async () => {
-      renderComponent({
-        subscription,
-        usageData,
-        selectedProduct: DataCategory.ERRORS,
-      });
+      renderComponent({subscription, usageData, selectedProduct: DataCategory.ERRORS});
 
       // filter values are asynchronously persisted
       await tick();
@@ -74,10 +61,7 @@ describe('UsageCharts', () => {
   });
 
   it('renders event breakdown', async () => {
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am2_team',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'am2_team'});
     organization.features.push('profiling-billing');
     subscription.categories.transactions = {
       ...subscription.categories.transactions!,
@@ -85,14 +69,8 @@ describe('UsageCharts', () => {
     };
     SubscriptionStore.set(organization.slug, subscription);
     const usageData = CustomerUsageFixture({
-      totals: {
-        [DataCategory.TRANSACTIONS]: totals,
-        [DataCategory.PROFILES]: totals,
-      },
-      stats: {
-        [DataCategory.TRANSACTIONS]: stats,
-        [DataCategory.PROFILES]: stats,
-      },
+      totals: {[DataCategory.TRANSACTIONS]: totals, [DataCategory.PROFILES]: totals},
+      stats: {[DataCategory.TRANSACTIONS]: stats, [DataCategory.PROFILES]: stats},
       eventTotals: {
         [DataCategory.TRANSACTIONS]: {
           [DataCategory.TRANSACTIONS]: totals,
@@ -130,5 +108,42 @@ describe('UsageCharts', () => {
       screen.getByRole('columnheader', {name: '% of Transactions'})
     ).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: '% of Profiles'})).toBeInTheDocument();
+  });
+
+  it('pushes the selected chart type to the URL', async () => {
+    const subscription = SubscriptionFixture({organization});
+    subscription.categories.errors = {...subscription.categories.errors!, usage: 50};
+    SubscriptionStore.set(organization.slug, subscription);
+    const usageData = CustomerUsageFixture({
+      totals: {[DataCategory.ERRORS]: totals},
+      stats: {[DataCategory.ERRORS]: stats},
+    });
+    const onNuqsUrlUpdate = jest.fn();
+
+    const {router} = render(
+      <UsageCharts
+        organization={organization}
+        subscription={subscription}
+        usageData={usageData}
+        selectedProduct={DataCategory.ERRORS}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/settings/billing/overview/', query: {product: 'errors'}},
+        },
+        onNuqsUrlUpdate,
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: /Cumulative/}));
+    await userEvent.click(screen.getByRole('option', {name: 'Periodic'}));
+    expect(screen.getByRole('button', {name: /Periodic/})).toBeInTheDocument();
+
+    await waitFor(() => expect(router.location.query.transform).toBe('periodic'));
+    expect(router.location.query.product).toBe('errors');
+    expect(onNuqsUrlUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'push'})})
+    );
   });
 });

@@ -37,17 +37,15 @@ import {
   HTTP_RESPONSE_5XX_COLOR,
   THROUGHPUT_COLOR,
 } from 'sentry/views/insights/colors';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {ChartActionDropdown} from 'sentry/views/insights/common/components/chartActionDropdown';
-import {
-  ChartContainer,
-  ModalChartContainer,
-} from 'sentry/views/insights/common/components/insightsChartContainer';
-import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/types';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {BASE_FIELD_ALIASES, INGESTION_DELAY} from 'sentry/views/insights/settings';
 import type {SpanFields} from 'sentry/views/insights/types';
+
+import type {LoadableChartWidgetProps} from './widgets/types';
+import {ChartType} from './chart';
+import {ChartActionDropdown} from './chartActionDropdown';
+import {ChartContainer, ModalChartContainer} from './insightsChartContainer';
 
 export interface InsightsTimeSeriesWidgetProps
   extends WidgetTitleProps, LoadableChartWidgetProps {
@@ -100,15 +98,9 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     enabled: props.showReleaseAs !== 'none',
   });
   const releases =
-    releasesWithDate?.map(({date, version}) => ({
-      timestamp: date,
-      version,
-    })) ?? [];
+    releasesWithDate?.map(({date, version}) => ({timestamp: date, version})) ?? [];
 
-  const aliases: Record<string, string> = {
-    ...BASE_FIELD_ALIASES,
-    ...props?.aliases,
-  };
+  const aliases: Record<string, string> = {...BASE_FIELD_ALIASES, ...props?.aliases};
 
   const PlottableDataConstructor =
     props.visualizationType === 'line'

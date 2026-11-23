@@ -22,21 +22,19 @@ import {useQueryParamsQuery} from 'sentry/views/explore//queryParams/context';
 import {getBodySearchTerms} from 'sentry/views/explore/bodySearchTerms';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
-import {FIELDS, SORTS, type Field} from 'sentry/views/explore/tables/tracesTable/data';
+import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+
+import {FIELDS, SORTS, type Field} from './data';
 import {
   SpanBreakdownSliceRenderer,
   SpanDescriptionRenderer,
   SpanIdRenderer,
   SpanTimeRenderer,
   TraceBreakdownContainer,
-} from 'sentry/views/explore/tables/tracesTable/fieldRenderers';
-import {SpanTableCell} from 'sentry/views/explore/tables/tracesTable/styles';
-import type {
-  SpanResult,
-  SpanResults,
-} from 'sentry/views/explore/tables/tracesTable/types';
-import {getSecondaryNameFromSpan} from 'sentry/views/explore/tables/tracesTable/utils';
-import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+} from './fieldRenderers';
+import {SpanTableCell} from './styles';
+import type {SpanResult, SpanResults} from './types';
+import {getSecondaryNameFromSpan} from './utils';
 
 const ONE_MINUTE = 60 * 1000; // in milliseconds
 
@@ -53,10 +51,7 @@ export function TraceSpansTable({trace}: {trace: TraceResult}) {
 
   const query = useQueryParamsQuery();
 
-  const {data, isPending, isError} = useSpans({
-    query,
-    trace,
-  });
+  const {data, isPending, isError} = useSpans({query, trace});
 
   const spans = useMemo(() => data?.data ?? [], [data]);
 
@@ -211,6 +206,7 @@ function useSpans({query, trace}: UseSpansOptions): {
 } {
   const {selection} = usePageFilters();
   const dataset = useSpansDataset();
+  const [caseInsensitive] = useCaseInsensitivity();
 
   const eventView = useMemo(() => {
     const fields = [
@@ -257,7 +253,7 @@ function useSpans({query, trace}: UseSpansOptions): {
     limit: 10,
     referrer: 'api.trace-explorer.trace-spans-list',
     allowAggregateConditions: false,
-    trackResponseAnalytics: false,
+    queryExtras: {caseInsensitive},
   });
 
   const data = useMemo(() => {
@@ -284,9 +280,5 @@ function useSpans({query, trace}: UseSpansOptions): {
     };
   }, [result]);
 
-  return {
-    isPending: result.isPending,
-    isError: result.isError,
-    data,
-  };
+  return {isPending: result.isPending, isError: result.isError, data};
 }

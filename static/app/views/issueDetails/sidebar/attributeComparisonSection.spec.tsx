@@ -4,7 +4,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {AttributeComparisonSection} from 'sentry/views/issueDetails/sidebar/attributeComparisonSection';
+
+import {AttributeComparisonSection} from './attributeComparisonSection';
 
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(({style}) => {

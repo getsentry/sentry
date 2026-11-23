@@ -1,4 +1,6 @@
 import {Fragment, useEffect} from 'react';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -7,22 +9,24 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {AuthCritter} from 'sentry/views/authV2/authCritter';
 import {useAuthConfig} from 'sentry/views/authV2/authLogin/hooks/useAuthConfig';
-import {useBrandedAuthLoading} from 'sentry/views/authV2/useBrandedAuthLoading';
+import {useAuthPageLoading} from 'sentry/views/authV2/useAuthPageLoading';
 
 import {RegistrationForm} from './registrationForm';
 
 export default function AuthRegister() {
-  const {termsUrl, privacyUrl} = useLegacyStore(ConfigStore);
+  const {termsUrl, privacyUrl} = useStore(
+    ConfigStore,
+    useShallow(state => ({termsUrl: state.termsUrl, privacyUrl: state.privacyUrl}))
+  );
   const {
     data: authConfig,
     isPending: isAuthConfigPending,
     error: authConfigError,
   } = useAuthConfig();
-  useBrandedAuthLoading(isAuthConfigPending);
+  useAuthPageLoading(isAuthConfigPending);
 
   const loginConfig = authConfig && !('nextUri' in authConfig) ? authConfig : null;
   const nextUri = authConfig && 'nextUri' in authConfig ? authConfig.nextUri : null;

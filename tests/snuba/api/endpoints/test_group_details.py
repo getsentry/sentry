@@ -72,6 +72,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             for timestamp in last_release.values()
         ][-1]
         group = event.group
+        assert group is not None
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.get(url, format="json")
@@ -80,12 +81,12 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["id"] == str(group.id)
         release = response.data["firstRelease"]
         assert release["version"] == "1.0"
-        for event, timestamp in first_release.items():
-            assert release[event].ctime() == timestamp.ctime()
+        for release_version, timestamp in first_release.items():
+            assert release[release_version].ctime() == timestamp.ctime()
         release = response.data["lastRelease"]
         assert release["version"] == "1.0a"
-        for event, timestamp in last_release.items():
-            assert release[event].ctime() == timestamp.ctime()
+        for release_version, timestamp in last_release.items():
+            assert release[release_version].ctime() == timestamp.ctime()
 
     def test_first_last_only_one_tagstore(self) -> None:
         self.login_as(user=self.user)
@@ -100,6 +101,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         )
 
         group = event.group
+        assert group is not None
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
@@ -125,6 +127,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         Release.objects.get(version="1.1").delete()
 
         group = event.group
+        assert group is not None
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
@@ -147,6 +150,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/?expand=inbox"
@@ -156,6 +160,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["inbox"] is not None
         assert response.data["inbox"]["reason"] == GroupInboxReason.NEW.value
         assert response.data["inbox"]["reason_details"] is None
+        assert event.group is not None
         remove_group_from_inbox(event.group)
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
@@ -168,6 +173,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/?expand=owners"
 
         self.login_as(user=self.user)
@@ -177,6 +183,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["owners"] is None
 
         # Test with owners
+        assert event.group is not None
         GroupOwner.objects.create(
             group=event.group,
             project=event.project,
@@ -198,6 +205,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
         generate_and_save_forecasts([group])
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/?expand=forecast"
@@ -258,6 +266,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.put(
             url, {"assignedTo": "admin@localhost", "status": "unresolved"}, format="json"
@@ -282,6 +291,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             data={"timestamp": before_now(minutes=3).isoformat()},
             project_id=self.project.id,
         )
+        assert event.group is not None
         url = f"/api/0/organizations/{event.group.organization.slug}/issues/{event.group.id}/"
 
         response = self.client.get(url, {"collapse": ["stats"]}, format="json")
@@ -301,6 +311,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
+        assert event.group is not None
         url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200

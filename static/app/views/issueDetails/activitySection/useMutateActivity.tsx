@@ -5,10 +5,12 @@ import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {issueCommentsQueryOptions} from 'sentry/views/issueDetails/activitySection/issueCommentsQueryOptions';
-import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {groupQueryFilter} from 'sentry/views/issueDetails/useGroup';
+
+import {issueCommentsQueryOptions} from './issueCommentsQueryOptions';
 
 type ActivityMutation =
   | {method: 'POST'; note: NoteType}
@@ -22,15 +24,14 @@ interface Props {
 
 export function useMutateActivity({organization, group}: Props) {
   const queryClient = useQueryClient();
-  const queryKey = groupQueryKey({
+  const groupFilter = groupQueryFilter({
     organizationSlug: organization.slug,
     groupId: group.id,
   });
-  const activityQueryKey = [
-    getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/activities/', {
-      path: {organizationIdOrSlug: organization.slug, issueId: group.id},
-    }),
-  ];
+  const activityFilter = apiOptions.queryFilter(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/activities/',
+    {path: {organizationIdOrSlug: organization.slug, issueId: group.id}}
+  );
 
   const {mutateAsync} = useMutation({
     mutationFn: (mutation: ActivityMutation) => {
@@ -47,10 +48,7 @@ export function useMutateActivity({organization, group}: Props) {
               }
             )
           : getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/comments/', {
-              path: {
-                organizationIdOrSlug: organization.slug,
-                issueId: group.id,
-              },
+              path: {organizationIdOrSlug: organization.slug, issueId: group.id},
             });
 
       return fetchMutation<GroupActivityNote>({
@@ -64,7 +62,7 @@ export function useMutateActivity({organization, group}: Props) {
       });
     },
     onSuccess: (result, mutation) => {
-      queryClient.setQueriesData<ApiResponse<Group>>({queryKey}, prev => {
+      queryClient.setQueriesData<ApiResponse<Group>>(groupFilter, prev => {
         if (!prev) {
           return prev;
         }
@@ -72,10 +70,7 @@ export function useMutateActivity({organization, group}: Props) {
         const updateGroup = (
           activity: GroupActivity[],
           numComments: number
-        ): ApiResponse<Group> => ({
-          ...prev,
-          json: {...prev.json, activity, numComments},
-        });
+        ): ApiResponse<Group> => ({...prev, json: {...prev.json, activity, numComments}});
 
         switch (mutation.method) {
           case 'POST':
@@ -87,10 +82,7 @@ export function useMutateActivity({organization, group}: Props) {
             return updateGroup(
               prev.json.activity.map(item =>
                 item.type === GroupActivityType.NOTE && item.commentId === mutation.noteId
-                  ? {
-                      ...item,
-                      data: {...item.data, ...result.data},
-                    }
+                  ? {...item, data: {...item.data, ...result.data}}
                   : item
               ),
               prev.json.numComments
@@ -113,7 +105,7 @@ export function useMutateActivity({organization, group}: Props) {
           groupId: group.id,
         }).queryKey,
       });
-      void queryClient.invalidateQueries({queryKey: activityQueryKey});
+      void queryClient.invalidateQueries(activityFilter);
     },
   });
 

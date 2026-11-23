@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
+from sentry.auth.principal import is_acting_user
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models.organizationmapping import OrganizationMapping
@@ -30,7 +31,7 @@ class UserRegionEndpointPermissions(UserPermission):
     def has_object_permission(
         self, request: Request, view: Any, user: User | RpcUser | None = None
     ) -> bool:
-        if user and user.id == request.user.id and request.user.is_authenticated:
+        if user and is_acting_user(request.user, user.id) and request.user.is_authenticated:
             return True
         if is_system_auth(request.auth):
             return True

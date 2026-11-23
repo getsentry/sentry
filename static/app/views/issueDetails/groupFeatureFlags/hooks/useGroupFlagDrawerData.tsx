@@ -2,8 +2,9 @@ import {useMemo} from 'react';
 
 import {OrderBy} from 'sentry/components/events/featureFlags/utils';
 import type {Group} from 'sentry/types/group';
-import {useGroupFeatureFlags} from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFeatureFlags';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+
+import {useGroupFeatureFlags} from './useGroupFeatureFlags';
 
 interface Props {
   environments: string[];
@@ -32,25 +33,7 @@ export function useGroupFlagDrawerData({
     isError: isFlagsError,
     isPending: isFlagsPending,
     refetch: refetchFlags,
-  } = useGroupFeatureFlags({
-    groupId: group.id,
-    environment: environments,
-  });
-
-  // Flatten all the tag values together into a big string. This is meant as a
-  // perf improvement: here we iterate over all tags&values once, (N*M) then
-  // later only iterate through each tag (N) as the search term changes.
-  const tagValues = useMemo(
-    () =>
-      groupFlags.reduce<Record<string, string>>((valueMap, flag) => {
-        valueMap[flag.key] = flag.topValues
-          .map(tv => tv.value)
-          .join(' ')
-          .toLowerCase();
-        return valueMap;
-      }, {}),
-    [groupFlags]
-  );
+  } = useGroupFeatureFlags({groupId: group.id, environment: environments});
 
   const filteredFlags = useMemo(() => {
     const searchLower = search.toLowerCase();
@@ -58,10 +41,10 @@ export function useGroupFlagDrawerData({
       return (
         flag.name.includes(searchLower) ||
         flag.key.includes(searchLower) ||
-        tagValues[flag.key]?.includes(searchLower)
+        flag.topValues.some(tv => tv.value?.toLowerCase().includes(searchLower))
       );
     });
-  }, [groupFlags, search, tagValues]);
+  }, [groupFlags, search]);
 
   const displayFlags = useMemo(() => {
     if (orderBy === OrderBy.A_TO_Z) {

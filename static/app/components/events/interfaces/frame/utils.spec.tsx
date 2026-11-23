@@ -1,8 +1,10 @@
+import type {Event, Frame} from 'sentry/types/event';
+
 import {
   hasFileExtension,
+  isUnlinkableFilename,
   isPotentiallyThirdPartyFrame,
-} from 'sentry/components/events/interfaces/frame/utils';
-import type {Event, Frame} from 'sentry/types/event';
+} from './utils';
 
 describe('hasFileExtension', () => {
   test('returns true for valid file names with extensions', () => {
@@ -28,15 +30,43 @@ describe('hasFileExtension', () => {
   });
 });
 
+describe('isUnlinkableFilename', () => {
+  it.each([
+    '<anonymous>',
+    '<string>',
+    '[native code]',
+    'node:internal/process/task_queues',
+    'app:///main.jsbundle',
+    'app:///index.android.bundle',
+    'il2cpp-codegen.h',
+    'Assembly-CSharp__34.cpp',
+    'App.g.i.cs',
+    'DaggerExampleApp_HiltComponents_SingletonC.java',
+    'LoginActivity_GeneratedInjector.java',
+  ])('returns true for %s', filename => {
+    expect(isUnlinkableFilename(filename)).toBe(true);
+  });
+
+  it.each([
+    'src/app.tsx',
+    'app:///src/app.js',
+    'sentry/app.py',
+    'node_modules/foo.js',
+    'LoggerMessage.g.cs',
+    'DaggerWorkerFactory.kt',
+    'src/my-il2cpp-codegen.h',
+  ])('returns false for %s', filename => {
+    expect(isUnlinkableFilename(filename)).toBe(false);
+  });
+});
+
 describe('isPotentiallyThirdPartyFrame', () => {
   it('returns false when absPath is from event subdomain', () => {
     const event = {
       tags: [{key: 'url', value: 'https://example.com/page'}],
       platform: 'javascript',
     } as Event;
-    const frame = {
-      absPath: 'https://cdn.example.org/script.js',
-    } as Frame;
+    const frame = {absPath: 'https://cdn.example.org/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(true);
   });
 
@@ -45,9 +75,7 @@ describe('isPotentiallyThirdPartyFrame', () => {
       tags: [{key: 'url', value: 'https://example.com/page'}],
       platform: 'javascript',
     } as Event;
-    const frame = {
-      absPath: 'https://example.com/script.js',
-    } as Frame;
+    const frame = {absPath: 'https://example.com/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(false);
   });
 
@@ -56,9 +84,7 @@ describe('isPotentiallyThirdPartyFrame', () => {
       tags: [{key: 'url', value: 'https://example.com/page'}],
       platform: 'javascript',
     } as Event;
-    const frame = {
-      absPath: '/path/to/script.js',
-    } as Frame;
+    const frame = {absPath: '/path/to/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(false);
   });
 
@@ -67,9 +93,7 @@ describe('isPotentiallyThirdPartyFrame', () => {
       tags: [{key: 'something', value: 'else'}],
       platform: 'javascript',
     } as Event;
-    const frame = {
-      absPath: 'https://cdn.example.org/script.js',
-    } as Frame;
+    const frame = {absPath: 'https://cdn.example.org/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(false);
   });
 
@@ -78,9 +102,7 @@ describe('isPotentiallyThirdPartyFrame', () => {
       tags: [{key: 'url', value: 'https://example.com/page'}],
       platform: 'javascript',
     } as Event;
-    const frame = {
-      absPath: 'https://muy-diferente.com/script.js',
-    } as Frame;
+    const frame = {absPath: 'https://muy-diferente.com/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(true);
   });
 
@@ -89,9 +111,7 @@ describe('isPotentiallyThirdPartyFrame', () => {
       tags: [{key: 'url', value: 'https://example.com/page'}],
       platform: 'javascript',
     } as Event;
-    const frame = {
-      absPath: 'http://example.com/script.js',
-    } as Frame;
+    const frame = {absPath: 'http://example.com/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(true);
   });
 
@@ -100,9 +120,7 @@ describe('isPotentiallyThirdPartyFrame', () => {
       tags: [{key: 'url', value: 'https://example.com/page'}],
       platform: 'python',
     } as Event;
-    const frame = {
-      absPath: 'https://muy-diferente.com/script.js',
-    } as Frame;
+    const frame = {absPath: 'https://muy-diferente.com/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(false);
   });
 
@@ -111,9 +129,7 @@ describe('isPotentiallyThirdPartyFrame', () => {
       tags: [{key: 'url', value: 'https://192.168.1.1/page'}],
       platform: 'javascript',
     } as Event;
-    const frame = {
-      absPath: 'https://192.168.1.1/script.js',
-    } as Frame;
+    const frame = {absPath: 'https://192.168.1.1/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(false);
   });
 
@@ -122,9 +138,7 @@ describe('isPotentiallyThirdPartyFrame', () => {
       tags: [{key: 'url', value: 'http://localhost:8000/page'}],
       platform: 'javascript',
     } as Event;
-    const frame = {
-      absPath: 'http://localhost:8000/script.js',
-    } as Frame;
+    const frame = {absPath: 'http://localhost:8000/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(false);
   });
 
@@ -133,9 +147,7 @@ describe('isPotentiallyThirdPartyFrame', () => {
       tags: [{key: 'url', value: 'https://192.168.1.1/page'}],
       platform: 'javascript',
     } as Event;
-    const frame = {
-      absPath: 'https://192.168.1.2/script.js',
-    } as Frame;
+    const frame = {absPath: 'https://192.168.1.2/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(true);
   });
 });

@@ -49,9 +49,10 @@ class OrganizationMetricsPermissionTest(APITestCase):
         self, organization: Organization, token: ApiToken, method: str, endpoint: str, *args: str
     ) -> HttpResponse:
         url = reverse(endpoint, args=(organization.slug,) + args)
-        return getattr(self.client, method)(
+        response: HttpResponse = getattr(self.client, method)(
             url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"
         )
+        return response
 
     def test_access_with_wrong_permission_scopes(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):

@@ -4,6 +4,7 @@ from django.utils import timezone
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 from tests.sentry.issues.endpoints.test_organization_group_search_views import (
@@ -137,3 +138,23 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
             ).count()
             == 0
         )
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:granular-permission-scopes")
+    def test_user_preference_write_can_record_visit(self) -> None:
+        self._use_token(["user_preference:write"])
+        response = self.client.post(self.url)
+        assert response.status_code == 204, response.content
+        assert GroupSearchViewLastVisited.objects.filter(
+            organization=self.organization, user_id=self.user.id, group_search_view=self.view
+        ).exists()
+
+    @with_feature("organizations:granular-permission-scopes")
+    def test_user_preference_read_cannot_record_visit(self) -> None:
+        self._use_token(["user_preference:read"])
+        assert self.client.post(self.url).status_code == 403

@@ -3,6 +3,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import {Form} from 'sentry/components/forms/form';
+
 import {SentryProjectSelectorField} from './sentryProjectSelectorField';
 
 describe('SentryProjectSelectorField', () => {
@@ -10,14 +12,12 @@ describe('SentryProjectSelectorField', () => {
     const mock = jest.fn();
     const projects = [
       ProjectFixture(),
-      ProjectFixture({
-        id: '23',
-        slug: 'my-proj',
-        name: 'My Proj',
-      }),
+      ProjectFixture({id: '23', slug: 'my-proj', name: 'My Proj'}),
     ];
     render(
-      <SentryProjectSelectorField onChange={mock} name="project" projects={projects} />
+      <Form>
+        <SentryProjectSelectorField onChange={mock} name="project" projects={projects} />
+      </Form>
     );
 
     await selectEvent.select(screen.getByText(/choose sentry project/i), 'my-proj');
@@ -29,28 +29,22 @@ describe('SentryProjectSelectorField', () => {
     const mock = jest.fn();
     const projects = [
       ProjectFixture(),
-      ProjectFixture({
-        id: '23',
-        slug: 'my-proj',
-        name: 'My Proj',
-      }),
-      ProjectFixture({
-        id: '24',
-        slug: 'other-project',
-        name: 'My Other Project',
-      }),
+      ProjectFixture({id: '23', slug: 'my-proj', name: 'My Proj'}),
+      ProjectFixture({id: '24', slug: 'other-project', name: 'My Other Project'}),
     ];
     render(
-      <SentryProjectSelectorField
-        groupProjects={project => (project.slug === 'other-project' ? 'other' : 'main')}
-        groups={[
-          {key: 'main', label: 'Main projects'},
-          {key: 'other', label: 'Other'},
-        ]}
-        onChange={mock}
-        name="project"
-        projects={projects}
-      />
+      <Form>
+        <SentryProjectSelectorField
+          groupProjects={project => (project.slug === 'other-project' ? 'other' : 'main')}
+          groups={[
+            {key: 'main', label: 'Main projects'},
+            {key: 'other', label: 'Other'},
+          ]}
+          onChange={mock}
+          name="project"
+          projects={projects}
+        />
+      </Form>
     );
 
     await selectEvent.openMenu(screen.getByText(/choose sentry project/i));
@@ -67,12 +61,14 @@ describe('SentryProjectSelectorField', () => {
       ProjectFixture({id: '3', slug: 'project-c'}),
     ];
     render(
-      <SentryProjectSelectorField
-        onChange={mock}
-        name="projects"
-        projects={projects}
-        multiple
-      />
+      <Form>
+        <SentryProjectSelectorField
+          onChange={mock}
+          name="projects"
+          projects={projects}
+          multiple
+        />
+      </Form>
     );
 
     const input = screen.getByRole('textbox');

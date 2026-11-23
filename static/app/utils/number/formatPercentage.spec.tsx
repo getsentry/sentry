@@ -1,4 +1,4 @@
-import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {formatPercentage} from './formatPercentage';
 
 describe('formatPercentage()', () => {
   it('should format decimals', () => {

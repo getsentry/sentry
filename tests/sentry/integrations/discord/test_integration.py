@@ -6,10 +6,10 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
+from django.test import override_settings
 from django.urls import reverse
 from responses.matchers import header_matcher
 
-from sentry import options
 from sentry.integrations.discord.client import (
     APPLICATION_COMMANDS_URL,
     DISCORD_BASE_URL,
@@ -30,6 +30,7 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationConfigurationError,
@@ -40,6 +41,12 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
+@override_settings(
+    SENTRY_DISCORD_BOT_TOKEN="bot-token",
+    SENTRY_DISCORD_CLIENT_SECRET="client-secret",
+    SENTRY_DISCORD_APPLICATION_ID="application-id",
+    SENTRY_DISCORD_PUBLIC_KEY="public-key",
+)
 class DiscordIntegrationTest(IntegrationTestCase):
     provider = DiscordIntegrationProvider
 
@@ -49,10 +56,6 @@ class DiscordIntegrationTest(IntegrationTestCase):
         self.public_key = "public-key"
         self.bot_token = "bot-token"
         self.client_secret = "client-secret"
-        options.set("discord.application-id", self.application_id)
-        options.set("discord.public-key", self.public_key)
-        options.set("discord.bot-token", self.bot_token)
-        options.set("discord.client-secret", self.client_secret)
         self.token_url = f"{DISCORD_BASE_URL}/oauth2/token"
         self.user_id = "user1234"
         self.guild_id = "12345"
@@ -235,7 +238,9 @@ class DiscordIntegrationTest(IntegrationTestCase):
         )
 
         provider.post_install(
-            integration=self.integration, organization=self.organization, extra={}
+            integration=self.integration,
+            organization=serialize_rpc_organization(self.organization),
+            extra={},
         )
         assert mock_set_application_command.call_count == 3  # one for each command
 
@@ -244,10 +249,12 @@ class DiscordIntegrationTest(IntegrationTestCase):
         self, mock_set_application_command: mock.MagicMock
     ) -> None:
         provider = self.provider()
-        provider.application_id = None
-        provider.post_install(
-            integration=self.integration, organization=self.organization, extra={}
-        )
+        with mock.patch.object(provider, "application_id", None):
+            provider.post_install(
+                integration=self.integration,
+                organization=serialize_rpc_organization(self.organization),
+                extra={},
+            )
         assert mock_set_application_command.call_count == 0
 
     @responses.activate
@@ -268,7 +275,9 @@ class DiscordIntegrationTest(IntegrationTestCase):
         )
         with pytest.raises(ApiError):
             provider.post_install(
-                integration=self.integration, organization=self.organization, extra={}
+                integration=self.integration,
+                organization=serialize_rpc_organization(self.organization),
+                extra={},
             )
 
     @responses.activate
@@ -283,7 +292,9 @@ class DiscordIntegrationTest(IntegrationTestCase):
         )
         with pytest.raises(ApiError):
             provider.post_install(
-                integration=self.integration, organization=self.organization, extra={}
+                integration=self.integration,
+                organization=serialize_rpc_organization(self.organization),
+                extra={},
             )
 
     def test_build_integration_invalid_guild_id(self) -> None:
@@ -337,6 +348,12 @@ class DiscordIntegrationSendNotificationTest(TestCase):
 
 
 @control_silo_test
+@override_settings(
+    SENTRY_DISCORD_BOT_TOKEN="bot-token",
+    SENTRY_DISCORD_CLIENT_SECRET="client-secret",
+    SENTRY_DISCORD_APPLICATION_ID="application-id",
+    SENTRY_DISCORD_PUBLIC_KEY="public-key",
+)
 class DiscordApiPipelineTest(APITestCase):
     endpoint = "sentry-api-0-organization-pipeline"
     method = "post"
@@ -351,10 +368,6 @@ class DiscordApiPipelineTest(APITestCase):
         self.public_key = "public-key"
         self.bot_token = "bot-token"
         self.client_secret = "client-secret"
-        options.set("discord.application-id", self.application_id)
-        options.set("discord.public-key", self.public_key)
-        options.set("discord.bot-token", self.bot_token)
-        options.set("discord.client-secret", self.client_secret)
 
     def tearDown(self) -> None:
         responses.reset()
@@ -376,7 +389,10 @@ class DiscordApiPipelineTest(APITestCase):
         return self.client.post(self._get_pipeline_url(), data=data, format="json")
 
     def _get_pipeline_signature(self, resp: Any) -> str:
-        return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+        oauth_url = resp.data["data"]["oauthUrl"]
+        if not isinstance(oauth_url, str):
+            raise TypeError("Discord pipeline response carries no OAuth URL")
+        return oauth_url.split("state=")[1].split("&")[0]
 
     @responses.activate
     def test_initialize_pipeline(self) -> None:

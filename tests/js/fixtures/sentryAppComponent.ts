@@ -8,18 +8,14 @@ export function SentryAppComponentFixture(
 ): SentryAppComponent<SentryAppSchemaIssueLink> {
   return {
     uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
+    installationUuid: 'd950595e-cba2-46f6-8a94-b79e42806f98',
     type: 'issue-link',
     schema: {
       type: 'issue-link',
       create: {
         uri: '',
         required_fields: [
-          {
-            type: 'text',
-            name: 'title',
-            label: 'Title',
-            default: 'issue.title',
-          },
+          {type: 'text', name: 'title', label: 'Title', default: 'issue.title'},
           {
             type: 'textarea',
             name: 'description',
@@ -37,16 +33,7 @@ export function SentryAppComponentFixture(
           },
         ],
       },
-      link: {
-        uri: '',
-        required_fields: [
-          {
-            type: 'text',
-            name: 'issue',
-            label: 'Issue',
-          },
-        ],
-      },
+      link: {uri: '', required_fields: [{type: 'text', name: 'issue', label: 'Issue'}]},
     },
     sentryApp: {
       uuid: 'b468fed3-afba-4917-80d6-bdac99c1ec05',
@@ -62,6 +49,7 @@ export function SentryAppComponentAsyncFixture(
 ): SentryAppComponent<SentryAppSchemaIssueLink> {
   return {
     uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
+    installationUuid: 'd950595e-cba2-46f6-8a94-b79e42806f98',
     type: 'issue-link',
     schema: {
       type: 'issue-link',
@@ -78,16 +66,7 @@ export function SentryAppComponentAsyncFixture(
           },
         ],
       },
-      link: {
-        uri: '',
-        required_fields: [
-          {
-            type: 'text',
-            name: 'issue',
-            label: 'Issue',
-          },
-        ],
-      },
+      link: {uri: '', required_fields: [{type: 'text', name: 'issue', label: 'Issue'}]},
     },
     sentryApp: {
       uuid: 'b468fed3-afba-4917-80d6-bdac99c1ec05',
@@ -105,6 +84,7 @@ export function SentryAppComponentDependentFixture(
   return {
     type: 'issue-link',
     uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
+    installationUuid: 'd950595e-cba2-46f6-8a94-b79e42806f98',
     schema: {
       type: 'issue-link',
       link: {
@@ -133,12 +113,7 @@ export function SentryAppComponentDependentFixture(
       },
       create: {
         required_fields: [
-          {
-            default: 'issue.title',
-            type: 'text',
-            name: 'title',
-            label: 'Title',
-          },
+          {default: 'issue.title', type: 'text', name: 'title', label: 'Title'},
           {
             default: 'issue.description',
             type: 'textarea',

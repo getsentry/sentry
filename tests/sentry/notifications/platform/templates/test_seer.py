@@ -5,13 +5,25 @@ import pytest
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.notifications.platform.templates.seer import (
+    AGENT_DAILY_LIMIT_MESSAGE,
+    AGENT_OUT_OF_CREDITS_MESSAGE,
+    AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
+    AUTOFIX_DAILY_LIMIT_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
     SeerAgentError,
+    SeerAgentOutOfCredits,
+    SeerAgentOutOfCreditsTemplate,
+    SeerAutofixOutOfCredits,
+    SeerAutofixOutOfCreditsTemplate,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
+    SeerInvestigationConclusionTemplate,
     SeerInvestigationError,
     SeerInvestigationErrorTemplate,
     SeerInvestigationStarted,
     SeerInvestigationStartedTemplate,
+    SeerInvestigationStatusTemplate,
     _get_next_stopping_point,
 )
 from sentry.notifications.platform.types import ParagraphSection
@@ -140,13 +152,75 @@ class SeerAgentErrorTemplateTest(TestCase):
         assert rendered.body[0].blocks[0].text == "Timeout."
 
 
+@pytest.mark.parametrize(
+    ("auto_reload_enabled", "message"),
+    [
+        (False, AUTOFIX_OUT_OF_CREDITS_MESSAGE),
+        (True, AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE),
+    ],
+)
+def test_autofix_out_of_credits_template(auto_reload_enabled: bool, message: str) -> None:
+    rendered = SeerAutofixOutOfCreditsTemplate().render(
+        SeerAutofixOutOfCredits(organization_id=1, auto_reload_enabled=auto_reload_enabled)
+    )
+
+    assert rendered.subject == message
+    assert len(rendered.body) == 1
+    assert isinstance(rendered.body[0], ParagraphSection)
+    assert rendered.body[0].blocks[0].text == message
+
+
+@pytest.mark.parametrize(
+    ("auto_reload_enabled", "message"),
+    [
+        (False, AGENT_OUT_OF_CREDITS_MESSAGE),
+        (True, AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE),
+    ],
+)
+def test_agent_out_of_credits_template(auto_reload_enabled: bool, message: str) -> None:
+    rendered = SeerAgentOutOfCreditsTemplate().render(
+        SeerAgentOutOfCredits(organization_id=1, auto_reload_enabled=auto_reload_enabled)
+    )
+
+    assert rendered.subject == message
+    assert len(rendered.body) == 1
+    assert isinstance(rendered.body[0], ParagraphSection)
+    assert rendered.body[0].blocks[0].text == message
+
+
+def test_autofix_daily_limit_template() -> None:
+    rendered = SeerAutofixOutOfCreditsTemplate().render(
+        SeerAutofixOutOfCredits(organization_id=1, denial_reason="daily_cap_exceeded")
+    )
+
+    assert rendered.subject == AUTOFIX_DAILY_LIMIT_MESSAGE
+    assert rendered.body[0].blocks[0].text == AUTOFIX_DAILY_LIMIT_MESSAGE
+
+
+def test_agent_daily_limit_template() -> None:
+    rendered = SeerAgentOutOfCreditsTemplate().render(
+        SeerAgentOutOfCredits(organization_id=1, denial_reason="daily_cap_exceeded")
+    )
+
+    assert rendered.subject == AGENT_DAILY_LIMIT_MESSAGE
+    assert rendered.body[0].blocks[0].text == AGENT_DAILY_LIMIT_MESSAGE
+
+
+def test_not_enough_credits_keeps_the_out_of_credits_message() -> None:
+    autofix = SeerAutofixOutOfCredits(organization_id=1, denial_reason="not_enough_credits")
+    agent = SeerAgentOutOfCredits(organization_id=1, denial_reason="not_enough_credits")
+
+    assert autofix.message == AUTOFIX_OUT_OF_CREDITS_MESSAGE
+    assert agent.message == AGENT_OUT_OF_CREDITS_MESSAGE
+
+
 class SeerInvestigationStartedTemplateTest(TestCase):
     def test_render(self) -> None:
         rendered = SeerInvestigationStartedTemplate().render(
             SeerInvestigationStarted(
                 organization_id=1,
                 slack_user_id="U0123456789",
-                investigation_url="https://example.sentry.io/explore/investigations/1/",
+                investigation_url="https://example.sentry.io/seer/investigations/1/",
             )
         )
 
@@ -164,3 +238,29 @@ class SeerInvestigationErrorTemplateTest(TestCase):
         assert rendered.subject == "Seer couldn't start an investigation"
         assert isinstance(rendered.body[0], ParagraphSection)
         assert rendered.body[0].blocks[0].text == "Something broke"
+
+
+class SeerInvestigationStatusTemplateTest(TestCase):
+    def test_render_example(self) -> None:
+        template = SeerInvestigationStatusTemplate()
+
+        rendered = template.render_example()
+
+        assert rendered.subject == "Investigating FCP on organization login pages"
+        assert len(rendered.body) == len(template.example_data.hypotheses)
+        (action,) = rendered.actions
+        assert action.label == "View full investigation"
+        assert action.link == template.example_data.investigation_url
+
+
+class SeerInvestigationConclusionTemplateTest(TestCase):
+    def test_render_example(self) -> None:
+        template = SeerInvestigationConclusionTemplate()
+
+        rendered = template.render_example()
+
+        assert rendered.subject == "Seer investigation conclusion"
+        assert len(rendered.body) == 3
+        (action,) = rendered.actions
+        assert action.label == "View full investigation"
+        assert action.link == template.example_data.investigation_url

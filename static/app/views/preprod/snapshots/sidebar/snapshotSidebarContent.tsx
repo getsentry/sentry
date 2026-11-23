@@ -6,7 +6,7 @@ import {IconWarning} from '@sentry/icons/warning';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
@@ -218,17 +218,15 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContentImpl({
       {availableTags.size > 0 && <TagFilterSection availableTags={availableTags} />}
       <Stack ref={scrollRef} overflow="auto" flex="1" paddingRight="0">
         {hasGroups ? (
-          <div
-            style={{
-              height: totalSize,
-              position: 'relative',
-              width: '100%',
-            }}
-          >
+          <div style={{height: totalSize, position: 'relative', width: '100%'}}>
             {virtualItems.map(vi => {
               const row = virtualRows[vi.index]!;
               return (
-                <VirtualRowPositioner
+                <Container
+                  width="100%"
+                  position="absolute"
+                  top="0"
+                  left="0"
                   key={vi.key}
                   ref={virtualizer.measureElement}
                   data-index={vi.index}
@@ -248,7 +246,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContentImpl({
                       onSelect={onSelectItem}
                     />
                   )}
-                </VirtualRowPositioner>
+                </Container>
               );
             })}
           </div>
@@ -540,10 +538,4 @@ const TagDisclosure = styled(Disclosure)`
       border-radius: 0;
     }
   }
-`;
-const VirtualRowPositioner = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
 `;

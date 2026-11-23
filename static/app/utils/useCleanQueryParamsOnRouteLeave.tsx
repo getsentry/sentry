@@ -1,8 +1,8 @@
 import {useEffect, useRef} from 'react';
 import type {Location} from 'history';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {useLocation} from './useLocation';
+import {useNavigate} from './useNavigate';
 
 type Opts<Q> = {
   fieldsToClean: string[];
@@ -103,10 +103,7 @@ export function useCleanQueryParamsOnRouteLeave<Q>({
       });
 
       if (cleanLocation) {
-        navigate(cleanLocation, {
-          replace: true,
-          preventScrollReset: true,
-        });
+        navigate(cleanLocation, {replace: true, preventScrollReset: true});
       }
     };
   }, [navigate]);

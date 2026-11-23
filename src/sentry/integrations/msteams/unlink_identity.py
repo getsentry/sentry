@@ -14,7 +14,7 @@ from .constants import SALT
 from .utils import get_preinstall_client
 
 
-def build_unlinking_url(conversation_id, service_url, teams_user_id):
+def build_unlinking_url(conversation_id: str, service_url: str, teams_user_id: str) -> str:
     signed_params = sign(
         salt=SALT,
         conversation_id=conversation_id,

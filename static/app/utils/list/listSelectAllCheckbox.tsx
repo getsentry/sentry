@@ -1,6 +1,6 @@
 import {Checkbox} from '@sentry/scraps/checkbox';
 
-import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
+import type {ListItemCheckboxState} from './useListItemCheckboxState';
 
 export function ListSelectAllCheckbox({
   listItemCheckboxState: {deselectAll, isAllSelected, selectedIds, selectAll},

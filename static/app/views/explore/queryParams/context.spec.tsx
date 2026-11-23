@@ -8,15 +8,16 @@ import {
   defaultFields,
   defaultSortBys,
 } from 'sentry/views/explore/metrics/metricQuery';
+
 import {
   QueryParamsContextProvider,
   useQueryParamsCrossEvents,
   useSetQueryParams,
   useSetQueryParamsCrossEvents,
-} from 'sentry/views/explore/queryParams/context';
-import {defaultCursor} from 'sentry/views/explore/queryParams/cursor';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+} from './context';
+import {defaultCursor} from './cursor';
+import {Mode} from './mode';
+import {ReadableQueryParams} from './readableQueryParams';
 
 const mockSetQueryParams = jest.fn();
 

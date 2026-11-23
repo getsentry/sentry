@@ -8,28 +8,14 @@ import type {Project} from 'sentry/types/project';
 import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
-import {
-  EditExistingCronDetectorForm,
-  NewCronDetectorForm,
-} from 'sentry/views/detectors/components/forms/cron';
-import {
-  EditExistingErrorDetectorForm,
-  NewErrorDetectorForm,
-} from 'sentry/views/detectors/components/forms/error';
-import {
-  EditExistingMetricDetectorForm,
-  NewMetricDetectorForm,
-} from 'sentry/views/detectors/components/forms/metric/metric';
-import {
-  EditExistingPreprodDetectorForm,
-  NewPreprodDetectorForm,
-} from 'sentry/views/detectors/components/forms/mobileBuild';
-import {
-  EditExistingUptimeDetectorForm,
-  NewUptimeDetectorForm,
-} from 'sentry/views/detectors/components/forms/uptime';
 import {detectorTypeIsAvailableForCreation} from 'sentry/views/detectors/utils/detectorTypeConfig';
+
+import {EditExistingMetricDetectorForm, NewMetricDetectorForm} from './metric/metric';
+import {useDetectorFormContext} from './context';
+import {EditExistingCronDetectorForm, NewCronDetectorForm} from './cron';
+import {EditExistingErrorDetectorForm, NewErrorDetectorForm} from './error';
+import {EditExistingPreprodDetectorForm, NewPreprodDetectorForm} from './mobileBuild';
+import {EditExistingUptimeDetectorForm, NewUptimeDetectorForm} from './uptime';
 
 function PlaceholderForm() {
   return (

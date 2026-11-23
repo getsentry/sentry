@@ -1,9 +1,10 @@
-import {buildSoloImages} from 'sentry/views/preprod/snapshots/soloImages';
 import type {
   SnapshotDetailsApiResponse,
   SnapshotDiffPair,
   SnapshotImage,
 } from 'sentry/views/preprod/types/snapshotTypes';
+
+import {buildSoloImages} from './soloImages';
 
 function img(name: string, key = name): SnapshotImage {
   return {

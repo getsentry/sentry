@@ -5,14 +5,15 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as globalActions from 'sentry/components/pageFilters/actions';
-import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
+
+import * as globalActions from './actions';
+import {PageFiltersContainer} from './container';
+import {PageFiltersStore} from './store';
 
 describe('PageFiltersContainer', () => {
   const organization = OrganizationFixture();
@@ -29,6 +30,7 @@ describe('PageFiltersContainer', () => {
   });
 
   beforeEach(() => {
+    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData(projects);
     OrganizationStore.onUpdate(organization);
@@ -36,15 +38,11 @@ describe('PageFiltersContainer', () => {
 
     jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => null);
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    PageFiltersStore.reset();
   });
 
   it('does not update router if org in URL params is different than org in context/props', () => {
@@ -79,10 +77,7 @@ describe('PageFiltersContainer', () => {
     const {router} = render(<PageFiltersContainer />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/test/',
-          query: {statsPeriod: '7d'},
-        },
+        location: {pathname: '/organizations/org-slug/test/', query: {statsPeriod: '7d'}},
         route: '/organizations/:orgId/test/',
       },
     });
@@ -92,12 +87,7 @@ describe('PageFiltersContainer', () => {
 
     await waitFor(() =>
       expect(PageFiltersStore.getState().selection).toEqual({
-        datetime: {
-          period: '7d',
-          utc: null,
-          start: null,
-          end: null,
-        },
+        datetime: {period: '7d', utc: null, start: null, end: null},
         environments: [],
         projects: [],
       })
@@ -123,12 +113,7 @@ describe('PageFiltersContainer', () => {
         pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
-          datetime: {
-            period: '14d',
-            utc: null,
-            start: null,
-            end: null,
-          },
+          datetime: {period: '14d', utc: null, start: null, end: null},
           environments: ['prod'],
           projects: [],
         },
@@ -155,12 +140,7 @@ describe('PageFiltersContainer', () => {
         pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
-          datetime: {
-            period: '14d',
-            utc: null,
-            start: null,
-            end: null,
-          },
+          datetime: {period: '14d', utc: null, start: null, end: null},
           environments: [],
           projects: [],
         },
@@ -174,10 +154,7 @@ describe('PageFiltersContainer', () => {
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/test/',
-          query: {
-            start: '2020-05-05T07:26:53.000',
-            end: '2020-05-05T09:19:12.000',
-          },
+          query: {start: '2020-05-05T07:26:53.000', end: '2020-05-05T09:19:12.000'},
         },
         route: '/organizations/:orgId/test/',
       },
@@ -190,12 +167,7 @@ describe('PageFiltersContainer', () => {
         pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
-          datetime: {
-            period: '14d',
-            utc: null,
-            start: null,
-            end: null,
-          },
+          datetime: {period: '14d', utc: null, start: null, end: null},
           environments: [],
           projects: [],
         },
@@ -210,10 +182,7 @@ describe('PageFiltersContainer', () => {
     const {rerender} = render(<PageFiltersContainer />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/test/',
-          query: {statsPeriod: '7d'},
-        },
+        location: {pathname: '/organizations/org-slug/test/', query: {statsPeriod: '7d'}},
         route: '/organizations/:orgId/test/',
       },
     });
@@ -236,12 +205,7 @@ describe('PageFiltersContainer', () => {
       pinnedFilters: new Set(['projects', 'environments', 'datetime']),
       shouldPersist: true,
       selection: {
-        datetime: {
-          period: '7d',
-          utc: null,
-          start: null,
-          end: null,
-        },
+        datetime: {period: '7d', utc: null, start: null, end: null},
         environments: [],
         projects: [],
       },
@@ -249,13 +213,15 @@ describe('PageFiltersContainer', () => {
   });
 
   it('loads from local storage when no URL parameters and filters are pinned', async () => {
-    jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() =>
-      JSON.stringify({
-        projects: [3],
-        environments: ['staging'],
-        pinnedFilters: ['projects', 'environments'],
-      })
-    );
+    jest
+      .spyOn(Storage.prototype, 'getItem')
+      .mockImplementation(() =>
+        JSON.stringify({
+          projects: [3],
+          environments: ['staging'],
+          pinnedFilters: ['projects', 'environments'],
+        })
+      );
 
     const {router} = render(<PageFiltersContainer />, {
       organization,
@@ -271,10 +237,7 @@ describe('PageFiltersContainer', () => {
 
     // Since these are coming from local storage, router should be updated
     await waitFor(() => {
-      expect(router.location.query).toEqual({
-        environment: 'staging',
-        project: '3',
-      });
+      expect(router.location.query).toEqual({environment: 'staging', project: '3'});
     });
   });
 
@@ -377,10 +340,7 @@ describe('PageFiltersContainer', () => {
     ];
 
     beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/projects/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
 
       ProjectsStore.loadInitialData(forceProjectProjects);
     });
@@ -421,12 +381,7 @@ describe('PageFiltersContainer', () => {
 
       await waitFor(() =>
         expect(PageFiltersStore.getState().selection).toEqual({
-          datetime: {
-            period: '7d',
-            utc: null,
-            start: null,
-            end: null,
-          },
+          datetime: {period: '7d', utc: null, start: null, end: null},
           environments: [],
           projects: [],
         })
@@ -497,10 +452,7 @@ describe('PageFiltersContainer', () => {
       const {rerender} = render(<PageFiltersContainer maxPickableDays={30} />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/test/',
-            query: {start, end},
-          },
+          location: {pathname: '/organizations/org-slug/test/', query: {start, end}},
           route: '/organizations/:orgId/test/',
         },
       });
@@ -545,12 +497,7 @@ describe('PageFiltersContainer', () => {
 
       await waitFor(() =>
         expect(PageFiltersStore.getState().selection).toEqual({
-          datetime: {
-            period: '3d',
-            utc: null,
-            start: null,
-            end: null,
-          },
+          datetime: {period: '3d', utc: null, start: null, end: null},
           environments: [],
           projects: [],
         })
@@ -577,12 +524,7 @@ describe('PageFiltersContainer', () => {
 
       await waitFor(() =>
         expect(PageFiltersStore.getState().selection).toEqual({
-          datetime: {
-            period: '7d',
-            utc: null,
-            start: null,
-            end: null,
-          },
+          datetime: {period: '7d', utc: null, start: null, end: null},
           environments: [],
           projects: [],
         })
@@ -611,10 +553,7 @@ describe('PageFiltersContainer', () => {
         const {router} = render(<PageFiltersContainer maxPickableDays={30} />, {
           organization,
           initialRouterConfig: {
-            location: {
-              pathname: '/organizations/org-slug/test/',
-              query: {start, end},
-            },
+            location: {pathname: '/organizations/org-slug/test/', query: {start, end}},
             route: '/organizations/:orgId/test/',
           },
         });
@@ -693,6 +632,68 @@ describe('PageFiltersContainer', () => {
         })
       );
     });
+
+    describe('when a range starts less than a day before the window', () => {
+      const start = moment()
+        .utc()
+        .subtract(30, 'days')
+        .subtract(3, 'hours')
+        .format('YYYY-MM-DDTHH:mm:ss');
+      const end = moment().utc().subtract(20, 'days').format('YYYY-MM-DDTHH:mm:ss');
+
+      it('keeps the range when it is loaded from the URL', async () => {
+        const {router} = render(<PageFiltersContainer maxPickableDays={30} />, {
+          organization,
+          initialRouterConfig: {
+            location: {pathname: '/organizations/org-slug/test/', query: {start, end}},
+            route: '/organizations/:orgId/test/',
+          },
+        });
+
+        await waitFor(() =>
+          expect(PageFiltersStore.getState().selection.datetime).toEqual({
+            period: null,
+            utc: null,
+            start: getUtcToLocalDateObject(start),
+            end: getUtcToLocalDateObject(end),
+          })
+        );
+        expect(router.location.query).toEqual({start, end});
+      });
+
+      it('keeps the range when the mounted route changes to it', async () => {
+        const {router} = render(<PageFiltersContainer maxPickableDays={30} />, {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/test/',
+              query: {statsPeriod: '30d'},
+            },
+            route: '/organizations/:orgId/test/',
+          },
+        });
+
+        await waitFor(() => expect(PageFiltersStore.getState().isReady).toBe(true));
+
+        act(() => {
+          router.navigate({
+            pathname: '/organizations/org-slug/test/',
+            search: `start=${start}&end=${end}`,
+          });
+        });
+
+        await waitFor(() =>
+          expect(PageFiltersStore.getState().selection.datetime).toEqual({
+            period: null,
+            utc: null,
+            start: getUtcToLocalDateObject(start),
+            end: getUtcToLocalDateObject(end),
+          })
+        );
+        expect(router.location.query).toEqual({start, end});
+        expect(PageFiltersStore.getState().adjustments).toEqual({});
+      });
+    });
   });
 
   describe('maxDateRange param', () => {
@@ -768,10 +769,7 @@ describe('PageFiltersContainer', () => {
       render(<PageFiltersContainer maxPickableDays={30} maxDateRange={7} />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/test/',
-            query: {start, end},
-          },
+          location: {pathname: '/organizations/org-slug/test/', query: {start, end}},
           route: '/organizations/:orgId/test/',
         },
       });
@@ -793,10 +791,7 @@ describe('PageFiltersContainer', () => {
       const {rerender} = render(<PageFiltersContainer maxPickableDays={30} />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/test/',
-            query: {start, end},
-          },
+          location: {pathname: '/organizations/org-slug/test/', query: {start, end}},
           route: '/organizations/:orgId/test/',
         },
       });
@@ -824,10 +819,7 @@ describe('PageFiltersContainer', () => {
     ];
 
     beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/projects/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
       ProjectsStore.loadInitialData(skipInitProjects);
     });
 
@@ -871,10 +863,7 @@ describe('PageFiltersContainer', () => {
         const result = render(<PageFiltersContainer {...props} />, {
           organization: multiProjectOrg,
           initialRouterConfig: {
-            location: {
-              pathname: '/organizations/org-slug/test/',
-              query: locationQuery,
-            },
+            location: {pathname: '/organizations/org-slug/test/', query: locationQuery},
             route: '/organizations/:orgId/test/',
           },
         });

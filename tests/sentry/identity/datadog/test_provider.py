@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import base64
 import hashlib
+from collections.abc import Mapping
 from functools import cached_property
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
@@ -12,6 +13,7 @@ import pytest
 import responses
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.backends.base import SessionBase
+from django.http import HttpRequest
 from django.test import Client, RequestFactory
 from requests import ConnectionError, HTTPError
 from requests.exceptions import SSLError
@@ -28,6 +30,7 @@ from sentry.identity.datadog.provider import (
 )
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
+from sentry.pipeline.views.base import PipelineView
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -203,7 +206,7 @@ class DatadogOAuth2LoginViewTest(TestCase):
         sentry.identity.unregister(DummyProvider)
 
     @cached_property
-    def view(self):
+    def view(self) -> DatadogOAuth2LoginView:
         return DatadogOAuth2LoginView(authorize_url=AUTHORIZE_URL, scope="read", resource=RESOURCE)
 
     def _make_pipeline(self, dcr_client_id: str = "dcr-client-123") -> IdentityPipeline:
@@ -292,7 +295,7 @@ class DatadogOAuth2CallbackViewTest(TestCase):
         sentry.identity.unregister(DummyProvider)
 
     @cached_property
-    def view(self):
+    def view(self) -> DatadogOAuth2CallbackView:
         return DatadogOAuth2CallbackView(access_token_url=TOKEN_URL)
 
     def _make_pipeline(
@@ -355,14 +358,14 @@ class DatadogTestProvider(DummyProvider):
     name = "Datadog Test"
     key = "datadog-test"
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return [
             DatadogOAuth2DCRView(register_url=REGISTER_URL),
             DatadogOAuth2LoginView(authorize_url=AUTHORIZE_URL, scope="read", resource=RESOURCE),
             DatadogOAuth2CallbackView(access_token_url=TOKEN_URL),
         ]
 
-    def build_identity(self, state):
+    def build_identity(self, state: Mapping[str, object]) -> Mapping[str, object]:
         return {"id": "test", "data": state.get("data", {})}
 
 
@@ -381,7 +384,7 @@ class DatadogOAuthPipelineIntegrationTest(TestCase):
         super().tearDown()
         sentry.identity.unregister(DatadogTestProvider)
 
-    def _make_request(self, **query_params):
+    def _make_request(self, **query_params: str) -> HttpRequest:
         request = RequestFactory().get("/", data=query_params)
         request.session = SessionBase()
         request.user = self.user
@@ -423,7 +426,7 @@ class DatadogOAuthPipelineIntegrationTest(TestCase):
 
         # Login + Callback views: Simulate the OAuth redirect and advance to Callback.
         oauth_state = pipeline.fetch_state("state")
-        pipeline.request = self._make_request(code="auth-code", state=oauth_state)
+        pipeline.request = self._make_request(code="auth-code", state=cast(str, oauth_state))
         result = pipeline.current_step()
 
         # Pipeline completed successfully with a redirect.

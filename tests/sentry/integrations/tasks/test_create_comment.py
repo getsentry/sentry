@@ -13,7 +13,7 @@ from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
 
 
-def raise_create_comment_exception(*args, **kwargs):
+def raise_create_comment_exception(*args: object, **kwargs: object) -> None:
     raise Exception("Something went wrong creating comment")
 
 
@@ -39,6 +39,44 @@ class TestCreateComment(TestCase):
             type=ActivityType.NOTE.value,
             data={"text": "Test comment"},
         )
+
+    @mock.patch.object(ExampleIntegration, "create_comment")
+    def test_remote_creation_preserves_intervening_edit(self, remote: mock.MagicMock) -> None:
+        external_issue = self.create_integration_external_issue(
+            group=self.group, key="foo-1234", integration=self.example_integration
+        )
+
+        def edit_during_request(*args: object) -> dict[str, str]:
+            note = Activity.objects.get(id=self.activity.id)
+            note.data = {"text": "edited during remote request", "mentions": []}
+            note.save(update_fields=["data"])
+            return {"id": "remote-42"}
+
+        remote.side_effect = edit_during_request
+        create_comment(external_issue.id, self.user.id, self.activity.id)
+        self.activity.refresh_from_db()
+        assert self.activity.data == {
+            "text": "edited during remote request",
+            "mentions": [],
+            "external_id": "remote-42",
+        }
+
+    @mock.patch.object(ExampleIntegration, "create_comment")
+    def test_remote_creation_does_not_recreate_deleted_note(self, remote: mock.MagicMock) -> None:
+        external_issue = self.create_integration_external_issue(
+            group=self.group, key="foo-1234", integration=self.example_integration
+        )
+        note_id = self.activity.id
+
+        def delete_during_request(*args: object) -> dict[str, str]:
+            Activity.objects.get(id=note_id).delete()
+            return {"id": "remote-42"}
+
+        remote.side_effect = delete_during_request
+        create_comment(external_issue.id, self.user.id, note_id)
+        assert not Activity.objects.filter(id=note_id).exists()
+        self.group.refresh_from_db()
+        assert self.group.num_comments == 0
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "create_comment")

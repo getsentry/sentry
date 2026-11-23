@@ -3,9 +3,10 @@ import {parseAsString, useQueryState} from 'nuqs';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {AutofixRepositoriesList} from 'sentry/components/seer/projectDetails/autofixRepositoriesList';
 import * as Storybook from 'sentry/stories';
 import {useProjects} from 'sentry/utils/useProjects';
+
+import {AutofixRepositoriesList} from './autofixRepositoriesList';
 
 export default Storybook.story('AutofixRepositoriesList', story => {
   story('No Instructions', () => {

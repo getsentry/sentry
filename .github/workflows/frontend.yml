@@ -5,6 +5,8 @@ on:
     branches:
       - master
   pull_request:
+  merge_group:
+    types: [checks_requested]
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
@@ -17,10 +19,13 @@ env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   NODE_OPTIONS: '--max-old-space-size=5120'
 
+permissions:
+  contents: read
+
 jobs:
   files-changed:
     name: detect what files changed
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
     permissions:
       contents: read
@@ -30,6 +35,7 @@ jobs:
       testable_modified: ${{ steps.changes.outputs.testable_modified }}
       testable_rules_changed: ${{ steps.changes.outputs.testable_rules_changed }}
       frontend_all: ${{ steps.changes.outputs.frontend_all }}
+      frontend_all_count: ${{ steps.changes.outputs.frontend_all_count }}
       frontend_all_files: ${{ steps.changes.outputs.frontend_all_files }}
       frontend_lint: ${{ steps.changes.outputs.frontend_lint }}
       embed_widget_schema: ${{ steps.changes.outputs.embed_widget_schema }}
@@ -37,6 +43,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Check for frontend file changes
         uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
@@ -49,18 +56,14 @@ jobs:
   typescript:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
-    name: typescript (router v${{ matrix.router }})
-    strategy:
-      fail-fast: false
-      matrix:
-        router: ['6', '8']
-    env:
-      SENTRY_REACT_ROUTER_VERSION: ${{ matrix.router }}
-    runs-on: ubuntu-24.04
+    name: typescript
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       # Setup custom TypeScript matcher, see https://github.com/actions/setup-node/issues/97
       - name: setup matchers
@@ -68,15 +71,15 @@ jobs:
           echo "::remove-matcher owner=masters::"
           echo "::add-matcher::.github/tsc.json"
 
-      - name: tsc
-        id: tsc
+      - name: Type check with tsrs
+        id: typecheck
         run: pnpm run typecheck
 
   oxlint:
     if: needs.files-changed.outputs.frontend_lint == 'true'
     needs: files-changed
     name: oxlint
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 15
     outputs:
       budgets: ${{ steps.ratchet.outputs.budgets }}
@@ -87,8 +90,9 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: ${{ github.event_name == 'pull_request' && '100' || '1' }}
+          persist-credentials: false
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: Find verified lint baseline
         if: github.event_name == 'pull_request'
@@ -106,9 +110,9 @@ jobs:
           SENTRY_OXLINT_VERIFIED_BASE: ${{ steps.lint-baseline.outputs.base }}
         run: |
           if [ "$EVENT_NAME" = pull_request ]; then
-            pnpm run lint:js --ci --base HEAD^1
+            pnpm run lint:suppressions --ci --base HEAD^1
           else
-            pnpm run lint:js --ci
+            pnpm run lint:suppressions --ci
           fi
 
       # The ratchet passes with stale budgets inherited from earlier merges, but only
@@ -120,7 +124,7 @@ jobs:
 
       # Decide whether to lint just the PR's impacted files or everything (see
       # frontend-changed-scope.sh): we scope to impacted files only when a merge base
-      # resolves and changes are under static/ or to oxlint-suppressions.json.
+      # resolves and changes are under static/ or to project oxlint-suppressions.json files.
       # Global config or dependency changes require linting everything because
       # their impact can't be traced from source files.
       - name: Compute lint strategy
@@ -139,17 +143,20 @@ jobs:
       - name: oxlint (impacted files)
         id: oxlint-impacted
         if: steps.strategy.outputs.scope == 'scoped'
-        run: pnpm run lint:js:changed --since "$MERGE_BASE..HEAD^2" -- node scripts/custom-oxlint.ts --no-error-on-unmatched-pattern
+        run: pnpm run lint:js:changed --since "$MERGE_BASE..HEAD^2" -- node scripts/lint.ts js --no-error-on-unmatched-pattern
         env:
           MERGE_BASE: ${{ steps.strategy.outputs.merge_base }}
           DEBUG: 'run-on-changed:*'
+
+      - name: stylelint (workspace packages)
+        run: pnpm --recursive --parallel --no-bail --no-include-workspace-root --if-present run lint:css
 
   prune-oxlint-suppressions:
     needs: oxlint
     if: github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.oxlint.outputs.budgets == 'stale'
     permissions:
       contents: read
-    uses: ./.github/workflows/prune-oxlint-suppressions.yml
+    uses: $/.github/workflows/prune-oxlint-suppressions.yml
     secrets:
       SENTRY_INTERNAL_APP_PRIVATE_KEY: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
@@ -157,15 +164,17 @@ jobs:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
     name: ${{ matrix.command }}
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     strategy:
       fail-fast: false
       matrix:
         command: [knip, 'knip:prod', 'knip:cycles']
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: ${{ matrix.command }}
         run: pnpm run ${{ matrix.command }}
@@ -173,7 +182,7 @@ jobs:
   jest-config:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
     name: Configure Jest
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
     needs: files-changed
     outputs:
@@ -184,8 +193,12 @@ jobs:
         with:
           # PRs need history for git merge-base to find the fork point.
           fetch-depth: ${{ github.event_name == 'pull_request' && '100' || '1' }}
+          persist-credentials: false
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
+
+      - name: Test workspace CI runner
+        run: node --test scripts/testCi.test.ts
 
       # On PRs, HEAD is the merge commit; its parents (HEAD^1, HEAD^2) are base and head.
       # Merge base of those two determines which tests to run via --findRelatedTests.
@@ -194,7 +207,10 @@ jobs:
       - name: Jest Test Config
         id: jest_test_config
         env:
-          FRONTEND_ALL_FILES: ${{ needs.files-changed.outputs.frontend_all_files }}
+          # Linux caps a single environment variable at 128 KiB, so a huge file list
+          # stops bash from starting. Run the full suite instead.
+          FRONTEND_TOO_MANY_FILES: ${{ fromJSON(needs.files-changed.outputs.frontend_all_count) > 1000 }}
+          FRONTEND_ALL_FILES: ${{ fromJSON(needs.files-changed.outputs.frontend_all_count) <= 1000 && needs.files-changed.outputs.frontend_all_files || '' }}
         run: ./.github/workflows/scripts/jest-test-config.sh
 
       - name: Upload jest test file list
@@ -208,10 +224,11 @@ jobs:
   jest-tests:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
     needs: [files-changed, jest-config]
-    name: Jest (router v${{ matrix.router }}, shard ${{ matrix.index }})
-    # If you change the runs-on image, you must also change the runner in jest-balance.yml
-    # so that the balancer runs in the same environment as the tests.
-    runs-on: ubuntu-24.04
+    name: Jest (shard ${{ matrix.index }})
+    # If you change the master runner, you must also change the runner in jest-balance.yml
+    # so that the balancer runs in the same environment as the tests. Pull requests run
+    # on Arm and reuse those shard weights, which are relative.
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 30
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
@@ -220,9 +237,6 @@ jobs:
       matrix:
         index: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix).index }}
         total: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix).total }}
-        router: ['6', '8']
-    env:
-      SENTRY_REACT_ROUTER_VERSION: ${{ matrix.router }}
     permissions:
       contents: read
       # `gh run download` in "Download jest artifacts"
@@ -231,29 +245,30 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
+        with:
+          persist-credentials: false
 
       # Must run before the parallel group: it parses $GITHUB_EVENT_PATH, which the
-      # runner truncates whenever a step starts (getsentry/sentry#127566).
-      - uses: ./.github/actions/setup-node-toolchain
+      # runner truncates whenever a step starts (getsentry/sentry#127566). It is also
+      # a composite action, and the runner corrupts shared job state when a composite
+      # overlaps another step (actions/runner#4789).
+      - uses: $/.github/actions/setup-node-pnpm
 
       # None of these depend on each other, fetch them all at once. Nothing in this
       # group may read $GITHUB_EVENT_PATH (e.g. actions/setup-node, pnpm/action-setup,
-      # actions/download-artifact, actions/github-script, actions/checkout).
+      # actions/download-artifact, actions/github-script, actions/checkout) or be a
+      # composite action.
       - parallel:
-          - uses: ./.github/actions/setup-node-pnpm
-            with:
-              setup-toolchain: 'false'
-
           - name: jest transform cache
             uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
             with:
               path: |
                 .cache/jest
                 ~/.cache/swc
-              key: jest-cache-${{ runner.os }}-router${{ matrix.router }}-${{ hashFiles('pnpm-lock.yaml', 'tests/js/createJestConfig.ts', 'tests/js/jest.config.ci.mjs') }}-${{ matrix.index }}
+              key: jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tests/js/createJestConfig.ts', 'tests/js/jest.config.ci.mjs') }}-${{ matrix.index }}
               restore-keys: |
-                jest-cache-${{ runner.os }}-router${{ matrix.router }}-${{ hashFiles('pnpm-lock.yaml', 'tests/js/createJestConfig.ts', 'tests/js/jest.config.ci.mjs') }}-
-                jest-cache-${{ runner.os }}-router${{ matrix.router }}-
+                jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tests/js/createJestConfig.ts', 'tests/js/jest.config.ci.mjs') }}-
+                jest-cache-${{ runner.os }}-
 
           - name: Download jest artifacts
             env:
@@ -287,51 +302,58 @@ jobs:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
     name: form field registry
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: Generate form field registry
         run: node scripts/extractFormFields.ts
 
       - name: Check for changes
-        run: |
-          if ! git diff --exit-code static/app/views/settings/fieldRegistry.generated.ts; then
-            echo ""
-            echo "❌ Form field registry is out of sync!"
-            echo ""
-            echo "Run the following command and commit the changes:"
-            echo "  node scripts/extractFormFields.ts"
-            echo ""
-            exit 1
-          fi
+        run: >-
+          .github/workflows/scripts/check-generated-file.sh
+          static/app/views/settings/fieldRegistry.generated.ts
+          'Form field registry'
+          'node scripts/extractFormFields.ts'
 
   embed-widgets:
     if: needs.files-changed.outputs.embed_widget_schema == 'true'
     needs: files-changed
     name: embed widgets
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: Generate embed widgets
         run: pnpm run gen:embed-widgets
 
       - name: Check for changes
-        run: |
-          if ! git diff --exit-code src/sentry/seer/agent/embed_widgets.generated.json; then
-            echo ""
-            echo "❌ Embed widgets JSON schema is out of sync!"
-            echo ""
-            echo "Run the following command and commit the changes:"
-            echo "  pnpm run gen:embed-widgets"
-            echo ""
-            exit 1
-          fi
+        run: >-
+          .github/workflows/scripts/check-generated-file.sh
+          src/sentry/seer/agent/embed_widgets.generated.json
+          'Embed widgets JSON schema'
+          'pnpm run gen:embed-widgets'
+
+  # Runs on every PR: nav files import constants from anywhere, so no path filter is complete.
+  seer-nav-snapshot:
+    name: seer nav snapshot
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
+
+      # The generator is standard library only, so no sentry env is needed.
+      - name: Check the Seer nav snapshot
+        run: python3 -m tools.seer_nav.generate_snapshot --check
 
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)
@@ -347,11 +369,13 @@ jobs:
         knip,
         form-field-registry,
         embed-widgets,
+        seer-nav-snapshot,
       ]
     name: Frontend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
+    permissions: {}
     steps:
       # If any jobs we depend on fail, we will fail since this is a required check
       # NOTE: A timeout is considered a failure

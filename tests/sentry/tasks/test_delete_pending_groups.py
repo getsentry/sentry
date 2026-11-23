@@ -13,6 +13,7 @@ from sentry.tasks.delete_pending_groups import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.types.group import GroupSubStatus
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 
 
 class DeletePendingGroupsTest(TestCase):
@@ -60,6 +61,15 @@ class DeletePendingGroupsTest(TestCase):
         with patch(
             "sentry.api.helpers.group_index.delete.delete_groups_for_project.apply_async"
         ) as mock_delete_task:
+
+            def assert_viewer_context(*_args: object, **_kwargs: object) -> None:
+                viewer_context = get_viewer_context()
+                assert isinstance(viewer_context, ViewerContext)
+                assert viewer_context.organization_id == project.organization_id
+                assert viewer_context.project_id == project.id
+                assert viewer_context.actor.type == ActorType.SYSTEM
+
+            mock_delete_task.side_effect = assert_viewer_context
             delete_pending_groups()
 
             # Verify only the valid group was scheduled

@@ -7,6 +7,7 @@ import {
   initializeSdk,
   isEventWithFileUrl,
   isFilteredRequestErrorEvent,
+  isWalletProviderError,
 } from './initializeSdk';
 
 const ERROR_MAP: Record<number, string | undefined> = {
@@ -17,10 +18,7 @@ const ERROR_MAP: Record<number, string | undefined> = {
 
 describe('initializeSdk', () => {
   beforeAll(() => {
-    window.__initialData = {
-      ...window.__initialData,
-      customerDomain: null,
-    };
+    window.__initialData = {...window.__initialData, customerDomain: null};
   });
 
   // This is a regression test for Sentry incident inc-433
@@ -39,56 +37,60 @@ describe('initializeSdk', () => {
     });
 
     expect(Sentry.init).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tracePropagationTargets: expect.arrayContaining([/^\//]),
-      })
+      expect.objectContaining({tracePropagationTargets: expect.arrayContaining([/^\//])})
     );
   });
 
-  it('ignores the ECharts tooltip error thrown when a chart replaces its series (Chrome/V8)', () => {
+  it('drops unhandled rejections from crypto wallet extensions', () => {
     initializeSdk({
       ...window.__initialData,
       apmSampling: 1,
-      sentryConfig: {
-        allowUrls: [],
-        dsn: '',
-        release: '',
-        tracePropagationTargets: [],
-      },
+      sentryConfig: {allowUrls: [], dsn: '', release: '', tracePropagationTargets: []},
     });
 
-    const ignoreErrors = jest.mocked(Sentry.init).mock.lastCall?.[0]?.ignoreErrors ?? [];
-    const message =
-      "TypeError: Cannot read properties of undefined (reading 'getDataParams')";
+    const beforeSend = jest.mocked(Sentry.init).mock.lastCall?.[0]?.beforeSend;
+    const event = {
+      type: undefined,
+      exception: {
+        values: [
+          {
+            type: 'UnhandledRejection',
+            value: 'Object captured as promise rejection with keys: code, message',
+          },
+        ],
+      },
+    };
 
     expect(
-      ignoreErrors.some(pattern =>
-        typeof pattern === 'string' ? message.includes(pattern) : pattern.test(message)
-      )
-    ).toBe(true);
+      beforeSend?.(event, {
+        originalException: {
+          code: 4900,
+          message: 'The provider is disconnected from all chains.',
+        },
+      })
+    ).toBeNull();
+  });
+});
+
+describe('isWalletProviderError', () => {
+  it.each([
+    {code: 4001, message: 'User rejected the request.'},
+    {code: 4900, message: 'The provider is disconnected from all chains.'},
+    {code: -32603, message: 'Internal JSON-RPC error.'},
+    {code: -32000, message: 'execution reverted', data: '0x'},
+  ])('recognizes provider error $code', error => {
+    expect(isWalletProviderError(error)).toBe(true);
   });
 
-  it('ignores the ECharts tooltip error thrown when a chart replaces its series (Safari/WebKit)', () => {
-    initializeSdk({
-      ...window.__initialData,
-      apmSampling: 1,
-      sentryConfig: {
-        allowUrls: [],
-        dsn: '',
-        release: '',
-        tracePropagationTargets: [],
-      },
-    });
-
-    const ignoreErrors = jest.mocked(Sentry.init).mock.lastCall?.[0]?.ignoreErrors ?? [];
-    const message =
-      "TypeError: undefined is not an object (evaluating 'a.getDataParams')";
-
-    expect(
-      ignoreErrors.some(pattern =>
-        typeof pattern === 'string' ? message.includes(pattern) : pattern.test(message)
-      )
-    ).toBe(true);
+  it.each([
+    ['Error instances', Object.assign(new Error('Disconnected'), {code: 4900})],
+    ['HTTP status codes', {code: 404, message: 'Not Found'}],
+    ['string codes', {code: 'ECONNRESET', message: 'socket hang up'}],
+    ['objects without a message', {code: 4001}],
+    ['strings', 'User rejected the request.'],
+    ['undefined', undefined],
+  ])('rejects %s', (_, error) => {
+    expect(isWalletProviderError(error)).toBe(false);
   });
 });
 
@@ -264,17 +266,13 @@ describe('isEventWithFileUrl', () => {
 describe('addEndpointTagToRequestError', () => {
   it('adds `endpoint` tag to events with matching message`', () => {
     const event = {
-      exception: {
-        values: [{type: 'RequestError', value: 'GET /dogs/are/great/ 500'}],
-      },
+      exception: {values: [{type: 'RequestError', value: 'GET /dogs/are/great/ 500'}]},
       tags: {},
     };
 
     addEndpointTagToRequestError(event);
 
-    expect(event.tags).toEqual({
-      endpoint: 'GET /dogs/are/great/',
-    });
+    expect(event.tags).toEqual({endpoint: 'GET /dogs/are/great/'});
   });
 
   it("doesn't add `endpoint` tag to events with non-matching message", () => {
@@ -285,12 +283,7 @@ describe('addEndpointTagToRequestError', () => {
     ];
 
     for (const msg of nonmatchingMessages) {
-      const event = {
-        exception: {
-          values: [{type: 'RequestError', value: msg}],
-        },
-        tags: {},
-      };
+      const event = {exception: {values: [{type: 'RequestError', value: msg}]}, tags: {}};
 
       addEndpointTagToRequestError(event);
 
@@ -299,9 +292,7 @@ describe('addEndpointTagToRequestError', () => {
   });
 
   it("doesn't add `endpoint` tag to events with no exception", () => {
-    const event = {
-      tags: {},
-    };
+    const event = {tags: {}};
 
     addEndpointTagToRequestError(event);
 

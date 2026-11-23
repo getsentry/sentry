@@ -2,21 +2,18 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import {Placeholder} from 'sentry/components/placeholder';
 import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getShortEventId} from 'sentry/utils/events';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {UptimeCheck} from 'sentry/views/detectors/components/uptime/types';
-import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   reasonToText,
@@ -24,10 +21,10 @@ import {
   tickStyle,
 } from 'sentry/views/insights/uptime/timelineConfig';
 
-type Props = {
-  traceSampling: boolean;
-  uptimeChecks: UptimeCheck[];
-};
+import type {UptimeCheck} from './types';
+import {CheckStatus} from './types';
+
+type Props = {traceSampling: boolean; uptimeChecks: UptimeCheck[]};
 
 type ColumnKey =
   | 'traceItemId'
@@ -56,9 +53,11 @@ export function UptimeChecksGrid({traceSampling, uptimeChecks}: Props) {
 
   const {data: spanCounts, isPending: spanCountLoading} = useSpans(
     {
-      limit: 10,
+      // One grouped row per trace. A fixed page size drops counts for the rest
+      // of the checks and labels those traces as system-spans-only.
+      limit: traceIds.length,
       enabled: traceIds.length > 0,
-      search: new MutableSearch('').addDisjunctionFilterValues('trace', traceIds),
+      search: `trace:[${traceIds.join(',')}]`,
       fields: ['trace', 'count()'],
       // Ignore the cursor parameter, since we use that on this page to
       // paginate the checks table.
@@ -140,9 +139,9 @@ function CheckInBodyCell({
         <TimeCell>
           <Tooltip
             maxWidth={300}
-            title={t('Checked at %s', <DateTime date={timestamp} seconds />)}
+            title={t('Checked at %s', <DateTime date={timestamp} precision="second" />)}
           >
-            <DateTime date={scheduledCheckTime} timeZone />
+            <DateTime date={scheduledCheckTime} showTimezone />
           </Tooltip>
         </TimeCell>
       );
@@ -237,13 +236,7 @@ function CheckInBodyCell({
 
       return (
         <TraceCell>
-          <Link
-            to={getUptimeTraceLink({
-              organization,
-              timestamp,
-              traceId,
-            })}
-          >
+          <Link to={getUptimeTraceLink({organization, timestamp, traceId})}>
             {getShortEventId(traceId)}
           </Link>
           {badge}

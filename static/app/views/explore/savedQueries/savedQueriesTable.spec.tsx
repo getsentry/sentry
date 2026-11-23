@@ -1,5 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -8,7 +9,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {SavedQueriesTable} from 'sentry/views/explore/savedQueries/savedQueriesTable';
+import {SavedQueriesTable} from './savedQueriesTable';
 
 describe('SavedQueriesTable', () => {
   const {organization} = initializeOrg();
@@ -27,15 +28,8 @@ describe('SavedQueriesTable', () => {
           name: 'Query Name',
           projects: [1],
           environment: ['production'],
-          createdBy: {
-            name: 'Test User',
-          },
-          query: [
-            {
-              visualize: [],
-              groupby: [],
-            },
-          ],
+          createdBy: {name: 'Test User'},
+          query: [{visualize: [], groupby: []}],
         },
       ],
     });
@@ -112,17 +106,13 @@ describe('SavedQueriesTable', () => {
     await userEvent.click(screen.getByText('Delete'));
     await screen.findByText('Are you sure you want to delete the query "Query Name"?');
     await userEvent.click(
-      within(screen.getByRole('dialog')).getByRole('button', {
-        name: 'Delete Query',
-      })
+      within(screen.getByRole('dialog')).getByRole('button', {name: 'Delete Query'})
     );
 
     await waitFor(() =>
       expect(deleteQueryMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/explore/saved/1/`,
-        expect.objectContaining({
-          method: 'DELETE',
-        })
+        expect.objectContaining({method: 'DELETE'})
       )
     );
   });
@@ -131,7 +121,7 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" title="title" />);
     expect(await screen.findByRole('link', {name: 'Query Name'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/traces/?environment=production&groupBy=&id=1&project=1&title=Query%20Name'
+      '/organizations/org-slug/explore/traces/?caseInsensitive=0&environment=production&groupBy=&id=1&project=1&title=Query%20Name'
     );
   });
 
@@ -144,19 +134,10 @@ describe('SavedQueriesTable', () => {
           name: 'Query Name',
           projects: [1],
           environment: ['production'],
-          createdBy: {
-            name: 'Test User',
-          },
+          createdBy: {name: 'Test User'},
           query: [
-            {
-              visualize: [],
-              groupby: [],
-              caseInsensitive: true,
-            },
-            {
-              visualize: [],
-              groupby: [],
-            },
+            {visualize: [], groupby: [], caseInsensitive: true},
+            {visualize: [], groupby: []},
           ],
         },
       ],
@@ -164,7 +145,7 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" title="title" />);
     expect(await screen.findByRole('link', {name: 'Query Name'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/traces/compare/?environment=production&id=1&project=1&queries=%7B%22fields%22%3A%5B%22id%22%2C%22timestamp%22%5D%2C%22groupBys%22%3A%5B%5D%2C%22query%22%3A%22%22%2C%22yAxes%22%3A%5B%5D%2C%22caseInsensitive%22%3A%221%22%7D&queries=%7B%22fields%22%3A%5B%22id%22%2C%22timestamp%22%5D%2C%22groupBys%22%3A%5B%5D%2C%22query%22%3A%22%22%2C%22yAxes%22%3A%5B%5D%7D&title=Query%20Name'
+      '/organizations/org-slug/explore/traces/compare/?environment=production&id=1&project=1&queries=%7B%22fields%22%3A%5B%22id%22%2C%22timestamp%22%5D%2C%22groupBys%22%3A%5B%5D%2C%22query%22%3A%22%22%2C%22yAxes%22%3A%5B%5D%2C%22caseInsensitive%22%3A%221%22%7D&queries=%7B%22fields%22%3A%5B%22id%22%2C%22timestamp%22%5D%2C%22groupBys%22%3A%5B%5D%2C%22query%22%3A%22%22%2C%22yAxes%22%3A%5B%5D%2C%22caseInsensitive%22%3Afalse%7D&title=Query%20Name'
     );
   });
 
@@ -177,9 +158,7 @@ describe('SavedQueriesTable', () => {
           name: 'Logs Query Name',
           projects: [1],
           environment: ['production'],
-          createdBy: {
-            name: 'Test User',
-          },
+          createdBy: {name: 'Test User'},
           query: [
             {
               mode: 'samples',
@@ -192,6 +171,7 @@ describe('SavedQueriesTable', () => {
             },
           ],
           range: '1h',
+          statsPeriod: '1h',
           interval: '5m',
           dataset: 'logs',
         },
@@ -213,9 +193,7 @@ describe('SavedQueriesTable', () => {
           name: 'ABC',
           projects: [1],
           environment: ['production'],
-          createdBy: {
-            name: 'User1',
-          },
+          createdBy: {name: 'User1'},
           query: [
             {
               mode: 'samples',
@@ -227,6 +205,7 @@ describe('SavedQueriesTable', () => {
             },
           ],
           range: '1h',
+          statsPeriod: '1h',
           interval: '5m',
           dataset: 'logs',
         },
@@ -235,7 +214,7 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" title="title" />);
     expect(await screen.findByRole('link', {name: 'ABC'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22message%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22avg%28tags%5Bamount%2Cnumber%5D%29%22%5D%7D&environment=production&id=1&interval=5m&logsFields=timestamp&logsFields=tags%5Bamount%2Cnumber%5D&logsQuery=message%3Afoo&logsSortBys=user.email&mode=samples&project=1&statsPeriod=1h&title=ABC'
+      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22message%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22avg%28tags%5Bamount%2Cnumber%5D%29%22%5D%7D&caseInsensitive=0&environment=production&id=1&interval=5m&logsFields=timestamp&logsFields=tags%5Bamount%2Cnumber%5D&logsQuery=message%3Afoo&logsSortBys=user.email&mode=samples&project=1&statsPeriod=1h&title=ABC'
     );
   });
 
@@ -248,15 +227,8 @@ describe('SavedQueriesTable', () => {
           name: 'Replays Query Name',
           projects: [1, 2],
           environment: ['production', 'staging'],
-          createdBy: {
-            name: 'Test User',
-          },
-          query: [
-            {
-              query: 'user.email:*@example.com',
-              mode: 'samples',
-            },
-          ],
+          createdBy: {name: 'Test User'},
+          query: [{query: 'user.email:*@example.com', mode: 'samples'}],
           start: '2024-01-01T00:00:00Z',
           end: '2024-01-02T00:00:00Z',
           dataset: 'replays',
@@ -279,16 +251,10 @@ describe('SavedQueriesTable', () => {
           name: 'Recent Replays',
           projects: [3],
           environment: ['production'],
-          createdBy: {
-            name: 'Test User',
-          },
-          query: [
-            {
-              query: 'browser.name:Chrome',
-              mode: 'samples',
-            },
-          ],
+          createdBy: {name: 'Test User'},
+          query: [{query: 'browser.name:Chrome', mode: 'samples'}],
           range: '24h',
+          statsPeriod: '24h',
           dataset: 'replays',
         },
       ],
@@ -309,15 +275,8 @@ describe('SavedQueriesTable', () => {
           name: 'Query Name',
           projects: [1],
           environment: ['production'],
-          createdBy: {
-            name: 'Test User',
-          },
-          query: [
-            {
-              visualize: [],
-              groupby: [],
-            },
-          ],
+          createdBy: {name: 'Test User'},
+          query: [{visualize: [], groupby: []}],
           starred: false,
         },
         {
@@ -325,15 +284,8 @@ describe('SavedQueriesTable', () => {
           name: 'Starred Query',
           projects: [1],
           environment: ['production'],
-          createdBy: {
-            name: 'Test User',
-          },
-          query: [
-            {
-              visualize: [],
-              groupby: [],
-            },
-          ],
+          createdBy: {name: 'Test User'},
+          query: [{visualize: [], groupby: []}],
           starred: true,
         },
       ],
@@ -347,24 +299,14 @@ describe('SavedQueriesTable', () => {
     await waitFor(() =>
       expect(starQueryMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/explore/saved/1/starred/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: {
-            starred: true,
-          },
-        })
+        expect.objectContaining({method: 'POST', data: {starred: true}})
       )
     );
     await userEvent.click(screen.getAllByLabelText('Unstar')[1]!);
     await waitFor(() =>
       expect(unstarQueryMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/explore/saved/2/starred/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: {
-            starred: false,
-          },
-        })
+        expect.objectContaining({method: 'POST', data: {starred: false}})
       )
     );
   });
@@ -385,9 +327,7 @@ describe('SavedQueriesTable', () => {
     await screen.findByText('Query Name');
     expect(getQueriesMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/explore/all-queries/`,
-      expect.objectContaining({
-        query: expect.objectContaining({query: 'Query Name'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({query: 'Query Name'})})
     );
   });
 
@@ -454,9 +394,7 @@ describe('SavedQueriesTable', () => {
         `/organizations/${organization.slug}/explore/saved/`,
         expect.objectContaining({
           method: 'POST',
-          data: expect.objectContaining({
-            name: 'Query Name (Copy)',
-          }),
+          data: expect.objectContaining({name: 'Query Name (Copy)'}),
         })
       )
     );
@@ -562,5 +500,34 @@ describe('SavedQueriesTable with discover queries', () => {
       'href',
       expect.stringContaining('explore/errors/results/')
     );
+  });
+
+  it('pushes its own cursor key when paginating', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
+      body: [],
+      headers: {
+        Link: '<https://sentry.io/api/0/?cursor=0:20:0>; rel="next"; results="true"; cursor="0:20:0"',
+      },
+    });
+    const {router} = render(
+      <SavedQueriesTable mode="owned" title="title" cursorKey="ownedCursor" />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/saved-queries/',
+            query: {query: 'Query Name'},
+          },
+        },
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+    await waitFor(() => expect(router.location.query.ownedCursor).toBe('0:20:0'));
+    const paginatedQuery = router.location.query;
+    act(() => router.navigate(-1));
+
+    expect(paginatedQuery).toEqual({query: 'Query Name', ownedCursor: '0:20:0'});
+    expect(router.location.query).toEqual({query: 'Query Name'});
   });
 });

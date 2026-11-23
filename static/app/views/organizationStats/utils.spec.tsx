@@ -1,6 +1,7 @@
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {getReasonGroupName} from 'sentry/views/organizationStats/getReasonGroupName';
-import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
+
+import {getReasonGroupName} from './getReasonGroupName';
+import {formatUsageWithUnits} from './utils';
 
 const MILLION = 10 ** 6;
 const BILLION = 10 ** 9;

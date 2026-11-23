@@ -1,4 +1,4 @@
-import {Fragment, memo, useEffect, useMemo, useState} from 'react';
+import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {truncate} from '@sentry/core';
@@ -12,13 +12,14 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Pagination} from '@sentry/scraps/pagination';
-import {Select, SelectOption, components} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
 import type {Theme} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t, tct} from 'sentry/locale';
@@ -42,6 +43,7 @@ import {
   parseFunction,
   prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {
   decodeInteger,
@@ -49,18 +51,21 @@ import {
   decodeScalar,
   decodeSorts,
 } from 'sentry/utils/queryString';
-import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {withPageFilters} from 'sentry/utils/withPageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {
+  SavedDashboardQueryPriorityProvider,
+  useDashboardQueryPriority,
+} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import type {
   DashboardFilters,
   DashboardPermissions,
+  DashboardQueryPriority,
   Widget,
 } from 'sentry/views/dashboards/types';
 import {
@@ -83,7 +88,6 @@ import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHas
 import {
   getWidgetExploreUrl,
   getWidgetTableRowExploreUrlFunction,
-  widgetTypeSupportsExploreMultiQuery,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
@@ -91,9 +95,13 @@ import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
 } from 'sentry/views/dashboards/widgetCard';
-import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import type {
+  GenericWidgetQueriesResult,
+  OnDataFetchedProps,
+} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {IssueWidgetQueries} from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import {useWidgetChartLayers} from 'sentry/views/dashboards/widgetCard/useWidgetChartLayers';
 import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import {WidgetQueries} from 'sentry/views/dashboards/widgetCard/widgetQueries';
@@ -120,13 +128,11 @@ export interface DataWidgetViewerModalOptions {
   dashboardPermissions?: DashboardPermissions;
   isPrebuiltDashboard?: boolean;
   onEdit?: () => void;
+  queryPriority?: DashboardQueryPriority;
   widgetInterval?: string;
 }
 
-interface Props extends ModalRenderProps, DataWidgetViewerModalOptions {
-  organization: Organization;
-  selection: PageFilters;
-}
+type Props = ModalRenderProps & DataWidgetViewerModalOptions;
 
 const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
@@ -154,6 +160,7 @@ type WidgetViewerTableProps = {
   cursor: string | undefined;
   dashboardFilters: DashboardFilters | undefined;
   modalSelection: PageFilters;
+  onIssuesDataFetched: (results: OnDataFetchedProps) => void;
   renderIssuesTable: (result: GenericWidgetQueriesResult) => React.JSX.Element;
   renderTable: (result: GenericWidgetQueriesResult) => React.JSX.Element;
   tableWidget: Widget;
@@ -165,6 +172,7 @@ function WidgetViewerTable({
   cursor,
   dashboardFilters,
   modalSelection,
+  onIssuesDataFetched,
   renderIssuesTable,
   renderTable,
   tableWidget,
@@ -196,6 +204,7 @@ function WidgetViewerTable({
           cursor={cursor}
           dashboardFilters={dashboardFilters}
           widgetInterval={widgetInterval}
+          onDataFetched={onIssuesDataFetched}
         >
           {renderIssuesTable}
         </IssueWidgetQueries>
@@ -231,11 +240,30 @@ function WidgetViewerTable({
   }
 }
 
+interface QueryOption extends SelectValue<number> {
+  getHighlightedQuery: (
+    props: React.ComponentProps<typeof HighlightContainer>
+  ) => React.ReactNode;
+}
+
+function QueryValue({option}: {option: QueryOption}) {
+  return (
+    option.getHighlightedQuery({display: 'block'}) ??
+    (option.label || <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>)
+  );
+}
+
+function QueryOptionLabel({option}: {option: QueryOption}) {
+  return (
+    option.getHighlightedQuery({display: 'flex'}) ??
+    (option.label || <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>)
+  );
+}
+
 function DataWidgetViewerModal(props: Props) {
   const {
     organization,
     widget,
-    selection,
     Footer,
     Body,
     Header,
@@ -246,8 +274,10 @@ function DataWidgetViewerModal(props: Props) {
     dashboardPermissions,
     dashboardCreator,
     isPrebuiltDashboard,
+    queryPriority,
     widgetInterval,
   } = props;
+  const {selection} = usePageFilters();
   const theme = useTheme();
   const location = useLocation();
   const {projects} = useProjects();
@@ -265,9 +295,7 @@ function DataWidgetViewerModal(props: Props) {
       Sentry.metrics.distribution(
         'dashboards.widget.onFullScreenView',
         measure.duration,
-        {
-          unit: 'millisecond',
-        }
+        {unit: 'millisecond'}
       );
       performance.clearMarks('dashboard.widget.fullScreenViewClick');
       performance.clearMeasures('dashboard.widget.onFullScreenView');
@@ -275,6 +303,15 @@ function DataWidgetViewerModal(props: Props) {
       // performance.measure throws if the start mark doesn't exist (e.g. direct URL navigation)
     }
   }, []);
+
+  // Opening the dropped-data drawer closes the fullscreen widget, since the
+  // flyout can't layer over it. The route-based fullscreen is closed in
+  // dashboards/detail; this covers the modal path (new/unsaved dashboards).
+  useEffect(() => {
+    if (defined(location.query.droppedData)) {
+      closeModal();
+    }
+  }, [location.query.droppedData, closeModal]);
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
@@ -286,10 +323,7 @@ function DataWidgetViewerModal(props: Props) {
   const locationPageFilter = useMemo(
     () =>
       start && end
-        ? {
-            ...selection,
-            datetime: {start, end, period: null, utc: null},
-          }
+        ? {...selection, datetime: {start, end, period: null, utc: null}}
         : selection,
     [start, end, selection]
   );
@@ -339,7 +373,14 @@ function DataWidgetViewerModal(props: Props) {
   const primaryWidget = defined(resolvedWidget.limit)
     ? {...resolvedWidget, queries: sortedQueries}
     : resolvedWidget;
-  const api = useApi();
+
+  const canUseTimeseriesVisualization =
+    widgetCanUseTimeSeriesVisualization(primaryWidget);
+  const chartLayers = useWidgetChartLayers({
+    widget: primaryWidget,
+    interval: widgetInterval,
+    enabled: canUseTimeseriesVisualization,
+  });
 
   // Create Table widget
   const tableWidget = {
@@ -440,7 +481,7 @@ function DataWidgetViewerModal(props: Props) {
     modalSelection
   );
 
-  const queryOptions = sortedQueries.map((query, index) => {
+  const queryOptions: QueryOption[] = sortedQueries.map((query, index) => {
     const {name, conditions} = query;
     // Creates the highlighted query elements to be used in the Query Select
     const dashboardFiltersString = dashboardFiltersToString(
@@ -459,11 +500,7 @@ function DataWidgetViewerModal(props: Props) {
       ) : null;
     };
 
-    return {
-      label: truncate(name || conditions, 120),
-      value: index,
-      getHighlightedQuery,
-    };
+    return {label: truncate(name || conditions, 120), value: index, getHighlightedQuery};
   });
 
   function onLegendSelectChanged({selected}: {selected: Record<string, boolean>}) {
@@ -498,15 +535,19 @@ function DataWidgetViewerModal(props: Props) {
     );
   }
 
+  const onIssuesDataFetched = useCallback(({totalCount}: OnDataFetchedProps) => {
+    // onDataFetched also fires without a count while the next page loads, so keep
+    // showing the last known total until a new one arrives
+    if (totalCount !== undefined) {
+      setTotalResults(totalCount);
+    }
+  }, []);
+
   const renderIssuesTable = ({
     tableResults,
     loading,
     pageLinks,
-    totalCount,
   }: GenericWidgetQueriesResult) => {
-    if (totalResults === undefined && totalCount) {
-      setTotalResults(totalCount);
-    }
     return (
       <ViewerTableV2
         tableResults={tableResults}
@@ -536,12 +577,7 @@ function DataWidgetViewerModal(props: Props) {
     const newEnd = getUtcDateString(moment.utc(endValue));
     setModalSelection({
       ...modalSelection,
-      datetime: {
-        ...modalSelection.datetime,
-        start: newStart,
-        end: newEnd,
-        period: null,
-      },
+      datetime: {...modalSelection.datetime, start: newStart, end: newEnd, period: null},
     });
     navigate({
       pathname: location.pathname,
@@ -590,7 +626,7 @@ function DataWidgetViewerModal(props: Props) {
               : HALF_CONTAINER_HEIGHT
           }
         >
-          {widgetCanUseTimeSeriesVisualization(primaryWidget) ? (
+          {canUseTimeseriesVisualization ? (
             <VisualizationWidget
               selection={modalSelection}
               dashboardFilters={dashboardFilters}
@@ -604,10 +640,13 @@ function DataWidgetViewerModal(props: Props) {
                 widget.widgetType === WidgetType.LOGS
               }
               widgetInterval={widgetInterval}
+              showReleases={chartLayers.showReleases}
+              droppedData={chartLayers.droppedData.band}
+              isDroppedDataLoading={chartLayers.droppedData.isLoading}
+              layerControl={chartLayers.layerControl}
             />
           ) : (
             <MemoizedWidgetCardChartContainer
-              api={api}
               selection={modalSelection}
               dashboardFilters={dashboardFilters}
               // Top N charts rely on the orderby of the table
@@ -665,60 +704,20 @@ function DataWidgetViewerModal(props: Props) {
               });
             }}
             components={{
-              // Replaces the displayed selected value
-              SingleValue: (containerProps: any) => {
-                return (
-                  <components.SingleValue
-                    {...containerProps}
-                    // Overwrites some of the default styling that interferes with highlighted query text
-                    getStyles={() => ({
-                      wordBreak: 'break-word',
-                      flex: 1,
-                      display: 'flex',
-                      padding: `0 ${theme.space.xs}`,
-                    })}
-                  >
-                    {queryOptions[selectedQueryIndex]!.getHighlightedQuery({
-                      display: 'block',
-                    }) ??
-                      (queryOptions[selectedQueryIndex]!.label || (
-                        <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
-                      ))}
-                  </components.SingleValue>
-                );
-              },
-              // Replaces the dropdown options
-              Option: (containerProps: any) => {
-                const highlightedQuery = containerProps.data.getHighlightedQuery({
-                  display: 'flex',
-                });
-                return (
-                  <SelectOption
-                    {...(highlightedQuery
-                      ? {
-                          ...containerProps,
-                          label: highlightedQuery,
-                        }
-                      : containerProps.label
-                        ? containerProps
-                        : {
-                            ...containerProps,
-                            label: (
-                              <EmptyQueryContainer>
-                                {EMPTY_QUERY_NAME}
-                              </EmptyQueryContainer>
-                            ),
-                          })}
-                  />
-                );
-              },
-              // Hide the dropdown indicator if there is only one option
-              ...(widget.queries.length < 2
-                ? {IndicatorsContainer: (_: any) => null}
-                : {}),
+              Value: QueryValue,
+              OptionLabel: QueryOptionLabel,
+              ...(widget.queries.length < 2 && {Indicators: null}),
             }}
-            isSearchable={false}
-            isDisabled={widget.queries.length < 2}
+            styles={{
+              singleValue: () => ({
+                wordBreak: 'break-word',
+                flex: 1,
+                display: 'flex',
+                padding: `0 ${theme.space.xs}`,
+              }),
+            }}
+            searchable={false}
+            disabled={widget.queries.length < 2}
           />
           {widget.queries.length === 1 && (
             <StyledQuestionTooltip
@@ -733,6 +732,7 @@ function DataWidgetViewerModal(props: Props) {
           cursor={cursor}
           dashboardFilters={dashboardFilters}
           modalSelection={modalSelection}
+          onIssuesDataFetched={onIssuesDataFetched}
           renderIssuesTable={renderIssuesTable}
           renderTable={renderTable}
           tableWidget={tableWidget}
@@ -744,7 +744,7 @@ function DataWidgetViewerModal(props: Props) {
   );
 
   return (
-    <Fragment>
+    <SavedDashboardQueryPriorityProvider priority={queryPriority}>
       <Header closeButton>
         <Stack gap="md">
           <Flex align="center" gap="sm">
@@ -808,7 +808,7 @@ function DataWidgetViewerModal(props: Props) {
           </Grid>
         </Flex>
       </Footer>
-    </Fragment>
+    </SavedDashboardQueryPriorityProvider>
   );
 }
 
@@ -831,6 +831,7 @@ function OpenButton({
   disabled,
   disabledTooltip,
 }: OpenButtonProps) {
+  const {priority: queryPriority} = useDashboardQueryPriority();
   let openLabel: string;
   let path: string;
   switch (widget.widgetType) {
@@ -845,9 +846,7 @@ function OpenButton({
     case WidgetType.SPANS:
     case WidgetType.LOGS: {
       openLabel = t('Open in Explore');
-      const multiQueryUnsupported =
-        widget.queries.length > 1 &&
-        !widgetTypeSupportsExploreMultiQuery(widget.widgetType);
+      const multiQueryUnsupported = widget.queries.length > 1;
       if (multiQueryUnsupported) {
         return (
           <Tooltip
@@ -859,12 +858,26 @@ function OpenButton({
           </Tooltip>
         );
       }
-      path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization)!;
+      path = getWidgetExploreUrl(
+        widget,
+        dashboardFilters,
+        selection,
+        organization,
+        undefined,
+        undefined,
+        queryPriority
+      )!;
       break;
     }
     case WidgetType.TRACEMETRICS:
       openLabel = t('Open in Explore');
-      path = getWidgetMetricsUrl(widget, dashboardFilters, selection, organization);
+      path = getWidgetMetricsUrl(
+        widget,
+        dashboardFilters,
+        selection,
+        organization,
+        queryPriority
+      );
       break;
     case WidgetType.PREPROD_APP_SIZE:
       // Mobile app size widgets are not integrated with Explore or Discover
@@ -956,6 +969,7 @@ function ViewerTableV2({
   modalSelection,
   selectedQueryIndex,
 }: ViewerTableV2Props) {
+  const {priority: queryPriority} = useDashboardQueryPriority();
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
   const links = parseLinkHeader(pageLinks ?? null);
 
@@ -970,9 +984,7 @@ function ViewerTableV2({
   }
 
   const columnOrder = decodeColumnOrder(
-    fields.map(field => ({
-      field,
-    })),
+    fields.map(field => ({field})),
     tableResults?.[0]?.meta
   );
 
@@ -1051,7 +1063,8 @@ function ViewerTableV2({
             meta as MetaType,
             widget,
             organization,
-            dashboardFilters
+            dashboardFilters,
+            queryPriority
           )!;
 
           // For SPANS widgets, the customRenderer already returns a link, so we shouldn't wrap it
@@ -1100,7 +1113,8 @@ function ViewerTableV2({
               widget,
               organization,
               dashboardFilters,
-              selectedQueryIndex
+              selectedQueryIndex,
+              queryPriority
             );
             const exploreUrl = getExploreUrl(dataRow);
             if (exploreUrl) {
@@ -1115,8 +1129,8 @@ function ViewerTableV2({
       ) &&
         (links?.previous?.results || links?.next?.results) && (
           <Pagination
-            pageLinks={pageLinks}
-            onCursor={(nextCursor, _path, _query, delta) => {
+            {...getPaginationProps(pageLinks)}
+            onCursor={(nextCursor, delta) => {
               let nextPage = isNaN(page) ? delta : page + delta;
               let newCursor = nextCursor;
               // unset cursor and page when we navigate back to the first page
@@ -1179,4 +1193,4 @@ const EmptyQueryContainer = styled('span')`
   color: ${p => p.theme.tokens.content.disabled};
 `;
 
-export default withPageFilters(DataWidgetViewerModal);
+export default DataWidgetViewerModal;

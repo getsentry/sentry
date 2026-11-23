@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.http.request import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -53,7 +54,8 @@ def get_integration_from_token(token: str | None) -> RpcIntegration:
     if not integration:
         raise ValueError("Could not find integration for token")
     try:
-        jwt.decode(token, integration.metadata["webhook_secret"])
+        # Jira Server webhook tokens are long-lived and were generated without an expiration.
+        jwt.decode(token, integration.metadata["webhook_secret"], require_exp=False)
     except Exception as err:
         raise ValueError(f"Could not validate JWT. Got {err}")
 
@@ -81,17 +83,17 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
     permission_classes = ()
 
     @csrf_exempt
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> Response:
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: Request, token, *args, **kwargs) -> Response:
+    def post(self, request: Request, token: str, *args: Any, **kwargs: Any) -> Response:
         clear_organization_info()
         extra: dict[str, object] = {}
         try:
             integration = get_integration_from_token(token)
             extra["integration_id"] = integration.id
         except ValueError as err:
-            extra.update({"token": token, "error": str(err)})
+            extra["error"] = str(err)
             logger.warning("token-validation-error", extra=extra)
             metrics.incr("jira_server.webhook.invalid_token")
             return self.respond(status=400)
@@ -111,7 +113,7 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
             handle_assignee_change(integration, data)
             handle_status_change(integration, data)
         except (ApiError, ObjectDoesNotExist) as err:
-            extra.update({"token": token, "error": str(err)})
+            extra["error"] = str(err)
             logger.info("sync-failed", extra=extra)
             return self.respond(status=400)
         else:

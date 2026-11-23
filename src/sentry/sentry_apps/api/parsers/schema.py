@@ -1,4 +1,6 @@
 import logging
+from collections.abc import Mapping
+from typing import Any
 
 import orjson
 from jsonschema import Draft7Validator
@@ -200,8 +202,10 @@ ELEMENT_TYPES = ["issue-link", "alert-rule-action", "issue-media", "stacktrace-l
 DEFAULT_TEXT_TYPES = ["issue.title", "issue.description"]
 TEXT_COMPONENTS = ["text", "textarea"]
 
+UiElementSchema = Mapping[str, Any]
 
-def validate_component(schema):
+
+def validate_component(schema: UiElementSchema) -> None:
     """
     In order to test individual components, that aren't normally allowed at the
     top-level of a schema, we just plop all `definitions` into `properties`.
@@ -213,12 +217,12 @@ def validate_component(schema):
     validate(instance={schema["type"]: schema}, schema=component_schema)
 
 
-def check_elements_is_array(instance):
+def check_elements_is_array(instance: UiElementSchema) -> None:
     if "elements" in instance and not isinstance(instance["elements"], list):
         raise SchemaValidationError("'elements' should be an array of objects")
 
 
-def check_each_element_for_error(instance):
+def check_each_element_for_error(instance: UiElementSchema) -> None:
     if "elements" not in instance:
         return
 
@@ -238,7 +242,7 @@ def check_each_element_for_error(instance):
             raise SchemaValidationError(f"{e.message} for element of type '{found_type}'")
 
 
-def validate_text_component_defaults(element, found_type):
+def validate_text_component_defaults(element: UiElementSchema, found_type: str) -> None:
     data = element["settings"] if found_type == "alert-rule-action" else element
     optional_fields = data.get("optional_fields", [])
     required_fields = data.get("required_fields", [])
@@ -252,7 +256,7 @@ def validate_text_component_defaults(element, found_type):
                 )
 
 
-def check_only_one_of_each_element(instance):
+def check_only_one_of_each_element(instance: UiElementSchema) -> None:
     if "elements" not in instance:
         return
     found = {}
@@ -264,7 +268,7 @@ def check_only_one_of_each_element(instance):
                 raise SchemaValidationError(f"Multiple elements of type: {element['type']}")
 
 
-def validate_ui_element_schema(instance):
+def validate_ui_element_schema(instance: UiElementSchema) -> None:
     try:
         # schema validator will catch elements missing
         check_elements_is_array(instance)
@@ -284,7 +288,7 @@ def validate_ui_element_schema(instance):
     validate(instance, SCHEMA)
 
 
-def validate(instance, schema):
+def validate(instance: object, schema: Mapping[str, object]) -> None:
     v = Draft7Validator(schema)
     if not v.is_valid(instance):
         raise best_match(v.iter_errors(instance))

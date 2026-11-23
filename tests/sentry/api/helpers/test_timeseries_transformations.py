@@ -1,3 +1,4 @@
+import sys
 from collections.abc import Sequence
 from typing import Literal
 
@@ -8,14 +9,17 @@ from sentry.api.helpers.timeseries_transformations import (
     FILL_MODE_LINEAR,
     FILL_MODE_LOCF,
     FILL_MODE_ZERO,
+    SMOOTH_MODE_ASAP,
     SMOOTH_MODE_EMA,
     SMOOTH_MODE_SMA,
+    AsapSmoothTransformation,
     EmaSmoothTransformation,
     FillTransformation,
     SmaSmoothTransformation,
     Transformation,
     fill_timeseries,
     parse_transformation,
+    parse_transformations,
     smooth_timeseries,
 )
 from sentry.exceptions import InvalidSearchQuery
@@ -40,6 +44,11 @@ from sentry.exceptions import InvalidSearchQuery
         ("smooth(sma,5,)", SmaSmoothTransformation(mode="sma", window_size=5)),
         ("smooth(ema,3)", EmaSmoothTransformation(mode="ema", window_size=3)),
         ("smooth(ema,7)", EmaSmoothTransformation(mode="ema", window_size=7)),
+        ("smooth(asap)", AsapSmoothTransformation(mode="asap")),
+        ("smooth(asap,1)", AsapSmoothTransformation(mode="asap", max_window_size=1)),
+        ("smooth(asap,7)", AsapSmoothTransformation(mode="asap", max_window_size=7)),
+        ("smooth( asap , 7 )", AsapSmoothTransformation(mode="asap", max_window_size=7)),
+        ("smooth(asap,,7,)", AsapSmoothTransformation(mode="asap", max_window_size=7)),
         (
             "smooth(ema,7,0.25)",
             EmaSmoothTransformation(mode="ema", window_size=7, smoothing_factor=0.25),
@@ -108,6 +117,13 @@ def test_parse_transformation(value: str, expected: Transformation) -> None:
         ("smooth(ema,7,true)", "smoothing_factor argument invalid"),
         ('smooth(ema,7,"0.5")', "smoothing_factor argument invalid"),
         ("smooth(ema,7,smoothing_factor=0.5)", "smoothing_factor argument invalid"),
+        ("smooth(asap,7,0.5)", "argument count must be 1 or 2"),
+        ("smooth(asap,0)", "Maximum window size must be positive"),
+        ("smooth(asap,-1)", "Maximum window size must be positive"),
+        ("smooth(asap,2.5)", "max_window_size argument invalid"),
+        ("smooth(asap,true)", "max_window_size argument invalid"),
+        ("smooth(asap,max_window_size=7)", "max_window_size argument invalid"),
+        ('smooth(asap,"7")', "max_window_size argument invalid"),
         ("fill(LOCF)", "mode argument invalid"),
         ('fill("locf")', "mode argument invalid"),
         ("fill(mode=locf)", "mode argument invalid"),
@@ -118,6 +134,59 @@ def test_parse_transformation(value: str, expected: Transformation) -> None:
 def test_parse_transformation_invalid(value: str, message: str) -> None:
     with pytest.raises(InvalidSearchQuery, match=message):
         parse_transformation(value)
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([], []),
+        (["fill(locf)"], [FillTransformation(mode="locf")]),
+        (["smooth(sma,3)"], [SmaSmoothTransformation(mode="sma", window_size=3)]),
+        (
+            ("fill( linear )", "smooth(ema,7,0.25)"),
+            [
+                FillTransformation(mode="linear"),
+                EmaSmoothTransformation(mode="ema", window_size=7, smoothing_factor=0.25),
+            ],
+        ),
+        (
+            ["smooth(asap,7)", "fill(zero)"],
+            [
+                AsapSmoothTransformation(mode="asap", max_window_size=7),
+                FillTransformation(mode="zero"),
+            ],
+        ),
+    ],
+)
+def test_parse_transformations(values: Sequence[str], expected: list[Transformation]) -> None:
+    assert parse_transformations(values) == expected
+
+
+@pytest.mark.parametrize(
+    "values, message",
+    [
+        (
+            ["fill(locf)", "fill(zero)"],
+            "Only one transformation per function type is allowed per yAxis",
+        ),
+        (
+            ["smooth(sma,3)", "smooth(ema,7)"],
+            "Only one transformation per function type is allowed per yAxis",
+        ),
+        (
+            ["smooth(asap)", "smooth(ema,7)"],
+            "Only one transformation per function type is allowed per yAxis",
+        ),
+        (
+            ["fill(locf)", "smooth(sma,3)", "invalid()"],
+            "At most 2 transformations are allowed per yAxis",
+        ),
+        (["fill(locf)", "fill(invalid)"], "mode argument invalid"),
+    ],
+)
+def test_parse_transformations_invalid(values: list[str], message: str) -> None:
+    with pytest.raises(InvalidSearchQuery, match=message):
+        parse_transformations(values)
 
 
 def test_parsed_transformations_with_processing_helpers() -> None:
@@ -144,6 +213,21 @@ def test_parsed_ema_with_processing_helper(transformation: str, expected: list[f
     assert isinstance(config, EmaSmoothTransformation)
 
     assert smooth_timeseries([0.0, 1.0, 2.0, 3.0], [2.0, 4.0, 6.0, 8.0], config=config) == expected
+
+
+@pytest.mark.parametrize(
+    "transformation, expected",
+    [
+        ("smooth(asap)", [4.0, 5.0, 14 / 3, 5.0, 3.75, 2.5, 1.25] + [0.0] * 13),
+        ("smooth(asap,2)", [4.0, 5.0, 5.0, 5.0, 2.5] + [0.0] * 15),
+    ],
+)
+def test_parsed_asap_with_processing_helper(transformation: str, expected: list[float]) -> None:
+    config = parse_transformation(transformation)
+    assert isinstance(config, AsapSmoothTransformation)
+    values = [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 8
+
+    assert smooth_timeseries(list(range(20)), values, config=config) == pytest.approx(expected)
 
 
 @pytest.mark.parametrize(
@@ -343,13 +427,14 @@ def test_smooth_timeseries_sma_equal_weighting() -> None:
     [
         SmaSmoothTransformation(mode="sma", window_size=3),
         EmaSmoothTransformation(mode="ema", window_size=3),
+        AsapSmoothTransformation(mode="asap"),
     ],
 )
 @pytest.mark.parametrize("timestamps, values", [([0.0], []), ([], [1.0])])
 def test_smooth_timeseries_rejects_mismatched_lengths(
     timestamps: list[float],
     values: list[float | None],
-    config: SmaSmoothTransformation | EmaSmoothTransformation,
+    config: SmaSmoothTransformation | EmaSmoothTransformation | AsapSmoothTransformation,
 ) -> None:
     with pytest.raises(ValueError, match="Timestamps and values must have the same length"):
         smooth_timeseries(timestamps, values, config=config)
@@ -592,3 +677,330 @@ def test_smooth_timeseries_ema_composes_with_filling_in_either_order() -> None:
     assert fill_then_smooth == [2.0, 1.0, 4.5]
     assert smooth_then_fill.values == [2.0, 0.0, 5.0]
     assert filled.filled == smooth_then_fill.filled == [False, True, False]
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        pytest.param([], [], id="empty"),
+        pytest.param([None, None], [None, None], id="all-missing"),
+        pytest.param((None, 0.0, None), [None, 0.0, None], id="single-zero-observation"),
+        pytest.param([2.0, -4.0, 8.0], [2.0, -4.0, 8.0], id="short-series"),
+        pytest.param([0.0] * 20, [0.0] * 20, id="constant-zero"),
+        pytest.param([5.0] * 20, [5.0] * 20, id="constant-nonzero"),
+        pytest.param(tuple(range(20)), list(range(20)), id="constant-differences"),
+        pytest.param(
+            [0.0] * 10 + [20.0] + [0.0] * 9,
+            [0.0] * 10 + [20.0] + [0.0] * 9,
+            id="kurtosis-rejects-smoothing-a-spike",
+        ),
+        pytest.param(
+            [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 2 + [-1.0],
+            [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 2 + [-1.0],
+            id="nine-buckets-have-no-candidate",
+        ),
+        pytest.param(
+            [0.0, 2.0] * 4 + [0.0, 10.0],
+            [0.0] + [1.0] * 8 + [5.0],
+            id="ten-buckets-allow-window-two",
+        ),
+        pytest.param(
+            [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 5,
+            [4.0, 5.0, 5.0, 5.0, 2.5] + [0.0] * 9,
+            id="fourteen-buckets-allow-window-two",
+        ),
+        pytest.param(
+            [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 5 + [-1.0],
+            [4.0, 5.0, 5.0, 5.0, 2.5] + [0.0] * 10,
+            id="fifteen-buckets-floor-window-limit",
+        ),
+        pytest.param(
+            [1.0, -1.0] * 5,
+            [1.0, -1.0] * 5,
+            id="startup-values-cannot-make-constant-windows-feasible",
+        ),
+        pytest.param(
+            [
+                8.0,
+                7.0,
+                6.0,
+                1.0,
+                4.0,
+                9.0,
+                0.0,
+                9.0,
+                6.0,
+                1.0,
+                6.0,
+                5.0,
+                8.0,
+                5.0,
+                6.0,
+                1.0,
+                8.0,
+                1.0,
+                8.0,
+                9.0,
+            ],
+            [
+                8.0,
+                7.5,
+                7.0,
+                5.5,
+                4.5,
+                5.0,
+                3.5,
+                5.5,
+                6.0,
+                4.0,
+                5.5,
+                4.5,
+                5.0,
+                6.0,
+                6.0,
+                5.0,
+                5.0,
+                4.0,
+                4.5,
+                6.5,
+            ],
+            id="inclusive-one-fifth-window-limit",
+        ),
+        pytest.param(
+            tuple(value for value in range(14, 33, 2) for _ in range(2)),
+            [14.0, 14.0] + list(range(15, 33)),
+            id="equal-roughness-prefers-smaller-window",
+        ),
+    ],
+)
+def test_smooth_timeseries_asap(
+    values: Sequence[float | None], expected: list[float | None]
+) -> None:
+    timestamps = tuple(float(index**2) for index in range(len(values)))
+    original_values = tuple(values)
+
+    result = smooth_timeseries(
+        timestamps, values, config=AsapSmoothTransformation(mode=SMOOTH_MODE_ASAP)
+    )
+
+    assert result == pytest.approx(expected)
+    assert result is not values
+    assert tuple(values) == original_values
+    assert timestamps == tuple(float(index**2) for index in range(len(values)))
+
+
+@pytest.mark.parametrize(
+    "max_window_size, expected",
+    [
+        pytest.param(1, [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 8, id="one-disables-smoothing"),
+        pytest.param(2, [4.0, 5.0, 5.0, 5.0, 2.5] + [0.0] * 15, id="restrict-default-search"),
+    ],
+)
+def test_smooth_timeseries_asap_respects_max_window_size(
+    max_window_size: int, expected: list[float | None]
+) -> None:
+    values = [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 8
+
+    result = smooth_timeseries(
+        list(range(20)),
+        values,
+        config=AsapSmoothTransformation(mode="asap", max_window_size=max_window_size),
+    )
+
+    assert result == pytest.approx(expected)
+
+
+def test_smooth_timeseries_asap_expands_search_across_gaps() -> None:
+    values = [None] + [0.0, 2.0] * 3 + [0.0, 5.0, None, 0.0, 0.0, 1.0, None]
+
+    result = smooth_timeseries(
+        list(range(len(values))),
+        values,
+        config=AsapSmoothTransformation(mode="asap", max_window_size=2),
+    )
+
+    assert result == pytest.approx([None, 0.0] + [1.0] * 6 + [2.5, None, 0.0, 0.0, 1.0, None])
+
+
+@pytest.mark.parametrize("values", [[], [None], [1.0], [1.0, 2.0], [0.0, 0.0, 1.0]])
+def test_smooth_timeseries_asap_caps_max_window_to_run_length(
+    values: list[float | None],
+) -> None:
+    result = smooth_timeseries(
+        list(range(len(values))),
+        values,
+        config=AsapSmoothTransformation(mode="asap", max_window_size=100),
+    )
+
+    assert result == values
+    assert result is not values
+
+
+@pytest.mark.parametrize("max_window_size", [0, -1, True, False, "3", 3.0, float("inf"), []])
+def test_asap_config_rejects_invalid_max_window(max_window_size: object) -> None:
+    with pytest.raises(ValidationError) as error:
+        AsapSmoothTransformation.parse_obj({"mode": "asap", "max_window_size": max_window_size})
+
+    assert error.value.errors()[0]["loc"] == ("max_window_size",)
+
+
+@pytest.mark.parametrize(
+    "config, field",
+    [
+        ({}, "mode"),
+        ({"mode": "ema"}, "mode"),
+        ({"mode": "asap", "window_size": 3}, "window_size"),
+        ({"mode": "asap", "smoothing_factor": 0.5}, "smoothing_factor"),
+    ],
+)
+def test_asap_config_rejects_invalid_fields(config: dict[str, object], field: str) -> None:
+    with pytest.raises(ValidationError) as error:
+        AsapSmoothTransformation.parse_obj(config)
+
+    assert error.value.errors()[0]["loc"] == (field,)
+
+
+def test_asap_config_is_immutable() -> None:
+    config = AsapSmoothTransformation(mode="asap", max_window_size=1)
+
+    with pytest.raises(TypeError, match="immutable"):
+        setattr(config, "max_window_size", 2)
+
+    assert smooth_timeseries([0.0, 1.0], [2.0, 6.0], config=config) == [2.0, 6.0]
+
+
+@pytest.mark.parametrize(
+    "offset, scale",
+    [(0.0, 1e-300), (0.0, 1.0), (0.0, 1e300), (1e308, 1e307), (-1e308, 1e307), (1e16, 4.0)],
+)
+def test_smooth_timeseries_asap_selects_window_two(offset: float, scale: float) -> None:
+    values = tuple(offset + value * scale for value in [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 5)
+
+    result = smooth_timeseries(
+        list(range(14)), values, config=AsapSmoothTransformation(mode="asap")
+    )
+
+    assert [(value - offset) / scale for value in result if value is not None] == pytest.approx(
+        [4.0, 5.0, 5.0, 5.0, 2.5] + [0.0] * 9
+    )
+
+
+def test_smooth_timeseries_asap_selects_different_windows_across_gaps() -> None:
+    values = (
+        [None]
+        + [4.0, 6.0, 4.0, 6.0]
+        + [-1.0, 1.0] * 8
+        + [None, None]
+        + [
+            8.0,
+            7.0,
+            8.0,
+            5.0,
+            2.0,
+            7.0,
+            6.0,
+            1.0,
+            8.0,
+            5.0,
+            2.0,
+            1.0,
+            0.0,
+            5.0,
+            6.0,
+            9.0,
+            6.0,
+            5.0,
+            6.0,
+            9.0,
+            6.0,
+            7.0,
+            8.0,
+            9.0,
+            8.0,
+        ]
+        + [None, 100.0, -100.0, None]
+    )
+    original_values = values.copy()
+
+    result = smooth_timeseries(
+        list(range(len(values))), values, config=AsapSmoothTransformation(mode=SMOOTH_MODE_ASAP)
+    )
+
+    assert result == pytest.approx(
+        [None, 4.0, 5.0, 14 / 3, 5.0, 3.75, 2.5, 1.25]
+        + [0.0] * 13
+        + [None, None]
+        + [
+            8.0,
+            7.5,
+            23 / 3,
+            20 / 3,
+            5.0,
+            14 / 3,
+            5.0,
+            14 / 3,
+            5.0,
+            14 / 3,
+            5.0,
+            8 / 3,
+            1.0,
+            2.0,
+            11 / 3,
+            20 / 3,
+            7.0,
+            20 / 3,
+            17 / 3,
+            20 / 3,
+            7.0,
+            22 / 3,
+            7.0,
+            8.0,
+            25 / 3,
+        ]
+        + [None, 100.0, -100.0, None]
+    )
+    assert values == original_values
+
+
+def test_smooth_timeseries_asap_composes_with_filling_in_either_order() -> None:
+    timestamps = list(range(21))
+    values = [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 8 + [None]
+
+    filled = fill_timeseries(timestamps, values, config=FillTransformation(mode=FILL_MODE_ZERO))
+    fill_then_smooth = smooth_timeseries(
+        timestamps, filled.values, config=AsapSmoothTransformation(mode=SMOOTH_MODE_ASAP)
+    )
+    smoothed = smooth_timeseries(
+        timestamps, values, config=AsapSmoothTransformation(mode=SMOOTH_MODE_ASAP)
+    )
+    smooth_then_fill = fill_timeseries(
+        timestamps, smoothed, config=FillTransformation(mode=FILL_MODE_ZERO)
+    )
+
+    assert fill_then_smooth == pytest.approx(
+        [4.0, 5.0, 14 / 3, 5.0, 3.75, 2.5, 1.25] + [0.0] * 13 + [0.25]
+    )
+    assert smooth_then_fill.values == pytest.approx(
+        [4.0, 5.0, 14 / 3, 5.0, 3.75, 2.5, 1.25] + [0.0] * 14
+    )
+    assert filled.filled == smooth_then_fill.filled == [False] * 20 + [True]
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
+def test_smooth_timeseries_asap_rejects_nonfinite_observations(value: float) -> None:
+    with pytest.raises(ValueError, match="ASAP observations must be finite"):
+        smooth_timeseries(
+            [0.0, 1.0], [1.0, value], config=AsapSmoothTransformation(mode=SMOOTH_MODE_ASAP)
+        )
+
+
+def test_smooth_timeseries_asap_preserves_values_when_rescaling_overflows() -> None:
+    offsets = [0, 0, 0, 1, 0, 1, 1, 2, 3, 0, 0, 65, 43, 0, 25]
+    values = [(1 - offset * 2**-53) * sys.float_info.max for offset in offsets]
+
+    result = smooth_timeseries(
+        list(range(15)), values, config=AsapSmoothTransformation(mode=SMOOTH_MODE_ASAP)
+    )
+
+    assert result == values
+    assert result is not values

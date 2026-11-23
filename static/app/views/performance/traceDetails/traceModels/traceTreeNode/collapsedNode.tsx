@@ -1,6 +1,5 @@
 import {uuid4} from '@sentry/core';
 
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {TraceCollapsedRow} from 'sentry/views/performance/traceDetails/traceRow/traceCollapsedRow';
 import type {TraceRowProps} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
@@ -45,12 +44,6 @@ export class CollapsedNode extends BaseNode<TraceTree.CollapsedNode> {
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
     return <TraceCollapsedRow {...props} node={this} />;
-  }
-
-  renderDetails<NodeType extends BaseNode>(
-    _props: TraceTreeNodeDetailsProps<NodeType>
-  ): React.ReactNode {
-    return null;
   }
 
   matchWithFreeText(_key: string): boolean {

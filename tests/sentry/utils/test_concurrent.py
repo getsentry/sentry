@@ -1,4 +1,5 @@
 import contextvars
+from collections.abc import Iterator
 from concurrent.futures import CancelledError, Future
 from contextlib import contextmanager
 from queue import Full
@@ -19,7 +20,7 @@ from sentry.utils.concurrent import (
 
 
 def test_future_set_callback_success() -> None:
-    future_set = FutureSet([Future() for i in range(3)])
+    future_set: FutureSet[object] = FutureSet([Future() for i in range(3)])
 
     callback = mock.Mock()
     future_set.add_done_callback(callback)
@@ -39,14 +40,14 @@ def test_future_set_callback_success() -> None:
 
 
 def test_future_set_callback_error() -> None:
-    future_set = FutureSet([Future() for i in range(3)])
+    future_set: FutureSet[object] = FutureSet([Future() for i in range(3)])
 
     callback = mock.Mock()
     future_set.add_done_callback(callback)
 
     for i, future in enumerate(list(future_set)):
         assert callback.call_count == 0
-        future.set_exception(Exception)
+        future.set_exception(Exception())
 
     assert callback.call_count == 1
     assert callback.call_args == mock.call(future_set)
@@ -59,7 +60,7 @@ def test_future_set_callback_error() -> None:
 
 
 def test_future_set_callback_empty() -> None:
-    future_set = FutureSet([])
+    future_set: FutureSet[object] = FutureSet([])
 
     callback = mock.Mock()
     future_set.add_done_callback(callback)
@@ -69,7 +70,7 @@ def test_future_set_callback_empty() -> None:
 
 
 def test_future_broken_callback() -> None:
-    future_set = FutureSet([])
+    future_set: FutureSet[object] = FutureSet([])
 
     callback = mock.Mock(side_effect=Exception("Boom!"))
 
@@ -80,7 +81,7 @@ def test_future_broken_callback() -> None:
 
 
 @contextmanager
-def timestamp(t):
+def timestamp(t: float) -> Iterator[None]:
     with mock.patch("sentry.utils.concurrent.time") as mock_time:
         mock_time.return_value = t
         yield
@@ -186,7 +187,7 @@ def test_synchronous_executor() -> None:
     class SentinelException(ValueError):
         pass
 
-    def callable():
+    def callable() -> None:
         raise SentinelException
 
     future = executor.submit(callable)
@@ -198,7 +199,7 @@ def test_synchronous_executor() -> None:
 def test_threaded_same_priority_Tasks() -> None:
     executor = ThreadedExecutor(worker_count=1)
 
-    def callable():
+    def callable() -> None:
         pass
 
     # Test that we can correctly submit multiple tasks
@@ -210,7 +211,7 @@ def test_threaded_same_priority_Tasks() -> None:
 def test_threaded_executor() -> None:
     executor = ThreadedExecutor(worker_count=1, maxsize=3)
 
-    def waiter(ready, waiting, result):
+    def waiter(ready: Event, waiting: Event, result: int) -> int:
         ready.set()
         waiting.wait()
         return result
@@ -285,7 +286,7 @@ _test_var: contextvars.ContextVar[str] = contextvars.ContextVar("test_var")
 def test_context_propagating_executor_submit() -> None:
     _test_var.set("hello")
 
-    def get_var():
+    def get_var() -> str:
         return _test_var.get()
 
     with ContextPropagatingThreadPoolExecutor(max_workers=1) as executor:
@@ -296,7 +297,7 @@ def test_context_propagating_executor_submit() -> None:
 def test_context_propagating_executor_map() -> None:
     _test_var.set("from_parent")
 
-    def get_var_with_arg(x):
+    def get_var_with_arg(x: int) -> tuple[str, int]:
         return (_test_var.get(), x)
 
     with ContextPropagatingThreadPoolExecutor(max_workers=2) as executor:
@@ -309,7 +310,7 @@ def test_context_propagating_executor_isolation() -> None:
     """Mutations in worker threads don't leak to the parent or other tasks."""
     _test_var.set("original")
 
-    def mutate_var(value):
+    def mutate_var(value: str) -> str:
         _test_var.set(value)
         return _test_var.get()
 
@@ -325,7 +326,7 @@ def test_context_propagating_executor_sentry_scope() -> None:
     """Sentry SDK scopes are propagated via contextvars."""
     sentry_sdk.get_current_scope().set_tag("test_key", "test_value")
 
-    def read_scope_tag():
+    def read_scope_tag() -> object | None:
         return sentry_sdk.get_current_scope()._tags.get("test_key")
 
     with ContextPropagatingThreadPoolExecutor(max_workers=1) as executor:

@@ -29,9 +29,7 @@ const BASE_CONVERSATION: Conversation = {
 };
 
 describe('useConversations', () => {
-  const organization = OrganizationFixture({
-    features: ['gen-ai-conversations'],
-  });
+  const organization = OrganizationFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -131,5 +129,43 @@ describe('useConversations', () => {
     await waitFor(() => expect(result.current.isFetching).toBe(false));
 
     expect(result.current.isDirectHit).toBe(false);
+  });
+
+  it('adds the errors filter when errorsOnly is set', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [],
+      match: [
+        MockApiClient.matchQuery({
+          query: '(conversation.errors:>0) and (gen_ai.tool.name:search)',
+        }),
+      ],
+    });
+
+    const {result} = renderHookWithProviders(() => useConversations(), {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {errorsOnly: 'true', query: 'gen_ai.tool.name:search'},
+        },
+      },
+    });
+
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+    expect(request).toHaveBeenCalled();
+  });
+
+  it('does not add the errors filter by default', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [],
+      match: [MockApiClient.matchQuery({query: ''})],
+    });
+
+    const {result} = renderHookWithProviders(() => useConversations(), {organization});
+
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+    expect(request).toHaveBeenCalled();
   });
 });

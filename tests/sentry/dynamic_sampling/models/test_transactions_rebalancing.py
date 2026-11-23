@@ -11,11 +11,11 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
 
 
 @pytest.fixture
-def transactions_rebalancing_model():
+def transactions_rebalancing_model() -> TransactionsRebalancingModel:
     return TransactionsRebalancingModel()
 
 
-def create_transaction_counts(big: int, med: int, small: int):
+def create_transaction_counts(big: int, med: int, small: int) -> list[RebalancedItem]:
     big_t = [RebalancedItem(id=f"tb{i}", count=1000 + i) for i in range(big)]
     med_t = [RebalancedItem(id=f"tm{i}", count=100 + i) for i in range(med)]
     small_t = [RebalancedItem(id=f"ts{i}", count=1 + i) for i in range(small)]
@@ -42,7 +42,9 @@ intensity = [0.0, 0.5, 1.0]
 
 
 def get_num_sampled_elements(
-    transactions: list[RebalancedItem], trans_dict: Mapping[str, float], global_rate: float
+    transactions: list[RebalancedItem],
+    trans_dict: Mapping[str | int, float],
+    global_rate: float,
 ) -> float:
     num_transactions = 0.0
     for transaction in transactions:
@@ -59,8 +61,13 @@ def get_num_sampled_elements(
 @pytest.mark.parametrize("transactions", test_resample_cases)
 @pytest.mark.parametrize("idx_low,idx_high", excluded_transactions)
 def test_maintains_overall_sample_rate(
-    transactions_rebalancing_model, intensity, sample_rate, transactions, idx_low, idx_high
-):
+    transactions_rebalancing_model: TransactionsRebalancingModel,
+    intensity: float,
+    sample_rate: float,
+    transactions: list[RebalancedItem],
+    idx_low: int,
+    idx_high: int | None,
+) -> None:
     """
     Tests that the overall sampling rate is maintained after applying new rates
     """
@@ -91,8 +98,12 @@ def test_maintains_overall_sample_rate(
 @pytest.mark.parametrize("transactions", test_resample_cases)
 @pytest.mark.parametrize("idx_low,idx_high", excluded_transactions)
 def test_explicit_elements_ideal_rate(
-    transactions_rebalancing_model, sample_rate, transactions, idx_low, idx_high
-):
+    transactions_rebalancing_model: TransactionsRebalancingModel,
+    sample_rate: float,
+    transactions: list[RebalancedItem],
+    idx_low: int,
+    idx_high: int | None,
+) -> None:
     """
     Tests that the explicitly specified elements are sampled at their ideal rate.
 
@@ -164,7 +175,7 @@ def _overall_kept(
 
 
 def test_high_class_count_crushes_dominant_transaction_without_floor(
-    transactions_rebalancing_model,
+    transactions_rebalancing_model: TransactionsRebalancingModel,
 ) -> None:
     """
     Reproduces TET-2535: one transaction carrying half the project volume while competing against a
@@ -191,7 +202,9 @@ def test_high_class_count_crushes_dominant_transaction_without_floor(
     assert implicit_rate / big_rate.new_sample_rate == pytest.approx(99999.0)
 
 
-def test_min_sample_rate_floors_dominant_transaction(transactions_rebalancing_model) -> None:
+def test_min_sample_rate_floors_dominant_transaction(
+    transactions_rebalancing_model: TransactionsRebalancingModel,
+) -> None:
     """
     Same scenario as above, but with the floor enabled: the dominant transaction's rate is floored
     so its extrapolation factor is capped at 1 / min_sample_rate, the cost is reclaimed from the
@@ -220,7 +233,9 @@ def test_min_sample_rate_floors_dominant_transaction(transactions_rebalancing_mo
     )
 
 
-def test_min_sample_rate_with_many_explicit_transactions(transactions_rebalancing_model) -> None:
+def test_min_sample_rate_with_many_explicit_transactions(
+    transactions_rebalancing_model: TransactionsRebalancingModel,
+) -> None:
     """
     Production-shaped case: 30 high-volume explicit transactions (60% of volume) competing with a
     ~50k-class tail. Without the floor every head transaction collapses to a 5e-5 rate (20,000x
@@ -256,7 +271,9 @@ def test_min_sample_rate_with_many_explicit_transactions(transactions_rebalancin
     )
 
 
-def test_min_sample_rate_clamped_to_overall_rate(transactions_rebalancing_model) -> None:
+def test_min_sample_rate_clamped_to_overall_rate(
+    transactions_rebalancing_model: TransactionsRebalancingModel,
+) -> None:
     """
     For a project whose overall rate is already below the configured floor, the floor is clamped to
     the overall rate, so a class is never sampled above the project rate and the budget cannot be
@@ -281,7 +298,9 @@ def test_min_sample_rate_clamped_to_overall_rate(transactions_rebalancing_model)
     )
 
 
-def test_min_sample_rate_inert_when_rates_healthy(transactions_rebalancing_model) -> None:
+def test_min_sample_rate_inert_when_rates_healthy(
+    transactions_rebalancing_model: TransactionsRebalancingModel,
+) -> None:
     """When the natural rates already sit above the floor, enabling it changes nothing."""
     classes = [RebalancedItem(id=f"big{i}", count=1000) for i in range(3)]
 
@@ -308,7 +327,9 @@ def test_min_sample_rate_inert_when_rates_healthy(transactions_rebalancing_model
     assert floored_implicit == pytest.approx(base_implicit)
 
 
-def test_min_sample_rate_out_of_range_is_invalid(transactions_rebalancing_model) -> None:
+def test_min_sample_rate_out_of_range_is_invalid(
+    transactions_rebalancing_model: TransactionsRebalancingModel,
+) -> None:
     with pytest.raises(InvalidModelInputError):
         _run(
             transactions_rebalancing_model,
@@ -320,7 +341,9 @@ def test_min_sample_rate_out_of_range_is_invalid(transactions_rebalancing_model)
         )
 
 
-def test_total_num_classes_mismatch(transactions_rebalancing_model) -> None:
+def test_total_num_classes_mismatch(
+    transactions_rebalancing_model: TransactionsRebalancingModel,
+) -> None:
     """
     Simple test case that checks that the model is resilient to cases where the
     reported total number of classes is less than the number of passed classes

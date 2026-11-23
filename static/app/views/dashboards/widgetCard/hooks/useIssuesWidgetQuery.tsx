@@ -1,37 +1,41 @@
 import {useMemo} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
-import type {Series} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import {
-  type IssuesSeriesResponse,
-  transformIssuesResponseToSeries,
-} from 'sentry/views/dashboards/datasetConfig/utils/transformIssuesResponseToSeries';
 import {transformIssuesResponseToTable} from 'sentry/views/dashboards/datasetConfig/utils/transformIssuesResponseToTable';
 import {DEFAULT_TABLE_LIMIT} from 'sentry/views/dashboards/types';
-import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
+import {
+  transformTimeSeriesResponse,
+  type WidgetTimeSeries,
+} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {combineWidgetJsonQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {combineWidgetJsonQueryResults} from './utils/combineWidgetQueryResults';
+import {getWidgetStaleTime} from './utils/getStaleTime';
 
 const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_EXPAND = ['owners'];
 
 type IssuesTableResponse = Group[];
+
+export type IssuesSeriesResponse = {
+  timeSeries: TimeSeries[];
+  meta?: {dataset: string; end: number; start: number};
+};
 
 const EMPTY_ARRAY: any[] = [];
 
@@ -68,10 +72,7 @@ export function useIssuesSeriesQuery(
         widgetInterval
       );
 
-      requestData.queryExtras = {
-        ...requestData.queryExtras,
-        category: 'issue',
-      };
+      requestData.queryExtras = {...requestData.queryExtras, category: 'issue'};
 
       const {
         organization: _org,
@@ -135,14 +136,10 @@ export function useIssuesSeriesQuery(
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
-    const timeseriesResults: Series[] = [];
+    const timeseriesResults: WidgetTimeSeries[] = [];
 
     queryResults.forEach((q, requestIndex) => {
       if (!q?.data?.json) {
@@ -151,26 +148,16 @@ export function useIssuesSeriesQuery(
 
       const responseData = q.data.json;
 
-      const transformedResult = transformIssuesResponseToSeries(responseData);
-      const seriesQueryPrefix = getSeriesQueryPrefix(
-        filteredWidget.queries[requestIndex]!,
-        filteredWidget
+      const transformedResult = transformTimeSeriesResponse(
+        responseData,
+        filteredWidget,
+        requestIndex
       );
 
-      transformedResult.forEach((result: Series, resultIndex: number) => {
-        if (seriesQueryPrefix) {
-          result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
-        }
-        timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
-      });
+      timeseriesResults.push(...transformedResult);
     });
 
-    return {
-      loading: false,
-      errorMessage: undefined,
-      timeseriesResults,
-      rawData,
-    };
+    return {loading: false, errorMessage: undefined, timeseriesResults, rawData};
   })();
 
   return transformedData;
@@ -259,15 +246,12 @@ export function useIssuesTableQuery(
 
   if (!allHaveData || isFetching) {
     const loading = isFetching || !errorMessage;
-    return {
-      loading,
-      errorMessage,
-      rawData: EMPTY_ARRAY,
-    };
+    return {loading, errorMessage, rawData: EMPTY_ARRAY};
   }
 
   const tableResults: any[] = [];
   let responsePageLinks: string | undefined;
+  let totalCount: string | undefined;
 
   queryResults.forEach((q, i) => {
     if (!q?.data?.json) {
@@ -294,6 +278,8 @@ export function useIssuesTableQuery(
     tableResults.push(transformedDataItem);
 
     responsePageLinks = q.data.headers.Link;
+    const hits = q.data.headers['X-Hits'];
+    totalCount = hits === undefined ? undefined : String(hits);
   });
 
   return {
@@ -301,6 +287,7 @@ export function useIssuesTableQuery(
     errorMessage: undefined,
     tableResults,
     pageLinks: responsePageLinks,
+    totalCount,
     rawData,
   };
 }

@@ -3,8 +3,6 @@ from __future__ import annotations
 from collections.abc import Iterable
 from time import time
 
-import rb
-from sentry_redis_tools.clients import RedisCluster
 from sentry_sdk import traces
 
 from sentry import options
@@ -18,12 +16,7 @@ from sentry.quotas.base import (
     QuotaGroupBy,
     QuotaScope,
 )
-from sentry.utils.redis import (
-    get_dynamic_cluster_from_options,
-    is_instance_rb_cluster,
-    is_instance_redis_cluster,
-    validate_dynamic_cluster,
-)
+from sentry.utils.redis import get_dynamic_cluster_from_options, validate_dynamic_cluster
 
 
 class RedisQuota(Quota):
@@ -33,38 +26,27 @@ class RedisQuota(Quota):
     grace = 60
 
     def __init__(self, **options: object):
-        self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
-            "SENTRY_QUOTA_OPTIONS", options
+        _, self.cluster, options = get_dynamic_cluster_from_options(
+            "SENTRY_QUOTA_OPTIONS", options, decode_responses=True
         )
-
-        # Based on the `is_redis_cluster` flag, self.cluster is set two one of
-        # the following two objects:
-        #  - false: `cluster` is a `RBCluster`. Call `get_local_client_for_key`
-        #    on the cluster to resolve a client to run a script or query a key.
-        #  - true: `cluster` is a `RedisCluster`. It automatically dispatches to
-        #    the correct node and can be used as a client directly.
 
         super().__init__(**options)
         self.namespace = "quota"
 
     def validate(self) -> None:
-        validate_dynamic_cluster(self.is_redis_cluster, self.cluster)
-
-    def __get_redis_client(self, routing_key: str) -> RedisCluster | rb.RoutingClient:
-        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-            return self.cluster
-        elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
-            return self.cluster.get_local_client_for_key(routing_key)
-        else:
-            raise AssertionError("unreachable")
+        validate_dynamic_cluster(self.cluster)
 
     def __get_redis_key(
-        self, quota: QuotaConfig, timestamp: float, shift: int, organization_id: int
+        self,
+        quota: QuotaConfig,
+        window: int,
+        timestamp: float,
+        shift: int,
+        organization_id: int,
     ) -> str:
         scope_id = quota.scope_id or "" if quota.scope != QuotaScope.ORGANIZATION else ""
         local_key = f"{quota.id}{{{organization_id}}}{scope_id}"
-        interval = quota.window
-        return f"{self.namespace}:{local_key}:{int((timestamp - shift) // interval)}"
+        return f"{self.namespace}:{local_key}:{int((timestamp - shift) // window)}"
 
     def get_quotas(
         self,
@@ -182,16 +164,17 @@ class RedisQuota(Quota):
         if not quotas:
             return
 
-        client = self.__get_redis_client(str(project.organization_id))
-        pipe = client.pipeline()
+        pipe = self.cluster.pipeline()
 
         for quota in quotas:
+            if quota.window is None:
+                continue
             shift = project.organization_id % quota.window
             # kind of arbitrary, but seems like we don't want this to expire til we're
             # sure the window is over?
             expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
             return_key = self.get_refunded_quota_key(
-                self.__get_redis_key(quota, timestamp, shift, project.organization_id)
+                self.__get_redis_key(quota, quota.window, timestamp, shift, project.organization_id)
             )
             pipe.incr(return_key, quantity)
             pipe.expireat(return_key, int(expiry))

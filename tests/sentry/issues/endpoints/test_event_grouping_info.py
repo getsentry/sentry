@@ -1,6 +1,7 @@
 from unittest import mock
 
 import orjson
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
@@ -8,10 +9,12 @@ from sentry.grouping.api import _load_default_grouping_config, load_grouping_con
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.interfaces.stacktrace import StacktraceOrder
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.user_option import UserOption
 from sentry.utils.samples import load_data
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 pytestmark = [requires_snuba]
 
@@ -45,6 +48,37 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         content = orjson.loads(response.content)
 
         assert response.status_code == 200
+        assert content["variants"]["system_exception_stacktrace"]["type"] == "component"
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret-32-bytes-long")
+    @with_feature("organizations:service-accounts")
+    def test_service_account(self) -> None:
+        event = self.store_event(data=load_data(platform="javascript"), project_id=self.project.id)
+        service_account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["project:read"],
+            project_ids=[self.project.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret-32-bytes-long",
+        )
+        url = reverse(
+            "sentry-api-0-event-grouping-info",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "event_id": event.event_id,
+            },
+        )
+
+        response = self.client.get(url, format="json", HTTP_X_VIEWER_CONTEXT=viewer_context)
+
+        assert response.status_code == 200, response.content
+        content = orjson.loads(response.content)
         assert content["variants"]["system_exception_stacktrace"]["type"] == "component"
 
     def test_error_event_stacktrace_order(self) -> None:

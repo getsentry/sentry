@@ -7,8 +7,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {closeModal} from '@sentry/scraps/modal';
+
 import {ConfigStore} from 'sentry/stores/configStore';
-import {ModalStore} from 'sentry/stores/modalStore';
 
 import {LaunchpadAdminPage} from 'admin/views/launchpadAdminPage';
 
@@ -17,7 +18,7 @@ describe('LaunchpadAdminPage', () => {
 
   beforeEach(() => {
     ConfigStore.set('localities', [{name: 'us', url: 'https://us.test'}]);
-    ModalStore.reset();
+    closeModal();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     Object.assign(navigator, {clipboard: {writeText}});
@@ -64,13 +65,7 @@ describe('LaunchpadAdminPage', () => {
   });
 
   it('copies fetched artifact information as formatted JSON', async () => {
-    const artifactInfo = {
-      success: true,
-      artifact_info: {
-        id: 123,
-        state: 1,
-      },
-    };
+    const artifactInfo = {success: true, artifact_info: {id: 123, state: 1}};
     MockApiClient.addMockResponse({
       url: '/internal/preprod-artifact/123/info/',
       body: artifactInfo,

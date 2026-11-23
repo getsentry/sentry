@@ -256,6 +256,24 @@ class EventRedisData:
         }
         return EventRedisData(events=filtered_events)
 
+    def filter_to_group_dcgs(
+        self, groups_to_dcgs: Mapping[GroupId, set[DataConditionGroup]]
+    ) -> EventRedisData:
+        """Return a new EventRedisData containing only events matching their group's DCGs."""
+        if not groups_to_dcgs:
+            return EventRedisData(events={})
+
+        groups_to_dcg_ids = {
+            group_id: {dcg.id for dcg in dcgs} for group_id, dcgs in groups_to_dcgs.items()
+        }
+        filtered_events = {
+            key: instance
+            for key, instance in self.events.items()
+            if key.group_id in groups_to_dcg_ids
+            and not key.dcg_ids.isdisjoint(groups_to_dcg_ids[key.group_id])
+        }
+        return EventRedisData(events=filtered_events)
+
 
 @dataclass
 class GroupQueryParams:
@@ -761,6 +779,10 @@ def get_group_to_groupevent(
     groups_to_dcgs: dict[GroupId, set[DataConditionGroup]],
     project: Project,
 ) -> dict[Group, tuple[GroupEvent, datetime | None]]:
+    event_data = event_data.filter_to_group_dcgs(groups_to_dcgs)
+    if not event_data.events:
+        return {}
+
     groups = Group.objects.get_many_from_cache(event_data.group_ids)
     group_id_to_group = {group.id: group for group in groups}
 
@@ -775,25 +797,18 @@ def get_group_to_groupevent(
         occurrence.id: occurrence for occurrence in bulk_occurrences if occurrence
     }
 
-    groups_to_dcg_ids = {
-        group_id: {dcg.id for dcg in dcgs} for group_id, dcgs in groups_to_dcgs.items()
-    }
-
     group_to_groupevent: dict[Group, tuple[GroupEvent, datetime | None]] = {}
     for key, instance in event_data.events.items():
-        if key.dcg_ids.intersection(groups_to_dcg_ids.get(key.group_id, set())):
-            event = bulk_event_id_to_events.get(instance.event_id)
-            group = group_id_to_group.get(key.group_id)
+        event = bulk_event_id_to_events.get(instance.event_id)
+        group = group_id_to_group.get(key.group_id)
 
-            if not group or not event:
-                continue
+        if not group or not event:
+            continue
 
-            group_event = event.for_group(group)
-            if instance.occurrence_id:
-                group_event.occurrence = bulk_occurrence_id_to_occurrence.get(
-                    instance.occurrence_id
-                )
-            group_to_groupevent[group] = (group_event, instance.timestamp)
+        group_event = event.for_group(group)
+        if instance.occurrence_id:
+            group_event.occurrence = bulk_occurrence_id_to_occurrence.get(instance.occurrence_id)
+        group_to_groupevent[group] = (group_event, instance.timestamp)
 
     return group_to_groupevent
 
@@ -828,7 +843,9 @@ def fire_actions_for_groups(
     ) as tracker:
         for group, (group_event, start_timestamp) in group_to_groupevent.items():
             with tracker.track(str(group.id)), log_context.new_context(group_id=group.id):
-                workflow_event_data = WorkflowEventData(event=group_event, group=group)
+                workflow_event_data = WorkflowEventData(
+                    event=group_event, group=group, organization=group_event.project.organization
+                )
 
                 dcgs_for_group = groups_to_fire.get(group.id, set())
                 filtered_actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
@@ -857,11 +874,7 @@ def fire_actions_for_groups(
                         for history in workflow_fire_histories
                     }
 
-                event_id = (
-                    workflow_event_data.event.event_id
-                    if isinstance(workflow_event_data.event, GroupEvent)
-                    else workflow_event_data.event.id
-                )
+                event_id = workflow_event_data.event_id
                 logger.debug(
                     "workflow_engine.delayed_workflow.triggered_actions",
                     extra={

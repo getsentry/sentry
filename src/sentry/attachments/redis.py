@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from django.conf import settings
 
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class RedisClusterAttachmentCache(BaseAttachmentCache):
-    def __init__(self, **options):
+    def __init__(self, **options: Any) -> None:
         cluster_id = options.pop("cluster_id", None)
         if cluster_id is None:
             cluster_id = getattr(settings, "SENTRY_ATTACHMENTS_REDIS_CLUSTER", "rc-short")

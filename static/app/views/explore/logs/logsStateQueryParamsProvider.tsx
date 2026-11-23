@@ -3,12 +3,10 @@ import type {ReactNode} from 'react';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {defaultSortBys} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {ExploreStateQueryParamsProvider} from 'sentry/views/explore/exploreStateQueryParamsProvider';
-import {
-  defaultAggregateSortBys,
-  defaultVisualizes,
-} from 'sentry/views/explore/logs/logsQueryParams';
 import {defaultGroupBys} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
+
+import {defaultAggregateSortBys, defaultVisualizes} from './logsQueryParams';
 
 interface LogsStateQueryParamsProviderProps {
   children: ReactNode;

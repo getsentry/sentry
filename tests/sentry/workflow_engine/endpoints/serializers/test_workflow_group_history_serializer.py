@@ -119,7 +119,9 @@ class WorkflowGroupsPaginatedTest(TestCase):
         per_page: int = 25,
         sort: Sequence[str] = (),
     ) -> CursorResult[WorkflowGroupHistory]:
-        result = fetch_workflow_groups_paginated(workflow, start, end, cursor, per_page, sort)
+        result = fetch_workflow_groups_paginated(
+            workflow, start, end, cursor, per_page, sort, project_ids=[self.project.id]
+        )
         assert result.results == expected_results, (result.results, expected_results)
         return result
 
@@ -133,21 +135,18 @@ class WorkflowGroupsPaginatedTest(TestCase):
                     self.group,
                     count=3,
                     last_triggered=self.base_triggered_date,
-                    event_id=self.history[0].event_id,
                     detector=self.detector_1,
                 ),
                 WorkflowGroupHistory(
                     self.group_3,
                     count=2,
                     last_triggered=self.base_triggered_date,
-                    event_id=self.history[4].event_id,
                     detector=self.detector_3,
                 ),
                 WorkflowGroupHistory(
                     self.group_2,
                     count=1,
                     last_triggered=self.base_triggered_date,
-                    event_id=self.history[3].event_id,
                     detector=self.detector_2,
                 ),
             ],
@@ -163,7 +162,6 @@ class WorkflowGroupsPaginatedTest(TestCase):
                     self.group,
                     count=3,
                     last_triggered=self.base_triggered_date,
-                    event_id=self.history[0].event_id,
                     detector=self.detector_1,
                 ),
             ],
@@ -179,7 +177,6 @@ class WorkflowGroupsPaginatedTest(TestCase):
                     self.group_3,
                     count=2,
                     last_triggered=self.base_triggered_date,
-                    event_id=self.history[4].event_id,
                     detector=self.detector_3,
                 ),
             ],
@@ -196,7 +193,6 @@ class WorkflowGroupsPaginatedTest(TestCase):
                     self.group_2,
                     count=1,
                     last_triggered=self.base_triggered_date,
-                    event_id=self.history[3].event_id,
                     detector=self.detector_2,
                 ),
             ],
@@ -215,21 +211,18 @@ class WorkflowGroupsPaginatedTest(TestCase):
                     self.group,
                     count=1,
                     last_triggered=self.base_triggered_date,
-                    event_id=self.history[0].event_id,
                     detector=self.detector_1,
                 ),
                 WorkflowGroupHistory(
                     self.group_2,
                     count=1,
                     last_triggered=self.base_triggered_date,
-                    event_id=self.history[3].event_id,
                     detector=self.detector_2,
                 ),
                 WorkflowGroupHistory(
                     self.group_3,
                     count=1,
                     last_triggered=self.base_triggered_date,
-                    event_id=self.history[4].event_id,
                     detector=self.detector_3,
                 ),
             ],
@@ -245,7 +238,6 @@ class WorkflowGroupsPaginatedTest(TestCase):
                     self.group,
                     count=1,
                     last_triggered=self.base_triggered_date - timedelta(days=2),
-                    event_id=self.history[2].event_id,
                     detector=self.detector_1,
                 ),
             ],

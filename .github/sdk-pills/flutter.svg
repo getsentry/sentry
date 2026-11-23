@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="142" height="40" viewBox="0 0 142 40">
+<style>
+  .pill { fill: #FFFFFF; stroke: #E0DCE5; }
+  .label { fill: #2B2233; font: 600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  @media (prefers-color-scheme: dark) {
+    .pill { fill: #181225; stroke: #3E3446; }
+    .label { fill: #EBE6EF; }
+  }
+</style>
+<rect class="pill" x="0.5" y="0.5" width="141" height="39" rx="9.5" />
+<defs><clipPath id="r"><rect x="8" y="8" width="24" height="24" rx="6" /></clipPath></defs>
+<g clip-path="url(#r)"><svg x="8" y="8" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <rect width="100%" height="100%" fill="#5FC9F8"/>
+  <path fill="#fff" d="M5.65 12.15 3.5 10l7-7h4.3l-9.15 9.15Z"/>
+  <path fill="#fff" d="m14.8 9.46-3.76 3.77L14.8 17H10.5l-1.62-1.62-2.15-2.15 3.77-3.77h4.3ZM10.5 3l-7 7 2.15 2.15L14.81 3H10.5Z"/>
+</svg></g>
+<text class="label" x="40" y="24.5">Dart / Flutter</text>
+</svg>

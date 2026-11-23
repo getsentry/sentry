@@ -1,10 +1,6 @@
 import type {Actor} from 'sentry/types/core';
 import type {SimpleGroup} from 'sentry/types/group';
 import type {
-  DataConditionGroupLogicType,
-  DataConditionType,
-} from 'sentry/types/workflowEngine/dataConditions';
-import type {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
   Dataset,
@@ -20,6 +16,8 @@ import type {
   MetricType as PreprodMeasurement,
   MeasurementType as PreprodThresholdType,
 } from 'sentry/views/settings/project/preprod/types';
+
+import type {DataConditionGroupLogicType, DataConditionType} from './dataConditions';
 
 export type {PreprodMeasurement, PreprodThresholdType};
 
@@ -54,12 +52,7 @@ export interface SnubaQueryDataSource extends BaseDataSource {
   /**
    * See QuerySubscriptionSerializer
    */
-  queryObj: {
-    id: string;
-    snubaQuery: SnubaQuery;
-    status: number;
-    subscription: string;
-  };
+  queryObj: {id: string; snubaQuery: SnubaQuery; status: number; subscription: string};
   type: 'snuba_query_subscription';
 }
 
@@ -257,10 +250,7 @@ export interface MetricDetectorUpdatePayload extends BaseDetectorUpdatePayload {
 }
 
 export interface CronDetectorUpdatePayload extends BaseDetectorUpdatePayload {
-  dataSources: Array<{
-    config: MonitorConfig;
-    name: string;
-  }>;
+  dataSources: Array<{config: MonitorConfig; name: string}>;
   type: 'monitor_check_in_failure';
 }
 

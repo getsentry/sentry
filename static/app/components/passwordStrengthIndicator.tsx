@@ -1,8 +1,9 @@
 import {lazy, Suspense} from 'react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 
-import {ProgressRing} from 'sentry/components/progressRing';
 import {t} from 'sentry/locale';
+
+import {ProgressRing} from './progressRing';
 
 const PasswordStrengthRing = lazy(() =>
   import('sentry/components/passwordStrength').then(module => ({

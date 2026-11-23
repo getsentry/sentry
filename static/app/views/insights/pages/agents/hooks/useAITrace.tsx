@@ -18,7 +18,7 @@ interface UseAITraceResult {
 /**
  * Base attributes needed for AI trace display
  */
-const AI_TRACE_BASE_ATTRIBUTES = [
+export const AI_TRACE_BASE_ATTRIBUTES = [
   SpanFields.GEN_AI_AGENT_NAME,
   SpanFields.GEN_AI_EMBEDDINGS_INPUT,
   SpanFields.GEN_AI_FUNCTION_ID,
@@ -43,6 +43,7 @@ const AI_TRACE_BASE_ATTRIBUTES = [
   'status',
   'gen_ai.tool.call.arguments',
   'gen_ai.tool.call.result',
+  'gen_ai.tool.call.result.size',
   'gen_ai.tool.input',
   'gen_ai.tool.output',
 ];
@@ -54,10 +55,7 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
 
   const organization = useOrganization();
 
-  const trace = useTrace({
-    traceSlug,
-    additionalAttributes: AI_TRACE_BASE_ATTRIBUTES,
-  });
+  const trace = useTrace({traceSlug, additionalAttributes: AI_TRACE_BASE_ATTRIBUTES});
 
   useEffect(() => {
     if (trace.status !== 'success' || !trace.data) {
@@ -96,9 +94,5 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
     loadAllSpans();
   }, [trace.status, trace.data, organization]);
 
-  return {
-    nodes,
-    isLoading,
-    error,
-  };
+  return {nodes, isLoading, error};
 }

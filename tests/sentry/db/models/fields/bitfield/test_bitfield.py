@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import pickle
 import unittest
+from typing import TYPE_CHECKING, cast
 
 import pytest
 from django import forms
@@ -25,7 +28,13 @@ class BitFieldTestModel(models.Model):
         bitfield_db_column = "another_name"
 
 
-class BitFieldTestModelForm(forms.ModelForm):
+if TYPE_CHECKING:
+    _ModelForm = forms.ModelForm[BitFieldTestModel]
+else:
+    _ModelForm = forms.ModelForm
+
+
+class BitFieldTestModelForm(_ModelForm):
     class Meta:
         model = BitFieldTestModel
         exclude = ()
@@ -272,7 +281,7 @@ class BitFieldTest(TestCase):
         instance.flags.FLAG_1 = True
 
         BitFieldTestModel.objects.filter(pk=instance.pk).update(
-            flags=bitor(F("flags"), instance.flags)
+            flags=bitor(F("flags"), instance.flags.FLAG_1)
         )
         instance = BitFieldTestModel.objects.get(pk=instance.pk)
         self.assertTrue(instance.flags.FLAG_1)
@@ -327,7 +336,7 @@ class BitFieldTest(TestCase):
         pytest.raises(ValueError, BitField, flags=flags[: (MAX_COUNT + 1)])
 
     def test_dictionary_init(self) -> None:
-        flags = {
+        flags: dict[object, str] = {
             0: "zero",
             1: "first",
             10: "tenth",
@@ -337,12 +346,15 @@ class BitFieldTest(TestCase):
             -100: "smallkey",
         }
 
-        bf = BitField(flags)
+        bf = BitField(cast("dict[int, str]", flags))
 
         self.assertEqual(bf.flags, ["zero", "first", "second", "", "", "", "", "", "", "", "tenth"])
-        pytest.raises(ValueError, BitField, flags={})
-        pytest.raises(ValueError, BitField, flags={"wrongkey": "wrongkey"})
-        pytest.raises(ValueError, BitField, flags={"1": "non_int_key"})
+        with pytest.raises(ValueError):
+            BitField(flags={})
+        with pytest.raises(ValueError):
+            BitField(flags=cast("dict[int, str]", {"wrongkey": "wrongkey"}))
+        with pytest.raises(ValueError):
+            BitField(flags=cast("dict[int, str]", {"1": "non_int_key"}))
 
     def test_defaults_as_key_names(self) -> None:
         field = BitFieldTestModelWithDefaultsAsKeyNames._meta.get_field("flags")

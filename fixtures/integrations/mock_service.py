@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 from collections import defaultdict
+from collections.abc import KeysView
 from typing import Any
 
 import orjson
@@ -20,14 +21,15 @@ class MockService(StubService):
     Like stubs, mocks can make tests simpler and more reliable.
     """
 
-    def __init__(self, mode="memory"):
+    def __init__(self, mode: str = "memory") -> None:
         """
         Initialize the mock instance. Wipe the previous instance's data if it exists.
         """
         super().__init__()
         self.mode = mode
-        self._next_error_code = None
-        self._next_ids = defaultdict(int)
+        self._next_error_code: int | None = None
+        self._next_ids: defaultdict[str, int] = defaultdict(int)
+        self._memory: defaultdict[str, dict[str, Any]]
 
         if self.mode == "file":
             path = os.path.join(FIXTURE_DIRECTORY, self.service_name, "data")
@@ -35,9 +37,9 @@ class MockService(StubService):
                 shutil.rmtree(path)
             os.makedirs(path)
         else:
-            self._memory: dict[str, dict[str, Any]] = defaultdict(dict)
+            self._memory = defaultdict(dict)
 
-    def add_project(self, project):
+    def add_project(self, project: str) -> None:
         """
         Create a new, empty project.
 
@@ -48,7 +50,7 @@ class MockService(StubService):
         if self.mode == "file":
             self._get_project_path(project)
 
-    def remove_project(self, project):
+    def remove_project(self, project: str) -> None:
         """
         Totally wipe out a project.
 
@@ -60,13 +62,13 @@ class MockService(StubService):
             path = self._get_project_path(project)
             shutil.rmtree(path)
 
-    def break_next_api_call(self, error_code=500):
+    def break_next_api_call(self, error_code: int = 500) -> None:
         """
         Simulate an outage for a single API call.
         """
         self._next_error_code = error_code
 
-    def _throw_if_broken(self, message_option=None):
+    def _throw_if_broken(self, message_option: str | None = None) -> None:
         """
         See break_next_api_call.
         :param message_option: What should the message be if this raises?
@@ -77,22 +79,22 @@ class MockService(StubService):
             message = message_option or f"{self.service_name} is down"
             raise Exception(f"{self._next_error_code}: {message}")
 
-    def _get_project_names(self):
+    def _get_project_names(self) -> KeysView[str]:
         return self._next_ids.keys()
 
-    def _get_new_ticket_name(self, project):
+    def _get_new_ticket_name(self, project: str) -> str:
         counter = self._next_ids[project]
         self._next_ids[project] = counter + 1
 
         return f"{project}-{base32_encode(counter)}"
 
-    def _get_project_path(self, project):
+    def _get_project_path(self, project: str) -> str:
         path = os.path.join(FIXTURE_DIRECTORY, self.service_name, "data", project)
 
         os.makedirs(path, exist_ok=True)
         return path
 
-    def _set_data(self, project, name, data):
+    def _set_data(self, project: str, name: str, data: object) -> None:
         if self.mode == "memory":
             if not self._memory[project]:
                 self._memory[project] = defaultdict()
@@ -103,7 +105,7 @@ class MockService(StubService):
         with open(path, "wb") as f:
             f.write(orjson.dumps(data))
 
-    def _get_data(self, project, name):
+    def _get_data(self, project: str, name: str) -> object | None:
         if self.mode == "memory":
             if not self._memory[project]:
                 self._memory[project] = defaultdict()
@@ -114,4 +116,5 @@ class MockService(StubService):
             return None
 
         with open(path, "rb") as f:
-            return orjson.loads(f.read())
+            data: object = orjson.loads(f.read())
+            return data

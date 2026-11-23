@@ -21,6 +21,7 @@ filter on the transaction field or tags.
 TIMEOUT_RPC_ERROR_MESSAGE = """
 Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.
 """
+INVALID_REGEX_ERROR_MESSAGE = "Invalid regular expression. Search patterns must use RE2 syntax."
 PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
 PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
@@ -216,6 +217,10 @@ DURATION_UNITS: dict[DurationUnit, float] = {
 RESULT_TYPES = RESULT_TYPES.union(SIZE_UNITS.keys())
 RESULT_TYPES = RESULT_TYPES.union(DURATION_UNITS.keys())
 PERCENT_UNITS = {"ratio", "percent"}
+NumericFieldType = Literal["number", "integer", "currency", "percentage"]
+NUMERIC_FIELD_TYPES: frozenset[NumericFieldType] = frozenset(
+    {"number", "integer", "currency", "percentage"}
+)
 
 NO_CONVERSION_FIELDS = {"start", "end"}
 # Skip total_count_alias since it queries the total count and therefore doesn't make sense in a filter

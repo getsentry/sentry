@@ -5,7 +5,7 @@ import {IconWarning} from '@sentry/icons/warning';
 import toNumber from 'lodash/toNumber';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
@@ -42,26 +42,6 @@ import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectEnvironmentSection} from 'sentry/views/detectors/components/forms/common/projectEnvironmentSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
-import {
-  metricDetectorFormDataToEndpointPayload,
-  metricSavedDetectorToFormData,
-} from 'sentry/views/detectors/components/forms/metric/metricFormData';
-import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
-import {
-  METRIC_DETECTOR_FORM_FIELDS,
-  useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
-import {MetricIssuePreview} from 'sentry/views/detectors/components/forms/metric/metricIssuePreview';
-import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
-import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/metric/queryFilterBuilder';
-import {ResolveSection} from 'sentry/views/detectors/components/forms/metric/resolveSection';
-import {sanitizeDetectorQuery} from 'sentry/views/detectors/components/forms/metric/sanitizeDetectorQuery';
-import {TemplateSection} from 'sentry/views/detectors/components/forms/metric/templateSection';
-import {useAutoMetricDetectorName} from 'sentry/views/detectors/components/forms/metric/useAutoMetricDetectorName';
-import {useDatasetChoices} from 'sentry/views/detectors/components/forms/metric/useDatasetChoices';
-import {useInitialMetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/useInitialMetricDetectorFormData';
-import {useIntervalChoices} from 'sentry/views/detectors/components/forms/metric/useIntervalChoices';
-import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {PriorityDot} from 'sentry/views/detectors/components/priorityDot';
@@ -72,6 +52,28 @@ import {
   getStaticDetectorThresholdPlaceholder,
 } from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {canUseMetricsEquationsInAlerts} from 'sentry/views/explore/metrics/metricsFlags';
+
+import {METRIC_DETECTOR_DRAFT_SCHEMA} from './metricDraftConfig';
+import {
+  metricDetectorFormDataToEndpointPayload,
+  metricSavedDetectorToFormData,
+} from './metricFormData';
+import type {MetricDetectorFormData} from './metricFormFields';
+import {
+  METRIC_DETECTOR_FORM_FIELDS,
+  useMetricDetectorFormField,
+} from './metricFormFields';
+import {MetricIssuePreview} from './metricIssuePreview';
+import {MetricDetectorPreviewChart} from './previewChart';
+import {DetectorQueryFilterBuilder} from './queryFilterBuilder';
+import {ResolveSection} from './resolveSection';
+import {sanitizeDetectorQuery} from './sanitizeDetectorQuery';
+import {TemplateSection} from './templateSection';
+import {useAutoMetricDetectorName} from './useAutoMetricDetectorName';
+import {useDatasetChoices} from './useDatasetChoices';
+import {useInitialMetricDetectorFormData} from './useInitialMetricDetectorFormData';
+import {useIntervalChoices} from './useIntervalChoices';
+import {Visualize} from './visualize';
 
 function MetricDetectorForm() {
   useAutoMetricDetectorName();
@@ -118,6 +120,7 @@ export function NewMetricDetectorForm({
   return (
     <NewDetectorLayout
       detectorType="metric_issue"
+      draftSchema={METRIC_DETECTOR_DRAFT_SCHEMA}
       previewChart={<MetricDetectorPreviewChart />}
       formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
       initialFormData={
@@ -140,23 +143,14 @@ const mapMetricDetectorFormErrors = (error: unknown) => {
   }
 
   if ('dataSource' in error && typeof error.dataSource === 'object') {
-    return {
-      ...error,
-      ...error.dataSource,
-    };
+    return {...error, ...error.dataSource};
   }
   if ('dataSources' in error) {
     if (Array.isArray(error.dataSources)) {
-      return {
-        ...error,
-        ...error.dataSources[0],
-      };
+      return {...error, ...error.dataSources[0]};
     }
     if (typeof error.dataSources === 'object') {
-      return {
-        ...error,
-        ...error.dataSources,
-      };
+      return {...error, ...error.dataSources};
     }
   }
   return error;
@@ -441,7 +435,7 @@ function CustomizeMetricSection({step}: {step?: number}) {
     <Container>
       <FormSection step={step} title={t('Customize Metric')}>
         <Stack gap="xs">
-          <DatasetRow>
+          <Grid gap="xl" maxWidth="425px" columns="1fr 1fr">
             <DatasetField
               placeholder={t('Dataset')}
               flexibleControlStateSize
@@ -496,7 +490,7 @@ function CustomizeMetricSection({step}: {step?: number}) {
                 <IntervalPicker />
               </DisabledSection>
             </Tooltip>
-          </DatasetRow>
+          </Grid>
         </Stack>
         <Tooltip
           title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
@@ -535,10 +529,7 @@ function DetectSection({step}: {step?: number}) {
     METRIC_DETECTOR_FORM_FIELDS.extrapolationMode
   );
 
-  const showThresholdWarning = useIsMigratedExtrapolation({
-    dataset,
-    extrapolationMode,
-  });
+  const showThresholdWarning = useIsMigratedExtrapolation({dataset, extrapolationMode});
 
   return (
     <Container>
@@ -557,7 +548,7 @@ function DetectSection({step}: {step?: number}) {
                   'Your thresholds may need to be adjusted to take into account [samplingLink:sampling].',
                   {
                     samplingLink: (
-                      <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer" />
+                      <ExternalLink href="https://docs.sentry.io/product/trace-explorer/#how-sampling-affects-queries-in-trace-explorer" />
                     ),
                   }
                 ),
@@ -691,7 +682,7 @@ function MigratedAlertWarningListener() {
             'The thresholds on this chart may look off. This is because, once saved, alerts will now take into account [samplingLink:sampling rate]. Before clicking save, take the time to update your [thresholdsLink:thresholds]. Cancel to continue running this alert in compatibility mode.',
             {
               samplingLink: (
-                <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer" />
+                <ExternalLink href="https://docs.sentry.io/product/trace-explorer/#how-sampling-affects-queries-in-trace-explorer" />
               ),
               thresholdsLink: (
                 <Link
@@ -727,13 +718,6 @@ function WarningIcon({id, tooltipProps}: {id: string; tooltipProps?: TooltipProp
 
 const StyledIconWarning = styled(IconWarning)`
   animation: ${() => pulse(1.15)} 1s ease infinite;
-`;
-
-const DatasetRow = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.xl};
-  max-width: 425px;
 `;
 
 const FilterRow = styled('div')<{disabled: boolean}>`

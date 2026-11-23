@@ -7,10 +7,12 @@ import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
-import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
-import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
+import {SeerExplorerSidebarLayout} from './components/sidebar/seerExplorerSidebarLayout';
+import {SeerExplorerChatStateProvider} from './seerExplorerChatStateContext';
+import {SeerExplorerContextProvider} from './seerExplorerContextProvider';
+import {SeerExplorerSessionsProvider} from './seerExplorerSessionContext';
+import {useSeerExplorerContext} from './useSeerExplorerContext';
 
 async function getSeerExplorerInput() {
   const editor = await screen.findByRole('combobox', {name: 'Ask Seer a question'});
@@ -49,12 +51,14 @@ function tree() {
         <PictureInPictureProvider>
           <GlobalDrawer>
             <SeerExplorerContextProvider>
-              <OpenExplorer />
-              <AskSeerEntryPoint label="ask-widget" prompt="What about this widget?" />
-              <AskSeerEntryPoint
-                label="ask-dashboard"
-                prompt="What about this dashboard?"
-              />
+              <SeerExplorerSidebarLayout>
+                <OpenExplorer />
+                <AskSeerEntryPoint label="ask-widget" prompt="What about this widget?" />
+                <AskSeerEntryPoint
+                  label="ask-dashboard"
+                  prompt="What about this dashboard?"
+                />
+              </SeerExplorerSidebarLayout>
             </SeerExplorerContextProvider>
           </GlobalDrawer>
         </PictureInPictureProvider>
@@ -99,6 +103,67 @@ describe('openChatPrompt', () => {
       method: 'GET',
       body: [],
     });
+  });
+
+  it.each([
+    ['+', 'AZERTY zoom in'],
+    ['=', 'AZERTY zoom in'],
+    ['-', 'QWERTZ zoom out'],
+  ])('preserves browser zoom for Cmd+%s (%s)', key => {
+    const platform = jest
+      .spyOn(window.navigator, 'platform', 'get')
+      .mockReturnValue('MacIntel');
+
+    try {
+      render(tree(), {organization});
+      const event = new KeyboardEvent('keydown', {
+        key,
+        code: 'Slash',
+        metaKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
+
+      act(() => {
+        document.dispatchEvent(event);
+      });
+
+      expect(
+        screen.queryByRole('combobox', {name: 'Ask Seer a question'})
+      ).not.toBeInTheDocument();
+      expect(event.defaultPrevented).toBe(false);
+    } finally {
+      platform.mockRestore();
+    }
+  });
+
+  it('opens Seer when Cmd+Shift+7 reports the digit on QWERTZ', async () => {
+    const platform = jest
+      .spyOn(window.navigator, 'platform', 'get')
+      .mockReturnValue('MacIntel');
+
+    try {
+      render(tree(), {organization});
+      const event = new KeyboardEvent('keydown', {
+        key: '7',
+        code: 'Digit7',
+        metaKey: true,
+        shiftKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
+
+      act(() => {
+        document.dispatchEvent(event);
+      });
+
+      expect(
+        await screen.findByRole('combobox', {name: 'Ask Seer a question'})
+      ).toBeInTheDocument();
+      expect(event.defaultPrevented).toBe(true);
+    } finally {
+      platform.mockRestore();
+    }
   });
 
   it("shows the question as Seer's and sends it with the reply", async () => {

@@ -1,16 +1,17 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconOpen} from '@sentry/icons/open';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {List} from 'sentry/components/list';
 import {t, tct} from 'sentry/locale';
@@ -18,9 +19,9 @@ import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 
 type DerivedCodeMapping = {
@@ -81,12 +82,11 @@ export function StacktraceLinkModal({
   const [error, setError] = useState<null | string>(null);
   const [sourceCodeInput, setSourceCodeInput] = useState('');
 
-  const {data: suggestedCodeMappings} = useApiQuery<DerivedCodeMapping[] | null>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/derive-code-mappings/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const {data: suggestedCodeMappings} = useQuery({
+    ...apiOptions.as<DerivedCodeMapping[] | null>()(
+      '/organizations/$organizationIdOrSlug/derive-code-mappings/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           projectId: project.id,
           stacktraceFilename: filename,
@@ -94,15 +94,13 @@ export function StacktraceLinkModal({
           absPath,
           platform,
         },
-      },
-    ],
-    {
-      staleTime: Infinity,
-      refetchOnWindowFocus: false,
-      retry: false,
-      notifyOnChangeProps: ['data'],
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+    refetchOnWindowFocus: false,
+    retry: false,
+    notifyOnChangeProps: ['data'],
+  });
 
   const sourceCodeProviders = integrations.filter(integration =>
     ['github', 'gitlab', 'bitbucket'].includes(integration.provider?.key)
@@ -173,12 +171,7 @@ export function StacktraceLinkModal({
     });
     const parsingEndpoint = getApiUrl(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/repo-path-parsing/',
-      {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: project.slug,
-        },
-      }
+      {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
     );
     try {
       const configData = await api.requestPromise(parsingEndpoint, {
@@ -194,9 +187,7 @@ export function StacktraceLinkModal({
 
       const configEndpoint = getApiUrl(
         '/organizations/$organizationIdOrSlug/code-mappings/',
-        {
-          path: {organizationIdOrSlug: organization.slug},
-        }
+        {path: {organizationIdOrSlug: organization.slug}}
       );
       await api.requestPromise(configEndpoint, {
         method: 'POST',
@@ -207,7 +198,7 @@ export function StacktraceLinkModal({
         },
       });
 
-      addSuccessMessage(t('Stack trace configuration saved.'));
+      toast.success(t('Stack trace configuration saved.'));
       trackAnalytics('integrations.stacktrace_complete_setup', {
         setup_type: 'automatic',
         provider: configData.config?.provider.key,
@@ -243,11 +234,7 @@ export function StacktraceLinkModal({
                       link: (
                         <Link
                           onClick={onManualSetup}
-                          to={
-                            hasOneSourceCodeIntegration
-                              ? `/settings/${organization.slug}/integrations/${sourceCodeProviders[0]!.provider.key}/${sourceCodeProviders[0]!.id}/`
-                              : `/settings/${organization.slug}/integrations/`
-                          }
+                          to={`/settings/${organization.slug}/repos/`}
                         />
                       ),
                     }
@@ -261,9 +248,7 @@ export function StacktraceLinkModal({
             {hasOneSourceCodeIntegration
               ? tct(
                   'We couldn’t find the source file automatically. Paste its [provider] URL so we can link to the source and identify suspect commits.',
-                  {
-                    provider: providerDisplayName,
-                  }
+                  {provider: providerDisplayName}
                 )
               : t(
                   'We couldn’t find the source file automatically. Paste its URL so we can link to the source and identify suspect commits.'

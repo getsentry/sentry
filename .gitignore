@@ -17,7 +17,7 @@ pip-log.txt
 celerybeat-schedule
 sentry-package.json
 /.artifacts
-/tsconfig.router-v8.generated.json
+/oxlint-suppressions.json
 *.tsbuildinfo
 /coverage/
 /cover

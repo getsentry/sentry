@@ -13,6 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint, internal_cell_silo_endpoint
 from sentry.api.permissions import StaffPermission
+from sentry.auth.principal import acting_user_id
 from sentry.models.files.file import File
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiRerunAnalysisEvent
@@ -57,7 +58,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
             PreprodArtifactApiRerunAnalysisEvent(
                 organization_id=project.organization_id,
                 project_id=project.id,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 artifact_id=str(head_artifact_id),
             )
         )
@@ -86,7 +87,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
             "preprod_artifact.rerun_analysis",
             extra={
                 "preprod_artifact_id": head_artifact_id,
-                "user_id": request.user.id,
+                "user_id": acting_user_id(request.user),
                 "organization_id": organization.id,
                 "project_id": head_artifact.project.id,
             },
@@ -94,7 +95,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
 
         return success_response(
             artifact_id=str(head_artifact_id),
-            state=head_artifact.state,
+            state=PreprodArtifact.ArtifactState(head_artifact.state),
         )
 
 
@@ -142,7 +143,7 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
             PreprodArtifactApiRerunAnalysisEvent(
                 organization_id=preprod_artifact.project.organization_id,
                 project_id=preprod_artifact.project.id,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 artifact_id=str(preprod_artifact_id),
             )
         )
@@ -168,7 +169,7 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
             "preprod_artifact.admin_rerun_analysis",
             extra={
                 "preprod_artifact_id": preprod_artifact_id,
-                "user_id": request.user.id,
+                "user_id": acting_user_id(request.user),
                 "organization_id": preprod_artifact.project.organization_id,
                 "project_id": preprod_artifact.project.id,
                 "cleanup_stats": asdict(cleanup_stats),
@@ -177,7 +178,7 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
 
         return success_response(
             artifact_id=str(preprod_artifact_id),
-            state=preprod_artifact.state,
+            state=PreprodArtifact.ArtifactState(preprod_artifact.state),
             cleanup_stats=cleanup_stats,
         )
 
@@ -240,7 +241,7 @@ class PreprodArtifactAdminBatchRerunAnalysisEndpoint(Endpoint):
                 PreprodArtifactApiRerunAnalysisEvent(
                     organization_id=organization.id,
                     project_id=artifact.project.id,
-                    user_id=request.user.id,
+                    user_id=acting_user_id(request.user),
                     artifact_id=str(artifact_id),
                 )
             )
@@ -272,7 +273,7 @@ class PreprodArtifactAdminBatchRerunAnalysisEndpoint(Endpoint):
                     "preprod_artifact.admin_batch_rerun_analysis",
                     extra={
                         "preprod_artifact_id": artifact_id,
-                        "user_id": request.user.id,
+                        "user_id": acting_user_id(request.user),
                         "organization_id": organization.id,
                         "project_id": artifact.project.id,
                         "cleanup_stats": asdict(cleanup_stats),
@@ -295,15 +296,21 @@ def cleanup_old_metrics(preprod_artifact: PreprodArtifact) -> CleanupStats:
     if size_metrics:
         size_metric_ids = [sm.id for sm in size_metrics]
 
-        file_ids_to_delete = [sm.analysis_file_id for sm in size_metrics if sm.analysis_file_id]
+        file_ids_to_delete = [
+            sm.analysis_file_id for sm in size_metrics if sm.analysis_file_id is not None
+        ]
 
         comparisons = PreprodArtifactSizeComparison.objects.filter(
             head_size_analysis_id__in=size_metric_ids
         ) | PreprodArtifactSizeComparison.objects.filter(base_size_analysis_id__in=size_metric_ids)
 
-        comparison_file_ids = list(
-            comparisons.exclude(file_id__isnull=True).values_list("file_id", flat=True)
-        )
+        comparison_file_ids = [
+            file_id
+            for file_id in comparisons.exclude(file_id__isnull=True).values_list(
+                "file_id", flat=True
+            )
+            if file_id is not None
+        ]
         file_ids_to_delete.extend(comparison_file_ids)
 
         with transaction.atomic(using=router.db_for_write(PreprodArtifactSizeMetrics)):

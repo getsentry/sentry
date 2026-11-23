@@ -1,35 +1,38 @@
 import {DiscoverSavedQueryFixture} from 'sentry-fixture/discover';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
+import type {QuerySpeed} from 'sentry/components/querySpeedMenu';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import * as qs from 'sentry/utils/url/qs';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import type {DiscoverSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+
+import {Mode} from './contexts/pageParamsContext/mode';
+import type {DiscoverSavedQuery, ReadableSavedQuery} from './hooks/useGetSavedQueries';
+import {SavedQuery, SavedQueryType} from './hooks/useGetSavedQueries';
+import {VisualizeFunction} from './queryParams/visualize';
 import {
   findSuggestedColumns,
   getFirstSamplingWarning,
   getSamplingWarningReason,
+  getSavedQueryTraceItemUrl,
   getYAxisDiscoverSavedQuery,
   isSamplingSensitiveAggregate,
   prettifyAggregation,
   removeHiddenKeys,
   shouldWarnSamplingSensitive,
   viewSamplesTarget,
-} from 'sentry/views/explore/utils';
+} from './utils';
 
 describe('viewSamplesTarget', () => {
   const project = ProjectFixture();
   const projects = [project];
   const visualize = new VisualizeFunction('count(span.duration)');
-  const sort = {
-    field: 'count(span.duration)',
-    kind: 'desc' as const,
-  };
+  const sort = {field: 'count(span.duration)', kind: 'desc' as const};
 
   it('simple drill down with no group bys', () => {
     const location = LocationFixture();
@@ -114,11 +117,7 @@ describe('viewSamplesTarget', () => {
       groupBys: ['bar', 'baz'],
       visualizes: [visualize],
       sorts: [sort],
-      row: {
-        bar: 'bar',
-        baz: 'baz',
-        'count(span.duration)': 10,
-      },
+      row: {bar: 'bar', baz: 'baz', 'count(span.duration)': 10},
       projects,
     });
     expect(target).toMatchObject({
@@ -140,10 +139,7 @@ describe('viewSamplesTarget', () => {
       groupBys: ['environment'],
       visualizes: [visualize],
       sorts: [sort],
-      row: {
-        environment: 'prod',
-        'count(span.duration)': 10,
-      },
+      row: {environment: 'prod', 'count(span.duration)': 10},
       projects,
     });
     expect(target).toMatchObject({
@@ -166,10 +162,7 @@ describe('viewSamplesTarget', () => {
       groupBys: ['project.id'],
       visualizes: [visualize],
       sorts: [sort],
-      row: {
-        'project.id': 1,
-        'count(span.duration)': 10,
-      },
+      row: {'project.id': 1, 'count(span.duration)': 10},
       projects,
     });
     expect(target).toMatchObject({
@@ -192,10 +185,7 @@ describe('viewSamplesTarget', () => {
       groupBys: ['project'],
       visualizes: [visualize],
       sorts: [sort],
-      row: {
-        project: project.slug,
-        'count(span.duration)': 10,
-      },
+      row: {project: project.slug, 'count(span.duration)': 10},
       projects,
     });
     expect(target).toMatchObject({
@@ -218,10 +208,7 @@ describe('viewSamplesTarget', () => {
       groupBys: ['tags[api_token_is_sentry_app,boolean]'],
       visualizes: [visualize],
       sorts: [sort],
-      row: {
-        'tags[api_token_is_sentry_app,boolean]': false,
-        'count(span.duration)': 10,
-      },
+      row: {'tags[api_token_is_sentry_app,boolean]': false, 'count(span.duration)': 10},
       projects,
     });
     expect(target).toMatchObject({
@@ -243,10 +230,7 @@ describe('viewSamplesTarget', () => {
       groupBys: ['org_id'],
       visualizes: [visualize],
       sorts: [sort],
-      row: {
-        org_id: 123,
-        'count(span.duration)': 10,
-      },
+      row: {org_id: 123, 'count(span.duration)': 10},
       projects,
     });
     expect(target).toMatchObject({
@@ -268,10 +252,7 @@ describe('viewSamplesTarget', () => {
       groupBys: ['bar'],
       visualizes: [visualize],
       sorts: [sort],
-      row: {
-        bar: 'new_value',
-        'count(span.duration)': 10,
-      },
+      row: {bar: 'new_value', 'count(span.duration)': 10},
       projects,
     });
     expect(target).toMatchObject({
@@ -293,10 +274,7 @@ describe('viewSamplesTarget', () => {
       groupBys: ['bar'],
       visualizes: [visualize],
       sorts: [sort],
-      row: {
-        bar: 'bar',
-        'count(span.duration)': 10,
-      },
+      row: {bar: 'bar', 'count(span.duration)': 10},
       projects,
     });
     expect(target).toMatchObject({
@@ -318,10 +296,7 @@ describe('viewSamplesTarget', () => {
       groupBys: ['user.id'],
       visualizes: [visualize],
       sorts: [sort],
-      row: {
-        'user.id': undefined,
-        'count(span.duration)': 10,
-      },
+      row: {'user.id': undefined, 'count(span.duration)': 10},
       projects,
     });
     expect(target).toMatchObject({
@@ -335,9 +310,7 @@ describe('viewSamplesTarget', () => {
   });
 
   it('clears table param so it lands on span samples tab', () => {
-    const location = LocationFixture({
-      query: {table: 'attribute_breakdowns'},
-    });
+    const location = LocationFixture({query: {table: 'attribute_breakdowns'}});
     const target = viewSamplesTarget({
       location,
       query: '',
@@ -384,131 +357,37 @@ describe('viewSamplesTarget', () => {
 
 describe('findSuggestedColumns', () => {
   it.each([
-    {
-      cols: [],
-      oldQuery: '',
-      newQuery: '',
-    },
-    {
-      cols: [],
-      oldQuery: '',
-      newQuery: 'key:value',
-    },
-    {
-      cols: ['key'],
-      oldQuery: 'key:value1',
-      newQuery: 'key:[value1,value2]',
-    },
-    {
-      cols: ['key'],
-      oldQuery: '',
-      newQuery: 'key:[value1,value2]',
-    },
-    {
-      cols: ['key'],
-      oldQuery: '',
-      newQuery: '!key:value',
-    },
-    {
-      cols: ['key'],
-      oldQuery: '',
-      newQuery: 'key:*',
-    },
-    {
-      cols: ['key'],
-      oldQuery: '',
-      newQuery: 'key:v*',
-    },
-    {
-      cols: [],
-      oldQuery: '',
-      newQuery: 'key:\\*',
-    },
-    {
-      cols: [],
-      oldQuery: '',
-      newQuery: 'key:v\\*',
-    },
-    {
-      cols: ['key'],
-      oldQuery: '',
-      newQuery: 'key:\\\\*',
-    },
-    {
-      cols: ['key'],
-      oldQuery: '',
-      newQuery: 'key:v\\\\*',
-    },
-    {
-      cols: [],
-      oldQuery: '',
-      newQuery: 'key:\\\\\\*',
-    },
-    {
-      cols: [],
-      oldQuery: '',
-      newQuery: 'key:v\\\\\\*',
-    },
-    {
-      cols: ['key'],
-      oldQuery: '',
-      newQuery: 'has:key',
-    },
-    {
-      cols: [],
-      oldQuery: 'key:value',
-      newQuery: 'has:key',
-    },
-    {
-      cols: [],
-      oldQuery: '',
-      newQuery: 'key:value has:key',
-    },
-    {
-      cols: ['key'],
-      oldQuery: '',
-      newQuery: 'key:[value1,value2] has:key',
-    },
-    {
-      cols: [],
-      oldQuery: '',
-      newQuery: '!has:a',
-    },
-    {
-      cols: ['num'],
-      oldQuery: '',
-      newQuery: 'num:>0',
-    },
-    {
-      cols: [],
-      oldQuery: '',
-      newQuery: 'foo:[a,b]',
-    },
-    {
-      cols: [],
-      oldQuery: '',
-      newQuery: 'count():>0',
-    },
-    {
-      cols: [],
-      oldQuery: '',
-      newQuery: 'boolean:true',
-    },
+    {cols: [], oldQuery: '', newQuery: ''},
+    {cols: [], oldQuery: '', newQuery: 'key:value'},
+    {cols: ['key'], oldQuery: 'key:value1', newQuery: 'key:[value1,value2]'},
+    {cols: ['key'], oldQuery: '', newQuery: 'key:[value1,value2]'},
+    {cols: ['key'], oldQuery: '', newQuery: '!key:value'},
+    {cols: ['key'], oldQuery: '', newQuery: 'key:*'},
+    {cols: ['key'], oldQuery: '', newQuery: 'key:v*'},
+    {cols: [], oldQuery: '', newQuery: 'key:\\*'},
+    {cols: [], oldQuery: '', newQuery: 'key:v\\*'},
+    {cols: ['key'], oldQuery: '', newQuery: 'key:\\\\*'},
+    {cols: ['key'], oldQuery: '', newQuery: 'key:v\\\\*'},
+    {cols: [], oldQuery: '', newQuery: 'key:\\\\\\*'},
+    {cols: [], oldQuery: '', newQuery: 'key:v\\\\\\*'},
+    {cols: ['key'], oldQuery: '', newQuery: 'has:key'},
+    {cols: [], oldQuery: 'key:value', newQuery: 'has:key'},
+    {cols: [], oldQuery: '', newQuery: 'key:value has:key'},
+    {cols: ['key'], oldQuery: '', newQuery: 'key:[value1,value2] has:key'},
+    {cols: [], oldQuery: '', newQuery: '!has:a'},
+    {cols: ['num'], oldQuery: '', newQuery: 'num:>0'},
+    {cols: [], oldQuery: '', newQuery: 'foo:[a,b]'},
+    {cols: [], oldQuery: '', newQuery: 'count():>0'},
+    {cols: [], oldQuery: '', newQuery: 'boolean:true'},
   ])(
     'should inject $cols when changing from `$oldQuery` to `$newQuery`',
     ({cols, oldQuery, newQuery}) => {
       const oldSearch = new MutableSearch(oldQuery);
       const newSearch = new MutableSearch(newQuery);
       const suggestion = findSuggestedColumns(newSearch, oldSearch, {
-        booleanAttributes: {
-          boolean: {key: 'boolean', name: 'boolean'},
-        },
-        numberAttributes: {
-          num: {key: 'num', name: 'num'},
-        },
-        stringAttributes: {
-          key: {key: 'key', name: 'key'},
-        },
+        booleanAttributes: {boolean: {key: 'boolean', name: 'boolean'}},
+        numberAttributes: {num: {key: 'num', name: 'num'}},
+        stringAttributes: {key: {key: 'key', name: 'key'}},
       });
       expect(new Set(suggestion)).toEqual(new Set(cols));
     }
@@ -788,14 +667,144 @@ describe('getYAxisDiscoverSavedQuery', () => {
 
   it('falls back to the first graphable aggregate in fields over count()', () => {
     const savedQuery: DiscoverSavedQuery = {
-      ...DiscoverSavedQueryFixture({
-        fields: ['release', 'count_unique(release)'],
-      }),
+      ...DiscoverSavedQueryFixture({fields: ['release', 'count_unique(release)']}),
       queryType: SavedQueryType.DISCOVER,
     };
 
     expect(getYAxisDiscoverSavedQuery(savedQuery)).toEqual([
       {yAxes: ['count_unique(release)']},
     ]);
+  });
+});
+
+describe('getSavedQueryTraceItemUrl', () => {
+  const organization = OrganizationFixture();
+
+  const readableQuery = {
+    mode: Mode.SAMPLES,
+    query: 'span.op:DB',
+    fields: ['id', 'timestamp'],
+    orderby: '-timestamp',
+    aggregateField: [{yAxes: ['count(span.duration)']}],
+  };
+
+  function makeSavedQuery(
+    dataset: ReadableSavedQuery['dataset'],
+    query: ReadableSavedQuery['query'],
+    queryPriority?: QuerySpeed
+  ) {
+    return new SavedQuery({
+      id: 1,
+      interval: '5m',
+      name: 'test query',
+      projects: [],
+      dataset,
+      dateAdded: '2025-01-01T00:00:00.000000Z',
+      dateUpdated: '2025-01-01T00:00:00.000000Z',
+      lastVisited: '2025-01-01T00:00:00.000000Z',
+      starred: false,
+      position: null,
+      query,
+      queryPriority,
+    });
+  }
+
+  function parseSavedQueryUrl(savedQuery: SavedQuery) {
+    const url = getSavedQueryTraceItemUrl({savedQuery, organization});
+    return qs.parse(new URL(url, 'https://sentry.io').search);
+  }
+
+  it('puts a saved query priority on the spans url', () => {
+    const savedQuery = makeSavedQuery('spans', [readableQuery], 'faster');
+
+    expect(parseSavedQueryUrl(savedQuery).queryPriority).toBe('faster');
+  });
+
+  function getCaseInsensitiveParam(savedQuery: SavedQuery) {
+    return parseSavedQueryUrl(savedQuery).caseInsensitive;
+  }
+
+  function getCompareCaseInsensitiveParams(savedQuery: SavedQuery) {
+    const {queries} = parseSavedQueryUrl(savedQuery);
+    return (queries as string[]).map(query => JSON.parse(query).caseInsensitive);
+  }
+
+  it('matches case when a spans query predates the case setting', () => {
+    const savedQuery = makeSavedQuery('spans', [readableQuery]);
+
+    expect(getCaseInsensitiveParam(savedQuery)).toBe('0');
+  });
+
+  it('ignores case when a spans query was saved ignoring case', () => {
+    const savedQuery = makeSavedQuery('spans', [
+      {...readableQuery, caseInsensitive: true},
+    ]);
+
+    expect(getCaseInsensitiveParam(savedQuery)).toBe('1');
+  });
+
+  it('matches case when a logs query was saved matching case', () => {
+    const savedQuery = makeSavedQuery('logs', [
+      {...readableQuery, query: 'message:Deleted', caseInsensitive: false},
+    ]);
+
+    expect(getCaseInsensitiveParam(savedQuery)).toBe('0');
+  });
+
+  it('ignores case when a logs query was saved ignoring case', () => {
+    const savedQuery = makeSavedQuery('logs', [
+      {...readableQuery, query: 'message:Deleted', caseInsensitive: true},
+    ]);
+
+    expect(getCaseInsensitiveParam(savedQuery)).toBe('1');
+  });
+
+  it('keeps each compare query case setting', () => {
+    const savedQuery = makeSavedQuery('spans', [
+      readableQuery,
+      {...readableQuery, caseInsensitive: true},
+    ]);
+
+    expect(getCompareCaseInsensitiveParams(savedQuery)).toEqual([false, '1']);
+  });
+
+  it('leaves a saved query priority off the compare url', () => {
+    const savedQuery = makeSavedQuery('spans', [readableQuery, readableQuery], 'faster');
+
+    expect(parseSavedQueryUrl(savedQuery).queryPriority).toBeUndefined();
+  });
+
+  function conversationsSavedQuery(overrides: Partial<ReadableSavedQuery> = {}) {
+    return new SavedQuery({
+      id: 1,
+      name: 'Conversations',
+      dataset: 'ai_conversations',
+      projects: [1],
+      starred: false,
+      position: null,
+      interval: '',
+      lastVisited: '',
+      dateAdded: '',
+      dateUpdated: '',
+      statsPeriod: '24h',
+      query: [{fields: [], mode: Mode.SAMPLES, orderby: '', query: ''}],
+      ...overrides,
+    });
+  }
+
+  it('restores the errors only filter for conversations', () => {
+    const url = getSavedQueryTraceItemUrl({
+      organization,
+      savedQuery: conversationsSavedQuery({errorsOnly: true}),
+    });
+    expect(new URL(url, 'https://sentry.io').searchParams.get('errorsOnly')).toBe('true');
+  });
+
+  it('omits the errors only filter when it was not saved', () => {
+    const url = getSavedQueryTraceItemUrl({
+      organization,
+      savedQuery: conversationsSavedQuery(),
+    });
+    expect(new URL(url, 'https://sentry.io').searchParams.has('errorsOnly')).toBe(false);
   });
 });

@@ -4,7 +4,6 @@ import type {
   RollupConfig,
   TimeWindowConfig,
 } from 'sentry/components/checkInTimeline/types';
-import {getFormat} from 'sentry/utils/dates';
 
 /**
  * The minimum pixels to allocate to the reference start time label which
@@ -127,7 +126,11 @@ const EMPTY_ROLLUP: RollupConfig = {
  * BUCKET_INTERVALS. To do this the timeline ends up being "under scanned" and
  * may not take the entire size of the timeline in pixels
  */
-function computeRollup(elapsedSeconds: number, timelineWidth: number) {
+function computeRollup(
+  elapsedSeconds: number,
+  timelineWidth: number,
+  maxBucketInterval: number
+) {
   if (timelineWidth === 0) {
     return EMPTY_ROLLUP;
   }
@@ -178,7 +181,9 @@ function computeRollup(elapsedSeconds: number, timelineWidth: number) {
   })
     // There is a maximum number of bucekts we can request.
     .filter(
-      candidate => candidate.totalBuckets + candidate.underscanBuckets < MAXIMUM_BUCKETS
+      candidate =>
+        candidate.interval <= maxBucketInterval &&
+        candidate.totalBuckets + candidate.underscanBuckets < MAXIMUM_BUCKETS
     );
 
   const maxBuckets = Math.max(...candidateIntervals.map(o => o.totalBuckets));
@@ -218,12 +223,13 @@ export function getConfigFromTimeRange(
   start: Date,
   end: Date,
   containerWidth: number,
-  timezone: string
+  timezone: string,
+  maxBucketInterval = Infinity
 ): TimeWindowConfig {
   const elapsedMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
   const elapsedSeconds = elapsedMinutes * 60;
 
-  const rollupConfig = computeRollup(elapsedSeconds, containerWidth);
+  const rollupConfig = computeRollup(elapsedSeconds, containerWidth, maxBucketInterval);
   const timelineWidth = containerWidth - rollupConfig.timelineUnderscanWidth;
 
   // Compute the start time including the underscan period. This may not align
@@ -269,8 +275,25 @@ export function getConfigFromTimeRange(
       timelineWidth,
       rollupConfig,
       intervals: {...intervals, normalMarkerInterval: minutes},
-      dateTimeProps: {timeOnly},
-      dateLabelFormat: getFormat({timeOnly, seconds: displaySeconds}),
+      dateTimeProps: {
+        mode: timeOnly ? 'time' : 'dateTime',
+        showTimezone: false,
+        timezone,
+      },
+      dateLabelOptions: timeOnly
+        ? {
+            mode: 'time',
+            precision: displaySeconds ? 'second' : 'minute',
+            showTimezone: false,
+            timezone,
+          }
+        : {
+            mode: 'dateTime',
+            year: 'never',
+            precision: displaySeconds ? 'second' : 'minute',
+            showTimezone: false,
+            timezone,
+          },
       timezone,
     };
   }
@@ -286,8 +309,8 @@ export function getConfigFromTimeRange(
     timelineWidth,
     rollupConfig,
     intervals: {...intervals, normalMarkerInterval},
-    dateTimeProps: {dateOnly: true},
-    dateLabelFormat: getFormat(),
+    dateTimeProps: {mode: 'date', showTimezone: false, timezone},
+    dateLabelOptions: {year: 'never', showTimezone: false, timezone},
     timezone,
   };
 }

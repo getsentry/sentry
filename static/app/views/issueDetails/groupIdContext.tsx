@@ -10,7 +10,7 @@ interface GroupIdProviderProps {
 /**
  * Provides the current group ID to descendant components.
  *
- * Unlike `GroupContext`, which requires the fully loaded group, the ID is known from
+ * Unlike `GroupDataContext`, which requires the fully loaded group, the ID is known from
  * the route params or props before the group request completes. This means it will be
  * available immediately, and can be used by components which only need the ID.
  */

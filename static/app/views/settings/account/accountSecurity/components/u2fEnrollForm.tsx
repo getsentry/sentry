@@ -9,8 +9,8 @@ import {
 } from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {handleEnroll} from 'sentry/components/webAuthn/handlers';
 import {t} from 'sentry/locale';
 import type {U2fAuthenticator} from 'sentry/types/auth';
@@ -85,10 +85,7 @@ export function U2fEnrollForm({
       onDynamic: z.object({
         deviceName: z.string().max(60, t('Device name must be 60 characters or fewer.')),
         enrollment: z
-          .object({
-            challenge: z.string(),
-            response: z.string(),
-          })
+          .object({challenge: z.string(), response: z.string()})
           .refine(value => Boolean(value.challenge), {
             message: t('Enroll your device before continuing.'),
           }),
@@ -96,10 +93,7 @@ export function U2fEnrollForm({
     },
     onSubmit: async ({value, formApi}) => {
       try {
-        await enrollAuthenticator({
-          ...value.enrollment,
-          deviceName: value.deviceName,
-        });
+        await enrollAuthenticator({...value.enrollment, deviceName: value.deviceName});
       } catch (caughtError) {
         if (caughtError instanceof RequestError) {
           const fieldErrors = getWebAuthnFieldErrors(caughtError.responseJSON);
@@ -112,7 +106,7 @@ export function U2fEnrollForm({
           }
         }
 
-        addErrorMessage(
+        toast.error(
           getRequestErrorUserMessage(
             caughtError,
             t('Could not add the %s authenticator. Try again.', authenticator.name)
@@ -131,7 +125,7 @@ export function U2fEnrollForm({
     try {
       const webAuthnResponse = await handleEnroll(authenticator.challenge);
       if (!webAuthnResponse) {
-        addErrorMessage(ENROLLMENT_FAILURE_MESSAGE);
+        toast.error(ENROLLMENT_FAILURE_MESSAGE);
         return;
       }
 
@@ -140,7 +134,7 @@ export function U2fEnrollForm({
         response: webAuthnResponse,
       });
     } catch {
-      addErrorMessage(ENROLLMENT_FAILURE_MESSAGE);
+      toast.error(ENROLLMENT_FAILURE_MESSAGE);
     }
   }
 
@@ -159,24 +153,29 @@ export function U2fEnrollForm({
               required
             >
               <Flex align="center" justify="end" gap="sm">
-                <Stack gap="sm" align="end">
-                  <Button
-                    onClick={() => triggerEnroll(field.handleChange)}
-                    disabled={
-                      !isWebAuthnSupported || Boolean(field.state.value.challenge)
-                    }
-                  >
-                    {field.state.value.challenge ? t('Enrolled!') : t('Start Enrollment')}
-                  </Button>
-                  {!isWebAuthnSupported && (
-                    <Text variant="danger" size="sm">
-                      {t(
-                        'Your browser does not support WebAuthn (passkey). You need to use a different two-factor method or switch to a browser that supports it (Google Chrome or Microsoft Edge)'
+                <field.Base<HTMLButtonElement>
+                  disabled={!isWebAuthnSupported || Boolean(field.state.value.challenge)}
+                >
+                  {baseProps => (
+                    <Stack gap="sm" align="end">
+                      <Button
+                        {...baseProps}
+                        onClick={() => triggerEnroll(field.handleChange)}
+                      >
+                        {field.state.value.challenge
+                          ? t('Enrolled!')
+                          : t('Start Enrollment')}
+                      </Button>
+                      {!isWebAuthnSupported && (
+                        <Text variant="danger" size="sm">
+                          {t(
+                            'Your browser does not support WebAuthn (passkey). You need to use a different two-factor method or switch to a browser that supports it (Google Chrome or Microsoft Edge)'
+                          )}
+                        </Text>
                       )}
-                    </Text>
+                    </Stack>
                   )}
-                </Stack>
-                <field.Meta.Status />
+                </field.Base>
               </Flex>
             </field.Layout.Row>
           )}

@@ -1,5 +1,6 @@
 from collections.abc import Generator
 from datetime import datetime, timedelta
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -308,7 +309,7 @@ def test_monitor_task_trigger_no_pulse_seen(
     assert gauge_values(metrics_mock, "monitors.task.clock_stall_gap") == []
 
 
-def get_redis_client():
+def get_redis_client() -> Any:
     return redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
 

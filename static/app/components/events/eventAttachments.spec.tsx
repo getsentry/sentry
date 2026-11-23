@@ -13,8 +13,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {ConfigStore} from 'sentry/stores/configStore';
+
+import {EventAttachments} from './eventAttachments';
 
 describe('EventAttachments', () => {
   const {organization, project} = initializeOrg({
@@ -26,11 +27,7 @@ describe('EventAttachments', () => {
   });
   const event = EventFixture({metadata: {stripped_crash: false}});
 
-  const props = {
-    group: undefined,
-    project,
-    event,
-  };
+  const props = {group: undefined, project, event};
 
   const attachmentsUrl = `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`;
 
@@ -41,14 +38,9 @@ describe('EventAttachments', () => {
   });
 
   it('shows attachments limit reached notice with stripped_crash: true', async () => {
-    MockApiClient.addMockResponse({
-      url: attachmentsUrl,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: attachmentsUrl, body: []});
     const strippedCrashEvent = {...event, metadata: {stripped_crash: true}};
-    render(<EventAttachments {...props} event={strippedCrashEvent} />, {
-      organization,
-    });
+    render(<EventAttachments {...props} event={strippedCrashEvent} />, {organization});
 
     expect(await screen.findByText('Attachments (0)')).toBeInTheDocument();
 
@@ -70,19 +62,76 @@ describe('EventAttachments', () => {
     ).toBeInTheDocument();
   });
 
-  it('does not render anything if no attachments (nor stripped) are available', async () => {
-    MockApiClient.addMockResponse({
-      url: attachmentsUrl,
-      body: [],
+  describe('attachments quota exceeded', () => {
+    const quotaOrganization = {
+      ...organization,
+      features: [...organization.features, 'attachments-quota-exceeded-notice'],
+    };
+    const quotaExceededEvent = {...event, metadata: {attachments_quota_exceeded: true}};
+
+    it('explains that no attachments were stored', async () => {
+      MockApiClient.addMockResponse({url: attachmentsUrl, body: []});
+
+      render(<EventAttachments {...props} event={quotaExceededEvent} />, {
+        organization: quotaOrganization,
+      });
+
+      expect(await screen.findByText('Attachments (0)')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "This event had attachments, but they weren't stored because your attachment quota was exceeded at the time the event was ingested.",
+          {exact: false}
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', {name: 'View your attachment usage'})
+      ).toHaveAttribute(
+        'href',
+        `/settings/org-slug/stats/?dataCategory=attachments&project=${project.id}`
+      );
     });
+
+    it('explains that some attachments were not stored', async () => {
+      MockApiClient.addMockResponse({
+        url: attachmentsUrl,
+        body: [EventAttachmentFixture()],
+      });
+
+      render(<EventAttachments {...props} event={quotaExceededEvent} />, {
+        organization: quotaOrganization,
+      });
+
+      expect(await screen.findByText('Attachments (1)')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Some of this event's attachments weren't stored because your attachment quota was exceeded at the time the event was ingested.",
+          {exact: false}
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('does not render without the feature flag', async () => {
+      MockApiClient.addMockResponse({url: attachmentsUrl, body: []});
+
+      const {container} = render(
+        <EventAttachments {...props} event={quotaExceededEvent} />,
+        {organization}
+      );
+
+      await tick();
+
+      expect(container).toBeEmptyDOMElement();
+    });
+  });
+
+  it('does not render anything if no attachments (nor stripped) are available', async () => {
+    MockApiClient.addMockResponse({url: attachmentsUrl, body: []});
     const {container} = render(
       <EventAttachments
         {...props}
         event={{...event, metadata: {stripped_crash: false}}}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     // No loading state to wait for
@@ -101,20 +150,13 @@ describe('EventAttachments', () => {
     });
     const attachment = EventAttachmentFixture({
       name: 'some_file.txt',
-      headers: {
-        'Content-Type': 'text/plain',
-      },
+      headers: {'Content-Type': 'text/plain'},
       mimetype: 'text/plain',
       size: 100,
     });
-    MockApiClient.addMockResponse({
-      url: attachmentsUrl,
-      body: [attachment],
-    });
+    MockApiClient.addMockResponse({url: attachmentsUrl, body: [attachment]});
 
-    render(<EventAttachments {...props} />, {
-      organization: orgWithWrongAttachmentRole,
-    });
+    render(<EventAttachments {...props} />, {organization: orgWithWrongAttachmentRole});
 
     expect(await screen.findByText('Attachments (1)')).toBeInTheDocument();
 
@@ -130,23 +172,16 @@ describe('EventAttachments', () => {
   it('can open attachment previews', async () => {
     const attachment = EventAttachmentFixture({
       name: 'some_file.txt',
-      headers: {
-        'Content-Type': 'text/plain',
-      },
+      headers: {'Content-Type': 'text/plain'},
       mimetype: 'text/plain',
       size: 100,
     });
-    MockApiClient.addMockResponse({
-      url: attachmentsUrl,
-      body: [attachment],
-    });
+    MockApiClient.addMockResponse({url: attachmentsUrl, body: [attachment]});
 
     const previewUrl = `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachment.id}/?download`;
     fetchMock.route(previewUrl, 'file contents');
 
-    render(<EventAttachments {...props} />, {
-      organization,
-    });
+    render(<EventAttachments {...props} />, {organization});
 
     expect(await screen.findByText('Attachments (1)')).toBeInTheDocument();
 
@@ -155,15 +190,31 @@ describe('EventAttachments', () => {
     expect(await screen.findByText('file contents')).toBeInTheDocument();
   });
 
+  it('points the download link at the region URL', async () => {
+    ConfigStore.loadInitialData(
+      ConfigFixture({
+        features: new Set(['system:multi-region']),
+        links: {
+          organizationUrl: 'https://org-slug.sentry.io',
+          sentryUrl: 'https://sentry.io',
+          regionUrl: 'https://us.sentry.io',
+        },
+      })
+    );
+    const attachment = EventAttachmentFixture();
+    MockApiClient.addMockResponse({url: attachmentsUrl, body: [attachment]});
+
+    render(<EventAttachments {...props} />, {organization});
+
+    expect(await screen.findByRole('button', {name: 'Download'})).toHaveAttribute(
+      'href',
+      `https://us.sentry.io/api/0/projects/${organization.slug}/${project.slug}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`
+    );
+  });
+
   it('can delete attachments', async () => {
-    const attachment1 = EventAttachmentFixture({
-      id: '1',
-      name: 'pic_1.png',
-    });
-    const attachment2 = EventAttachmentFixture({
-      id: '2',
-      name: 'pic_2.png',
-    });
+    const attachment1 = EventAttachmentFixture({id: '1', name: 'pic_1.png'});
+    const attachment2 = EventAttachmentFixture({id: '2', name: 'pic_2.png'});
     MockApiClient.addMockResponse({
       url: attachmentsUrl,
       body: [attachment1, attachment2],
@@ -173,9 +224,7 @@ describe('EventAttachments', () => {
       method: 'DELETE',
     });
 
-    render(<EventAttachments {...props} />, {
-      organization,
-    });
+    render(<EventAttachments {...props} />, {organization});
     renderGlobalModal();
 
     expect(await screen.findByText('Attachments (2)')).toBeInTheDocument();

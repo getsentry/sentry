@@ -1,5 +1,5 @@
-import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
-import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
+import {MutableSearch} from './mutableSearch';
+import {WildcardOperators} from './parser';
 
 describe('MutableSearch', () => {
   describe('fromQueryObject', () => {

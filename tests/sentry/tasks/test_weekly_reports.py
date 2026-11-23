@@ -1,5 +1,5 @@
 import zoneinfo
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest import mock
 
 import pytest
@@ -62,6 +62,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import GroupSubStatus
+from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import redis
@@ -85,13 +86,13 @@ class WeeklyReportsTest(
 
     def store_event_outcomes(
         self,
-        organization_id,
-        project_id,
-        timestamp,
-        num_times,
-        outcome=Outcome.ACCEPTED,
-        category=DataCategory.ERROR,
-    ):
+        organization_id: int,
+        project_id: int,
+        timestamp: datetime,
+        num_times: int,
+        outcome: Outcome = Outcome.ACCEPTED,
+        category: DataCategory = DataCategory.ERROR,
+    ) -> None:
         self.store_outcomes(
             {
                 "org_id": organization_id,
@@ -181,7 +182,7 @@ class WeeklyReportsTest(
                 f"http://{self.organization.slug}.testserver/issues/?referrer=weekly_report" in html
             )
 
-    def _set_option_value(self, value):
+    def _set_option_value(self, value: str) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingOption.objects.update_or_create(
                 scope_type="organization",
@@ -191,15 +192,15 @@ class WeeklyReportsTest(
                 defaults={"value": value},
             )
 
-    def _set_timezone(self, user, value):
+    def _set_timezone(self, user: User, value: str) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             UserOption.objects.set_value(user=user, key="timezone", value=value)
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_template_context")
     @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
     def test_deliver_reports_respects_settings(
-        self, mock_send_email, mock_prepare_template_context
-    ):
+        self, mock_send_email: mock.MagicMock, mock_prepare_template_context: mock.MagicMock
+    ) -> None:
         self.store_event_outcomes(
             self.organization.id, self.project.id, self.two_days_ago, num_times=2
         )
@@ -326,6 +327,7 @@ class WeeklyReportsTest(
             default_event_type=EventType.DEFAULT,
         )
         group2 = event2.group
+        assert group2 is not None
         group2.status = GroupStatus.RESOLVED
         group2.substatus = None
         group2.resolved_at = self.now - timedelta(minutes=1)
@@ -347,7 +349,9 @@ class WeeklyReportsTest(
             group_id
             for group_id, _ in ctx.projects_context_map[self.project.id].key_error_issues_by_id
         }
+        assert event1.group is not None
         assert event1.group.id in key_error_issue_ids
+        assert event3.group is not None
         assert event3.group.id in key_error_issue_ids
         assert len(ctx.projects_context_map[self.project.id].key_error_issues_by_id) == 2
 
@@ -384,7 +388,9 @@ class WeeklyReportsTest(
         )
 
         group1 = event1.group
+        assert group1 is not None
         group2 = event2.group
+        assert group2 is not None
 
         group1.status = GroupStatus.RESOLVED
         group1.substatus = None
@@ -607,7 +613,9 @@ class WeeklyReportsTest(
         )
 
         group1 = event1.group
+        assert group1 is not None
         group2 = event2.group
+        assert group2 is not None
 
         group1.status = GroupStatus.RESOLVED
         group1.substatus = None
@@ -701,6 +709,7 @@ class WeeklyReportsTest(
             default_event_type=EventType.DEFAULT,
         )
         group1 = event1.group
+        assert group1 is not None
         group1.substatus = GroupSubStatus.NEW
         group1.save()
 
@@ -715,6 +724,7 @@ class WeeklyReportsTest(
             default_event_type=EventType.DEFAULT,
         )
         group2 = event2.group
+        assert group2 is not None
         group2.substatus = GroupSubStatus.ONGOING
         group2.save()
 
@@ -765,6 +775,7 @@ class WeeklyReportsTest(
         )
 
         group1 = event1.group
+        assert group1 is not None
         group1.status = GroupStatus.RESOLVED
         group1.substatus = None
         group1.resolved_at = self.two_days_ago
@@ -820,6 +831,7 @@ class WeeklyReportsTest(
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event1.group is not None
         event1.group.substatus = GroupSubStatus.NEW
         event1.group.save()
 
@@ -833,6 +845,7 @@ class WeeklyReportsTest(
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event2.group is not None
         event2.group.substatus = GroupSubStatus.ESCALATING
         event2.group.save()
 
@@ -846,6 +859,7 @@ class WeeklyReportsTest(
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event3.group is not None
         event3.group.substatus = GroupSubStatus.REGRESSED
         event3.group.save()
 
@@ -859,6 +873,7 @@ class WeeklyReportsTest(
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event4.group is not None
         event4.group.substatus = GroupSubStatus.ONGOING
         event4.group.save()
 
@@ -908,6 +923,7 @@ class WeeklyReportsTest(
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event1.group is not None
         event1.group.substatus = GroupSubStatus.NEW
         event1.group.save()
 
@@ -921,6 +937,7 @@ class WeeklyReportsTest(
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event2.group is not None
         event2.group.substatus = GroupSubStatus.ESCALATING
         event2.group.save()
 
@@ -967,6 +984,7 @@ class WeeklyReportsTest(
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event1.group is not None
         event1.group.substatus = GroupSubStatus.NEW
         event1.group.save()
 
@@ -1042,6 +1060,7 @@ class WeeklyReportsTest(
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event1.group is not None
         event1.group.substatus = GroupSubStatus.NEW
         event1.group.save()
 
@@ -1055,6 +1074,7 @@ class WeeklyReportsTest(
             project_id=project2.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event2.group is not None
         event2.group.substatus = GroupSubStatus.ESCALATING
         event2.group.save()
 
@@ -1068,6 +1088,7 @@ class WeeklyReportsTest(
             project_id=project2.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event3.group is not None
         event3.group.substatus = GroupSubStatus.REGRESSED
         event3.group.save()
 
@@ -1113,6 +1134,7 @@ class WeeklyReportsTest(
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event1.group is not None
         event1.group.substatus = GroupSubStatus.NEW
         event1.group.save()
 
@@ -1126,6 +1148,7 @@ class WeeklyReportsTest(
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event2.group is not None
         event2.group.substatus = GroupSubStatus.ONGOING
         event2.group.save()
 
@@ -1526,9 +1549,7 @@ class WeeklyReportsTest(
     ) -> None:
         """Test that schedule_organizations uses Redis to track minimum organization ID."""
         timestamp = self.timestamp
-        redis_cluster = redis.clusters.get("default").get_local_client_for_key(
-            "weekly_reports_org_id_min"
-        )
+        redis_cluster = redis.redis_clusters.get_binary("default")
 
         # Create multiple organizations
         org1 = self.organization  # Use existing organization
@@ -1564,8 +1585,8 @@ class WeeklyReportsTest(
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_organization_report")
     def test_schedule_organizations_updates_redis_during_processing(
-        self, mock_prepare_organization_report
-    ):
+        self, mock_prepare_organization_report: mock.MagicMock
+    ) -> None:
         """Test that schedule_organizations updates Redis with the current organization ID during processing."""
         timestamp = self.timestamp
 
@@ -1599,9 +1620,7 @@ class WeeklyReportsTest(
     def test_set_last_processed_org_id_sets_a_ttl(self) -> None:
         """The progress marker expires on its own, so an interrupted run cannot leak it."""
         timestamp = self.timestamp
-        redis_cluster = redis.clusters.get("default").get_local_client_for_key(
-            "weekly_reports_org_id_min"
-        )
+        redis_cluster = redis.redis_clusters.get_binary("default")
         key = f"weekly_reports_org_id_min:{timestamp}"
         redis_cluster.delete(key)
 
@@ -1617,9 +1636,7 @@ class WeeklyReportsTest(
     ) -> None:
         """A run that dies before delete_min_org_id must not leave a key without a TTL."""
         timestamp = self.timestamp
-        redis_cluster = redis.clusters.get("default").get_local_client_for_key(
-            "weekly_reports_org_id_min"
-        )
+        redis_cluster = redis.redis_clusters.get_binary("default")
         key = f"weekly_reports_org_id_min:{timestamp}"
         redis_cluster.delete(key)
 
@@ -1640,13 +1657,11 @@ class WeeklyReportsTest(
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_organization_report")
     def test_schedule_organizations_starts_from_beginning_when_no_redis_key(
-        self, mock_prepare_organization_report
-    ):
+        self, mock_prepare_organization_report: mock.MagicMock
+    ) -> None:
         """Test that schedule_organizations starts from the beginning when no Redis key exists."""
         timestamp = self.timestamp
-        redis_cluster = redis.clusters.get("default").get_local_client_for_key(
-            "weekly_reports_org_id_min"
-        )
+        redis_cluster = redis.redis_clusters.get_binary("default")
 
         # Ensure Redis key doesn't exist
         redis_cluster.delete(f"weekly_reports_org_id_min:{timestamp}")
@@ -1729,6 +1744,7 @@ class WeeklyReportsTest(
 
         assert ctx["enhanced_privacy"]
         assert len(ctx["top_issues"]) == 0
+        assert ctx["past_issues"] == []
         assert ctx["trends"]["total_error_count"] == 2
         assert ctx["issue_summary"] is not None
 
@@ -1755,11 +1771,16 @@ class WeeklyReportsTest(
             duration=ONE_DAY * 7,
             organization=self.organization,
         )
-        ctx = factory.create_context()
+        with mock.patch.object(
+            factory, "_append_project_past_resolved_issues"
+        ) as append_past_issues:
+            ctx = factory.create_context()
 
+        append_past_issues.assert_not_called()
         for project_ctx in ctx.projects_context_map.values():
             assert project_ctx.key_error_issues == []
             assert project_ctx.key_performance_issues == []
+            assert project_ctx.past_resolved_issues == []
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_enhanced_privacy_email_does_not_contain_sensitive_data(self) -> None:
@@ -1899,7 +1920,6 @@ class WeeklyReportsTest(
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
-    @with_feature("organizations:weekly-report-past-issues")
     def test_past_issues_in_template_context(
         self, message_builder: mock.MagicMock, record: mock.MagicMock
     ) -> None:
@@ -1921,6 +1941,7 @@ class WeeklyReportsTest(
         )
 
         group1 = event1.group
+        assert group1 is not None
         group1.status = GroupStatus.RESOLVED
         group1.substatus = None
         group1.resolved_at = self.two_days_ago
@@ -1930,16 +1951,16 @@ class WeeklyReportsTest(
             self.now.timestamp(), ONE_DAY * 7, self.organization.id, self._dummy_batch_id
         )
 
+        message_builder.assert_called()
         for call_args in message_builder.call_args_list:
             context = call_args.kwargs["context"]
-            assert context["show_past_issues"] is True
             assert len(context["past_issues"]) == 1
             assert context["past_issues"][0]["group"].id == group1.id
             assert context["past_issues"][0]["count"] >= 1
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
-    def test_past_issues_flag_off_uses_old_sections(
+    def test_no_past_issues_without_resolved_groups(
         self, message_builder: mock.MagicMock, record: mock.MagicMock
     ) -> None:
         user = self.create_user()
@@ -1963,11 +1984,13 @@ class WeeklyReportsTest(
             self.now.timestamp(), ONE_DAY * 7, self.organization.id, self._dummy_batch_id
         )
 
+        message_builder.assert_called()
         for call_args in message_builder.call_args_list:
             context = call_args.kwargs["context"]
-            assert context["show_past_issues"] is False
             assert len(context["past_issues"]) == 0
             assert len(context["top_issues"]) == 1
+            html = render_to_string("sentry/emails/reports/body.html", context)
+            assert 'id="past-resolved-issues"' not in html
 
     @with_feature("organizations:weekly-report-spans-chart")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
@@ -2062,13 +2085,12 @@ class WeeklyReportsTest(
         assert template_ctx is not None
         assert template_ctx["spans_chart_url"] is None
 
-    def test_chart_palette_equals_top_spans_limit(self):
+    def test_chart_palette_equals_top_spans_limit(self) -> None:
         assert len(CHART_PALETTE) == TOP_SPANS_LIMIT
 
-    def test_project_breakdown_equals_covers_project_limit(self):
+    def test_project_breakdown_equals_covers_project_limit(self) -> None:
         assert len(project_breakdown_colors) == TOP_SPANS_LIMIT
 
-    @with_feature("organizations:weekly-report-past-issues")
     def test_resolution_url_is_rendered_as_label_link(self) -> None:
         resolution_url = "https://github.com/getsentry/sentry/pull/5131"
         ctx = OrganizationReportContext(timezone.now().timestamp(), ONE_DAY * 7, self.organization)

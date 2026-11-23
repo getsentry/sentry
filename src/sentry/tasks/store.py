@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 import random
 from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
-from typing import Any
+from time import time
+from typing import Any, cast
 
 import orjson
 from sentry_relay.processing import StoreNormalizer
@@ -43,12 +45,18 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.event import track_event_since_received
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
+from sentry.utils.kvstore.bigtable import cap_bigtable_operation_timeout
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
+
+# Nodestore operations during save stop retrying after 25s. An in-flight
+# attempt may overrun that by up to ~5s, keeping one operation within ~30s,
+# well within the 65s processing deadline of the save tasks.
+SAVE_EVENT_NODESTORE_TIMEOUT_SECONDS = 25.0
 
 
 class RetryProcessing(Exception):
@@ -222,7 +230,7 @@ def _do_preprocess_event(
     # The event will be submitted to Symbolicator for all returned platforms,
     # one after the other, so we handle mixed stacktraces.
     stacktraces = find_stacktraces_in_data(data)
-    symbolicate_functions = get_symbolication_functions(data, stacktraces)
+    symbolicate_functions = get_symbolication_functions(data, stacktraces, project)
     metrics.incr(
         "events.to-symbolicate",
         tags={f.value: True for f in symbolicate_functions},
@@ -243,8 +251,10 @@ def _do_preprocess_event(
                 "symbolication_function": symbolication_function_name,
             },
         ):
+            # Base the backup on the cache key fixed at ingest, not on current options, so
+            # `save_event` can rely on events without a cache key having no Redis backup.
             transport = get_event_payload_transport(event_id)
-            if transport.cache:
+            if cache_key and transport.cache:
                 reprocessing2.backup_unprocessed_event(data=original_data)
 
             submit_symbolicate(
@@ -258,7 +268,7 @@ def _do_preprocess_event(
                 has_attachments=has_attachments,
                 symbolicate_functions=symbolicate_functions,
                 data=data,
-                unprocessed_pending=transport.inline,
+                unprocessed_pending=transport.inline or not cache_key,
             )
             return
         # else: go directly to process, do not go through the symbolicate queue, do not collect 200
@@ -565,7 +575,7 @@ def _do_save_event(
     Saves an event to the database.
     """
 
-    set_current_event_project(project_id)
+    set_current_event_project(cast("int", project_id))
 
     from sentry.event_manager import EventManager, resolve_project
     from sentry.exceptions import HashDiscarded
@@ -577,6 +587,9 @@ def _do_save_event(
 
     data = load_event_payload(data, cache_key, processing_store)
     event_type = data and data.get("type") or "none"
+
+    if data:
+        data["save_event_start"] = time()
 
     track_event_since_received(
         step="start_save_event",
@@ -624,9 +637,9 @@ def _do_save_event(
 
             with viewer_context_scope(
                 ViewerContext(
+                    actor=Actor(type=ActorType.SYSTEM),
                     organization_id=project.organization_id,
                     project_id=project.id,
-                    actor_type=ActorType.SYSTEM,
                 )
             ):
                 if killswitch_matches_context(
@@ -639,15 +652,23 @@ def _do_save_event(
                 ):
                     raise HashDiscarded("Load shedding save_event")
 
-                # event.project.organization is populated after this statement.
-                EventManager(data).save(
-                    project=project,
-                    assume_normalized=True,
-                    start_time=start_time,
-                    cache_key=cache_key,
-                    attachments=attachments,
-                    unprocessed=unprocessed,
+                # Bound nodestore calls so a stuck write is retried, or fails,
+                # before the task's processing deadline is exceeded.
+                nodestore_timeout = (
+                    contextlib.nullcontext()
+                    if options.get("store.save-event.bigtable-operation-timeout.disabled")
+                    else cap_bigtable_operation_timeout(SAVE_EVENT_NODESTORE_TIMEOUT_SECONDS)
                 )
+                with nodestore_timeout:
+                    # event.project.organization is populated after this statement.
+                    EventManager(data).save(
+                        project=project,
+                        assume_normalized=True,
+                        start_time=start_time,
+                        cache_key=cache_key,
+                        attachments=attachments,
+                        unprocessed=unprocessed,
+                    )
         except HashDiscarded:
             # Mark all the attachments as `rate_limited`, so they are being properly cleaned up in the `finally` block:
             for attachment in all_attachments:

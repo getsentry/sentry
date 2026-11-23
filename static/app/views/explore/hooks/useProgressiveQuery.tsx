@@ -7,11 +7,10 @@ export const SAMPLING_MODE = {
   NORMAL: 'NORMAL',
   HIGH_ACCURACY: 'HIGHEST_ACCURACY',
   FLEX_TIME: 'HIGHEST_ACCURACY_FLEX_TIME',
+  LOW_PRIORITY: 'LOW_PRIORITY',
 } as const;
 
-const NORMAL_SAMPLING_MODE_QUERY_EXTRAS = {
-  samplingMode: SAMPLING_MODE.NORMAL,
-} as const;
+const NORMAL_SAMPLING_MODE_QUERY_EXTRAS = {samplingMode: SAMPLING_MODE.NORMAL} as const;
 
 const HIGH_ACCURACY_SAMPLING_MODE_QUERY_EXTRAS = {
   samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
@@ -34,7 +33,9 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
 
   // Enforces that isFetched is always present in the result, required for the
   // progressive loading to surface the correct data.
-  queryHookImplementation: (props: Parameters<TQueryFn>[0]) => ReturnType<TQueryFn> & {
+  queryHookImplementation: (
+    props: Parameters<TQueryFn>[0]
+  ) => ReturnType<TQueryFn> & {
     result: ReturnType<TQueryFn>['result'] & {
       data: any;
       isFetched: boolean;
@@ -51,6 +52,8 @@ interface QueryOptions<TQueryFn extends (...args: any[]) => any> {
   onHighAccuracyError?: (result: ReturnType<TQueryFn>['result']) => void;
   onHighAccuracyRequest?: () => void;
   onHighAccuracySuccess?: (result: ReturnType<TQueryFn>['result']) => void;
+  // When set to low priority, the normal and high-accuracy passes stay disabled.
+  samplingMode?: SamplingMode;
 }
 
 /**
@@ -76,8 +79,11 @@ export function useProgressiveQuery<
   samplingMode?: SamplingMode;
 } {
   const disableExtrapolation = queryOptions?.disableExtrapolation || false;
+  const lowPriorityMode =
+    queryOptions?.samplingMode === SAMPLING_MODE.LOW_PRIORITY && queryHookArgs.enabled;
 
-  const nonExtrapolatedMode = disableExtrapolation && queryHookArgs.enabled;
+  const nonExtrapolatedMode =
+    !lowPriorityMode && disableExtrapolation && queryHookArgs.enabled;
   const nonExtrapolatedModeRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: {
@@ -87,13 +93,10 @@ export function useProgressiveQuery<
     enabled: nonExtrapolatedMode,
   });
 
-  const normalMode = !disableExtrapolation && queryHookArgs.enabled;
+  const normalMode = !lowPriorityMode && !disableExtrapolation && queryHookArgs.enabled;
   const normalSamplingModeRequest = queryHookImplementation({
     ...queryHookArgs,
-    queryExtras: {
-      ...queryHookArgs.queryExtras,
-      ...NORMAL_SAMPLING_MODE_QUERY_EXTRAS,
-    },
+    queryExtras: {...queryHookArgs.queryExtras, ...NORMAL_SAMPLING_MODE_QUERY_EXTRAS},
     enabled: normalMode,
   });
 
@@ -103,7 +106,10 @@ export function useProgressiveQuery<
       queryOptions?.canTriggerHighAccuracy?.(normalSamplingModeRequest.result) ?? false;
   }
   const highAccuracyMode =
-    !disableExtrapolation && queryHookArgs.enabled && triggerHighAccuracy;
+    !lowPriorityMode &&
+    !disableExtrapolation &&
+    queryHookArgs.enabled &&
+    triggerHighAccuracy;
   const highAccuracyRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: {
@@ -111,6 +117,11 @@ export function useProgressiveQuery<
       ...HIGH_ACCURACY_SAMPLING_MODE_QUERY_EXTRAS,
     },
     enabled: highAccuracyMode,
+  });
+  const lowPriorityRequest = queryHookImplementation({
+    ...queryHookArgs,
+    queryExtras: {...queryHookArgs.queryExtras, samplingMode: SAMPLING_MODE.LOW_PRIORITY},
+    enabled: lowPriorityMode,
   });
 
   const highAccuracyIsFetching =
@@ -157,22 +168,17 @@ export function useProgressiveQuery<
     }
   }, [highAccuracyIsError]);
 
+  if (lowPriorityMode) {
+    return {...lowPriorityRequest, samplingMode: SAMPLING_MODE.LOW_PRIORITY};
+  }
+
   if (nonExtrapolatedMode) {
-    return {
-      ...nonExtrapolatedModeRequest,
-      samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
-    };
+    return {...nonExtrapolatedModeRequest, samplingMode: SAMPLING_MODE.HIGH_ACCURACY};
   }
 
   if (highAccuracyMode) {
-    return {
-      ...highAccuracyRequest,
-      samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
-    };
+    return {...highAccuracyRequest, samplingMode: SAMPLING_MODE.HIGH_ACCURACY};
   }
 
-  return {
-    ...normalSamplingModeRequest,
-    samplingMode: SAMPLING_MODE.NORMAL,
-  };
+  return {...normalSamplingModeRequest, samplingMode: SAMPLING_MODE.NORMAL};
 }

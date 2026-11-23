@@ -20,32 +20,21 @@ const rootDir = path.resolve(import.meta.dirname, '../..');
 
 const swcConfig: SwcOptions = {
   isModule: true,
-  module: {
-    type: 'commonjs',
-  },
+  module: {type: 'commonjs'},
   sourceMaps: 'inline',
   jsc: {
     target: 'esnext',
-    parser: {
-      syntax: 'typescript',
-      tsx: true,
-      dynamicImport: true,
-    },
+    parser: {syntax: 'typescript', tsx: true, dynamicImport: true},
     transform: {
-      react: {
-        runtime: 'automatic',
-        importSource: '@emotion/react',
-      },
+      react: {runtime: 'automatic', importSource: '@emotion/react'},
+      optimizer: {globals: {vars: {'import.meta.hot': 'undefined'}}},
     },
     experimental: {
       plugins: [
         [fileURLToPath(import.meta.resolve('@swc-contrib/mut-cjs-exports')), {}],
         [
           fileURLToPath(import.meta.resolve('@swc/plugin-emotion')),
-          {
-            sourceMap: false,
-            autoLabel: 'never',
-          },
+          {sourceMap: false, autoLabel: 'never'},
         ],
       ],
     },
@@ -55,7 +44,20 @@ const swcConfig: SwcOptions = {
 /**
  * ESM packages that need to be transformed.
  */
-const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs', 'color'];
+const ESM_NODE_MODULES = [
+  'react-router@8\\.',
+  '@remix-run\\+route-pattern',
+  'cookie-es',
+  'screenfull',
+  'cbor2',
+  'nuqs',
+  'color',
+  // App views reach these through shared components such as DetectorLink. Keep in
+  // sync with createJestConfig.ts.
+  'marked',
+  '@sentry\\+sqlish',
+  '@tanstack\\+(?:react-)?hotkeys@',
+];
 
 const config: Config.InitialOptions = {
   rootDir,
@@ -93,14 +95,12 @@ const config: Config.InitialOptions = {
   setupFiles: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-setup.ts'],
   setupFilesAfterEnv: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-framework.ts'],
 
-  resolver: '<rootDir>/tests/js/jestReactRouterResolver.cjs',
+  resolver: '<rootDir>/tests/js/jestWorkspaceResolver.cjs',
   moduleNameMapper: {
     '^\\./storyManifest\\.generated$':
       '<rootDir>/tests/js/sentry-test/mocks/storyManifestMock.ts',
     '\\.(css|less|png|gif|jpg|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
-    '^@sentry/scraps/text$': '<rootDir>/static/app/components/core/text',
-    '^@sentry/scraps$': '<rootDir>/static/packages/scraps/src/index.ts',
     // The app falls back to core components until they move into scraps.
     '^@sentry/scraps/(.*)$': [
       '<rootDir>/static/packages/scraps/src/$1',
@@ -110,6 +110,11 @@ const config: Config.InitialOptions = {
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/mocks/svgMock.js',
     '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
     '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
+
+    // @sentry/sqlish is ESM-only with `exports` that only define `import`
+    // conditions. Jest's CJS resolver can't follow them without explicit mapping.
+    '^@sentry/sqlish/react$': '<rootDir>/node_modules/@sentry/sqlish/dist/react.js',
+    '^@sentry/sqlish$': '<rootDir>/node_modules/@sentry/sqlish/dist/index.js',
   },
 
   transform: {

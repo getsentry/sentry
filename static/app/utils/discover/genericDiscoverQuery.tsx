@@ -6,13 +6,10 @@ import type {EventQuery} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {ResponseMeta} from 'sentry/types/api';
-import type {
-  EventView,
-  ImmutableEventView,
-  LocationQuery,
-} from 'sentry/utils/discover/eventView';
-import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {useApi} from 'sentry/utils/useApi';
+
+import type {EventView, ImmutableEventView, LocationQuery} from './eventView';
+import {isAPIPayloadSimilar} from './eventView';
 
 interface DiscoverQueryExtras {
   useOnDemandMetrics?: boolean;
@@ -101,9 +98,7 @@ export type DiscoverQueryProps = BaseDiscoverQueryProps & {
   orgSlug: string;
 };
 
-type ReactProps<T> = {
-  children?: (props: GenericChildrenProps<T>) => React.ReactNode;
-};
+type ReactProps<T> = {children?: (props: GenericChildrenProps<T>) => React.ReactNode};
 
 type ComponentProps<T, P> = {
   /**
@@ -139,10 +134,7 @@ type ComponentProps<T, P> = {
 
 type Props<T, P> = DiscoverQueryProps & P & ReactProps<T> & ComponentProps<T, P>;
 
-type State<T> = {
-  api: Client;
-  tableFetchID: symbol | undefined;
-} & GenericChildrenProps<T>;
+type State<T> = {api: Client; tableFetchID: symbol | undefined} & GenericChildrenProps<T>;
 
 /**
  * Generic component for discover queries
@@ -243,12 +235,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
       }));
     } catch (err) {
       const error = this._parseError(err);
-      this.setState({
-        isLoading: false,
-        tableFetchID: undefined,
-        error,
-        tableData: null,
-      });
+      this.setState({isLoading: false, tableFetchID: undefined, error, tableData: null});
       if (setError) {
         setError(error ?? undefined);
       }
@@ -282,9 +269,7 @@ export async function doDiscoverQuery<T>(
   api: Client,
   url: string,
   params: DiscoverQueryRequestParams,
-  options: {
-    skipAbort?: boolean;
-  } = {}
+  options: {skipAbort?: boolean} = {}
 ): Promise<[T, string | undefined, ResponseMeta<T> | undefined]> {
   const {skipAbort} = options;
 
@@ -335,9 +320,7 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const res = useQuery<[T, string | undefined, ResponseMeta<T> | undefined], QueryError>({
     queryKey: [...additionalQueryKey, route, apiPayload],
     queryFn: ({signal: _signal}) =>
-      doDiscoverQuery<T>(api, url, apiPayload, {
-        skipAbort: props.skipAbort,
-      }),
+      doDiscoverQuery<T>(api, url, apiPayload, {skipAbort: props.skipAbort}),
     ...options,
   });
 

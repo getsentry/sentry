@@ -46,9 +46,9 @@ def get_frames(
 
 
 def get_crash_event(
-    sdk_frame_module="Sentry.SentryClient",
-    system_frame_module="System.Runtime.CompilerServices.AsyncTaskMethodBuilder",
-    **kwargs,
+    sdk_frame_module: str = "Sentry.SentryClient",
+    system_frame_module: str = "System.Runtime.CompilerServices.AsyncTaskMethodBuilder",
+    **kwargs: object,
 ) -> dict[str, object]:
     return get_crash_event_with_frames(
         get_frames(sdk_frame_module, system_frame_module),
@@ -95,9 +95,9 @@ def get_unity_frames(
 
 
 def get_unity_crash_event(
-    sdk_frame_module="Sentry.SentryClient",
-    unity_frame_module="UnityEngine.Events.InvokableCall",
-    **kwargs,
+    sdk_frame_module: str = "Sentry.SentryClient",
+    unity_frame_module: str = "UnityEngine.Events.InvokableCall",
+    **kwargs: object,
 ) -> dict[str, object]:
     return get_crash_event_with_frames(
         get_unity_frames(sdk_frame_module, unity_frame_module),
@@ -107,7 +107,7 @@ def get_unity_crash_event(
 
 def get_exception(
     frames: Sequence[Mapping[str, str]],
-    mechanism=None,
+    mechanism: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     if mechanism is None:
         # linter complains about mutable arguments otherwise
@@ -121,7 +121,9 @@ def get_exception(
     }
 
 
-def get_crash_event_with_frames(frames: Sequence[Mapping[str, str]], **kwargs) -> dict[str, object]:
+def get_crash_event_with_frames(
+    frames: Sequence[Mapping[str, str]], **kwargs: object
+) -> dict[str, object]:
     result = {
         "event_id": "0a52a8331d3b45089ebd74f8118d4fa1",
         "release": "sentry.dotnet@3.22.0",

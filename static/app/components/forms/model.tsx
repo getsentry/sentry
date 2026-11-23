@@ -2,15 +2,17 @@ import isEqual from 'lodash/isEqual';
 import type {ObservableMap} from 'mobx';
 import {action, computed, makeObservable, observable} from 'mobx';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {Client} from 'sentry/api';
-import {addUndoableFormChangeMessage} from 'sentry/components/forms/formIndicators';
-import {FormState} from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 import type {Choice} from 'sentry/types/core';
 import type {RequestMethod} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+
+import {addUndoableFormChangeMessage} from './formIndicators';
+import {FormState} from './state';
 
 export const fieldIsRequiredMessage = t('Field is required');
 
@@ -145,8 +147,8 @@ export class FormModel {
       isError: computed,
       isSaving: computed,
       formData: computed,
-      formChanged: computed,
 
+      setInitialData: action,
       validateFormCompletion: action,
       resetForm: action,
       setFieldDescriptor: action,
@@ -199,6 +201,9 @@ export class FormModel {
 
   /**
    * Deep equality comparison between last saved state and current fields state
+   *
+   * Not a computed on purpose: `initialData` isn't observable, so a cached
+   * result would go stale.
    */
   get formChanged() {
     return !isEqual(this.initialData, Object.fromEntries(this.fields.toJSON()));
@@ -414,10 +419,7 @@ export class FormModel {
     const endpoint = this.options.apiEndpoint || '';
     const method = this.options.apiMethod;
 
-    return this.api.requestPromise(endpoint, {
-      method,
-      data,
-    });
+    return this.api.requestPromise(endpoint, {method, data});
   }
 
   /**
@@ -497,9 +499,7 @@ export class FormModel {
 
     let saveSnapshot: SaveSnapshot = this.createSnapshot();
 
-    const request = this.doApiRequest({
-      data: this.getTransformedData(),
-    });
+    const request = this.doApiRequest({data: this.getTransformedData()});
 
     this.setFormSaving();
     request
@@ -659,7 +659,7 @@ export class FormModel {
             // Just take first resp for now
             this.setError(id, this.normalizeError(resp.responseJSON[id][0]));
           } else if (Array.isArray(nonFieldErrors) && nonFieldErrors.length) {
-            addErrorMessage(this.normalizeError(nonFieldErrors[0]), {duration: 10000});
+            toast.error(this.normalizeError(nonFieldErrors[0]), {duration: 10000});
             // Reset saving state
             this.setError(id, '');
           } else if (Array.isArray(firstError) && firstError.length) {
@@ -727,10 +727,7 @@ export class FormModel {
   }
 
   setFieldState(id: string, key: string, value: FieldValue) {
-    const state = {
-      ...this.fieldState.get(id),
-      [key]: value,
-    };
+    const state = {...this.fieldState.get(id), [key]: value};
     this.fieldState.set(id, state);
   }
 
@@ -806,7 +803,7 @@ export class FormModel {
 
   handleErrorResponse({responseJSON: resp}: {responseJSON?: any} = {}) {
     if (!resp) {
-      addErrorMessage(t('Unknown error while saving'));
+      toast.error(t('Unknown error while saving'));
       return;
     }
 
@@ -821,7 +818,7 @@ export class FormModel {
         Array.isArray(nonFieldErrors) &&
         nonFieldErrors.length
       ) {
-        addErrorMessage(this.normalizeError(nonFieldErrors[0]), {duration: 10000});
+        toast.error(this.normalizeError(nonFieldErrors[0]), {duration: 10000});
         errorDisplayed = true;
       } else if (Array.isArray(resp[id]) && resp[id].length) {
         // Just take first resp for now
@@ -831,7 +828,7 @@ export class FormModel {
     });
 
     if (!errorDisplayed) {
-      addErrorMessage(t('Unknown error while saving'));
+      toast.error(t('Unknown error while saving'));
     }
   }
 
@@ -867,9 +864,7 @@ export class MockModel {
   constructor(props: any) {
     this.props = props;
 
-    this.initialData = {
-      [props.name]: props.value,
-    };
+    this.initialData = {[props.name]: props.value};
   }
 
   setValue() {}

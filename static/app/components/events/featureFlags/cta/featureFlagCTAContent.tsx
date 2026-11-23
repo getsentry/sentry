@@ -14,16 +14,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 export function FeatureFlagCTAContent({
   handleSetupButtonClick,
 }: {
-  handleSetupButtonClick: (e: any) => void;
+  handleSetupButtonClick: (e: React.MouseEvent) => void;
 }) {
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
 
   useEffect(() => {
-    trackAnalytics('flags.cta_rendered', {
-      organization,
-      surface: analyticsArea,
-    });
+    trackAnalytics('flags.cta_rendered', {organization, surface: analyticsArea});
   }, [organization, analyticsArea]);
 
   return (
@@ -41,7 +38,7 @@ export function FeatureFlagCTAContent({
           </Button>
           <LinkButton
             variant="secondary"
-            href="https://docs.sentry.io/product/explore/feature-flags/"
+            href="https://docs.sentry.io/product/issues/issue-details/feature-flags/"
             external
             onClick={() => {
               trackAnalytics('flags.cta_read_more_clicked', {
@@ -54,7 +51,11 @@ export function FeatureFlagCTAContent({
           </LinkButton>
         </Flex>
       </Stack>
-      <BannerIllustration src={onboardingInstall} alt="" />
+      <Container display={{zero: 'none', xs: 'block'}}>
+        {containerProps => (
+          <BannerIllustration {...containerProps} src={onboardingInstall} alt="" />
+        )}
+      </Container>
     </Fragment>
   );
 }
@@ -74,28 +75,15 @@ const BannerIllustration = styled('img')`
   align-self: flex-end;
 `;
 
-export const BannerWrapper = styled('div')`
-  position: relative;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
+export const BannerWrapper = styled(Container)`
   background: linear-gradient(
     90deg,
     color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
     ${p => p.theme.tokens.background.secondary} 70%,
     ${p => p.theme.tokens.background.secondary} 100%
   );
-  display: flex;
   flex-direction: row;
   align-items: flex-end;
   justify-content: space-between;
   gap: ${p => p.theme.space.md};
-
-  container-name: bannerWrapper;
-  container-type: inline-size;
-
-  @container bannerWrapper (max-width: 400px) {
-    img {
-      display: none;
-    }
-  }
 `;

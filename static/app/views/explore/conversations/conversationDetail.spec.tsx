@@ -11,11 +11,14 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import type {ConversationStats} from 'sentry/views/explore/conversations/hooks/useConversation';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
+import type {ConversationStats} from './hooks/useConversation';
 import ConversationDetailPage from './conversationDetail';
 import {CONVERSATIONS_SIDEBAR_LABEL} from './settings';
+
+jest.mock('sentry/utils/analytics');
 
 const CONVERSATION_ID = 'conv-1';
 
@@ -78,25 +81,31 @@ const DEFAULT_STATS: ConversationStats = {
 function mockApis(
   title: string | null = null,
   spans: Array<Record<string, unknown>> = CONVERSATION_BODY,
-  statOverrides: Partial<ConversationStats> = {}
+  statOverrides: Partial<ConversationStats> = {},
+  {cursor, nextCursor}: {cursor?: string; nextCursor?: string} = {}
 ) {
-  MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+  const url = `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`;
+  const request = MockApiClient.addMockResponse({
+    url,
+    match: [MockApiClient.matchQuery({cursor})],
     body: {
       conversationId: CONVERSATION_ID,
       title,
       spans,
       stats: {...DEFAULT_STATS, ...statOverrides},
     },
+    headers: nextCursor
+      ? {
+          Link: `<${url}?cursor=${nextCursor}>; rel="next"; results="true"; cursor="${nextCursor}"`,
+        }
+      : undefined,
   });
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/trace-items/attributes/',
     body: [],
   });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/projects/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
+  return request;
 }
 
 function renderPage(features: string[] = [], query?: Record<string, string>) {
@@ -133,6 +142,9 @@ describe('ConversationDetailPage span default selection', () => {
       PageFiltersStore.init();
     });
     mockApis();
+    Object.assign(navigator, {
+      clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
+    });
   });
 
   it('opens the first span when switching from transcript to timeline', async () => {
@@ -148,20 +160,164 @@ describe('ConversationDetailPage span default selection', () => {
     await waitFor(() => expect(detailPane()).toBeInTheDocument());
   });
 
-  it('shows the copy transcript button only on the transcript tab', async () => {
+  it('tracks switching between the transcript and timeline tabs', async () => {
+    renderPage();
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Timeline'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.detail.tab-switch',
+      expect.objectContaining({fromTab: 'transcript', toTab: 'timeline'})
+    );
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Transcript'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.detail.tab-switch',
+      expect.objectContaining({fromTab: 'timeline', toTab: 'transcript'})
+    );
+  });
+
+  it('shows the export and expand all buttons only on the transcript tab', async () => {
     renderPage();
 
-    // The transcript tab exposes the copy control once messages have loaded.
+    // The transcript tab exposes the export control once messages have loaded.
     expect(
-      await screen.findByRole('button', {name: 'Copy Transcript'})
+      await screen.findByRole('button', {name: 'Export transcript'})
     ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Expand all'})).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: 'Timeline'}));
 
-    // The timeline tab has no transcript to copy.
+    // The timeline tab has no transcript to export or expand.
     expect(
-      screen.queryByRole('button', {name: 'Copy Transcript'})
+      screen.queryByRole('button', {name: 'Export transcript'})
     ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Expand all'})).not.toBeInTheDocument();
+  });
+
+  it('downloads the full conversation transcript as a markdown file', async () => {
+    const blobs: Blob[] = [];
+    const createObjectURL = jest.fn((blob: Blob) => {
+      blobs.push(blob);
+      return 'blob:conversation';
+    });
+    window.URL.createObjectURL = createObjectURL;
+    window.URL.revokeObjectURL = jest.fn();
+    const clickSpy = jest
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {});
+
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Export transcript'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Download .md'}));
+
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+    expect(clickSpy).toHaveBeenCalled();
+
+    const markdown = await blobs[0]!.text();
+    expect(markdown).toContain('First answer');
+    expect(markdown).toContain('Second answer');
+
+    clickSpy.mockRestore();
+  });
+
+  it('copies the full conversation transcript to the clipboard', async () => {
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {clipboard: {writeText}});
+
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Export transcript'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy to clipboard'}));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalled());
+    const copied = writeText.mock.calls[0]![0] as string;
+    expect(copied).toContain('First answer');
+    expect(copied).toContain('Second answer');
+  });
+});
+
+// The SDK recorded the LLM calls but not their messages.
+const UNCAPTURED_CONVERSATION_BODY = [
+  spanFixture({
+    span_id: 'span-a',
+    'span.name': 'classify email',
+    'precise.start_ts': 1000,
+    'precise.finish_ts': 1000.5,
+    'gen_ai.usage.input_tokens': 120,
+  }),
+];
+
+describe('ConversationDetailPage default tab', () => {
+  beforeEach(() => {
+    Element.prototype.scrollTo = jest.fn();
+    Element.prototype.scrollIntoView = jest.fn();
+    MockApiClient.clearMockResponses();
+    act(() => {
+      PageFiltersStore.reset();
+      PageFiltersStore.init();
+    });
+  });
+
+  it('opens the transcript when messages were captured', async () => {
+    mockApis();
+    renderPage();
+
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Transcript'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+  });
+
+  it('opens the timeline when no messages were captured', async () => {
+    mockApis(null, UNCAPTURED_CONVERSATION_BODY);
+    renderPage();
+
+    // No tab is shown while the first page decides the default
+    expect(screen.queryByRole('tab', {name: 'Transcript'})).not.toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(screen.getByRole('tab', {name: 'Timeline'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
+    );
+    expect(screen.queryByText('<not reported>')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Export transcript'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps an explicit transcript tab when no messages were captured', async () => {
+    mockApis(null, UNCAPTURED_CONVERSATION_BODY);
+    renderPage([], {tab: 'transcript'});
+
+    expect((await screen.findAllByText('<not reported>')).length).toBeGreaterThan(0);
+    expect(screen.getByRole('tab', {name: 'Transcript'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+  });
+
+  it('tracks leaving the default timeline tab', async () => {
+    mockApis(null, UNCAPTURED_CONVERSATION_BODY);
+    renderPage();
+
+    await waitFor(() =>
+      expect(screen.getByRole('tab', {name: 'Timeline'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
+    );
+    await userEvent.click(screen.getByRole('tab', {name: 'Transcript'}));
+
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.detail.tab-switch',
+      expect.objectContaining({fromTab: 'timeline', toTab: 'transcript'})
+    );
+    expect((await screen.findAllByText('<not reported>')).length).toBeGreaterThan(0);
   });
 });
 
@@ -184,9 +340,7 @@ describe('ConversationDetailPage breadcrumbs', () => {
     const topBar = screen.getByRole('banner');
 
     expect(
-      await within(topBar).findByRole('link', {
-        name: CONVERSATIONS_SIDEBAR_LABEL,
-      })
+      await within(topBar).findByRole('link', {name: CONVERSATIONS_SIDEBAR_LABEL})
     ).toBeInTheDocument();
     // The conversation id is the top-bar identifier, owned by the TopBar title
     // slot, alongside the copy affordance.
@@ -511,10 +665,7 @@ describe('ConversationDetailPage time window', () => {
       body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
     });
 
-    renderPage([], {
-      start: '2026-09-24T08:06:04.000Z',
-      end: '2026-09-25T10:29:16.000Z',
-    });
+    renderPage([], {start: '2026-09-24T08:06:04.000Z', end: '2026-09-25T10:29:16.000Z'});
 
     await waitFor(() => expect(conversationRequest).toHaveBeenCalled());
     for (const [, options] of conversationRequest.mock.calls) {
@@ -539,10 +690,7 @@ describe('ConversationDetailPage time window', () => {
         body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
       });
 
-      renderPage([], {
-        start: '2026-09-24T08:06:04',
-        end: '2026-09-25T10:29:16',
-      });
+      renderPage([], {start: '2026-09-24T08:06:04', end: '2026-09-25T10:29:16'});
 
       await waitFor(() => expect(conversationRequest).toHaveBeenCalled());
       for (const [, options] of conversationRequest.mock.calls) {

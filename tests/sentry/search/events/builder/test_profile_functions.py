@@ -6,23 +6,24 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
+from sentry.search.events.types import ParamsType
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture
-def now():
+def now() -> datetime:
     return datetime(2022, 10, 31, 0, 0, tzinfo=timezone.utc)
 
 
 @pytest.fixture
-def today(now):
+def today(now: datetime) -> datetime:
     return now.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 @pytest.fixture
-def params(now, today):
+def params(now: datetime, today: datetime) -> ParamsType:
     organization = Factories.create_organization()
     team = Factories.create_team(organization=organization)
     project1 = Factories.create_project(organization=organization, teams=[team])
@@ -79,7 +80,7 @@ def params(now, today):
     ],
 )
 @django_db_all
-def test_where(params, search, condition) -> None:
+def test_where(params: ParamsType, search: str, condition: Condition) -> None:
     builder = ProfileFunctionsQueryBuilder(
         Dataset.Functions,
         params,

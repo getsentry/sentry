@@ -71,7 +71,7 @@ Classes like `Validator`, `ManualTokenRefresher`, `GrantExchanger`, and `Refresh
 
 ## Non-DRF Views
 
-OAuth views (`OAuthAuthorizeView`, `OAuthDeviceView`, `OAuthTokenView`) are plain Django views, **not** DRF endpoints. Layers 1–4 do not apply to the view itself. Check the view's own authentication decorators, `dispatch()`, and handler logic directly.
+OAuth token exchange (`OAuthTokenView`) and device code issuance (`OAuthDeviceAuthorizationView`) use plain Django views. Check their authentication, `dispatch()`, and handler logic directly. Consent uses the DRF `OAuthAuthorizeEndpoint` and `OAuthDeviceEndpoint`; layers 1–4 apply to those endpoints.
 
 However, tokens issued by these views are later used at DRF API endpoints where layers 1–7 **do** apply. See "Cross-Flow Enforcement" below.
 

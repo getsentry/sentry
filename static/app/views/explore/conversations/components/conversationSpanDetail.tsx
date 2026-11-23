@@ -5,37 +5,46 @@ import {IconClose} from '@sentry/icons/close';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {getDuration} from '@sentry/scraps/duration';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
+import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
+import {CodeModeDetails} from 'sentry/components/ai/toolDetails/codeModeDetails';
+import {ToolOutput} from 'sentry/components/ai/toolDetails/toolOutput';
+import {parseToolOutput} from 'sentry/components/ai/toolDetails/toolOutputData';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {SpanDetailCard} from 'sentry/views/explore/conversations/components/conversationLayout';
-import {
-  EvaluationInputTab,
-  EvaluationOutputTab,
-} from 'sentry/views/explore/conversations/components/evaluationSpanTabs';
-import {
-  MemoryInputTab,
-  MemoryOutputTab,
-} from 'sentry/views/explore/conversations/components/memorySpanTabs';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {EvaluationResultSummary} from 'sentry/views/insights/pages/agents/components/evaluationContent';
+import {ExtractionResultSummary} from 'sentry/views/insights/pages/agents/components/extractionContent';
+import {
+  markScrubbedAttributes,
+  splitScrubbedJson,
+} from 'sentry/views/insights/pages/agents/components/scrubbedText';
 import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getCodeModeInput,
+  isCodeModeNode,
+} from 'sentry/views/insights/pages/agents/utils/codeMode';
 import {
   getNodeEvaluation,
   type Evaluation,
 } from 'sentry/views/insights/pages/agents/utils/evaluation';
+import {
+  getNodeExtraction,
+  hasValue,
+  type Extraction,
+} from 'sentry/views/insights/pages/agents/utils/extraction';
 import {getNodeMemory} from 'sentry/views/insights/pages/agents/utils/memory';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {useInvalidEvaluationDetection} from 'sentry/views/insights/pages/agents/utils/useInvalidEvaluationDetection';
@@ -59,17 +68,58 @@ import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/trace
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
 import {traceGridCssVariables} from 'sentry/views/performance/traceDetails/traceWaterfallStyles';
 
-const AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH = 3;
-const AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH = 100;
-const AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT = 100_000;
+import {SpanDetailCard} from './conversationLayout';
+import {EvaluationTab} from './evaluationSpanTab';
+import {ExtractionTab} from './extractionSpanTab';
+import {MemoryInputTab, MemoryOutputTab} from './memorySpanTabs';
+import {
+  EmptySpanTab,
+  SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT,
+  SpanTabContent,
+  SpanTabJson,
+} from './spanTabContent';
 
-export type DetailTab = 'input' | 'output' | 'attributes';
+const AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH = 100;
+
+export type DetailTab = 'input' | 'output' | 'decision' | 'extraction' | 'attributes';
+
+type CombinedTab = Extract<DetailTab, 'decision' | 'extraction'>;
 
 export const CONVERSATION_SPAN_DETAIL_TABS: readonly DetailTab[] = [
   'input',
   'output',
+  'decision',
+  'extraction',
   'attributes',
 ];
+
+/**
+ * Decision and extraction spans show a single tab in place of Input and Output.
+ * The selected tab is mapped rather than changed, so it carries over when
+ * moving between these and other spans.
+ */
+function getVisibleTab(tab: DetailTab, combinedTab: CombinedTab | null): DetailTab {
+  if (tab === 'attributes') {
+    return tab;
+  }
+  if (combinedTab) {
+    return combinedTab;
+  }
+  return tab === 'decision' || tab === 'extraction' ? 'input' : tab;
+}
+
+function getCombinedTab(
+  evaluation: Evaluation | null,
+  extraction: Extraction | null
+): CombinedTab | null {
+  if (evaluation) {
+    return 'decision';
+  }
+  if (extraction) {
+    return 'extraction';
+  }
+  return null;
+}
 
 /** The fetched attribute list, or undefined while it's still loading. */
 type SpanAttributes = Parameters<typeof getAIInputMessages>[1];
@@ -134,6 +184,11 @@ export function ConversationSpanDetail({
     enabled: Boolean(eapValue),
   });
   const attributes = data?.attributes;
+  // Only the input and output show where PII scrubbing changed values.
+  const scrubbedAttributes = useMemo(
+    () => markScrubbedAttributes(attributes, data?.meta, node?.projectSlug),
+    [attributes, data?.meta, node?.projectSlug]
+  );
 
   // Memoized so the invalid-evaluation report fires once per span.
   const evaluation = useMemo(
@@ -141,6 +196,11 @@ export function ConversationSpanDetail({
     [node, attributes, isAttributesLoading]
   );
   useInvalidEvaluationDetection(evaluation);
+
+  const extraction = useMemo(
+    () => (node && !isAttributesLoading ? getNodeExtraction(node, attributes) : null),
+    [node, attributes, isAttributesLoading]
+  );
 
   const memory = useMemo(
     () => (node && !isAttributesLoading ? getNodeMemory(node, attributes) : null),
@@ -153,6 +213,8 @@ export function ConversationSpanDetail({
 
   // Memory spans share a generic span op in the trace waterfall, so name the
   // heading after the operation to distinguish search, create, update, etc.
+  const combinedTab = getCombinedTab(evaluation, extraction);
+
   const title = memory?.operation || node.op || node.description || t('Span');
   const duration = getNodeTimeBounds(node).duration;
   const comparison = getDurationComparison(
@@ -189,7 +251,7 @@ export function ConversationSpanDetail({
 
       <Stack gap="lg" flexShrink={0}>
         <Flex align="center" gap="sm" wrap="wrap">
-          <Text size="lg">{getDuration(duration, 2, true, true)}</Text>
+          <Text size="lg">{getDuration(duration, {precision: 2, style: 'narrow'})}</Text>
           {duration > 0 &&
           comparison &&
           comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
@@ -199,7 +261,12 @@ export function ConversationSpanDetail({
         {isAttributesLoading ? (
           <SpanMetadataSkeleton />
         ) : (
-          <SpanMetadata node={node} attributes={attributes} evaluation={evaluation} />
+          <SpanMetadata
+            node={node}
+            attributes={attributes}
+            evaluation={evaluation}
+            extraction={extraction}
+          />
         )}
       </Stack>
 
@@ -220,60 +287,77 @@ export function ConversationSpanDetail({
       {isAttributesLoading ? (
         <SpanTabsSkeleton />
       ) : isError ? (
-        <EmptyTab message={t('Failed to load span details')} />
+        <EmptySpanTab message={t('Failed to load span details')} />
       ) : (
-        <TabStateProvider<DetailTab> value={activeTab} onChange={onTabChange}>
-          <TabList>
-            <TabList.Item key="input">{t('Input')}</TabList.Item>
-            <TabList.Item key="output">{t('Output')}</TabList.Item>
-            <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
-          </TabList>
-
-          <Container
-            flex="0 0 auto"
-            minHeight="0"
-            width="100%"
-            overflowX="visible"
-            overflowY="visible"
-            // Gutter so the scroll container doesn't clip a focused input's focus ring.
-            padding="xs"
-          >
-            <TabPanels
-              css={css`
-                padding-top: 0;
-              `}
+        <Container display="contents">
+          {tabsRootProps => (
+            <Tabs
+              value={getVisibleTab(activeTab, combinedTab)}
+              onChange={onTabChange}
+              {...tabsRootProps}
             >
-              <TabPanels.Item key="input">
-                {memory ? (
-                  <MemoryInputTab memory={memory} />
-                ) : evaluation?.rawInput ? (
-                  <EvaluationInputTab
-                    input={evaluation.input}
-                    raw={evaluation.rawInput}
-                  />
-                ) : (
-                  <InputTab node={node} attributes={attributes} />
-                )}
-              </TabPanels.Item>
-              <TabPanels.Item key="output">
-                {memory ? (
-                  <MemoryOutputTab memory={memory} />
-                ) : evaluation?.rawOutput ? (
-                  <EvaluationOutputTab
-                    answers={evaluation.answers}
-                    questions={evaluation.input?.questions}
-                    raw={evaluation.rawOutput}
-                  />
-                ) : (
-                  <OutputTab node={node} attributes={attributes} />
-                )}
-              </TabPanels.Item>
-              <TabPanels.Item key="attributes">
-                <AttributesTab node={node} attributes={attributes} />
-              </TabPanels.Item>
-            </TabPanels>
-          </Container>
-        </TabStateProvider>
+              {({TabList, TabPanels}) => (
+                <Fragment>
+                  <TabList>
+                    <TabList.Item key="input" hidden={combinedTab !== null}>
+                      {t('Input')}
+                    </TabList.Item>
+                    <TabList.Item key="output" hidden={combinedTab !== null}>
+                      {t('Output')}
+                    </TabList.Item>
+                    <TabList.Item key="decision" hidden={combinedTab !== 'decision'}>
+                      {t('Decision')}
+                    </TabList.Item>
+                    <TabList.Item key="extraction" hidden={combinedTab !== 'extraction'}>
+                      {t('Extraction')}
+                    </TabList.Item>
+                    <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
+                  </TabList>
+
+                  <Container
+                    flex="0 0 auto"
+                    minHeight="0"
+                    width="100%"
+                    overflowX="visible"
+                    overflowY="visible"
+                    // Gutter so the scroll container doesn't clip a focused input's focus ring.
+                    padding="xs"
+                  >
+                    <TabPanels
+                      css={css`
+                        padding-top: 0;
+                      `}
+                    >
+                      <TabPanels.Item key="input">
+                        {memory ? (
+                          <MemoryInputTab memory={memory} />
+                        ) : (
+                          <InputTab node={node} attributes={scrubbedAttributes} />
+                        )}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="output">
+                        {memory ? (
+                          <MemoryOutputTab memory={memory} />
+                        ) : (
+                          <OutputTab node={node} attributes={scrubbedAttributes} />
+                        )}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="decision">
+                        {evaluation ? <EvaluationTab evaluation={evaluation} /> : null}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="extraction">
+                        {extraction ? <ExtractionTab extraction={extraction} /> : null}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="attributes">
+                        <AttributesTab node={node} attributes={attributes} />
+                      </TabPanels.Item>
+                    </TabPanels>
+                  </Container>
+                </Fragment>
+              )}
+            </Tabs>
+          )}
+        </Container>
       )}
     </SpanDetailCard>
   );
@@ -283,16 +367,21 @@ function SpanMetadata({
   node,
   attributes,
   evaluation,
+  extraction,
 }: {
   attributes: SpanAttributes;
   evaluation: Evaluation | null;
+  extraction: Extraction | null;
   node: AITraceSpanNode;
 }) {
   const rows = getHighlightedSpanAttributes({
     op: node.op,
     spanId: node.id,
     attributes: attributes ?? node.attributes,
+    projectId: node.value.project_id,
+    description: node.description,
   });
+
   // Skip the row when no answer has a short label to show.
   if (evaluation?.answers?.some(answer => answer.kind !== 'invalid')) {
     rows.push({
@@ -303,6 +392,13 @@ function SpanMetadata({
           questions={evaluation.input?.questions}
         />
       ),
+    });
+  }
+
+  if (extraction?.answers?.some(answer => answer.kind === 'answer' && hasValue(answer))) {
+    rows.push({
+      name: t('Result'),
+      value: <ExtractionResultSummary answers={extraction.answers} />,
     });
   }
 
@@ -343,6 +439,17 @@ function InputTab({
 }) {
   const {messages} = getAIInputMessages(node, attributes);
   const toolArgs = getAIToolInput(node, attributes);
+  const codeInput = isCodeModeNode(node, attributes)
+    ? getCodeModeInput(
+        typeof toolArgs === 'string' ? stripAnnotations(toolArgs) : toolArgs
+      )
+    : null;
+
+  if (codeInput) {
+    return (
+      <CodeModeDetails key={node.id} projectId={node.value.project_id} {...codeInput} />
+    );
+  }
   const embeddingsInput = getTraceNodeAttribute(
     'gen_ai.embeddings.input',
     node,
@@ -352,7 +459,7 @@ function InputTab({
 
   const hasContent = (messages && messages.length > 0) || toolArgs || embeddingsInput;
   if (!hasContent) {
-    return <EmptyTab message={t('No input for this span')} />;
+    return <EmptySpanTab message={t('No input for this span')} />;
   }
 
   return (
@@ -363,21 +470,14 @@ function InputTab({
             {capitalize(message.role)}
           </TraceDrawerComponents.MultilineTextLabel>
           {/* System prompts are usually long, repetitive, and sit on top, so keep them clipped */}
-          <InputMessageContent
+          <SpanTabContent
             key={`${node.id}:message:${index}`}
             content={message.content}
             clip={message.role === 'system'}
           />
         </Fragment>
       ))}
-      {toolArgs ? (
-        <TraceDrawerComponents.MultilineJSON
-          key={`${node.id}:tool-input`}
-          value={toolArgs}
-          maxDefaultDepth={AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH}
-          autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
-        />
-      ) : null}
+      {toolArgs ? <SpanTabJson key={`${node.id}:tool-input`} value={toolArgs} /> : null}
       {embeddingsInput ? (
         <TraceDrawerComponents.MultilineText clip={false}>
           {embeddingsInput.toString()}
@@ -398,16 +498,28 @@ function OutputTab({
     node,
     attributes
   );
-  const toolOutput = getAIToolOutput(node, attributes);
+  const markedToolOutput = getAIToolOutput(node, attributes);
+  const hasToolOutput = markedToolOutput !== undefined;
+  // Parsed here, like `ToolOutput` does, so the meta matches the parsed output.
+  const toolOutput = useMemo(
+    () => splitScrubbedJson(parseToolOutput(markedToolOutput).value),
+    [markedToolOutput]
+  );
 
   // Reasoning is supplementary to the actual output, so clip it when there is
   // other content; when it is the only output, show it in full.
   const clipReasoning = Boolean(
-    responseText || responseObject || toolCalls || toolOutput
+    responseText || responseObject || toolCalls || hasToolOutput
   );
 
-  if (!reasoningText && !responseText && !responseObject && !toolCalls && !toolOutput) {
-    return <EmptyTab message={t('No output for this span')} />;
+  if (
+    !reasoningText &&
+    !responseText &&
+    !responseObject &&
+    !toolCalls &&
+    !hasToolOutput
+  ) {
+    return <EmptySpanTab message={t('No output for this span')} />;
   }
 
   return (
@@ -421,7 +533,7 @@ function OutputTab({
             key={`${node.id}:reasoning-text`}
             text={reasoningText}
             maxJsonDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
-            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+            autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
             clip={clipReasoning}
           />
         </Fragment>
@@ -435,7 +547,7 @@ function OutputTab({
             key={`${node.id}:response-text`}
             text={responseText}
             maxJsonDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
-            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+            autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
             clip={false}
           />
         </Fragment>
@@ -449,7 +561,7 @@ function OutputTab({
             key={`${node.id}:response-object`}
             text={responseObject}
             maxJsonDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
-            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+            autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
             clip={false}
           />
         </Fragment>
@@ -459,47 +571,21 @@ function OutputTab({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Tool Calls')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <TraceDrawerComponents.MultilineJSON
+          <SpanTabJson
             key={`${node.id}:tool-calls`}
             value={toolCalls}
             maxDefaultDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
-            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
           />
         </Fragment>
       ) : null}
-      {toolOutput ? (
-        <TraceDrawerComponents.MultilineJSON
+      {hasToolOutput ? (
+        <ToolOutput
           key={`${node.id}:tool-output`}
-          value={toolOutput}
-          maxDefaultDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
-          autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+          value={toolOutput.value}
+          meta={toolOutput.meta}
         />
       ) : null}
     </Fragment>
-  );
-}
-
-function InputMessageContent({
-  content,
-  clip = false,
-}: {
-  content: unknown;
-  clip?: boolean;
-}) {
-  return typeof content === 'string' ? (
-    <AIContentRenderer
-      text={content}
-      maxJsonDepth={AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH}
-      autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
-      clip={clip}
-    />
-  ) : (
-    <TraceDrawerComponents.MultilineJSON
-      value={content}
-      maxDefaultDepth={AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH}
-      autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
-      clip={clip}
-    />
   );
 }
 
@@ -518,7 +604,7 @@ function AttributesTab({
   const project = projectSlug ? projects.find(p => p.slug === projectSlug) : undefined;
 
   if (!isEAPSpanNode(node) || !attributes) {
-    return <EmptyTab message={t('No attributes for this span')} />;
+    return <EmptySpanTab message={t('No attributes for this span')} />;
   }
 
   return (
@@ -540,14 +626,6 @@ const StyledIssueList = styled(IssueList)`
   ${traceGridCssVariables}
   flex-shrink: 0;
 `;
-
-function EmptyTab({message}: {message: string}) {
-  return (
-    <Flex flex="1" background="secondary" radius="md" padding="xl">
-      <Text variant="muted">{message}</Text>
-    </Flex>
-  );
-}
 
 function SpanDetailSkeleton({embedded}: {embedded?: boolean}) {
   return (

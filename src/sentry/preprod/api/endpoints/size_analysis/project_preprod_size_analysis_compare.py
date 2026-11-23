@@ -12,6 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import StaffRequired
+from sentry.auth.principal import acting_user_id
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.files.file import File
@@ -107,7 +108,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             PreprodArtifactApiSizeAnalysisCompareGetEvent(
                 organization_id=project.organization_id,
                 project_id=project.id,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 head_artifact_id=str(head_artifact_id),
                 base_artifact_id=str(base_artifact_id),
             )
@@ -268,7 +269,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             PreprodArtifactApiSizeAnalysisComparePostEvent(
                 organization_id=project.organization_id,
                 project_id=project.id,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 head_artifact_id=str(head_artifact_id),
                 base_artifact_id=str(base_artifact_id),
             )
@@ -348,7 +349,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                             "base_artifact_id": base_artifact.id,
                             "comparisons_deleted": comparisons_deleted,
                             "files_deleted": files_deleted,
-                            "user_id": request.user.id,
+                            "user_id": acting_user_id(request.user),
                         },
                     )
                 elif request.user.is_staff:
@@ -371,7 +372,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                         "base_artifact_id": base_artifact.id,
                         "comparisons_deleted": comparisons_deleted,
                         "files_deleted": files_deleted,
-                        "user_id": request.user.id,
+                        "user_id": acting_user_id(request.user),
                     },
                 )
             else:

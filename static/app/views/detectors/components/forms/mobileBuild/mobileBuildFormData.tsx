@@ -12,7 +12,7 @@ import type {
 } from 'sentry/types/workflowEngine/detectors';
 import {bytesToMB, mbToBytes} from 'sentry/views/settings/project/preprod/types';
 
-interface PreprodDetectorFormData {
+export interface PreprodDetectorFormData {
   description: string | null;
   highThreshold: string;
   lowThreshold: string;
@@ -95,10 +95,7 @@ export function preprodFormDataToEndpointPayload(
     owner: data.owner || null,
     description: data.description || null,
     workflowIds: data.workflowIds || [],
-    conditionGroup: {
-      logicType: DataConditionGroupLogicType.ANY,
-      conditions,
-    },
+    conditionGroup: {logicType: DataConditionGroupLogicType.ANY, conditions},
     config: {
       measurement: data.measurement,
       thresholdType: data.thresholdType,

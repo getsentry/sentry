@@ -4,6 +4,7 @@ from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.http import url_has_allowed_host_and_scheme
 
+from sentry.auth.principal import set_request_principal
 from sentry.utils import auth
 from sentry.web.frontend.base import BaseView, control_silo_view
 
@@ -23,5 +24,5 @@ class AuthLogoutView(BaseView):
 
     def post(self, request: HttpRequest) -> HttpResponseBase:
         logout(request)
-        request.user = AnonymousUser()
+        set_request_principal(request, AnonymousUser(), request.auth)
         return self._redirect(request)

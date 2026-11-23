@@ -7,18 +7,14 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
 
 import {DocIntegrationDetails} from 'admin/views/docIntegrationDetails';
 import {DocIntegrations} from 'admin/views/docIntegrations';
 
 describe('Doc Integrations', () => {
   it('renders', async () => {
-    MockApiClient.addMockResponse({
-      url: '/doc-integrations/',
-      method: 'GET',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/doc-integrations/', method: 'GET', body: []});
 
     render(<DocIntegrations />);
 
@@ -46,9 +42,7 @@ describe('Doc Integration Details', () => {
 
     render(<DocIntegrationDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`,
-        },
+        location: {pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`},
         route: '/admin/doc-integrations/:docIntegrationSlug/',
       },
     });
@@ -67,23 +61,18 @@ describe('Doc Integration Details', () => {
   });
 
   it('can delete', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
       body: mockDocIntegration,
     });
 
-    const deleteMock = MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'DELETE',
-    });
+    const deleteMock = MockApiClient.addMockResponse({url: ENDPOINT, method: 'DELETE'});
 
     render(<DocIntegrationDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`,
-        },
+        location: {pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`},
         route: '/admin/doc-integrations/:docIntegrationSlug/',
       },
     });
@@ -106,20 +95,16 @@ describe('Doc Integration Details', () => {
     const inModal = within(modal);
 
     await userEvent.click(
-      inModal.getByRole('button', {
-        name: 'Delete Doc Integration 😨',
-      })
+      inModal.getByRole('button', {name: 'Delete Doc Integration 😨'})
     );
 
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
-      'Resource has been deleted.'
-    );
+    expect(toast.success).toHaveBeenCalledWith('Resource has been deleted.');
 
     expect(deleteMock).toHaveBeenCalledTimes(1);
   });
 
   it('handles API errors when deleting', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -130,17 +115,13 @@ describe('Doc Integration Details', () => {
     const failedMock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'DELETE',
-      body: {
-        detail: 'Test API error occurred.',
-      },
+      body: {detail: 'Test API error occurred.'},
       statusCode: 403,
     });
 
     render(<DocIntegrationDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`,
-        },
+        location: {pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`},
         route: '/admin/doc-integrations/:docIntegrationSlug/',
       },
     });
@@ -162,12 +143,10 @@ describe('Doc Integration Details', () => {
     const inModal = within(modal);
 
     await userEvent.click(
-      inModal.getByRole('button', {
-        name: 'Delete Doc Integration 😨',
-      })
+      inModal.getByRole('button', {name: 'Delete Doc Integration 😨'})
     );
 
-    expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+    expect(toast.error).toHaveBeenCalledWith(
       'There was an internal error with deleting the resource.'
     );
 
@@ -175,7 +154,7 @@ describe('Doc Integration Details', () => {
   });
 
   it('can unpublish', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
 
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -186,17 +165,12 @@ describe('Doc Integration Details', () => {
     const updateMock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
-      body: {
-        is_draft: true,
-        features: [],
-      },
+      body: {is_draft: true, features: []},
     });
 
     render(<DocIntegrationDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`,
-        },
+        location: {pathname: `/admin/doc-integrations/${mockDocIntegration.slug}/`},
         route: '/admin/doc-integrations/:docIntegrationSlug/',
       },
     });
@@ -213,7 +187,7 @@ describe('Doc Integration Details', () => {
 
     await userEvent.click(unpublishButton);
 
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
+    expect(toast.success).toHaveBeenCalledWith(
       'Resource has been updated with {"is_draft":true,"features":[]}.'
     );
 

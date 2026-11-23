@@ -7,7 +7,6 @@ import {FooterWrapper, Header} from 'sentry/views/dashboards/widgets/widget/widg
 // the aggregates/samples tables are on the bottom. This is so the footer
 // maintains its visual relationship with the graph and not the tables.
 export const WidgetWrapper = styled('div')<{hideFooterBorder?: boolean}>`
-  height: 100%;
   ${p =>
     p.hideFooterBorder &&
     css`

@@ -4,10 +4,11 @@ import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSe
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
 import {FormContext} from 'sentry/components/forms/formContext';
-import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
+
+import {useFormField} from './useFormField';
 
 export function EnvironmentSelector() {
   const value = useFormField<string | null>('environment');
@@ -75,7 +76,4 @@ export function EnvironmentSelector() {
 }
 
 const setToOptions = (set: Set<string>): Array<SelectOption<string>> =>
-  Array.from(set).map(item => ({
-    value: item,
-    label: item,
-  }));
+  Array.from(set).map(item => ({value: item, label: item}));

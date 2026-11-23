@@ -5,8 +5,9 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
-import {AttributesTreeValue} from 'sentry/views/explore/components/traceItemAttributes/attributesTreeValue';
+
+import type {AttributesTreeContent} from './attributesTree';
+import {AttributesTreeValue} from './attributesTreeValue';
 
 jest.mock('sentry/actionCreators/modal', () => ({
   openNavigateToExternalLinkModal: jest.fn(),
@@ -30,12 +31,7 @@ describe('AttributesTreeValue', () => {
 
   const defaultProps = {
     content: defaultContent,
-    rendererExtra: {
-      organization,
-      navigate: jest.fn(),
-      location,
-      theme,
-    },
+    rendererExtra: {organization, navigate: jest.fn(), location, theme},
     theme,
   };
 
@@ -47,11 +43,7 @@ describe('AttributesTreeValue', () => {
     const {container} = render(
       <AttributesTreeValue
         {...defaultProps}
-        content={{
-          subtree: new Map(),
-          value: 'test-value',
-          original: undefined,
-        }}
+        content={{subtree: new Map(), value: 'test-value', original: undefined}}
       />
     );
 
@@ -60,9 +52,7 @@ describe('AttributesTreeValue', () => {
 
   it('renders with custom renderer when available', () => {
     const customRenderer = () => <div>Custom Rendered Content</div>;
-    const renderers = {
-      'test.key': customRenderer,
-    };
+    const renderers = {'test.key': customRenderer};
 
     render(<AttributesTreeValue {...defaultProps} renderers={renderers} />);
 
@@ -71,10 +61,7 @@ describe('AttributesTreeValue', () => {
   });
 
   it('renders URL value as a link with correct destination', () => {
-    const urlContent = {
-      ...defaultProps.content,
-      value: 'https://example.com',
-    };
+    const urlContent = {...defaultProps.content, value: 'https://example.com'};
 
     render(<AttributesTreeValue {...defaultProps} content={urlContent} />);
 
@@ -85,10 +72,7 @@ describe('AttributesTreeValue', () => {
   });
 
   it('renders URL value as plain string when rich values are disabled', () => {
-    const urlContent = {
-      ...defaultProps.content,
-      value: 'https://example.com',
-    };
+    const urlContent = {...defaultProps.content, value: 'https://example.com'};
 
     render(
       <AttributesTreeValue
@@ -103,10 +87,7 @@ describe('AttributesTreeValue', () => {
   });
 
   it('calls openNavigateToExternalLinkModal when URL link is clicked', () => {
-    const urlContent = {
-      ...defaultProps.content,
-      value: 'https://example.com',
-    };
+    const urlContent = {...defaultProps.content, value: 'https://example.com'};
 
     render(<AttributesTreeValue {...defaultProps} content={urlContent} />);
 
@@ -125,10 +106,7 @@ describe('AttributesTreeValue', () => {
   });
 
   it('handles null values correctly', () => {
-    const nullContent = {
-      ...defaultProps.content,
-      value: null,
-    };
+    const nullContent = {...defaultProps.content, value: null};
 
     render(<AttributesTreeValue {...defaultProps} content={nullContent} />);
 
@@ -149,10 +127,7 @@ describe('AttributesTreeValue', () => {
   });
 
   it('renders JSON array values as structured data', () => {
-    const jsonContent = {
-      ...defaultProps.content,
-      value: '[1, 2, 3]',
-    };
+    const jsonContent = {...defaultProps.content, value: '[1, 2, 3]'};
 
     render(<AttributesTreeValue {...defaultProps} content={jsonContent} />);
 
@@ -162,10 +137,7 @@ describe('AttributesTreeValue', () => {
   });
 
   it('renders invalid JSON containing braces as plain text', () => {
-    const invalidJsonContent = {
-      ...defaultProps.content,
-      value: 'not {json',
-    };
+    const invalidJsonContent = {...defaultProps.content, value: 'not {json'};
 
     render(<AttributesTreeValue {...defaultProps} content={invalidJsonContent} />);
 
@@ -173,10 +145,7 @@ describe('AttributesTreeValue', () => {
   });
 
   it('renders plain strings without braces as plain text', () => {
-    const plainContent = {
-      ...defaultProps.content,
-      value: 'hello world',
-    };
+    const plainContent = {...defaultProps.content, value: 'hello world'};
 
     render(<AttributesTreeValue {...defaultProps} content={plainContent} />);
 
@@ -184,10 +153,7 @@ describe('AttributesTreeValue', () => {
   });
 
   it('does not render JSON as structured data when disableRichValue is true', () => {
-    const jsonContent = {
-      ...defaultProps.content,
-      value: '{"key": "value"}',
-    };
+    const jsonContent = {...defaultProps.content, value: '{"key": "value"}'};
 
     render(
       <AttributesTreeValue
@@ -202,10 +168,7 @@ describe('AttributesTreeValue', () => {
   });
 
   it('renders simple JSON with compact class', () => {
-    const jsonContent = {
-      ...defaultProps.content,
-      value: '{"boop": "bop"}',
-    };
+    const jsonContent = {...defaultProps.content, value: '{"boop": "bop"}'};
 
     render(<AttributesTreeValue {...defaultProps} content={jsonContent} />);
 
@@ -214,10 +177,7 @@ describe('AttributesTreeValue', () => {
   });
 
   it('renders short JSON with nested objects without compact class', () => {
-    const jsonContent = {
-      ...defaultProps.content,
-      value: '{"a":{"b":{"c":{"d":1}}}}',
-    };
+    const jsonContent = {...defaultProps.content, value: '{"a":{"b":{"c":{"d":1}}}}'};
 
     render(<AttributesTreeValue {...defaultProps} content={jsonContent} />);
 
@@ -240,10 +200,7 @@ describe('AttributesTreeValue', () => {
   });
 
   it('renders inline JSON highlighting for text containing a JSON object', () => {
-    const content = {
-      ...defaultProps.content,
-      value: 'msg: {"level": "info"}',
-    };
+    const content = {...defaultProps.content, value: 'msg: {"level": "info"}'};
 
     render(<AttributesTreeValue {...defaultProps} content={content} />);
 
@@ -252,10 +209,7 @@ describe('AttributesTreeValue', () => {
   });
 
   it('renders inline JSON highlighting for text containing a JSON array', () => {
-    const content = {
-      ...defaultProps.content,
-      value: 'tags: [1, 2, 3]',
-    };
+    const content = {...defaultProps.content, value: 'tags: [1, 2, 3]'};
 
     render(<AttributesTreeValue {...defaultProps} content={content} />);
 
@@ -276,10 +230,7 @@ describe('AttributesTreeValue', () => {
   });
 
   it('renders URL with braces as a link, not inline JSON', () => {
-    const content = {
-      ...defaultProps.content,
-      value: 'https://example.com/api/{id}',
-    };
+    const content = {...defaultProps.content, value: 'https://example.com/api/{id}'};
 
     render(<AttributesTreeValue {...defaultProps} content={content} />);
 

@@ -13,6 +13,7 @@ import {Pagination} from '@sentry/scraps/pagination';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
+import {isOverflown} from '@sentry/scraps/useHoverOverlay';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -37,15 +38,16 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {FieldKind} from 'sentry/utils/fields';
-import {isOverflown} from 'sentry/utils/useHoverOverlay';
+import {getPaginationProps} from 'sentry/utils/pagination';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getFieldDefinitionForDataset,
   getFilterToken,
 } from 'sentry/views/dashboards/globalFilter/utils';
 import {
+  DashboardFilterKeys,
   WidgetType,
   type DashboardFilters,
   type GlobalFilter,
@@ -166,12 +168,7 @@ export function TracesTable({
   const {cursor, setCursor} = useTableCursor();
 
   const tracesRequest = useQuery({
-    ...useTracesApiOptions({
-      query: combinedQuery,
-      sort: '-timestamp',
-      cursor,
-      limit,
-    }),
+    ...useTracesApiOptions({query: combinedQuery, sort: '-timestamp', cursor, limit}),
     select: selectJsonWithHeaders,
     placeholderData: keepPreviousData,
   });
@@ -303,7 +300,7 @@ export function TracesTable({
       <HeadCell align={rightAlignColumns.has(column.key) ? 'right' : 'left'}>
         {column.name}
         {column.key === 'age' && <IconArrow direction="down" size="xs" />}
-        {column.key === 'agents' && <CellExpander />}
+        {column.key === 'agents' && <Container width="100vw" />}
       </HeadCell>
     );
   }, []);
@@ -323,11 +320,7 @@ export function TracesTable({
   );
 
   const additionalGridProps = frameless
-    ? {
-        bodyStyle: FRAMELESS_STYLES,
-        resizable: true,
-        height: '100%' as const,
-      }
+    ? {bodyStyle: FRAMELESS_STYLES, resizable: true, height: '100%' as const}
     : {};
 
   const tableComponent = (
@@ -338,10 +331,7 @@ export function TracesTable({
       emptyMessage={<TableNoDataPanel />}
       stickyHeader
       columnOrder={columnOrder}
-      grid={{
-        renderBodyCell,
-        renderHeadCell,
-      }}
+      grid={{renderBodyCell, renderHeadCell}}
       {...additionalGridProps}
     />
   );
@@ -351,11 +341,11 @@ export function TracesTable({
   }
   return (
     <Container>
-      <GridEditableContainer>
+      <Container position="relative">
         {tableComponent}
         {tracesRequest.isPlaceholderData && <LoadingOverlay />}
-      </GridEditableContainer>
-      <StyledPagination pageLinks={pageLinks} onCursor={setCursor} />
+      </Container>
+      <StyledPagination {...getPaginationProps(pageLinks)} onCursor={setCursor} />
     </Container>
   );
 }
@@ -382,10 +372,7 @@ const BodyCell = memo(function BodyCellImpl({
         traceSlug: dataRow.traceId,
         dateSelection: normalizeDateTimeParams(selection.datetime),
         timestamp: dataRow.timestamp / 1000,
-        location: {
-          ...location,
-          query: {},
-        },
+        location: {...location, query: {}},
         source: TraceViewSources.AGENT_MONITORING,
         tab: TraceLayoutTabKeys.AI_SPANS,
       });
@@ -453,11 +440,11 @@ function AgentTags({
 }) {
   const [showAll, setShowAll] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
   const [{agent: urlAgents}, setPageFilterQueryStates] = useQueryStates(
     {
       [FilterUrlParams.AGENT]: parseAsArrayOf(parseAsString),
       [TableUrlParams.CURSOR]: parseAsString,
+      [DashboardFilterKeys.GLOBAL_FILTER]: parseAsStringArray,
     },
     {history: 'replace'}
   );
@@ -541,10 +528,7 @@ function AgentTags({
           filter.dataset === WidgetType.SPANS &&
           filter.tag.key === SpanFields.GEN_AI_AGENT_NAME
         ) {
-          return {
-            ...filter,
-            value: buildGlobalFilterValue(filter, newAgentFilterValues),
-          };
+          return {...filter, value: buildGlobalFilterValue(filter, newAgentFilterValues)};
         }
         return filter;
       });
@@ -564,14 +548,15 @@ function AgentTags({
       ];
     }
 
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        globalFilter: newFilters.map(filter => JSON.stringify(filter)),
+    setPageFilterQueryStates(
+      {
+        [DashboardFilterKeys.GLOBAL_FILTER]: newFilters.map(filter =>
+          JSON.stringify(filter)
+        ),
         [TableUrlParams.CURSOR]: null,
       },
-    });
+      {history: 'push'}
+    );
   };
 
   const handleShowAll = () => {
@@ -658,10 +643,6 @@ const FramelessContainer = styled('div')`
   }
 `;
 
-const GridEditableContainer = styled('div')`
-  position: relative;
-`;
-
 const LoadingOverlay = styled('div')`
   position: absolute;
   top: 0;
@@ -677,10 +658,6 @@ const LoadingOverlay = styled('div')`
  * Used to force the cell to expand take as much width as possible in the table layout
  * otherwise grid editable will let the last column grow
  */
-const CellExpander = styled('div')`
-  width: 100vw;
-`;
-
 const HeadCell = styled('div')<{align: 'left' | 'right'}>`
   display: flex;
   flex: 1;

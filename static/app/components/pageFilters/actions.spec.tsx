@@ -7,19 +7,21 @@ import {UserFixture} from 'sentry-fixture/user';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
+
 import {
+  exceedsDatetimeLimits,
   initializeUrlState,
   updateDateTime,
   updateEnvironments,
   updatePersistence,
   updateProjects,
-} from 'sentry/components/pageFilters/actions';
-import {PageFilterAdjustmentReason} from 'sentry/components/pageFilters/adjustments';
-import * as PageFilterPersistence from 'sentry/components/pageFilters/persistence';
-import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {ConfigStore} from 'sentry/stores/configStore';
-import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {localStorageWrapper} from 'sentry/utils/localStorage';
+} from './actions';
+import {PageFilterAdjustmentReason} from './adjustments';
+import * as PageFilterPersistence from './persistence';
+import {PageFiltersStore} from './store';
 
 jest.mock('sentry/utils/localStorage');
 
@@ -47,13 +49,7 @@ describe('PageFilters ActionCreators', () => {
     beforeEach(() => {
       router = RouterFixture();
       navigate = jest.fn();
-      localStorageWrapper.setItem(
-        key,
-        JSON.stringify({
-          environments: [],
-          projects: [1],
-        })
-      );
+      localStorageWrapper.setItem(key, JSON.stringify({environments: [], projects: [1]}));
     });
 
     it('loads from local storage when no query params and filters are pinned', () => {
@@ -77,20 +73,12 @@ describe('PageFilters ActionCreators', () => {
         `global-selection:${organization.slug}`
       );
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
-        expect.objectContaining({
-          environments: [],
-          projects: [1],
-        }),
+        expect.objectContaining({environments: [], projects: [1]}),
         true,
         {}
       );
       expect(navigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: {
-            environment: [],
-            project: ['1'],
-          },
-        }),
+        expect.objectContaining({query: {environment: [], project: ['1']}}),
         {replace: true}
       );
     });
@@ -111,13 +99,11 @@ describe('PageFilters ActionCreators', () => {
 
     it('does not update local storage (persist) when `shouldPersist` is false', async () => {
       jest.clearAllMocks();
-      jest.spyOn(localStorageWrapper, 'getItem').mockReturnValueOnce(
-        JSON.stringify({
-          environments: [],
-          projects: [],
-          pinnedFilters: ['projects'],
-        })
-      );
+      jest
+        .spyOn(localStorageWrapper, 'getItem')
+        .mockReturnValueOnce(
+          JSON.stringify({environments: [], projects: [], pinnedFilters: ['projects']})
+        );
 
       initializeUrlState({
         organization,
@@ -129,10 +115,7 @@ describe('PageFilters ActionCreators', () => {
       });
 
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
-        expect.objectContaining({
-          environments: [],
-          projects: [],
-        }),
+        expect.objectContaining({environments: [], projects: []}),
         false,
         {}
       );
@@ -164,12 +147,7 @@ describe('PageFilters ActionCreators', () => {
       });
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({
-          datetime: {
-            start: null,
-            end: null,
-            period: '14d',
-            utc: null,
-          },
+          datetime: {start: null, end: null, period: '14d', utc: null},
         }),
         true,
         {}
@@ -182,24 +160,12 @@ describe('PageFilters ActionCreators', () => {
         location: LocationFixture({...router.location, query: {project: '1'}}),
         memberProjects: projects,
         nonMemberProjects: [],
-        defaultSelection: {
-          datetime: {
-            period: '3h',
-            utc: null,
-            start: null,
-            end: null,
-          },
-        },
+        defaultSelection: {datetime: {period: '3h', utc: null, start: null, end: null}},
         navigate,
       });
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({
-          datetime: {
-            start: null,
-            end: null,
-            period: '3h',
-            utc: null,
-          },
+          datetime: {start: null, end: null, period: '3h', utc: null},
         }),
         true,
         {}
@@ -215,14 +181,7 @@ describe('PageFilters ActionCreators', () => {
         }),
         memberProjects: projects,
         nonMemberProjects: [],
-        defaultSelection: {
-          datetime: {
-            period: '24h',
-            utc: null,
-            start: null,
-            end: null,
-          },
-        },
+        defaultSelection: {datetime: {period: '24h', utc: null, start: null, end: null}},
         navigate,
       });
       // Navigate is not called because URL already has the correct query params
@@ -245,14 +204,7 @@ describe('PageFilters ActionCreators', () => {
         }),
         memberProjects: projects,
         nonMemberProjects: [],
-        defaultSelection: {
-          datetime: {
-            period: '24h',
-            utc: null,
-            start: null,
-            end: null,
-          },
-        },
+        defaultSelection: {datetime: {period: '24h', utc: null, start: null, end: null}},
         navigate,
       });
       // Navigate is not called because URL already has the correct query params
@@ -280,12 +232,7 @@ describe('PageFilters ActionCreators', () => {
 
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         {
-          datetime: {
-            start: null,
-            end: null,
-            period: '14d',
-            utc: null,
-          },
+          datetime: {start: null, end: null, period: '14d', utc: null},
           projects: [1],
           environments: [],
         },
@@ -304,12 +251,7 @@ describe('PageFilters ActionCreators', () => {
       });
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         {
-          datetime: {
-            start: null,
-            end: null,
-            period: '14d',
-            utc: null,
-          },
+          datetime: {start: null, end: null, period: '14d', utc: null},
           projects: [-1],
           environments: [],
         },
@@ -360,9 +302,7 @@ describe('PageFilters ActionCreators', () => {
       });
 
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
-        expect.objectContaining({
-          projects: [parseInt(nonMemberProject.id, 10)],
-        }),
+        expect.objectContaining({projects: [parseInt(nonMemberProject.id, 10)]}),
         true,
         {
           projects: {
@@ -385,9 +325,7 @@ describe('PageFilters ActionCreators', () => {
       });
 
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
-        expect.objectContaining({
-          projects: [-1],
-        }),
+        expect.objectContaining({projects: [-1]}),
         true,
         {projects: {reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS}}
       );
@@ -409,9 +347,7 @@ describe('PageFilters ActionCreators', () => {
       });
 
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
-        expect.objectContaining({
-          projects: [parseInt(nonMemberProject.id, 10)],
-        }),
+        expect.objectContaining({projects: [parseInt(nonMemberProject.id, 10)]}),
         true,
         {
           projects: {
@@ -433,9 +369,7 @@ describe('PageFilters ActionCreators', () => {
       });
 
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
-        expect.objectContaining({
-          projects: [42],
-        }),
+        expect.objectContaining({projects: [42]}),
         true,
         {
           projects: {
@@ -521,9 +455,7 @@ describe('PageFilters ActionCreators', () => {
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({environments: ['prod']}),
         true,
-        {
-          environments: {reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS},
-        }
+        {environments: {reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS}}
       );
     });
 
@@ -560,13 +492,9 @@ describe('PageFilters ActionCreators', () => {
       });
 
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
-        expect.objectContaining({
-          datetime: expect.objectContaining({period: '30d'}),
-        }),
+        expect.objectContaining({datetime: expect.objectContaining({period: '30d'})}),
         true,
-        {
-          datetime: {reason: PageFilterAdjustmentReason.MAX_PICKABLE_DAYS, days: 30},
-        }
+        {datetime: {reason: PageFilterAdjustmentReason.MAX_PICKABLE_DAYS, days: 30}}
       );
     });
 
@@ -582,13 +510,9 @@ describe('PageFilters ActionCreators', () => {
       });
 
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
-        expect.objectContaining({
-          datetime: expect.objectContaining({period: '7d'}),
-        }),
+        expect.objectContaining({datetime: expect.objectContaining({period: '7d'})}),
         true,
-        {
-          datetime: {reason: PageFilterAdjustmentReason.MAX_DATE_RANGE, days: 7},
-        }
+        {datetime: {reason: PageFilterAdjustmentReason.MAX_DATE_RANGE, days: 7}}
       );
     });
 
@@ -602,9 +526,7 @@ describe('PageFilters ActionCreators', () => {
       });
 
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
-        expect.objectContaining({
-          projects: [],
-        }),
+        expect.objectContaining({projects: []}),
         true,
         {}
       );
@@ -638,11 +560,7 @@ describe('PageFilters ActionCreators', () => {
       // Confirm that only environment is restored from local storage
       expect(navigate).toHaveBeenCalledWith(
         expect.objectContaining({
-          query: {
-            environment: ['prod'],
-            project: ['1'],
-            statsPeriod: '7d',
-          },
+          query: {environment: ['prod'], project: ['1'], statsPeriod: '7d'},
         }),
         {replace: true}
       );
@@ -683,23 +601,14 @@ describe('PageFilters ActionCreators', () => {
         expect.objectContaining({
           environments: [],
           projects: [1],
-          datetime: {
-            period: '30d',
-            start: null,
-            end: null,
-            utc: null,
-          },
+          datetime: {period: '30d', start: null, end: null, utc: null},
         }),
         true,
         {}
       );
       expect(navigate).toHaveBeenCalledWith(
         expect.objectContaining({
-          query: {
-            environment: [],
-            project: ['1'],
-            statsPeriod: '30d',
-          },
+          query: {environment: [], project: ['1'], statsPeriod: '30d'},
         }),
         {replace: true}
       );
@@ -750,23 +659,14 @@ describe('PageFilters ActionCreators', () => {
         expect.objectContaining({
           environments: [],
           projects: [],
-          datetime: {
-            period: '30d',
-            start: null,
-            end: null,
-            utc: null,
-          },
+          datetime: {period: '30d', start: null, end: null, utc: null},
         }),
         true,
         {}
       );
       expect(navigate).toHaveBeenCalledWith(
         expect.objectContaining({
-          query: {
-            environment: [],
-            project: [],
-            statsPeriod: '30d',
-          },
+          query: {environment: [], project: [], statsPeriod: '30d'},
         }),
         {replace: true}
       );
@@ -794,20 +694,12 @@ describe('PageFilters ActionCreators', () => {
 
       expect(localStorageWrapper.getItem).toHaveBeenCalledWith(insightsKey);
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
-        expect.objectContaining({
-          environments: [],
-          projects: [1],
-        }),
+        expect.objectContaining({environments: [], projects: [1]}),
         true,
         {}
       );
       expect(navigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: {
-            environment: [],
-            project: ['1'],
-          },
-        }),
+        expect.objectContaining({query: {environment: [], project: ['1']}}),
         {replace: true}
       );
     });
@@ -1004,6 +896,44 @@ describe('PageFilters ActionCreators', () => {
           query: {start: '2020-03-22T00:53:38', end: '2020-04-21T00:53:38'},
         },
         {replace: undefined}
+      );
+    });
+  });
+
+  describe('exceedsDatetimeLimits()', () => {
+    const now = new Date('2026-10-19T12:00:00Z').getTime();
+
+    function datetime(start: string, end = '2026-10-10T00:00:00Z') {
+      return {period: null, utc: null, start, end};
+    }
+
+    it('returns false when a period equals maxPickableDays', () => {
+      expect(
+        exceedsDatetimeLimits({period: '30d', utc: null, start: null, end: null}, 30)
+      ).toBe(false);
+    });
+
+    it('returns true when a period exceeds maxPickableDays', () => {
+      expect(
+        exceedsDatetimeLimits({period: '31d', utc: null, start: null, end: null}, 30)
+      ).toBe(true);
+    });
+
+    it('returns false when a range starts less than a day before the window', () => {
+      expect(
+        exceedsDatetimeLimits(datetime('2026-09-18T12:00:00Z'), 30, undefined, now)
+      ).toBe(false);
+    });
+
+    it('returns true when a range starts more than a day before the window', () => {
+      expect(
+        exceedsDatetimeLimits(datetime('2026-09-18T11:59:00Z'), 30, undefined, now)
+      ).toBe(true);
+    });
+
+    it('returns true when a range is longer than maxDateRange', () => {
+      expect(exceedsDatetimeLimits(datetime('2026-10-01T00:00:00Z'), 30, 7, now)).toBe(
+        true
       );
     });
   });

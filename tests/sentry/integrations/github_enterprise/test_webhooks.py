@@ -436,8 +436,12 @@ class PushEventWebhookTest(APITestCase):
     @patch("sentry.integrations.github.webhook.PushEventWebhook.__call__")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_webhook_error_metric(
-        self, mock_record, mock_event, mock_get_installation_metadata, mock_get_jwt
-    ):
+        self,
+        mock_record: MagicMock,
+        mock_event: MagicMock,
+        mock_get_installation_metadata: MagicMock,
+        mock_get_jwt: MagicMock,
+    ) -> None:
         responses.add(
             responses.POST,
             "https://35.232.149.196/extensions/github-enterprise/webhook/",
@@ -806,10 +810,9 @@ class PullRequestEventWebhook(APITestCase):
         merged["pull_request"]["body"] = fixes_body
         merged["pull_request"]["merged_by"] = {"id": 999999, "login": "dependabot[bot]"}
 
-        with self.feature("organizations:pr-lifecycle-activity"):
-            self._post_pull_request_event(orjson.dumps(opened))
-            with capture_action_log() as log:
-                self._post_pull_request_event(orjson.dumps(merged))
+        self._post_pull_request_event(orjson.dumps(opened))
+        with capture_action_log() as log:
+            self._post_pull_request_event(orjson.dumps(merged))
 
         log.assert_logged(
             PullRequestMergedAction,

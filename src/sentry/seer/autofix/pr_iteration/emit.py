@@ -45,6 +45,7 @@ from sentry.seer.autofix.pr_iteration.iterations import (
 )
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.pause import PauseReason
+from sentry.seer.autofix.pr_iteration.run_markers import get_seer_run
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.models.run import SeerRun, SeerRunPrIteration
 
@@ -80,6 +81,11 @@ class PrIterationOutcome(StrEnum):
     PR_CLOSED = "pr_closed"
     PR_CREATION_ERRORED = "pr_creation_errored"
     PUSH_FAILED = "push_failed"
+    NOT_PUSHED = "not_pushed"
+    # Seer ran out of credits mid-step. Matches Seer's failure_reason.
+    SEER_OUT_OF_CREDITS = "out_of_credits"
+    # Sentry's credit check refused a step.
+    SENTRY_OUT_OF_CREDITS = "sentry_out_of_credits"
     TIMEOUT = "timeout"
     STALLED = "stalled"
     ERRORED = "errored"
@@ -140,10 +146,6 @@ def outcome_for_failed_run(run_state: SeerRunState) -> str:
     return run_state.failure_reason or PrIterationOutcome.ERRORED.value
 
 
-def _seer_run(*, run_id: int, organization_id: int) -> SeerRun | None:
-    return SeerRun.objects.filter(seer_run_state_id=run_id, organization_id=organization_id).first()
-
-
 def _claim_untriggered(seer_run: SeerRun) -> SeerRunPrIteration | None:
     """The run's waiting iteration, claimed. None when another caller won it.
 
@@ -171,7 +173,7 @@ def bootstrap_iteration(
     Raises rather than logging a failure: the identity to log under is what this
     returns, so anything that goes wrong goes to Sentry instead.
     """
-    seer_run = _seer_run(run_id=run_state.run_id, organization_id=organization_id)
+    seer_run = get_seer_run(run_id=run_state.run_id, organization_id=organization_id)
     if seer_run is None:
         raise ValueError(f"No SeerRun for run {run_state.run_id} in organization {organization_id}")
 
@@ -179,7 +181,7 @@ def bootstrap_iteration(
         project_id = (
             Group.objects.filter(id=group_id, project__organization_id=organization_id)
             .values_list("project_id", flat=True)
-            .first()
+            .get_or_none()
         )
         if project_id is None:
             raise ValueError(f"No group {group_id} in organization {organization_id}")
@@ -229,7 +231,7 @@ def trigger_pr_iteration_details(
     id travels with the agent request, so the completion hook finds this row.
     """
     try:
-        seer_run = _seer_run(run_id=run_id, organization_id=organization_id)
+        seer_run = get_seer_run(run_id=run_id, organization_id=organization_id)
         if seer_run is None:
             return None
 
@@ -263,7 +265,7 @@ def record_pr_iteration_counts(
 ) -> None:
     """Write what the drain saw onto the row it claimed."""
     try:
-        seer_run = _seer_run(run_id=run_id, organization_id=organization_id)
+        seer_run = get_seer_run(run_id=run_id, organization_id=organization_id)
         if seer_run is None:
             return
 
@@ -290,7 +292,7 @@ def discard_pr_iteration_details(
 ) -> None:
     """Drop the row of an iteration that will never reach the agent."""
     try:
-        seer_run = _seer_run(run_id=run_id, organization_id=organization_id)
+        seer_run = get_seer_run(run_id=run_id, organization_id=organization_id)
         if seer_run is None:
             return
 
@@ -389,7 +391,7 @@ def record_pr_iteration_blocked(
     re-checks on every failing check suite still says each one once.
     """
     try:
-        seer_run = _seer_run(run_id=run_id, organization_id=organization_id)
+        seer_run = get_seer_run(run_id=run_id, organization_id=organization_id)
         if seer_run is None:
             return
 
@@ -414,6 +416,12 @@ def record_pr_iteration_blocked(
         # than repeating on every later check of the same outcome.
         update_iteration(iteration, **{BLOCKED_OUTCOMES_DATA_KEY: [*recorded, outcome]})
         analytics.record(event)
+        log_ctx.info(
+            "autofix.pr_iteration.details.emitted",
+            event_type="blocked",
+            outcome=outcome,
+            iteration_id=iteration.id,
+        )
     except Exception:
         log_ctx.error("autofix.pr_iteration.details.blocked_failed")
 
@@ -432,7 +440,7 @@ def record_pr_iteration_failure_reason(
     since a later trigger can still run the batch.
     """
     try:
-        seer_run = _seer_run(run_id=run_id, organization_id=organization_id)
+        seer_run = get_seer_run(run_id=run_id, organization_id=organization_id)
         if seer_run is None:
             return
 
@@ -510,7 +518,7 @@ def _complete_iteration(
     outcome: str,
 ) -> None:
     try:
-        seer_run = _seer_run(run_id=run_state.run_id, organization_id=organization_id)
+        seer_run = get_seer_run(run_id=run_state.run_id, organization_id=organization_id)
         if seer_run is None:
             log_ctx.error(
                 "autofix.pr_iteration.details.unresolved", exc_info=False, reason="no_seer_run"
@@ -534,9 +542,18 @@ def _complete_iteration(
             outcome=outcome,
             head_shas=head_shas,
         )
-        if event is None or not remove_iteration(iteration):
+        if event is None:
+            return
+        if not remove_iteration(iteration):
+            log_ctx.info("autofix.pr_iteration.details.skipped", reason="claimed_elsewhere")
             return
 
         analytics.record(event)
+        log_ctx.info(
+            "autofix.pr_iteration.details.emitted",
+            event_type="completed",
+            outcome=outcome,
+            iteration_id=iteration.id,
+        )
     except Exception:
         log_ctx.error("autofix.pr_iteration.details.complete_failed")

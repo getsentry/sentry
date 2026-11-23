@@ -7,7 +7,6 @@ from dataclasses import asdict
 from typing import Any, cast
 
 import sentry_sdk
-from django.contrib.auth.models import AnonymousUser
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -17,7 +16,7 @@ from snuba_sdk.legacy import is_condition, parse_condition
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.event_search import (
     ParenExpression,
     SearchBoolean,
@@ -45,10 +44,16 @@ from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import EventParams, GlobalParams, IssueParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import RequestPrincipal
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.endpoints.bases.group import GroupEndpoint
-from sentry.issues.endpoints.project_event_details import wrap_event_response
+from sentry.issues.endpoints.project_event_details import (
+    COLLAPSE_ADJACENT_EVENTS,
+    COLLAPSE_FULL_RELEASE,
+    COLLAPSE_STACKTRACE_ONLY,
+    wrap_event_response,
+)
 from sentry.issues.formatting.formatter import FormattedResponse
 from sentry.issues.formatting.mixin import (
     VALID_FORMATS,
@@ -71,7 +76,6 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.snuba import get_snuba_column_name
 
@@ -87,7 +91,7 @@ class IssueEventQueryBuilder(DiscoverQueryBuilder):
 
 
 def issue_search_query_to_conditions(
-    query: str, group: Group, user: User | AnonymousUser, environments: Sequence[Environment]
+    query: str, group: Group, user: RequestPrincipal, environments: Sequence[Environment]
 ) -> tuple[list[Condition], list[Any]]:
     from sentry.utils.snuba import resolve_conditions
 
@@ -163,6 +167,8 @@ class GroupEventDetailsFormattedResponse(GroupEventDetailsResponse, total=False)
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
+
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
@@ -186,7 +192,13 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
             IssueParams.ISSUES_OR_GROUPS,
             IssueParams.ISSUE_ID,
             GlobalParams.ENVIRONMENT,
+            GlobalParams.START,
+            GlobalParams.END,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
             EventParams.EVENT_ID_EXTENDED,
+            EventParams.EVENT_DETAILS_COLLAPSE,
             OpenApiParameter(
                 name="llmFormat",
                 location=OpenApiParameter.QUERY,
@@ -356,7 +368,7 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
         sentry_sdk.set_attribute("event.type", event.get_event_type())
 
         collapse = request.GET.getlist("collapse", [])
-        if "stacktraceOnly" in collapse:
+        if COLLAPSE_STACKTRACE_ONLY in collapse:
             stacktrace_body: EventSerializerResponse = serialize(
                 event, request.user, EventSerializer()
             )
@@ -366,12 +378,13 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
             request_user=request.user,
             event=event,
             environments=environment_names,
-            include_full_release_data="fullRelease" not in collapse,
+            include_full_release_data=COLLAPSE_FULL_RELEASE not in collapse,
             conditions=conditions,
             legacy_conditions=legacy_conditions,
             use_snql=boolean_search,
             start=start,
             end=end,
+            include_adjacent_events=COLLAPSE_ADJACENT_EVENTS not in collapse,
         )
         if data is None:
             return Response({"detail": "Failed to load event"}, status=500)

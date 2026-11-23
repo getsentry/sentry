@@ -30,7 +30,9 @@ class Dataset(Enum):
 
     PerformanceMetrics = "generic_metrics"
     """
-    PerformanceMetrics contains all generic metrics platform metrics.
+    Deprecated. Snuba no longer has this dataset, so nothing can be queried, subscribed to,
+    or deleted through it. It remains only so stored rows that reference it, such as
+    `SnubaQuery.dataset`, still deserialize. Do not add new uses.
     """
 
     Replays = "replays"

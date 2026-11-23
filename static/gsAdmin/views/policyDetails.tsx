@@ -1,17 +1,17 @@
-import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
 
 import {DetailLabel} from 'admin/components/detailLabel';
@@ -24,23 +24,41 @@ import type {Policy, PolicyRevision} from 'getsentry/types';
 export function PolicyDetails() {
   const {openModal} = useModal();
 
-  const api = useApi();
   const queryClient = useQueryClient();
   const {policySlug} = useParams<{policySlug: string}>();
   const policyQueryOptions = apiOptions.as<Policy>()('/policies/$policySlug/', {
     path: {policySlug},
     staleTime: 0,
   });
-  const revisionsUrl = getApiUrl('/policies/$policySlug/revisions/', {
+  const revisionsFilter = apiOptions.queryFilter('/policies/$policySlug/revisions/', {
     path: {policySlug},
   });
   const invalidatePolicyQueries = () =>
     Promise.all([
       queryClient.invalidateQueries({queryKey: policyQueryOptions.queryKey}),
-      queryClient.invalidateQueries({queryKey: [revisionsUrl]}),
+      queryClient.invalidateQueries(revisionsFilter),
     ]);
 
   const {data: policy, isPending, isError, refetch} = useQuery(policyQueryOptions);
+
+  const {mutateAsync: updatePolicyRevision} = useMutation({
+    mutationFn: ({
+      slug,
+      version,
+      data,
+    }: {
+      data: Record<string, unknown>;
+      slug: string;
+      version: PolicyRevision['version'];
+    }) =>
+      fetchMutation({
+        url: getApiUrl('/policies/$policySlug/revisions/$version/', {
+          path: {policySlug: slug, version},
+        }),
+        method: 'PUT',
+        data,
+      }),
+  });
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -55,13 +73,10 @@ export function PolicyDetails() {
     version: PolicyRevision['version']
   ) => {
     try {
-      await api.requestPromise(`/policies/${policy.slug}/revisions/${version}/`, {
-        method: 'PUT',
-        data,
-      });
+      await updatePolicyRevision({slug: policy.slug, version, data});
       await invalidatePolicyQueries();
     } catch {
-      addErrorMessage('There was an error when updating the current policy version.');
+      toast.error('There was an error when updating the current policy version.');
     }
   };
 
@@ -113,10 +128,7 @@ export function PolicyDetails() {
       ]}
       sections={[
         {content: overviewPanel},
-        {
-          content: <PolicyRevisions policy={policy} onUpdate={onUpdate} />,
-          noPanel: true,
-        },
+        {content: <PolicyRevisions policy={policy} onUpdate={onUpdate} />, noPanel: true},
       ]}
     />
   );

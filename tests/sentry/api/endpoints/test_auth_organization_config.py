@@ -1,11 +1,15 @@
 from unittest import mock
 
+from django.test import override_settings
+from django.urls import reverse
+
 from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 @control_silo_test
@@ -138,6 +142,30 @@ class AuthOrganizationConfigEndpointTest(APITestCase):
             "Ask an organization admin to invite you, or sign in with a different account."
         ]
 
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_has_no_member_warning(self) -> None:
+        organization = self.create_organization(name="Acme", slug="acme")
+        service_account = self.create_service_account(
+            organization=organization, scope_list=["org:read"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.get(
+            reverse(self.endpoint, args=[organization.slug]),
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["authenticated"] is True
+        assert response.data["warnings"] == []
+
     def test_authenticated_member_can_access_password_organization(self) -> None:
         user = self.create_user(email="user@example.com")
         organization = self.create_organization(owner=user, name="Acme", slug="acme")
@@ -152,7 +180,12 @@ class AuthOrganizationConfigEndpointTest(APITestCase):
         superuser = self.create_user(email="superuser@example.com", is_superuser=True)
         self.login_as(superuser, superuser=True)
 
-        response = self.get_success_response(organization.slug)
+        with mock.patch(
+            "sentry.organizations.services.organization.impl.get_active_resource_ids",
+            side_effect=AssertionError("Login configuration does not need resource IDs"),
+        ) as resources:
+            response = self.get_success_response(organization.slug)
+        resources.assert_not_called()
 
         assert response.data["memberAuthenticated"] is True
         assert response.data["warnings"] == []

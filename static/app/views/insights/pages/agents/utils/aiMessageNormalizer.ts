@@ -1,3 +1,6 @@
+import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
+
+import {isRecord} from 'sentry/utils/object/isRecord';
 import {tryParsePythonDict} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
 import {
   parseJsonWithFix,
@@ -75,10 +78,7 @@ export function normalizeToMessages(
   );
   const messages = normalizeRawMessages(rawMessages, defaultRole);
 
-  return {
-    fixedInvalidJson,
-    messages: messages.length > 0 ? messages : null,
-  };
+  return {fixedInvalidJson, messages: messages.length > 0 ? messages : null};
 }
 
 /**
@@ -165,10 +165,7 @@ function rawMessagesFromAttribute(
     return {fixedInvalidJson, messages: []};
   }
 
-  return {
-    fixedInvalidJson,
-    messages: rawMessagesFromValue(parsed, defaultRole),
-  };
+  return {fixedInvalidJson, messages: rawMessagesFromValue(parsed, defaultRole)};
 }
 
 function parseAttribute(raw: string): {fixedInvalidJson: boolean; parsed: unknown} {
@@ -339,10 +336,15 @@ function collapseParts(parts: unknown[]): unknown {
     return buckets.toolCalls;
   }
   if (buckets.toolResponses.length > 0) {
-    return buckets.toolResponses.map(response => response.result).join('\n');
+    return buckets.toolResponses.map(getToolResponseValue).join('\n');
   }
 
   return undefined;
+}
+
+function getToolResponseValue(part: UnknownRecord): unknown {
+  // OTel names this field `response`; older Sentry SDKs send `result`.
+  return 'response' in part ? part.response : part.result;
 }
 
 function bucketParts(parts: unknown[]): PartBuckets {
@@ -515,7 +517,8 @@ function parseJsonString(value: string): unknown {
 }
 
 function looksLikeJson(raw: string): boolean {
-  const trimmed = raw.trim();
+  // Marks on a scrubbed value, see `markScrubbedValue`, don't change what it is.
+  const trimmed = stripAnnotations(raw).trim();
   if (!trimmed) {
     return false;
   }
@@ -529,10 +532,6 @@ function extractTextFromContentParts(parts: unknown[]): string {
     return buckets.textParts.join('\n');
   }
   return buckets.hasRenderableTextPart ? EMPTY_TEXT_CONTENT : '';
-}
-
-function isRecord(value: unknown): value is UnknownRecord {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function getStringField(record: UnknownRecord, key: string): string | undefined {

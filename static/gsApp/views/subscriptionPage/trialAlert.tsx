@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -14,10 +15,7 @@ import {getTrialDaysLeft, isTrial} from 'getsentry/utils/billing';
 import {TrialBadge} from './trial/badge';
 import {ButtonWrapper, SubscriptionBody} from './styles';
 
-type Props = {
-  organization: Organization;
-  subscription: Subscription;
-};
+type Props = {organization: Organization; subscription: Subscription};
 
 export function TrialAlert({organization, subscription}: Props) {
   if (!isTrial(subscription)) {
@@ -34,7 +32,8 @@ export function TrialAlert({organization, subscription}: Props) {
     ? t('Enterprise Trial')
     : t('Business Plan Trial');
 
-  const featuresName = 'business plan';
+  const trialType = subscription.isEnterpriseTrial ? t('Enterprise') : t('Business');
+  const trialEndDate = moment(subscription.trialEnd).utc().format('MMM D, YYYY');
 
   return (
     <Container
@@ -43,18 +42,19 @@ export function TrialAlert({organization, subscription}: Props) {
       border="primary"
       radius="md"
     >
-      <SubscriptionBody withPadding>
-        <TrialInfo>
+      <SubscriptionBody>
+        <Grid gap="md" autoRows="auto">
           <Flex align="center" gap="md">
             <StyledHeading>{trialName}</StyledHeading>
             <TrialBadge subscription={subscription} organization={organization} />
           </Flex>
           <StyledSubText>
-            {tct("With your trial you have access to Sentry's [featuresName] features.", {
-              featuresName,
-            })}
+            {tct(
+              'Your [trialType] trial is separate from your plan and stays active until [trialEndDate].',
+              {trialType, trialEndDate}
+            )}
           </StyledSubText>
-        </TrialInfo>
+        </Grid>
 
         {subscription.canSelfServe && (
           <ButtonWrapper gap="0">
@@ -71,12 +71,6 @@ export function TrialAlert({organization, subscription}: Props) {
     </Container>
   );
 }
-
-const TrialInfo = styled('div')`
-  display: grid;
-  grid-auto-rows: auto;
-  gap: ${p => p.theme.space.md};
-`;
 
 const StyledHeading = styled('span')`
   font-weight: 400;

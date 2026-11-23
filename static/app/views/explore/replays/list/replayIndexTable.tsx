@@ -11,20 +11,22 @@ import {ReplayTable} from 'sentry/components/replays/table/replayTable';
 import {useReplayTableSort} from 'sentry/components/replays/table/useReplayTableSort';
 import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import {t, tct} from 'sentry/locale';
-import {type ApiQueryKey, safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {MIN_REPLAY_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
-import {BulkDeleteAlert} from 'sentry/views/explore/replays/list/bulkDeleteAlert';
-import {useReplayIndexTableColumns} from 'sentry/views/explore/replays/list/useReplayIndexTableColumns';
 import {
   DeadRageSelectorCards,
   DeadRageSelectorCardsPlaceholder,
 } from 'sentry/views/explore/replays/selectors/deadRageSelectorCards';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
+
+import {BulkDeleteAlert} from './bulkDeleteAlert';
+import {useReplayIndexTableColumns} from './useReplayIndexTableColumns';
 
 interface Props {
   error: Error | null | undefined;
@@ -61,7 +63,7 @@ export function ReplayIndexTable({
   const {allMobileProj} = useAllMobileProj();
   const columns = useReplayIndexTableColumns({allMobileProj, tableDimensions});
 
-  const endpointOptions = safeParseQueryKey(queryKey)?.options;
+  const endpointOptions = parseQueryKey(queryKey).options;
   const needsSDKUpdateForClickSearch = useNeedsSDKUpdateForClickSearch({
     search:
       typeof endpointOptions?.query?.query === 'string'
@@ -69,9 +71,7 @@ export function ReplayIndexTable({
         : undefined,
   });
 
-  const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
-    replays,
-  });
+  const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({replays});
 
   const playlistQuery = usePlaylistQuery('replayList');
 

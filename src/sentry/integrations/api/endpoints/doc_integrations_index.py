@@ -27,7 +27,7 @@ class DocIntegrationsEndpoint(DocIntegrationsBaseEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request):
+    def get(self, request: Request) -> Response:
         # TODO(schew2381): Change to is_active_staff once the feature flag is rolled out.
         if has_elevated_mode(request):
             queryset = DocIntegration.objects.all()
@@ -40,7 +40,7 @@ class DocIntegrationsEndpoint(DocIntegrationsBaseEndpoint):
             on_results=lambda x: serialize(x, request.user, access=request.access),
         )
 
-    def post(self, request: Request):
+    def post(self, request: Request) -> Response:
         # Override any incoming JSON for these fields
         data = request.data
         data["is_draft"] = True

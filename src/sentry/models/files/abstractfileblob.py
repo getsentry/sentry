@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 from abc import abstractmethod
+from collections.abc import Iterable
 from threading import Semaphore
-from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar
+from typing import IO, TYPE_CHECKING, Any, Generic, Self, TypeVar, cast
 from uuid import uuid4
 
+from django.core.files.base import File as FileObj
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 from sentry_sdk import traces
@@ -23,7 +26,12 @@ from sentry.utils import metrics
 
 MULTI_BLOB_UPLOAD_CONCURRENCY = 8
 
+LoggerType = logging.Logger | type[nooplogger]
+
 BlobOwnerType = TypeVar("BlobOwnerType", bound=AbstractFileBlobOwner)
+
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
 
 
 if TYPE_CHECKING:
@@ -63,7 +71,12 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
 
     @classmethod
     @traces.trace
-    def from_files(cls, files, organization=None, logger=nooplogger) -> None:
+    def from_files(
+        cls,
+        files: Iterable[IO[bytes] | tuple[IO[bytes], str | None]],
+        organization: Organization | None = None,
+        logger: LoggerType = nooplogger,
+    ) -> None:
         """A faster version of `from_file` for multiple files at the time.
         If an organization is provided it will also create `FileBlobOwner`
         entries.  Files can be a list of files or tuples of file and checksum.
@@ -84,7 +97,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         blobs_to_save = []
         semaphore = Semaphore(value=MULTI_BLOB_UPLOAD_CONCURRENCY)
 
-        def _upload_and_pend_chunk(fileobj, size, checksum) -> None:
+        def _upload_and_pend_chunk(fileobj: IO[bytes], size: int, checksum: str) -> None:
             logger.debug(
                 "FileBlob.from_files._upload_and_pend_chunk.start",
                 extra={"checksum": checksum, "size": size},
@@ -117,7 +130,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
                 saved_path = blob.path
                 blob = cls.objects.get(checksum=blob.checksum)
                 storage = get_storage(cls._storage_config())
-                storage.delete(saved_path)
+                storage.delete(cast(str, saved_path))
 
             blob._ensure_blob_owned(organization)
             logger.debug("FileBlob.from_files._save_blob.end", extra={"path": blob.path})
@@ -174,7 +187,12 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
 
     @classmethod
     @traces.trace
-    def from_file_with_organization(cls, fileobj, organization=None, logger=nooplogger) -> Self:
+    def from_file_with_organization(
+        cls,
+        fileobj: IO[bytes],
+        organization: Organization | None = None,
+        logger: LoggerType = nooplogger,
+    ) -> Self:
         """
         Retrieve a single FileBlob instances for the given file and binds it to an organization via the FileBlobOwner.
         """
@@ -185,7 +203,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
 
     @classmethod
     @traces.trace
-    def from_file(cls, fileobj, logger=nooplogger) -> Self:
+    def from_file(cls, fileobj: IO[bytes], logger: LoggerType = nooplogger) -> Self:
         """
         Retrieve a single FileBlob instances for the given file.
         """
@@ -215,7 +233,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         return blob
 
     @classmethod
-    def generate_unique_path(cls):
+    def generate_unique_path(cls) -> str:
         # We intentionally do not use checksums as path names to avoid concurrency issues
         # when we attempt concurrent uploads for any reason.
         uuid_hex = uuid4().hex
@@ -223,7 +241,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         return "/".join(pieces)
 
     @traces.trace
-    def delete(self, *args, **kwargs):
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         if self.path:
             transaction.on_commit(
                 lambda: self._delete_file_task().delay(path=self.path, checksum=self.checksum),
@@ -231,7 +249,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
             )
         return super().delete(*args, **kwargs)
 
-    def getfile(self):
+    def getfile(self) -> FileObj[bytes]:
         """
         Return a file-like object for this File's content.
 
@@ -244,7 +262,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         storage = get_storage(self._storage_config())
         return storage.open(self.path)
 
-    def _ensure_blob_owned(self, organization):
+    def _ensure_blob_owned(self, organization: Organization | None) -> None:
         """
         Ensures that the FileBlob is owned by the given organization.
         """

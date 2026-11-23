@@ -8,6 +8,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import * as modal from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Organization} from 'sentry/types/organization';
 
 import {deleteBillingMetricHistory} from 'admin/components/deleteBillingMetricHistory';
@@ -26,10 +29,7 @@ describe('DeleteBillingMetricHistory', () => {
   const openDeleteModal = (
     props: {organization: Organization; onSuccess?: () => void} = {organization}
   ) => {
-    deleteBillingMetricHistory({
-      organization,
-      onSuccess: props.onSuccess || jest.fn(),
-    });
+    deleteBillingMetricHistory({organization, onSuccess: props.onSuccess || jest.fn()});
     renderGlobalModal();
   };
 
@@ -60,16 +60,8 @@ describe('DeleteBillingMetricHistory', () => {
             tally_type: 2,
           },
         },
-        outcomes: {
-          '0': 'Accepted',
-          '1': 'Filtered',
-          '2': 'Rate Limited',
-        },
-        reason_codes: {
-          '0': 'Default',
-          '1': 'Quota',
-          '2': 'Rate Limit',
-        },
+        outcomes: {'0': 'Accepted', '1': 'Filtered', '2': 'Rate Limited'},
+        reason_codes: {'0': 'Default', '1': 'Quota', '2': 'Rate Limit'},
       },
     });
 
@@ -134,10 +126,7 @@ describe('DeleteBillingMetricHistory', () => {
       });
 
       // Mock the success indicator
-      const successIndicator = jest.spyOn(
-        require('sentry/actionCreators/indicator'),
-        'addSuccessMessage'
-      );
+      const successIndicator = jest.spyOn(toast, 'success');
 
       // Mock the API endpoint for deleting billing metric history
       const deleteBillingMetricHistoryMock = MockApiClient.addMockResponse({
@@ -171,12 +160,7 @@ describe('DeleteBillingMetricHistory', () => {
       // Check that the API call was made with the correct parameters
       expect(deleteBillingMetricHistoryMock).toHaveBeenCalledWith(
         `/customers/${organization.slug}/delete-billing-metric-history/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: {
-            data_category: 2,
-          },
-        })
+        expect.objectContaining({method: 'POST', data: {data_category: 2}})
       );
 
       // Check that the success message was shown
@@ -212,19 +196,14 @@ describe('DeleteBillingMetricHistory', () => {
     });
 
     // Mock the error indicator
-    const errorIndicator = jest.spyOn(
-      require('sentry/actionCreators/indicator'),
-      'addErrorMessage'
-    );
+    const errorIndicator = jest.spyOn(toast, 'error');
 
     // Mock the API endpoint to return an error
     const deleteBillingMetricHistoryMock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/delete-billing-metric-history/`,
       method: 'POST',
       statusCode: 400,
-      body: {
-        detail: 'An error occurred while deleting billing metric history.',
-      },
+      body: {detail: 'An error occurred while deleting billing metric history.'},
     });
 
     openDeleteModal();
@@ -347,15 +326,13 @@ describe('deleteBillingMetricHistory export function', () => {
   it('opens modal with correct props', () => {
     const organization = OrganizationFixture();
     const onSuccess = jest.fn();
-    const openModalMock = jest.spyOn(require('sentry/actionCreators/modal'), 'openModal');
+    const openModalMock = jest.spyOn(modal, 'openModal');
 
     deleteBillingMetricHistory({organization, onSuccess});
 
     expect(openModalMock).toHaveBeenCalledWith(
       expect.any(Function),
-      expect.objectContaining({
-        closeEvents: 'escape-key',
-      })
+      expect.objectContaining({closeEvents: 'escape-key'})
     );
   });
 });

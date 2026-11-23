@@ -12,7 +12,8 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {ColumnAlign} from 'sentry/components/tables/sortableHeaderCell';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {unreachable} from 'sentry/utils/unreachable';
-import {SeverityLevel} from 'sentry/views/explore/logs/utils';
+
+import {SeverityLevel} from './utils';
 
 export const LOGS_GRID_BODY_ROW_HEIGHT = 26;
 
@@ -152,9 +153,7 @@ export const LogAttributeTreeWrapper = styled('div')`
   border-bottom: 0px;
 `;
 
-export const LogTableBodyCell = styled(SimpleTable.RowCell)<{
-  reservePinGutter?: boolean;
-}>`
+export const LogTableBodyCell = styled(SimpleTable.RowCell)<{reservePinGutter?: boolean}>`
   /* Field renderers size their content to the cell, as in right-aligned numbers. */
   flex-direction: column;
   align-items: stretch;
@@ -258,10 +257,9 @@ export const LogDetailTableActionsCell = styled(SimpleTable.RowCell)`
     padding: ${p => p.theme.space.xs} 0;
   }
 `;
-export const LogDetailTableActionsButtonBar = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-`;
+export function LogDetailTableActionsButtonBar(props: FlexProps) {
+  return <Flex gap="md" {...props} />;
+}
 
 export const DetailsWrapper = styled('tr')`
   align-items: center;
@@ -384,9 +382,7 @@ export const WrappingText = styled('div')<{wrapText?: boolean}>`
   text-overflow: ellipsis;
 `;
 
-export const AlignedCellContent = styled('div')<{
-  align?: 'left' | 'center' | 'right';
-}>`
+export const AlignedCellContent = styled('div')<{align?: 'left' | 'center' | 'right'}>`
   display: flex;
   align-items: center;
   flex-direction: row;
@@ -518,22 +514,6 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
   }
 }
 
-export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
-  ${p =>
-    p.sidebarOpen &&
-    css`
-      margin-left: -17px;
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-
-      &::after {
-        border-left-color: ${p.theme.tokens.border.primary};
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-      }
-    `}
-`;
-
 export const FloatingBackToTopContainer = styled('div')<{
   inReplay?: boolean;
   position?: 'absolute' | 'fixed';
@@ -557,9 +537,7 @@ export const FloatingBackToTopContainer = styled('div')<{
   }
 `;
 
-export const FloatingBottomContainer = styled('div')<{
-  tableWidth?: number;
-}>`
+export const FloatingBottomContainer = styled('div')<{tableWidth?: number}>`
   position: absolute;
   bottom: 0;
   width: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};

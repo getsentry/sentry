@@ -1,10 +1,11 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {JsonViewer} from 'sentry/components/events/attachmentViewers/jsonViewer';
-import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {tct} from 'sentry/locale';
+
+import {JsonViewer} from './jsonViewer';
+import type {ViewerProps} from './utils';
 
 export function RRWebJsonViewer(props: ViewerProps) {
   const [showRawJson, setShowRawJson] = useState(false);

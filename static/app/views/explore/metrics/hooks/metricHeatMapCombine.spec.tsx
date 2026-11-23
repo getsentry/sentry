@@ -2,10 +2,11 @@ import type {UseQueryResult} from '@tanstack/react-query';
 import {HeatMapSeriesFixture} from 'sentry-fixture/heatMapSeries';
 
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
+
 import {
   makePartitionedHeatMapWindowCombiner,
   mergeHeatMapChunks,
-} from 'sentry/views/explore/metrics/hooks/metricHeatMapCombine';
+} from './metricHeatMapCombine';
 
 describe('mergeHeatMapChunks', () => {
   it('Throws when given no chunks', () => {

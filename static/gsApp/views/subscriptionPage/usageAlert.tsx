@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {IconFire} from '@sentry/icons/fire';
 import {IconStats} from '@sentry/icons/stats';
 
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Stack, Grid} from '@sentry/scraps/layout';
 
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -11,7 +11,7 @@ import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
-import AddEventsCTA from 'getsentry/components/addEventsCTA';
+import {AddEventsCTA} from 'getsentry/components/addEventsCTA';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import OrgStatsBanner from 'getsentry/overrides/orgStatsBanner';
 import type {CustomerUsage, Subscription} from 'getsentry/types';
@@ -34,10 +34,7 @@ import {ButtonWrapper, SubscriptionBody} from './styles';
 
 type ProjectedOverages = string[];
 
-type Props = {
-  subscription: Subscription;
-  usage: CustomerUsage;
-};
+type Props = {subscription: Subscription; usage: CustomerUsage};
 
 type ExceededInfoProps = {
   getActionSentence: () => string;
@@ -82,8 +79,8 @@ function ExceededInfo({getActionSentence, primaryCTA, subscription}: ExceededInf
       radius="md"
       data-test-id="usage-exceeded-alert"
     >
-      <SubscriptionBody withPadding>
-        <UsageInfo>
+      <SubscriptionBody>
+        <Grid gap="md" columns="max-content auto">
           <IconFire size="md" variant="danger" />
           <div>
             <h3>{t('Usage Exceeded')}</h3>
@@ -95,7 +92,7 @@ function ExceededInfo({getActionSentence, primaryCTA, subscription}: ExceededInf
               {getActionSentence()}
             </Description>
           </div>
-        </UsageInfo>
+        </Grid>
         {primaryCTA}
       </SubscriptionBody>
     </Container>
@@ -123,9 +120,7 @@ function PrimaryCTA({
           subscription,
           source: `subscription-usage-alert-${alertType}`,
           referrer: `subscription-usage-alert-${alertType}`,
-          buttonProps: {
-            size: 'sm',
-          },
+          buttonProps: {size: 'sm'},
         }}
       />
     </ButtonWrapper>
@@ -164,9 +159,7 @@ export function UsageAlert({subscription, usage}: Props) {
     const categoryInfo = getCategoryInfoFromPlural(category);
     const isAbbreviated = categoryInfo?.formatting.projectedAbbreviated ?? true;
 
-    const formattedAmount = formatReservedWithUnits(projected, category, {
-      isAbbreviated,
-    });
+    const formattedAmount = formatReservedWithUnits(projected, category, {isAbbreviated});
 
     return isAbbreviated
       ? `${formattedAmount} ${displayName}`
@@ -184,7 +177,8 @@ export function UsageAlert({subscription, usage}: Props) {
       (acc, [category, currentHistory]) => {
         if (
           currentHistory.reserved === RESERVED_BUDGET_QUOTA ||
-          isUnlimitedReserved(currentHistory.reserved)
+          isUnlimitedReserved(currentHistory.reserved) ||
+          isUnlimitedReserved(currentHistory.prepaid)
         ) {
           return acc;
         }
@@ -242,8 +236,8 @@ export function UsageAlert({subscription, usage}: Props) {
       radius="md"
       data-test-id="projected-overage-alert"
     >
-      <SubscriptionBody withPadding>
-        <UsageInfo>
+      <SubscriptionBody>
+        <Grid gap="md" columns="max-content auto">
           <IconStats size="md" variant="accent" />
           <div>
             <h3>{t('Projected Overage')}</h3>
@@ -255,7 +249,7 @@ export function UsageAlert({subscription, usage}: Props) {
               {getActionSentence()}
             </Description>
           </div>
-        </UsageInfo>
+        </Grid>
         <PrimaryCTA
           alertType="projected-overage"
           organization={organization}
@@ -284,12 +278,6 @@ export function UsageAlert({subscription, usage}: Props) {
     </Stack>
   );
 }
-
-const UsageInfo = styled('div')`
-  display: grid;
-  grid-template-columns: max-content auto;
-  gap: ${p => p.theme.space.md};
-`;
 
 const Description = styled(TextBlock)`
   font-size: ${p => p.theme.font.size.md};

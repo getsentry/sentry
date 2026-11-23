@@ -45,6 +45,7 @@ DASHBOARD_OBJECT = {
                     "name": "",
                     "fields": ["avg(transaction.duration)", "transaction"],
                     "aggregates": ["avg(transaction.duration)"],
+                    "transformations": {},
                     "columns": ["transaction"],
                     "fieldAliases": ["", ""],
                     "conditions": "",
@@ -81,6 +82,7 @@ DASHBOARD_OBJECT = {
     },
     "isFavorited": False,
     "prebuiltId": None,
+    "queryPriority": "normal",
 }
 
 DASHBOARDS_OBJECT = [
@@ -173,6 +175,36 @@ DASHBOARDS_OBJECT = [
 ]
 
 
+DASHBOARD_REVISIONS_OBJECT = [
+    {
+        "id": "2",
+        "title": "Dashboard",
+        "dateCreated": "2024-07-17T09:12:44.104915Z",
+        "createdBy": {
+            "id": "1",
+            "name": "Admin",
+            "email": "admin@sentry.io",
+            "avatarType": "letter_avatar",
+            "avatarUrl": None,
+        },
+        "source": "pre-restore",
+    },
+    {
+        "id": "1",
+        "title": "Dashboard",
+        "dateCreated": "2024-07-16T15:36:46.048343Z",
+        "createdBy": {
+            "id": "1",
+            "name": "Admin",
+            "email": "admin@sentry.io",
+            "avatarType": "letter_avatar",
+            "avatarUrl": None,
+        },
+        "source": "edit",
+    },
+]
+
+
 class DashboardExamples:
     DASHBOARD_GET_RESPONSE = [
         OpenApiExample(
@@ -205,6 +237,24 @@ class DashboardExamples:
         OpenApiExample(
             "Query Dashboards",
             value=DASHBOARDS_OBJECT,
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    DASHBOARD_REVISIONS_RESPONSE = [
+        OpenApiExample(
+            "List dashboard revisions",
+            value=DASHBOARD_REVISIONS_OBJECT,
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    DASHBOARD_REVISION_RESTORE_RESPONSE = [
+        OpenApiExample(
+            "Restore a dashboard revision",
+            value=DASHBOARD_OBJECT,
             status_codes=["200"],
             response_only=True,
         )

@@ -6,7 +6,7 @@ from sentry_sdk import traces
 from ._base import EncryptedField
 
 
-class EncryptedCharField(EncryptedField, CharField):
+class EncryptedCharField(EncryptedField[str, str], CharField[str, str]):
     @traces.trace
     def from_db_value(self, value: Any, expression: Any, connection: Any) -> Any:
         db_value = super().from_db_value(value, expression, connection)

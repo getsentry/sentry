@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {Fragment} from 'react';
 import {createLogFixtures, initializeLogsTest} from 'sentry-fixture/log';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -11,14 +11,21 @@ import {
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {LOGS_FIELDS_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
+  LOGS_ANCHOR_TIMESTAMP_KEY,
+  LOGS_FIELDS_KEY,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+
+import {AutorefreshToggle} from './logsAutoRefresh';
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
 
 function SetAutoRefreshButton({state}: {state: AutoRefreshState}) {
   const setAutoRefresh = useSetLogsAutoRefresh();
-  return <button onClick={() => setAutoRefresh(state)}>set-auto-refresh</button>;
+  return (
+    <button onClick={() => setAutoRefresh(state)}>{`set-auto-refresh-${state}`}</button>
+  );
 }
 
 describe('LogsAutoRefresh Integration Tests', () => {
@@ -57,14 +64,17 @@ describe('LogsAutoRefresh Integration Tests', () => {
 
   const renderWithProviders = (
     children: React.ReactNode,
-    options: Parameters<typeof render>[1]
+    options: Parameters<typeof render>[1],
+    staleTime?: number
   ) => {
     const result = render(
       <LogsQueryParamsProvider
         analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         source="location"
       >
-        <LogsPageDataProvider allowHighFidelity>{children}</LogsPageDataProvider>
+        <LogsPageDataProvider allowHighFidelity staleTime={staleTime}>
+          {children}
+        </LogsPageDataProvider>
       </LogsQueryParamsProvider>,
       options
     ) as ReturnType<typeof render> & {router: any}; // Can't select the router type without exporting it.
@@ -201,10 +211,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
         ...routerConfig,
         location: {
           ...routerConfig.location,
-          query: {
-            ...routerConfig.location.query,
-            mode: 'aggregate',
-          },
+          query: {...routerConfig.location.query, mode: 'aggregate'},
         },
       },
       organization,
@@ -317,10 +324,14 @@ describe('LogsAutoRefresh Integration Tests', () => {
     expect(toggleSwitch).toBeChecked();
 
     await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(5);
+      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('rate_limit');
     });
 
-    expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('rate_limit');
+    expect(
+      mockApi.mock.calls.filter(
+        ([, options]) => options.query.sampling === SAMPLING_MODE.NORMAL
+      )
+    ).toHaveLength(5);
   });
 
   it('continues auto-refresh when there is no more data', async () => {
@@ -361,10 +372,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
       headers: {
         Link: '<http://localhost/api/0/organizations/test-org/events/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://localhost/api/0/organizations/test-org/events/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
       },
-      body: {
-        data: baseFixtures.slice(0, 1),
-        meta: {fields: {}},
-      },
+      body: {data: baseFixtures.slice(0, 1), meta: {fields: {}}},
     });
     setupTotalPayloadMock();
 
@@ -397,7 +405,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
 
     const keyBefore = router.location.key;
 
-    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh'}));
+    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh-idle'}));
 
     expect(router.location.key).toBe(keyBefore);
     expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBeUndefined();
@@ -411,11 +419,100 @@ describe('LogsAutoRefresh Integration Tests', () => {
 
     const keyBefore = router.location.key;
 
-    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh'}));
+    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh-enabled'}));
 
     await waitFor(() => {
       expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
     });
     expect(router.location.key).not.toBe(keyBefore);
+  });
+
+  it('requests normal sampling with a timestamp filter when auto-refresh is enabled', async () => {
+    renderWithProviders(<SetAutoRefreshButton state="enabled" />, {
+      initialRouterConfig: routerConfig,
+      organization,
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh-enabled'}));
+
+    await waitFor(() => {
+      expect(mockApiCall).toHaveBeenLastCalledWith(
+        `/organizations/${organization.slug}/events/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sampling: SAMPLING_MODE.NORMAL,
+            query: expect.stringContaining('timestamp_precise:<='),
+          }),
+        })
+      );
+    });
+  });
+
+  it('requests flex time sampling when auto-refresh is paused', async () => {
+    const {router} = renderWithProviders(<SetAutoRefreshButton state="paused" />, {
+      initialRouterConfig: enabledRouterConfig,
+      organization,
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh-paused'}));
+
+    await waitFor(() => {
+      expect(mockApiCall).toHaveBeenLastCalledWith(
+        `/organizations/${organization.slug}/events/`,
+        expect.objectContaining({
+          query: expect.objectContaining({sampling: SAMPLING_MODE.FLEX_TIME}),
+        })
+      );
+    });
+    expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('paused');
+  });
+
+  it('requests fresh flex time sampling when auto-refresh is paused after starting idle', async () => {
+    const {router} = renderWithProviders(
+      <Fragment>
+        <SetAutoRefreshButton state="enabled" />
+        <SetAutoRefreshButton state="paused" />
+      </Fragment>,
+      {initialRouterConfig: routerConfig, organization},
+      Infinity
+    );
+    await waitFor(() => {
+      expect(mockApiCall).toHaveBeenCalledTimes(1);
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh-enabled'}));
+    await waitFor(() => {
+      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh-paused'}));
+
+    await waitFor(() => {
+      expect(
+        mockApiCall.mock.calls.filter(
+          ([, options]) => options.query.sampling === SAMPLING_MODE.FLEX_TIME
+        )
+      ).toHaveLength(2);
+    });
+    expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('paused');
+  });
+
+  it('drops the log anchor from the URL when auto-refresh is enabled', async () => {
+    const {router} = renderWithProviders(<SetAutoRefreshButton state="enabled" />, {
+      initialRouterConfig: {
+        ...routerConfig,
+        location: {
+          ...routerConfig.location,
+          query: {...routerConfig.location.query, [LOGS_ANCHOR_TIMESTAMP_KEY]: '5000'},
+        },
+      },
+      organization,
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh-enabled'}));
+    await waitFor(() => {
+      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
+    });
+
+    expect(router.location.query[LOGS_ANCHOR_TIMESTAMP_KEY]).toBeUndefined();
   });
 });

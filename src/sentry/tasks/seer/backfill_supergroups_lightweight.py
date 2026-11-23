@@ -45,7 +45,7 @@ def backfill_supergroups_lightweight_for_org(
     organization_id: int,
     last_project_id: int = 0,
     last_group_id: int = 0,
-    **kwargs,
+    **kwargs: object,
 ) -> None:
     if options.get("seer.supergroups_backfill_lightweight.killswitch"):
         logger.info("supergroups_backfill_lightweight.killswitch_enabled")
@@ -258,7 +258,9 @@ def _backfill_org(
     )
 
 
-def _batch_fetch_events(groups: Sequence[Group], organization_id: int) -> list[tuple[Group, dict]]:
+def _batch_fetch_events(
+    groups: Sequence[Group], organization_id: int
+) -> list[tuple[Group, dict[str, object]]]:
     """
     Fetch the latest event for each group using batched Snuba queries,
     then serialize each event for sending to Seer.

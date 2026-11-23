@@ -6,7 +6,7 @@ import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {PreprodBuildsSnapshotTable} from './preprodBuildsSnapshotTable';
 
 jest.mock('@sentry/scraps/badge', () => ({
-  ...jest.requireActual('sentry/components/core/badge/tag'),
+  ...jest.requireActual('@sentry/scraps/badge'),
 }));
 
 jest.mock('./preprodBuildsTableStyles', () => ({
@@ -136,12 +136,7 @@ describe('PreprodBuildsSnapshotTable', () => {
 
   it.snapshot(
     'status-no-comparison',
-    () =>
-      renderTable(
-        makeBuild({
-          snapshot_comparison_info: undefined,
-        })
-      ),
+    () => renderTable(makeBuild({snapshot_comparison_info: undefined})),
     {tags: {area: 'snapshots'}}
   );
 

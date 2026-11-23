@@ -13,6 +13,9 @@ class AIConversationExamples:
                 "stats": {
                     "cacheReadTokens": 0,
                     "cacheWriteTokens": 0,
+                    "cacheReadCost": 0.0,
+                    "cacheWriteCost": 0.0,
+                    "reasoningCost": 0.0,
                     "endTimestamp": 1743465601250,
                     "errors": 0,
                     "errorToolNames": [],
@@ -39,6 +42,9 @@ class AIConversationExamples:
                             "reasoningTokens": 0,
                             "inputCost": 0,
                             "outputCost": 0,
+                            "cacheReadCost": 0.0,
+                            "cacheWriteCost": 0.0,
+                            "reasoningCost": 0.0,
                             "totalCost": 0.0042,
                         }
                     ],

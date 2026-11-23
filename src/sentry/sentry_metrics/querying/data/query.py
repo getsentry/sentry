@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 
 from sentry.sentry_metrics.querying.data.execution import QueryResult
 from sentry.sentry_metrics.querying.data.transformation.base import (
@@ -26,8 +26,12 @@ class MQLQuery:
     """
 
     def __init__(
-        self, mql: str, order: QueryOrder | None = None, limit: int | None = None, **sub_queries
-    ):
+        self,
+        mql: str,
+        order: QueryOrder | None = None,
+        limit: int | None = None,
+        **sub_queries: object,
+    ) -> None:
         self.mql = mql
         self.order = order
         self.limit = limit
@@ -39,7 +43,7 @@ class MQLQuery:
             if not isinstance(query, MQLQuery):
                 raise InvalidMetricsQueryError("A subquery must be an instance of 'MQLQuery'")
 
-        return cast(Mapping[str, MQLQuery], sub_queries)
+        return sub_queries
 
     def compile(self) -> "MQLQuery":
         """

@@ -45,13 +45,7 @@ type CommandPaletteAction =
   | {type: 'toggle modal'}
   | {type: 'reset'}
   | {query: string; type: 'set query'}
-  | {
-      key: string;
-      label: string;
-      type: 'push action';
-      prompt?: string;
-      query?: string;
-    }
+  | {key: string; label: string; type: 'push action'; prompt?: string; query?: string}
   | {type: 'trigger action'}
   | {type: 'pop action'}
   | {type: 'reset on open'}
@@ -81,11 +75,7 @@ function commandPaletteReducer(
           list: 'active',
         };
       }
-      return {
-        ...state,
-        open: !state.open,
-        list: 'active',
-      };
+      return {...state, open: !state.open, list: 'active'};
     case 'reset':
       return {
         ...state,
@@ -198,10 +188,10 @@ export function CommandPaletteHotkeys() {
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [location.pathname, dispatch]);
 
-  useHotkeys([
-    {
-      match: COMMAND_PALETTE_HOTKEYS,
-      includeInputs: true,
+  useHotkeys(
+    COMMAND_PALETTE_HOTKEYS.map(hotkey => ({
+      hotkey,
+      options: {ignoreInputs: false},
       callback: () => {
         if (!organization) {
           return;
@@ -215,8 +205,8 @@ export function CommandPaletteHotkeys() {
           isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
         );
       },
-    },
-  ]);
+    }))
+  );
 
   return null;
 }

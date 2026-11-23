@@ -4,6 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -49,10 +50,7 @@ describe('Project Ownership', () => {
 
   describe('without codeowners', () => {
     it('renders', async () => {
-      render(<ProjectOwnership />, {
-        organization,
-        outletContext: {project},
-      });
+      render(<ProjectOwnership />, {organization, outletContext: {project}});
       expect(await screen.findByText('No ownership rules found')).toBeInTheDocument();
       // Does not render codeowners for orgs without 'integrations-codeowners' feature
       expect(
@@ -79,10 +77,7 @@ describe('Project Ownership', () => {
         features: ['integrations-codeowners'],
         access: ['org:integrations'],
       });
-      render(<ProjectOwnership />, {
-        organization: org,
-        outletContext: {project},
-      });
+      render(<ProjectOwnership />, {organization: org, outletContext: {project}});
 
       // Renders button
       expect(
@@ -111,10 +106,7 @@ describe('Project Ownership', () => {
 
   describe('issue owners settings', () => {
     it('renders autoAssignment select field with correct initial value', async () => {
-      render(<ProjectOwnership />, {
-        organization,
-        outletContext: {project},
-      });
+      render(<ProjectOwnership />, {organization, outletContext: {project}});
 
       expect(
         await screen.findByText('Auto-assign to suspect commits')
@@ -122,10 +114,7 @@ describe('Project Ownership', () => {
     });
 
     it('renders Sync changes from CODEOWNERS field', async () => {
-      render(<ProjectOwnership />, {
-        organization,
-        outletContext: {project},
-      });
+      render(<ProjectOwnership />, {organization, outletContext: {project}});
 
       expect(await screen.findByText('Sync changes from CODEOWNERS')).toBeInTheDocument();
     });
@@ -141,10 +130,7 @@ describe('Project Ownership', () => {
         },
       });
 
-      render(<ProjectOwnership />, {
-        organization,
-        outletContext: {project},
-      });
+      render(<ProjectOwnership />, {organization, outletContext: {project}});
 
       // Switch to Assign To Issue Owner
       await userEvent.click(await screen.findByText('Auto-assign to suspect commits'));
@@ -153,13 +139,50 @@ describe('Project Ownership', () => {
       await waitFor(() => {
         expect(updateOwnership).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({
-            data: {
-              autoAssignment: 'Auto Assign to Issue Owner',
-            },
-          })
+          expect.objectContaining({data: {autoAssignment: 'Auto Assign to Issue Owner'}})
         );
       });
+    });
+
+    it('keeps auto-assignment off after saving', async () => {
+      const savedOwnership = {
+        fallthrough: false,
+        autoAssignment: 'Turn off Auto-Assignment',
+        codeownersAutoSync: false,
+      };
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/ownership/`,
+        method: 'PUT',
+        body: savedOwnership,
+      });
+
+      render(<ProjectOwnership />, {organization, outletContext: {project}});
+
+      const select = await screen.findByRole('textbox', {
+        name: 'Prioritize Auto Assignment',
+      });
+      const refresh = Promise.withResolvers<void>();
+      const refetchOwnership = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/ownership/`,
+        method: 'GET',
+        body: savedOwnership,
+        asyncDelay: refresh.promise,
+      });
+      await userEvent.click(select);
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Turn off auto-assignment'})
+      );
+
+      await waitFor(() => expect(refetchOwnership).toHaveBeenCalled());
+      expect(select).toBeDisabled();
+
+      await act(() => {
+        refresh.resolve();
+        return refresh.promise;
+      });
+
+      await waitFor(() => expect(select).toBeEnabled());
+      expect(screen.getByText('Turn off auto-assignment')).toBeInTheDocument();
     });
 
     it('disables autoAssignment select when user lacks write access', async () => {
@@ -180,10 +203,7 @@ describe('Project Ownership', () => {
     });
 
     it('disables codeownersAutoSync when no codeowners exist', async () => {
-      render(<ProjectOwnership />, {
-        organization,
-        outletContext: {project},
-      });
+      render(<ProjectOwnership />, {organization, outletContext: {project}});
 
       // Wait for the page to load
       expect(await screen.findByText('Sync changes from CODEOWNERS')).toBeInTheDocument();

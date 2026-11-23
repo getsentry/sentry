@@ -9,7 +9,11 @@ from typing import Any
 from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
 from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method
 from sentry.integrations.services.repository import RpcRepository
-from sentry.integrations.services.repository.model import RpcCreateRepository
+from sentry.integrations.services.repository.model import (
+    RpcCreateRepository,
+    RpcRepointIntegrationResult,
+    RpcRepositoryRename,
+)
 from sentry.silo.base import SiloMode
 from sentry.users.services.user.model import RpcUser
 
@@ -46,6 +50,7 @@ class RepositoryService(RpcService):
         organization_id: int,
         integration_id: int | None = None,
         external_id: str | None = None,
+        external_ids: list[str] | None = None,
         providers: list[str] | None = None,
         has_integration: bool | None = None,
         has_provider: bool | None = None,
@@ -78,13 +83,16 @@ class RepositoryService(RpcService):
         organization_id: int,
         id: int,
         config_updates: dict[str, Any],
+        config_deletions: list[str] | None = None,
         expected_integration_id: int | None = None,
         expected_config: dict[str, Any] | None = None,
     ) -> bool:
         """
-        Merges ``config_updates`` into the repository's current config, leaving every other
-        field and config key untouched. Use this instead of ``update_repository`` when a
-        snapshot may have gone stale, e.g. across an external API call.
+        Merges ``config_updates`` into the repository's current config and removes
+        ``config_deletions``, leaving every other field and config key untouched. Deletion
+        wins when a key appears in both arguments. Use this instead of
+        ``update_repository`` when a snapshot may have gone stale, e.g. across an external
+        API call.
 
         Returns False without changing anything unless the repository is still active,
         still belongs to ``expected_integration_id`` (when given), and its config still
@@ -95,6 +103,47 @@ class RepositoryService(RpcService):
     @abstractmethod
     def update_repositories(self, *, organization_id: int, updates: list[RpcRepository]) -> None:
         pass
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def rename_repositories(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        provider: str,
+        renames: list[RpcRepositoryRename],
+    ) -> list[int]:
+        """
+        Writes a new name and URL to repositories that the provider renamed, and
+        returns the ids of the repositories that changed.
+
+        Each rename applies to the current row and writes only ``name``, ``url``, and
+        ``config["name"]``. It skips a repository that is no longer active or disabled,
+        such as one pending deletion, that no longer has the given integration,
+        provider, and external id, or whose name, URL, or ``config["name"]`` changed
+        since the caller read them.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def enable_repositories_by_external_ids(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        provider: str,
+        external_ids: list[str],
+    ) -> list[RpcRepository]:
+        """
+        Re-enables disabled repositories by external_id for a given integration. Only
+        ``status`` is written, so a concurrent rename or config change is kept.
+
+        Returns every matching repository that is now active, including ones that
+        were already active. A caller that failed after an earlier call can retry
+        and repeat its follow-up steps. Repositories in any other status, such as
+        pending deletion, are left alone and not returned.
+        """
 
     @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
@@ -113,6 +162,22 @@ class RepositoryService(RpcService):
 
         Returns False without changing anything if the repository no longer exists or is
         being deleted.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def repoint_organization_integration_data(
+        self,
+        *,
+        organization_id: int,
+        old_integration_id: int,
+        new_integration_id: int,
+    ) -> RpcRepointIntegrationResult:
+        """
+        Moves an organization's cell-silo references from one integration to another.
+
+        The operation is atomic and safe to retry. It preserves the existing
+        organization integration referenced by code mappings.
         """
 
     @cell_rpc_method(resolve=ByOrganizationId())

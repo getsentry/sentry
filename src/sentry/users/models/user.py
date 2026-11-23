@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from string import ascii_letters, digits
 from typing import Any, ClassVar
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
 from django.contrib.auth.signals import user_logged_out
@@ -43,6 +44,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.organizations.services.organization import RpcCellUser, organization_service
+from sentry.service_accounts.models import ServiceAccount
 from sentry.types.cell import find_all_cell_names, find_cells_for_user
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.lostpasswordhash import LostPasswordHash
@@ -262,7 +264,7 @@ class User(Model, AbstractBaseUser):
                     if self.pk is None and not is_relocated_user:
                         # new users should set email_unique
                         self.email_unique = self.email
-                    elif self.pk is None and is_relocated_user:
+                    elif not self.pk and is_relocated_user:
                         # If the user is new, relocated blank email_unique to dodge
                         # integrity errors.
                         self.email_unique = None
@@ -336,7 +338,6 @@ class User(Model, AbstractBaseUser):
     def send_signed_url_confirm_email_singular(
         self, email: str, signed_data: str, is_new_user: bool = False
     ) -> None:
-        from sentry import options
         from sentry.utils.email import MessageBuilder
 
         context = {
@@ -347,7 +348,7 @@ class User(Model, AbstractBaseUser):
         }
 
         msg = MessageBuilder(
-            subject="{}Confirm Email".format(options.get("mail.subject-prefix")),
+            subject=f"{settings.EMAIL_SUBJECT_PREFIX}Confirm Email",
             template="sentry/emails/confirm_email.txt",
             html_template="sentry/emails/confirm_email.html",
             type="user.confirm_email",
@@ -356,7 +357,6 @@ class User(Model, AbstractBaseUser):
         msg.send_async([email])
 
     def send_confirm_email_singular(self, email: UserEmail, is_new_user: bool = False) -> None:
-        from sentry import options
         from sentry.utils.email import MessageBuilder
 
         if not email.hash_is_valid():
@@ -372,7 +372,7 @@ class User(Model, AbstractBaseUser):
             "is_new_user": is_new_user,
         }
         msg = MessageBuilder(
-            subject="{}Confirm Email".format(options.get("mail.subject-prefix")),
+            subject=f"{settings.EMAIL_SUBJECT_PREFIX}Confirm Email",
             template="sentry/emails/confirm_email.txt",
             html_template="sentry/emails/confirm_email.html",
             type="user.confirm_email",
@@ -438,12 +438,17 @@ class User(Model, AbstractBaseUser):
                 transaction.atomic(using=router.db_for_write(OrganizationMemberMapping)),
                 flush=False,
             ):
-                # Update records individually as OrgAuthToken has outboxes
+                # Update records individually as OrgAuthToken and ServiceAccount have outboxes
                 for token in OrgAuthToken.objects.filter(
                     organization_id=organization_id, created_by_id=from_user_id
                 ):
                     token.created_by_id = to_user_id
                     token.save()
+                for service_account in ServiceAccount.objects.filter(
+                    organization_id=organization_id, created_by_id=from_user_id
+                ):
+                    service_account.created_by_id = to_user_id
+                    service_account.save()
 
         # Update any member map records where the the merged user was the inviter
         queryset = OrganizationMemberMapping.objects.filter(inviter_id=from_user_id)
@@ -624,7 +629,7 @@ class User(Model, AbstractBaseUser):
         # server-generated and `username` is unique, so matching on username alone is safe.
         # Reuse the existing account instead of inserting.
         if flags.merge_users:
-            username_match = User.objects.filter(username__iexact=self.username).first()
+            username_match = User.objects.filter(username__iexact=self.username).first()  # noqa: S035
             if username_match:
                 return (username_match.pk, ImportKind.Existing)
 

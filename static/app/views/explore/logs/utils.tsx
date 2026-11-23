@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/react';
 import type {InfiniteData, InfiniteQueryObserverResult} from '@tanstack/react-query';
 import type {Location} from 'history';
-import * as qs from 'query-string';
 
+import type {QuerySpeed} from 'sentry/components/querySpeedMenu';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
@@ -18,17 +18,22 @@ import {
   fieldAlignment,
   type Sort,
 } from 'sentry/utils/discover/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {getBodySearchTerms} from 'sentry/views/explore/bodySearchTerms';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {
   LOGS_AGGREGATE_FN_KEY,
   LOGS_AGGREGATE_PARAM_KEY,
+  LOGS_ANCHOR_TIMESTAMP_KEY,
   LOGS_FIELDS_KEY,
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
+  LOGS_ROW_ID_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -37,23 +42,7 @@ import type {
   TraceItemDetailsResponse,
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {
-  DeprecatedLogDetailFields,
-  LogAttributesHumanLabel,
-  LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
-} from 'sentry/views/explore/logs/constants';
-import {
-  getTargetWithReadableQueryParams,
-  LOGS_AGGREGATE_FIELD_KEY,
-} from 'sentry/views/explore/logs/logsQueryParams';
-import {
-  OurLogKnownFieldKey,
-  type EventsLogsResult,
-  type LogAttributeUnits,
-  type LogRowItem,
-  type OurLogFieldKey,
-  type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
+import type {ExploreCaseSensitivity} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {
   type BaseVisualize,
@@ -62,6 +51,25 @@ import {
 import {generateTargetQuery} from 'sentry/views/explore/utils/generateTargetQuery';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+
+import {LOGS_PINNED_KEY, logsPinnedParser} from './pinning/useLogsPinning';
+import {
+  DeprecatedLogDetailFields,
+  LogAttributesHumanLabel,
+  LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
+} from './constants';
+import {
+  getTargetWithReadableQueryParams,
+  LOGS_AGGREGATE_FIELD_KEY,
+} from './logsQueryParams';
+import {
+  OurLogKnownFieldKey,
+  type EventsLogsResult,
+  type LogAttributeUnits,
+  type LogRowItem,
+  type OurLogFieldKey,
+  type OurLogsResponseItem,
+} from './types';
 const {warn, fmt} = Sentry.logger;
 
 export function getLogSeverityLevel(
@@ -355,7 +363,10 @@ export function calculateAverageLogsPerSecond(
     return 0;
   }
 
-  const allSeries = Object.values(timeseriesResult.data)[0];
+  const allSeries = getTimeSeriesForQuery(
+    timeseriesResult.data,
+    `${AggregationKey.COUNT}(${OurLogKnownFieldKey.MESSAGE})`
+  );
   if (!Array.isArray(allSeries) || allSeries.length === 0) {
     return 0;
   }
@@ -400,14 +411,18 @@ type BaseGetLogsUrlParams = {
   aggregateFields?: Array<GroupBy | BaseVisualize>;
   aggregateFn?: string;
   aggregateParam?: string;
-  caseInsensitive?: '1' | null;
-  field?: string[];
+  anchorTimestamp?: string;
+  caseInsensitive?: ExploreCaseSensitivity;
+  field?: readonly string[];
   groupBy?: string[];
   id?: number;
   interval?: string;
   mode?: Mode;
+  pinnedRowIds?: string[];
   query?: string;
+  queryPriority?: QuerySpeed;
   referrer?: string;
+  rowId?: string;
   selection?: PageFilters;
   sortBy?: string;
   title?: string;
@@ -421,6 +436,7 @@ export function getLogsUrl({
   organization,
   selection,
   query,
+  queryPriority,
   field,
   groupBy,
   id,
@@ -432,7 +448,10 @@ export function getLogsUrl({
   aggregateFields,
   aggregateFn,
   aggregateParam,
+  anchorTimestamp,
   caseInsensitive,
+  pinnedRowIds,
+  rowId,
 }: BaseGetLogsUrlParams & {organization: Organization | string}) {
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
@@ -444,6 +463,7 @@ export function getLogsUrl({
     start,
     end,
     [LOGS_QUERY_KEY]: query,
+    queryPriority,
     utc,
     [LOGS_FIELDS_KEY]: field,
     [LOGS_GROUP_BY_KEY]: groupBy,
@@ -459,6 +479,11 @@ export function getLogsUrl({
     [LOGS_AGGREGATE_PARAM_KEY]: aggregateParam,
     title,
     caseInsensitive,
+    [LOGS_ROW_ID_KEY]: rowId,
+    [LOGS_ANCHOR_TIMESTAMP_KEY]: anchorTimestamp,
+    [LOGS_PINNED_KEY]: pinnedRowIds?.length
+      ? logsPinnedParser.serialize(pinnedRowIds)
+      : undefined,
   };
 
   const orgSlug = typeof organization === 'string' ? organization : organization.slug;
@@ -506,25 +531,35 @@ export function getLogsUrlFromSavedQueryUrl({
     selection: {
       datetime: {
         end: savedQuery.end ?? null,
-        period: savedQuery.range ?? null,
+        period: savedQuery.statsPeriod ?? null,
         start: savedQuery.start ?? null,
         utc: null,
       },
       environments: savedQuery.environment ? [...savedQuery.environment] : [],
       projects: savedQuery.projects ? [...savedQuery.projects] : [],
     },
-    caseInsensitive: firstQuery.caseInsensitive ? '1' : null,
+    caseInsensitive: firstQuery.caseInsensitive ? '1' : '0',
+    queryPriority: savedQuery.queryPriority,
   });
 }
 
-export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): string {
+export function ourlogToJson(
+  ourlog: TraceItemDetailsResponse | undefined,
+  useRawAttributeNames = false
+): string {
   if (!ourlog) {
     warn(fmt`cannot copy undefined ourlog`);
     return '';
   }
 
   const copy: Record<string, string | number | boolean> = {
-    ...ourlog.attributes.reduce((it, {name, value}) => ({...it, [name]: value}), {}),
+    ...ourlog.attributes.reduce(
+      (it, {name, rawName, value}) =>
+        DeprecatedLogDetailFields.includes(name)
+          ? it
+          : {...it, [useRawAttributeNames ? (rawName ?? name) : name]: value},
+      {}
+    ),
     id: ourlog.itemId,
   };
   let warned = false;
@@ -539,8 +574,7 @@ export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): stri
 
   // Trimming any sentry. prefixes
   for (const key in copy) {
-    if (DeprecatedLogDetailFields.includes(key)) {
-      delete copy[key];
+    if (useRawAttributeNames) {
       continue;
     }
     if (key.startsWith('sentry.')) {

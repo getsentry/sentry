@@ -2,9 +2,15 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from drf_spectacular.openapi import AutoSchema
+from openapi_schema_validator import OAS30Validator
+
+from sentry.apidocs.extensions import SentryInlineResponseSerializerExtension
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.issues.endpoints.project_stacktrace_link import StacktraceLinkResponse
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -154,6 +160,14 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             "integrations": [serialized_integration(self.integration)],
             "error": "no_code_mappings_for_project",
         }
+        serializer = inline_sentry_response_serializer(
+            "StacktraceLinkResponse", StacktraceLinkResponse
+        )
+        schema = SentryInlineResponseSerializerExtension(serializer).map_serializer(
+            AutoSchema(), "response"
+        )
+        assert set(schema["required"]) == {"error", "config", "sourceUrl", "integrations"}
+        OAS30Validator(schema).validate(response.data)
 
     def test_file_not_found_error(self) -> None:
         """File matches code mapping but it cannot be found in the source repository."""
@@ -194,6 +208,18 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             assert response.data["config"] == self.expected_configurations(cm)
             assert response.data["sourceUrl"] == "https://sourceurl.com/"
             assert response.data["integrations"] == [serialized_integration(self.integration)]
+
+    @patch.object(ExampleIntegration, "get_stacktrace_link", return_value="https://sourceurl.com/")
+    def test_file_revision_takes_precedence_over_commit_id(
+        self, mock_get_stacktrace_link: MagicMock
+    ) -> None:
+        self._create_code_mapping(stack_root="usr/src/getsentry/", source_root="")
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={"file": self.filepath, "commitId": "abc123", "fileRevision": "12345"},
+        )
+        assert mock_get_stacktrace_link.call_args.args[3] == "12345"
 
     @patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_file_no_stack_root_match(self, mock_integration: MagicMock) -> None:

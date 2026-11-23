@@ -5,8 +5,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import {t, tct, tn} from 'sentry/locale';
+
+import {useInviteMembersContext} from './inviteMembersContext';
 
 interface InviteCountProps {
   count: number;
@@ -32,11 +33,7 @@ interface CountMessageProps {
 function CountMessage({sentCount, errorCount, isRequest}: CountMessageProps) {
   const invites = <InviteCount count={sentCount} isRequest={isRequest} />;
   const failedInvites = <InviteCount count={errorCount} isRequest={isRequest} />;
-  const tctComponents = {
-    invites,
-    failed: errorCount,
-    failedInvites,
-  };
+  const tctComponents = {invites, failed: errorCount, failedInvites};
   return (
     <div>
       {sentCount > 0 && (

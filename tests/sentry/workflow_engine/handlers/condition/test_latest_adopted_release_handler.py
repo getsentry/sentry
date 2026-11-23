@@ -26,6 +26,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
     def create_new_group_event(self, fingerprint: str) -> tuple[Any, Any]:
         event = self.store_event(data={"fingerprint": [fingerprint]}, project_id=self.project.id)
         group = event.group
+        assert group is not None
         group_event = self.event.for_group(group)
         return group, group_event
 
@@ -35,7 +36,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.prod_env = self.create_environment(name="prod")
         self.test_env = self.create_environment(name="test")
         self.newest_release = self.create_release(
-            project=self.event.group.project,
+            project=self.group.project,
             version="test@2.0",
             date_added=self.now - timedelta(days=2),
             environments=[self.test_env],
@@ -43,7 +44,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         )
 
         self.oldest_release = self.create_release(
-            project=self.event.group.project,
+            project=self.group.project,
             version="test@1.0",
             date_added=self.now - timedelta(days=1),
             environments=[self.prod_env],
@@ -51,7 +52,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         )
 
         self.middle_release = self.create_release(
-            project=self.event.group.project,
+            project=self.group.project,
             version="test@1.5",
             date_added=self.now,
             environments=[self.prod_env],
@@ -115,7 +116,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.assert_passes(self.dc, WorkflowEventData(event=group_event_4, group=group_4))
 
         self.create_release(
-            project=self.event.group.project,
+            project=self.group.project,
             version="test@3.0",
             date_added=self.now - timedelta(days=5),
             environments=[self.prod_env],
@@ -244,7 +245,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
 
         self.create_group_release(group=self.event.group, release=self.newest_release)
         self.assert_does_not_pass(
-            self.dc, WorkflowEventData(event=self.event, group=self.group_event.group)
+            self.dc, WorkflowEventData(event=self.group_event, group=self.group)
         )
 
         group_2, group_event_2 = self.create_new_group_event("group2")

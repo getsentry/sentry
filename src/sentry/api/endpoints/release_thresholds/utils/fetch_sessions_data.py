@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
 
-from django.utils.datastructures import MultiValueDict
 from rest_framework.request import Request
 
 from sentry import release_health
@@ -30,10 +28,9 @@ def fetch_sessions_data(
     TODO: capture potential issues with `interval` returning too many results
     """
     with handle_query_errors():
-        request_get: dict[str, Any] = request.GET
-        query_params: MultiValueDict[str, Any] = MultiValueDict(request_get)
+        query_params = request.GET.copy()
         query_params.setlist("groupBy", ["project", "release", "session.status", "environment"])
-        query_params.setlist("field", [field])
+        query_params.setlist("field", [field] if field is not None else [])
         query_params["query"] = " OR ".join(
             [f"release:{version}" for version in query_params.getlist("release")]
         )

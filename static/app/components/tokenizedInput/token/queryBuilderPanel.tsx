@@ -70,7 +70,8 @@ const PanelRoot = styled(Container)`
 
 const InputLayer = styled(Container)`
   position: relative;
-  z-index: 1;
+  /* Keep the input's focus ring above the menu that opens directly below it. */
+  z-index: 2;
 `;
 
 const MenuSlot = styled(Container)`

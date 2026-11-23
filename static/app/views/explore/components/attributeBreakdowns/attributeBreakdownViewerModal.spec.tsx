@@ -6,12 +6,10 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {closeModal} from 'sentry/actionCreators/modal';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {closeModal} from '@sentry/scraps/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
 import AttributeBreakdownViewerModal from './attributeBreakdownViewerModal';
-
-jest.mock('sentry/actionCreators/modal');
 
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(({style}) => {
@@ -34,11 +32,7 @@ const stubProps = {
 describe('AttributeBreakdownViewerModal', () => {
   beforeEach(() => {
     mockCloseModal.mockClear();
-    Object.assign(navigator, {
-      clipboard: {
-        writeText: jest.fn(() => Promise.resolve()),
-      },
-    });
+    Object.assign(navigator, {clipboard: {writeText: jest.fn(() => Promise.resolve())}});
   });
 
   describe('single mode', () => {
@@ -154,10 +148,7 @@ describe('AttributeBreakdownViewerModal', () => {
     });
 
     it('handles empty values array', () => {
-      const attributeDistribution = {
-        attributeName: 'empty.attribute',
-        values: [],
-      };
+      const attributeDistribution = {attributeName: 'empty.attribute', values: []};
       render(
         <AttributeBreakdownViewerModal
           {...stubProps}
@@ -186,10 +177,7 @@ describe('AttributeBreakdownViewerModal', () => {
         {label: 'Firefox', value: 350},
         {label: 'Safari', value: 250},
       ],
-      order: {
-        rrf: 0.5,
-        rrr: 0.3,
-      },
+      order: {rrf: 0.5, rrr: 0.3},
     };
 
     const mockCohort1Total = 800;
@@ -427,6 +415,25 @@ describe('AttributeBreakdownViewerModal', () => {
       expect(mockCloseModal).toHaveBeenCalled();
     });
 
+    it('keeps the case setting it was opened with when ADD action is triggered', async () => {
+      const {router} = render(
+        <AttributeBreakdownViewerModal
+          {...stubProps}
+          mode="single"
+          attributeDistribution={mockAttributeDistribution}
+          cohortCount={mockCohortCount}
+          query=""
+          caseInsensitive
+        />
+      );
+
+      await userEvent.click(within(screen.getAllByRole('cell')[0]!).getByRole('button'));
+      await userEvent.click(await screen.findByText('Add to filter'));
+
+      await waitFor(() => expect(router.location.pathname).toContain('/explore/traces/'));
+      expect(router.location.query.caseInsensitive).toBe('1');
+    });
+
     it('navigates with negated filter when EXCLUDE action is triggered', async () => {
       const {router} = render(
         <AttributeBreakdownViewerModal
@@ -454,11 +461,7 @@ describe('AttributeBreakdownViewerModal', () => {
 
     it('copies value to clipboard when COPY_TO_CLIPBOARD action is triggered', async () => {
       const writeTextMock = jest.fn(() => Promise.resolve());
-      Object.assign(navigator, {
-        clipboard: {
-          writeText: writeTextMock,
-        },
-      });
+      Object.assign(navigator, {clipboard: {writeText: writeTextMock}});
 
       render(
         <AttributeBreakdownViewerModal
@@ -495,10 +498,7 @@ describe('AttributeBreakdownViewerModal', () => {
           {label: 'Chrome', value: 400},
           {label: 'Firefox', value: 350},
         ],
-        order: {
-          rrf: 0.5,
-          rrr: 0.3,
-        },
+        order: {rrf: 0.5, rrr: 0.3},
       };
 
       const {router} = render(
@@ -526,3 +526,8 @@ describe('AttributeBreakdownViewerModal', () => {
     });
   });
 });
+
+jest.mock('@sentry/scraps/modal', () => ({
+  ...jest.requireActual('@sentry/scraps/modal'),
+  closeModal: jest.fn(),
+}));

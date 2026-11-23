@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -9,17 +10,21 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {TagCollection} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind} from 'sentry/utils/fields';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useTraceMetricsVisualizeModeState} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {
   useSpanItemAttributes,
   useTraceItemDatasetAttributes,
   useTraceMetricItemAttributes,
 } from 'sentry/views/explore/hooks/useTraceItemAttributes';
+import {MAX_METRICS_ALLOWED} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 
+jest.mock('sentry/utils/analytics');
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
 
@@ -28,12 +33,15 @@ const DASHBOARD_WIDGET_BUILDER_PATHNAME =
 const DASHBOARD_WIDGET_BUILDER_ROUTE = '/organizations/:orgId/dashboards/new/widget/new/';
 const SERIES_FILTER_PLACEHOLDER = 'Filter spans for this series';
 
+function TraceMetricsVisualize() {
+  const traceMetricsVisualizeMode = useTraceMetricsVisualizeModeState();
+  return <Visualize traceMetricsVisualizeMode={traceMetricsVisualizeMode} />;
+}
+
 describe('Visualize', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(() => {
-    organization = OrganizationFixture({
-      features: ['performance-view'],
-    });
+    organization = OrganizationFixture();
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
@@ -68,11 +76,7 @@ describe('Visualize', () => {
       }
 
       const tags: TagCollection = {
-        'span.op': {
-          key: 'span.op',
-          name: 'span.op',
-          kind: FieldKind.TAG,
-        },
+        'span.op': {key: 'span.op', name: 'span.op', kind: FieldKind.TAG},
         'span.description': {
           key: 'span.description',
           name: 'span.description',
@@ -80,11 +84,7 @@ describe('Visualize', () => {
         },
       };
 
-      return {
-        attributes: tags,
-        secondaryAliases: {},
-        isLoading: false,
-      };
+      return {attributes: tags, secondaryAliases: {}, isLoading: false};
     };
 
     jest
@@ -96,11 +96,9 @@ describe('Visualize', () => {
       .mocked(useSpanItemAttributes)
       .mockImplementation((_options, type?) => mockAttributes(_options, type));
 
-    jest.mocked(useTraceMetricItemAttributes).mockReturnValue({
-      attributes: {},
-      isLoading: false,
-      secondaryAliases: {},
-    });
+    jest
+      .mocked(useTraceMetricItemAttributes)
+      .mockReturnValue({attributes: {}, isLoading: false, secondaryAliases: {}});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
@@ -119,6 +117,244 @@ describe('Visualize', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  it.each([
+    {dataset: WidgetType.SPANS, aggregate: 'avg(span.duration)'},
+    {dataset: WidgetType.TRACEMETRICS, aggregate: 'sum(value,alpha_metric,counter,none)'},
+  ])(
+    'edits and persists transformations for $dataset series',
+    async ({dataset, aggregate}) => {
+      organization.features.push('explore-interpolation-and-smoothing');
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {data: []},
+      });
+      const {router} = render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {
+                dataset,
+                displayType: DisplayType.LINE,
+                yAxis: [aggregate, aggregate],
+              },
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
+        }
+      );
+
+      await userEvent.click(
+        (await screen.findAllByRole('button', {name: 'Add Transformation'}))[1]!
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Fill'}));
+      await waitFor(() => {
+        expect(router.location.query.transformations).toBe('[{"1":["fill(zero)"]}]');
+      });
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'explore.visualize.transformation.added',
+        expect.objectContaining({source: 'dashboards', transformation_index: 0})
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Remove transformation'}));
+      await waitFor(() => {
+        expect(router.location.query.transformations).toBe('[{}]');
+      });
+    }
+  );
+
+  it.each([
+    {
+      name: 'disabled feature',
+      enabled: false,
+      dataset: WidgetType.SPANS,
+      displayType: DisplayType.LINE,
+    },
+    {
+      name: 'table',
+      enabled: true,
+      dataset: WidgetType.SPANS,
+      displayType: DisplayType.TABLE,
+    },
+    {
+      name: 'transactions',
+      enabled: true,
+      dataset: WidgetType.TRANSACTIONS,
+      displayType: DisplayType.LINE,
+    },
+  ])('hides transformations for $name', async ({enabled, dataset, displayType}) => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization: OrganizationFixture({
+          features: enabled ? ['explore-interpolation-and-smoothing'] : [],
+        }),
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset,
+              displayType,
+              yAxis: ['avg(span.duration)'],
+              field: ['avg(span.duration)'],
+              transformations: '[{"0":["fill(zero)"]}]',
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Add Transformation'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('group', {name: 'Transformation 1'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('edits transformations for span equation series', async () => {
+    organization.features.push('explore-interpolation-and-smoothing');
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['count(span.duration)', 'equation|count(span.duration) * 2'],
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    const addButtons = await screen.findAllByRole('button', {name: 'Add Transformation'});
+    expect(addButtons).toHaveLength(2);
+    await userEvent.click(addButtons[1]!);
+    await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+
+    await waitFor(() => {
+      expect(router.location.query.transformations).toBe('[{"1":["smooth(sma,3)"]}]');
+    });
+  });
+
+  it('keeps separate transformations for metric series and equation modes', async () => {
+    organization.features.push('explore-interpolation-and-smoothing');
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <TraceMetricsVisualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.LINE,
+              yAxis: ['sum(value,alpha_metric,counter,none)'],
+              transformations: '[{"0":["fill(zero)"]}]',
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    expect(await screen.findByRole('button', {name: 'Fill method'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', {name: 'Equation'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Add Transformation'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+    await waitFor(() => {
+      expect(router.location.query.transformations).toBe('[{"0":["smooth(sma,3)"]}]');
+    });
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Series'}));
+    expect(await screen.findByRole('button', {name: 'Fill method'})).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.query.transformations).toBe('[{"0":["fill(zero)"]}]');
+    });
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Equation'}));
+    expect(
+      await screen.findByRole('button', {name: 'Smoothing method'})
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.query.transformations).toBe('[{"0":["smooth(sma,3)"]}]');
+    });
+  });
+
+  it('restores per-filter transformations after switching through metric equation mode', async () => {
+    organization.features.push('explore-interpolation-and-smoothing');
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <TraceMetricsVisualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.LINE,
+              yAxis: ['sum(value,alpha_metric,counter,none)'],
+              query: ['environment:production', 'environment:development'],
+              transformations: '[{"0":["fill(zero)"]},{"0":["smooth(sma,3)"]}]',
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+    expect(await screen.findByRole('button', {name: 'Add Transformation'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Fill method'})).toHaveTextContent('Zero');
+    await userEvent.click(screen.getByRole('radio', {name: 'Equation'}));
+    expect(
+      await screen.findByRole('button', {name: 'Add Transformation'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('group', {name: 'Transformation 1'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', {name: 'Series'}));
+    expect(await screen.findByRole('button', {name: 'Fill method'})).toHaveTextContent(
+      'Zero'
+    );
+    await waitFor(() => {
+      expect(router.location.query.transformations).toBe(
+        '[{"0":["fill(zero)"]},{"0":["smooth(sma,3)"]}]'
+      );
+      expect(router.location.query.query).toEqual([
+        'environment:production',
+        'environment:development',
+      ]);
+    });
   });
 
   it('renders basic aggregates correctly from the URL params', async () => {
@@ -171,8 +407,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['max(spans.db)'],
-              dataset: WidgetType.TRANSACTIONS,
+              yAxis: ['count()'],
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.LINE,
             },
           },
@@ -202,8 +438,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['max(spans.db)'],
-              dataset: WidgetType.TRANSACTIONS,
+              yAxis: ['count_unique(user)'],
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.LINE,
             },
           },
@@ -233,8 +469,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['count()'],
-              dataset: WidgetType.TRANSACTIONS,
+              yAxis: ['count(span.duration)'],
+              dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
             },
           },
@@ -243,12 +479,14 @@ describe('Visualize', () => {
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
     await userEvent.click(screen.getByRole('option', {name: 'p95'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toBeEnabled();
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'transaction.duration'
+      'span.duration'
     );
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
       'p95'
@@ -292,8 +530,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['max(spans.db)'],
-              dataset: WidgetType.TRANSACTIONS,
+              yAxis: ['max(span.self_time)'],
+              dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
             },
           },
@@ -302,11 +540,13 @@ describe('Visualize', () => {
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
     await userEvent.click(screen.getByRole('option', {name: 'p95'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'spans.db'
+      'span.self_time'
     );
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
       'p95'
@@ -325,7 +565,7 @@ describe('Visualize', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               yAxis: ['count()'],
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.LINE,
             },
           },
@@ -394,7 +634,7 @@ describe('Visualize', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               field: ['count()'],
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.TABLE,
             },
           },
@@ -403,7 +643,9 @@ describe('Visualize', () => {
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
     await userEvent.click(screen.getByRole('option', {name: 'field'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
@@ -425,8 +667,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['count()'],
-              dataset: WidgetType.TRANSACTIONS,
+              field: ['count(span.duration)'],
+              dataset: WidgetType.SPANS,
               displayType: DisplayType.TABLE,
             },
           },
@@ -435,11 +677,13 @@ describe('Visualize', () => {
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
     await userEvent.click(screen.getByRole('option', {name: 'p50'}));
 
     // Indicate that the column selection is open, and multiple options are available
-    const option = await screen.findByRole('option', {name: 'transaction.duration'});
+    const option = await screen.findByRole('option', {name: 'span.duration'});
     expect(option).toBeInTheDocument();
     expect(screen.getAllByRole('option').length).toBeGreaterThan(1);
   });
@@ -456,7 +700,7 @@ describe('Visualize', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               field: ['count()'],
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.TABLE,
             },
           },
@@ -484,8 +728,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['transaction.duration'],
-              dataset: WidgetType.TRANSACTIONS,
+              yAxis: ['span.duration'],
+              dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
             },
           },
@@ -494,11 +738,13 @@ describe('Visualize', () => {
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
     await userEvent.click(screen.getByRole('option', {name: 'p95'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'transaction.duration'
+      'span.duration'
     );
   });
 
@@ -513,8 +759,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['max(spans.db)'],
-              dataset: WidgetType.TRANSACTIONS,
+              field: ['max(span.self_time)'],
+              dataset: WidgetType.SPANS,
               displayType: DisplayType.TABLE,
             },
           },
@@ -523,11 +769,13 @@ describe('Visualize', () => {
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
     await userEvent.click(screen.getByRole('option', {name: 'p95'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'spans.db'
+      'span.self_time'
     );
   });
 
@@ -542,8 +790,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['count_if(transaction.duration,equals,testValue)'],
-              dataset: WidgetType.TRANSACTIONS,
+              field: ['count_if(user,equals,testValue)'],
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.TABLE,
             },
           },
@@ -552,7 +800,9 @@ describe('Visualize', () => {
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
     await userEvent.click(screen.getByRole('option', {name: 'count'}));
 
     expect(
@@ -577,8 +827,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['count_if(transaction.duration,equals,testValue)'],
-              dataset: WidgetType.TRANSACTIONS,
+              field: ['count_if(user,equals,testValue)'],
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.TABLE,
             },
           },
@@ -587,50 +837,23 @@ describe('Visualize', () => {
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
-    await userEvent.click(screen.getByRole('option', {name: 'count_miserable'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'count_unique'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
       'user'
     );
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
-      'count_miserable'
+      'count_unique'
     );
-    expect(screen.getByDisplayValue('300')).toBeInTheDocument();
+    expect(screen.queryByText('is equal to')).not.toBeInTheDocument();
     await waitFor(() => {
       expect(router.location.query).toEqual(
-        expect.objectContaining({field: 'count_miserable(user,300)'})
+        expect.objectContaining({field: 'count_unique(user)'})
       );
     });
-  });
-
-  it('adds the default value for an aggregate with 2 parameters', async () => {
-    render(
-      <WidgetBuilderProvider>
-        <Visualize />
-      </WidgetBuilderProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              field: ['transaction.duration'],
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.TABLE,
-            },
-          },
-          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
-        },
-      }
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
-    await userEvent.click(screen.getByRole('option', {name: 'count_miserable'}));
-
-    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'user'
-    );
   });
 
   it('adds the default values for an aggregate with 3 parameters', async () => {
@@ -644,8 +867,8 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['transaction'],
-              dataset: WidgetType.TRANSACTIONS,
+              field: ['title'],
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.TABLE,
             },
           },
@@ -654,17 +877,19 @@ describe('Visualize', () => {
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
     await userEvent.click(screen.getByRole('option', {name: 'count_if'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'transaction'
+      'title'
     );
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
       'count_if'
     );
     expect(screen.getByText('is equal to')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('300')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('error')).toBeInTheDocument();
   });
 
   it('disables the aggregate selection for issue widgets', async () => {
@@ -789,9 +1014,9 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.SPANS,
               displayType: DisplayType.TABLE,
-              field: ['p50(transaction.duration)'],
+              field: ['p50(span.duration)'],
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -800,9 +1025,7 @@ describe('Visualize', () => {
     );
 
     expect(await screen.findByLabelText('Aggregate Selection')).toHaveTextContent('p50');
-    expect(screen.getByLabelText('Column Selection')).toHaveTextContent(
-      'transaction.duration'
-    );
+    expect(screen.getByLabelText('Column Selection')).toHaveTextContent('span.duration');
 
     // Add 3 fields
     await userEvent.click(screen.getByRole('button', {name: 'Add Column'}));
@@ -810,15 +1033,15 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Add Column'}));
 
     // count() is the default aggregate when adding a field
-    expect(screen.getAllByText('count_unique')).toHaveLength(3);
+    expect(screen.getAllByText('count')).toHaveLength(3);
 
     // Change the last field
-    await userEvent.click(screen.getAllByText('count_unique')[2]!);
+    await userEvent.click(screen.getAllByText('count')[2]!);
     await userEvent.click(screen.getByRole('option', {name: 'epm'}));
 
     // The other fields should not be affected
     expect(screen.getByText('p50')).toBeInTheDocument();
-    expect(screen.getAllByText('count_unique')).toHaveLength(2);
+    expect(screen.getAllByText('count')).toHaveLength(2);
     expect(screen.getAllByText('epm')).toHaveLength(1);
   });
 
@@ -891,11 +1114,7 @@ describe('Visualize', () => {
     // on it.
     render(
       <WidgetBuilderProvider>
-        <Visualize
-          error={{
-            queries: 'some validation error' as any,
-          }}
-        />
+        <Visualize error={{queries: 'some validation error' as any}} />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -927,7 +1146,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.BIG_NUMBER,
               field: ['count_unique(user)'],
             },
@@ -1018,7 +1237,7 @@ describe('Visualize', () => {
         initialRouterConfig: {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {dataset: WidgetType.TRANSACTIONS, field: ['transaction.duration']},
+            query: {dataset: WidgetType.ERRORS, field: ['message']},
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
@@ -1117,29 +1336,6 @@ describe('Visualize', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('resets the text box value when swapping between apdex and user_misery', async () => {
-    render(
-      <WidgetBuilderProvider>
-        <Visualize />
-      </WidgetBuilderProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {dataset: WidgetType.TRANSACTIONS, field: ['apdex(9999)']},
-          },
-          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
-        },
-      }
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
-    await userEvent.click(screen.getByRole('option', {name: 'user_misery'}));
-
-    expect(screen.getByRole('textbox', {name: 'Numeric Input'})).toHaveValue('300');
-  });
-
   it('does not allow for deleting the only field or aggregate when there is an equation', async () => {
     render(
       <WidgetBuilderProvider>
@@ -1191,6 +1387,54 @@ describe('Visualize', () => {
     );
   });
 
+  it('moves transformations with their series when series are reordered', async () => {
+    // dnd-kit's keyboard sensor needs distinct element positions to find a drop target
+    const rectSpy = jest
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockImplementation(function (this: Element) {
+        const siblings = this.parentElement
+          ? Array.from(this.parentElement.children)
+          : [];
+        const top = Math.max(siblings.indexOf(this), 0) * 50;
+        return DOMRect.fromRect({x: 0, y: top, width: 300, height: 40});
+      });
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['avg(span.duration)', 'count(span.duration)'],
+              transformations: '[{"0":["fill(zero)"]}]',
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    const [firstHandle] = await screen.findAllByRole('button', {name: 'Drag to reorder'});
+    act(() => firstHandle!.focus());
+    await userEvent.keyboard(' ');
+    await userEvent.keyboard('{ArrowDown}{ArrowDown}');
+    await userEvent.keyboard(' ');
+
+    await waitFor(() => {
+      expect(router.location.query.yAxis).toEqual([
+        'count(span.duration)',
+        'avg(span.duration)',
+      ]);
+    });
+    expect(router.location.query.transformations).toBe('[{"1":["fill(zero)"]}]');
+    rectSpy.mockRestore();
+  });
+
   it('allows for selecting a column from the aggregate dropdown', async () => {
     render(
       <WidgetBuilderProvider>
@@ -1201,7 +1445,7 @@ describe('Visualize', () => {
         initialRouterConfig: {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {dataset: WidgetType.TRANSACTIONS, field: ['count()']},
+            query: {dataset: WidgetType.ERRORS, field: ['count()']},
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
@@ -1290,8 +1534,9 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              dataset: WidgetType.TRANSACTIONS,
-              field: ['p50(transaction.duration)'],
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.TABLE,
+              field: ['p50(span.duration)'],
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,
@@ -1301,8 +1546,8 @@ describe('Visualize', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Column Selection'}));
     // Assert options that are strings, not typically valid for p50, are rendered but disabled
-    expect(screen.getByRole('option', {name: 'message'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'message'})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: 'span.op'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'span.op'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
@@ -1569,9 +1814,7 @@ describe('Visualize', () => {
           <Visualize />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['performance-view', 'visibility-explore-view'],
-          }),
+          organization: OrganizationFixture({features: ['visibility-explore-view']}),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -1672,9 +1915,7 @@ describe('Visualize', () => {
           <Visualize />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['performance-view', 'visibility-explore-view'],
-          }),
+          organization: OrganizationFixture({features: ['visibility-explore-view']}),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -1775,18 +2016,14 @@ describe('Visualize', () => {
 
       expect(screen.getByLabelText('Enter an equation')).toBeInTheDocument();
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
       await userEvent.type(input, 'avg(');
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
 
       await waitFor(() => {
@@ -1825,18 +2062,14 @@ describe('Visualize', () => {
 
       expect(screen.getByLabelText('Enter an equation')).toBeInTheDocument();
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
       await userEvent.type(input, 'avg(');
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
 
       await waitFor(() => {
@@ -2314,17 +2547,13 @@ describe('Visualize', () => {
     ).toHaveTextContent('span.op');
   });
 
-  it('disables visualize step when discover-saved-queries-deprecation feature is enabled and dataset is transactions', async () => {
-    const organizationWithDeprecation = OrganizationFixture({
-      features: ['discover-saved-queries-deprecation'],
-    });
-
+  it('disables visualize step when dataset is transactions', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
       </WidgetBuilderProvider>,
       {
-        organization: organizationWithDeprecation,
+        organization,
         initialRouterConfig: {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -2347,6 +2576,36 @@ describe('Visualize', () => {
 
     const columnSelect = await screen.findByRole('button', {name: 'Column Selection'});
     expect(columnSelect).toBeDisabled();
+  });
+
+  it('enables visualize step for non-transaction datasets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['p95(span.duration)'],
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    const aggregateSelect = await screen.findByRole('button', {
+      name: 'Aggregate Selection',
+    });
+    expect(aggregateSelect).toBeEnabled();
+
+    const columnSelect = await screen.findByRole('button', {name: 'Column Selection'});
+    expect(columnSelect).toBeEnabled();
   });
 
   it('duplicates the last y-axis when adding a series for trace metrics timeseries chart', async () => {
@@ -2393,9 +2652,7 @@ describe('Visualize', () => {
     // Click "Add Series"
     await userEvent.click(screen.getByRole('button', {name: 'Add Series'}));
 
-    const metricSelectors = await screen.findAllByRole('button', {
-      name: 'alpha_metric',
-    });
+    const metricSelectors = await screen.findAllByRole('button', {name: 'alpha_metric'});
     expect(metricSelectors).toHaveLength(2);
     expect(metricSelectors[0]).toHaveTextContent('alpha_metric');
     expect(metricSelectors[1]).toHaveTextContent('alpha_metric');
@@ -2443,6 +2700,51 @@ describe('Visualize', () => {
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
       'span.op'
     );
+  });
+
+  it('explains why adding a column is disabled at the metric cap', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            'metric.name': 'alpha_metric',
+            'metric.type': 'counter',
+            'count(metric.name)': 1,
+          },
+        ],
+      },
+    });
+
+    render(<Visualize />, {
+      organization,
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            field: Array.from(
+              {length: MAX_METRICS_ALLOWED},
+              () => 'sum(value,alpha_metric,counter,none)'
+            ),
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.TABLE,
+          },
+        },
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
+
+    const addColumn = await screen.findByRole('button', {name: 'Add Column'});
+    // The tooltip keeps the button hoverable, so it is aria-disabled instead
+    expect(addColumn).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.hover(addColumn);
+    expect(
+      await screen.findByText(
+        `A widget can have up to ${MAX_METRICS_ALLOWED} metrics and equations.`
+      )
+    ).toBeInTheDocument();
   });
 
   it('lets users switch trace metrics table columns between aggregates and fields', async () => {
@@ -2508,40 +2810,5 @@ describe('Visualize', () => {
         })
       );
     });
-  });
-
-  it('enables visualize step when discover-saved-queries-deprecation feature is disabled', async () => {
-    const organizationWithoutDeprecation = OrganizationFixture({
-      features: [], // No discover-saved-queries-deprecation feature
-    });
-
-    render(
-      <WidgetBuilderProvider>
-        <Visualize />
-      </WidgetBuilderProvider>,
-      {
-        organization: organizationWithoutDeprecation,
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.LINE,
-              yAxis: ['p95(transaction.duration)'],
-            },
-          },
-          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
-        },
-      }
-    );
-
-    // The dropdowns should be enabled
-    const aggregateSelect = await screen.findByRole('button', {
-      name: 'Aggregate Selection',
-    });
-    expect(aggregateSelect).toBeEnabled();
-
-    const columnSelect = await screen.findByRole('button', {name: 'Column Selection'});
-    expect(columnSelect).toBeEnabled();
   });
 });

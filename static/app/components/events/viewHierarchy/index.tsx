@@ -1,11 +1,9 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {Node} from 'sentry/components/events/viewHierarchy/node';
-import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import type {UseVirtualizedTreeProps} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
@@ -14,7 +12,9 @@ import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useV
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {DetailsPanel} from './detailsPanel';
+import {Node} from './node';
 import {RenderingSystem} from './renderingSystem';
+import {Wireframe} from './wireframe';
 
 function getNodeLabel({
   node,
@@ -37,10 +37,7 @@ function onScrollToNode(
     // When a user keyboard navigates to a node that's rendered in the "overscroll"
     const lastCell = node.ref?.lastChild as HTMLElement | null | undefined;
     if (lastCell) {
-      lastCell.scrollIntoView({
-        block: 'nearest',
-        inline: 'nearest',
-      });
+      lastCell.scrollIntoView({block: 'nearest', inline: 'nearest'});
     }
   } else if (coordinates) {
     // When a user clicks on a wireframe node that's not rendered in the "overscroll"
@@ -48,14 +45,10 @@ function onScrollToNode(
     const left = coordinates.depth * 16;
     if (Array.isArray(scrollContainer)) {
       scrollContainer.forEach(container => {
-        container.scrollBy({
-          left,
-        });
+        container.scrollBy({left});
       });
     } else if (scrollContainer) {
-      scrollContainer.scrollBy({
-        left,
-      });
+      scrollContainer.scrollBy({left});
     }
   }
 }
@@ -211,11 +204,15 @@ function ViewHierarchy({
           <TreeContainer>
             <div ref={hoveredGhostRowRef} />
             <div ref={clickedGhostRowRef} />
-            <ScrollContainer ref={setScrollContainerRef} style={scrollContainerStyles}>
-              <RenderedItemsContainer style={containerStyles}>
+            <Container
+              padding="0 lg lg lg"
+              ref={setScrollContainerRef}
+              style={scrollContainerStyles}
+            >
+              <Container position="relative" style={containerStyles}>
                 {renderedItems}
-              </RenderedItemsContainer>
-            </ScrollContainer>
+              </Container>
+            </Container>
           </TreeContainer>
           {defined(selectedNode) && (
             <DetailsContainer>
@@ -241,15 +238,14 @@ function ViewHierarchy({
     </Fragment>
   );
 
-  return <Container>{viewHierarchyContent}</Container>;
+  return (
+    <Container marginLeft="xl" position="relative">
+      {viewHierarchyContent}
+    </Container>
+  );
 }
 
 export {ViewHierarchy};
-
-const Container = styled('div')`
-  position: relative;
-  margin-left: ${p => p.theme.space.xl};
-`;
 
 const Left = styled('div')<{hasRight?: boolean}>`
   width: ${p => (p.hasRight ? '40%' : '100%')};
@@ -280,14 +276,6 @@ const DetailsContainer = styled('div')`
   border: 1px solid ${p => p.theme.colors.gray100};
   border-radius: ${p => p.theme.radius.md};
   overflow: auto;
-`;
-
-const ScrollContainer = styled('div')`
-  padding: 0 ${p => p.theme.space.lg} ${p => p.theme.space.lg} ${p => p.theme.space.lg};
-`;
-
-const RenderedItemsContainer = styled('div')`
-  position: relative;
 `;
 
 const TreeItem = styled('div')`

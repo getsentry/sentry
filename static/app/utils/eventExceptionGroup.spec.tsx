@@ -2,11 +2,12 @@ import {EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryChainedE
 import {ExceptionValueFixture} from 'sentry-fixture/exceptionValue';
 
 import {EntryType} from 'sentry/types/event';
+
 import {
   buildExceptionGroupTree,
   getExceptionGroupHeight,
   getExceptionGroupWidth,
-} from 'sentry/utils/eventExceptionGroup';
+} from './eventExceptionGroup';
 
 describe('eventExceptionGroup', () => {
   describe('buildExceptionGroupTree', () => {
@@ -15,29 +16,15 @@ describe('eventExceptionGroup', () => {
 
       expect(buildExceptionGroupTree(exception)).toEqual([
         {
-          value: expect.objectContaining({
-            type: 'ExceptionGroup 1',
-          }),
+          value: expect.objectContaining({type: 'ExceptionGroup 1'}),
           children: [
             {
-              value: expect.objectContaining({
-                type: 'ExceptionGroup 2',
-              }),
+              value: expect.objectContaining({type: 'ExceptionGroup 2'}),
               children: [
-                {
-                  value: expect.objectContaining({
-                    type: 'ValueError',
-                  }),
-                  children: [],
-                },
+                {value: expect.objectContaining({type: 'ValueError'}), children: []},
               ],
             },
-            {
-              value: expect.objectContaining({
-                type: 'TypeError',
-              }),
-              children: [],
-            },
+            {value: expect.objectContaining({type: 'TypeError'}), children: []},
           ],
         },
       ]);
@@ -54,11 +41,7 @@ describe('eventExceptionGroup', () => {
       expect(
         getExceptionGroupHeight({
           type: EntryType.EXCEPTION,
-          data: {
-            excOmitted: null,
-            hasSystemFrames: false,
-            values: [],
-          },
+          data: {excOmitted: null, hasSystemFrames: false, values: []},
         })
       ).toBe(0);
     });
@@ -162,11 +145,7 @@ describe('eventExceptionGroup', () => {
       expect(
         getExceptionGroupWidth({
           type: EntryType.EXCEPTION,
-          data: {
-            excOmitted: null,
-            hasSystemFrames: false,
-            values: [],
-          },
+          data: {excOmitted: null, hasSystemFrames: false, values: []},
         })
       ).toBe(0);
     });

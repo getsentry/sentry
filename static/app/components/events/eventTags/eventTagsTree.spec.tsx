@@ -28,7 +28,7 @@ describe('EventTagsTree', () => {
     {key: 'magic.is', value: 'real'},
     {key: 'magic.is.probably.not', value: 'spells'},
     {key: 'double..dot', value: 'works'},
-    {key: 'im.a.bit.too.nested.to.display', value: 'bird'},
+    {key: 'very.deeply.nested.key.still.displays', value: 'bird'},
   ];
   const pillOnlyTags = [
     'app.app_start_time',
@@ -41,8 +41,18 @@ describe('EventTagsTree', () => {
     'favorite.game',
     'magic.is',
     'magic.is.probably.not',
+    'very.deeply.nested.key.still.displays',
   ];
-  const emptyBranchTags = ['favorite', 'magic', 'probably'];
+  const emptyBranchTags = [
+    'favorite',
+    'magic',
+    'probably',
+    'very',
+    'deeply',
+    'nested',
+    'key',
+    'still',
+  ];
   const treeBranchTags = [
     'app_start_time',
     'app_name',
@@ -56,7 +66,7 @@ describe('EventTagsTree', () => {
     'is',
     'not',
     'double..dot',
-    'im.a.bit.too.nested.to.display',
+    'displays',
   ].concat(emptyBranchTags);
 
   const event = EventFixture({tags});
@@ -86,9 +96,7 @@ describe('EventTagsTree', () => {
   });
 
   it('renders tag tree', async () => {
-    render(<EventTags projectSlug={project.slug} event={event} />, {
-      organization,
-    });
+    render(<EventTags projectSlug={project.slug} event={event} />, {organization});
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByText(tags[0]!.value)).toBeInTheDocument();
     tags.slice(1).forEach(({value}) => {
@@ -133,12 +141,8 @@ describe('EventTagsTree', () => {
   it('renders release tag differently', async () => {
     const releaseVersion = 'v1.0';
 
-    const releaseEvent = EventFixture({
-      tags: [{key: 'release', value: releaseVersion}],
-    });
-    render(<EventTags projectSlug={project.slug} event={releaseEvent} />, {
-      organization,
-    });
+    const releaseEvent = EventFixture({tags: [{key: 'release', value: releaseVersion}]});
+    render(<EventTags projectSlug={project.slug} event={releaseEvent} />, {organization});
     expect(mockDetailedProject).toHaveBeenCalled();
     const versionText = await screen.findByText<
       HTMLElement & {parentElement: HTMLAnchorElement}
@@ -190,10 +194,7 @@ describe('EventTagsTree', () => {
   ])(
     "renders unique links for '$tag.key' tag",
     async ({tag, labelText, validateLink}) => {
-      const uniqueTagsEvent = EventFixture({
-        tags: [tag],
-        projectID: project.id,
-      });
+      const uniqueTagsEvent = EventFixture({tags: [tag], projectID: project.id});
       render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
         organization,
       });
@@ -209,24 +210,11 @@ describe('EventTagsTree', () => {
     const errorTagEvent = EventFixture({
       _meta: {
         tags: {
-          0: {
-            value: {
-              '': {
-                err: ['value_too_long'],
-              },
-            },
-          },
+          0: {value: {'': {err: ['value_too_long']}}},
           2: {
             value: {
               '': {
-                err: [
-                  [
-                    'invalid_data',
-                    {
-                      reason: "invalid character '\\n'",
-                    },
-                  ],
-                ],
+                err: [['invalid_data', {reason: "invalid character '\\n'"}]],
                 val: 'invalid\ncharacters\n🇨🇦🔥🤡',
               },
             },
@@ -323,9 +311,7 @@ describe('EventTagsTree', () => {
   });
 
   it("renders 'Add to event highlights' option based on permissions", async () => {
-    const readAccessOrganization = OrganizationFixture({
-      access: ['org:read'],
-    });
+    const readAccessOrganization = OrganizationFixture({access: ['org:read']});
     const highlightsEvent = EventFixture({
       tags: [{key: 'useless-tag', value: 'not so much'}],
     });

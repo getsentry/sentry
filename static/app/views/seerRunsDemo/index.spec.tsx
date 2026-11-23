@@ -112,6 +112,52 @@ describe('SeerRunsDemo', () => {
     expect(screen.getByText('mine')).toBeInTheDocument();
   });
 
+  it('requests the default query when the URL query is empty', async () => {
+    const request = mockRuns([]);
+
+    render(<SeerRunsDemo />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/autofix/runs/`,
+          query: {query: ''},
+        },
+      },
+    });
+
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({query: 'type:explorer source:autofix'}),
+        })
+      )
+    );
+  });
+
+  it('pushes the query without the cursor when searching', async () => {
+    mockRuns([]);
+    const {router} = render(<SeerRunsDemo />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/autofix/runs/`,
+          query: {query: 'is:mine', cursor: '0:25:0'},
+        },
+      },
+    });
+    await screen.findByText('No Seer runs found for this organization.');
+
+    await userEvent.type(
+      screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)!,
+      'is:agent{enter}'
+    );
+    await waitFor(() =>
+      expect(router.location.query).toEqual({query: 'is:mine is:agent'})
+    );
+    expect(router.historyAction).toBe('PUSH');
+  });
+
   it('shows an empty state when there are no runs', async () => {
     mockRuns([]);
 

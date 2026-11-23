@@ -44,24 +44,14 @@ describe('useSpansSeriesQuery', () => {
     const endDate = new Date('2026-01-21T00:00:00.000Z');
 
     const pageFiltersWithDates = PageFiltersFixture({
-      datetime: {
-        start: startDate,
-        end: endDate,
-        period: null,
-        utc: true,
-      },
+      datetime: {start: startDate, end: endDate, period: null, utc: true},
     });
 
     PageFiltersStore.onInitializeUrlState(pageFiltersWithDates);
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [
-          [1, [{count: 100}]],
-          [2, [{count: 200}]],
-        ],
-      },
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
     });
 
     renderHookWithProviders(() =>
@@ -75,7 +65,7 @@ describe('useSpansSeriesQuery', () => {
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
             start: '2026-01-14T00:00:00',
@@ -101,8 +91,8 @@ describe('useSpansSeriesQuery', () => {
       ],
     });
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {},
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
     });
 
     renderHookWithProviders(() =>
@@ -111,7 +101,7 @@ describe('useSpansSeriesQuery', () => {
 
     await waitFor(() =>
       expect(mockRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({query: expect.objectContaining({excludeOther: '1'})})
       )
     );
@@ -133,10 +123,8 @@ describe('useSpansSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [[1, [{count: 100}]]],
-      },
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
     });
 
     renderHookWithProviders(() =>
@@ -144,16 +132,14 @@ describe('useSpansSeriesQuery', () => {
         widget,
         organization,
         pageFilters,
-        dashboardFilters: {
-          release: ['1.0.0'],
-        },
+        dashboardFilters: {release: ['1.0.0']},
         enabled: true,
       })
     );
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
             query: expect.stringContaining('release:"1.0.0"'),
@@ -187,10 +173,8 @@ describe('useSpansSeriesQuery', () => {
     });
 
     const mockRequest1 = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [[1, [{count: 100}]]],
-      },
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
       match: [
         function (_url: string, options: Record<string, any>) {
           const yAxis = Array.isArray(options.query.yAxis)
@@ -202,10 +186,8 @@ describe('useSpansSeriesQuery', () => {
     });
 
     const mockRequest2 = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [[1, [{count: 250}]]],
-      },
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'avg(transaction.duration)'})]},
       match: [
         function (_url: string, options: Record<string, any>) {
           const yAxis = Array.isArray(options.query.yAxis)
@@ -217,12 +199,7 @@ describe('useSpansSeriesQuery', () => {
     });
 
     renderHookWithProviders(() =>
-      useSpansSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useSpansSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -247,19 +224,12 @@ describe('useSpansSeriesQuery', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [[1, [{count: 100}]]],
-      },
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
     });
 
     const {result} = renderHookWithProviders(() =>
-      useSpansSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useSpansSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     expect(result.current.loading).toBe(true);
@@ -281,20 +251,13 @@ describe('useSpansSeriesQuery', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        detail: 'Internal server error',
-      },
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {detail: 'Internal server error'},
       statusCode: 500,
     });
 
     const {result} = renderHookWithProviders(() =>
-      useSpansSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useSpansSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -320,17 +283,12 @@ describe('useSpansSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {},
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
     });
 
     const {result} = renderHookWithProviders(() =>
-      useSpansSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useSpansSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -365,22 +323,12 @@ describe('useSpansSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [
-          [1, [{count: 100}]],
-          [2, [{count: 200}]],
-        ],
-      },
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
     });
 
     const {result} = renderHookWithProviders(() =>
-      useSpansSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useSpansSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -419,16 +367,11 @@ describe('useSpansSeriesQuery', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {data: [[1, [{count: 100}]]]},
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
     });
 
-    const initialProps = {
-      widget,
-      organization,
-      pageFilters,
-      enabled: true,
-    };
+    const initialProps = {widget, organization, pageFilters, enabled: true};
     const {result, rerender} = renderHookWithProviders(useSpansSeriesQuery, {
       initialProps,
     });
@@ -459,38 +402,26 @@ describe('useSpansSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [
-          [1, [{count: 100}]],
-          [2, [{count: 200}]],
-        ],
-      },
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
     });
 
     renderHookWithProviders(() =>
-      useSpansSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useSpansSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalled();
     });
     expect(mockRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
-        query: expect.objectContaining({
-          yAxis: ['avg(span.duration)'],
-        }),
+        query: expect.objectContaining({yAxis: ['avg(span.duration)']}),
       })
     );
   });
 
-  it('keeps fieldMeta aligned when a stripped _if aggregate was not last', async () => {
+  it('reads series types and units from the response', async () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,
       widgetType: WidgetType.SPANS,
@@ -512,37 +443,36 @@ describe('useSpansSeriesQuery', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [
-          [1, [{count: 100}]],
-          [2, [{count: 200}]],
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'p95(span.duration)',
+            meta: {
+              valueType: 'duration',
+              valueUnit: DurationUnit.MILLISECOND,
+              interval: 1000,
+            },
+          }),
         ],
       },
     });
 
     const {result} = renderHookWithProviders(() =>
-      useSpansSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useSpansSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(result.current.timeseriesResultsUnits?.['p95(span.duration)']).toBe(
-      DurationUnit.MILLISECOND
+    expect(result.current.timeseriesResults).toHaveLength(1);
+    expect(result.current.timeseriesResults![0]!.timeSeries.meta).toEqual(
+      expect.objectContaining({
+        valueType: 'duration',
+        valueUnit: DurationUnit.MILLISECOND,
+      })
     );
-    expect(result.current.timeseriesResultsTypes?.['p95(span.duration)']).toBe(
-      'duration'
-    );
-    expect(
-      result.current.timeseriesResultsUnits?.['avg_if(``,span.duration)']
-    ).toBeUndefined();
   });
 
   it('retargets orderby when it pointed at a stripped invalid _if aggregate', async () => {
@@ -563,39 +493,29 @@ describe('useSpansSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [
-          [1, [{count: 100}]],
-          [2, [{count: 200}]],
-        ],
-      },
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
     });
 
     renderHookWithProviders(() =>
-      useSpansSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useSpansSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalled();
     });
     expect(mockRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         query: expect.objectContaining({
-          orderby: '-avg(span.duration)',
+          sort: '-avg(span.duration)',
           field: expect.not.arrayContaining(['avg_if(``,span.duration)']),
         }),
       })
     );
   });
 
-  it('makes a request to the events-timeseries endpoint when enabled', async () => {
+  it('returns the transformed series', async () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,
       widgetType: WidgetType.SPANS,
@@ -617,14 +537,7 @@ describe('useSpansSeriesQuery', () => {
     });
 
     const {result} = renderHookWithProviders(() =>
-      useSpansSeriesQuery({
-        widget,
-        organization: OrganizationFixture({
-          features: ['dashboards-widgets-use-events-timeseries'],
-        }),
-        pageFilters,
-        enabled: true,
-      })
+      useSpansSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -669,21 +582,14 @@ describe('useSpansTableQuery', () => {
     const endDate = new Date('2026-01-21T00:00:00.000Z');
 
     const pageFiltersWithDates = PageFiltersFixture({
-      datetime: {
-        start: startDate,
-        end: endDate,
-        period: null,
-        utc: true,
-      },
+      datetime: {start: startDate, end: endDate, period: null, utc: true},
     });
 
     PageFiltersStore.onInitializeUrlState(pageFiltersWithDates);
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{transaction: '/api/test', 'count()': 100}],
-      },
+      body: {data: [{transaction: '/api/test', 'count()': 100}]},
     });
 
     renderHookWithProviders(() =>
@@ -725,18 +631,11 @@ describe('useSpansTableQuery', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{transaction: '/api/test', 'count()': 100}],
-      },
+      body: {data: [{transaction: '/api/test', 'count()': 100}]},
     });
 
     const {result} = renderHookWithProviders(() =>
-      useSpansTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useSpansTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -761,9 +660,7 @@ describe('useSpansTableQuery', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{transaction: '/api/test', 'count()': 100}],
-      },
+      body: {data: [{transaction: '/api/test', 'count()': 100}]},
     });
 
     renderHookWithProviders(() =>
@@ -771,9 +668,7 @@ describe('useSpansTableQuery', () => {
         widget,
         organization,
         pageFilters,
-        dashboardFilters: {
-          release: ['1.0.0'],
-        },
+        dashboardFilters: {release: ['1.0.0']},
         enabled: true,
       })
     );
@@ -807,9 +702,7 @@ describe('useSpansTableQuery', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{transaction: '/api/test', 'count()': 100}],
-      },
+      body: {data: [{transaction: '/api/test', 'count()': 100}]},
     });
 
     renderHookWithProviders(() =>
@@ -827,10 +720,7 @@ describe('useSpansTableQuery', () => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            per_page: 50,
-            cursor: 'test-cursor',
-          }),
+          query: expect.objectContaining({per_page: 50, cursor: 'test-cursor'}),
         })
       );
     });
@@ -853,18 +743,11 @@ describe('useSpansTableQuery', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{transaction: '/api/test', 'count()': 100}],
-      },
+      body: {data: [{transaction: '/api/test', 'count()': 100}]},
     });
 
     const {result} = renderHookWithProviders(() =>
-      useSpansTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useSpansTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     expect(result.current.loading).toBe(true);
@@ -887,19 +770,12 @@ describe('useSpansTableQuery', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        detail: 'Internal server error',
-      },
+      body: {detail: 'Internal server error'},
       statusCode: 500,
     });
 
     const {result} = renderHookWithProviders(() =>
-      useSpansTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useSpansTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -934,21 +810,14 @@ describe('useSpansTableQuery', () => {
     });
 
     renderHookWithProviders(() =>
-      useSpansTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useSpansTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            sort: ['-is_starred_transaction', '-count()'],
-          }),
+          query: expect.objectContaining({sort: ['-is_starred_transaction', '-count()']}),
         })
       );
     });
@@ -970,25 +839,16 @@ describe('useSpansTableQuery', () => {
     });
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{transaction: '/api/test', 'count()': 100}],
-      },
+      body: {data: [{transaction: '/api/test', 'count()': 100}]},
     });
     renderHookWithProviders(() =>
-      useSpansTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useSpansTableQuery({widget, organization, pageFilters, enabled: true})
     );
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            sort: ['-is_starred_transaction'],
-          }),
+          query: expect.objectContaining({sort: ['-is_starred_transaction']}),
         })
       );
     });
@@ -1011,28 +871,17 @@ describe('useSpansTableQuery', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{transaction: '/api/test', 'count()': 100}],
-      },
+      body: {data: [{transaction: '/api/test', 'count()': 100}]},
     });
 
     renderHookWithProviders(() =>
-      useSpansTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useSpansTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            sort: ['-count()'],
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({sort: ['-count()']})})
       );
     });
   });
@@ -1055,29 +904,17 @@ describe('useSpansTableQuery', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{transaction: '/api/test', 'count()': 100}],
-      },
+      body: {data: [{transaction: '/api/test', 'count()': 100}]},
     });
 
     renderHookWithProviders(() =>
-      useSpansTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        limit: 15,
-        enabled: true,
-      })
+      useSpansTableQuery({widget, organization, pageFilters, limit: 15, enabled: true})
     );
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            per_page: 15,
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({per_page: 15})})
       );
     });
   });
@@ -1104,12 +941,7 @@ describe('useSpansTableQuery', () => {
     });
 
     const {result} = renderHookWithProviders(() =>
-      useSpansTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useSpansTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -1137,18 +969,11 @@ describe('useSpansTableQuery', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{transaction: '/api/test', 'avg(span.duration)': 100}],
-      },
+      body: {data: [{transaction: '/api/test', 'avg(span.duration)': 100}]},
     });
 
     renderHookWithProviders(() =>
-      useSpansTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useSpansTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -1192,25 +1017,14 @@ describe('useSpansTableQuery', () => {
       body: {
         data: [{transaction: '/api/test', 'p95(span.duration)': 100}],
         meta: {
-          fields: {
-            transaction: 'string',
-            'p95(span.duration)': 'number',
-          },
-          units: {
-            transaction: null,
-            'p95(span.duration)': null,
-          },
+          fields: {transaction: 'string', 'p95(span.duration)': 'number'},
+          units: {transaction: null, 'p95(span.duration)': null},
         },
       },
     });
 
     const {result} = renderHookWithProviders(() =>
-      useSpansTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useSpansTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {

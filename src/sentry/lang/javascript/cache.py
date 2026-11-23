@@ -1,3 +1,5 @@
+from typing import Any
+
 from symbolic.sourcemap import SourceView
 
 from sentry.utils.strings import codec_lookup
@@ -5,38 +7,38 @@ from sentry.utils.strings import codec_lookup
 __all__ = ["SourceCache", "SourceMapCache"]
 
 
-def is_utf8(codec):
+def is_utf8(codec: str) -> bool:
     name = codec_lookup(codec).name
     return name in ("utf-8", "ascii")
 
 
 class SourceCache:
-    def __init__(self):
-        self._cache = {}
-        self._errors = {}
-        self._aliases = {}
+    def __init__(self) -> None:
+        self._cache: dict[str, SourceView] = {}
+        self._errors: dict[str, list[str]] = {}
+        self._aliases: dict[str, str] = {}
 
-    def __contains__(self, url):
+    def __contains__(self, url: str) -> bool:
         url = self._get_canonical_url(url)
         return url in self._cache
 
-    def _get_canonical_url(self, url):
+    def _get_canonical_url(self, url: str) -> str:
         if url in self._aliases:
             url = self._aliases[url]
         return url
 
-    def get(self, url):
+    def get(self, url: str) -> SourceView | None:
         return self._cache.get(self._get_canonical_url(url))
 
-    def get_errors(self, url):
+    def get_errors(self, url: str) -> list[str]:
         url = self._get_canonical_url(url)
         return self._errors.get(url, [])
 
-    def alias(self, alias, target):
+    def alias(self, alias: str, target: str) -> None:
         if alias != target:
             self._aliases[alias] = target
 
-    def add(self, url, source, encoding=None):
+    def add(self, url: str, source: SourceView | str | bytes, encoding: str | None = None) -> None:
         url = self._get_canonical_url(url)
 
         if not isinstance(source, SourceView):
@@ -53,7 +55,7 @@ class SourceCache:
             source = SourceView.from_bytes(source)
         self._cache[url] = source
 
-    def add_error(self, url, error):
+    def add_error(self, url: str, error: str) -> None:
         url = self._get_canonical_url(url)
         self._errors.setdefault(url, [])
         self._errors[url].append(error)
@@ -68,23 +70,23 @@ class SourceMapCache:
         - a source map's url and the map's contents.
     """
 
-    def __init__(self):
-        self._cache = {}
-        self._mapping = {}
+    def __init__(self) -> None:
+        self._cache: dict[str, Any] = {}
+        self._mapping: dict[str, str] = {}
 
-    def __contains__(self, sourcemap_url):
+    def __contains__(self, sourcemap_url: str) -> bool:
         return sourcemap_url in self._cache
 
-    def link(self, url, sourcemap_url):
+    def link(self, url: str, sourcemap_url: str) -> None:
         self._mapping[url] = sourcemap_url
 
-    def add(self, sourcemap_url, sourcemap_view):
+    def add(self, sourcemap_url: str, sourcemap_view: Any) -> None:
         self._cache[sourcemap_url] = sourcemap_view
 
-    def get(self, sourcemap_url):
+    def get(self, sourcemap_url: str) -> Any:
         return self._cache.get(sourcemap_url)
 
-    def get_link(self, url):
+    def get_link(self, url: str) -> tuple[str | None, Any | None]:
         sourcemap_url = self._mapping.get(url)
         if sourcemap_url:
             sourcemap = self.get(sourcemap_url)

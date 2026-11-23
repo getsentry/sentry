@@ -12,8 +12,10 @@ from sentry.users.services.user.service import user_service
 
 
 @extend_schema_field(field=OpenApiTypes.STR)
-class UserField(serializers.Field):
-    def to_representation(self, value: RpcUser) -> str:
+class UserField(serializers.Field[RpcUser | User | None, object, str, object]):
+    def to_representation(self, value: RpcUser | User | None) -> str:
+        if value is None:
+            return ""
         return value.username
 
     def to_internal_value(self, data: Any) -> RpcUser | User | None:

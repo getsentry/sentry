@@ -7,10 +7,10 @@ import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
@@ -29,9 +29,7 @@ import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
 import {getPotentialProductTrial, getSeerTrialCategory} from 'getsentry/utils/billing';
 
-type AiSetupDataConsentProps = {
-  groupId?: string;
-};
+type AiSetupDataConsentProps = {groupId?: string};
 
 export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const api = useApi({persistInFlight: true});
@@ -78,7 +76,6 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
     shouldShowBilling &&
     !isTouchCustomer &&
     !hasSeerButNeedsPayg;
-  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
 
   const autofixAcknowledgeMutation = useSeerAcknowledgeMutation();
 
@@ -95,10 +92,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       navigate('/checkout/?referrer=ai_setup_data_consent#step2');
       return;
     }
-    openOnDemandBudgetEditModal({
-      organization,
-      subscription,
-    });
+    openOnDemandBudgetEditModal({organization, subscription});
   }
 
   return (
@@ -119,21 +113,18 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
             "Seer is Sentry's AI agent that helps you troubleshoot and fix problems with your applications, including bugs and performance issues. Seer includes:"
           )}
         </Paragraph>
-        <BulletList>
+        <Container as="ul" margin="0 0 md 0">
           <li>{t('Issue Triage')}</li>
           <li>{t('Root Cause Analysis')}</li>
           <li>{t('Solutions & Code Changes')}</li>
-        </BulletList>
+        </Container>
         {shouldShowBilling ? (
           isTouchCustomer || isSponsoredCustomer ? (
             <TouchCustomerMessage>
               {isTouchCustomer
                 ? tct(
                     'Contact your customer success manager to get access to Seer.[break]Send us an [link:email] if you need help.',
-                    {
-                      link: <ExternalLink href="mailto:sales@sentry.io" />,
-                      break: <br />,
-                    }
+                    {link: <ExternalLink href="mailto:sales@sentry.io" />, break: <br />}
                   )
                 : tct(
                     'Seer is not available on Sponsored plans.[break]Send us an [link:email] if you need help.',
@@ -170,9 +161,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     <ErrorText>
                       {tct(
                         "You've run out of [budgetTerm] budget. Please add more to keep using Seer.",
-                        {
-                          budgetTerm: subscription?.planDetails.budgetTerm,
-                        }
+                        {budgetTerm: subscription?.planDetails.budgetTerm}
                       )}
                     </ErrorText>
                     <Flex>
@@ -211,7 +200,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                         icon={<IconRefresh size="xs" />}
                         onClick={async () => {
                           await refetch();
-                          addSuccessMessage(t('Refreshed Seer quota'));
+                          toast.success(t('Refreshed Seer quota'));
                         }}
                         size="md"
                         variant="secondary"
@@ -260,9 +249,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                 disabled={autofixAcknowledgeMutation.isPending}
                 analyticsEventKey="gen_ai_consent.in_drawer_clicked"
                 analyticsEventName="Gen AI Consent: Clicked In Drawer"
-                analyticsParams={{
-                  is_first_user_in_org: !orgHasAcknowledged,
-                }}
+                analyticsParams={{is_first_user_in_org: !orgHasAcknowledged}}
                 size="md"
               >
                 {autofixAcknowledgeMutation.isPending ? (
@@ -285,13 +272,9 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       </SingleCard>
       {warnAboutSCMIntegration && (
         <Alert variant="warning" showIcon={false}>
-          {hasGitLabSupport
-            ? t(
-                'Seer currently works best with GitHub or GitLab repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
-              )
-            : t(
-                'Seer currently works best with GitHub repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
-              )}
+          {t(
+            'Seer currently works best with GitHub or GitLab repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
+          )}
         </Alert>
       )}
     </Stack>
@@ -318,10 +301,6 @@ const MeetSeerHeader = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const BulletList = styled('ul')`
-  margin: 0 0 ${p => p.theme.space.md} 0;
 `;
 
 const Paragraph = styled('p')`

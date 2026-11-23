@@ -16,6 +16,8 @@ export interface MarkdownTableColumn {
 }
 
 export type MarkdownComponents = Partial<{
+  /** Text annotated with `annotate`, along with its data. */
+  Annotation: ComponentType<WithDefault<{children: string; data: string}>>;
   Blockquote: ComponentType<WithDefault<{children: ReactNode}>>;
   CodeBlock: ComponentType<WithDefault<{children: string; lang?: string}>>;
   Emphasis: ComponentType<WithDefault<{children: ReactNode}>>;
@@ -37,13 +39,9 @@ export type MarkdownComponents = Partial<{
   Strong: ComponentType<WithDefault<{children: ReactNode}>>;
   Table: ComponentType<
     WithDefault<{
-      children: ReactNode;
       /**
        * One entry per column, in order, with the alignment the delimiter row
-       * gave it. Together with `header` and `rows`, this is the table's parsed
-       * structure, for a renderer that has to own the whole table -- a grid
-       * table that sizes its columns before any row renders -- rather than
-       * style the `<thead>` and `<tbody>` that `children` already builds.
+       * gave it.
        */
       columns: MarkdownTableColumn[];
       /** Each header cell's rendered content, one per column. */
@@ -52,15 +50,6 @@ export type MarkdownComponents = Partial<{
       rows: ReactNode[][];
     }>
   >;
-  TableBody: ComponentType<WithDefault<{children: ReactNode}>>;
-  TableCell: ComponentType<
-    WithDefault<{children: ReactNode; align?: 'left' | 'right' | 'center'}>
-  >;
-  TableHead: ComponentType<WithDefault<{children: ReactNode}>>;
-  TableHeaderCell: ComponentType<
-    WithDefault<{children: ReactNode; align?: 'left' | 'right' | 'center'}>
-  >;
-  TableRow: ComponentType<WithDefault<{children: ReactNode}>>;
   Tag: ComponentType<
     WithDefault<{
       attrs: Record<string, string>;

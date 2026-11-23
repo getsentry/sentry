@@ -15,8 +15,8 @@ import {
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -451,7 +451,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
     onSuccess: updated => {
       onSave(initialData, updated);
     },
-    onError: () => addErrorMessage(t('Unable to save change')),
+    onError: () => toast.error(t('Unable to save change')),
   });
 
   const {mutateAsync: updateSlug} = useMutation(orgMutationOptions);
@@ -634,7 +634,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                 onSave(initialData, updated);
               },
               onError: () => {
-                addErrorMessage(t('Unable to save change'));
+                toast.error(t('Unable to save change'));
               },
             })}
           >

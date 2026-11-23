@@ -5,12 +5,14 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t, tn} from 'sentry/locale';
-import {ActivityLineRow} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
-import {ActivityLineDotMarker} from 'sentry/views/issueDetails/activitySection/activityLineItem/progressMarker';
+import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
+
+import {ActivityLineDotMarker} from './marker';
 
 interface CollapsedStatusActivityRowProps {
   children: ReactNode;
   eventCount: number;
+  defaultExpanded?: boolean;
 }
 
 interface StatusActivityToggleRowProps {
@@ -20,9 +22,10 @@ interface StatusActivityToggleRowProps {
 
 export function CollapsedStatusActivityRow({
   children,
+  defaultExpanded = false,
   eventCount,
 }: CollapsedStatusActivityRowProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   if (!isExpanded) {
     return (
@@ -46,27 +49,22 @@ export function CollapsedStatusActivityRow({
 
 function StatusActivityToggleRow({label, onClick}: StatusActivityToggleRowProps) {
   return (
-    <ActivityLineRow>
-      <ActivityLineDotMarker />
-      <Flex
-        column={2}
-        row={1}
-        minHeight="22px"
-        align="baseline"
-        position="relative"
-        bottom="2px"
-      >
-        <Button
-          variant="transparent"
-          size="zero"
-          style={{marginLeft: -6}}
-          onClick={onClick}
-        >
-          <Text as="span" variant="muted" size="md" density="comfortable">
-            {label}
-          </Text>
-        </Button>
-      </Flex>
-    </ActivityLineRow>
+    <Timeline.Item
+      marker={<ActivityLineDotMarker />}
+      headline={
+        <Flex minHeight="22px" align="baseline" position="relative" bottom="2px">
+          <Button
+            variant="transparent"
+            size="zero"
+            style={{marginLeft: -6}}
+            onClick={onClick}
+          >
+            <Text as="span" variant="muted" size="md" density="comfortable">
+              {label}
+            </Text>
+          </Button>
+        </Flex>
+      }
+    />
   );
 }

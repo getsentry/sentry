@@ -14,10 +14,7 @@ const options = {
   [ReleasesStatusOption.ARCHIVED]: {label: t('Archived')},
 };
 
-type Props = {
-  onSelect: (key: string) => void;
-  selected: ReleasesStatusOption;
-};
+type Props = {onSelect: (key: string) => void; selected: ReleasesStatusOption};
 
 export function ReleasesStatusOptions({selected, onSelect}: Props) {
   return (
@@ -29,7 +26,6 @@ export function ReleasesStatusOptions({selected, onSelect}: Props) {
           options={options}
           selected={selected}
           onSelect={onSelect}
-          style={{zIndex: 3}}
         />
       )}
     </Container>

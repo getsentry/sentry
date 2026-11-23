@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import {useTimezone} from '@sentry/scraps/datetime';
+import {useTimezone} from '@sentry/scraps/dateTime';
 
 import type {PageFilterDatetime} from 'sentry/types/core';
 

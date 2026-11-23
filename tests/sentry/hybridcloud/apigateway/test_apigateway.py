@@ -19,7 +19,7 @@ from sentry.utils import json
 class ApiGatewayTest(ApiGatewayTestCase):
     @responses.activate
     def test_simple(self) -> None:
-        query_params = dict(foo="test", bar=["one", "two"])
+        query_params: dict[str, str | list[str]] = dict(foo="test", bar=["one", "two"])
         headers = dict(example="this")
         responses.add_callback(
             responses.GET,

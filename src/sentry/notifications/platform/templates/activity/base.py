@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 from urllib.parse import urlencode
 
@@ -26,13 +27,18 @@ from sentry.notifications.platform.types import (
     ParagraphSection,
     PlainTextBlock,
 )
+from sentry.sentry_apps.services.app import app_service
 from sentry.types.activity import SEER_ACTIVITY_TYPES, ActivityType
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
 from sentry.utils.email import group_id_to_email
 from sentry.utils.email.address import get_from_email_domain
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import is_valid_dot_atom
 from sentry.workflow_engine.models import Workflow
+
+logger = logging.getLogger(__name__)
 
 ACTIVITY_TYPE_TO_SOURCE: dict[int, NotificationSource] = {
     ActivityType.SEER_RCA_STARTED.value: NotificationSource.ACTIVITY_SEER_RCA_STARTED,
@@ -137,6 +143,17 @@ class AssignedNotificationData(ActivityNotificationData):
     is_automated: bool = False
 
 
+def get_activity_user_name(user: RpcUser, organization_id: int) -> str | None:
+    if not user.is_sentry_app:
+        return user.get_display_name()
+    # A Sentry App acts through a proxy user whose display name is a long generated
+    # email, so name the app instead.
+    installation = app_service.find_installation_by_proxy_user(
+        proxy_user_id=user.id, organization_id=organization_id
+    )
+    return installation.sentry_app.name if installation else None
+
+
 def build_subject_prefix(data: ActivityNotificationData) -> NotificationTextBlock:
     if data.issue_title and data.issue_short_id and not data.enhanced_privacy:
         return PlainTextBlock(text=f"{data.issue_short_id} - {data.issue_title}")
@@ -220,14 +237,27 @@ def build_activity_email_headers(
     if is_valid_dot_atom(list_id_label):
         headers["List-Id"] = f"<{list_id_label}.{settings.SENTRY_MAIL_LIST_NAMESPACE}>"
 
-    thread, created = GroupEmailThread.objects.get_or_create(
-        email=target.resource_id,
-        group=group,
-        defaults={"project": project, "msgid": message_id},
-    )
-    if not created:
-        headers["In-Reply-To"] = thread.msgid
-        headers["References"] = thread.msgid
+    email = target.resource_id
+    if GroupEmailThread.can_track_email(email):
+        thread, created = GroupEmailThread.objects.get_or_create(
+            email=email,
+            group=group,
+            defaults={"project": project, "msgid": message_id},
+        )
+        if not created:
+            headers["In-Reply-To"] = thread.msgid
+            headers["References"] = thread.msgid
+    else:
+        # Email is too long for GroupEmailThread.email; send without threading.
+        metrics.incr(
+            "mail.group_email_thread.skipped_long_email",
+            tags={"source": "activity_platform"},
+            sample_rate=1.0,
+        )
+        logger.warning(
+            "mail.group_email_thread.skipped_long_email",
+            extra={"group_id": group.id, "email_length": len(email)},
+        )
     return headers
 
 
@@ -332,10 +362,11 @@ def build_activity_notification_data(
             }
         )
 
-    if activity.user_id:
-        user = user_service.get_user(user_id=activity.user_id)
-        if user:
-            action_data["activity_user_name"] = user.get_display_name()
+    user = user_service.get_user(user_id=activity.user_id) if activity.user_id else None
+    if user:
+        action_data["activity_user_name"] = get_activity_user_name(
+            user=user, organization_id=organization.id
+        )
 
     match activity.type:
         case ActivityType.SET_RESOLVED_IN_COMMIT.value:
@@ -372,21 +403,11 @@ def build_activity_notification_data(
             if assignee_email:
                 assignee_url = f"mailto:{assignee_email}"
 
-            # Check if this is an automated assignment from a Sentry App
-            if activity.user_id:
-                user = user_service.get_user(user_id=activity.user_id)
-                if user and user.is_sentry_app:
-                    return AssignedNotificationData(
-                        **action_data,
-                        assignee_label=assignee_label,
-                        assignee_url=assignee_url,
-                        is_automated=True,
-                    )
-
             return AssignedNotificationData(
                 **action_data,
                 assignee_label=assignee_label,
                 assignee_url=assignee_url,
+                is_automated=bool(user and user.is_sentry_app),
             )
         case _:
             return ActivityNotificationData(**action_data)

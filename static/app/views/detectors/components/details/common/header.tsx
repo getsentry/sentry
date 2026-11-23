@@ -1,15 +1,11 @@
 import {Fragment} from 'react';
 
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {
-  DisableDetectorAction,
-  EditDetectorAction,
-} from 'sentry/views/detectors/components/details/common/actions';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {
   makeMonitorBasePathname,
@@ -18,10 +14,9 @@ import {
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-type DetectorDetailsHeaderProps = {
-  detector: Detector;
-  useLocalDetailActions?: boolean;
-};
+import {DisableDetectorAction, EditDetectorAction} from './actions';
+
+type DetectorDetailsHeaderProps = {detector: Detector; useLocalDetailActions?: boolean};
 
 function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
   const organization = useOrganization();
@@ -34,7 +29,9 @@ function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
         type: 'page-title',
         label: detector.name,
         leadingGraphic: project ? (
-          <ProjectBadge disableLink hideName project={project} avatarSize={16} />
+          <ProjectsBadge
+            projectPlatforms={project.platform ? [project.platform] : ['default']}
+          />
         ) : (
           <Placeholder width="16px" height="16px" />
         ),

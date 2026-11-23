@@ -12,9 +12,10 @@ import {
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ExploreSurface} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
-import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import type {ExploreSurface} from './exploreSavedQueryBreadcrumbs';
+import {ExploreSavedQueryBreadcrumbs} from './exploreSavedQueryBreadcrumbs';
 
 jest.mock('sentry/utils/analytics');
 
@@ -103,7 +104,7 @@ describe('ExploreSavedQueryBreadcrumbs', () => {
       }
     );
 
-    it('keeps Compare Queries in the trail so compare mode is not lost', async () => {
+    it('links saved compare queries back to Traces', async () => {
       renderBreadcrumbs('compare');
 
       const trail = await screen.findByRole('list');
@@ -111,7 +112,7 @@ describe('ExploreSavedQueryBreadcrumbs', () => {
         within(trail)
           .getAllByRole('link')
           .map(link => link.textContent)
-      ).toEqual(['Traces', 'Compare Queries']);
+      ).toEqual(['Traces']);
     });
 
     it('shows the project badge for the saved query projects', async () => {
@@ -222,7 +223,7 @@ describe('ExploreSavedQueryBreadcrumbs', () => {
   describe('delete', () => {
     const destinations: Array<{surface: ExploreSurface; to: string}> = [
       {surface: 'traces', to: '/organizations/org-slug/explore/traces/'},
-      {surface: 'compare', to: '/organizations/org-slug/explore/traces/compare/'},
+      {surface: 'compare', to: '/organizations/org-slug/explore/traces/'},
       {surface: 'logs', to: '/organizations/org-slug/explore/logs/'},
       {surface: 'metrics', to: '/organizations/org-slug/explore/metrics/'},
       {surface: 'replays', to: '/organizations/org-slug/explore/replays/'},

@@ -10,11 +10,12 @@ import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {DataForwarderDeleteConfirm} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderDeleteConfirm';
 import {
   ProviderLabels,
   type DataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
+
+import {DataForwarderDeleteConfirm} from './dataForwarderDeleteConfirm';
 
 export function DataForwarderRow({
   dataForwarder,
@@ -25,7 +26,7 @@ export function DataForwarderRow({
 }) {
   const organization = useOrganization();
   return (
-    <Container padding="xl" border="muted" radius="md" key={dataForwarder.id}>
+    <Container padding="xl" border="secondary" radius="md" key={dataForwarder.id}>
       <Grid columns="auto 1fr auto" align="center" gap="md">
         <PluginIcon pluginId={dataForwarder.provider} size={32} />
         <Stack gap="xs">

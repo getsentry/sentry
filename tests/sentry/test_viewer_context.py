@@ -3,14 +3,20 @@ from __future__ import annotations
 import contextvars
 import dataclasses
 import threading
+from collections.abc import Iterator
+from typing import Any
 from unittest import mock
 
 import pytest
 
-from sentry.types.superuser import SuperuserAccess
 from sentry.viewer_context import (
+    Actor,
+    ActorId,
     ActorType,
+    SuperuserAccess,
     ViewerContext,
+    actor_id_from_references,
+    get_acting_user_id,
     get_viewer_context,
     observe_viewer_context_propagation,
     set_viewer_context_organization,
@@ -18,15 +24,53 @@ from sentry.viewer_context import (
 )
 
 
+def test_actor_id_from_references() -> None:
+    assert actor_id_from_references(user_id=7, service_account_id=None) == ActorId(
+        ActorType.USER, 7
+    )
+    assert actor_id_from_references(user_id=None, service_account_id=7) == ActorId(
+        ActorType.SERVICE_ACCOUNT, 7
+    )
+    assert actor_id_from_references(user_id=None, service_account_id=None) is None
+
+
+@pytest.mark.parametrize(("user_id", "service_account_id"), [(7, 7), (0, None), (None, True)])
+def test_actor_id_from_references_rejects_invalid_input(
+    user_id: Any, service_account_id: Any
+) -> None:
+    with pytest.raises(ValueError):
+        actor_id_from_references(user_id=user_id, service_account_id=service_account_id)
+
+
 class TestActorType:
-    def test_values_are_strings(self):
-        assert ActorType.USER == "user"
-        assert ActorType.SYSTEM == "system"
-        assert ActorType.INTEGRATION == "integration"
-        assert ActorType.UNKNOWN == "unknown"
+    def test_values_are_strings(self) -> None:
+        assert ActorType.USER.value == "user"
+        assert ActorType.SYSTEM.value == "system"
+        assert ActorType.INTEGRATION.value == "integration"
+        assert ActorType.UNKNOWN.value == "unknown"
 
 
 class TestViewerContext:
+    @pytest.mark.parametrize(
+        ("actor", "wire_actor"),
+        [
+            (Actor(type=ActorType.USER, actor_id=7), {"type": "user", "id": 7}),
+            (
+                Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=7),
+                {"type": "service_account", "id": 7},
+            ),
+            (
+                Actor(type=ActorType.AGENT, actor_id=90, delegated_user_id=7),
+                {"type": "agent", "id": 90, "delegated_user_id": 7},
+            ),
+        ],
+    )
+    def test_actor_roundtrip(self, actor: Actor, wire_actor: dict[str, object]) -> None:
+        ctx = ViewerContext(actor=actor, organization_id=42)
+        wire = {"version": 2, "actor": wire_actor, "organization_id": 42}
+        assert ctx.serialize() == wire
+        assert ViewerContext.deserialize(wire) == ctx
+
     @pytest.mark.parametrize(
         "superuser",
         [
@@ -36,15 +80,22 @@ class TestViewerContext:
             "invalid",
         ],
     )
-    def test_invalid_superuser_claim(self, superuser):
+    def test_invalid_superuser_claim(self, superuser: object) -> None:
         with pytest.raises(ValueError):
-            ViewerContext.deserialize({"superuser": superuser})
+            ViewerContext.deserialize(
+                {
+                    "version": 2,
+                    "organization_id": 42,
+                    "actor": {"type": "user", "id": 7, "superuser": superuser},
+                }
+            )
 
-    def test_superuser_access_roundtrip_and_org_change(self):
+    def test_superuser_access_roundtrip_and_org_change(self) -> None:
         ctx = ViewerContext(
-            user_id=42,
+            actor=Actor(
+                type=ActorType.USER, actor_id=42, superuser=SuperuserAccess(expires_at=1234567890)
+            ),
             organization_id=10,
-            superuser=SuperuserAccess(expires_at=1234567890),
         )
         assert ViewerContext.deserialize(ctx.serialize()) == ctx
         assert "1234567890" not in repr(ctx)
@@ -54,37 +105,32 @@ class TestViewerContext:
             set_viewer_context_organization(11)
             changed = get_viewer_context()
             assert changed is not None
-            assert changed.superuser is None
+            assert changed.actor.superuser is None
 
-    def test_defaults(self):
-        ctx = ViewerContext()
+    def test_defaults(self) -> None:
+        ctx = ViewerContext(actor=Actor(type=ActorType.UNKNOWN))
         assert ctx.organization_id is None
-        assert ctx.user_id is None
-        assert ctx.actor_type is ActorType.UNKNOWN
-        assert ctx.token is None
+        assert ctx.actor.actor_id is None
+        assert ctx.actor.type is ActorType.UNKNOWN
 
-    def test_frozen(self):
-        ctx = ViewerContext(user_id=1)
+    def test_frozen(self) -> None:
+        ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1))
         with pytest.raises(dataclasses.FrozenInstanceError):
-            ctx.user_id = 2  # type: ignore[misc]
+            ctx.actor.actor_id = 2  # type: ignore[misc]
 
-    def test_construction(self):
-        ctx = ViewerContext(
-            organization_id=10,
-            user_id=42,
-            actor_type=ActorType.SYSTEM,
-        )
+    def test_construction(self) -> None:
+        ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=42), organization_id=10)
         assert ctx.organization_id == 10
-        assert ctx.user_id == 42
-        assert ctx.actor_type is ActorType.SYSTEM
+        assert ctx.actor.actor_id == 42
+        assert ctx.actor.type is ActorType.USER
 
 
 class TestViewerContextScope:
-    def test_get_returns_none_outside_scope(self):
+    def test_get_returns_none_outside_scope(self) -> None:
         assert get_viewer_context() is None
 
-    def test_scope_sets_and_resets(self):
-        ctx = ViewerContext(user_id=1)
+    def test_scope_sets_and_resets(self) -> None:
+        ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1))
         assert get_viewer_context() is None
 
         with viewer_context_scope(ctx):
@@ -92,9 +138,9 @@ class TestViewerContextScope:
 
         assert get_viewer_context() is None
 
-    def test_nested_scopes(self):
-        outer = ViewerContext(user_id=1)
-        inner = ViewerContext(user_id=2)
+    def test_nested_scopes(self) -> None:
+        outer = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1))
+        inner = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=2))
 
         with viewer_context_scope(outer):
             assert get_viewer_context() is outer
@@ -106,8 +152,8 @@ class TestViewerContextScope:
 
         assert get_viewer_context() is None
 
-    def test_cleanup_on_exception(self):
-        ctx = ViewerContext(user_id=1)
+    def test_cleanup_on_exception(self) -> None:
+        ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1))
 
         with pytest.raises(RuntimeError):
             with viewer_context_scope(ctx):
@@ -116,14 +162,14 @@ class TestViewerContextScope:
 
         assert get_viewer_context() is None
 
-    def test_copy_context_propagates_to_thread(self):
-        ctx = ViewerContext(user_id=1, organization_id=10)
+    def test_copy_context_propagates_to_thread(self) -> None:
+        ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1), organization_id=10)
         result: list[ViewerContext | None] = [None]
 
         with viewer_context_scope(ctx):
             copied = contextvars.copy_context()
 
-            def _worker():
+            def _worker() -> None:
                 result[0] = copied.run(get_viewer_context)
 
             t = threading.Thread(target=_worker)
@@ -132,10 +178,10 @@ class TestViewerContextScope:
 
         assert result[0] is ctx
 
-    def test_context_propagating_thread_pool_executor(self):
+    def test_context_propagating_thread_pool_executor(self) -> None:
         from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
-        ctx = ViewerContext(user_id=7, organization_id=99, actor_type=ActorType.INTEGRATION)
+        ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=7), organization_id=99)
 
         with viewer_context_scope(ctx):
             with ContextPropagatingThreadPoolExecutor(max_workers=1) as pool:
@@ -143,10 +189,10 @@ class TestViewerContextScope:
 
         assert result is ctx
 
-    def test_context_propagating_executor_does_not_leak_across_submissions(self):
+    def test_context_propagating_executor_does_not_leak_across_submissions(self) -> None:
         from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
-        ctx = ViewerContext(user_id=1)
+        ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1))
 
         with ContextPropagatingThreadPoolExecutor(max_workers=1) as pool:
             # Submit inside a scope — worker should see ctx
@@ -159,8 +205,8 @@ class TestViewerContextScope:
         assert inside is ctx
         assert outside is None
 
-    def test_set_organization_updates_current_context(self):
-        ctx = ViewerContext(user_id=1, actor_type=ActorType.USER)
+    def test_set_organization_updates_current_context(self) -> None:
+        ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1))
 
         with viewer_context_scope(ctx):
             set_viewer_context_organization(42)
@@ -168,12 +214,12 @@ class TestViewerContextScope:
 
             assert updated is not None
             assert updated.organization_id == 42
-            assert updated.user_id == ctx.user_id
-            assert updated.actor_type is ctx.actor_type
+            assert updated.actor.actor_id == ctx.actor.actor_id
+            assert updated.actor.type is ctx.actor.type
 
         assert get_viewer_context() is None
 
-    def test_set_organization_is_noop_without_context(self):
+    def test_set_organization_is_noop_without_context(self) -> None:
         set_viewer_context_organization(42)
 
         assert get_viewer_context() is None
@@ -181,17 +227,23 @@ class TestViewerContextScope:
 
 class TestObserve:
     @pytest.fixture(autouse=True)
-    def patch_metrics(self):
-        with mock.patch("sentry.viewer_context.sentry_sdk.metrics.count") as m:
+    def patch_metrics(self) -> Iterator[mock.MagicMock]:
+        with (
+            mock.patch("sentry.viewer_context.random", return_value=0.0),
+            mock.patch("sentry.viewer_context.sentry_sdk.metrics.count") as m,
+        ):
             yield m
 
-    def _tags(self, m):
+    def _tags(self, m: mock.MagicMock) -> dict[str, object]:
         assert m.call_count == 1
         args, kwargs = m.call_args
         assert args == ("viewer_context.observation", 1)
-        return kwargs["attributes"]
+        attributes = kwargs["attributes"]
+        if not isinstance(attributes, dict):
+            raise TypeError("viewer context attributes are not a mapping")
+        return attributes
 
-    def test_no_context_tags_actor_none(self, patch_metrics):
+    def test_no_context_tags_actor_none(self, patch_metrics: mock.MagicMock) -> None:
         observe_viewer_context_propagation("seer_rpc_out")
         tags = self._tags(patch_metrics)
         assert tags == {
@@ -203,8 +255,10 @@ class TestObserve:
             "sentry.client_sample_rate": 0.001,
         }
 
-    def test_with_context_tags_actor_and_presence_flags(self, patch_metrics):
-        ctx = ViewerContext(user_id=42, organization_id=7, actor_type=ActorType.USER)
+    def test_with_context_tags_actor_and_presence_flags(
+        self, patch_metrics: mock.MagicMock
+    ) -> None:
+        ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=42), organization_id=7)
         with viewer_context_scope(ctx):
             observe_viewer_context_propagation("seer_rpc_out")
         tags = self._tags(patch_metrics)
@@ -212,52 +266,58 @@ class TestObserve:
         assert tags["has_user_id"] == "true"
         assert tags["has_org_id"] == "true"
 
-    def test_partial_context_tags_individual_flags(self, patch_metrics):
+    def test_partial_context_tags_individual_flags(self, patch_metrics: mock.MagicMock) -> None:
         # User without org (e.g. cross-org admin lookup before org is resolved)
-        ctx = ViewerContext(user_id=42, actor_type=ActorType.USER)
+        ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=42))
         with viewer_context_scope(ctx):
             observe_viewer_context_propagation("rpc_inbound")
         tags = self._tags(patch_metrics)
         assert tags["has_user_id"] == "true"
         assert tags["has_org_id"] == "false"
 
-    def test_explicit_ctx_overrides_contextvar(self, patch_metrics):
+    def test_explicit_ctx_overrides_contextvar(self, patch_metrics: mock.MagicMock) -> None:
         # Caller passes a resolved value that's distinct from the contextvar
-        with viewer_context_scope(ViewerContext(actor_type=ActorType.SYSTEM)):
+        with viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.SYSTEM))):
             observe_viewer_context_propagation(
-                "seer_rpc_out", ctx=ViewerContext(actor_type=ActorType.INTEGRATION)
+                "seer_rpc_out", ctx=ViewerContext(actor=Actor(type=ActorType.INTEGRATION))
             )
         tags = self._tags(patch_metrics)
         assert tags["actor_type"] == "integration"
 
-    def test_explicit_ctx_none_treated_as_missing(self, patch_metrics):
+    def test_explicit_ctx_none_treated_as_missing(self, patch_metrics: mock.MagicMock) -> None:
         # Distinguishes "ctx wasn't passed" (sentinel) from "ctx is explicitly None"
-        with viewer_context_scope(ViewerContext(actor_type=ActorType.USER)):
+        with viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.UNKNOWN))):
             observe_viewer_context_propagation("seer_rpc_out", ctx=None)
         tags = self._tags(patch_metrics)
         assert tags["actor_type"] == "none"
 
-    def test_expected_false_does_not_log_when_missing(self, patch_metrics, caplog):
+    def test_expected_false_does_not_log_when_missing(
+        self, patch_metrics: mock.MagicMock, caplog: pytest.LogCaptureFixture
+    ) -> None:
         observe_viewer_context_propagation("optional_point", expected=False)
         tags = self._tags(patch_metrics)
         assert tags["expected"] == "false"
         # No warning log for expected=False misses
         assert all(r.levelname != "WARNING" for r in caplog.records)
 
-    def test_expected_true_logs_when_missing(self, patch_metrics, caplog):
+    def test_expected_true_logs_when_missing(
+        self, patch_metrics: mock.MagicMock, caplog: pytest.LogCaptureFixture
+    ) -> None:
         import logging
 
         with caplog.at_level(logging.WARNING, logger="sentry.viewer_context"):
             observe_viewer_context_propagation("rpc_inbound")
         assert any(r.message == "viewer_context.missing" for r in caplog.records)
 
-    def test_expected_true_does_not_log_when_present(self, patch_metrics, caplog):
-        ctx = ViewerContext(user_id=1, actor_type=ActorType.USER)
+    def test_expected_true_does_not_log_when_present(
+        self, patch_metrics: mock.MagicMock, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1))
         with viewer_context_scope(ctx):
             observe_viewer_context_propagation("rpc_inbound")
         assert all(r.message != "viewer_context.missing" for r in caplog.records)
 
-    def test_extra_attributes_merged_into_metric_tags(self, patch_metrics):
+    def test_extra_attributes_merged_into_metric_tags(self, patch_metrics: mock.MagicMock) -> None:
         observe_viewer_context_propagation(
             "seer_rpc_in", extra_attributes={"method": "get_organization_slug"}
         )
@@ -265,10 +325,12 @@ class TestObserve:
         assert tags["point"] == "seer_rpc_in"
         assert tags["method"] == "get_organization_slug"
 
-    def test_extra_attributes_cannot_override_fixed_tags(self, patch_metrics):
+    def test_extra_attributes_cannot_override_fixed_tags(
+        self, patch_metrics: mock.MagicMock
+    ) -> None:
         # Fixed tags must take precedence so callers can't accidentally swap
         # `point` or `actor_type` and corrupt the metric's cardinality story.
-        ctx = ViewerContext(user_id=1, actor_type=ActorType.USER)
+        ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1))
         with viewer_context_scope(ctx):
             observe_viewer_context_propagation(
                 "seer_rpc_in",
@@ -278,7 +340,9 @@ class TestObserve:
         assert tags["point"] == "seer_rpc_in"
         assert tags["method"] == "real_method"
 
-    def test_extra_attributes_propagate_to_missing_log(self, patch_metrics, caplog):
+    def test_extra_attributes_propagate_to_missing_log(
+        self, patch_metrics: mock.MagicMock, caplog: pytest.LogCaptureFixture
+    ) -> None:
         import logging
 
         with caplog.at_level(logging.WARNING, logger="sentry.viewer_context"):
@@ -287,5 +351,49 @@ class TestObserve:
             )
         missing_records = [r for r in caplog.records if r.message == "viewer_context.missing"]
         assert len(missing_records) == 1
-        assert missing_records[0].method == "ghost_method"
-        assert missing_records[0].point == "seer_rpc_in"
+        assert getattr(missing_records[0], "method") == "ghost_method"
+        assert getattr(missing_records[0], "point") == "seer_rpc_in"
+
+
+@pytest.mark.parametrize(
+    "wire",
+    [
+        {"user_id": 7},
+        {"actor_type": "user"},
+        {"actor_type": "agent", "user_id": 7},
+        {"actor_type": "system"},
+        {"version": 1, "organization_id": 42, "user_id": 7},
+    ],
+)
+def test_rejects_legacy_wire_after_cutover(wire: object) -> None:
+    with pytest.raises(ValueError, match="Expected a V2 viewer context"):
+        ViewerContext.deserialize(wire)
+
+
+def test_actor_id_distinguishes_actor_types_and_delegates() -> None:
+    user = Actor(type=ActorType.USER, actor_id=7)
+    service_account = Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=7)
+    agent = Actor(type=ActorType.AGENT, actor_id=7, delegated_user_id=8)
+
+    assert user.id == (ActorType.USER, 7)
+    assert service_account.id == (ActorType.SERVICE_ACCOUNT, 7)
+    assert agent.id == (ActorType.AGENT, 7)
+    assert len({user.id, service_account.id, agent.id}) == 3
+
+
+@pytest.mark.parametrize(
+    ("actor", "expected"),
+    [
+        (Actor(type=ActorType.USER, actor_id=7), 7),
+        (Actor(type=ActorType.AGENT, actor_id=90, delegated_user_id=7), 7),
+        (Actor(type=ActorType.AGENT, actor_id=90), None),
+        (Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=7, delegated_user_id=8), None),
+        (Actor(type=ActorType.SYSTEM, delegated_user_id=8), None),
+    ],
+)
+def test_get_acting_user_id(actor: Actor, expected: int | None) -> None:
+    assert get_acting_user_id(ViewerContext(actor=actor)) == expected
+
+
+def test_get_acting_user_id_without_context() -> None:
+    assert get_acting_user_id(None) is None

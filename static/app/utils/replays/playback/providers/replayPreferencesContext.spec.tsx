@@ -7,10 +7,11 @@ import {
   StaticReplayPreferences,
   type PrefsStrategy,
 } from 'sentry/components/replays/preferences/replayPreferences';
+
 import {
   ReplayPreferencesContextProvider,
   useReplayPrefs,
-} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+} from './replayPreferencesContext';
 
 function makeWrapper(prefsStrategy: PrefsStrategy) {
   return function ({children}: {children?: ReactNode}) {

@@ -9,7 +9,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {makeCloseButton} from '@sentry/scraps/modal';
 
-import RecoveryOptionsModal from 'sentry/components/modals/recoveryOptionsModal';
+import RecoveryOptionsModal from './recoveryOptionsModal';
 
 describe('RecoveryOptionsModal', () => {
   const closeModal = jest.fn();

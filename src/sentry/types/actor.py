@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Iterable, MutableMapping, Sequence
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Protocol, Union, overload
+from typing import TYPE_CHECKING, Any, Literal, Protocol, Union, overload
 
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
@@ -39,10 +39,22 @@ class Actor(RpcModel):
 
         pass
 
+    @overload
+    @classmethod
+    def resolve_many(
+        cls, actors: Sequence["Actor"], filter_none: Literal[True] = True
+    ) -> list["Team | RpcUser"]: ...
+
+    @overload
+    @classmethod
+    def resolve_many(
+        cls, actors: Sequence["Actor"], filter_none: Literal[False]
+    ) -> list["Team | RpcUser | None"]: ...
+
     @classmethod
     def resolve_many(
         cls, actors: Sequence["Actor"], filter_none: bool = True
-    ) -> list["Team | RpcUser | None"]:
+    ) -> Sequence["Team | RpcUser | None"]:
         """
         Resolve a list of actors in a batch to the Team/User the Actor references.
 
@@ -261,7 +273,7 @@ class Actor(RpcModel):
         from sentry.users.services.user.service import user_service
 
         if self.is_team:
-            team = Team.objects.filter(id=self.id).first()
+            team = Team.objects.get_or_none(id=self.id)
             if team:
                 return team
             raise Actor.InvalidActor(f"Cannot find a team with id={self.id}")
@@ -326,7 +338,7 @@ def validate_actor(actor: Actor, organization_id: int) -> None:
     elif isinstance(obj, RpcUser):
         membership = OrganizationMember.objects.filter(
             organization_id=organization_id, user_id=obj.id
-        ).first()
+        ).first()  # noqa: S035
         if not membership:
             raise serializers.ValidationError("User is not a member of this organization")
         if not membership.user_is_active:

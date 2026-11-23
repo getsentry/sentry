@@ -1,10 +1,11 @@
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {DateTime} from '@sentry/scraps/dateTime';
+import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -89,11 +90,7 @@ export function AggregateFlamegraphSidePanel({
         <FrameInformation frame={frame} />
       </div>
       <div>
-        <Title>
-          {tct('Profiles ([count])', {
-            count: examples.length,
-          })}
-        </Title>
+        <Title>{tct('Profiles ([count])', {count: examples.length})}</Title>
         {examples.length <= 0 ? (
           <EmptyStateWarning withIcon={false} small>
             <div>{t('No profiles detected')}</div>
@@ -128,7 +125,7 @@ function FrameInformation({frame}: FrameInformationProps) {
   }
 
   return (
-    <FunctionContainer>
+    <Grid gap="xs" columns="auto 1fr">
       <FunctionRowContainer>
         <div>{t('Name')}</div>
         <DetailsContainer>
@@ -151,7 +148,7 @@ function FrameInformation({frame}: FrameInformationProps) {
           {frame.frame.is_application ? t('Application Frame') : t('System Frame')}
         </code>
       </FunctionRowContainer>
-    </FunctionContainer>
+    </Grid>
   );
 }
 
@@ -243,12 +240,6 @@ const RowContainer = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   background-color: ${p => p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px transparent;
-`;
-
-const FunctionContainer = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: ${p => p.theme.space.xs};
 `;
 
 const FunctionRowContainer = styled(RowContainer)`

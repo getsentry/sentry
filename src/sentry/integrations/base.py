@@ -17,7 +17,7 @@ from sentry.exceptions import InvalidIdentity
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import HaltReason, IntegrationProviderSlug
 from sentry.models.team import Team
 from sentry.organizations.services.organization import (
     RpcOrganization,
@@ -44,16 +44,14 @@ from sentry.users.models.identity import Identity
 from sentry.utils.audit import create_audit_entry
 
 if TYPE_CHECKING:
-    from django.contrib.auth.models import AnonymousUser
     from django.utils.functional import _StrPromise
 
+    from sentry.auth.principal import RequestPrincipal
     from sentry.identity.services.identity.model import RpcIdentity
     from sentry.integrations.pipeline import IntegrationPipeline  # noqa: F401
     from sentry.integrations.services.integration import RpcOrganizationIntegration
     from sentry.integrations.services.integration.model import RpcIntegration
     from sentry.models.organization import Organization
-    from sentry.users.models.user import User
-    from sentry.users.services.user import RpcUser
 
 
 logger = logging.getLogger(__name__)
@@ -268,6 +266,11 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     the installer's identity to the organization integration
     """
 
+    reject_pending_deletion_reinstall = False
+    """
+    Reject an installation when its existing organization link is pending deletion.
+    """
+
     features: frozenset[IntegrationFeatures] = frozenset()
     """can be any number of IntegrationFeatures"""
 
@@ -395,6 +398,9 @@ class IntegrationInstallation(abc.ABC):
     """
 
     logger = logging.getLogger("sentry.integrations")
+
+    def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
+        return None
 
     def __init__(self, model: RpcIntegration | Integration, organization_id: int) -> None:
         self.model = model
@@ -618,7 +624,7 @@ def get_integration_types(provider: str) -> list[IntegrationDomain]:
 def is_provider_enabled(
     provider: IntegrationProvider,
     organization: Organization | RpcOrganization,
-    actor: User | RpcUser | AnonymousUser | None = None,
+    actor: RequestPrincipal | None = None,
 ) -> bool:
     from sentry import features
 

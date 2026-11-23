@@ -10,9 +10,7 @@ import {SpanEvidencePreview} from './spanEvidencePreview';
 describe('SpanEvidencePreview', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/group-id/',
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/group-id/'});
   });
 
   it('does not fetch before hover', async () => {

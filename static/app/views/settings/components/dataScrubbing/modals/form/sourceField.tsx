@@ -2,6 +2,7 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Input} from '@sentry/scraps/input';
+import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {TextOverflow} from 'sentry/components/textOverflow';
@@ -217,11 +218,7 @@ export class SourceField extends Component<Props, State> {
 
     const filteredSuggestions = this.getNewSuggestions(fieldValues);
 
-    this.setState({
-      fieldValues,
-      activeSuggestion: 0,
-      suggestions: filteredSuggestions,
-    });
+    this.setState({fieldValues, activeSuggestion: 0, suggestions: filteredSuggestions});
   }
 
   changeParentValue() {
@@ -288,9 +285,7 @@ export class SourceField extends Component<Props, State> {
 
     if (help) {
       if (!isMaybeRegExp) {
-        this.setState({
-          help: '',
-        });
+        this.setState({help: ''});
       }
       return;
     }
@@ -312,19 +307,13 @@ export class SourceField extends Component<Props, State> {
   };
 
   handleClickOutside = () => {
-    this.setState({
-      showSuggestions: false,
-    });
+    this.setState({showSuggestions: false});
   };
 
   handleClickSuggestionItem = (suggestion: SourceSuggestion) => {
     const fieldValues = this.getNewFieldValues(suggestion);
     this.setState(
-      {
-        fieldValues,
-        activeSuggestion: 0,
-        showSuggestions: false,
-      },
+      {fieldValues, activeSuggestion: 0, showSuggestions: false},
       this.changeParentValue
     );
   };
@@ -370,11 +359,7 @@ export class SourceField extends Component<Props, State> {
   };
 
   scrollActiveSuggestionIntoView = (node: HTMLLIElement | null) => {
-    node?.scrollIntoView?.({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'start',
-    });
+    node?.scrollIntoView?.({behavior: 'smooth', block: 'nearest', inline: 'start'});
   };
 
   render() {
@@ -382,7 +367,7 @@ export class SourceField extends Component<Props, State> {
     const {showSuggestions, suggestions, activeSuggestion, help} = this.state;
 
     return (
-      <Wrapper>
+      <Container width="100%" position="relative">
         <StyledInput
           {...fieldProps}
           data-test-id="source-field"
@@ -436,15 +421,10 @@ export class SourceField extends Component<Props, State> {
             <SuggestionsOverlay onClick={this.handleClickOutside} />
           </Fragment>
         )}
-      </Wrapper>
+      </Container>
     );
   }
 }
-
-const Wrapper = styled('div')`
-  position: relative;
-  width: 100%;
-`;
 
 const StyledInput = styled(Input)`
   z-index: 1002;

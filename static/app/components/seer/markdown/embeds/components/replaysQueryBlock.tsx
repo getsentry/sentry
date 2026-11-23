@@ -8,18 +8,15 @@ import {ReplayActivityScore} from 'sentry/components/replays/replayActivityScore
 import {ReplayBadge} from 'sentry/components/replays/replayBadge';
 import {ReplayErrorCount} from 'sentry/components/replays/replayErrorCount';
 import {ReplayPlatformIcons} from 'sentry/components/replays/replayPlatformIcon';
-import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
-import {QUERY_EMBED_ROW_LIMIT} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedConstants';
-import {
-  QueryEmbedTable,
-  type QueryEmbedColumn,
-} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
 import {t} from 'sentry/locale';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
+import {QueryEmbedCard} from './queryEmbed/queryEmbedCard';
+import {QUERY_EMBED_ROW_LIMIT} from './queryEmbed/queryEmbedConstants';
+import {QueryEmbedTable, type QueryEmbedColumn} from './queryEmbed/queryEmbedTable';
 import {getReplaysQueryTitle} from './replaysQueryLink';
 import {getReplaysQueryHref, type ReplaysQueryData} from './replaysQueryUtils';
 

@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import qs from 'query-string';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -11,19 +11,26 @@ import {
   openAddToDashboardModal,
   openDashboardWidgetQuerySelectorModal,
 } from 'sentry/actionCreators/modal';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import * as qs from 'sentry/utils/url/qs';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
+import type {
+  DashboardFilters,
+  DashboardQueryPriority,
+  Widget,
+} from 'sentry/views/dashboards/types';
+import {
+  DashboardWidgetSource,
+  PREBUILT_DASHBOARD_LABEL,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {
   applyDashboardFilters,
   getWidgetDiscoverUrl,
@@ -33,17 +40,16 @@ import {
   performanceScoreTooltip,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
-import {
-  getWidgetExploreUrl,
-  widgetTypeSupportsExploreMultiQuery,
-} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
-import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
+import {formatTimeSeriesLabelForWidgetQuery} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabelForWidgetQuery';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+
+import {getReferrer} from './genericWidgetQueries';
 
 export const useTransactionsDeprecationWarning = ({
   widget,
@@ -75,9 +81,7 @@ export const useTransactionsDeprecationWarning = ({
 
   return tct(
     'Transaction based widgets will soon be migrated to spans widgets. To see what your query could look like, open it in [explore:Explore].',
-    {
-      explore: <Link to={exploreUrl} />,
-    }
+    {explore: <Link to={exploreUrl} />}
   );
 };
 
@@ -151,9 +155,7 @@ export const useDroppedColumnsWarning = (widget: Widget): React.JSX.Element | nu
         <StyledText as="p">
           {tct(
             'This widget looks different because it was migrated to the spans dataset and [columns] is not supported.',
-            {
-              columns: allWarnings.join(', '),
-            }
+            {columns: allWarnings.join(', ')}
           )}
         </StyledText>
       </div>
@@ -167,6 +169,20 @@ const StyledText = styled(Text)`
   padding-bottom: ${p => p.theme.space.xs};
 `;
 
+export function withMenuActionCallback(
+  options: MenuItemProps[],
+  callback: (key: string) => void
+): MenuItemProps[] {
+  return options.map(option => ({
+    ...option,
+    children: option.children && withMenuActionCallback(option.children, callback),
+    onAction: () => {
+      callback(option.key);
+      option.onAction?.();
+    },
+  }));
+}
+
 export function getMenuOptions(
   dashboardFilters: DashboardFilters | undefined,
   organization: Organization,
@@ -174,18 +190,32 @@ export function getMenuOptions(
   widget: Widget,
   widgetLimitReached: boolean,
   hasEditAccess = true,
+  isPrebuiltDashboard = false,
   location: Location,
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void,
-  timeseriesResults?: Series[],
-  onAskSeer?: () => void
+  timeseriesResults?: WidgetTimeSeries[],
+  onAskSeer?: () => void,
+  queryPriority?: DashboardQueryPriority
 ) {
   const menuOptions: MenuItemProps[] = [];
 
-  const disableTransactionEdit =
-    organization.features.includes('discover-saved-queries-deprecation') &&
-    widget.widgetType === WidgetType.TRANSACTIONS;
+  const disableTransactionEdit = widget.widgetType === WidgetType.TRANSACTIONS;
+
+  const prebuiltDashboardMessages = isPrebuiltDashboard
+    ? {
+        edit: tct('Widgets on [label] dashboards cannot be edited.', {
+          label: PREBUILT_DASHBOARD_LABEL,
+        }),
+        duplicate: tct('Widgets on [label] dashboards cannot be duplicated.', {
+          label: PREBUILT_DASHBOARD_LABEL,
+        }),
+        delete: tct('Widgets on [label] dashboards cannot be deleted.', {
+          label: PREBUILT_DASHBOARD_LABEL,
+        }),
+      }
+    : undefined;
 
   if (
     organization.features.includes('discover-basic') &&
@@ -226,11 +256,7 @@ export function getMenuOptions(
             organization,
             widget_type: widget.displayType,
           });
-          openDashboardWidgetQuerySelectorModal({
-            organization,
-            widget,
-            dashboardFilters,
-          });
+          openDashboardWidgetQuerySelectorModal({organization, widget, dashboardFilters});
         },
       });
     }
@@ -240,9 +266,7 @@ export function getMenuOptions(
     organization.features.includes('visibility-explore-view') &&
     (widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS)
   ) {
-    const multiQueryUnsupported =
-      widget.queries.length > 1 &&
-      !widgetTypeSupportsExploreMultiQuery(widget.widgetType);
+    const multiQueryUnsupported = widget.queries.length > 1;
 
     menuOptions.push({
       key: 'open-in-explore',
@@ -261,7 +285,8 @@ export function getMenuOptions(
             widget.queries.some(q => q.aggregates.length > 0)
               ? Mode.AGGREGATE
               : Mode.SAMPLES,
-            getReferrer(widget.displayType)
+            getReferrer(widget.displayType),
+            queryPriority
           ) ?? undefined),
     });
   }
@@ -274,25 +299,25 @@ export function getMenuOptions(
     const newAlertLabel = t('Create a Monitor for');
 
     const alertMenuOptions = timeseriesResults
-      .map((series, index) => {
-        const transformed = transformWidgetSeriesToTimeSeries(series, widget);
+      .map(({timeSeries, seriesName, queryIndex}, index) => {
+        const widgetQuery = widget.queries[queryIndex];
 
-        if (
-          !transformed ||
-          transformed.timeSeries.meta.isOther ||
-          isEquation(transformed.timeSeries.yAxis)
-        ) {
+        if (!widgetQuery || timeSeries.meta.isOther || isEquation(timeSeries.yAxis)) {
           return null;
         }
 
-        const {timeSeries, label, seriesName, widgetQuery} = transformed;
+        const label = formatTimeSeriesLabelForWidgetQuery(
+          timeSeries,
+          widget,
+          widgetQuery
+        );
 
         const baseQuery =
           applyDashboardFilters({
-            baseQuery: widgetQuery?.conditions,
+            baseQuery: widgetQuery.conditions,
             dashboardFilters: withGlobalFilterFallback(
               dashboardFilters,
-              widgetQuery?.globalFilterFallback
+              widgetQuery.globalFilterFallback
             ),
             widgetType: widget.widgetType,
           }) ?? '';
@@ -340,7 +365,13 @@ export function getMenuOptions(
     menuOptions.push({
       key: 'open-in-metrics',
       label: t('Open in Explore'),
-      to: getWidgetMetricsUrl(widget, dashboardFilters, selection, organization),
+      to: getWidgetMetricsUrl(
+        widget,
+        dashboardFilters,
+        selection,
+        organization,
+        queryPriority
+      ),
       onAction: () => {
         trackAnalytics('dashboards_views.open_in_metrics.opened', {
           organization,
@@ -366,78 +397,66 @@ export function getMenuOptions(
   }
 
   if (onAskSeer) {
+    menuOptions.push({key: 'ask-seer', label: t('Ask Seer'), onAction: onAskSeer});
+  }
+
+  menuOptions.push({
+    key: 'add-to-dashboard',
+    label: t('Add to Dashboard'),
+    disabled: disableTransactionEdit,
+    tooltip: disableTransactionEdit
+      ? t('This dataset is no longer supported. Please use the Spans dataset.')
+      : undefined,
+    onAction: () => {
+      openAddToDashboardModal({
+        organization,
+        location,
+        selection,
+        widgets: [{...widget, id: undefined, dashboardId: undefined, layout: undefined}],
+        actions: ['add-and-stay-on-current-page', 'open-in-widget-builder'],
+        source: DashboardWidgetSource.DASHBOARDS,
+      });
+    },
+  });
+  if (onDuplicate) {
     menuOptions.push({
-      key: 'ask-seer',
-      label: t('Ask Seer'),
-      onAction: onAskSeer,
+      key: 'duplicate-widget',
+      label: t('Duplicate Widget'),
+      onAction: onDuplicate,
+      tooltip: disableTransactionEdit
+        ? t('This dataset is no longer supported. Please use the Spans dataset.')
+        : prebuiltDashboardMessages?.duplicate,
+      disabled: widgetLimitReached || !hasEditAccess || disableTransactionEdit,
     });
   }
 
-  if (organization.features.includes('dashboards-edit')) {
+  if (onEdit) {
     menuOptions.push({
-      key: 'add-to-dashboard',
-      label: t('Add to Dashboard'),
-      disabled: disableTransactionEdit,
-      tooltip: disableTransactionEdit
-        ? t('This dataset is no longer supported. Please use the Spans dataset.')
-        : undefined,
+      key: 'edit-widget',
+      label: t('Edit Widget'),
+      onAction: onEdit,
+      disabled: !hasEditAccess || !isWidgetEditable(widget.displayType),
+      tooltip: isWidgetEditable(widget.displayType)
+        ? prebuiltDashboardMessages?.edit
+        : t('Static widgets from the widget library cannot be edited.'),
+    });
+  }
+
+  if (onDelete) {
+    menuOptions.push({
+      key: 'delete-widget',
+      label: t('Delete Widget'),
+      priority: 'danger',
       onAction: () => {
-        openAddToDashboardModal({
-          organization,
-          location,
-          selection,
-          widgets: [
-            {
-              ...widget,
-              id: undefined,
-              dashboardId: undefined,
-              layout: undefined,
-            },
-          ],
-          actions: ['add-and-stay-on-current-page', 'open-in-widget-builder'],
-          source: DashboardWidgetSource.DASHBOARDS,
+        openConfirmModal({
+          message: t('Are you sure you want to delete this widget?'),
+          priority: 'danger',
+          onConfirm: onDelete,
         });
       },
+      disabled: !hasEditAccess,
+      tooltip: prebuiltDashboardMessages?.delete,
     });
-    if (onDuplicate) {
-      menuOptions.push({
-        key: 'duplicate-widget',
-        label: t('Duplicate Widget'),
-        onAction: onDuplicate,
-        tooltip: disableTransactionEdit
-          ? t('This dataset is no longer supported. Please use the Spans dataset.')
-          : undefined,
-        disabled: widgetLimitReached || !hasEditAccess || disableTransactionEdit,
-      });
-    }
-
-    if (onEdit) {
-      menuOptions.push({
-        key: 'edit-widget',
-        label: t('Edit Widget'),
-        onAction: onEdit,
-        disabled: !hasEditAccess || !isWidgetEditable(widget.displayType),
-        tooltip: isWidgetEditable(widget.displayType)
-          ? undefined
-          : t('Static widgets from the widget library cannot be edited.'),
-      });
-    }
-
-    if (onDelete) {
-      menuOptions.push({
-        key: 'delete-widget',
-        label: t('Delete Widget'),
-        priority: 'danger',
-        onAction: () => {
-          openConfirmModal({
-            message: t('Are you sure you want to delete this widget?'),
-            priority: 'danger',
-            onConfirm: onDelete,
-          });
-        },
-        disabled: !hasEditAccess,
-      });
-    }
   }
 
   return menuOptions;

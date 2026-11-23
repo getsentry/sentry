@@ -30,6 +30,7 @@ from sentry.api.helpers.mobile import get_readable_device_name
 from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.api.utils import handle_query_errors
+from sentry.auth.principal import has_user
 from sentry.discover.arithmetic import is_equation, parse_arithmetic, strip_equation
 from sentry.discover.models import (
     DatasetSourcesTypes,
@@ -55,6 +56,7 @@ from sentry.search.eap.types import AdditionalQueries, SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -112,17 +114,6 @@ def resolve_axis_column(
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
 
-    def has_feature(self, organization: Organization, request: Request) -> bool:
-        return (
-            features.has("organizations:discover-basic", organization, actor=request.user)
-            or features.has("organizations:performance-view", organization, actor=request.user)
-            or features.has(
-                "organizations:visibility-explore-view",
-                organization,
-                actor=request.user,
-            )
-        )
-
     def get_equation_list(
         self, organization: Organization, request: Request, param_name: str = "field"
     ) -> list[str]:
@@ -148,14 +139,23 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         return [team for team in teams]
 
+    def _occurrences_dataset_allowed(self, request: Request, organization: Organization) -> bool:
+        return features.has(
+            "organizations:test-occurrences-dataset", organization, actor=request.user
+        ) or EAPOccurrencesComparator.should_use_experimental_data("api.events.endpoints")
+
     def get_dataset(self, request: Request, organization: Organization) -> Any:
         dataset_label = request.GET.get("dataset", Dataset.Discover.value)
-        # Feature flag the occurrence endpoint
         if (
             dataset_label == SupportedTraceItemType.OCCURRENCES.value
-            and not EAPOccurrencesComparator.should_use_experimental_data("api.events.endpoints")
+            and not self._occurrences_dataset_allowed(request, organization)
         ):
             raise ParseError(detail=f"{dataset_label} is not supported currently")
+        elif (
+            dataset_label == SupportedTraceItemType.ENRICHMENT_ATTRIBUTES.value
+            and not features.has("organizations:classifiers-ui", organization, actor=request.user)
+        ):
+            raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
         elif dataset_label == SupportedTraceItemType.REPLAYS.value:
             raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
         result = get_dataset(dataset_label)
@@ -203,15 +203,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 end=filter_params["end"],
                 environments=filter_params.get("environment_objects", []),
                 projects=filter_params["project_objects"],
-                user=serialize_generic_user(
-                    request.user if request.user.is_authenticated else None
-                ),
+                user=serialize_generic_user(request.user if has_user(request.user) else None),
                 teams=self.get_teams(request, organization),
                 organization=organization,
                 query_string=query,
                 sampling_mode=sampling_mode,
                 debug=request.user.is_superuser and request.GET.get("debug", False),
-                case_insensitive=request.GET.get("caseInsensitive", "0") == "1",
+                case_insensitive=request.GET.get("caseInsensitive") in ("1", "true"),
             )
             return params
 
@@ -287,7 +285,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         has_errors: bool,
         has_transactions_data: bool,
         organization: Organization,
-        user: User | AnonymousUser,
+        user: User | AnonymousUser | ServiceAccountPrincipal,
     ) -> int | None:
         """This can be removed once the discover dataset has been fully split"""
         source = DashboardDatasetSourcesTypes.INFERRED.value
@@ -575,9 +573,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             # on RPC don't use default interval on error
             if use_rpc:
                 raise
-            sentry_sdk.set_tag("user.invalid_interval", request.GET.get("interval"))
-            if request.GET.get("interval"):
-                sentry_sdk.set_attribute("user.invalid_interval", request.GET.get("interval"))
+            invalid_interval = request.GET.get("interval")
+            sentry_sdk.set_tag("user.invalid_interval", invalid_interval)
+            if invalid_interval:
+                sentry_sdk.set_attribute("user.invalid_interval", invalid_interval)
             date_range = snuba_params.date_range
             stats_period = parse_stats_period(get_interval_from_range(date_range, False))
             rollup = int(stats_period.total_seconds()) if stats_period is not None else 3600
@@ -875,9 +874,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
 
 class KeyTransactionBase(OrganizationEventsEndpointBase):
-    def has_feature(self, organization: Organization, request: Request) -> bool:
-        return features.has("organizations:performance-view", organization, actor=request.user)
-
     def get_project(self, request: Request, organization: Organization) -> Project:
         projects = self.get_projects(request, organization)
 

@@ -1,6 +1,7 @@
 import type {NavigateFunction} from 'react-router';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {resetPageFilters} from 'sentry/components/pageFilters/actions';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
@@ -86,19 +87,17 @@ type RemoveParams = {
 function remove(api: Client, {successMessage, errorMessage, orgId}: RemoveParams) {
   const endpoint = `/organizations/${orgId}/`;
   return api
-    .requestPromise(endpoint, {
-      method: 'DELETE',
-    })
+    .requestPromise(endpoint, {method: 'DELETE'})
     .then(() => {
       OrganizationsStore.onRemoveSuccess(orgId);
 
       if (successMessage) {
-        addSuccessMessage(successMessage);
+        toast.success(successMessage);
       }
     })
     .catch(() => {
       if (errorMessage) {
-        addErrorMessage(errorMessage);
+        toast.error(errorMessage);
       }
     });
 }
@@ -138,10 +137,7 @@ export function updateOrganization(org: Partial<Organization>) {
   OrganizationStore.onUpdate(org);
 }
 
-type FetchOrganizationByMemberParams = {
-  addOrg?: boolean;
-  fetchOrgDetails?: boolean;
-};
+type FetchOrganizationByMemberParams = {addOrg?: boolean; fetchOrgDetails?: boolean};
 
 export async function fetchOrganizationByMember(
   api: Client,
@@ -191,11 +187,7 @@ export async function fetchOrganizationDetails(
     getApiUrl('/organizations/$organizationIdOrSlug/', {
       path: {organizationIdOrSlug: orgId},
     }),
-    {
-      query: {
-        include_feature_flags: 1,
-      },
-    }
+    {query: {include_feature_flags: 1}}
   );
 
   if (setActive) {

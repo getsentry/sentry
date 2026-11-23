@@ -5,11 +5,12 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {DETAILS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
+import {DETAILS_DASHBOARD_TITLE} from './settings';
 
 const ASSET_DESCRIPTION_WIDGET: PrebuiltWidget = {
   id: 'domain-widget',
@@ -43,13 +44,7 @@ const ASSET_DESCRIPTION_WIDGET: PrebuiltWidget = {
       linkedDashboards: [],
     },
   ],
-  layout: {
-    x: 0,
-    y: 0,
-    minH: 2,
-    h: 2,
-    w: 6,
-  },
+  layout: {x: 0, y: 0, minH: 2, h: 2, w: 6},
 };
 
 const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
@@ -264,13 +259,7 @@ const ASSETS_TABLE_WIDGET: PrebuiltWidget = {
       orderby: '-epm()',
     },
   ],
-  layout: {
-    x: 0,
-    y: 5,
-    minH: 2,
-    h: 6,
-    w: 6,
-  },
+  layout: {x: 0, y: 5, minH: 2, h: 6, w: 6},
 };
 
 export const FRONTEND_ASSETS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {

@@ -11,11 +11,12 @@ import {
 
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
-import {AggregateDropdown} from 'sentry/views/explore/metrics/metricToolbar/aggregateDropdown';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+
+import {AggregateDropdown} from './aggregateDropdown';
 
 interface WrapperOptions {
   queryParams?: ReadableQueryParams;
@@ -76,9 +77,7 @@ describe('AggregateDropdown', () => {
   });
 
   it('renders multi-select dropdown with grouped options', async () => {
-    const organization = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
 
     const queryParams = new ReadableQueryParams({
       extrapolate: true,
@@ -99,10 +98,7 @@ describe('AggregateDropdown', () => {
 
     render(
       <AggregateDropdown traceMetric={{name: 'test_metric', type: 'distribution'}} />,
-      {
-        organization,
-        additionalWrapper: createWrapper({queryParams}),
-      }
+      {organization, additionalWrapper: createWrapper({queryParams})}
     );
 
     const trigger = screen.getByRole('button', {name: /Agg/});
@@ -124,10 +120,46 @@ describe('AggregateDropdown', () => {
     );
   });
 
-  it('updates multiple visualizes on selection change', async () => {
-    const organization = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
+  it('only shows the Clear button when the selection differs from the default', async () => {
+    const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
+
+    const {unmount} = render(
+      <AggregateDropdown traceMetric={{name: 'test_metric', type: 'distribution'}} />,
+      {organization, additionalWrapper: createWrapper()}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: /Agg/}));
+    expect(await screen.findByText('Percentiles')).toBeInTheDocument();
+    expect(screen.queryByText('Clear')).not.toBeInTheDocument();
+    unmount();
+
+    const queryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.SAMPLES,
+      query: '',
+      cursor: '',
+      fields: ['id', 'timestamp'],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [
+        new VisualizeFunction('p50(value,test_metric,distribution,none)'),
+      ],
+      aggregateSortBys: [
+        {field: 'p50(value,test_metric,distribution,none)', kind: 'desc'},
+      ],
     });
+
+    render(
+      <AggregateDropdown traceMetric={{name: 'test_metric', type: 'distribution'}} />,
+      {organization, additionalWrapper: createWrapper({queryParams})}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: /Agg/}));
+    expect(await screen.findByRole('button', {name: 'Clear'})).toBeInTheDocument();
+  });
+
+  it('updates multiple visualizes on selection change', async () => {
+    const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
 
     const setQueryParams = jest.fn();
     const queryParams = new ReadableQueryParams({
@@ -148,10 +180,7 @@ describe('AggregateDropdown', () => {
 
     render(
       <AggregateDropdown traceMetric={{name: 'test_metric', type: 'distribution'}} />,
-      {
-        organization,
-        additionalWrapper: createWrapper({queryParams, setQueryParams}),
-      }
+      {organization, additionalWrapper: createWrapper({queryParams, setQueryParams})}
     );
 
     const trigger = screen.getByRole('button', {name: /Agg/});
@@ -174,9 +203,7 @@ describe('AggregateDropdown', () => {
   });
 
   it('defaults to the type yAxis when all selections are cleared', async () => {
-    const organization = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
 
     const setQueryParams = jest.fn();
     const queryParams = new ReadableQueryParams({
@@ -229,9 +256,7 @@ describe('AggregateDropdown', () => {
   });
 
   it('shows correct options for counter metric type', async () => {
-    const organization = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
 
     const queryParams = new ReadableQueryParams({
       extrapolate: true,
@@ -267,9 +292,7 @@ describe('AggregateDropdown', () => {
   });
 
   it('deselects incompatible aggregates when selecting from a different group', async () => {
-    const organization = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
 
     const setQueryParams = jest.fn();
     const queryParams = new ReadableQueryParams({
@@ -325,9 +348,7 @@ describe('AggregateDropdown', () => {
   });
 
   it('allows multiple selections within the same group', async () => {
-    const organization = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
 
     const setQueryParams = jest.fn();
     const queryParams = new ReadableQueryParams({
@@ -377,9 +398,7 @@ describe('AggregateDropdown', () => {
   });
 
   it('switches groups correctly when going from math to rate', async () => {
-    const organization = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
 
     const setQueryParams = jest.fn();
     const queryParams = new ReadableQueryParams({
@@ -428,9 +447,7 @@ describe('AggregateDropdown', () => {
   });
 
   it('shows selected name in trigger for a single selection', () => {
-    const organization = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
 
     const queryParams = new ReadableQueryParams({
       extrapolate: true,
@@ -459,9 +476,7 @@ describe('AggregateDropdown', () => {
   });
 
   it('shows first name and +N badge in trigger for multiple selections', () => {
-    const organization = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
 
     const queryParams = new ReadableQueryParams({
       extrapolate: true,
@@ -492,9 +507,7 @@ describe('AggregateDropdown', () => {
   });
 
   it('updates trigger label after selecting an additional option', async () => {
-    const organization = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
 
     const queryParams = new ReadableQueryParams({
       extrapolate: true,
@@ -514,10 +527,7 @@ describe('AggregateDropdown', () => {
 
     render(
       <AggregateDropdown traceMetric={{name: 'test_metric', type: 'distribution'}} />,
-      {
-        organization,
-        additionalWrapper: createWrapper({queryParams, stateful: true}),
-      }
+      {organization, additionalWrapper: createWrapper({queryParams, stateful: true})}
     );
 
     const trigger = screen.getByRole('button', {name: /Agg/});
@@ -533,9 +543,7 @@ describe('AggregateDropdown', () => {
   });
 
   it('disables aggregate options specified in disabledAggregates with tooltips', async () => {
-    const organization = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
 
     const queryParams = new ReadableQueryParams({
       extrapolate: true,
@@ -579,9 +587,7 @@ describe('AggregateDropdown', () => {
   });
 
   it('renders all groups as single-select and keeps only the last selection when singleSelect is passed', async () => {
-    const organization = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
 
     const queryParams = new ReadableQueryParams({
       extrapolate: true,
@@ -604,10 +610,7 @@ describe('AggregateDropdown', () => {
         traceMetric={{name: 'test_metric', type: 'distribution'}}
         singleSelect
       />,
-      {
-        organization,
-        additionalWrapper: createWrapper({queryParams, stateful: true}),
-      }
+      {organization, additionalWrapper: createWrapper({queryParams, stateful: true})}
     );
 
     const trigger = screen.getByRole('button', {name: /Agg/});

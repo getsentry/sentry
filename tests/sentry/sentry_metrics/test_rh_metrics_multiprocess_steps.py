@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import pickle
 import time
-from collections.abc import MutableMapping, Sequence
+from collections.abc import Generator, MutableMapping, Sequence
 from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any
@@ -42,8 +42,9 @@ BROKER_TIMESTAMP = datetime.now(tz=timezone.utc)
 
 
 @pytest.fixture(autouse=True)
-def update_sentry_settings(settings: Any) -> None:
-    settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = True
+def update_sentry_settings() -> Generator[None]:
+    with override_settings(SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS=True):
+        yield
 
 
 def compare_messages_ignoring_mapping_metadata(

@@ -4,14 +4,15 @@ import {useQuery} from '@tanstack/react-query';
 
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 
-import {
-  formatConditionalFilterClause,
-  getConditionalFilterEditContext,
-} from 'sentry/components/arithmeticBuilder/conditionalFilter/conditionalFilter';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {FieldKind} from 'sentry/utils/fields';
+
+import {
+  formatConditionalFilterClause,
+  getConditionalFilterEditContext,
+} from './conditionalFilter';
 
 function useFilterKeyItems(
   attributes: FunctionArgument[]
@@ -20,13 +21,7 @@ function useFilterKeyItems(
     return attributes.map(item => {
       const key = item.name;
       const filterKey = `${key}:`;
-      return {
-        key,
-        label: filterKey,
-        value: filterKey,
-        textValue: key,
-        hideCheck: true,
-      };
+      return {key, label: filterKey, value: filterKey, textValue: key, hideCheck: true};
     });
   }, [attributes]);
 }
@@ -45,11 +40,7 @@ function useFilterValueItems({
   tagKind?: FieldKind;
 }): Array<SelectOptionWithKey<string>> {
   const tag = useMemo(
-    () => ({
-      key: filterKey,
-      name: filterKey,
-      kind: tagKind,
-    }),
+    () => ({key: filterKey, name: filterKey, kind: tagKind}),
     [filterKey, tagKind]
   );
 
@@ -65,10 +56,7 @@ function useFilterValueItems({
   const {data} = useQuery({
     queryKey: debouncedQueryKey,
     queryFn: ctx =>
-      getFilterTagValues!({
-        tag: ctx.queryKey[1],
-        searchQuery: ctx.queryKey[2] ?? '',
-      }),
+      getFilterTagValues!({tag: ctx.queryKey[1], searchQuery: ctx.queryKey[2] ?? ''}),
     // Gate on the *debounced* key. `enabled` flips true as soon as the user types `:`,
     // but the query key still holds the previous empty key for one debounce window —
     // fetching then hits `/attributes//values/` and 404-retries.
@@ -122,10 +110,7 @@ export function useConditionalFilterAutocomplete({
     if (editContext?.phase !== 'value' || !editContext.filterKey) {
       return null;
     }
-    return {
-      filterKey: editContext.filterKey,
-      valueQuery: editContext.valueQuery ?? '',
-    };
+    return {filterKey: editContext.filterKey, valueQuery: editContext.valueQuery ?? ''};
   }, [editContext]);
 
   const filterKeyItems = useFilterKeyItems(functionArguments);
@@ -175,10 +160,5 @@ export function useConditionalFilterAutocomplete({
     parsedFilterInput,
   ]);
 
-  return {
-    comboBoxFilterValue,
-    editPhase,
-    items,
-    parsedFilterInput,
-  };
+  return {comboBoxFilterValue, editPhase, items, parsedFilterInput};
 }

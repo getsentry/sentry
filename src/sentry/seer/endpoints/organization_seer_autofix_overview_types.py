@@ -48,8 +48,8 @@ class IssuePayload(TypedDict):
     priorityLockedAt: str | None
     issueType: str | None
     issueCategory: str | None
-    assignedTo: dict | None
-    owners: list
+    assignedTo: dict[str, object] | None
+    owners: list[object]
     project: IssueProjectPayload
 
 
@@ -77,7 +77,7 @@ class ProposedFixPayload(TypedDict):
 
 class RunPayload(TypedDict):
     groupId: str
-    shortId: str
+    shortId: str | None
     title: str
     rootCause: RootCausePayload | None
     proposedFix: ProposedFixPayload | None

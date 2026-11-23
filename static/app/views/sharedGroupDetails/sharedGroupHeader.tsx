@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {DateTime} from '@sentry/scraps/dateTime';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {ShortId} from 'sentry/components/shortId';
@@ -11,9 +11,7 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {EventCreatedTooltip} from 'sentry/views/issueDetails/eventCreatedTooltip';
 
-type Props = {
-  group: Group;
-};
+type Props = {group: Group};
 
 export function SharedGroupHeader({group}: Props) {
   const date = new Date(
@@ -24,7 +22,7 @@ export function SharedGroupHeader({group}: Props) {
   return (
     <Wrapper>
       <Details>
-        <TitleWrap>
+        <Grid align="center" marginBottom="md" columns="1fr max-content">
           <Title>{group.title}</Title>
           <Flex>
             <ShortId
@@ -46,7 +44,7 @@ export function SharedGroupHeader({group}: Props) {
               </EventTimeLabel>
             </TimeStamp>
           )}
-        </TitleWrap>
+        </Grid>
         <EventMessage
           showUnhandled={group.isUnhandled}
           message={group.culprit}
@@ -68,13 +66,6 @@ const Wrapper = styled('div')`
 const Details = styled('div')`
   max-width: 960px;
   margin: 0 auto;
-`;
-
-const TitleWrap = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  align-items: center;
-  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Title = styled('h3')`

@@ -26,14 +26,8 @@ describe('useTraceMeta', () => {
       url: '/organizations/org-slug/events/',
       body: {
         data: [
-          {
-            trace: 'trace1',
-            'min(precise.start_ts)': 1,
-          },
-          {
-            trace: 'trace2',
-            'min(precise.start_ts)': 2,
-          },
+          {trace: 'trace1', 'min(precise.start_ts)': 1},
+          {trace: 'trace2', 'min(precise.start_ts)': 2},
         ],
       },
       match: [MockApiClient.matchQuery({dataset: 'spans', query: replayTraceQuery})],

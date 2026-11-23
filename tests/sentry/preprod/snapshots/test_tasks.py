@@ -24,14 +24,25 @@ from sentry.preprod.snapshots.tasks import (
     _effective_diff_threshold,
     _plan_key,
     _process_chunk,
+    _put_diff_mask,
 )
 
 
-def test_objectstore_key_layout():
+def test_objectstore_key_layout() -> None:
     assert _plan_key(1, 2, 3, 4) == "1/2/3/4/plan.json"
     assert _chunk_result_key(1, 2, 3, 4, 5) == "1/2/3/4/chunks/5.json"
     assert _comparison_key(1, 2, 3, 4) == "1/2/3/4/comparison.json"
     assert _diff_mask_key(1, 2, 3, 4, "foo/bar") == "1/2/3/4/diff/foo/bar.png"
+
+
+def test_put_diff_mask_skips_compression() -> None:
+    session = MagicMock()
+
+    _put_diff_mask(session, "1/2/3/4/diff/foo.png", b"png")
+
+    session.put.assert_called_once_with(
+        b"png", key="1/2/3/4/diff/foo.png", content_type="image/png", compress="none"
+    )
 
 
 def _meta(content_hash: str) -> ImageMetadata:
@@ -276,7 +287,7 @@ class TestCategorizeImageDiffSelective:
         assert result.matched == {"a.png"}
 
 
-def test_build_comparison_plan_splits_diff_and_non_diff():
+def test_build_comparison_plan_splits_diff_and_non_diff() -> None:
     from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
     from sentry.preprod.snapshots.tasks import _build_comparison_plan
 
@@ -306,7 +317,7 @@ def test_build_comparison_plan_splits_diff_and_non_diff():
     assert plan.non_diff_images["gone.png"].status == "removed"
 
 
-def test_build_comparison_plan_diff_threshold_precedence():
+def test_build_comparison_plan_diff_threshold_precedence() -> None:
     from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
     from sentry.preprod.snapshots.tasks import _build_comparison_plan
 
@@ -333,7 +344,7 @@ def test_build_comparison_plan_diff_threshold_precedence():
     assert thresholds == {"per_image.png": 0.25, "manifest_level.png": 0.1}
 
 
-def test_build_comparison_plan_diff_threshold_defaults_to_zero():
+def test_build_comparison_plan_diff_threshold_defaults_to_zero() -> None:
     from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
     from sentry.preprod.snapshots.tasks import _build_comparison_plan
 
@@ -352,7 +363,7 @@ def test_build_comparison_plan_diff_threshold_defaults_to_zero():
     assert thresholds == {"default.png": 0.0}
 
 
-def test_build_comparison_plan_uses_comparison_dimensions_for_pixel_limit():
+def test_build_comparison_plan_uses_comparison_dimensions_for_pixel_limit() -> None:
     from sentry.preprod.snapshots.image_diff.compare import MAX_DIFF_PIXELS
     from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
     from sentry.preprod.snapshots.tasks import _build_comparison_plan
@@ -374,7 +385,7 @@ def test_build_comparison_plan_uses_comparison_dimensions_for_pixel_limit():
     assert plan.non_diff_images["huge.png"].reason == "exceeds_pixel_limit"
 
 
-def test_build_comparison_plan_detects_rename():
+def test_build_comparison_plan_detects_rename() -> None:
     from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
     from sentry.preprod.snapshots.tasks import _build_comparison_plan
 
@@ -394,7 +405,7 @@ def test_build_comparison_plan_detects_rename():
     assert "old.png" not in plan.non_diff_images
 
 
-def test_process_chunk_enforces_actual_batch_pixel_limit():
+def test_process_chunk_enforces_actual_batch_pixel_limit() -> None:
     assignment = ChunkAssignment(
         chunk_index=0,
         candidates=[

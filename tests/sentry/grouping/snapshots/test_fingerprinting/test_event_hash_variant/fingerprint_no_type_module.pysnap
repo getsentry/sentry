@@ -11,7 +11,7 @@ config:
     matchers:
     - - function
       - main
-    text: function:"main" -> "{{ type }}{{ module }}{{ function }}"
+    text: function:"main" -> "{{ type }}", "{{ module }}", "{{ function }}"
   version: 1
 fingerprint:
 - '{{ type }}'
@@ -31,7 +31,7 @@ variants:
     contributes: true
     hint: null
     key: custom_server_fingerprint
-    matched_rule: function:"main" -> "{{ type }}{{ module }}{{ function }}"
+    matched_rule: function:"main" -> "{{ type }}", "{{ module }}", "{{ function }}"
     type: custom_fingerprint
     values:
     - <no-type>

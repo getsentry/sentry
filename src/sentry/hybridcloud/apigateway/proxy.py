@@ -22,7 +22,6 @@ from requests.cookies import RequestsCookieJar
 from requests.exceptions import ConnectionError, Timeout
 
 from sentry import options
-from sentry.objectstore.endpoints.organization import ChunkedEncodingDecoder, get_raw_body
 from sentry.options.rollout import in_random_rollout
 from sentry.silo.util import (
     PRESERVE_CONTENT_ENCODING_URL_NAMES,
@@ -38,7 +37,7 @@ from sentry.types.cell import (
 )
 from sentry.utils import metrics
 from sentry.utils.circuit_breaker2 import CircuitBreaker, CountBasedTripStrategy
-from sentry.utils.http import BodyWithLength
+from sentry.utils.http import BodyWithLength, ChunkedEncodingDecoder, request_body_stream
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +191,7 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
 
     data: bytes | Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None = None
     if url_name == "sentry-api-0-organization-objectstore":
-        data = get_raw_body(request)
+        data = request_body_stream(request)
     else:
         data = BodyWithLength(request)
 

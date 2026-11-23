@@ -5,7 +5,7 @@ from sentry.analytics.events.user_created import UserCreatedEvent
 from sentry.users.models.user import User
 
 
-def on_user_post_save(instance: User, created: bool, **kwargs):
+def on_user_post_save(instance: User, created: bool, **kwargs: object) -> None:
     if created:
         analytics.record(
             UserCreatedEvent(

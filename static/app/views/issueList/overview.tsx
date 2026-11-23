@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {IconRefresh} from '@sentry/icons/refresh';
 import * as Sentry from '@sentry/react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
@@ -7,14 +8,15 @@ import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
-import * as qs from 'query-string';
+import {useStore} from 'zustand';
 
 import type {FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
+import {toast} from '@sentry/scraps/toast';
 
-import {addMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DATE_TIME_KEYS} from 'sentry/components/pageFilters/constants';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QueryCount} from 'sentry/components/queryCount';
@@ -24,11 +26,11 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -45,18 +47,13 @@ import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRo
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {usePrevious} from 'sentry/utils/usePrevious';
-import {IssueListTable} from 'sentry/views/issueList/issueListTable';
-import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
-import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
-import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
-import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {
@@ -65,8 +62,14 @@ import {
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
+import {parseIssuePrioritySearch} from './utils/parseIssuePrioritySearch';
 import {IssueListFilters} from './filters';
 import {IssueListCommandPaletteActions} from './issueListCommandPaletteActions';
+import {IssueListTable} from './issueListTable';
+import {IssuesDataConsentBanner} from './issuesDataConsentBanner';
+import {IssueSelectionProvider} from './issueSelectionContext';
+import {IssueViewsHeader} from './issueViewsHeader';
+import type {IssueUpdateData} from './types';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
   DEFAULT_QUERY,
@@ -177,7 +180,7 @@ function IssueListOverviewInner({
   const actionTakenRef = useRef(false);
   const {getRunIdForAnalytics} = useAiQueryContext();
 
-  const groups = useLegacyStore(GroupStore);
+  const groups = useStore(GroupStore);
   useEffect(() => {
     const storeGroupIds = groups.map(group => group.id).slice(0, MAX_ISSUES_COUNT);
     if (!isEqual(groupIds, storeGroupIds)) {
@@ -214,17 +217,12 @@ function IssueListOverviewInner({
   const query = defined(location.query.query)
     ? (decodeScalar(location.query.query) ?? '')
     : initialQuery;
-  const hasRecommendedSortDefault = organization.features.includes(
-    'issue-stream-recommended-sort-default'
-  );
   const hasIssueInbox = organization.features.includes('issue-inbox');
   // The stored sort is the user's preferred sort for the unsaved feed.
   // Saved views persist their own sort, so they neither read nor write it.
   const defaultSort = urlParams.viewId
     ? (groupSearchView?.querySort ?? DEFAULT_ISSUE_STREAM_SORT)
-    : hasRecommendedSortDefault
-      ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
-      : DEFAULT_ISSUE_STREAM_SORT;
+    : (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED);
   const sort = decodeScalar(location.query.sort, defaultSort) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
@@ -273,11 +271,7 @@ function IssueListOverviewInner({
   }, [selection, query, sort, getGroupStatsPeriod]);
 
   const requestParams = useMemo(() => {
-    const params: any = {
-      ...getEndpointParams(),
-      limit: MAX_ITEMS,
-      shortIdLookup: 1,
-    };
+    const params: any = {...getEndpointParams(), limit: MAX_ITEMS, shortIdLookup: 1};
 
     const cursor = decodeScalar(location.query.cursor);
     if (cursor) {
@@ -351,10 +345,7 @@ function IssueListOverviewInner({
           getApiUrl('/organizations/$organizationIdOrSlug/issues-stats/', {
             path: {organizationIdOrSlug: organization.slug},
           }),
-          {
-            method: 'GET',
-            data: qs.stringify(statsRequestParams),
-          }
+          {method: 'GET', data: qs.stringify(statsRequestParams)}
         );
 
         if (data) {
@@ -384,17 +375,8 @@ function IssueListOverviewInner({
   const resetNewViewQueryParam = useCallback(() => {
     if (location.query.new) {
       navigate(
-        {
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            new: undefined,
-          },
-        },
-        {
-          replace: true,
-          preventScrollReset: true,
-        }
+        {pathname: location.pathname, query: {...location.query, new: undefined}},
+        {replace: true, preventScrollReset: true}
       );
     }
   }, [location.pathname, navigate, location.query]);
@@ -423,11 +405,7 @@ function IssueListOverviewInner({
         getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {
-          method: 'GET',
-          data: qs.stringify(requestParams),
-          includeAllArgs: true,
-        }
+        {method: 'GET', data: qs.stringify(requestParams), includeAllArgs: true}
       );
 
       if (!resp) {
@@ -450,7 +428,9 @@ function IssueListOverviewInner({
             pathname: redirect,
             query: {
               referrer: 'issue-list',
-              ...extractSelectionParameters(location.query),
+              // The issue list's date range may come from pinned filters, let
+              // issue details fall back to its own default instead
+              ...omit(extractSelectionParameters(location.query), DATE_TIME_KEYS),
             },
           }),
           {replace: true}
@@ -492,7 +472,6 @@ function IssueListOverviewInner({
         trackAiQueryOutcome({
           dataset: 'issues',
           mode: 'samples',
-          referrer: 'issues',
           resultCount: data.length, // Can also use newQueryCount for total hits
           organization,
           runId: aiQueryRunId,
@@ -525,7 +504,6 @@ function IssueListOverviewInner({
         trackAiQueryOutcome({
           dataset: 'issues',
           mode: 'samples',
-          referrer: 'issues',
           resultCount: 0,
           organization,
           runId: aiQueryRunId,
@@ -652,20 +630,14 @@ function IssueListOverviewInner({
       numPreviousIssues = 0;
     }
 
-    return {
-      numPreviousIssues,
-      numIssuesOnPage: groupIds.length,
-    };
+    return {numPreviousIssues, numIssuesOnPage: groupIds.length};
   }, [pageLinks, location, queryCount, allResultsVisible, groupIds.length]);
 
   const onRealtimeChange = useCallback(
     (realtime: boolean) => {
       Cookies.set('realtimeActive', realtime.toString());
       setRealtimeActive(realtime);
-      trackAnalytics('issues_stream.realtime_clicked', {
-        organization,
-        enabled: realtime,
-      });
+      trackAnalytics('issues_stream.realtime_clicked', {organization, enabled: realtime});
     },
     [organization]
   );
@@ -684,10 +656,7 @@ function IssueListOverviewInner({
       delete queryData.sort;
     }
 
-    navigate({
-      pathname: location.pathname,
-      query: queryData,
-    });
+    navigate({pathname: location.pathname, query: queryData});
   };
 
   const onSearch = (newQuery: string) => {
@@ -700,17 +669,14 @@ function IssueListOverviewInner({
   };
 
   const onSortChange = (newSort: string) => {
-    trackAnalytics('issues_stream.sort_changed', {
-      organization,
-      sort: newSort,
-    });
-    if (hasRecommendedSortDefault && !urlParams.viewId) {
+    trackAnalytics('issues_stream.sort_changed', {organization, sort: newSort});
+    if (!urlParams.viewId) {
       setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
     }
     transitionTo({sort: newSort});
   };
 
-  const onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
+  const onCursorChange: CursorHandler = (nextCursor, delta) => {
     const queryPageInt = parsePageQueryParam(location, NaN);
     let nextPage: number | undefined = isNaN(queryPageInt) ? delta : queryPageInt + delta;
 
@@ -737,13 +703,11 @@ function IssueListOverviewInner({
   };
 
   const invalidateIssueCounts = () => {
-    queryClient.invalidateQueries({
-      queryKey: [
-        getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-      ],
-    });
+    queryClient.invalidateQueries(
+      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues-count/', {
+        path: {organizationIdOrSlug: organization.slug},
+      })
+    );
   };
 
   const undoAction = async ({
@@ -762,10 +726,7 @@ function IssueListOverviewInner({
       const response = await api.requestPromise(endpoint, {
         method: 'PUT',
         data,
-        query: {
-          project: projectIds,
-          id: groupItems.map(group => group.id),
-        },
+        query: {project: projectIds, id: groupItems.map(group => group.id)},
       });
 
       invalidateIssueCounts();
@@ -801,15 +762,19 @@ function IssueListOverviewInner({
     undo?: () => void;
   }) => {
     if (itemIds.length > 1) {
-      addMessage(`${actionType} ${itemIds.length} ${t('Issues')}`, 'success', {
+      toast.success(`${actionType} ${itemIds.length} ${t('Issues')}`, {
         duration: 4000,
-        undo,
+        ...(undo && {
+          action: {label: t('Undo'), icon: <IconRefresh size="xs" />, onClick: undo},
+        }),
       });
     } else {
       const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
-      addMessage(`${actionType} ${shortId}`, 'success', {
+      toast.success(`${actionType} ${shortId}`, {
         duration: 4000,
-        undo,
+        ...(undo && {
+          action: {label: t('Undo'), icon: <IconRefresh size="xs" />, onClick: undo},
+        }),
       });
     }
 
@@ -913,10 +878,7 @@ function IssueListOverviewInner({
   };
 
   const paginationAnalyticsEvent = (direction: string) => {
-    trackAnalytics('issues_stream.paginate', {
-      organization,
-      direction,
-    });
+    trackAnalytics('issues_stream.paginate', {organization, direction});
   };
 
   const modifiedQueryCount = Math.max(queryCount, 0);
@@ -932,6 +894,9 @@ function IssueListOverviewInner({
   // Visible rows may span a subset of the page-filter selection; keep those
   // separate from the hard selected project filter the agent should scope to.
   const displayedProjectSlugs = [...new Set(groups.map(g => g.project.slug))];
+  // Right after a filter change, `groups` may still hold the previous filters' issues.
+  const currentIssuesLoading =
+    issuesLoading || !isEqual(requestParams, previousRequestParams);
 
   useLLMContext({
     contextHint:
@@ -943,6 +908,9 @@ function IssueListOverviewInner({
       'query is the current search filter (Sentry search syntax). ' +
       'displayedIssues is a pipe-delimited CSV with header row (shortId|title|issueType|level|priority|events|users|firstSeen) of the visible issues on the current page. ' +
       'issueCount is the total matching issues — there may be more than what is displayed. ' +
+      (currentIssuesLoading
+        ? 'The list is still loading, so its issues are unknown. '
+        : '') +
       'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
       'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction. ' +
       'displayedProjectSlugs are only the projects represented by currently visible rows. ' +
@@ -951,20 +919,22 @@ function IssueListOverviewInner({
     viewName: groupSearchView?.name,
     query,
     sort,
-    issueCount: queryCount,
+    issueCount: currentIssuesLoading ? null : queryCount,
     ...toLLMContextProjectFields(selectedProjects),
-    displayedProjectSlugs,
+    displayedProjectSlugs: currentIssuesLoading ? null : displayedProjectSlugs,
     environments: selection.environments,
     dateRange: selection.datetime,
-    displayedIssues: [
-      'shortId|title|issueType|level|priority|events|users|firstSeen',
-      ...groups
-        .slice(0, MAX_ITEMS)
-        .map(
-          g =>
-            `${g.shortId}|${g.title.replace(/[|\n]/g, ' ')}|${g.issueType}|${g.level}|${g.priority}|${'count' in g ? g.count : ''}|${'userCount' in g ? g.userCount : ''}|${g.firstSeen}`
-        ),
-    ].join('\n'),
+    displayedIssues: currentIssuesLoading
+      ? null
+      : [
+          'shortId|title|issueType|level|priority|events|users|firstSeen',
+          ...groups
+            .slice(0, MAX_ITEMS)
+            .map(
+              g =>
+                `${g.shortId}|${g.title.replace(/[|\n]/g, ' ')}|${g.issueType}|${g.level}|${g.priority}|${'count' in g ? g.count : ''}|${'userCount' in g ? g.userCount : ''}|${g.firstSeen}`
+            ),
+        ].join('\n'),
   });
 
   return (
@@ -1000,6 +970,7 @@ function IssueListOverviewInner({
               />
               <IssueListTable
                 selection={selection}
+                sort={sort}
                 query={query}
                 queryCount={modifiedQueryCount}
                 onSelectStatsPeriod={onSelectStatsPeriod}

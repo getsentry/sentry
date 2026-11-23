@@ -24,10 +24,6 @@ SCM_MESSAGING_TREATMENT = {
     "organizations:onboarding-scm-messaging-experiment": True,
 }
 
-# The SCM flow is switching its default name from the platform to the repo
-# ("getsentry/sentry" -> "sentry"); accept both until the frontend change ships.
-REPO_PROJECT_NAME = "sentry"
-
 
 def workflow_action_types(workflow: Workflow) -> list[str]:
     return sorted(
@@ -216,7 +212,7 @@ class OnboardingTest(AcceptanceTestCase):
 
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
             self.browser.wait_until(xpath='//*[contains(text(), "Detected from")]')
-            self.browser.wait_until('[role="radio"]')
+            self.browser.wait_until('[role="radio"], label:has(input[type="radio"])')
 
             # Reload the step. The connected repo (real id) must survive the
             # session restore so detection re-runs and the auto-detected section
@@ -225,7 +221,7 @@ class OnboardingTest(AcceptanceTestCase):
 
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
             self.browser.wait_until(xpath='//*[contains(text(), "Detected from")]')
-            self.browser.wait_until('[role="radio"]')
+            self.browser.wait_until('[role="radio"], label:has(input[type="radio"])')
 
     def test_scm_onboarding_switch_repo_updates_detection(self) -> None:
         """Switching the connected repo re-runs detection for the new repo and
@@ -308,7 +304,9 @@ class OnboardingTest(AcceptanceTestCase):
             self.browser.click(xpath='//button[contains(., "Continue")]')
 
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until(xpath='//*[@role="radio"][contains(., "Django")]')
+            self.browser.wait_until(
+                xpath='//*[@role="radio" or (self::label and .//input[@type="radio"])][contains(., "Django")]'
+            )
 
             # Go back and switch to the second repo; detection must re-run for it.
             self.browser.click('[aria-label="Back"]')
@@ -325,8 +323,12 @@ class OnboardingTest(AcceptanceTestCase):
 
             # New repo's platform is detected; the previous repo's is not shown.
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until(xpath='//*[@role="radio"][contains(., "React")]')
-            self.browser.wait_until_not(xpath='//*[@role="radio"][contains(., "Django")]')
+            self.browser.wait_until(
+                xpath='//*[@role="radio" or (self::label and .//input[@type="radio"])][contains(., "React")]'
+            )
+            self.browser.wait_until_not(
+                xpath='//*[@role="radio" or (self::label and .//input[@type="radio"])][contains(., "Django")]'
+            )
 
     def test_scm_onboarding_header_skip_onboarding(self) -> None:
         """Header skip on scm-platform-features navigates to issues with step-specific referrer."""
@@ -454,9 +456,17 @@ class OnboardingTest(AcceptanceTestCase):
             self.browser.driver.execute_script("window.__testOpenUrl = null;")
             self.browser.click(xpath='//button[contains(., "Install GitHub App")]')
 
-            # The install popup was intercepted. Send a postMessage callback
-            # with the installation_id. The backend validates and completes
-            # the pipeline, creating the integration.
+            # The installation.created webhook creates the trusted integration
+            # before GitHub redirects the popup back to the pipeline.
+            self.create_provider_integration(
+                provider="github",
+                name="getsentry",
+                external_id="12345",
+                metadata={"sender": {"login": "testuser"}},
+            )
+
+            # The install popup was intercepted. Send its postMessage callback
+            # with the installation_id so the pipeline can link the integration.
             self.browser.driver.execute_script(
                 "window.postMessage(arguments[0], window.location.origin);",
                 {
@@ -478,8 +488,8 @@ class OnboardingTest(AcceptanceTestCase):
 
             # Platform Features: select detected platform, Continue auto-creates the project
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until('[role="radio"]')
-            self.browser.click('[role="radio"]')
+            self.browser.wait_until('[role="radio"], label:has(input[type="radio"])')
+            self.browser.click('[role="radio"], label:has(input[type="radio"])')
             self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
             self.browser.click(xpath='//button[contains(., "Continue")]')
 
@@ -488,8 +498,8 @@ class OnboardingTest(AcceptanceTestCase):
 
             project = Project.objects.get(organization=self.org)
             assert project.platform == "python-django"
-            assert project.name in ("python-django", REPO_PROJECT_NAME)
-            assert project.slug == project.name
+            assert project.name == "sentry"
+            assert project.slug == "sentry"
             assert_existing_projects_status(
                 self.org, active_project_ids=[project.id], deleted_project_ids=[]
             )
@@ -549,8 +559,8 @@ class OnboardingTest(AcceptanceTestCase):
 
             project = Project.objects.get(organization=self.org)
             assert project.platform == "javascript-react"
-            assert project.name in ("javascript-react", REPO_PROJECT_NAME)
-            assert project.slug == project.name
+            assert project.name == "sentry"
+            assert project.slug == "sentry"
             assert_existing_projects_status(
                 self.org, active_project_ids=[project.id], deleted_project_ids=[]
             )
@@ -687,8 +697,8 @@ class OnboardingTest(AcceptanceTestCase):
             self.browser.click(xpath='//button[contains(., "Continue")]')
 
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until('[role="radio"]')
-            self.browser.click('[role="radio"]')
+            self.browser.wait_until('[role="radio"], label:has(input[type="radio"])')
+            self.browser.click('[role="radio"], label:has(input[type="radio"])')
             self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
             self.browser.click(xpath='//button[contains(., "Continue")]')
 
@@ -699,8 +709,8 @@ class OnboardingTest(AcceptanceTestCase):
 
             project = Project.objects.get(organization=self.org)
             assert project.platform == "python-django"
-            assert project.name in ("python-django", REPO_PROJECT_NAME)
-            assert project.slug == project.name
+            assert project.name == "sentry"
+            assert project.slug == "sentry"
             assert_existing_projects_status(
                 self.org, active_project_ids=[project.id], deleted_project_ids=[]
             )

@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -27,7 +28,7 @@ class AuditLogQueryParamSerializer(serializers.Serializer):
     end = serializers.DateTimeField(required=False)
     statsPeriod = serializers.CharField(required=False)
 
-    def validate_event(self, event):
+    def validate_event(self, event: str) -> int | None:
         try:
             return audit_log.get_event_id_from_api_name(event)
         except AuditLogEventNotRegistered:
@@ -40,7 +41,7 @@ class OrganizationAuditLogsEndpoint(ControlSiloOrganizationEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.FOUNDATIONS
-    permission_classes = (OrganizationAuditPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (OrganizationAuditPermission,)
 
     def get(
         self,

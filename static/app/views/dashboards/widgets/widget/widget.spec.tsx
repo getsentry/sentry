@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {Widget} from './widget';
 
 const INTERNAL_ERROR_MESSAGE = 'Cannot read properties of undefined (reading "secret")';
 

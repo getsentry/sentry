@@ -1,8 +1,10 @@
+from collections.abc import Iterator
 from typing import Any
 
 import pytest
 from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
+from django.test import override_settings
 
 from sentry.options.manager import (
     FLAG_ADMIN_MODIFIABLE,
@@ -19,7 +21,7 @@ from sentry.options.store import OptionsStore
 
 
 @pytest.fixture()
-def manager():
+def manager() -> Iterator[OptionsManager]:
     """
     Initializes an options storage, an options cache and an options manager
     """
@@ -29,17 +31,13 @@ def manager():
     store = OptionsStore(cache=c)
     manager = OptionsManager(store=store)
 
-    default_options = settings.SENTRY_DEFAULT_OPTIONS.copy()
-    settings.SENTRY_DEFAULT_OPTIONS = {}
-    store.flush_local_cache()
-
-    yield manager
-
-    settings.SENTRY_DEFAULT_OPTIONS = default_options
+    with override_settings(SENTRY_DEFAULT_OPTIONS={}):
+        store.flush_local_cache()
+        yield manager
 
 
 @pytest.mark.django_db
-def test_drift_conditions(manager) -> None:
+def test_drift_conditions(manager: OptionsManager) -> None:
     """
     Test multiple drift conditions, specifically, validates we can
     always update an option that is not set, we can reset an option
@@ -121,7 +119,7 @@ TEST_CASES_READONLY = [
     TEST_CASES_READONLY,
 )
 def test_non_writable_options(
-    manager_fixture,
+    manager_fixture: str,
     flags: int,
     set_settings_val: bool,
     outcome: NotWritableReason,
@@ -133,15 +131,17 @@ def test_non_writable_options(
     """
     manager = request.getfixturevalue(manager_fixture)
     manager.register("option", flags=flags)
+    sentry_options = settings.SENTRY_OPTIONS
     if set_settings_val:
-        settings.SENTRY_OPTIONS["option"] = "a_value"
+        sentry_options = {**sentry_options, "option": "a_value"}
 
-    reason_automator = manager.can_update("option", "val", UpdateChannel.AUTOMATOR)
+    with override_settings(SENTRY_OPTIONS=sentry_options):
+        reason_automator = manager.can_update("option", "val", UpdateChannel.AUTOMATOR)
     assert reason_automator == outcome
 
 
 @pytest.mark.django_db
-def test_legacy_option(manager) -> None:
+def test_legacy_option(manager: OptionsManager) -> None:
     """
     Test the update process of legacy options.
     These options are not registered so we cannot reuse the use cases

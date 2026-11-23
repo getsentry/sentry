@@ -28,7 +28,7 @@ _CONNECTORS_PROJECT = "sentry-connectors"
 
 
 def generate_sentry_sa(org_id: int) -> str:
-    existing = GcpServiceAccount.objects.filter(organization_id=org_id).first()
+    existing = GcpServiceAccount.objects.get_or_none(organization_id=org_id)
     if existing:
         return existing.service_account_email
 
@@ -165,7 +165,8 @@ def verify_gcp_connection(
         raise IntegrationError("Failed to verify GCP connection. Please try again.")
 
     try:
-        return orjson.loads(response.data)
+        result = orjson.loads(response.data)
+        return result
     except orjson.JSONDecodeError:
         logger.error("gcp.verify_connection_invalid_response")
         raise IntegrationError("Failed to verify GCP connection. Please try again.")

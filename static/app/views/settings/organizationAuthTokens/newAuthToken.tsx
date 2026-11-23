@@ -6,12 +6,8 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -25,13 +21,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {makeFetchOrgAuthTokensForOrgQueryKey} from 'sentry/views/settings/organizationAuthTokens';
+import {orgAuthTokensOptions} from 'sentry/views/settings/organizationAuthTokens';
 
 type OrgAuthTokenWithToken = OrgAuthToken & {token: string};
 
-const schema = z.object({
-  name: z.string().min(1, t('Name is required')),
-});
+const schema = z.object({name: z.string().min(1, t('Name is required'))});
 
 function AuthTokenCreateForm({
   organization,
@@ -59,10 +53,10 @@ function AuthTokenCreateForm({
         data,
       }),
     onSuccess: (token: OrgAuthTokenWithToken) => {
-      addSuccessMessage(t('Created organization token.'));
+      toast.success(t('Created organization token.'));
 
       queryClient.invalidateQueries({
-        queryKey: makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug}),
+        queryKey: orgAuthTokensOptions({orgSlug: organization.slug}).queryKey,
       });
 
       onCreatedToken(token);
@@ -78,7 +72,7 @@ function AuthTokenCreateForm({
             )
           : t('Failed to create a new organization token.');
       handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      toast.error(message);
     },
   });
 
@@ -87,7 +81,7 @@ function AuthTokenCreateForm({
     defaultValues: {name: ''},
     validators: {onDynamic: schema},
     onSubmit: ({value}) => {
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       return mutation.mutateAsync(value).catch(() => {});
     },
   });
@@ -148,9 +142,7 @@ export default function OrganizationAuthTokensNewAuthToken() {
             <div>
               {tct(
                 'For more information on how to use the web API, see our [link:documentation].',
-                {
-                  link: <ExternalLink href="https://docs.sentry.io/api/" />,
-                }
+                {link: <ExternalLink href="https://docs.sentry.io/api/" />}
               )}
             </div>
           </Stack>

@@ -5,25 +5,26 @@ import {IconAdd} from '@sentry/icons/add';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconEdit} from '@sentry/icons/edit';
 import {IconSearch} from '@sentry/icons/search';
+import {IconShow} from '@sentry/icons/show';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
-import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -39,47 +40,121 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
+
 import type {
   CustomInboundFilter,
   CustomInboundFilterCondition,
-} from 'sentry/views/settings/project/projectFilters/customFilterModal';
+} from './customFilterModal';
 import {
   customFiltersQueryOptions,
   getCondition,
+  getConditionOperator,
   getCustomFilterUrl,
   getDataTypeLabel,
   getErrorDetail,
+  NEGATED_OPERATORS,
   openCustomFilterModal,
-} from 'sentry/views/settings/project/projectFilters/customFilterModal';
+  OPERATOR_LABELS,
+} from './customFilterModal';
 
 // Values a condition shows in the table before the rest fold into a count.
 const MAX_VISIBLE_VALUES = 3;
+// Values the tooltip of that count lists before it points at the modal, which
+// shows them all. A tooltip cannot scroll, so a long list would cover the page.
+const MAX_TOOLTIP_VALUES = 10;
+const VALUE_TOOLTIP_WIDTH = 360;
 
+// A value laid out for a tooltip: left aligned, since a centered pattern that
+// wraps is hard to read. It fills the tooltip width so that a long pattern
+// without spaces breaks at the edge instead of running past it.
+function ValueText({value}: {value: string}) {
+  return (
+    <Text monospace size="sm" align="left" display="block">
+      {value}
+    </Text>
+  );
+}
+
+function ValueList({
+  values,
+  total,
+  canWrite,
+}: {
+  canWrite: boolean;
+  total: number;
+  values: string[];
+}) {
+  return (
+    <Stack gap="xs">
+      {values.map((value, index) => (
+        <ValueText key={index} value={value} />
+      ))}
+      {total > values.length && (
+        <Text size="sm" variant="muted" align="left">
+          {canWrite
+            ? t(
+                'Showing %s of %s. Edit the filter to see every value.',
+                values.length,
+                total
+              )
+            : t(
+                'Showing %s of %s. View the filter to see every value.',
+                values.length,
+                total
+              )}
+        </Text>
+      )}
+    </Stack>
+  );
+}
+
+// A value shrinks to its cell and shows the whole pattern on hover when cut.
 function ValueTag({value}: {value: string}) {
   return (
     <Tag variant="muted">
-      <Text monospace size="sm">
+      <InfoText
+        mode="overflowOnly"
+        title={<ValueText value={value} />}
+        maxWidth={VALUE_TOOLTIP_WIDTH}
+        monospace
+        size="sm"
+      >
         {value}
-      </Text>
+      </InfoText>
     </Tag>
   );
 }
 
-// One condition of a filter: its property, then the values any of which matches.
-function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}) {
+// One condition of a filter: its property, its operator unless the values speak
+// for themselves, then its values. A match reads "a or b"; a negated one reads
+// "a and b", as the search bar does, since the data must match none of them.
+function ConditionSummary({
+  condition,
+  canWrite,
+}: {
+  canWrite: boolean;
+  condition: CustomInboundFilterCondition;
+}) {
   const visible = condition.value.slice(0, MAX_VISIBLE_VALUES);
   const hidden = condition.value.slice(MAX_VISIBLE_VALUES);
+  const operator = getConditionOperator(condition);
+  const joiner = NEGATED_OPERATORS.has(operator) ? t('and') : t('or');
 
   return (
     <Flex wrap="wrap" gap="xs" align="center">
       <Text size="sm" variant="muted">
         {getCondition(condition.type).label}
       </Text>
+      {OPERATOR_LABELS[operator] && (
+        <Text size="sm" variant="muted">
+          {OPERATOR_LABELS[operator]}
+        </Text>
+      )}
       {visible.map((value, index) => (
         <Fragment key={index}>
           {index > 0 && (
             <Text size="xs" variant="muted">
-              {t('or')}
+              {joiner}
             </Text>
           )}
           <ValueTag value={value} />
@@ -88,19 +163,18 @@ function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}
       {hidden.length > 0 && (
         <Fragment>
           <Text size="xs" variant="muted">
-            {t('or')}
+            {joiner}
           </Text>
           <Tag variant="muted">
             <InfoText
               size="sm"
+              maxWidth={VALUE_TOOLTIP_WIDTH}
               title={
-                <Stack align="start" gap="xs">
-                  {hidden.map((value, index) => (
-                    <Text key={index} monospace size="sm">
-                      {value}
-                    </Text>
-                  ))}
-                </Stack>
+                <ValueList
+                  values={hidden.slice(0, MAX_TOOLTIP_VALUES)}
+                  total={hidden.length}
+                  canWrite={canWrite}
+                />
               }
             >
               {tn('%s more', '%s more', hidden.length)}
@@ -155,14 +229,16 @@ const STATS_CATEGORIES = [
 // The backend builds the same string when it sends the filter to Relay.
 const OUTCOMES_REASON_PREFIX = 'custom-inbound-filter:';
 
+// A row that holds a legacy list reports under the id of that list instead.
+function getOutcomesReason(filter: CustomInboundFilter): string {
+  return filter.legacyFilter ?? `${OUTCOMES_REASON_PREFIX}${filter.id}`;
+}
+
 // What one filter dropped, per data category. A filter drops errors, logs, or trace
 // metrics, and each of those counts under its own category in ingest outcomes.
 type SeriesByCategory = Map<string, number[]>;
 
-type FilteredStats = {
-  intervals: string[];
-  seriesByReason: Map<string, SeriesByCategory>;
-};
+type FilteredStats = {intervals: string[]; seriesByReason: Map<string, SeriesByCategory>};
 
 // One request covers the whole table, so index the outcomes by the reason a row
 // reports under before the table reads them.
@@ -288,12 +364,7 @@ function FilteredVolumeCells({
         markLine: index === 0 && peak > 0 ? markLine : undefined,
         data: intervals.map((name, i) => ({name, value: values[i] ?? 0})),
       }))
-    : [
-        {
-          seriesName: t('Filtered'),
-          data: intervals.map(name => ({name, value: 0})),
-        },
-      ];
+    : [{seriesName: t('Filtered'), data: intervals.map(name => ({name, value: 0}))}];
 
   return (
     <Fragment>
@@ -396,14 +467,19 @@ export function CustomFilters({project}: {project: Project}) {
   // Relay applies the filters only with the plan feature, and the API refuses
   // writes without it. The table still lists the filters, marked as not applied,
   // so an organization that left the plan sees what comes back on upgrade.
+  // Without either, a row opens read only, so its conditions can still be read.
   const hasPlanFeature = project.features.includes('custom-inbound-filters');
-  let writeDisabledReason: string | undefined;
+  const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
+  let addDisabledReason: string | undefined;
+  let editDisabledReason: string | undefined;
   if (!hasPlanFeature) {
-    writeDisabledReason = t('Your plan does not include custom inbound filters.');
-  } else if (!hasEveryAccess(['project:write'], {organization, project})) {
-    writeDisabledReason = t('You need project write access to add filters.');
+    addDisabledReason = t('Your plan does not include custom inbound filters.');
+    editDisabledReason = addDisabledReason;
+  } else if (!hasWriteAccess) {
+    addDisabledReason = t('You need project write access to add filters.');
+    editDisabledReason = t('You need project write access to edit filters.');
   }
-  const canWrite = writeDisabledReason === undefined;
+  const canWrite = editDisabledReason === undefined;
   const queryOptions = customFiltersQueryOptions(organization, project);
   const {queryKey} = queryOptions;
 
@@ -441,7 +517,7 @@ export function CustomFilters({project}: {project: Project}) {
       }),
     onSuccess: () => invalidate(),
     onError: error => {
-      addErrorMessage(getErrorDetail(error, t('Unable to update filter')));
+      toast.error(getErrorDetail(error, t('Unable to update filter')));
     },
   });
 
@@ -452,11 +528,11 @@ export function CustomFilters({project}: {project: Project}) {
         url: getCustomFilterUrl(organization, project, id),
       }),
     onSuccess: () => {
-      addSuccessMessage(t('Filter deleted'));
+      toast.success(t('Filter deleted'));
       invalidate();
     },
     onError: error => {
-      addErrorMessage(getErrorDetail(error, t('Unable to delete filter')));
+      toast.error(getErrorDetail(error, t('Unable to delete filter')));
     },
   });
 
@@ -493,7 +569,7 @@ export function CustomFilters({project}: {project: Project}) {
           variant="primary"
           icon={<IconAdd />}
           disabled={!canWrite}
-          tooltipProps={canWrite ? undefined : {title: writeDisabledReason}}
+          tooltipProps={canWrite ? undefined : {title: addDisabledReason}}
           onClick={() => openCustomFilterModal({project})}
         >
           {t('Add Filter')}
@@ -572,36 +648,59 @@ export function CustomFilters({project}: {project: Project}) {
                     </Text>
                   </SimpleTable.RowCell>
                   <SimpleTable.RowCell>
-                    <Stack align="start" gap="xs">
+                    <Stack gap="xs" minWidth="0">
                       {filter.conditions.map((condition, index) => (
-                        <ConditionSummary key={index} condition={condition} />
+                        <Fragment key={index}>
+                          {index > 0 && (
+                            <Text size="xs" variant="muted">
+                              {t('and')}
+                            </Text>
+                          )}
+                          <ConditionSummary condition={condition} canWrite={canWrite} />
+                        </Fragment>
                       ))}
                     </Stack>
                   </SimpleTable.RowCell>
                   <FilteredVolumeCells
                     intervals={stats?.intervals ?? []}
                     seriesByCategory={stats?.seriesByReason.get(
-                      `${OUTCOMES_REASON_PREFIX}${filter.id}`
+                      getOutcomesReason(filter)
                     )}
                     isPending={isStatsPending}
                     isError={isStatsError}
                   />
                   <SimpleTable.RowCell whiteSpace="nowrap">
-                    <TimeSince date={filter.dateCreated} unitStyle="extraShort" />
+                    <TimeSince date={filter.dateCreated} unitStyle="short" />
                   </SimpleTable.RowCell>
                   <SimpleTable.RowCell whiteSpace="nowrap">
-                    <TimeSince date={filter.dateUpdated} unitStyle="extraShort" />
+                    <TimeSince date={filter.dateUpdated} unitStyle="short" />
                   </SimpleTable.RowCell>
                   <SimpleTable.RowCell>
                     <Flex gap="sm">
-                      <Button
-                        size="sm"
-                        variant="transparent"
-                        icon={<IconEdit />}
-                        aria-label={t('Edit filter')}
-                        disabled={!canWrite}
-                        onClick={() => openCustomFilterModal({project, filter})}
-                      />
+                      {canWrite ? (
+                        <Button
+                          size="sm"
+                          variant="transparent"
+                          icon={<IconEdit />}
+                          aria-label={t('Edit filter')}
+                          onClick={() => openCustomFilterModal({project, filter})}
+                        />
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="transparent"
+                          icon={<IconShow />}
+                          aria-label={t('View filter')}
+                          tooltipProps={{title: t('View filter')}}
+                          onClick={() =>
+                            openCustomFilterModal({
+                              project,
+                              filter,
+                              readOnlyReason: editDisabledReason,
+                            })
+                          }
+                        />
+                      )}
                       <Confirm
                         priority="danger"
                         disabled={!canWrite}
@@ -613,6 +712,9 @@ export function CustomFilters({project}: {project: Project}) {
                           variant="transparent"
                           icon={<IconDelete />}
                           aria-label={t('Delete filter')}
+                          tooltipProps={
+                            canWrite ? undefined : {title: editDisabledReason}
+                          }
                         />
                       </Confirm>
                     </Flex>

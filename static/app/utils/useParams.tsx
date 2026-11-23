@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useParams as useReactRouter6Params} from 'react-router';
+import {useParams as useReactRouterParams} from 'react-router';
 
 import {CUSTOMER_DOMAIN, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 
@@ -15,11 +15,14 @@ type ParamKeys =
   | 'appId'
   | 'appSlug'
   | 'artifactId'
+  | 'attributeName'
+  | 'attributeType'
   | 'authId'
   | 'automationId'
   | 'baseArtifactId'
   | 'beaconId'
   | 'broadcastId'
+  | 'classifierId'
   | 'clientID'
   | 'codeId'
   | 'conversationId'
@@ -60,6 +63,7 @@ type ParamKeys =
   | 'scrubbingId'
   | 'searchId'
   | 'sentryAppSlug'
+  | 'serviceAccountId'
   | 'shareId'
   | 'snapshotId'
   | 'spanSlug'
@@ -71,7 +75,8 @@ type ParamKeys =
   | 'traceSlug'
   | 'userId'
   | 'viewId'
-  | 'widgetIndex';
+  | 'widgetIndex'
+  | 'wizardHash';
 
 /**
  * Get params from the current route. Param availability depends on the current route.
@@ -83,7 +88,7 @@ type ParamKeys =
  */
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function useParams<P extends Partial<Record<ParamKeys, string | undefined>>>(): P {
-  const contextParams = useReactRouter6Params() as P;
+  const contextParams = useReactRouterParams() as P;
 
   // Memoize params as mutating for customer domains causes other hooks
   // that depend on `useParams()` to refresh infinitely.

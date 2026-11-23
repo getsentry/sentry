@@ -17,9 +17,10 @@ import {
   DataConditionGroupLogicType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {ActionNodeList} from 'sentry/views/automations/components/actionNodeList';
-import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
-import {AutomationBuilderTestProvider} from 'sentry/views/automations/components/testUtils';
+
+import {AutomationFormProvider} from './forms/context';
+import {ActionNodeList} from './actionNodeList';
+import {AutomationBuilderTestProvider} from './testUtils';
 
 const slackActionHandler = ActionHandlerFixture();
 const actionHandlers: ActionHandler[] = [
@@ -149,9 +150,7 @@ describe('ActionNodeList', () => {
 
     await screen.findByText(textWithMarkupMatcher('Slack message'));
     await userEvent.type(screen.getByRole('textbox', {name: 'Tags'}), 's');
-    expect(mockUpdateAction).toHaveBeenCalledWith(slackAction.id, {
-      data: {tags: 's'},
-    });
+    expect(mockUpdateAction).toHaveBeenCalledWith(slackAction.id, {data: {tags: 's'}});
   });
 
   it('deletes existing actions', async () => {
@@ -214,9 +213,7 @@ describe('ActionNodeList', () => {
 
   it('shows warnings for incompatible actions', async () => {
     const model = new FormModel();
-    model.setInitialData({
-      detectorIds: ['123'],
-    });
+    model.setInitialData({detectorIds: ['123']});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/detectors/`,
       body: [MetricDetectorFixture({id: '123'})],

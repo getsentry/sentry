@@ -19,21 +19,19 @@ import {FeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptio
 import {useHaveSelectedProjectsSetupFeedback} from 'sentry/components/feedback/useFeedbackOnboarding';
 import {useFeedbackSlug} from 'sentry/components/feedback/useFeedbackSlug';
 import {useRedirectToFeedbackFromEvent} from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {useProjects} from 'sentry/utils/useProjects';
+import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 const userFeedbackFeedbackOptions = {
   messagePlaceholder: t('How can we improve the User Feedback experience?'),
-  tags: {
-    'feedback.source': 'feedback-list',
-  },
+  tags: {'feedback.source': 'feedback-list'},
 };
 
 function PageContent({
@@ -48,19 +46,13 @@ function PageContent({
   hideTop: boolean;
 }) {
   const organization = useOrganization();
+  const {projects} = useProjects();
+  const feedbackProjectId = projects.find(p => p.slug === feedbackProjectSlug)?.id;
   const createAlertAction = {
     icon: <IconSiren />,
     to: {
-      pathname: makeAlertsPathname({
-        path: '/new/issue/',
-        organization,
-      }),
-      query: {
-        alert_option: 'issues',
-        referrer: 'feedback-list-page',
-        detectorType: 'metric_issue',
-        ...(feedbackProjectSlug ? {project: feedbackProjectSlug} : {}),
-      },
+      pathname: makeAutomationCreatePathname(organization.slug),
+      query: {referrer: 'feedback-list-page', project: feedbackProjectId},
     },
   };
 
@@ -188,10 +180,7 @@ export default function FeedbackListPage() {
     const estimatedItemHeight = 80;
     const scrollPosition = selectedItemIndex * estimatedItemHeight;
 
-    scrollContainer.scrollTo({
-      top: scrollPosition,
-      behavior: 'auto',
-    });
+    scrollContainer.scrollTo({top: scrollPosition, behavior: 'auto'});
   };
 
   const handleBackToList = () => {
@@ -257,16 +246,7 @@ export default function FeedbackListPage() {
               ),
             }}
           />
-          <TopBar.Slot name="feedback">
-            <FeedbackButton
-              size="sm"
-              feedbackOptions={userFeedbackFeedbackOptions}
-              aria-label={t('Give Feedback')}
-              tooltipProps={{title: t('Give Feedback')}}
-            >
-              {null}
-            </FeedbackButton>
-          </TopBar.Slot>
+          <TopBar.Slot name="feedback" feedbackOptions={userFeedbackFeedbackOptions} />
           <PageContent
             feedbackProjectSlug={feedbackProjectSlug}
             hasFeedbackContent={hasFeedbackContent}

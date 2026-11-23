@@ -1,8 +1,10 @@
+from typing import Any
 import importlib
 from unittest import mock
 
 import pytest
 
+from django.db.migrations.state import StateApps
 from sentry.testutils.cases import TestMigrations
 
 # A leading digit is legal in a module name but not in the dotted path mock.patch parses,
@@ -16,18 +18,18 @@ class BackfillPullRequestExternalIdStrTest(TestMigrations):
     migrate_from = "1188_pullrequest_external_id_str"
     migrate_to = "1189_backfill_pullrequest_external_id_str"
 
-    def setUp(self):
+    def setUp(self) -> None:
         with mock.patch.object(migration, "BATCH_SIZE", 2):
             super().setUp()
 
-    def setup_initial_state(self):
+    def setup_initial_state(self) -> None:
         self.organization = self.create_organization()
         self.repo = self.create_repo(self.create_project(organization=self.organization))
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         PullRequest = apps.get_model("sentry", "PullRequest")
 
-        def create(key, **kwargs):
+        def create(key: str, **kwargs: Any) -> Any:
             return PullRequest.objects.create(
                 organization_id=self.organization.id, repository_id=self.repo.id, key=key, **kwargs
             )
@@ -37,7 +39,7 @@ class BackfillPullRequestExternalIdStrTest(TestMigrations):
         self.already_set = create("already-set", external_id=7, external_id_str="7")
         self.string_only = create("string-only", external_id_str="pr_01abc")
 
-    def test_backfill(self):
+    def test_backfill(self) -> None:
         for i, pr in enumerate(self.pending):
             pr.refresh_from_db()
             assert pr.external_id_str == str(1000 + i)

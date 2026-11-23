@@ -1,40 +1,51 @@
 import * as Sentry from '@sentry/react';
+import {focusManager} from '@tanstack/react-query';
 import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
+import {InboxItemFixture} from 'sentry-fixture/inboxItem';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
+  act,
+  cleanup,
   render,
+  type RouterConfig,
   screen,
   userEvent,
   waitFor,
   within,
-  type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as modal from 'sentry/actionCreators/modal';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import Inbox from 'sentry/views/inbox';
 import {Navigation} from 'sentry/views/navigation';
-import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
-import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
+
+import {
+  NAVIGATION_SIDEBAR_COLLAPSE_DELAY_MS,
+  NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
+  getSettingsLastProjectKey,
+} from './constants';
+import {PrimaryNavigationContextProvider} from './primaryNavigationContext';
 
 const ALL_AVAILABLE_FEATURES = [
   'insight-modules',
   'discover',
   'discover-basic',
   'discover-query',
-  'dashboards-basic',
-  'dashboards-edit',
   'dashboards-prebuilt-insights-dashboards',
   'session-replay-ui',
   'ourlogs-enabled',
-  'performance-view',
   'profiling',
   'visibility-explore-view',
 ];
 
 const mockUsingCustomerDomain = jest.fn();
+const mockCustomerDomain = jest.fn();
 
 // Navigation inference tests are slow and will exceed the default 5 second timeout.
 jest.setTimeout(30_000);
@@ -45,6 +56,9 @@ jest.mock('sentry/constants', () => {
     ...sentryConstant,
     get USING_CUSTOMER_DOMAIN() {
       return mockUsingCustomerDomain();
+    },
+    get CUSTOMER_DOMAIN() {
+      return mockCustomerDomain();
     },
   };
 });
@@ -97,39 +111,37 @@ function assertValidListHTML(list: HTMLElement) {
   });
 }
 
+function mockUnreadCount(count: number) {
+  return MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/inbox/count/',
+    body: {count},
+  });
+}
+
 function setupMocks() {
+  ProjectsStore.reset();
   localStorage.clear();
+  sessionStorage.clear();
   MockApiClient.clearMockResponses();
+  mockUnreadCount(0);
 
   ConfigStore.set('user', UserFixture());
   ConfigStore.set('customerDomain', null);
 
   const project = ProjectFixture({hasAccess: false});
 
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/broadcasts/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/broadcasts/', body: []});
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/projects/',
     body: [project],
   });
-  MockApiClient.addMockResponse({
-    url: '/projects/org-slug/project-slug/',
-    body: project,
-  });
-  MockApiClient.addMockResponse({
-    url: '/assistant/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/projects/org-slug/project-slug/', body: project});
+  MockApiClient.addMockResponse({url: '/assistant/', body: []});
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/group-search-views/starred/',
     body: [GroupSearchViewFixture({name: 'Starred View 1'})],
   });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/issues-count/',
-    body: {},
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/issues-count/', body: {}});
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/explore/all-queries/',
     body: [],
@@ -145,11 +157,7 @@ function setupMocks() {
         title: 'Multiple projects',
         projects: [1, 2, 3],
       }),
-      DashboardListItemFixture({
-        id: '4',
-        title: 'Single project',
-        projects: [1],
-      }),
+      DashboardListItemFixture({id: '4', title: 'Single project', projects: [1]}),
     ],
   });
 
@@ -164,10 +172,7 @@ describe('desktop navigation', () => {
       <PrimaryNavigationContextProvider>
         <Navigation />
       </PrimaryNavigationContextProvider>,
-      {
-        organization: null,
-        initialRouterConfig: {location: {pathname: '/'}},
-      }
+      {organization: null, initialRouterConfig: {location: {pathname: '/'}}}
     );
 
     expect(screen.getByRole('link', {name: 'Settings'})).toHaveAttribute(
@@ -222,6 +227,584 @@ describe('desktop navigation', () => {
     );
   });
 
+  it('collapses a settings v3 section', async () => {
+    render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      navigationContext({
+        organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
+        initialRouterConfig: {
+          location: {pathname: '/settings/org-slug/projects/project-slug/'},
+          route: '/settings/:orgId/projects/:projectId/',
+        },
+      })
+    );
+
+    const processing = screen.getByRole('button', {name: 'Processing'});
+    expect(processing).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', {name: 'Inbound Filters'})).toBeInTheDocument();
+
+    await userEvent.click(processing);
+    expect(processing).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('link', {name: 'Inbound Filters'})
+      ).not.toBeInTheDocument()
+    );
+  });
+
+  describe('settings v3', () => {
+    const settingsV3 = {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']};
+
+    beforeEach(() => {
+      ProjectsStore.loadInitialData([
+        ProjectFixture(),
+        ProjectFixture({id: '999', slug: 'second-project'}),
+      ]);
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/second-project/',
+        body: ProjectFixture({id: '999', slug: 'second-project'}),
+      });
+    });
+
+    it('opens the organization menu for the second tour step and closes it on Done', async () => {
+      MockApiClient.addMockResponse({
+        url: '/assistant/',
+        body: [{guide: 'tour.settings_navigation', seen: false}],
+      });
+      MockApiClient.addMockResponse({url: '/assistant/', method: 'PUT', body: {}});
+      const {router} = render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({organization: settingsV3})
+      );
+      expect(await screen.findByText('Access Settings here')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+      expect(
+        await screen.findByText('Quick settings-access for your important Projects')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Settings'})).toBeInTheDocument();
+      expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+      await userEvent.click(screen.getByRole('button', {name: 'Previous'}));
+      expect(await screen.findByText('Access Settings here')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Settings'})
+      ).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Done'}));
+      expect(screen.queryByRole('button', {name: 'Done'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Settings'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('keeps the tour running when going back with the All Projects submenu open', async () => {
+      MockApiClient.addMockResponse({
+        url: '/assistant/',
+        body: [{guide: 'tour.settings_navigation', seen: false}],
+      });
+      MockApiClient.addMockResponse({url: '/assistant/', method: 'PUT', body: {}});
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({organization: settingsV3})
+      );
+      await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+      expect(
+        await screen.findByText('Quick settings-access for your important Projects')
+      ).toBeInTheDocument();
+      await userEvent.hover(screen.getByRole('menuitem', {name: 'View All Projects'}));
+      expect(await screen.findByPlaceholderText('Search')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Previous'}));
+      expect(await screen.findByText('Access Settings here')).toBeInTheDocument();
+    });
+
+    it('keeps keyboard focus in the tour while it opens the organization menu', async () => {
+      MockApiClient.addMockResponse({
+        url: '/assistant/',
+        body: [{guide: 'tour.settings_navigation', seen: false}],
+      });
+      MockApiClient.addMockResponse({url: '/assistant/', method: 'PUT', body: {}});
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({organization: settingsV3})
+      );
+      expect(await screen.findByText('Access Settings here')).toBeInTheDocument();
+      await userEvent.tab({shift: true});
+      expect(screen.getByRole('button', {name: 'Next'})).toHaveFocus();
+      await userEvent.keyboard('{Enter}');
+      const guide = await screen.findByText(
+        'Quick settings-access for your important Projects'
+      );
+      await waitFor(() => expect(guide.closest('[role="dialog"]')).toHaveFocus());
+      await userEvent.keyboard('{Escape}');
+      expect(
+        screen.queryByText('Quick settings-access for your important Projects')
+      ).not.toBeInTheDocument();
+      // Nothing had focus before the tour, so focus goes back to the page.
+      expect(document.body).toHaveFocus();
+    });
+
+    it('explains project creation in the tour when no projects are available', async () => {
+      MockApiClient.addMockResponse({
+        url: '/assistant/',
+        body: [{guide: 'tour.settings_navigation', seen: false}],
+      });
+      MockApiClient.addMockResponse({url: '/assistant/', method: 'PUT', body: {}});
+      ProjectsStore.loadInitialData([]);
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({organization: settingsV3})
+      );
+      await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+      expect(
+        await screen.findByText(
+          'Create your first project from this menu. Then star projects to pin their settings shortcuts to this list.'
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Create Project'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('Quick settings-access for your important Projects')
+      ).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Done'}));
+      expect(screen.queryByRole('button', {name: 'Done'})).not.toBeInTheDocument();
+    });
+
+    it('shows the settings scope rail', async () => {
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+        })
+      );
+
+      assertActivePrimaryNavLink(screen.getByRole('link', {name: 'Org'}));
+      await waitFor(() =>
+        expect(screen.getByRole('link', {name: 'Project'})).toHaveAttribute(
+          'href',
+          '/settings/org-slug/projects/project-slug/'
+        )
+      );
+      expect(screen.getByRole('link', {name: 'Account'})).toHaveAttribute(
+        'href',
+        '/settings/account/'
+      );
+      expect(screen.getByRole('button', {name: 'Back to app'})).toBeInTheDocument();
+      expect(screen.queryByRole('link', {name: 'Issues'})).not.toBeInTheDocument();
+    });
+
+    it('shows organization settings without account pages', () => {
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+        })
+      );
+
+      expect(screen.getByText('Organization Name')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Select an organization'})
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Organization Tokens'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', {name: 'Personal Tokens'})
+      ).not.toBeInTheDocument();
+    });
+
+    describe('with multiple organizations', () => {
+      const otherOrganization = OrganizationFixture({
+        id: '2',
+        slug: 'other-org',
+        name: 'Other Org',
+      });
+
+      beforeEach(() => {
+        OrganizationsStore.load([OrganizationFixture(), otherOrganization]);
+        ConfigStore.set('features', new Set(['organizations:create']));
+      });
+
+      afterEach(() => {
+        // Unmount first so resetting the stores does not update a mounted tree.
+        cleanup();
+        OrganizationsStore.init();
+        ConfigStore.set('features', new Set());
+        mockUsingCustomerDomain.mockReset();
+        mockCustomerDomain.mockReset();
+      });
+
+      it('switches organizations and keeps the settings section', async () => {
+        const {router} = render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: settingsV3,
+            initialRouterConfig: {
+              location: {pathname: '/settings/org-slug/members/123/'},
+              route: '/settings/:orgId/*',
+            },
+          })
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Select an organization'})
+        );
+        expect(
+          screen.getByRole('button', {name: 'Create Organization'})
+        ).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('option', {name: 'Other Org'}));
+
+        expect(router.location.pathname).toBe('/settings/other-org/members/');
+      });
+
+      it('keeps the section on a customer domain when the org slug matches it', async () => {
+        // Customer domain URLs have no org slug, so `members` here is the section
+        // even though it is also the current organization's slug.
+        const membersOrganization = OrganizationFixture({
+          ...settingsV3,
+          slug: 'members',
+          name: 'Members Org',
+        });
+        OrganizationsStore.load([membersOrganization, otherOrganization]);
+        mockUsingCustomerDomain.mockReturnValue(true);
+        mockCustomerDomain.mockReturnValue('members');
+        for (const path of [
+          'broadcasts',
+          'projects',
+          'group-search-views/starred',
+          'issues-count',
+          'explore/all-queries',
+          'dashboards',
+          'inbox/count',
+        ]) {
+          MockApiClient.addMockResponse({
+            url: `/organizations/members/${path}/`,
+            body: [],
+          });
+        }
+
+        const {router} = render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          {
+            organization: membersOrganization,
+            initialRouterConfig: {
+              location: {pathname: '/settings/members/'},
+              route: '/settings/*',
+            },
+          }
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Select an organization'})
+        );
+        await userEvent.click(screen.getByRole('option', {name: 'Other Org'}));
+
+        expect(router.location.pathname).toBe('/settings/other-org/members/');
+      });
+
+      it('hides the create organization button without permission', async () => {
+        ConfigStore.set('features', new Set());
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: settingsV3,
+            initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+          })
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Select an organization'})
+        );
+        expect(screen.getByRole('option', {name: 'Other Org'})).toBeInTheDocument();
+        expect(
+          screen.queryByRole('button', {name: 'Create Organization'})
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it('keeps the settings sidebar expanded when the app sidebar is collapsed', () => {
+      localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+        })
+      );
+
+      expect(screen.queryByTestId('collapsed-secondary-sidebar')).not.toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Organization Tokens'})).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Collapse'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Expand'})).not.toBeInTheDocument();
+      expect(localStorage.getItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY)).toBe(
+        'true'
+      );
+    });
+
+    it('shows account settings under the account scope', async () => {
+      const {router} = render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+        })
+      );
+
+      await userEvent.click(screen.getByRole('link', {name: 'Account'}));
+
+      expect(router.location.pathname).toBe('/settings/account/');
+      assertActivePrimaryNavLink(screen.getByRole('link', {name: 'Account'}));
+      expect(screen.getByText('Account Settings')).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'General'})).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Personal Tokens'})).toBeInTheDocument();
+    });
+
+    it.each([
+      {customerDomain: false, pathname: '/settings/org-slug/projects/'},
+      {customerDomain: true, pathname: '/settings/projects/'},
+    ])(
+      'opens and switches project settings at $pathname',
+      async ({customerDomain, pathname}) => {
+        mockUsingCustomerDomain.mockReturnValue(customerDomain);
+        if (customerDomain) {
+          ConfigStore.set('customerDomain', {
+            subdomain: 'org-slug',
+            organizationUrl: 'https://org-slug.sentry.io',
+            sentryUrl: 'https://sentry.io',
+          });
+        }
+        const {router} = render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: settingsV3,
+            initialRouterConfig: {
+              location: {pathname},
+              route: `${pathname}:projectId?/*`,
+            },
+          })
+        );
+
+        await userEvent.click(screen.getByRole('link', {name: 'Project'}));
+        await waitFor(() =>
+          expect(router.location.pathname).toBe(`${pathname}project-slug/`)
+        );
+        assertActivePrimaryNavLink(screen.getByRole('link', {name: 'Project'}));
+        assertActiveSecondaryNavLink(screen.getByRole('link', {name: 'General'}));
+
+        // Switching projects keeps the current settings page
+        await userEvent.click(screen.getByRole('link', {name: 'Project Teams'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Select a project'}));
+        await userEvent.click(
+          await screen.findByRole('option', {name: 'second-project'})
+        );
+        expect(router.location.pathname).toBe(`${pathname}second-project/teams/`);
+        expect(screen.getByRole('link', {name: 'Project'})).toHaveAttribute(
+          'href',
+          `${pathname}second-project/`
+        );
+      }
+    );
+
+    it('returns to the last selected project after visiting org settings', async () => {
+      const {router} = render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {
+            location: {pathname: '/settings/org-slug/projects/project-slug/'},
+            routes: ['/settings/:orgId/', '/settings/:orgId/projects/:projectId/'],
+          },
+        })
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Select a project'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'second-project'}));
+      expect(router.location.pathname).toBe(
+        '/settings/org-slug/projects/second-project/'
+      );
+
+      await userEvent.click(screen.getByRole('link', {name: 'Org'}));
+      expect(router.location.pathname).toBe('/settings/org-slug/');
+      expect(screen.getByRole('link', {name: 'Project'})).toHaveAttribute(
+        'href',
+        '/settings/org-slug/projects/second-project/'
+      );
+
+      await userEvent.click(screen.getByRole('link', {name: 'Project'}));
+      expect(router.location.pathname).toBe(
+        '/settings/org-slug/projects/second-project/'
+      );
+    });
+
+    it('links to the remembered project by ID after it was renamed', async () => {
+      localStorage.setItem(getSettingsLastProjectKey('org-slug'), JSON.stringify('999'));
+      ProjectsStore.loadInitialData([
+        ProjectFixture(),
+        ProjectFixture({id: '999', slug: 'renamed-project'}),
+      ]);
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+        })
+      );
+
+      await waitFor(() =>
+        expect(screen.getByRole('link', {name: 'Project'})).toHaveAttribute(
+          'href',
+          '/settings/org-slug/projects/renamed-project/'
+        )
+      );
+    });
+
+    it('falls back to the first project when the remembered one is unavailable', async () => {
+      localStorage.setItem(
+        getSettingsLastProjectKey('org-slug'),
+        JSON.stringify('12345')
+      );
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+        })
+      );
+
+      await waitFor(() =>
+        expect(screen.getByRole('link', {name: 'Project'})).toHaveAttribute(
+          'href',
+          '/settings/org-slug/projects/project-slug/'
+        )
+      );
+    });
+
+    it('switches from project key details to the new project key list', async () => {
+      const {router} = render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {
+            location: {pathname: '/settings/org-slug/projects/project-slug/keys/123/'},
+            route: '/settings/:orgId/projects/:projectId/',
+            children: [
+              {
+                path: 'keys/',
+                handle: {
+                  settingsProjectSwitch: {
+                    switchTo: '/settings/:orgId/projects/:projectId/keys/',
+                  },
+                },
+                children: [
+                  {path: ':keyId/', element: <div />},
+                  {index: true, element: <div />},
+                ],
+              },
+            ],
+          },
+        })
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Select a project'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'second-project'}));
+      expect(router.location.pathname).toBe(
+        '/settings/org-slug/projects/second-project/keys/'
+      );
+    });
+
+    it('returns to the page settings was entered from', async () => {
+      const {router} = render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({organization: settingsV3})
+      );
+
+      await userEvent.click(screen.getByRole('link', {name: 'Explore'}));
+      const exploreLocation = router.location.pathname;
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Toggle organization menu'})
+      );
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Settings'}));
+      // Visit another settings page, so browser history alone would not return
+      await userEvent.click(screen.getByRole('link', {name: 'Account'}));
+
+      await userEvent.click(screen.getByRole('button', {name: 'Back to app'}));
+      expect(router.location.pathname).toBe(exploreLocation);
+    });
+
+    it('does not return to a page from another organization', async () => {
+      sessionStorage.setItem(
+        'settings-return-path:other-org',
+        '/organizations/other-org/explore/traces/'
+      );
+      const {router} = render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+        })
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Back to app'}));
+      expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+    });
+
+    it('does not title the admin navigation as org settings', async () => {
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {location: {pathname: '/manage/'}},
+        })
+      );
+
+      expect(
+        await screen.findByRole('link', {name: 'Organizations'})
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Organization Settings')).not.toBeInTheDocument();
+    });
+  });
+
   it('reopens collapsed account navigation without an organization', async () => {
     localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
 
@@ -262,9 +845,7 @@ describe('desktop navigation', () => {
         <PrimaryNavigationContextProvider>
           <Navigation />
         </PrimaryNavigationContextProvider>,
-        navigationContext({
-          organization: {features: [...ALL_AVAILABLE_FEATURES]},
-        })
+        navigationContext({organization: {features: [...ALL_AVAILABLE_FEATURES]}})
       );
 
       const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
@@ -438,7 +1019,7 @@ describe('desktop navigation', () => {
           [`${ORG}/explore/profiles/`, 'Explore', 'Profiles'],
           [`${ORG}/explore/replays/`, 'Explore', 'Replays'],
           [`${ORG}/explore/releases/`, 'Explore', 'Releases'],
-          [`${ORG}/explore/saved-queries/`, 'Explore', 'All Queries'],
+          [`${ORG}/explore/saved-queries/`, 'Explore', 'Saved Queries'],
           // Dashboards
           [`${ORG}/dashboards/`, 'Dashboards', 'All Dashboards'],
           // Insights
@@ -505,9 +1086,7 @@ describe('desktop navigation', () => {
           <PrimaryNavigationContextProvider>
             <Navigation />
           </PrimaryNavigationContextProvider>,
-          navigationContext({
-            initialRouterConfig: {location: {pathname: '/manage/'}},
-          })
+          navigationContext({initialRouterConfig: {location: {pathname: '/manage/'}}})
         );
 
         const secondaryNav = screen.getByRole('navigation', {
@@ -572,6 +1151,166 @@ describe('desktop navigation', () => {
           );
         }
       });
+    });
+  });
+
+  describe('seer', () => {
+    function renderSeerNavigation(
+      organization: Parameters<typeof OrganizationFixture>[0],
+      pathname = '/organizations/org-slug/issues/'
+    ) {
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({organization, initialRouterConfig: {location: {pathname}}})
+      );
+      return screen.getByRole('navigation', {name: 'Primary Navigation'});
+    }
+
+    it('shows Seer between Issues and Explore with seer-primary-nav', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'seer-automations'],
+      });
+
+      const links = within(primaryNav).getAllByRole('link');
+      expect(links[0]).toHaveAccessibleName('Issues');
+      expect(links[1]).toHaveAccessibleName('Seer');
+      expect(links[2]).toHaveAccessibleName('Explore');
+    });
+
+    it('hides Seer without seer-primary-nav, even with investigations and automations', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'investigations', 'seer-automations'],
+        openMembership: true,
+      });
+
+      expect(
+        within(primaryNav).queryByRole('link', {name: 'Seer'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('hides Seer with seer-primary-nav but neither investigations nor automations', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'investigations'],
+        openMembership: false,
+      });
+
+      expect(
+        within(primaryNav).queryByRole('link', {name: 'Seer'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('links Seer to automations when automations is enabled', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'seer-automations'],
+      });
+
+      expect(within(primaryNav).getByRole('link', {name: 'Seer'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/seer/automations/'
+      );
+    });
+
+    it('links Seer to investigations when automations is disabled', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'investigations'],
+        openMembership: true,
+      });
+
+      expect(within(primaryNav).getByRole('link', {name: 'Seer'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/seer/investigations/'
+      );
+    });
+
+    it('hides Seer with classifiers-ui but without seer-primary-nav', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'classifiers-ui'],
+      });
+
+      expect(
+        within(primaryNav).queryByRole('link', {name: 'Seer'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('links Seer to classifiers when only classifiers is enabled', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'classifiers-ui'],
+        openMembership: false,
+      });
+
+      expect(within(primaryNav).getByRole('link', {name: 'Seer'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/seer/classifiers/'
+      );
+    });
+
+    it('marks Seer as active on seer routes', () => {
+      const primaryNav = renderSeerNavigation(
+        {
+          features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'investigations'],
+          openMembership: true,
+        },
+        '/organizations/org-slug/seer/investigations/investigation-1/'
+      );
+
+      assertActivePrimaryNavLink(within(primaryNav).getByRole('link', {name: 'Seer'}));
+      assertInactiveNavLink(within(primaryNav).getByRole('link', {name: 'Explore'}));
+    });
+  });
+
+  describe('command palette', () => {
+    it('renders the command palette button first in the footer', async () => {
+      const toggleCommandPalette = jest
+        .spyOn(modal, 'toggleCommandPalette')
+        .mockResolvedValue(undefined);
+
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext()
+      );
+
+      const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+      const button = within(primaryNav).getByRole('button', {name: 'Command Palette'});
+      expect(button).toHaveAttribute('aria-keyshortcuts', 'Control+K');
+
+      const buttons = within(primaryNav).getAllByRole('button');
+      expect(buttons.indexOf(button)).toBe(
+        buttons.indexOf(within(primaryNav).getByRole('button', {name: "What's New"})) - 1
+      );
+
+      await userEvent.hover(button);
+      expect(await screen.findByText('Ctrl', {selector: 'kbd'})).toBeInTheDocument();
+
+      await userEvent.click(button);
+      expect(toggleCommandPalette).toHaveBeenCalledWith(
+        {},
+        expect.objectContaining({slug: 'org-slug'}),
+        expect.anything(),
+        expect.any(Function),
+        'button',
+        undefined
+      );
+      toggleCommandPalette.mockRestore();
+    });
+
+    it('does not render the command palette button without an organization', () => {
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        {
+          organization: null,
+          initialRouterConfig: {location: {pathname: '/settings/account/details/'}},
+        }
+      );
+
+      expect(
+        screen.queryByRole('button', {name: 'Command Palette'})
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -896,6 +1635,78 @@ describe('desktop navigation', () => {
           });
         });
 
+        it('hides the sidebar on mouse leave when a collapsible section is expanded', async () => {
+          localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext({
+              organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
+            })
+          );
+
+          await screen.findByTestId('collapsed-secondary-sidebar');
+
+          const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+          await userEvent.hover(primaryNav);
+          await waitFor(() => {
+            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+              'data-visible',
+              'true'
+            );
+          });
+          expect(screen.getByRole('button', {name: 'Autofix'})).toHaveAttribute(
+            'aria-expanded',
+            'true'
+          );
+
+          await userEvent.unhover(primaryNav);
+          await waitFor(() => {
+            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+              'data-visible',
+              'false'
+            );
+          });
+        });
+
+        it('keeps the sidebar open on mouse leave while a popup is open', async () => {
+          localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext()
+          );
+
+          await screen.findByTestId('collapsed-secondary-sidebar');
+
+          const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+          await userEvent.hover(primaryNav);
+          await waitFor(() => {
+            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+              'data-visible',
+              'true'
+            );
+          });
+
+          const whatsNewButton = screen.getByRole('button', {name: "What's New"});
+          await userEvent.click(whatsNewButton);
+          expect(whatsNewButton).toHaveAttribute('aria-expanded', 'true');
+
+          await userEvent.unhover(primaryNav);
+          // Wait past the collapse delay so a close would have happened.
+          await new Promise(resolve =>
+            setTimeout(resolve, NAVIGATION_SIDEBAR_COLLAPSE_DELAY_MS + 100)
+          );
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'true'
+          );
+        });
+
         it('shows the sidebar when a nav element receives keyboard focus while collapsed', async () => {
           localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
 
@@ -981,6 +1792,245 @@ describe('desktop navigation', () => {
             await within(secondaryNav).findByRole('link', {name: 'Traces'})
           ).toBeInTheDocument();
         });
+      });
+    });
+
+    describe('universal inbox', () => {
+      const universalInbox = {features: [...ALL_AVAILABLE_FEATURES, 'universal-inbox']};
+
+      afterEach(() => {
+        focusManager.setFocused(undefined);
+      });
+
+      it('does not fetch unread counts when universal inbox is disabled', async () => {
+        const countRequest = mockUnreadCount(5);
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: {
+              features: [
+                ...ALL_AVAILABLE_FEATURES,
+                'issue-inbox',
+                'universal-inbox-recording',
+              ],
+            },
+          })
+        );
+
+        const inboxLink = await screen.findByRole('link', {name: /Inbox/});
+        expect(inboxLink).toHaveAttribute(
+          'href',
+          '/organizations/org-slug/issues/inbox/'
+        );
+        expect(countRequest).not.toHaveBeenCalled();
+      });
+
+      it('updates the unread count after reading, removing, and restoring inbox items', async () => {
+        const firstItem = InboxItemFixture({
+          subject: {
+            id: '1',
+            type: 'issue',
+            title: 'First issue',
+            metadata: {shortId: 'PROJECT-1', project: {id: '1', slug: 'project'}},
+          },
+        });
+        const secondItem = InboxItemFixture({
+          id: '2',
+          subject: {
+            id: '2',
+            type: 'issue',
+            title: 'Second issue',
+            metadata: {shortId: 'PROJECT-2', project: {id: '1', slug: 'project'}},
+          },
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/inbox/',
+          body: [firstItem, secondItem],
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/inbox/',
+          method: 'PUT',
+          body: {updatedCount: 1},
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/inbox/',
+          method: 'DELETE',
+          statusCode: 204,
+        });
+        mockUnreadCount(2);
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+            <Inbox />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: universalInbox,
+            initialRouterConfig: {location: {pathname: '/organizations/org-slug/inbox/'}},
+          })
+        );
+        expect(
+          await screen.findByRole('link', {name: 'Inbox (2 unread items)'})
+        ).toBeInTheDocument();
+
+        mockUnreadCount(1);
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Select First issue'})
+        );
+        await userEvent.click(screen.getByRole('button', {name: 'Mark as read'}));
+        expect(
+          await screen.findByRole('link', {name: 'Inbox (1 unread item)'})
+        ).toBeInTheDocument();
+
+        const readItem = {...firstItem, isUnread: false, unreadEventCount: 0};
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/inbox/',
+          body: [readItem],
+        });
+        mockUnreadCount(0);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Actions for Second issue'})
+        );
+        await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Remove'}));
+        expect(await screen.findByRole('link', {name: 'Inbox'})).toBeInTheDocument();
+
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/inbox/',
+          body: [readItem, secondItem],
+        });
+        mockUnreadCount(1);
+        await userEvent.click(await screen.findByRole('button', {name: 'Undo'}));
+        expect(
+          await screen.findByRole('link', {name: 'Inbox (1 unread item)'})
+        ).toBeInTheDocument();
+      });
+
+      it('refetches unread count when the window regains focus', async () => {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/inbox/count/',
+          match: [MockApiClient.matchQuery({is_read: 'false'})],
+          body: {count: 2},
+        });
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({organization: universalInbox})
+        );
+        expect(
+          await screen.findByRole('link', {name: 'Inbox (2 unread items)'})
+        ).toBeInTheDocument();
+
+        mockUnreadCount(0);
+        act(() => focusManager.setFocused(false));
+        act(() => focusManager.setFocused(true));
+        expect(await screen.findByRole('link', {name: 'Inbox'})).toBeInTheDocument();
+      });
+
+      it('does not render a secondary navigation on the inbox', () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: universalInbox,
+            initialRouterConfig: {location: {pathname: '/organizations/org-slug/inbox/'}},
+          })
+        );
+
+        assertActivePrimaryNavLink(screen.getByRole('link', {name: 'Inbox'}));
+        expect(
+          screen.queryByRole('navigation', {name: 'Secondary Navigation'})
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByTestId('collapsed-secondary-sidebar')
+        ).not.toBeInTheDocument();
+      });
+
+      it('does not render a collapsed secondary navigation on the inbox', async () => {
+        localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: universalInbox,
+            initialRouterConfig: {location: {pathname: '/organizations/org-slug/inbox/'}},
+          })
+        );
+
+        await userEvent.hover(
+          screen.getByRole('navigation', {name: 'Primary Navigation'})
+        );
+        expect(
+          screen.queryByTestId('collapsed-secondary-sidebar')
+        ).not.toBeInTheDocument();
+      });
+
+      describe('hover', () => {
+        beforeEach(() => {
+          jest.useFakeTimers();
+        });
+
+        afterEach(() => {
+          try {
+            cleanup();
+            act(() => jest.runOnlyPendingTimers());
+          } finally {
+            jest.useRealTimers();
+          }
+        });
+
+        it('does not preview groups on hover', async () => {
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext({organization: universalInbox})
+          );
+
+          const secondaryNav = screen.getByRole('navigation', {
+            name: 'Secondary Navigation',
+          });
+          expect(
+            within(secondaryNav).getByRole('link', {name: 'Feed'})
+          ).toBeInTheDocument();
+
+          await userEvent.hover(screen.getByRole('link', {name: 'Explore'}), {
+            delay: null,
+          });
+          // Advance past the longest hover activation delay.
+          act(() => jest.advanceTimersByTime(250));
+
+          expect(
+            within(secondaryNav).getByRole('link', {name: 'Feed'})
+          ).toBeInTheDocument();
+          expect(screen.queryByRole('link', {name: 'Traces'})).not.toBeInTheDocument();
+        });
+      });
+
+      it('shows the secondary navigation after navigating away from the inbox', async () => {
+        const {router} = render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: universalInbox,
+            initialRouterConfig: {location: {pathname: '/organizations/org-slug/inbox/'}},
+          })
+        );
+
+        await userEvent.click(screen.getByRole('link', {name: 'Issues'}));
+        expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+
+        const secondaryNav = screen.getByRole('navigation', {
+          name: 'Secondary Navigation',
+        });
+        expect(
+          within(secondaryNav).getByRole('link', {name: 'Feed'})
+        ).toBeInTheDocument();
       });
     });
   });

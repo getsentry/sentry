@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from sentry.integrations.github.check_payloads import (
@@ -52,7 +54,7 @@ class TestIsOwnRepoPullRequest:
 
 
 class TestReferencesOwnRepoPullRequest:
-    def _event(self, refs: object, repo_id: object = 123) -> dict:
+    def _event(self, refs: object, repo_id: object = 123) -> dict[str, Any]:
         return {"repository": {"id": repo_id}, "check_run": {"pull_requests": refs}}
 
     def test_true_for_an_own_repo_entry(self) -> None:

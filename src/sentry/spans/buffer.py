@@ -176,7 +176,7 @@ class SpansBuffer:
         return SpansBufferStore(self.client, self.assigned_shards, self.slice_id)
 
     # make it pickleable
-    def __reduce__(self):
+    def __reduce__(self) -> tuple[type[SpansBuffer], tuple[list[int], int | None]]:
         return (SpansBuffer, (self.assigned_shards, self.slice_id))
 
     def _get_debug_trace_logger(self) -> DebugTraceLogger:
@@ -185,7 +185,7 @@ class SpansBuffer:
         return self._debug_trace_logger
 
     @metrics.wraps("spans.buffer.process_spans")
-    def process_spans(self, spans: Sequence[Span], now: int):
+    def process_spans(self, spans: Sequence[Span], now: int) -> None:
         """
         :param spans: List of to-be-ingested spans.
         :param now: The current time to be used for setting expiration/flush
@@ -402,7 +402,7 @@ class SpansBuffer:
             decompressed_buffer = self._zstd_decompressor.decompress(compressed_data)
             return decompressed_buffer.split(b"\x00")
 
-    def record_stored_segments(self):
+    def record_stored_segments(self) -> None:
         with metrics.timer("spans.buffer.get_stored_segments"):
             with self.client.pipeline(transaction=False) as p:
                 for shard in self.assigned_shards:
@@ -630,7 +630,7 @@ class SpansBuffer:
                 # worst-case.
                 metrics.incr("spans.buffer.empty_segments")
 
-    def done_flush_segments(self, segment_keys: dict[SegmentKey, FlushedSegment]):
+    def done_flush_segments(self, segment_keys: dict[SegmentKey, FlushedSegment]) -> None:
         metrics.timing("spans.buffer.done_flush_segments.num_segments", len(segment_keys))
         with metrics.timer("spans.buffer.done_flush_segments"):
             self.store.cleanup_flushed_segments(segment_keys)

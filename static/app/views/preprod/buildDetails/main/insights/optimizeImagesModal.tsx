@@ -1,13 +1,14 @@
 import type {ReactNode} from 'react';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import {CodeBlockWrapper} from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
+
+import {CodeBlockWrapper} from './insightInfoModal';
 
 const IOS_IMAGEMIN_SCRIPT = `# Install imagemin-cli
 npm install -g imagemin-cli
@@ -120,8 +121,5 @@ export function openOptimizeImagesModal(platform?: Platform) {
         ? t('Optimize Images (iOS)')
         : t('Optimize Images');
 
-  openInsightInfoModal({
-    title,
-    children: getOptimizeImagesContent(platform),
-  });
+  openInsightInfoModal({title, children: getOptimizeImagesContent(platform)});
 }

@@ -36,11 +36,7 @@ export function GroupPreviewHovercard({
       // overlay sets on it, leaving its layout box — and therefore the
       // hovercard's anchor — out past the visible edge of a clipped title.
       containerDisplayMode="inline-block"
-      style={{
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        verticalAlign: 'bottom',
-      }}
+      style={{overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'bottom'}}
       {...props}
     >
       {children}
@@ -73,9 +69,9 @@ const StyledHovercard = styled(Hovercard)<{hide?: boolean}>`
       display: none;
     `}
 
-  .loading {
+  .scraps-spinner {
     margin: 0 auto;
-    .loading-indicator {
+    .scraps-spinner-ring {
       /**
       * Overriding the .less file - for default 64px loader we have the width of border set to 6px
       * For 32px we therefore need 3px to keep the same thickness ratio

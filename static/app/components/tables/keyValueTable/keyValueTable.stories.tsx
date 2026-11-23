@@ -6,7 +6,7 @@ import {IconSettings} from '@sentry/icons/settings';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 
 import {
   KeyValueColumns,
@@ -226,20 +226,8 @@ export default Storybook.story('KeyValueTable', story => {
 
 function generateContentItems(theme: Theme): KeyValueTableDataRowProps[] {
   return [
-    {
-      item: {
-        key: 'string',
-        subject: 'string',
-        value: 'This is an example of a string.',
-      },
-    },
-    {
-      item: {
-        key: 'number',
-        subject: 'number',
-        value: 20481027,
-      },
-    },
+    {item: {key: 'string', subject: 'string', value: 'This is an example of a string.'}},
+    {item: {key: 'number', subject: 'number', value: 20481027}},
     {
       item: {
         key: 'array',
@@ -262,35 +250,15 @@ function generateContentItems(theme: Theme): KeyValueTableDataRowProps[] {
       },
       disableFormattedData: true,
     },
-    {
-      item: {
-        key: 'null',
-        subject: 'null',
-        value: null,
-      },
-    },
-    {
-      item: {
-        key: 'undefined',
-        subject: 'undefined',
-        value: undefined,
-      },
-    },
-    {
-      item: {
-        key: 'external-url',
-        subject: 'external url',
-        value: 'https://sentry.io',
-      },
-    },
+    {item: {key: 'null', subject: 'null', value: null}},
+    {item: {key: 'undefined', subject: 'undefined', value: undefined}},
+    {item: {key: 'external-url', subject: 'external url', value: 'https://sentry.io'}},
     {
       item: {
         key: 'action-link',
         subject: 'action link',
         value: 'Click to go to Sentry.io',
-        action: {
-          link: 'https://sentry.io',
-        },
+        action: {link: 'https://sentry.io'},
       },
     },
     {
@@ -298,9 +266,7 @@ function generateContentItems(theme: Theme): KeyValueTableDataRowProps[] {
         key: 'disabled-action-link',
         subject: 'disabled action link',
         value: 'Click to go to Sentry.io',
-        action: {
-          link: 'https://sentry.io',
-        },
+        action: {link: 'https://sentry.io'},
       },
       disableLink: true,
     },
@@ -344,53 +310,24 @@ function generateContentItems(theme: Theme): KeyValueTableDataRowProps[] {
       },
     },
     {
-      item: {
-        key: 'redacted-value',
-        subject: 'redacted value',
-        value: '',
-      },
+      item: {key: 'redacted-value', subject: 'redacted value', value: ''},
       meta: {
         '': {
-          chunks: [
-            {
-              remark: 'x',
-              rule_id: 'project:0',
-              text: '',
-              type: 'redaction',
-            },
-          ],
+          chunks: [{remark: 'x', rule_id: 'project:0', text: '', type: 'redaction'}],
           len: 1,
           rem: [['project:0', 'x', 0, 0]],
         },
       },
     },
     {
-      item: {
-        key: 'error-value',
-        subject: 'error value',
-        value: '',
-      },
+      item: {key: 'error-value', subject: 'error value', value: ''},
       meta: {
         '': {
-          err: [
-            [
-              'invalid_data',
-              {
-                reason: 'This is a reason for the error',
-              },
-            ],
-          ],
+          err: [['invalid_data', {reason: 'This is a reason for the error'}]],
           val: 'error value',
         },
       },
-      errors: [
-        [
-          'invalid_data',
-          {
-            reason: 'This is a reason for the error',
-          },
-        ],
-      ],
+      errors: [['invalid_data', {reason: 'This is a reason for the error'}]],
     },
   ];
 }

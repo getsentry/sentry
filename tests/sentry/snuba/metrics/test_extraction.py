@@ -1,8 +1,11 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from sentry.api.event_search import ParenExpression, parse_search_query
+from sentry.models.project import Project
+from sentry.relay.types import RuleCondition
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
     SearchQueryConverter,
@@ -19,7 +22,7 @@ from sentry.utils.glob import glob_match
 
 
 @django_db_all
-def test_equality_of_specs(default_project) -> None:
+def test_equality_of_specs(default_project: Project) -> None:
     spec_1 = OnDemandMetricSpec("count()", "issue:FOO", groupbys=["release", "country_code"])
     spec_2 = OnDemandMetricSpec("count()", "issue:FOO", groupbys=["country_code", "release"])
     assert are_specs_equal(
@@ -27,7 +30,9 @@ def test_equality_of_specs(default_project) -> None:
     )
 
 
-def create_spec_if_needed(dataset, agg, query) -> OnDemandMetricSpec | None:
+def create_spec_if_needed(
+    dataset: str | Dataset | None, agg: str, query: str
+) -> OnDemandMetricSpec | None:
     return (
         OnDemandMetricSpec(agg, query)
         if should_use_on_demand_metrics(dataset, agg, query)
@@ -39,7 +44,7 @@ def create_spec_if_needed(dataset, agg, query) -> OnDemandMetricSpec | None:
     "percentile",
     [0.5, 0.75, 0.9, 0.95, 0.99],
 )
-def test_spec_equivalence_with_percentiles(percentile) -> None:
+def test_spec_equivalence_with_percentiles(percentile: float) -> None:
     fixed_percentile = f"p{int(percentile * 100)}"
 
     spec_1 = OnDemandMetricSpec(f"{fixed_percentile}(measurements.fp)", "transaction.duration:>1s")
@@ -308,7 +313,7 @@ def test_spec_wildcard() -> None:
         ("title:*?dispatch*", "backend ?dispatch", r"*\?dispatch*"),
     ],
 )
-def test_spec_wildcard_escaping(query, title, expected_pattern) -> None:
+def test_spec_wildcard_escaping(query: str, title: str, expected_pattern: str) -> None:
     spec = OnDemandMetricSpec("count()", query)
 
     assert spec._metric_type == "c"
@@ -465,7 +470,7 @@ def test_spec_ignore_timestamp() -> None:
 
 
 @django_db_all
-def test_spec_failure_count(default_project) -> None:
+def test_spec_failure_count(default_project: Project) -> None:
     spec = OnDemandMetricSpec("failure_count()", "transaction.duration:>1s")
 
     assert spec._metric_type == "c"
@@ -476,7 +481,7 @@ def test_spec_failure_count(default_project) -> None:
 
 
 @django_db_all
-def test_spec_failure_rate(default_project) -> None:
+def test_spec_failure_rate(default_project: Project) -> None:
     spec = OnDemandMetricSpec("failure_rate()", "transaction.duration:>1s")
 
     assert spec._metric_type == "c"
@@ -488,7 +493,7 @@ def test_spec_failure_rate(default_project) -> None:
 
 @django_db_all
 @patch("sentry.snuba.metrics.extraction._get_satisfactory_metric")
-def test_spec_apdex(_get_satisfactory_metric, default_project) -> None:
+def test_spec_apdex(_get_satisfactory_metric: MagicMock, default_project: Project) -> None:
     _get_satisfactory_metric.return_value = "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(10)", "release:a")
@@ -502,7 +507,7 @@ def test_spec_apdex(_get_satisfactory_metric, default_project) -> None:
 
 @django_db_all
 @patch("sentry.snuba.metrics.extraction._get_satisfactory_metric")
-def test_spec_apdex_decimal(_get_satisfactory_metric, default_project) -> None:
+def test_spec_apdex_decimal(_get_satisfactory_metric: MagicMock, default_project: Project) -> None:
     _get_satisfactory_metric.return_value = "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(0.8)", "release:a")
@@ -515,7 +520,7 @@ def test_spec_apdex_decimal(_get_satisfactory_metric, default_project) -> None:
 
 
 @django_db_all
-def test_spec_epm(default_project) -> None:
+def test_spec_epm(default_project: Project) -> None:
     spec = OnDemandMetricSpec("epm()", "transaction.duration:>1s")
 
     assert spec._metric_type == "c"
@@ -526,7 +531,7 @@ def test_spec_epm(default_project) -> None:
 
 
 @django_db_all
-def test_spec_eps(default_project) -> None:
+def test_spec_eps(default_project: Project) -> None:
     spec = OnDemandMetricSpec("eps()", "transaction.duration:>1s")
 
     assert spec._metric_type == "c"
@@ -564,7 +569,7 @@ def test_cleanup_equivalent_specs() -> None:
         "(isNightlyBuild:true OR environment:production)",
     ],
 )
-def test_cleanup_with_environment_injection(query) -> None:
+def test_cleanup_with_environment_injection(query: str) -> None:
     # We are simulating the transformation that the frontend performs in the query, since they add the
     # AND (`event.type:transaction`) at the end.
     field = "count()"
@@ -587,7 +592,9 @@ def test_cleanup_with_environment_injection(query) -> None:
 
 @django_db_all
 @patch("sentry.snuba.metrics.extraction._get_satisfactory_metric")
-def test_spec_apdex_without_condition(_get_satisfactory_metric, default_project) -> None:
+def test_spec_apdex_without_condition(
+    _get_satisfactory_metric: MagicMock, default_project: Project
+) -> None:
     _get_satisfactory_metric.return_value = "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(10)", "")
@@ -613,7 +620,7 @@ def test_spec_custom_tag() -> None:
         "(release:a OR (transaction.op:b and browser.version:1)) transaction.duration:>1s",
     ],
 )
-def test_query_tokens_to_string(query) -> None:
+def test_query_tokens_to_string(query: str) -> None:
     tokens = parse_search_query(query)
     new_query = query_tokens_to_string(tokens)
     new_tokens = parse_search_query(new_query)
@@ -634,7 +641,7 @@ def test_query_tokens_to_string(query) -> None:
         ),
     ],
 )
-def test_to_standard_metrics_query(dirty, clean) -> None:
+def test_to_standard_metrics_query(dirty: str, clean: str) -> None:
     cleaned_up_query = to_standard_metrics_query(dirty)
     cleaned_up_tokens = parse_search_query(cleaned_up_query)
     clean_tokens = parse_search_query(clean)
@@ -658,7 +665,7 @@ def test_to_standard_metrics_query(dirty, clean) -> None:
         ),
     ],
 )
-def test_search_query_converter(query, expected) -> None:
+def test_search_query_converter(query: str, expected: RuleCondition) -> None:
     tokens = parse_search_query(query)
     converter = SearchQueryConverter(tokens)
     condition = converter.convert()
@@ -683,7 +690,7 @@ def test_search_query_converter(query, expected) -> None:
         (" (AND) And (And) Or release:initial or (and) or", "release:initial"),
     ],
 )
-def test_cleanup_query(dirty, clean) -> None:
+def test_cleanup_query(dirty: str, clean: str) -> None:
     dirty_tokens = parse_search_query(dirty)
     clean_tokens = parse_search_query(clean)
     actual_clean = cleanup_search_query(dirty_tokens)

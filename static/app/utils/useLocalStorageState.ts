@@ -1,7 +1,6 @@
 import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 
-import {localStorageWrapper} from 'sentry/utils/localStorage';
-
+import {localStorageWrapper} from './localStorage';
 import {scheduleMicroTask} from './scheduleMicroTask';
 
 const SUPPORTS_LOCAL_STORAGE = window && 'localStorage' in window;

@@ -33,6 +33,14 @@ export const noCoreImport = defineRule({
           return;
         }
 
+        if (
+          /^sentry\/components\/core\/badge\/(alertBadge|deployBadge|projectsBadge)$/.test(
+            importPath
+          )
+        ) {
+          return;
+        }
+
         if (importPath.startsWith(FORBIDDEN_PATH)) {
           context.report({
             node,

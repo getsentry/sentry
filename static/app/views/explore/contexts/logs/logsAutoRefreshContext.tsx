@@ -1,18 +1,29 @@
 import {createContext, useCallback, useContext, useRef, useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
-import type {Location} from 'history';
+import {parseAsInteger} from 'nuqs';
 
 import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
-import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useLogsApiOptionsWithInfinite} from 'sentry/views/explore/logs/useLogsApiOptions';
-import {useLogsQueryHighFidelity} from 'sentry/views/explore/logs/useLogsQueryHighFidelity';
+import {
+  applyQueryParamsUpdates,
+  loadQueryParamsFromLocation,
+  parseAsScalar,
+} from 'sentry/views/explore/queryParams/parsers';
+
+import {LOGS_ANCHOR_TIMESTAMP_KEY} from './logsPageParams';
 
 export const LOGS_AUTO_REFRESH_KEY = 'live';
 export const LOGS_REFRESH_INTERVAL_KEY = 'refreshEvery';
 const LOGS_REFRESH_INTERVAL_DEFAULT = 5000;
 const MAX_AUTO_REFRESH_PAUSED_TIME_MS = 60 * 1000; // 10 seconds
+
+const LOGS_AUTO_REFRESH_PARSERS = {
+  [LOGS_AUTO_REFRESH_KEY]: parseAsScalar,
+  [LOGS_REFRESH_INTERVAL_KEY]: parseAsInteger.withDefault(LOGS_REFRESH_INTERVAL_DEFAULT),
+  [LOGS_ANCHOR_TIMESTAMP_KEY]: parseAsScalar,
+};
 
 export const ABSOLUTE_MAX_AUTO_REFRESH_TIME_MS = 10 * 60 * 1000; // 10 minutes
 export const CONSECUTIVE_PAGES_WITH_MORE_DATA = 5;
@@ -28,7 +39,6 @@ export type AutoRefreshState =
 
 interface LogsAutoRefreshContextValue {
   autoRefresh: AutoRefreshState;
-  hasInitialized: boolean;
   isTableFrozen: boolean | undefined;
   pausedAt: number | undefined;
   refreshInterval: number;
@@ -69,7 +79,8 @@ export function LogsAutoRefreshProvider({
     allowedStates.push('paused');
   }
 
-  const rawState = decodeScalar(location.query[LOGS_AUTO_REFRESH_KEY]);
+  const queryParams = loadQueryParamsFromLocation(LOGS_AUTO_REFRESH_PARSERS, location);
+  const rawState = queryParams[LOGS_AUTO_REFRESH_KEY];
   const autoRefresh =
     rawState && allowedStates.includes(rawState as AutoRefreshState)
       ? (rawState as AutoRefreshState)
@@ -80,21 +91,14 @@ export function LogsAutoRefreshProvider({
     hasInitialized.current = true;
   }
 
-  const refreshInterval = decodeInteger(
-    location.query[LOGS_REFRESH_INTERVAL_KEY],
-    LOGS_REFRESH_INTERVAL_DEFAULT
-  );
-
   return (
     <LogsAutoRefreshContext
       value={{
         autoRefresh,
-        refreshInterval,
+        refreshInterval: queryParams[LOGS_REFRESH_INTERVAL_KEY],
         isTableFrozen,
         pausedAt,
         setPausedAt,
-        // oxlint-disable-next-line react/refs
-        hasInitialized: hasInitialized.current,
       }}
     >
       {children}
@@ -131,43 +135,60 @@ function pausedAtAllowedToContinue(pausedAt: number | undefined) {
 export function useSetLogsAutoRefresh() {
   const location = useLocation();
   const navigate = useNavigate();
-  const rawHighFidelity = useLogsQueryHighFidelity();
-  const {hasInitialized: autoRefreshHasInitialized} = useLogsAutoRefresh();
-  const highFidelity = autoRefreshHasInitialized ? false : rawHighFidelity;
-  const {infiniteApiOptions} = useLogsApiOptionsWithInfinite({
+  const {infiniteApiOptions: liveApiOptions} = useLogsApiOptionsWithInfinite({
     referrer: 'api.explore.logs-table',
     autoRefresh: true,
-    highFidelity,
+    highFidelity: false,
   });
-  const queryKey = infiniteApiOptions.queryKey;
+  const {infiniteApiOptions: highFidelityApiOptions} = useLogsApiOptionsWithInfinite({
+    referrer: 'api.explore.logs-table',
+    autoRefresh: false,
+    highFidelity: true,
+  });
+  const liveQueryKey = liveApiOptions.queryKey;
+  const highFidelityQueryKey = highFidelityApiOptions.queryKey;
   const queryClient = useQueryClient();
-  const {setPausedAt, pausedAt: currentPausedAt} = useLogsAutoRefresh();
+  const {
+    autoRefresh: currentAutoRefresh,
+    setPausedAt,
+    pausedAt: currentPausedAt,
+  } = useLogsAutoRefresh();
 
   return useCallback(
     (autoRefresh: AutoRefreshState) => {
       if (autoRefresh === 'enabled' && !withinPauseWindow(autoRefresh, currentPausedAt)) {
-        queryClient.removeQueries({queryKey});
+        queryClient.removeQueries({queryKey: liveQueryKey});
+      }
+
+      if (currentAutoRefresh === 'enabled' && autoRefresh !== 'enabled') {
+        queryClient.removeQueries({queryKey: highFidelityQueryKey});
       }
 
       const newPausedAt = autoRefresh === 'paused' ? Date.now() : undefined;
-      const target: Location = {...location, query: {...location.query}};
       if (autoRefresh === 'paused') {
         setPausedAt(newPausedAt);
-        queryClient.removeQueries({queryKey});
+        queryClient.removeQueries({queryKey: liveQueryKey});
       } else if (autoRefresh !== 'enabled') {
         // Any error state, or disabled state, should reset the pause state.
         setPausedAt(undefined);
       }
 
-      if (autoRefresh === 'idle') {
-        delete target.query[LOGS_AUTO_REFRESH_KEY];
-      } else {
-        target.query[LOGS_AUTO_REFRESH_KEY] = autoRefresh;
-      }
-
+      const target = applyQueryParamsUpdates(LOGS_AUTO_REFRESH_PARSERS, location, {
+        [LOGS_AUTO_REFRESH_KEY]: autoRefresh === 'idle' ? null : autoRefresh,
+        [LOGS_ANCHOR_TIMESTAMP_KEY]: autoRefresh === 'enabled' ? null : undefined,
+      });
       navigateIfQueryChanged(navigate, location, target);
     },
-    [navigate, location, queryClient, queryKey, setPausedAt, currentPausedAt]
+    [
+      navigate,
+      location,
+      queryClient,
+      liveQueryKey,
+      highFidelityQueryKey,
+      setPausedAt,
+      currentPausedAt,
+      currentAutoRefresh,
+    ]
   );
 }
 

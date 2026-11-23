@@ -1,4 +1,4 @@
-from typing import Literal, Never, cast
+from typing import Literal, Never
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
@@ -42,6 +42,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.exceptions import InvalidSearchQuery
 from sentry.explore.models import (
     TraceItemAttributeContext,
@@ -177,7 +178,7 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
         data = serializer.validated_data
 
         dataset = data["dataset"]
-        attribute_type = cast(AttributeType, data["attribute_type"])
+        attribute_type = data["attribute_type"]
         trace_item_type = SupportedTraceItemType(dataset)
 
         try:
@@ -251,7 +252,7 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
         }
         defaults = {
             "brief": data["brief"],
-            "updated_by_id": request.user.id,
+            "updated_by_id": acting_user_id(request.user),
             **optional_fields,
         }
         # Race-safe: the lookup kwargs match the unique constraints, so a losing
@@ -267,7 +268,7 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
                 "additional_context": None,
                 "examples": [],
                 **defaults,
-                "created_by_id": request.user.id,
+                "created_by_id": acting_user_id(request.user),
             },
         )
 

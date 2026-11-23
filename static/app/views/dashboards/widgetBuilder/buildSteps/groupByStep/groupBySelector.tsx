@@ -5,6 +5,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
@@ -129,10 +130,7 @@ export function GroupBySelector({
         acc.columnsAsFieldOptions[optionInColumnsIndex] = {[key]: value};
         return acc;
       },
-      {
-        filteredFieldOptions: {},
-        columnsAsFieldOptions: [],
-      }
+      {filteredFieldOptions: {}, columnsAsFieldOptions: []}
     );
   }, [fieldOptions, columnFieldsAsString]);
 
@@ -192,7 +190,7 @@ export function GroupBySelector({
             }}
           >
             <SortableContext items={items} strategy={verticalListSortingStrategy}>
-              <SortableQueryFields>
+              <Grid gap="md" flow="row">
                 {columns.map((column, index) => (
                   <SortableQueryField
                     key={items[index]}
@@ -210,7 +208,7 @@ export function GroupBySelector({
                     renderTagOverride={renderTagOverride}
                   />
                 ))}
-              </SortableQueryFields>
+              </Grid>
             </SortableContext>
             <DragOverlay
               dropAnimation={null}
@@ -254,12 +252,6 @@ export function GroupBySelector({
 
 const StyledField = styled(FieldGroup)`
   padding-bottom: ${p => p.theme.space.md};
-`;
-
-const SortableQueryFields = styled('div')`
-  display: grid;
-  grid-auto-flow: row;
-  gap: ${p => p.theme.space.md};
 `;
 
 const Ghost = styled('div')`

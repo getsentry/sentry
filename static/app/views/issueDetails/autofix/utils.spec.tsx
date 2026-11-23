@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {makeSeerLocation, makeSeerQuery} from 'sentry/views/issueDetails/autofix/utils';
+import {makeSeerLocation, makeSeerQuery} from './utils';
 
 describe('makeSeerLocation', () => {
   const withPage = OrganizationFixture({features: ['autofix-page']});
@@ -53,12 +53,7 @@ describe('makeSeerLocation', () => {
       makeSeerLocation({
         organization: withPage,
         groupId: '101',
-        query: {
-          project: '1',
-          environment: 'prod',
-          statsPeriod: '7d',
-          seerDrawer: 'true',
-        },
+        query: {project: '1', environment: 'prod', statsPeriod: '7d', seerDrawer: 'true'},
       })
     ).toEqual({
       pathname: '/organizations/org-slug/issues/101/autofix/',

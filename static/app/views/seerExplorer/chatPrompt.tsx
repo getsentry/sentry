@@ -1,13 +1,10 @@
-import type {Block} from 'sentry/views/seerExplorer/types';
+import type {Block} from './types';
 
 /**
  * An "Ask Seer" question: shown in Explorer as Seer's, and sent with the user's reply.
  * `context` is the JSON the entry point captured when it was clicked.
  */
-export type ChatPrompt = {
-  text: string;
-  context?: string;
-};
+export type ChatPrompt = {text: string; context?: string};
 
 /** The question a user message answered, which the chat endpoint stores in its metadata. */
 export function getBlockChatPrompt(block: Block): ChatPrompt | null {

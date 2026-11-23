@@ -5,7 +5,8 @@ import type {
   HeatMapItem,
   HeatMapSeries,
 } from 'sentry/views/dashboards/widgets/common/types';
-import type {TimeDomain} from 'sentry/views/explore/metrics/hooks/partitionHeatMapWindows';
+
+import type {TimeDomain} from './partitionHeatMapWindows';
 
 export interface ChunkedHeatMapResult {
   error: Error | null;
@@ -153,11 +154,7 @@ export function mergeHeatMapChunks(
         bucketSize: intervalMs / 1000,
       },
       yAxis: first.meta.yAxis,
-      zAxis: {
-        ...first.meta.zAxis,
-        start: zStart ?? 0,
-        end: zEnd ?? 0,
-      },
+      zAxis: {...first.meta.zAxis, start: zStart ?? 0, end: zEnd ?? 0},
     },
   };
 }

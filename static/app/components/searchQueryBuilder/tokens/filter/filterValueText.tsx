@@ -1,23 +1,22 @@
 import {Fragment, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {Temporal} from '@js-temporal/polyfill';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderLayout,
 } from 'sentry/components/searchQueryBuilder/context';
-import {renderRegexPattern} from 'sentry/components/searchQueryBuilder/tokens/filter/highlightedRegexPattern';
-import {RegexDelimiter} from 'sentry/components/searchQueryBuilder/tokens/filter/regexDelimiter';
-import {
-  formatFilterValue,
-  getFilterValueType,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {FilterType, Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyName, isRegexOperator} from 'sentry/components/searchSyntax/utils';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
+
+import {renderRegexPattern} from './highlightedRegexPattern';
+import {RegexDelimiter} from './regexDelimiter';
+import {formatFilterValue, getFilterValueType} from './utils';
 
 const FILTER_VALUE_ELLIPSIS_DELIMITER = /[\s\-:/]/;
 
@@ -119,10 +118,12 @@ function TruncatedFilterDisplayValue({
   value,
   fallbackMaxLength,
   multi = false,
+  maxWidth,
   renderValue,
 }: {
   fallbackMaxLength: number;
   value: string;
+  maxWidth?: string;
   multi?: boolean;
   renderValue?: (displayValue: string) => React.ReactNode;
 }) {
@@ -168,13 +169,16 @@ function TruncatedFilterDisplayValue({
     const observer = new ResizeObserver(update);
     observer.observe(observed);
     return () => observer.disconnect();
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [value, fallbackMaxLength, multi]);
 
   const Truncated = multi ? FilterMultiValueTruncated : FilterValueSingleTruncatedValue;
 
   return (
-    <Truncated ref={ref} data-overflowing={displayValue === value ? undefined : 'true'}>
+    <Truncated
+      ref={ref}
+      maxWidth={maxWidth}
+      data-overflowing={displayValue === value ? undefined : 'true'}
+    >
       {renderValue ? renderValue(displayValue) : displayValue}
     </Truncated>
   );
@@ -182,7 +186,7 @@ function TruncatedFilterDisplayValue({
 
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
-  const {size} = useSearchQueryBuilderLayout();
+  const {size, showAllFilterValues} = useSearchQueryBuilderLayout();
   const valueType = getFilterValueType(token, getFieldDefinition(getKeyName(token.key)));
 
   if (token.filter === FilterType.HAS) {
@@ -223,31 +227,77 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
         );
       }
 
-      const maxItems = size === 'small' ? 1 : 3;
+      const maxItems = showAllFilterValues ? items.length : size === 'small' ? 1 : 3;
+
+      // When every value shows, a value and the joiner after it wrap as one
+      // unit, so a line never starts with a dangling "or".
+      const values = items.slice(0, maxItems).map((item, index) => {
+        const value = (
+          <TruncatedFilterDisplayValue
+            value={formatFilterValue({token: item.value!, valueType})}
+            fallbackMaxLength={
+              showAllFilterValues
+                ? FILTER_VALUE_FALLBACK_MAX_LENGTH
+                : FILTER_MULTI_VALUE_FALLBACK_MAX_LENGTH
+            }
+            maxWidth={showAllFilterValues ? '100%' : undefined}
+            multi
+          />
+        );
+        const joiner =
+          index !== items.length - 1 && index < maxItems - 1 ? (
+            <FilterValueJoiner> {multiValueJoiner} </FilterValueJoiner>
+          ) : null;
+
+        return showAllFilterValues ? (
+          <Flex key={index} align="center" gap="xs" minWidth="0" maxWidth="100%">
+            {value}
+            {joiner}
+          </Flex>
+        ) : (
+          <Fragment key={index}>
+            {value}
+            {joiner}
+          </Fragment>
+        );
+      });
 
       return (
-        <Flex align="center" wrap="nowrap" gap="xs" maxWidth="400px">
-          {items.slice(0, maxItems).map((item, index) => (
-            <Fragment key={index}>
-              <TruncatedFilterDisplayValue
-                value={formatFilterValue({token: item.value!, valueType})}
-                fallbackMaxLength={FILTER_MULTI_VALUE_FALLBACK_MAX_LENGTH}
-                multi
-              />
-              {index !== items.length - 1 && index < maxItems - 1 ? (
-                <FilterValueJoiner> {multiValueJoiner} </FilterValueJoiner>
-              ) : null}
-            </Fragment>
-          ))}
+        <Flex
+          align="center"
+          wrap={showAllFilterValues ? 'wrap' : 'nowrap'}
+          gap="xs"
+          maxWidth={showAllFilterValues ? undefined : '400px'}
+        >
+          {values}
           {items.length > maxItems && <span>+{items.length - maxItems}</span>}
         </Flex>
       );
     }
     case Token.VALUE_ISO_8601_DATE: {
       const isUtc = token.value.tz?.toLowerCase() === 'z' || !token.value.tz;
+      let date: string | number = token.value.value;
+      if (!token.value.tz) {
+        try {
+          const localDate = token.value.time
+            ? Temporal.PlainDateTime.from(token.value.value)
+            : Temporal.PlainDate.from(token.value.value).toPlainDateTime();
+          date = localDate.toZonedDateTime('UTC').epochMilliseconds;
+        } catch (error) {
+          if (!(error instanceof RangeError)) {
+            throw error;
+          }
+          date = NaN;
+        }
+      }
 
       return (
-        <DateTime date={token.value.value} dateOnly={!token.value.time} utc={isUtc} />
+        <DateTime
+          date={date}
+          mode={token.value.time ? 'dateTime' : 'date'}
+          timezone={isUtc ? 'UTC' : undefined}
+          showTimezone={isUtc && Boolean(token.value.time)}
+        />
       );
     }
     default: {
@@ -268,24 +318,24 @@ const FilterValueJoiner = styled('span')`
   margin-inline-start: -2px;
 `;
 
-const FilterMultiValueTruncated = styled('div')`
+const FilterMultiValueTruncated = styled('div')<{maxWidth?: string}>`
   display: block;
   box-sizing: border-box;
   white-space: nowrap;
   overflow: hidden;
   padding-inline-end: 2px;
-  max-width: 110px;
+  max-width: ${p => p.maxWidth ?? '110px'};
   width: fit-content;
   min-width: 0;
 `;
 
-const FilterValueSingleTruncatedValue = styled('div')`
+const FilterValueSingleTruncatedValue = styled('div')<{maxWidth?: string}>`
   display: block;
   box-sizing: border-box;
   white-space: nowrap;
   overflow: hidden;
   padding-inline-end: 2px;
-  max-width: 100%;
+  max-width: ${p => p.maxWidth ?? '100%'};
   width: 100%;
   min-width: 0;
 `;

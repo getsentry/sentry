@@ -1,4 +1,4 @@
-import {applyCarriageReturns, stripAnsi} from 'sentry/utils/ansiEscapeCodes';
+import {applyCarriageReturns, stripAnsi} from './ansiEscapeCodes';
 
 describe('ansiEscapeCodes', () => {
   it('removes ANSI color codes', () => {

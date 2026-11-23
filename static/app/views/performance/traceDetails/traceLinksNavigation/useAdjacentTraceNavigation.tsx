@@ -12,10 +12,11 @@ import type {
   TraceItemResponseAttribute,
   TraceItemResponseLink,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
-import type {ConnectedTraceConnection} from 'sentry/views/performance/traceDetails/traceLinksNavigation/types';
-import {useFindAdjacentTrace} from 'sentry/views/performance/traceDetails/traceLinksNavigation/useFindLinkedTraces';
 import {useTraceStateDispatch} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
+
+import type {ConnectedTraceConnection} from './types';
+import {useFindAdjacentTrace} from './useFindLinkedTraces';
 
 const LINKED_TRACE_MAX_DURATION = 3600; // 1h in seconds
 

@@ -22,7 +22,6 @@ EXPLORE_SAVED_QUERY_OBJ = {
             "mode": "samples",
         }
     ],
-    "range": "24h",
     "statsPeriod": "24h",
     "dataset": "spans",
     "expired": False,
@@ -31,6 +30,7 @@ EXPLORE_SAVED_QUERY_OBJ = {
     "position": None,
     "isPrebuilt": False,
     "changedReason": None,
+    "queryPriority": "normal",
     "createdBy": {
         "id": "1",
         "name": "Admin",
@@ -73,7 +73,6 @@ SAVED_QUERIES = [
                 "mode": "samples",
             }
         ],
-        "range": "24h",
         "statsPeriod": "24h",
         "dataset": "spans",
         "expired": False,
@@ -82,6 +81,7 @@ SAVED_QUERIES = [
         "position": None,
         "isPrebuilt": False,
         "changedReason": None,
+        "queryPriority": "normal",
         "createdBy": {
             "id": "1",
             "name": "Admin",
@@ -122,7 +122,6 @@ SAVED_QUERIES = [
                 "mode": "samples",
             }
         ],
-        "range": "24h",
         "statsPeriod": "24h",
         "dataset": "spans",
         "expired": False,
@@ -131,6 +130,7 @@ SAVED_QUERIES = [
         "position": None,
         "isPrebuilt": False,
         "changedReason": None,
+        "queryPriority": "normal",
         "createdBy": {
             "id": "1",
             "name": "Admin",

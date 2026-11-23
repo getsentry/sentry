@@ -6,7 +6,6 @@ from unittest import mock
 from unittest.mock import MagicMock, patch
 
 from fixtures.page_objects.issue_details import IssueDetailsPage
-from sentry import options
 from sentry.issues.grouptype import (
     NoiseConfig,
     PerformanceNPlusOneAPICallsGroupType,
@@ -31,15 +30,23 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
 
-        options.set("performance.issues.all.problem-detection", 1.0)
-        options.set("performance.issues.n_plus_one_db.problem-creation", 1.0)
-        options.set("performance.issues.n_plus_one_api_calls.problem-creation", 1.0)
+        self.enterContext(
+            self.options(
+                {
+                    "performance.issues.all.problem-detection": 1.0,
+                    "performance.issues.n_plus_one_db.problem-creation": 1.0,
+                    "performance.issues.n_plus_one_api_calls.problem-creation": 1.0,
+                }
+            )
+        )
 
         self.page = IssueDetailsPage(self.browser, self.client)
         self.dismiss_assistant()
 
     def create_sample_event(self, fixture: str, start_timestamp: float) -> dict[str, Any]:
         event = json.loads(self.load_fixture(f"events/issue_detection/{fixture}.json"))
+        if not isinstance(event, dict):
+            raise TypeError("Issue detection fixture is not a JSON object")
 
         for key in ["datetime", "location", "title"]:
             del event[key]

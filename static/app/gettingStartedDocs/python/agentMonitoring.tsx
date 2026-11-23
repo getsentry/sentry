@@ -13,7 +13,8 @@ import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/
 
 import {getPythonInstallCodeBlock} from './utils';
 
-const MIN_REQUIRED_VERSION = '2.64.0';
+// `data_collection`, used in the snippets below, needs 2.70.0 or later.
+const MIN_REQUIRED_VERSION = '2.70.0';
 
 export const agentMonitoring: OnboardingConfig = {
   introduction: params => (
@@ -28,10 +29,7 @@ export const agentMonitoring: OnboardingConfig = {
       {
         type: StepType.INSTALL,
         content: [
-          {
-            type: 'text',
-            text: t('Install our Python SDK:'),
-          },
+          {type: 'text', text: t('Install our Python SDK:')},
           getPythonInstallCodeBlock({minimumVersion: MIN_REQUIRED_VERSION}),
         ],
       },
@@ -57,9 +55,9 @@ import sentry_sdk
 sentry_sdk.init(
     dsn="${params.dsn.public}",
     traces_sample_rate=1.0,
-    # To customize collected data (AI inputs/outputs, user info, request bodies),
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/
-    # data_collection={"gen_ai": {"inputs": False, "outputs": False}},
+    # Record AI inputs and outputs (prompts, responses, tool calls). To change what's
+    # collected, see https://docs.sentry.io/platforms/python/data-management/data-collected/
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
 )`,
         },
       ],
@@ -84,9 +82,9 @@ import sentry_sdk
 sentry_sdk.init(
     dsn="${params.dsn.public}",
     traces_sample_rate=1.0,
-    # To customize collected data (AI inputs/outputs, user info, request bodies),
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/
-    # data_collection={"gen_ai": {"inputs": False, "outputs": False}},
+    # Record AI inputs and outputs (prompts, responses, tool calls). To change what's
+    # collected, see https://docs.sentry.io/platforms/python/data-management/data-collected/
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
 )`,
         },
       ],
@@ -111,9 +109,9 @@ import sentry_sdk
 sentry_sdk.init(
     dsn="${params.dsn.public}",
     traces_sample_rate=1.0,
-    # To customize collected data (AI inputs/outputs, user info, request bodies),
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/
-    # data_collection={"gen_ai": {"inputs": False, "outputs": False}},
+    # Record AI inputs and outputs (prompts, responses, tool calls). To change what's
+    # collected, see https://docs.sentry.io/platforms/python/data-management/data-collected/
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
 )`,
         },
       ],
@@ -138,9 +136,9 @@ import sentry_sdk
 sentry_sdk.init(
     dsn="${params.dsn.public}",
     traces_sample_rate=1.0,
-    # To customize collected data (AI inputs/outputs, user info, request bodies),
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/
-    # data_collection={"gen_ai": {"inputs": False, "outputs": False}},
+    # Record AI inputs and outputs (prompts, responses, tool calls). To change what's
+    # collected, see https://docs.sentry.io/platforms/python/data-management/data-collected/
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
 )`,
         },
       ],
@@ -165,9 +163,9 @@ import sentry_sdk
 sentry_sdk.init(
     dsn="${params.dsn.public}",
     traces_sample_rate=1.0,
-    # To customize collected data (AI inputs/outputs, user info, request bodies),
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/
-    # data_collection={"gen_ai": {"inputs": False, "outputs": False}},
+    # Record AI inputs and outputs (prompts, responses, tool calls). To change what's
+    # collected, see https://docs.sentry.io/platforms/python/data-management/data-collected/
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
 )`,
         },
       ],
@@ -192,9 +190,9 @@ import sentry_sdk
 sentry_sdk.init(
     dsn="${params.dsn.public}",
     traces_sample_rate=1.0,
-    # To customize collected data (AI inputs/outputs, user info, request bodies),
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/
-    # data_collection={"gen_ai": {"inputs": False, "outputs": False}},
+    # Record AI inputs and outputs (prompts, responses, tool calls). To change what's
+    # collected, see https://docs.sentry.io/platforms/python/data-management/data-collected/
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
 )`,
         },
       ],
@@ -225,9 +223,9 @@ sentry_sdk.init(
     dsn="${params.dsn.public}",
     environment="local",
     traces_sample_rate=1.0,
-    # To customize collected data (AI inputs/outputs, user info, request bodies),
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/
-    # data_collection={"gen_ai": {"inputs": False, "outputs": False}},
+    # Record AI inputs and outputs (prompts, responses, tool calls). To change what's
+    # collected, see https://docs.sentry.io/platforms/python/data-management/data-collected/
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
     integrations=[
         LiteLLMIntegration(),
     ],
@@ -251,9 +249,9 @@ sentry_sdk.init(
 sentry_sdk.init(
     dsn="${params.dsn.public}",
     traces_sample_rate=1.0,
-    # To customize collected data (AI inputs/outputs, user info, request bodies),
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/
-    # data_collection={"gen_ai": {"inputs": False, "outputs": False}},
+    # Record AI inputs and outputs (prompts, responses, tool calls). To change what's
+    # collected, see https://docs.sentry.io/platforms/python/data-management/data-collected/
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
 )`,
         },
         {
@@ -291,9 +289,9 @@ sentry_sdk.init(
     dsn="${params.dsn.public}",
     environment="local",
     traces_sample_rate=1.0,
-    # To customize collected data (AI inputs/outputs, user info, request bodies),
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/
-    # data_collection={"gen_ai": {"inputs": False, "outputs": False}},
+    # Record AI inputs and outputs (prompts, responses, tool calls). To change what's
+    # collected, see https://docs.sentry.io/platforms/python/data-management/data-collected/
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
 )`,
         },
       ],

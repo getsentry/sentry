@@ -1,7 +1,8 @@
 import {Fragment, useEffect} from 'react';
 import {css, type Theme} from '@emotion/react';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';

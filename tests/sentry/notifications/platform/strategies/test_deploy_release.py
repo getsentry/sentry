@@ -16,7 +16,7 @@ from sentry.types.activity import ActivityType
 
 class DeployReleaseStrategyTest(TestCase):
     def _make_strategy(self, **overrides: Any) -> DeployReleaseStrategy:
-        defaults = dict(
+        defaults: dict[str, Any] = dict(
             projects=frozenset([self.project]),
             activity=Activity(
                 project=self.project,

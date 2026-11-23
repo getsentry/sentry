@@ -9,18 +9,21 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {BackendJsonSubmitForm} from './backendJsonSubmitForm';
 import type {JsonFormAdapterFieldConfig} from './types';
 
-jest.mock('sentry/actionCreators/indicator');
-
 const org = OrganizationFixture();
 
 describe('BackendJsonSubmitForm', () => {
   const onSubmit = jest.fn().mockResolvedValue({});
+
+  beforeEach(() => {
+    jest.spyOn(toast, 'error');
+  });
 
   afterEach(() => {
     jest.clearAllMocks();
@@ -148,14 +151,7 @@ describe('BackendJsonSubmitForm', () => {
     it('handles disabled fields', () => {
       render(
         <BackendJsonSubmitForm
-          fields={[
-            {
-              name: 'title',
-              type: 'string',
-              label: 'Title',
-              disabled: true,
-            },
-          ]}
+          fields={[{name: 'title', type: 'string', label: 'Title', disabled: true}]}
           onSubmit={onSubmit}
           submitLabel="Save"
         />,
@@ -169,11 +165,7 @@ describe('BackendJsonSubmitForm', () => {
       render(
         <BackendJsonSubmitForm
           fields={[
-            {
-              name: 'title',
-              type: 'string',
-              label: 'Title',
-            },
+            {name: 'title', type: 'string', label: 'Title'},
             {
               name: 'priority',
               type: 'select',
@@ -360,7 +352,7 @@ describe('BackendJsonSubmitForm', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Create'}));
 
       await waitFor(() => {
-        expect(addErrorMessage).toHaveBeenCalledWith(expected);
+        expect(toast.error).toHaveBeenCalledWith(expected);
       });
     });
 
@@ -410,12 +402,7 @@ describe('BackendJsonSubmitForm', () => {
       render(
         <BackendJsonSubmitForm
           fields={[
-            {
-              name: 'title',
-              type: 'string',
-              label: 'Title',
-              default: 'Default Title',
-            },
+            {name: 'title', type: 'string', label: 'Title', default: 'Default Title'},
           ]}
           initialValues={{title: 'Overridden Title'}}
           onSubmit={onSubmit}
@@ -480,6 +467,86 @@ describe('BackendJsonSubmitForm', () => {
   });
 
   describe('select variants', () => {
+    describe.each(['static', 'async'] as const)('%s multi-select values', variant => {
+      it.each([
+        {name: 'empty string default', defaultValue: '', selectedValues: []},
+        {name: 'null default', defaultValue: null, selectedValues: []},
+        {name: 'missing default', defaultValue: undefined, selectedValues: []},
+        {name: 'scalar string default', defaultValue: 'bug', selectedValues: ['bug']},
+        {name: 'scalar numeric default', defaultValue: 0, selectedValues: [0]},
+        {name: 'array default', defaultValue: ['bug', 0], selectedValues: ['bug', 0]},
+        {
+          name: 'empty string initial value',
+          defaultValue: ['bug'],
+          initialValues: {labels: ''},
+          selectedValues: [],
+        },
+        {
+          name: 'null initial value',
+          defaultValue: ['bug'],
+          initialValues: {labels: null},
+          selectedValues: [],
+        },
+        {
+          name: 'scalar string initial value',
+          defaultValue: [],
+          initialValues: {labels: 'bug'},
+          selectedValues: ['bug'],
+        },
+        {
+          name: 'scalar numeric initial value',
+          defaultValue: [],
+          initialValues: {labels: 0},
+          selectedValues: [0],
+        },
+      ])('handles $name', async ({defaultValue, initialValues, selectedValues}) => {
+        render(
+          <BackendJsonSubmitForm
+            fields={[
+              {
+                name: 'labels',
+                type: 'select',
+                label: 'Labels',
+                multiple: true,
+                default: defaultValue,
+                choices: [
+                  ['bug', 'Bug'],
+                  [0, 'Zero'],
+                  ['feature', 'Feature'],
+                ],
+                url: variant === 'async' ? '/search' : undefined,
+              },
+            ]}
+            initialValues={initialValues}
+            onSubmit={onSubmit}
+            submitLabel="Create"
+          />,
+          {organization: org}
+        );
+
+        for (const [value, label] of [
+          ['bug', 'Bug'],
+          [0, 'Zero'],
+        ] as const) {
+          if (selectedValues.some(selectedValue => selectedValue === value)) {
+            expect(await screen.findByText(label)).toBeInTheDocument();
+          } else {
+            expect(screen.queryByText(label)).not.toBeInTheDocument();
+          }
+        }
+
+        await selectEvent.select(
+          screen.getByRole('textbox', {name: 'Labels'}),
+          'Feature'
+        );
+        await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+        await waitFor(() => {
+          expect(onSubmit).toHaveBeenCalledWith({labels: [...selectedValues, 'feature']});
+        });
+      });
+    });
+
     it('preserves numeric choice values', async () => {
       render(
         <BackendJsonSubmitForm
@@ -572,10 +639,7 @@ describe('BackendJsonSubmitForm', () => {
     });
 
     it('prefetches async select options and searches when the user types', async () => {
-      MockApiClient.addMockResponse({
-        url: '/search',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/search', body: []});
       const prefetchResponse = MockApiClient.addMockResponse({
         url: '/search',
         match: [MockApiClient.matchQuery({field: 'repo', query: ''})],
@@ -634,18 +698,8 @@ describe('BackendJsonSubmitForm', () => {
       render(
         <BackendJsonSubmitForm
           fields={[
-            {
-              name: 'repo',
-              type: 'select',
-              label: 'Repository',
-              updatesForm: true,
-            },
-            {
-              name: 'project',
-              type: 'select',
-              label: 'Project',
-              updatesForm: true,
-            },
+            {name: 'repo', type: 'select', label: 'Repository', updatesForm: true},
+            {name: 'project', type: 'select', label: 'Project', updatesForm: true},
             {
               name: 'labels',
               type: 'select',
@@ -667,10 +721,7 @@ describe('BackendJsonSubmitForm', () => {
 
     it('async select fetches from URL on search', async () => {
       // Catch-all for unmatched queries
-      MockApiClient.addMockResponse({
-        url: '/search',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/search', body: []});
       const searchResponse = MockApiClient.addMockResponse({
         url: '/search',
         match: [MockApiClient.matchQuery({field: 'repo', query: 'test'})],
@@ -791,12 +842,7 @@ describe('BackendJsonSubmitForm', () => {
         },
       ];
       const secondFields: JsonFormAdapterFieldConfig[] = [
-        {
-          name: 'title',
-          type: 'string',
-          label: 'Title',
-          default: 'Server title',
-        },
+        {name: 'title', type: 'string', label: 'Title', default: 'Server title'},
         {
           name: 'priority',
           type: 'select',
@@ -852,12 +898,7 @@ describe('BackendJsonSubmitForm', () => {
         },
       ];
       const secondFields: JsonFormAdapterFieldConfig[] = [
-        {
-          name: 'version',
-          type: 'select',
-          label: 'Version',
-          choices: [],
-        },
+        {name: 'version', type: 'select', label: 'Version', choices: []},
       ];
 
       const {rerender} = render(
@@ -1054,10 +1095,7 @@ describe('BackendJsonSubmitForm', () => {
       render(
         <BackendJsonSubmitForm
           fields={[
-            {
-              ...tableField,
-              default: [{id: '1', service: 'Existing', key: 'xyz'}],
-            },
+            {...tableField, default: [{id: '1', service: 'Existing', key: 'xyz'}]},
           ]}
           onSubmit={onSubmit}
           submitLabel="Save"
@@ -1137,75 +1175,7 @@ describe('BackendJsonSubmitForm', () => {
 
       await waitFor(() => {
         expect(onSubmit).toHaveBeenCalledWith(
-          expect.objectContaining({
-            status_mapping: {repo1: {on_resolve: 'closed'}},
-          })
-        );
-      });
-    });
-  });
-
-  describe('project_mapper adapter', () => {
-    const projectMapperField = {
-      name: 'project_mappings',
-      type: 'project_mapper' as const,
-      label: 'Project Mappings',
-      mappedDropdown: {
-        items: [
-          {value: 'proj-1', label: 'Vercel Project 1'},
-          {value: 'proj-2', label: 'Vercel Project 2'},
-        ] as const,
-        placeholder: 'Vercel project\u2026',
-      },
-      sentryProjects: [
-        {id: 101, slug: 'sentry-frontend', name: 'Sentry Frontend'},
-        {id: 102, slug: 'sentry-backend', name: 'Sentry Backend'},
-      ] as const,
-    };
-
-    it('renders with dropdowns and disabled add button', () => {
-      render(
-        <BackendJsonSubmitForm
-          fields={[projectMapperField]}
-          onSubmit={onSubmit}
-          submitLabel="Save"
-        />,
-        {organization: org}
-      );
-
-      expect(screen.getByText('Vercel project\u2026')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: /Add project/i})).toBeDisabled();
-    });
-
-    it('can add a mapping and submit', async () => {
-      render(
-        <BackendJsonSubmitForm
-          fields={[projectMapperField]}
-          onSubmit={onSubmit}
-          submitLabel="Save"
-        />,
-        {organization: org}
-      );
-
-      // Select external project
-      await userEvent.click(screen.getByText('Vercel project\u2026'));
-      await userEvent.click(await screen.findByText('Vercel Project 1'));
-
-      // Select Sentry project (placeholder uses unicode ellipsis, options use slug)
-      await userEvent.click(screen.getByText('Sentry project\u2026'));
-      await userEvent.click(await screen.findByText('sentry-frontend'));
-
-      // Add mapping
-      await userEvent.click(screen.getByRole('button', {name: /Add project/i}));
-
-      // Submit
-      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
-
-      await waitFor(() => {
-        expect(onSubmit).toHaveBeenCalledWith(
-          expect.objectContaining({
-            project_mappings: [[101, 'proj-1']],
-          })
+          expect.objectContaining({status_mapping: {repo1: {on_resolve: 'closed'}}})
         );
       });
     });

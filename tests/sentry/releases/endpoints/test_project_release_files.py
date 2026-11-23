@@ -9,6 +9,7 @@ from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseFile
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now
 
 
 class ReleaseFilesListTest(APITestCase):
@@ -60,7 +61,7 @@ class ReleaseFilesListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-        def create_release_file(**kwargs):
+        def create_release_file(**kwargs: object) -> ReleaseFile:
             name = uuid.uuid4().hex
             return ReleaseFile.objects.create(
                 organization_id=project.organization_id,
@@ -241,6 +242,30 @@ class ReleaseFilesListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["name"] == "~/index.js.map"
+
+    def test_listing_does_not_renew_date_accessed(self) -> None:
+        releasefile = self.create_release_file(
+            release_id=self.release.id,
+            file=self.create_file(name="application.js", type="release.file"),
+        )
+        date_accessed = before_now(days=60)
+        ReleaseFile.objects.filter(id=releasefile.id).update(date_accessed=date_accessed)
+
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-release-files",
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "version": self.release.version,
+            },
+        )
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert response.data[0]["id"] == str(releasefile.id)
+        releasefile.refresh_from_db()
+        assert releasefile.date_accessed == date_accessed
 
 
 class ReleaseFileCreateTest(APITestCase):
@@ -459,3 +484,39 @@ class ReleaseFileCreateTest(APITestCase):
         response = self.client.post(url, data, format="multipart")
 
         assert response.status_code == 409, response.content
+
+    def test_release_shared_with_project_of_another_team(self) -> None:
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+        team = self.create_team(organization=org)
+        project = self.create_project(teams=[team], organization=org)
+        other_project = self.create_project(
+            teams=[self.create_team(organization=org)], organization=org
+        )
+        release = self.create_release(project, additional_projects=[other_project])
+        user = self.create_user()
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-project-release-files",
+            kwargs={
+                "organization_id_or_slug": org.slug,
+                "project_id_or_slug": project.slug,
+                "version": release.version,
+            },
+        )
+        response = self.client.post(
+            url,
+            {
+                "name": "http://example.com/application.js",
+                "file": SimpleUploadedFile(
+                    "application.js", b"function() { }", content_type="application/javascript"
+                ),
+            },
+            format="multipart",
+        )
+
+        assert response.status_code == 403, response.content
+        assert release.count_artifacts() == 0

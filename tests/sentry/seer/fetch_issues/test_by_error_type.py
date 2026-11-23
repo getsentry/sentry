@@ -33,9 +33,9 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
         group.message = "Message to the error"
 
-        assert group is not None
         group.save()
 
         # Assert only 1 Group object in the database
@@ -108,6 +108,7 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         group_1 = event.group
+        assert group_1 is not None
         group_1.save()
 
         # Part of the queried results
@@ -125,6 +126,7 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             project_id=project_2.id,
         )
         group_2 = event.group
+        assert group_2 is not None
         group_2.save()
 
         # NOT part of the queried results
@@ -154,6 +156,7 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             project_id=project_3.id,
         )
         group_3 = event.group
+        assert group_3 is not None
         group_3.save()
 
         # Assert there's 3 Group objects in the database

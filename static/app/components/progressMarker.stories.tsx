@@ -1,8 +1,9 @@
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {ProgressMarker, type ProgressMarkerStep} from 'sentry/components/progressMarker';
 import * as Storybook from 'sentry/stories';
+
+import {ProgressMarker, type ProgressMarkerStep} from './progressMarker';
 
 const PROGRESS_MARKER_STEPS = [
   'empty',

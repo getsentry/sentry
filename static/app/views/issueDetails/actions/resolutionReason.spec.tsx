@@ -9,7 +9,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {GroupActivity, ResolvedStatusDetails} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
-import {ActivityResolutionReason} from 'sentry/views/issueDetails/actions/resolutionReason';
+
+import {ActivityResolutionReason} from './resolutionReason';
 
 const project = ProjectFixture();
 const actor = UserFixture({name: 'David Cramer'});
@@ -27,10 +28,7 @@ const activity = {
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
   id: 'resolved-in-release-1',
   dateCreated: '2020-01-01T00:00:00',
-  data: {
-    version: 'frontend@1.2.3',
-    commit: CommitFixture({pullRequest, repository}),
-  },
+  data: {version: 'frontend@1.2.3', commit: CommitFixture({pullRequest, repository})},
   user: actor,
 } satisfies GroupActivity;
 
@@ -71,12 +69,7 @@ describe('ResolutionReason', () => {
   it('shows an exact release without a pull request for activity', () => {
     const {container} = render(
       <ExampleResolutionReason
-        activities={[
-          {
-            ...activity,
-            data: {version: 'frontend@1.2.3'},
-          },
-        ]}
+        activities={[{...activity, data: {version: 'frontend@1.2.3'}}]}
         statusDetails={{actor, inRelease: release}}
       />,
       {organization}
@@ -89,12 +82,7 @@ describe('ResolutionReason', () => {
   it('shows the first release that will contain the resolution for activity', () => {
     const {container} = render(
       <ExampleResolutionReason
-        activities={[
-          {
-            ...activity,
-            data: {current_release_version: 'backend@1.0.0'},
-          },
-        ]}
+        activities={[{...activity, data: {current_release_version: 'backend@1.0.0'}}]}
         statusDetails={{actor, inNextRelease: true}}
       />,
       {organization}

@@ -3,9 +3,10 @@ import {IconLock} from '@sentry/icons/lock';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {Access} from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {Hovercard} from 'sentry/components/hovercard';
 import {PanelItem} from 'sentry/components/panels/panelItem';
@@ -29,10 +30,7 @@ type LockedFeatureProps = {
   className?: string;
 };
 
-type Props = {
-  active: boolean;
-  provider: AuthProvider;
-};
+type Props = {active: boolean; provider: AuthProvider};
 
 export function ProviderItem({provider, active}: Props) {
   const renderDisabledLock = (p: LockedFeatureProps) => (
@@ -108,11 +106,11 @@ export function ProviderItem({provider, active}: Props) {
             </div>
           </ProviderInfo>
 
-          <FeatureBadge>
+          <Container flex="1">
             {!hasFeature &&
               // renderDisabled is overridden by renderDisabled above
               (renderDisabled as typeof renderDisabledLock)({provider, features})}
-          </FeatureBadge>
+          </Container>
 
           <div>
             {active ? (
@@ -153,10 +151,6 @@ const ProviderName = styled('div')`
 const ProviderDescription = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const FeatureBadge = styled('div')`
-  flex: 1;
 `;
 
 const ActiveIndicator = styled('div')`

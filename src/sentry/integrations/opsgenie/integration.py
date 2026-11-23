@@ -192,7 +192,7 @@ BASE_URL_CHOICES = [
 ]
 
 
-class OpsgenieInstallationApiSerializer(CamelSnakeSerializer):
+class OpsgenieInstallationApiSerializer(CamelSnakeSerializer[dict[str, str]]):
     base_url = ChoiceField(choices=BASE_URL_CHOICES, required=True)
     provider = CharField(required=True)
     api_key = CharField(required=False, allow_blank=True, default="")

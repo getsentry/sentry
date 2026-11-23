@@ -6,7 +6,7 @@ import snakeCase from 'lodash/snakeCase';
 import moment from 'moment-timezone';
 
 import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {usePrompts} from 'sentry/actionCreators/prompts';
@@ -20,13 +20,15 @@ import {
   usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
 
-import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
+import {AddEventsCTA, type EventType} from 'getsentry/components/addEventsCTA';
+import {useBillingMembers} from 'getsentry/hooks/useBillingMembers';
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {
   OnDemandBudgetMode,
   type BillingMetricHistory,
   type Subscription,
 } from 'getsentry/types';
+import {getBestActionToIncreaseEventLimits, UsageAction} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getSingularCategoryName,
@@ -35,9 +37,7 @@ import {
 } from 'getsentry/utils/dataCategory';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-const COMMON_BUTTON_PROPS: Partial<ButtonProps> = {
-  size: 'xs',
-};
+const COMMON_BUTTON_PROPS: Partial<ButtonProps> = {size: 'xs'};
 
 /**
  * Categories that are ineligible for PAYG (pay-as-you-go/on-demand) billing.
@@ -83,6 +83,53 @@ function getPaygIneligibleBodyCopy(
   return tct(
     'Your organization has used your full quota of [categories] this billing period. Your quota will reset when the next billing period begins. For an unlimited quota, you can contact sales to discuss custom pricing available on the Enterprise plan:',
     {categories: paygIneligibleCategoryList}
+  );
+}
+
+const MAX_LISTED_RECIPIENTS = 3;
+
+function QuotaRequestRecipients() {
+  const {data: billingMembers = [], isSuccess} = useBillingMembers();
+
+  if (billingMembers.length === 0) {
+    // The request is emailed to exactly these members, so a loaded empty list
+    // means it would reach nobody.
+    return (
+      <Description>
+        {isSuccess
+          ? tct(
+              'Your organization has no active Owners or Billing members, so nobody will get this request. Contact us at [mailto:support@sentry.io] for help.',
+              {mailto: <a href="mailto:support@sentry.io" />}
+            )
+          : t(
+              "Your organization's Owners and Billing members will get an email asking them to increase your quota."
+            )}
+      </Description>
+    );
+  }
+
+  const listedMembers = billingMembers.slice(0, MAX_LISTED_RECIPIENTS);
+  const unlistedCount = billingMembers.length - listedMembers.length;
+
+  return (
+    <Description>
+      {tct(
+        "Your organization's Owners and Billing members ([recipients]) will get an email asking them to increase your quota.",
+        {
+          recipients: (
+            <Fragment>
+              {listedMembers.map((member, i) => (
+                <Fragment key={member.id}>
+                  {i > 0 && ', '}
+                  <a href={`mailto:${member.email}`}>{member.email}</a>
+                </Fragment>
+              ))}
+              {unlistedCount > 0 && `, ${t('and %s more', unlistedCount)}`}
+            </Fragment>
+          ),
+        }
+      )}
+    </Description>
   );
 }
 
@@ -132,6 +179,10 @@ function QuotaExceededContent({
   });
 
   const allEventTypes = [...eventTypes, ...paygIneligibleEventTypes];
+  // Passed to AddEventsCTA too, so the recipient line always matches the button.
+  const action =
+    getBestActionToIncreaseEventLimits(organization, subscription) || undefined;
+  const isQuotaRequest = action === UsageAction.REQUEST_ADD_EVENTS;
 
   const usageCategoryList = listDisplayNames({
     plan: subscription.planDetails,
@@ -147,7 +198,7 @@ function QuotaExceededContent({
   // If ONLY PAYG-ineligible categories are exceeded, show Contact Sales content
   if (paygIneligibleCategories.length > 0 && otherCategories.length === 0) {
     return (
-      <Container>
+      <Container background="primary">
         <Header>
           <HeaderTitle>{t('Billing Status')}</HeaderTitle>
         </Header>
@@ -191,7 +242,7 @@ function QuotaExceededContent({
   // If BOTH PAYG-ineligible and other categories are exceeded, show both sections
   if (paygIneligibleCategories.length > 0 && otherCategories.length > 0) {
     return (
-      <Container>
+      <Container background="primary">
         <Header>
           <HeaderTitle>{t('Billing Status')}</HeaderTitle>
         </Header>
@@ -249,8 +300,10 @@ function QuotaExceededContent({
               )}
             </Description>
           )}
+          {isQuotaRequest && <QuotaRequestRecipients />}
           <Flex justify="between" align="center">
             <AddEventsCTA
+              action={action}
               organization={organization}
               subscription={subscription}
               buttonProps={COMMON_BUTTON_PROPS}
@@ -283,7 +336,7 @@ function QuotaExceededContent({
 
   // Standard content for PAYG-eligible categories only
   return (
-    <Container>
+    <Container background="primary">
       <Header>
         <HeaderTitle>{t('Billing Status')}</HeaderTitle>
       </Header>
@@ -322,8 +375,10 @@ function QuotaExceededContent({
             )}
           </Description>
         )}
+        {isQuotaRequest && <QuotaRequestRecipients />}
         <Flex justify="between" align="center">
           <AddEventsCTA
+            action={action}
             organization={organization}
             subscription={subscription}
             buttonProps={COMMON_BUTTON_PROPS}
@@ -339,11 +394,7 @@ function QuotaExceededContent({
             <Button
               aria-label={t('Dismiss alert for the rest of the billing cycle')}
               onClick={() =>
-                onClick({
-                  eventTypes,
-                  categories: exceededCategories,
-                  isManual: true,
-                })
+                onClick({eventTypes, categories: exceededCategories, isManual: true})
               }
               {...COMMON_BUTTON_PROPS}
             >
@@ -423,9 +474,7 @@ export function PrimaryNavigationQuotaExceeded({
       -1 *
       getDaysSinceDate(subscription?.onDemandPeriodEnd ?? moment().utc().toISOString()),
     isDismissed: isSnoozedForCurrentPeriod,
-    options: {
-      enabled: promptsToCheck.length > 0,
-    },
+    options: {enabled: promptsToCheck.length > 0},
   });
 
   const {
@@ -524,10 +573,7 @@ export function PrimaryNavigationQuotaExceeded({
         analyticsKey="billingStatus"
         label={t('Billing Status')}
         indicator="warning"
-        buttonProps={{
-          ...overlayTriggerProps,
-          icon: <IconWarning />,
-        }}
+        buttonProps={{...overlayTriggerProps, icon: <IconWarning />}}
       />
       {isOpen && (
         <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
@@ -543,10 +589,6 @@ export function PrimaryNavigationQuotaExceeded({
     </Fragment>
   );
 }
-
-const Container = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
-`;
 
 const Header = styled('div')`
   background: ${p => p.theme.tokens.background.primary};

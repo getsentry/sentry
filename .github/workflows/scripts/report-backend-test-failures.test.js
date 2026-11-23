@@ -59,11 +59,7 @@ const SETUP_FAILURE = {
   setup: {
     status: 'failed',
     longrepr: 'fixture error\nKeyError: "missing"',
-    crash: {
-      path: '/src/conftest.py',
-      lineno: 10,
-      message: 'KeyError: "missing"',
-    },
+    crash: {path: '/src/conftest.py', lineno: 10, message: 'KeyError: "missing"'},
   },
 };
 
@@ -87,11 +83,7 @@ function writePytestJson(filename, tests) {
 
 function mockCore() {
   const logs = {info: [], warning: []};
-  return {
-    info: msg => logs.info.push(msg),
-    warning: msg => logs.warning.push(msg),
-    logs,
-  };
+  return {info: msg => logs.info.push(msg), warning: msg => logs.warning.push(msg), logs};
 }
 
 function mockGithub({existingComments = [], jobs = []} = {}) {
@@ -127,9 +119,7 @@ function mockGithub({existingComments = [], jobs = []} = {}) {
           calls.push({method: 'deleteComment', params});
         },
       },
-      actions: {
-        listJobsForWorkflowRun,
-      },
+      actions: {listJobsForWorkflowRun},
     },
   };
 }
@@ -237,6 +227,34 @@ describe('parseFailures', () => {
     );
 
     assert.equal(parseFailures([file1, file2], mockCore()).length, 2);
+  });
+
+  it('uses failed subtests instead of the parent summary', () => {
+    const file = createArtifactFile(
+      'pytest-results-backend-111-0',
+      'pytest.json',
+      makePytestJson([
+        {
+          nodeid: 'tests/a.py::test_a',
+          outcome: 'failed',
+          call: {outcome: 'failed', longrepr: 'contains 1 failed subtest'},
+          subtests: [
+            {outcome: 'passed', context: {msg: null, kwargs: {n: '1'}}},
+            {
+              outcome: 'failed',
+              longrepr: 'AssertionError: boom',
+              context: {msg: 'm', kwargs: {f: '<function f>', n: '2'}},
+            },
+          ],
+        },
+      ])
+    );
+
+    const [failure] = parseFailures([file], mockCore());
+    assert.equal(
+      failure.longrepr,
+      'SUBFAILED [m] (f=<function f>, n=2)\nAssertionError: boom'
+    );
   });
 });
 
@@ -392,9 +410,7 @@ describe('reportShard (integration)', () => {
     process.env.PYTEST_JSON_PATH = jsonPath;
     delete process.env.PYTEST_ARTIFACT_DIR;
 
-    const github = mockGithub({
-      existingComments: [{id: 999, body: existingBody}],
-    });
+    const github = mockGithub({existingComments: [{id: 999, body: existingBody}]});
     await reportShard({github, context: mockContext(), core: mockCore()});
 
     const update = github.calls.find(c => c.method === 'updateComment');

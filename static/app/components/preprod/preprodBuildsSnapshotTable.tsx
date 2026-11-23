@@ -1,12 +1,11 @@
 import type {ReactNode} from 'react';
 import {IconCommit} from '@sentry/icons/commit';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
-import {SnapshotStatusBadge} from 'sentry/components/preprod/snapshotStatusBadge';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -21,6 +20,7 @@ import {
   buildsTableColumns,
   FullRowLink,
 } from './preprodBuildsTableStyles';
+import {SnapshotStatusBadge} from './snapshotStatusBadge';
 
 interface PreprodBuildsSnapshotTableProps {
   builds: BuildDetailsApiResponse[];
@@ -86,10 +86,7 @@ export function PreprodBuildsSnapshotTable({
   showProjectColumn,
 }: PreprodBuildsSnapshotTableProps) {
   const rows = builds.map(build => {
-    const linkUrl = getSnapshotPath({
-      organizationSlug,
-      snapshotId: build.id,
-    });
+    const linkUrl = getSnapshotPath({organizationSlug, snapshotId: build.id});
     const info = build.snapshot_comparison_info;
     const appId = build.app_info?.app_id;
     return (

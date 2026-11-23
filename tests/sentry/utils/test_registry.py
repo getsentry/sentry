@@ -8,13 +8,13 @@ from sentry.utils.registry import AlreadyRegisteredError, NoRegistrationExistsEr
 
 class RegistryTest(TestCase):
     def test(self) -> None:
-        test_registry = Registry[Callable]()
+        test_registry = Registry[Callable[[], None]]()
 
         @test_registry.register("something")
-        def registered_func():
+        def registered_func() -> None:
             raise NotImplementedError
 
-        def unregistered_func():
+        def unregistered_func() -> None:
             raise NotImplementedError
 
         assert test_registry.get("something") == registered_func
@@ -39,7 +39,7 @@ class RegistryTest(TestCase):
 
         @test_registry.register("something")
         @test_registry.register("something 2")
-        def registered_func():
+        def registered_func() -> None:
             raise NotImplementedError
 
         assert test_registry.get("something") == registered_func

@@ -1,4 +1,4 @@
-import {isValidUrl} from 'sentry/utils/string/isValidUrl';
+import {isValidUrl} from './isValidUrl';
 
 describe('isValidUrl', () => {
   it.each([

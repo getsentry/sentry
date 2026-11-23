@@ -26,17 +26,13 @@ type Props = AdminConfirmRenderProps & {
   subscription: Subscription;
 };
 
-type State = {
-  freeEvents?: number;
-};
+type State = {freeEvents?: number};
 
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
 export class AddGiftEventsAction extends Component<Props, State> {
-  state: State = {
-    freeEvents: undefined,
-  };
+  state: State = {freeEvents: undefined};
 
   componentDidMount() {
     this.props.setConfirmCallback(this.handleConfirm);
@@ -128,9 +124,6 @@ export class AddGiftEventsAction extends Component<Props, State> {
       }
       if (dataCategory === DataCategory.SIZE_ANALYSIS) {
         postFix = total === '1' ? ' build' : ' builds';
-      }
-      if (dataCategory === DataCategory.INSTALLABLE_BUILD) {
-        postFix = total === '1' ? ' install' : ' installs';
       }
       return `Total: ${total}${postFix}`;
     }

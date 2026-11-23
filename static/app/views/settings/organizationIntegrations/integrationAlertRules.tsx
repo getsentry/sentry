@@ -11,7 +11,7 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 
 export function IntegrationAlertRules() {
   const organization = useOrganization();
@@ -29,10 +29,10 @@ export function IntegrationAlertRules() {
           <ProjectItem key={project.slug}>
             <ProjectBadge project={project} avatarSize={16} />
             <LinkButton
-              to={makeAlertsPathname({
-                path: `/${project.slug}/wizard/`,
-                organization,
-              })}
+              to={{
+                pathname: makeAutomationCreatePathname(organization.slug),
+                query: {project: project.id},
+              }}
               size="xs"
             >
               {t('Add Alert Rule')}

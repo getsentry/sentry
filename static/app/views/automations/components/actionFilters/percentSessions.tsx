@@ -6,23 +6,14 @@ import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge
 import {t, tct} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import {
-  CountBranch,
-  PercentBranch,
-} from 'sentry/views/automations/components/actionFilters/comparisonBranches';
-import {
-  COMPARISON_INTERVAL_CHOICES,
-  PERCENT_INTERVAL_CHOICES,
-} from 'sentry/views/automations/components/actionFilters/constants';
-import {
-  SubfilterDetailsList,
-  SubfiltersList,
-  validateSubfilters,
-} from 'sentry/views/automations/components/actionFilters/subfiltersList';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import type {DataConditionNodeComponentProps} from 'sentry/views/automations/components/dataConditionNodeContext';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+
+import {CountBranch, PercentBranch} from './comparisonBranches';
+import {COMPARISON_INTERVAL_CHOICES, PERCENT_INTERVAL_CHOICES} from './constants';
+import {SubfilterDetailsList, SubfiltersList, validateSubfilters} from './subfiltersList';
 
 export function PercentSessionsCountDetails({condition}: {condition: DataCondition}) {
   const hasSubfilters = condition.comparison.filters?.length > 0;
@@ -107,10 +98,7 @@ function ComparisonTypeField({getDefaultComparison}: DataConditionNodeComponentP
       aria-label={t('Comparison type')}
       value={condition.type}
       options={[
-        {
-          label: 'more than...',
-          value: DataConditionType.PERCENT_SESSIONS_COUNT,
-        },
+        {label: 'more than...', value: DataConditionType.PERCENT_SESSIONS_COUNT},
         {
           label: 'relatively higher than...',
           value: DataConditionType.PERCENT_SESSIONS_PERCENT,
@@ -119,10 +107,7 @@ function ComparisonTypeField({getDefaultComparison}: DataConditionNodeComponentP
       onChange={(option: SelectValue<DataConditionType>) => {
         onUpdate({
           type: option.value,
-          comparison: {
-            ...condition.comparison,
-            ...getDefaultComparison(option.value),
-          },
+          comparison: {...condition.comparison, ...getDefaultComparison(option.value)},
         });
         removeError(condition.id);
       }}

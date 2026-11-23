@@ -5,6 +5,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
+import {ScrubbedText} from 'sentry/views/insights/pages/agents/components/scrubbedText';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
 interface TranscriptSpanRowProps {
@@ -57,12 +58,10 @@ export function TranscriptSpanRow({
       cursor="pointer"
       css={rowCss}
       data-selected={isSelected}
+      data-node-id={node?.id}
       style={
         isSelected
-          ? {
-              outline: `2px solid ${theme.tokens.focus.default}`,
-              outlineOffset: '-2px',
-            }
+          ? {outline: `2px solid ${theme.tokens.focus.default}`, outlineOffset: '-2px'}
           : undefined
       }
       onClick={(e: React.MouseEvent) => {
@@ -83,7 +82,7 @@ export function TranscriptSpanRow({
           {tag}
           {preview ? (
             <Text size="xs" monospace variant="muted" ellipsis>
-              {preview}
+              <ScrubbedText>{preview}</ScrubbedText>
             </Text>
           ) : null}
         </Flex>

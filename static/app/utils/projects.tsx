@@ -4,13 +4,14 @@ import partition from 'lodash/partition';
 import type {Client} from 'sentry/api';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {AvatarProject, Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
-import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
-import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
-import {useProjects} from 'sentry/utils/useProjects';
+
+import {getApiUrl} from './api/getApiUrl';
+import type {RequestError} from './requestError/requestError';
+import {defined} from './defined';
+import {getDaysSinceDate} from './getDaysSinceDate';
+import {parseLinkHeader} from './parseLinkHeader';
+import {useApi} from './useApi';
+import {useProjects} from './useProjects';
 
 type ProjectPlaceholder = AvatarProject;
 
@@ -210,9 +211,7 @@ export function Projects({
     let fetchError = null;
 
     try {
-      const {results} = await fetchProjects(api, orgId, {
-        slugs: Array.from(queue),
-      });
+      const {results} = await fetchProjects(api, orgId, {slugs: Array.from(queue)});
       fetched = results;
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
@@ -360,10 +359,7 @@ export function Projects({
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
 
-      setState({
-        fetching: false,
-        fetchError: err as RequestError,
-      });
+      setState({fetching: false, fetchError: err as RequestError});
     }
   };
 
@@ -442,10 +438,7 @@ async function fetchProjects(
     const loading = ProjectsStore.isLoading();
     // If the projects store is loaded then return all projects from the store
     if (!loading) {
-      return {
-        results: projects,
-        hasMore: false,
-      };
+      return {results: projects, hasMore: false};
     }
     // Otherwise mark the query to fetch all projects from the API
     query.all_projects = 1;
@@ -457,10 +450,7 @@ async function fetchProjects(
     getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
       path: {organizationIdOrSlug: orgId},
     }),
-    {
-      includeAllArgs: true,
-      query,
-    }
+    {includeAllArgs: true, query}
   );
 
   const pageLinks = resp?.getResponseHeader('Link');
@@ -477,11 +467,7 @@ async function fetchProjects(
     ProjectsStore.loadInitialData(data);
   }
 
-  return {
-    results: data,
-    hasMore,
-    nextCursor,
-  };
+  return {results: data, hasMore, nextCursor};
 }
 
 interface ProjectAnalyticsData {

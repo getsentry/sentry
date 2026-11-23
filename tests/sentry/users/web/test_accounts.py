@@ -45,15 +45,6 @@ class TestAccounts(TestCase):
         self.assertTemplateUsed("sentry/base-react.html")
         assert response["Referrer-Policy"] == "strict-origin-when-cross-origin"
 
-    def test_recovery_confirm_cookie_disables_react(self) -> None:
-        self.client.cookies["sentry_react_auth"] = "0"
-        password_hash = LostPasswordHash.for_user(self.user)
-
-        response = self.client.get(self.password_recover_path(self.user.id, password_hash.hash))
-
-        assert response.status_code == 200
-        self.assertTemplateUsed("sentry/account/recover/confirm.html")
-
     def test_relocation_confirm_renders_legacy(self) -> None:
         password_hash = LostPasswordHash.for_user(self.user)
 

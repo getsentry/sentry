@@ -1,22 +1,28 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
-from typing import NoReturn, TypedDict
+from collections.abc import Iterable, Sequence
+from typing import Annotated, NoReturn, NotRequired, TypedDict
 
 from django.http import HttpRequest
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, ParseError
 from rest_framework.negotiation import BaseContentNegotiation
+from rest_framework.parsers import BaseParser
 from rest_framework.renderers import BaseRenderer
 from rest_framework.request import Request
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from sentry_sdk import traces
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.auth.principal import is_acting_user
 from sentry.auth.services.auth import auth_service
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
+from sentry.sentry_apps.services.app import app_service
 
 from .constants import SCIM_400_INVALID_FILTER, SCIM_API_ERROR, SCIM_API_LIST
 
@@ -25,7 +31,7 @@ ACCEPTED_FILTERED_KEYS = ["userName", "value", "displayName"]
 
 
 class SCIMApiError(APIException):
-    def __init__(self, detail, status_code=400, scim_type=None):
+    def __init__(self, detail: str, status_code: int = 400, scim_type: str | None = None) -> None:
         span = traces.get_current_span()
         if span is not None:
             span.set_attribute("http.status_code", status_code)
@@ -47,13 +53,14 @@ class SCIMFilterError(ValueError):
 class SCIMClientNegotiation(BaseContentNegotiation):
     # SCIM uses the content type "application/json+scim"
     # which is just json for our purposes.
-    def select_parser(self, request: Request, parsers):
+    def select_parser(self, request: Request, parsers: Iterable[BaseParser]) -> BaseParser | None:
         """
         Select the first parser in the `.parser_classes` list.
         """
         for parser in parsers:
             if parser.media_type in SCIM_CONTENT_TYPES:
                 return parser
+        return None
 
     def select_renderer(
         self, request: Request, renderers: Iterable[BaseRenderer], format_suffix: str | None = None
@@ -97,19 +104,25 @@ class SCIMQueryParamSerializer(serializers.Serializer):
         help_text="Fields that should be left off of return values. Right now the only supported field for this query is members.",
     )
 
-    def validate_filter(self, filter):
+    def validate_filter(self, filter: str) -> str | int | None:
         try:
-            filter = parse_filter_conditions(filter)
+            return parse_filter_conditions(filter)
         except SCIMFilterError:
             raise serializers.ValidationError("invalid filter")
-        return filter
+
+
+class SCIMQueryParams(TypedDict):
+    start_index: int
+    count: int
+    filter: NotRequired[str | None]
+    excluded_attributes: NotRequired[list[str]]
 
 
 class OrganizationSCIMPermission(OrganizationPermission):
     def has_object_permission(
         self,
         request: Request,
-        view,
+        view: APIView,
         organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> bool:
         result = super().has_object_permission(request, view, organization)
@@ -119,7 +132,16 @@ class OrganizationSCIMPermission(OrganizationPermission):
         if isinstance(organization, RpcUserOrganizationContext):
             organization = organization.organization
         provider = auth_service.get_auth_provider(organization_id=organization.id)
-        return provider is not None and provider.flags.scim_enabled
+        if provider is None or not provider.flags.scim_enabled:
+            return False
+        # Only the identity provider may use SCIM. Sessions and other org credentials would let
+        # members change roles and IdP-managed teams outside the IdP and the regular role checks.
+        if not request.user.is_sentry_app:
+            return False
+        scim_proxy_user_id = app_service.get_proxy_user_id_for_provider(
+            organization_id=organization.id, provider=f"{provider.provider}_scim"
+        )
+        return is_acting_user(request.user, scim_proxy_user_id)
 
 
 class OrganizationSCIMMemberPermission(OrganizationSCIMPermission):
@@ -142,27 +164,37 @@ class OrganizationSCIMTeamPermission(OrganizationSCIMPermission):
 
 
 class SCIMListBaseResponse(TypedDict):
-    schemas: list[str]
-    totalResults: int
-    startIndex: int
-    itemsPerPage: int
+    schemas: Annotated[
+        list[str],
+        ApiDescription("SCIM schema URIs of the response, always the ListResponse message schema"),
+    ]
+    totalResults: Annotated[int, ApiDescription("Total number of resources that match the query")]
+    startIndex: Annotated[int, ApiDescription("1-based index of the first resource in this page")]
+    itemsPerPage: Annotated[int, ApiDescription("Number of resources in this page")]
 
 
 class SCIMMetaResponse(TypedDict):
-    resourceType: str
-    location: str
+    resourceType: Annotated[
+        str, ApiDescription("SCIM resource type of the resource, such as Schema or ResourceType")
+    ]
+    location: Annotated[str, ApiDescription("Absolute URL of the resource")]
 
 
 @extend_schema(tags=["SCIM"])
 class SCIMEndpoint(OrganizationEndpoint):
     owner = ApiOwner.FOUNDATIONS
+    requires_user = True
     content_negotiation_class = SCIMClientNegotiation
     cursor_name = "startIndex"
 
-    def add_cursor_headers(self, request: Request, response, cursor_result):
+    def add_cursor_headers(
+        self, request: Request, response: Response, cursor_result: object
+    ) -> None:
         pass
 
-    def list_api_format(self, results, total_results, start_index):
+    def list_api_format(
+        self, results: Sequence[object], total_results: int, start_index: int
+    ) -> dict[str, object]:
         return {
             "schemas": [SCIM_API_LIST],
             "totalResults": total_results,  # TODO: audit perf of queryset.count()
@@ -171,7 +203,7 @@ class SCIMEndpoint(OrganizationEndpoint):
             "Resources": results,
         }
 
-    def get_query_parameters(self, request: Request):
+    def get_query_parameters(self, request: Request) -> SCIMQueryParams:
         serializer = SCIMQueryParamSerializer(data=request.GET)
         if not serializer.is_valid():
             if "filter" in serializer.errors:
@@ -203,11 +235,13 @@ class SCIMDiscoveryEndpoint(SCIMEndpoint):
                 detail="Filtering is not supported on this endpoint.", status_code=403
             )
 
-    def http_method_not_allowed(self, request: HttpRequest, *args, **kwargs) -> NoReturn:
+    def http_method_not_allowed(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> NoReturn:
         raise SCIMApiError(detail=f'Method "{request.method}" not allowed.', status_code=405)
 
 
-def parse_filter_conditions(raw_filters):
+def parse_filter_conditions(raw_filters: str | None) -> str | int | None:
     """
     this function parses a scim filter, see:
     https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.2.2
@@ -252,6 +286,6 @@ def parse_filter_conditions(raw_filters):
     if key not in ACCEPTED_FILTERED_KEYS:
         raise SCIMFilterError
     if key == "value":
-        value = int(value)
+        return int(value)
 
     return value

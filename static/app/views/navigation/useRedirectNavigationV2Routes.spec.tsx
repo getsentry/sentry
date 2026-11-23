@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useRedirectNavigationV2Routes} from 'sentry/views/navigation/useRedirectNavigationV2Routes';
+import {useRedirectNavigationV2Routes} from './useRedirectNavigationV2Routes';
 
 const mockUsingCustomerDomain = jest.fn();
 
@@ -25,17 +25,12 @@ describe('useRedirectNavigationV2Routes', () => {
     newPathPrefix: `/${string}`;
     oldPathPrefix: `/${string}`;
   }) {
-    const redirectPath = useRedirectNavigationV2Routes({
-      oldPathPrefix,
-      newPathPrefix,
-    });
+    const redirectPath = useRedirectNavigationV2Routes({oldPathPrefix, newPathPrefix});
 
     return <div>{redirectPath ?? 'no redirect'}</div>;
   }
 
-  const organization = OrganizationFixture({
-    slug: 'org-slug',
-  });
+  const organization = OrganizationFixture({slug: 'org-slug'});
 
   describe('customer domain', () => {
     beforeEach(() => {
@@ -49,10 +44,7 @@ describe('useRedirectNavigationV2Routes', () => {
           organization,
 
           initialRouterConfig: {
-            location: {
-              pathname: '/projects/123/',
-              query: {foo: 'bar'},
-            },
+            location: {pathname: '/projects/123/', query: {foo: 'bar'}},
           },
         }
       );
@@ -66,11 +58,7 @@ describe('useRedirectNavigationV2Routes', () => {
         {
           organization,
 
-          initialRouterConfig: {
-            location: {
-              pathname: '/other-projects/123/',
-            },
-          },
+          initialRouterConfig: {location: {pathname: '/other-projects/123/'}},
         }
       );
 
@@ -124,11 +112,7 @@ describe('useRedirectNavigationV2Routes', () => {
     it('handles settings routes', () => {
       render(<TestComponent oldPathPrefix="/stats/" newPathPrefix="/settings/stats/" />, {
         organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/stats/',
-          },
-        },
+        initialRouterConfig: {location: {pathname: '/organizations/org-slug/stats/'}},
       });
 
       expect(screen.getByText('/settings/org-slug/stats/')).toBeInTheDocument();

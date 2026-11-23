@@ -1,5 +1,8 @@
+from django.test import Client
+
 from sentry.models.dashboard import Dashboard
 from sentry.models.organization import Organization
+from sentry.testutils.pytest.selenium import Browser
 
 from .base import BasePage
 
@@ -11,57 +14,64 @@ WIDGET_TITLE_FIELD = 'input[aria-label="Widget title"]'
 
 
 class DashboardDetailPage(BasePage):
-    def __init__(self, browser, client, *, organization: Organization, dashboard: Dashboard):
+    def __init__(
+        self,
+        browser: Browser,
+        client: Client,
+        *,
+        organization: Organization,
+        dashboard: Dashboard,
+    ) -> None:
         super().__init__(browser)
         self.client = client
         self.organization = organization
         self.dashboard = dashboard
 
-    def wait_until_loaded(self):
+    def wait_until_loaded(self) -> None:
         self.browser.wait_until_not('[data-test-id="events-request-loading"]')
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
         self.browser.wait_until_not(".loading")
 
-    def visit_default_overview(self):
+    def visit_default_overview(self) -> None:
         self.browser.get(f"/organizations/{self.organization.slug}/dashboard/default-overview/")
         self.wait_until_loaded()
         self.browser.driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
         self.wait_until_loaded()
 
-    def visit_create_dashboard(self):
+    def visit_create_dashboard(self) -> None:
         self.browser.get(f"/organizations/{self.organization.slug}/dashboards/new/")
         self.wait_until_loaded()
 
-    def visit_dashboard_detail(self):
+    def visit_dashboard_detail(self) -> None:
         self.browser.get(f"/organizations/{self.organization.slug}/dashboard/{self.dashboard.id}/")
         self.wait_until_loaded()
 
-    def enter_edit_state(self):
+    def enter_edit_state(self) -> None:
         button = self.browser.element('[data-test-id="dashboard-edit"]')
         self.browser.wait_until_clickable('[data-test-id="dashboard-edit"]')
         button.click()
         self.wait_until_loaded()
 
-    def click_dashboard_add_widget_button(self):
+    def click_dashboard_add_widget_button(self) -> None:
         button = self.browser.element('[data-test-id="widget-add"]')
         # HACK: Use JavaScript to execute click to avoid click intercepted issues
         self.browser.driver.execute_script("arguments[0].click()", button)
         self.wait_until_loaded()
 
-    def click_dashboard_header_add_widget_button(self):
+    def click_dashboard_header_add_widget_button(self) -> None:
         button = self.browser.element('[data-test-id="add-widget-library"]')
         self.browser.wait_until_clickable('[data-test-id="add-widget-library"]')
         button.click()
         self.wait_until_loaded()
 
-    def click_cancel_button(self):
+    def click_cancel_button(self) -> None:
         button = self.browser.element('[data-test-id="dashboard-cancel"]')
         self.browser.wait_until_clickable('[data-test-id="dashboard-cancel"]')
         button.click()
         self.wait_until_loaded()
 
-    def add_widget_through_dashboard(self, widget_title):
+    def add_widget_through_dashboard(self, widget_title: str) -> None:
         self.click_dashboard_add_widget_button()
         title_input = self.browser.element(WIDGET_TITLE_FIELD)
         title_input.clear()
@@ -70,7 +80,7 @@ class DashboardDetailPage(BasePage):
         button.click()
         self.wait_until_loaded()
 
-    def save_dashboard(self):
+    def save_dashboard(self) -> None:
         button = self.browser.element('[data-test-id="dashboard-commit"]')
         self.browser.wait_until_clickable('[data-test-id="dashboard-commit"]')
         button.click()

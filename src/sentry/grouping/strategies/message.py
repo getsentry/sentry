@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 @produces_variants(["default"])
 def message_v1(
     interface: Message, event: BaseEvent, context: GroupingContext, **kwargs: Any
-) -> ComponentsByVariant:
+) -> ComponentsByVariant[Any]:
     variant_name = context["variant_name"]
 
     # This is true for all but our test config

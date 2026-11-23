@@ -12,14 +12,11 @@ import {
   getInitialColumnDepths,
 } from './layoutUtils';
 import {DEFAULT_TABLE_LIMIT} from './types';
-import type {DashboardDetails, Widget, WidgetLayout} from './types';
+import type {DashboardDetails, Widget, WidgetLayout, WidgetQuery} from './types';
 
 const DASHBOARD_ARTIFACT_KEY = 'dashboard';
 
-type DashboardArtifact = {
-  title: string;
-  widgets: WidgetArtifact[];
-};
+type DashboardArtifact = {title: string; widgets: WidgetArtifact[]};
 
 type WidgetArtifact = {
   display_type: Widget['displayType'];
@@ -64,13 +61,22 @@ export function applySeerWidgetDefaults(widgets: Widget[]): Widget[] {
   return widgets.map(widget => {
     const layout = applyLayoutDefaults(widget.layout, widget.displayType);
     const limit = applyLimitDefaults(widget.limit);
+    const queries = (widget.queries ?? []).map(applyQueryDefaults);
 
-    return {
-      ...widget,
-      layout,
-      limit,
-    };
+    return {...widget, layout, limit, queries};
   });
+}
+
+function applyQueryDefaults(query: WidgetQuery): WidgetQuery {
+  return {
+    ...query,
+    aggregates: query.aggregates ?? [],
+    columns: query.columns ?? [],
+    fields: query.fields ?? [...(query.columns ?? []), ...(query.aggregates ?? [])],
+    conditions: query.conditions ?? '',
+    name: query.name ?? '',
+    orderby: query.orderby ?? '',
+  };
 }
 
 function applyLayoutDefaults(
@@ -79,18 +85,9 @@ function applyLayoutDefaults(
 ): WidgetLayout {
   const defaultMinH = getDefaultWidgetHeight(displayType);
   if (!layout) {
-    return {
-      w: DEFAULT_WIDGET_WIDTH,
-      h: defaultMinH,
-      x: 0,
-      y: 0,
-      minH: defaultMinH,
-    };
+    return {w: DEFAULT_WIDGET_WIDTH, h: defaultMinH, x: 0, y: 0, minH: defaultMinH};
   }
-  return {
-    ...layout,
-    minH: layout.minH ?? defaultMinH,
-  };
+  return {...layout, minH: layout.minH ?? defaultMinH};
 }
 
 function applyLimitDefaults(limit: number | null | undefined): number {
@@ -105,10 +102,7 @@ function applyLimitDefaults(limit: number | null | undefined): number {
  */
 export function extractDashboardFromSession(
   session: NonNullable<SeerExplorerResponse['session']>
-): {
-  title: string;
-  widgets: Widget[];
-} | null {
+): {title: string; widgets: Widget[]} | null {
   for (const block of (session.blocks ?? []).toReversed()) {
     const artifact = block.artifacts?.find(
       a => a.key === DASHBOARD_ARTIFACT_KEY && a.data
@@ -185,8 +179,6 @@ export async function validateDashboardAndRecordMetrics({
         source,
       },
     });
-    Sentry.captureException(error, {
-      tags: {seer_run_id: seerRunId},
-    });
+    Sentry.captureException(error, {tags: {seer_run_id: seerRunId}});
   }
 }

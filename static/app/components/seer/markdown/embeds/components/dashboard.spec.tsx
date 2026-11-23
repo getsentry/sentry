@@ -1,5 +1,5 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
-import {EventsStatsFixture} from 'sentry-fixture/events';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
@@ -27,10 +27,7 @@ describe('dashboard embed', () => {
     const {router} = renderEmbed({
       name: 'dashboard',
       level: 'inline',
-      data: {
-        id: '123',
-        title: 'Application health',
-      },
+      data: {id: '123', title: 'Application health'},
     });
 
     await userEvent.click(screen.getByRole('link', {name: 'Application health'}));
@@ -76,18 +73,15 @@ describe('dashboard embed', () => {
       }),
     });
     const widgetDataRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: EventsStatsFixture(),
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
 
-    const {unmount} = renderEmbed({
-      name: 'dashboard',
-      data: {id: '123'},
-    });
+    const {unmount} = renderEmbed({name: 'dashboard', data: {id: '123'}});
 
     // The block's name is the collapse toggle; the link out is a separate target.
     expect(
@@ -110,7 +104,7 @@ describe('dashboard embed', () => {
     expect(dashboardRequest).toHaveBeenCalled();
     await waitFor(() =>
       expect(widgetDataRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
             environment: ['production'],
@@ -153,8 +147,8 @@ describe('dashboard embed', () => {
       body: DashboardFixture([widget], {id: '123', title: 'Application health'}),
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: EventsStatsFixture(),
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',

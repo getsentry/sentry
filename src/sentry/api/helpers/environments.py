@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Callable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
+from rest_framework import serializers
 from rest_framework.request import Request
 
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -13,11 +14,32 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.organizations.services.organization import RpcOrganization
 
-environment_visibility_filter_options = {
+if TYPE_CHECKING:
+    from django.db.models import QuerySet
+
+    from sentry.models.environment import EnvironmentProject
+
+environment_visibility_filter_options: dict[
+    str, Callable[[QuerySet[EnvironmentProject]], QuerySet[EnvironmentProject]]
+] = {
     "all": lambda queryset: queryset,
     "hidden": lambda queryset: queryset.filter(is_hidden=True),
     "visible": lambda queryset: queryset.exclude(is_hidden=True),
 }
+
+
+class EnvironmentVisibilityValidatedData(TypedDict):
+    visibility: str
+
+
+class EnvironmentVisibilitySerializer(
+    serializers.Serializer[object, EnvironmentVisibilityValidatedData]
+):
+    visibility = serializers.ChoiceField(
+        choices=sorted(environment_visibility_filter_options),
+        default="visible",
+        help_text="The visibility of the environments to filter by. Defaults to `visible`.",
+    )
 
 
 def get_environment(request: Request, organization_id: int) -> Environment | None:

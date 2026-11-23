@@ -12,6 +12,7 @@ from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import BaseTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 control_address = "http://controlserver"
@@ -58,6 +59,7 @@ class BitbucketApiClientTest(TestCase, BaseTestCase):
             )
 
     @freeze_time("2023-01-01 01:01:01")
+    @override_options({"system.url-prefix": "https://sentry.example.com:9000/sentry/"})
     def test_finalize_request(self) -> None:
         method = "GET"
         username = self.integration.metadata["uuid"]
@@ -78,10 +80,13 @@ class BitbucketApiClientTest(TestCase, BaseTestCase):
             key=self.integration.metadata["shared_secret"],
             algorithms=["HS256"],
         )
+        descriptor = self.client.get("/extensions/bitbucket/descriptor/")
+        assert descriptor.status_code == 200
+        assert descriptor.json()["key"] == decoded_jwt["iss"]
         assert decoded_jwt == {
             "exp": 1672535161,
             "iat": 1672534861,
-            "iss": "testserver.bitbucket",
+            "iss": "sentry.example.com.bitbucket",
             "qsh": get_query_hash(uri=path, method=method, query_params=params),
             "sub": self.integration.external_id,
         }

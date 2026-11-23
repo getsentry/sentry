@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import {IconBusiness} from '@sentry/icons/business';
 
 import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {t, tct} from 'sentry/locale';
@@ -13,17 +14,14 @@ import {LearnMoreButton} from 'getsentry/components/features/learnMoreButton';
 import PlanFeature from 'getsentry/components/features/planFeature';
 import {displayPlanName} from 'getsentry/utils/billing';
 
-type Props = {
-  features: string[];
-  organization: Organization;
-};
+type Props = {features: string[]; organization: Organization};
 
 function DisabledAlert({organization, features}: Props) {
   return (
     <PlanFeature {...{organization, features}}>
       {({plan}) => (
         <StyledPanelAlert variant="muted">
-          <Container>
+          <Grid align="center" gap="md" columns="1fr max-content max-content">
             <span>
               {plan === null
                 ? t('Custom Rate Limits are not available on your plan.')
@@ -42,10 +40,7 @@ function DisabledAlert({organization, features}: Props) {
               icon={<IconBusiness />}
               data-test-id="rate-limit-upsell"
               onClick={() =>
-                openUpsellModal({
-                  organization,
-                  source: 'feature.rate_limits',
-                })
+                openUpsellModal({organization, source: 'feature.rate_limits'})
               }
             >
               {t('Learn More')}
@@ -59,7 +54,7 @@ function DisabledAlert({organization, features}: Props) {
             >
               {t('Documentation')}
             </LearnMoreButton>
-          </Container>
+          </Grid>
         </StyledPanelAlert>
       )}
     </PlanFeature>
@@ -70,21 +65,11 @@ const StyledPanelAlert = styled(PanelAlert)`
   align-items: center;
 `;
 
-const Container = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content max-content;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;
-
 type OverrideProps = Parameters<Overrides['feature-disabled:rate-limits']>[0];
 
 export function DisabledRateLimits(props: OverrideProps) {
   if (typeof props.children === 'function') {
-    return props.children({
-      ...props,
-      renderDisabled: DisabledAlert,
-    });
+    return props.children({...props, renderDisabled: DisabledAlert});
   }
   return props.children;
 }

@@ -1,7 +1,4 @@
-import type {Location} from 'history';
-
 import {defined} from 'sentry/utils/defined';
-import {decodeList} from 'sentry/utils/queryString';
 
 export interface GroupBy {
   groupBy: string;
@@ -11,12 +8,7 @@ export function defaultGroupBys() {
   return [{groupBy: ''}];
 }
 
-export function getGroupBysFromLocation(
-  location: Location,
-  key: string
-): GroupBy[] | null {
-  const rawGroupBys = decodeList(location.query?.[key]);
-
+export function getGroupBys(rawGroupBys: readonly string[]): GroupBy[] | null {
   if (rawGroupBys.length) {
     return rawGroupBys.map(groupBy => ({groupBy}));
   }

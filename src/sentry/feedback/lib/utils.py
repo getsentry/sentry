@@ -3,6 +3,7 @@ from __future__ import annotations
 from enum import Enum
 
 from sentry import options
+from sentry.models.organization import Organization
 
 UNREAL_FEEDBACK_UNATTENDED_MESSAGE = "Sent in the unattended mode"
 
@@ -36,5 +37,5 @@ class FeedbackCreationSource(Enum):
         }
 
 
-def is_in_feedback_denylist(organization):
+def is_in_feedback_denylist(organization: Organization) -> bool:
     return organization.slug in options.get("feedback.organizations.slug-denylist")

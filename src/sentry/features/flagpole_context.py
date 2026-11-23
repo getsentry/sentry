@@ -3,6 +3,7 @@ from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 
+from sentry.auth.principal import has_user
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
@@ -88,11 +89,8 @@ def project_context_transformer(data: SentryContextData) -> EvaluationContextDic
 def user_context_transformer(data: SentryContextData) -> EvaluationContextDict:
     context_data: EvaluationContextDict = dict()
     user = data.actor
-    if user is None or isinstance(user, AnonymousUser):
+    if user is None or not has_user(user):
         return context_data
-
-    if not isinstance(user, User) and not isinstance(user, RpcUser):
-        raise InvalidContextDataException("Invalid actor object provided")
 
     if user.is_authenticated:
         context_data["user_id"] = user.id

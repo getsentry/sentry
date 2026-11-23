@@ -9,9 +9,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {ExportQueryType} from 'sentry/components/exports/useDataExport';
-import {ExploreExportModalButton} from 'sentry/views/explore/components/exports/exploreExportModalButton';
-import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {ExploreExportModalButton} from './exploreExportModalButton';
+import type {ExploreExportConfig} from './types';
 
 const organization = OrganizationFixture({features: ['discover-query']});
 

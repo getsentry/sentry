@@ -2,21 +2,24 @@
 
 The group autofix endpoint (``GroupAutofixEndpoint``) returns a run's state on
 GET, and the UI polls it about once a second. The fields describing PR
-iteration (whether it is enabled, what feedback is waiting in the queue,
-whether iteration is paused, and which repos are blocked on missing GitHub App
-permissions) are built here. This module lives under ``pr_iteration`` so
+iteration (what feedback is waiting in the queue, whether iteration is paused,
+whether the latest iteration ran out of credits, and which repos are blocked on
+missing GitHub App permissions) are built here. This module lives under ``pr_iteration`` so
 errors raised here are grouped with the rest of PR iteration.
 """
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from typing import Any
 
-from sentry import features
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.pr_iteration.missing_permissions import (
     get_blocked_pr_iteration_permissions,
+)
+from sentry.seer.autofix.pr_iteration.out_of_credits import (
+    pr_iteration_out_of_credits,
 )
 from sentry.seer.autofix.pr_iteration.pause import PAUSED_EXTRA, pause_reason_from_marker
 from sentry.seer.autofix.pr_iteration.queue import peek_queued_autofix_feedback
@@ -51,17 +54,21 @@ def get_pr_iteration_state_fields(
         ).dict()
         for repo_name, info in missing_perms.items()
     ]
+
     queued_feedback = [item.feedback.dict() for item in queued_items]
+
     # Off the fetched row, not is_pr_iteration_paused: polled every second.
     paused_marker = get_run_extra(run, PAUSED_EXTRA) if run is not None else None
     pause_reason = pause_reason_from_marker(paused_marker)
+
+    out_of_credits = pr_iteration_out_of_credits(state, run) if paused_marker is None else None
+
     return {
-        "pr_iteration_enabled": features.has("organizations:autofix-pr-iteration", organization),
-        "manual_pr_iteration_enabled": features.has(
-            "organizations:autofix-pr-iteration-manual", organization
-        ),
         "queued_feedback": queued_feedback,
         "pr_iteration_paused": paused_marker is not None,
         "pr_iteration_pause_reason": pause_reason.value if pause_reason else None,
+        "pr_iteration_out_of_credits": (
+            asdict(out_of_credits) if out_of_credits is not None else None
+        ),
         "warnings": warnings,
     }

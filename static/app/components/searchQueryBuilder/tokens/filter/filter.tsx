@@ -6,8 +6,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 import {IconClose} from '@sentry/icons/close';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderLayout,
@@ -18,14 +17,6 @@ import {
   BaseGridCell,
   FilterWrapper,
 } from 'sentry/components/searchQueryBuilder/tokens/components';
-import {AggregateKey} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
-import {FilterKey} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKey';
-import {FilterOperator} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
-import {FilterValueText} from 'sentry/components/searchQueryBuilder/tokens/filter/filterValueText';
-import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
-import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
-import {isAggregateFilterToken} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
-import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
 import {GridInvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {isInvalidFilterKey} from 'sentry/components/searchQueryBuilder/utils';
 import {
@@ -39,6 +30,15 @@ import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {isQueryBuilderPanelChrome} from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
+
+import {AggregateKey} from './aggregateKey';
+import {FilterKey} from './filterKey';
+import {FilterOperator} from './filterOperator';
+import {FilterValueText} from './filterValueText';
+import {UnstyledButton} from './unstyledButton';
+import {useFilterButtonProps} from './useFilterButtonProps';
+import {isAggregateFilterToken} from './utils';
+import {SearchQueryBuilderValueCombobox} from './valueCombobox';
 
 interface SearchQueryTokenProps {
   item: Node<ParseResultToken>;
@@ -86,6 +86,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
   });
 
   const filterButtonProps = useFilterButtonProps({state, item});
+  const {showAllFilterValues} = useSearchQueryBuilderLayout();
 
   if (editSource) {
     return (
@@ -128,6 +129,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
         onActiveChange(true);
       }}
       disabled={disabled}
+      showAllValues={showAllFilterValues}
       {...filterButtonProps}
     >
       <InteractionStateLayer />
@@ -165,6 +167,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   const {dispatch} = useSearchQueryBuilderState();
   const {invalidFilterKeys, invalidFilterKeyMessage, filterKeyAliases} =
     useSearchQueryBuilderConfig();
+  const {showAllFilterValues} = useSearchQueryBuilderLayout();
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -201,6 +204,8 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
       aria-label={token.text}
       aria-invalid={tokenHasError}
       state={tokenHasError ? 'invalid' : tokenHasWarning ? 'warning' : 'valid'}
+      height={showAllFilterValues ? 'auto' : '24px'}
+      minHeight={showAllFilterValues ? '24px' : undefined}
       ref={ref}
       {...modifiedRowProps}
     >
@@ -209,6 +214,8 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
         state={state}
         item={item}
         columnCount={4}
+        height={showAllFilterValues ? 'auto' : undefined}
+        minHeight={showAllFilterValues ? '22px' : undefined}
         containerDisplayMode="grid"
         forceVisible={filterMenuOpen ? false : undefined}
         warning={
@@ -268,13 +275,13 @@ const FilterValueGridCell = styled(BaseGridCell)`
   min-width: 0;
 `;
 
-const ValueButton = styled(UnstyledButton)`
+const ValueButton = styled(UnstyledButton)<{showAllValues: boolean}>`
   padding: 0 ${p => p.theme.space['2xs']};
   color: ${p => p.theme.tokens.content.accent};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
   width: 100%;
-  max-width: 400px;
+  max-width: ${p => (p.showAllValues ? 'none' : '400px')};
 
   :focus {
     background-color: ${p => p.theme.tokens.background.transparent.accent.muted};

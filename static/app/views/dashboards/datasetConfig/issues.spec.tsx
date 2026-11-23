@@ -5,8 +5,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import type {Group} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
-import {transformIssuesResponseToSeries} from 'sentry/views/dashboards/datasetConfig/utils/transformIssuesResponseToSeries';
-import {transformIssuesResponseToTable} from 'sentry/views/dashboards/datasetConfig/utils/transformIssuesResponseToTable';
+
+import {transformIssuesResponseToTable} from './utils/transformIssuesResponseToTable';
 
 describe('transformIssuesResponseToTable', () => {
   it('transforms issues response', () => {
@@ -17,20 +17,14 @@ describe('transformIssuesResponseToTable', () => {
       name: 'Test User',
     } satisfies Group['assignedTo'];
     const owners = [
-      {
-        type: 'ownershipRule',
-        owner: 'user:2',
-        date_added: '2022-01-01T13:04:02Z',
-      },
+      {type: 'ownershipRule', owner: 'user:2', date_added: '2022-01-01T13:04:02Z'},
     ] satisfies Group['owners'];
     const table = transformIssuesResponseToTable(
       [
         GroupFixture({
           id: '1',
           title: 'Error: Failed',
-          project: ProjectFixture({
-            id: '3',
-          }),
+          project: ProjectFixture({id: '3'}),
           status: GroupStatus.UNRESOLVED,
           assignedTo,
           owners,
@@ -97,27 +91,6 @@ describe('transformIssuesResponseToTable', () => {
     expect(table.data[0]).not.toHaveProperty('assignedTo');
     expect(table.data[0]).not.toHaveProperty('owners');
     expect(table.data[0]).not.toHaveProperty('links');
-    expect(table.meta?.issueRowMetadata?.['1']).toEqual({
-      assignedTo,
-      links: [],
-      owners,
-    });
-  });
-  it('transforms issues timeseries response to series', () => {
-    expect(
-      transformIssuesResponseToSeries({
-        timeSeries: [
-          {
-            yAxis: 'count(new_issues)',
-            values: [{timestamp: 1763495560000, value: 10}],
-            meta: {
-              valueType: 'integer',
-              valueUnit: null,
-              interval: 10800000,
-            },
-          },
-        ],
-      })
-    ).toEqual([expect.objectContaining({data: [{name: 1763495560000, value: 10}]})]);
+    expect(table.meta?.issueRowMetadata?.['1']).toEqual({assignedTo, links: [], owners});
   });
 });

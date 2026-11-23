@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 
+from django.db.migrations.state import StateApps
 from sentry.testutils.cases import TestMigrations
 
 # A leading digit is legal in a module name but not in the dotted path mock.patch parses,
@@ -16,13 +17,13 @@ class BackfillOrganizationMemberTeamNewIdTest(TestMigrations):
     migrate_from = "1154_pullrequest_external_id"
     migrate_to = "1155_backfill_organizationmemberteam_new_id"
 
-    def setUp(self):
+    def setUp(self) -> None:
         # A handful of rows spans several batches at this size, so the migration's
         # chunking is actually exercised rather than served by a single batch.
         with mock.patch.object(migration, "BATCH_SIZE", 2):
             super().setUp()
 
-    def setup_initial_state(self):
+    def setup_initial_state(self) -> None:
         self.organization = self.create_organization()
         self.team = self.create_team(organization=self.organization)
         self.members = [
@@ -30,7 +31,7 @@ class BackfillOrganizationMemberTeamNewIdTest(TestMigrations):
             for _ in range(6)
         ]
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         OrganizationMemberTeam = apps.get_model("sentry", "OrganizationMemberTeam")
 
         # The historical model has none of the dual-write hooks, so these land with a
@@ -51,7 +52,7 @@ class BackfillOrganizationMemberTeamNewIdTest(TestMigrations):
             new_id=-1,
         )
 
-    def test_backfills_only_rows_missing_new_id(self):
+    def test_backfills_only_rows_missing_new_id(self) -> None:
         for row in self.pending:
             row.refresh_from_db()
             assert row.new_id == row.id

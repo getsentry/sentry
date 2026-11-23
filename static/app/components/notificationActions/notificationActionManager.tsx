@@ -6,7 +6,6 @@ import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {NotificationActionItem} from 'sentry/components/notificationActions/notificationActionItem';
 import {t} from 'sentry/locale';
 import type {
   AvailableNotificationAction,
@@ -15,6 +14,8 @@ import type {
 import {NotificationActionService} from 'sentry/types/notificationActions';
 import type {Project} from 'sentry/types/project';
 import {capitalize} from 'sentry/utils/string/capitalize';
+
+import {NotificationActionItem} from './notificationActionItem';
 
 type NotificationActionManagerProps = {
   /**

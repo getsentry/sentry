@@ -1,4 +1,4 @@
-import {replaceTokensWithSpan} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import {replaceTokensWithSpan} from './onboardingCodeSnippet';
 
 describe('replaceTokenWithSpan', () => {
   it('replaces __ORG_AUTH_TOKEN___ token', () => {

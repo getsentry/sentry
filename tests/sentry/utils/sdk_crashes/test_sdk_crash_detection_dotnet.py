@@ -1,6 +1,7 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from functools import wraps
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -15,13 +16,13 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
 )
 
 
-def decorators(func):
+def decorators(func: Callable[..., Any]) -> Any:
     @wraps(func)
     @django_db_all
     @pytest.mark.snuba
     @patch("random.random", return_value=0.1)
     @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         return func(*args, **kwargs)
 
     return wrapper
@@ -86,14 +87,14 @@ def configs() -> Sequence[SDKCrashDetectionConfig]:
 )
 @decorators
 def test_sdk_crash_is_reported_with_dotnet_paths(
-    mock_sdk_crash_reporter,
-    mock_random,
-    store_event,
-    configs,
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
     sdk_frame_module: str,
     system_frame_module: str,
     detected: bool,
-):
+) -> None:
     event = store_event(
         data=get_crash_event(
             sdk_frame_module=sdk_frame_module, system_frame_module=system_frame_module
@@ -176,14 +177,14 @@ def test_sdk_crash_is_reported_with_dotnet_paths(
 )
 @decorators
 def test_sdk_crash_is_reported_with_unity_paths(
-    mock_sdk_crash_reporter,
-    mock_random,
-    store_event,
-    configs,
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
     sdk_frame_module: str,
     unity_frame_module: str,
     detected: bool,
-):
+) -> None:
     event = store_event(
         data=get_unity_crash_event(
             sdk_frame_module=sdk_frame_module, unity_frame_module=unity_frame_module
@@ -260,14 +261,14 @@ def test_sdk_crash_is_reported_with_unity_paths(
 )
 @decorators
 def test_sentry_samples_filter(
-    mock_sdk_crash_reporter,
-    mock_random,
-    store_event,
-    configs,
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
     sdk_frame_module: str,
     system_frame_module: str,
     detected: bool,
-):
+) -> None:
     event = store_event(
         data=get_crash_event(
             sdk_frame_module=sdk_frame_module, system_frame_module=system_frame_module
@@ -304,11 +305,11 @@ def test_sentry_samples_filter(
 
 @decorators
 def test_sdk_crash_in_sentry_sdk_from_sample_app_is_detected(
-    mock_sdk_crash_reporter,
-    mock_random,
-    store_event,
-    configs,
-):
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
+) -> None:
     """
     Verify that SDK crashes are detected when the crash occurs in the Sentry SDK itself,
     even when called from a Sentry.Samples.* application.

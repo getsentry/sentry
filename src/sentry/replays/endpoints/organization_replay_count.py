@@ -13,7 +13,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.api.utils import handle_query_errors
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import (
@@ -105,6 +105,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
             200: inline_sentry_response_serializer("ReplayCounts", dict[int, int]),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def get(
@@ -148,7 +149,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
         return self.respond(replay_counts)
 
 
-def project_in_org_has_sent_replay(organization):
+def project_in_org_has_sent_replay(organization: Organization) -> bool:
     return (
         Project.objects.filter(organization=organization)
         .filter(flags=F("flags").bitor(Project.flags.has_replays))

@@ -3,10 +3,11 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {closeModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {closeModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
 import {transformTableToCategoricalSeries} from 'sentry/utils/categoricalTimeSeries/transformTableToCategoricalSeries';
@@ -38,6 +39,7 @@ type SingleModeOptions = {
   cohortCount: number;
   mode: 'single';
   query: string;
+  caseInsensitive?: CaseInsensitive;
 };
 
 type ComparisonModeOptions = {
@@ -46,6 +48,7 @@ type ComparisonModeOptions = {
   cohort2Total: number;
   mode: 'comparison';
   query: string;
+  caseInsensitive?: CaseInsensitive;
 };
 
 export type AttributeBreakdownViewerModalOptions =
@@ -103,11 +106,7 @@ function distributionToTableData(
         [t('Count')]: 'integer',
         [t('Percentage')]: 'percentage',
       },
-      units: {
-        [t('Value')]: null,
-        [t('Count')]: null,
-        [t('Percentage')]: null,
-      },
+      units: {[t('Value')]: null, [t('Count')]: null, [t('Percentage')]: null},
     },
   };
 }
@@ -227,11 +226,7 @@ function computeComparisonModeData(
 }
 
 // Extract population indicator component
-type PopulationIndicatorProps = {
-  color: string;
-  percentage: number;
-  tooltipTitle: string;
-};
+type PopulationIndicatorProps = {color: string; percentage: number; tooltipTitle: string};
 
 function PopulationIndicatorComponent({
   color,
@@ -248,7 +243,7 @@ function PopulationIndicatorComponent({
 }
 
 export default function AttributeBreakdownViewerModal(props: Props) {
-  const {Header, Body, mode, query} = props;
+  const {Header, Body, mode, query, caseInsensitive} = props;
   const {selection} = usePageFilters();
 
   const theme = useTheme();
@@ -369,6 +364,7 @@ export default function AttributeBreakdownViewerModal(props: Props) {
                       organization,
                       selection,
                       query: search.formatString(),
+                      caseInsensitive,
                     })
                   );
                   closeModal();
@@ -381,6 +377,7 @@ export default function AttributeBreakdownViewerModal(props: Props) {
                       selection,
                       table: 'attribute_breakdowns',
                       query: search.formatString(),
+                      caseInsensitive,
                     })
                   );
                   closeModal();
@@ -393,6 +390,7 @@ export default function AttributeBreakdownViewerModal(props: Props) {
                       selection,
                       table: 'attribute_breakdowns',
                       query: search.formatString(),
+                      caseInsensitive,
                     })
                   );
                   closeModal();

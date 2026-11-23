@@ -4,12 +4,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {TraceProfiles} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceProfiles';
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {
   makeEAPSpan,
   makeEAPTrace,
 } from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
+
+import {TraceProfiles} from './traceProfiles';
 
 describe('TraceProfiles', () => {
   const organization = OrganizationFixture();

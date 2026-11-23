@@ -82,6 +82,7 @@ export function DropdownAddTeam({
   return (
     <CompactSelect
       size="xs"
+      strategy="fixed"
       value=""
       menuWidth={300}
       options={dropdownItems}
@@ -105,10 +106,7 @@ export function DropdownAddTeam({
             }}
             disabled={!canCreateTeam}
             onClick={() => {
-              openCreateTeamModal({
-                organization,
-                onClose: onCreateTeam,
-              });
+              openCreateTeamModal({organization, onClose: onCreateTeam});
               closeOverlay();
             }}
           >

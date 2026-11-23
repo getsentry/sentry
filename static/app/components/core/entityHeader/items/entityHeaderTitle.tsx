@@ -2,19 +2,20 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import type {TagProps} from '@sentry/scraps/badge';
-import {ProjectsBadge} from '@sentry/scraps/badge';
 import {ROW_HEIGHT, TITLE_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkDestination} from '@sentry/scraps/link';
-import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {Placeholder} from 'sentry/components/placeholder';
 import type {AvatarProject} from 'sentry/types/project';
 import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils/defined';
 import {unreachable} from 'sentry/utils/unreachable';
+
+import {EntityHeaderDestinationLink, toLinkDestination} from './entityHeaderText';
 
 /**
  * Either the graphic is named, in which case it may also elaborate on hover, or
@@ -76,7 +77,7 @@ interface EntityHeaderTitleBase {
    */
   leadingGraphic?: EntityHeaderLeadingGraphic;
   /**
-   * Status chips rendered inline after the label.
+   * Status chips rendered inline after the value.
    * `null` entries are dropped so callers can inline conditionals.
    */
   tags?: Array<React.ReactElement<TagProps> | null>;
@@ -204,23 +205,17 @@ export function EntityHeaderTitle(props: EntityHeaderTitleProps & {isLoading?: b
         // clips everything inside the heading. `Container` floors the
         // anchor's width so it still shrinks as a flex item.
         <Container minWidth={0}>
-          {containerProps =>
+          {containerProps => (
             // Named like the heading, so a links list reads "Replay user,
             // anonymous@example.com" rather than a bare address.
-            props.externalHref === undefined ? (
-              <Link to={props.to} aria-label={accessibleName} {...containerProps}>
-                {heading}
-              </Link>
-            ) : (
-              <ExternalLink
-                href={props.externalHref}
-                aria-label={accessibleName}
-                {...containerProps}
-              >
-                {heading}
-              </ExternalLink>
-            )
-          }
+            <EntityHeaderDestinationLink
+              destination={toLinkDestination(props)}
+              aria-label={accessibleName}
+              {...containerProps}
+            >
+              {heading}
+            </EntityHeaderDestinationLink>
+          )}
         </Container>
       ) : (
         heading

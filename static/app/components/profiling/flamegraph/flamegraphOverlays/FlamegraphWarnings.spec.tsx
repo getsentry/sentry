@@ -1,8 +1,9 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {FlamegraphWarnings} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/FlamegraphWarnings';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
+
+import {FlamegraphWarnings} from './FlamegraphWarnings';
 
 const noDataProfile: Profiling.SampledProfile = {
   name: 'profile',
@@ -20,9 +21,7 @@ const noDataProfileGroup = {
   profileID: '',
   profiles: [noDataProfile],
   projectID: 1,
-  shared: {
-    frames: [],
-  },
+  shared: {frames: []},
   metadata: {} as Profiling.Schema['metadata'],
 } as Profiling.Schema;
 
@@ -40,9 +39,7 @@ const onlySystemFramesProfile = {
 const onlySystemFramesProfileGroup = {
   ...noDataProfileGroup,
   profiles: [onlySystemFramesProfile],
-  shared: {
-    frames: [{name: 'system function', is_application: false}],
-  },
+  shared: {frames: [{name: 'system function', is_application: false}]},
   metadata: {} as Profiling.Schema['metadata'],
 } as Profiling.Schema;
 

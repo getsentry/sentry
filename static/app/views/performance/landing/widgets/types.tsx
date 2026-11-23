@@ -17,12 +17,8 @@ enum VisualizationDataState {
 }
 
 export enum GenericPerformanceWidgetDataType {
-  HISTOGRAM = 'histogram',
   AREA = 'area',
   LINE_LIST = 'line_list',
-  TRENDS = 'trends',
-  STACKED_AREA = 'stacked_area',
-  PERFORMANCE_SCORE = 'performance_score',
   SLOW_SCREENS_BY_TTID = 'slow_screens_by_ttid',
   PERFORMANCE_SCORE_LIST = 'performance_score_list',
   SLOW_SCREENS_BY_COLD_START = 'slow_screens_by_cold_start',
@@ -112,15 +108,11 @@ type Visualization<T> = {
 
 type Visualizations<T extends WidgetDataConstraint> = ReadonlyArray<Visualization<T>>; // Readonly because of index being used for React key.
 
-type HeaderActions<T> = React.ComponentType<{
-  widgetData: T;
-}>;
+type HeaderActions<T> = React.ComponentType<{widgetData: T}>;
 
 type InteractiveTitle<T> = React.ComponentType<{widgetData: T}>;
 
-type Subtitle<T> = React.ComponentType<{
-  widgetData: T;
-}>;
+type Subtitle<T> = React.ComponentType<{widgetData: T}>;
 
 export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   Queries: Queries<T>;

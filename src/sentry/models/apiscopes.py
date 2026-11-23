@@ -38,14 +38,15 @@ class ApiScopes(Sequence[str]):
 
     alerts = (("alerts:read"), ("alerts:write"))
 
-    dashboard = (
-        ("dashboard:read"),
-        ("dashboard:create"),
-        ("dashboard:write"),
-        ("dashboard:delete"),
-    )
+    dashboard = (("dashboard:read"), ("dashboard:write"))
+
+    membership = ("membership:read",)
+
+    saved_query = (("saved_query:read"), ("saved_query:write"))
 
     seer = (("seer:read"), ("seer:write"))
+
+    user_preference = (("user_preference:read"), ("user_preference:write"))
 
     def __init__(self) -> None:
         self.scopes = (
@@ -56,7 +57,10 @@ class ApiScopes(Sequence[str]):
             + self.__class__.member
             + self.__class__.alerts
             + self.__class__.dashboard
+            + self.__class__.membership
+            + self.__class__.saved_query
             + self.__class__.seer
+            + self.__class__.user_preference
         )
 
     @overload

@@ -8,14 +8,11 @@ from sentry.types.actor import Actor, parse_and_validate_actor
 
 
 @extend_schema_field(field=OpenApiTypes.STR)
-class ActorField(serializers.Field):
-    def __init__(self, *args, **kwds):
-        super().__init__(*args, **kwds)
+class ActorField(serializers.Field[Actor | None, str | None, str, object]):
+    def to_representation(self, value: Actor | None) -> str:
+        return value.identifier if value is not None else ""
 
-    def to_representation(self, value):
-        return value.identifier
-
-    def to_internal_value(self, data) -> Actor | None:
+    def to_internal_value(self, data: str | None) -> Actor | None:
         return parse_and_validate_actor(data, self.context["organization"].id)
 
 
@@ -35,7 +32,7 @@ class OwnerActorField(ActorField):
     don't belong to as owners when Open Team Membership is disabled.
     """
 
-    def to_internal_value(self, data) -> Actor | None:
+    def to_internal_value(self, data: str | None) -> Actor | None:
         actor = super().to_internal_value(data)
 
         if actor is None:

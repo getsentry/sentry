@@ -25,7 +25,7 @@ ONDEMAND_FEATURES = [
 
 
 class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTestCase):
-    def url(self):
+    def url(self) -> str:
         return reverse(
             "sentry-api-0-organization-dashboard-widget-details",
             kwargs={"organization_id_or_slug": self.organization.slug},
@@ -199,6 +199,28 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "displayType" in response.data, response.data
         assert "preprod-app-size" in str(response.data["displayType"])
+
+    def test_bar_display_type_for_preprod_app_size(self) -> None:
+        data = {
+            "title": "Bar on preprod-app-size",
+            "displayType": "bar",
+            "widgetType": "preprod-app-size",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["max(install_size)"],
+                    "columns": [],
+                    "aggregates": ["max(install_size)"],
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
 
     def test_invalid_equation(self) -> None:
         data = {
@@ -567,6 +589,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         data = {
             "title": "Test Query",
             "displayType": "table",
+            "id": "1234",
             "widgetType": "transaction-like",
             "queries": [
                 {
@@ -713,6 +736,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         data = {
             "title": "Test Query",
             "displayType": "table",
+            "id": "1234",
             "widgetType": "transaction-like",
             "limit": 5,
             "queries": [
@@ -742,6 +766,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         data = {
             "title": "Test Query",
             "displayType": "table",
+            "id": "1234",
             "widgetType": "transaction-like",
             "limit": 5,
             "queries": [
@@ -777,6 +802,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         data = {
             "title": "Test Query",
             "displayType": "table",
+            "id": "1234",
             "widgetType": "transaction-like",
             "limit": 5,
             "queries": [
@@ -844,7 +870,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         DashboardWidgetQueryOnDemand.objects.create(
             dashboard_widget_query=self.widget_1_data_1,
             spec_version=OnDemandMetricSpecVersioning.get_query_spec_version(
-                self.organization
+                self.organization.id
             ).version,
             spec_hashes=["abcd"],
             extraction_state="enabled:manual",
@@ -855,6 +881,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         data = {
             "title": "Test Query",
             "displayType": "table",
+            "id": "1234",
             "widgetType": "transaction-like",
             "limit": 5,
             "queries": [
@@ -895,6 +922,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         data = {
             "title": "Test Query",
             "displayType": "table",
+            "id": "1234",
             "widgetType": "transaction-like",
             "limit": 5,
             "queries": [
@@ -943,7 +971,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         DashboardWidgetQueryOnDemand.objects.create(
             dashboard_widget_query=self.widget_1_data_1,
             spec_version=OnDemandMetricSpecVersioning.get_query_spec_version(
-                self.organization
+                self.organization.id
             ).version,
             spec_hashes=["abcd"],
             extraction_state="enabled:manual",
@@ -954,6 +982,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         data = {
             "title": "Test Query",
             "displayType": "table",
+            "id": "1234",
             "widgetType": "transaction-like",
             "limit": 5,
             "queries": [
@@ -1078,6 +1107,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         data = {
             "title": "Test Query",
             "displayType": "table",
+            "id": "1234",
             "widgetType": "transaction-like",
             "limit": 5,
             "queries": [
@@ -1093,7 +1123,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
 
         option_get = options.get
 
-        def mock_options(option_name):
+        def mock_options(option_name: str) -> object:
             if option_name == "on_demand.max_widget_cardinality.on_query_count":
                 return 0
             else:
@@ -1408,59 +1438,57 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_new_transactions_widget_with_transactions_deprecation_flag(self) -> None:
-        with self.feature("organizations:discover-saved-queries-deprecation"):
-            data = {
-                "title": "Test Query",
-                "widgetType": "transaction-like",
-                "displayType": "table",
-                "queries": [
-                    {
-                        "name": "transaction query",
-                        "conditions": "",
-                        "fields": ["count()"],
-                        "columns": [],
-                        "aggregates": ["count()"],
-                    }
-                ],
-            }
+    def test_new_transactions_widget_is_deprecated(self) -> None:
+        data = {
+            "title": "Test Query",
+            "widgetType": "transaction-like",
+            "displayType": "table",
+            "queries": [
+                {
+                    "name": "transaction query",
+                    "conditions": "",
+                    "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
 
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
-            assert response.status_code == 400, response.data
-            assert (
-                response.data["widgetType"][0]
-                == "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
-            )
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert (
+            response.data["widgetType"][0]
+            == "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
+        )
 
-    def test_update_transaction_widget_type_with_transactions_deprecation_flag(self) -> None:
-        with self.feature("organizations:discover-saved-queries-deprecation"):
-            data = {
-                "id": "1234",
-                "title": "Test Query",
-                "widgetType": "transaction-like",
-                "displayType": "table",
-                "queries": [
-                    {
-                        "name": "transaction query",
-                        "conditions": "",
-                        "fields": ["count()"],
-                        "columns": [],
-                        "aggregates": ["count()"],
-                    }
-                ],
-            }
+    def test_update_existing_transaction_widget_is_allowed(self) -> None:
+        data = {
+            "id": "1234",
+            "title": "Test Query",
+            "widgetType": "transaction-like",
+            "displayType": "table",
+            "queries": [
+                {
+                    "name": "transaction query",
+                    "conditions": "",
+                    "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
 
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
-            # we need to allow updates to the title of existing transaction widgets
-            assert response.status_code == 200, response.data
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        # we need to allow updates to the title of existing transaction widgets
+        assert response.status_code == 200, response.data
 
     def test_widget_type_tracemetrics(self) -> None:
         data = {
@@ -1524,6 +1552,30 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "columns": [],
                     "aggregates": ["sum(value,foo,distribution,none)"],
                 },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_widget_type_tracemetrics_wheel(self) -> None:
+        data = {
+            "title": "Performance Score",
+            "widgetType": "tracemetrics",
+            "displayType": "wheel",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["performance_score()", "opportunity_score()"],
+                    "columns": ["performance_score()", "opportunity_score()"],
+                    "aggregates": [],
+                    "orderby": "",
+                }
             ],
         }
 

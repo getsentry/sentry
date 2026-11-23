@@ -4,7 +4,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {StreamGroup} from 'sentry/components/stream/group';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {GuideStore} from 'sentry/stores/guideStore';
 import {EventOrGroupType} from 'sentry/types/event';
@@ -12,6 +11,8 @@ import type {Group} from 'sentry/types/group';
 import {GroupStatus, PriorityLevel} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
+
+import {StreamGroup} from './group';
 
 jest.mock('sentry/utils/analytics');
 
@@ -29,16 +30,9 @@ describe('StreamGroup', () => {
   beforeEach(() => {
     group1 = GroupFixture({
       id: '1337',
-      project: ProjectFixture({
-        id: '13',
-        slug: 'foo-project',
-      }),
+      project: ProjectFixture({id: '13', slug: 'foo-project'}),
       type: EventOrGroupType.ERROR,
-      inbox: {
-        date_added: '2020-11-24T13:17:42.248751Z',
-        reason: 0,
-        reason_details: null,
-      },
+      inbox: {date_added: '2020-11-24T13:17:42.248751Z', reason: 0, reason_details: null},
       lifetime: {
         firstSeen: '2017-10-10T02:41:20.000Z',
         lastSeen: '2017-10-16T02:41:20.000Z',
@@ -51,10 +45,7 @@ describe('StreamGroup', () => {
       url: '/organizations/org-slug/projects/',
       body: [ProjectFixture({slug: 'foo-project'})],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
   });
 
   afterEach(() => {
@@ -65,7 +56,7 @@ describe('StreamGroup', () => {
     render(<StreamGroupInTable group={group1} hasGuideAnchor />);
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
-    expect(GuideStore.state.anchors).toEqual(new Set(['issue_stream']));
+    expect(GuideStore.getState().anchors).toEqual(new Set(['issue_stream']));
   });
 
   it('shows not reviewed when group has inbox reason', async () => {
@@ -101,11 +92,7 @@ describe('StreamGroup', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
     expect(mockModifyGroup).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/',
-      expect.objectContaining({
-        data: expect.objectContaining({
-          priority: 'high',
-        }),
-      })
+      expect.objectContaining({data: expect.objectContaining({priority: 'high'})})
     );
   });
 

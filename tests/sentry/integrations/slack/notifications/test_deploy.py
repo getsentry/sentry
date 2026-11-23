@@ -50,21 +50,22 @@ class SlackDeployNotificationTest(SlackActivityNotificationTest):
         )
         assert blocks[0]["text"]["text"] == fallback_text
 
-        first_project = None
-        for i in range(len(projects)):
-            project = SLUGS_TO_PROJECT[blocks[2]["elements"][i]["text"]["text"]]
-            if not first_project:
-                first_project = project
+        actions = blocks[2]["elements"]
+        assert sorted(action["text"]["text"] for action in actions) == sorted(SLUGS_TO_PROJECT)
+        for action in actions:
+            project = SLUGS_TO_PROJECT[action["text"]["text"]]
             assert (
-                blocks[2]["elements"][i]["url"]
+                action["url"]
                 == f"http://testserver/organizations/{self.organization.slug}/releases/"
                 f"{release.version}/?project={project.id}&unselectedSeries=Healthy&referrer=release_activity&notification_uuid={notification.notification_uuid}"
             )
-            assert blocks[2]["elements"][i]["value"] == "link_clicked"
-        assert first_project is not None
+            assert action["value"] == "link_clicked"
 
-        # footer project is the first project in the actions list
+        # The footer and the actions come from separate unordered queries, so the footer can
+        # name any of the release's projects, not necessarily the first action's.
+        footer_slug, footer_link = blocks[1]["elements"][0]["text"].split(" | ")
+        assert footer_slug in SLUGS_TO_PROJECT
         assert (
-            blocks[1]["elements"][0]["text"]
-            == f"{first_project.slug} | <http://testserver/settings/account/notifications/deploy/?referrer=release_activity-slack-user&notification_uuid={notification.notification_uuid}|Notification Settings>"
+            footer_link
+            == f"<http://testserver/settings/account/notifications/deploy/?referrer=release_activity-slack-user&notification_uuid={notification.notification_uuid}|Notification Settings>"
         )

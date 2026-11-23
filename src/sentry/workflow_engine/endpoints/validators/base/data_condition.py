@@ -10,12 +10,31 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     validate_json_primitive,
     validate_json_schema,
 )
-from sentry.workflow_engine.models.data_condition import CONDITION_OPS, Condition, DataCondition
+from sentry.workflow_engine.models.data_condition import (
+    CONDITION_OPS,
+    Condition,
+    DataCondition,
+    get_internal_condition_types,
+)
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler
 
 ComparisonType = TypeVar("ComparisonType")
 ConditionResult = TypeVar("ConditionResult")
+
+# Alert (workflow) conditions only ever produce a boolean. The UI always sends True, so API
+# clients that omit it get the same value instead of a 400. Detector conditions resolve to a
+# priority level, so they must keep requiring an explicit value.
+_BOOLEAN_CONDITION_RESULT_GROUPS = frozenset(
+    {
+        DataConditionHandler.Group.WORKFLOW_TRIGGER,
+        DataConditionHandler.Group.ACTION_FILTER,
+    }
+)
+
+# DataCondition.get_condition_result() rejects anything that isn't a bool or number at
+# evaluation time, so a stored "true" silently stops the alert from firing.
+_BOOLEAN_STRINGS = {"true": True, "false": False}
 
 
 class DataConditionInput(TypedDict):
@@ -46,12 +65,30 @@ class AbstractDataConditionValidator(
 class BaseDataConditionValidator(
     AbstractDataConditionValidator[Any, Any],
 ):
+    def validate_type(self, value: str) -> str:
+        if value in get_internal_condition_types():
+            raise serializers.ValidationError(
+                "Internal conditions cannot be configured through the API."
+            )
+        return value
+
     @property
     def condition_type(self) -> Condition:
         if isinstance(self.initial_data, list) and self.initial_data:
             return self.initial_data[0].get("type")
 
         return self.initial_data.get("type")
+
+    def to_internal_value(self, data: Any) -> Any:
+        condition_type = data.get("type") if isinstance(data, dict) else None
+        if isinstance(condition_type, str) and "condition_result" not in data:
+            try:
+                handler = condition_handler_registry.get(condition_type)
+            except NoRegistrationExistsError:
+                handler = None
+            if handler is not None and handler.group in _BOOLEAN_CONDITION_RESULT_GROUPS:
+                data = {**data, "condition_result": True}
+        return super().to_internal_value(data)
 
     def _get_handler(self) -> type[DataConditionHandler[Any]] | None:
         if self._is_operator_condition():
@@ -108,12 +145,24 @@ class BaseDataConditionValidator(
                     "Invalid condition result value for condition type"
                 )
 
+        if handler.group in _BOOLEAN_CONDITION_RESULT_GROUPS:
+            value = self._to_boolean_condition_result(value)
+
         try:
             return validate_json_schema(value, handler.condition_result_schema)
         except JsonValidationError:
             raise serializers.ValidationError(
                 f"Value, {value}, does not match JSON Schema for condition result"
             )
+
+    def _to_boolean_condition_result(self, value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str) and value in _BOOLEAN_STRINGS:
+            return _BOOLEAN_STRINGS[value]
+        raise serializers.ValidationError(
+            f"Condition result for {self.condition_type} conditions must be a boolean"
+        )
 
     def update(self, instance: DataCondition, validated_data: dict[str, Any]) -> DataCondition:
         instance.update(**validated_data)

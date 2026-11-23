@@ -1,4 +1,7 @@
 import re
+from pathlib import Path
+
+import pytest
 
 from tools.mypy_helpers.check_stronglist import _glob_to_re, main
 
@@ -17,7 +20,7 @@ def test_glob_to_re_wildcards() -> None:
     assert not pat.fullmatch("a_b_c")
 
 
-def test_ok(tmp_path) -> None:
+def test_ok(tmp_path: Path) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c", "d.e.f", "g.h.i"]
@@ -42,7 +45,9 @@ disallow_untyped_defs = false
     assert main((str(f),)) == 0
 
 
-def test_errors_on_allowlist_module_missing_from_weaklist(tmp_path, capsys) -> None:
+def test_errors_on_allowlist_module_missing_from_weaklist(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c", "d.e.f", "g.h.i"]
@@ -67,7 +72,9 @@ disallow_untyped_defs = false
     assert capsys.readouterr().out == expected
 
 
-def test_errors_on_globbed_module_missing_from_weaklist(tmp_path, capsys) -> None:
+def test_errors_on_globbed_module_missing_from_weaklist(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c", "a.b.c.d", "a.b.c.e"]
@@ -92,7 +99,9 @@ disallow_untyped_defs = false
     assert capsys.readouterr().out == expected
 
 
-def test_weaklist_existence_file_missing(tmp_path, capsys) -> None:
+def test_weaklist_existence_file_missing(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = []
@@ -113,7 +122,9 @@ disallow_untyped_defs = false
     assert capsys.readouterr().out == expected
 
 
-def test_weaklist_existence_glob_missing(tmp_path, capsys) -> None:
+def test_weaklist_existence_glob_missing(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = []
@@ -134,7 +145,7 @@ disallow_untyped_defs = false
     assert capsys.readouterr().out == expected
 
 
-def test_weaklist_redundant_wildcard(tmp_path, capsys) -> None:
+def test_weaklist_redundant_wildcard(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = []
@@ -159,7 +170,9 @@ disallow_untyped_defs = false
     assert capsys.readouterr().out == expected
 
 
-def test_weaklist_redundant_wildcard_same_module(tmp_path, capsys) -> None:
+def test_weaklist_redundant_wildcard_same_module(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = []
@@ -185,7 +198,7 @@ disallow_untyped_defs = false
     assert capsys.readouterr().out == expected
 
 
-def test_wildcards_only_on_module(tmp_path, capsys) -> None:
+def test_wildcards_only_on_module(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     tmp_path.joinpath("a/b").mkdir(parents=True)
     tmp_path.joinpath("a/b/__init__.py").touch()
     tmp_path.joinpath("a/bar.py").touch()
@@ -210,7 +223,7 @@ disallow_untyped_defs = false
     assert capsys.readouterr().out == expected
 
 
-def test_weaklist_existence_ok_src_layout(tmp_path) -> None:
+def test_weaklist_existence_ok_src_layout(tmp_path: Path) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = []
@@ -229,7 +242,7 @@ disallow_untyped_defs = false
     assert main((str(f),)) == 0
 
 
-def test_weaklist_existence_ok_glob(tmp_path) -> None:
+def test_weaklist_existence_ok_glob(tmp_path: Path) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = []
@@ -248,7 +261,7 @@ disallow_untyped_defs = false
     assert main((str(f),)) == 0
 
 
-def test_weaklist_existence_ok_init_py(tmp_path) -> None:
+def test_weaklist_existence_ok_init_py(tmp_path: Path) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = []

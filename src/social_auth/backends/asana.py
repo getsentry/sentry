@@ -4,8 +4,12 @@ ASANA_CLIENT_ID & ASANA_CLIENT_SECRET
 and put into sentry.conf.py
 """
 
+from collections.abc import Mapping
+from typing import Any
+
 import requests
 
+from sentry.users.services.user import RpcUser
 from social_auth.backends import BaseOAuth2, OAuthBackend
 from social_auth.exceptions import AuthCanceled, AuthUnknownError
 
@@ -26,7 +30,7 @@ class AsanaBackend(OAuthBackend):
     ]
     ID_KEY = "gid"
 
-    def get_user_details(self, response):
+    def get_user_details(self, response: Mapping[str, Any]) -> dict[str, Any]:
         """Return user details from Asana account"""
 
         return {
@@ -46,17 +50,18 @@ class AsanaAuth(BaseOAuth2):
     SETTINGS_SECRET_NAME = "ASANA_CLIENT_SECRET"
     REDIRECT_STATE = False
 
-    def user_data(self, access_token, *args, **kwargs):
+    def user_data(self, access_token: str, *args: Any, **kwargs: Any) -> dict[str, Any] | None:
         """Loads user data from service"""
         headers = {"Authorization": f"Bearer {access_token}"}
         try:
             resp = requests.get(ASANA_USER_DETAILS_URL, headers=headers)
             resp.raise_for_status()
-            return resp.json()["data"]
+            data = resp.json()["data"]
+            return data
         except ValueError:
             return None
 
-    def auth_complete(self, *args, **kwargs):
+    def auth_complete(self, *args: Any, **kwargs: Any) -> RpcUser | None:
         """Completes logging process, must return user instance"""
         self.process_error(self.data)
         params = self.auth_complete_params(self.validate_state())

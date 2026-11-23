@@ -3,14 +3,7 @@ import styled from '@emotion/styled';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery} from '@tanstack/react-query';
 
-import {
-  Select,
-  CheckWrap,
-  components,
-  type SingleValueProps,
-  type StylesConfig,
-  type SelectValue,
-} from '@sentry/scraps/select';
+import {Select, type StylesConfig, type SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
@@ -29,12 +22,7 @@ const getSearchKeyForUser = (user: User) =>
 type SelectMemberValue = null | number | string | undefined;
 
 interface MentionableUser extends SelectValue<string> {
-  actor: {
-    email: string;
-    id: string;
-    name: string;
-    type: 'user';
-  };
+  actor: {email: string; id: string; name: string; type: 'user'};
   label: React.ReactElement;
   searchKey: string;
   user: User;
@@ -50,22 +38,12 @@ interface Props {
 }
 
 interface FilterOption {
-  data: MentionableUser;
+  searchKey: string;
 }
 
 function filterMemberOption(option: FilterOption, filterText: string) {
-  return option.data.searchKey.includes(filterText.toLowerCase());
+  return option.searchKey.includes(filterText.toLowerCase());
 }
-
-function SelectedMember(props: SingleValueProps<MentionableUser>) {
-  return (
-    <components.SingleValue {...props}>
-      <UserBadge avatarSize={20} user={props.data.user} hideEmail />
-    </components.SingleValue>
-  );
-}
-
-const memberSelectComponents = {SingleValue: SelectedMember};
 
 function createMentionableUser(user: User): MentionableUser {
   return {
@@ -81,12 +59,7 @@ function createMentionableUser(user: User): MentionableUser {
     ),
     searchKey: getSearchKeyForUser(user),
     user,
-    actor: {
-      type: 'user',
-      email: user.email,
-      id: user.id,
-      name: user.name,
-    },
+    actor: {type: 'user', email: user.email, id: user.id, name: user.name},
   };
 }
 
@@ -108,6 +81,10 @@ function createUnmentionableUser(user: User): MentionableUser {
   };
 }
 
+function MemberValue({option}: {option: MentionableUser}) {
+  return <UserBadge avatarSize={20} user={option.user} hideEmail />;
+}
+
 /**
  * A component that allows you to select organization members.
  */
@@ -126,10 +103,7 @@ function SelectMembers({
     select: resp => selectUsersFromMembers(resp.json),
   });
   const searchMembersQuery = useQuery({
-    ...memberUsersQueryOptions({
-      orgSlug: organization.slug,
-      search: debouncedSearch,
-    }),
+    ...memberUsersQueryOptions({orgSlug: organization.slug, search: debouncedSearch}),
     enabled: debouncedSearch !== '',
     placeholderData: previousData => (debouncedSearch ? previousData : undefined),
   });
@@ -160,12 +134,7 @@ function SelectMembers({
       menuList: (provided, state) => ({
         ...provided,
         ...styles?.menuList?.(provided, state),
-        '.option > div': {
-          paddingBlock: 4,
-        },
-        [String(CheckWrap)]: {
-          height: 32,
-        },
+        '.option > div': {paddingBlock: 4},
       }),
       input: (provided, state) => ({
         ...provided,
@@ -175,9 +144,7 @@ function SelectMembers({
       }),
       option: (provided, state) => ({
         ...provided,
-        svg: {
-          color: state.isSelected ? '#fff' : undefined,
-        },
+        svg: {color: state.isSelected ? '#fff' : undefined},
       }),
     }),
     [styles, hasSelectedMember, search]
@@ -189,7 +156,9 @@ function SelectMembers({
     return (
       <Select
         aria-label={ariaLabel}
-        isDisabled
+        disabled
+        options={[]}
+        value={null}
         placeholder={t('Loading')}
         styles={selectStyles}
       />
@@ -197,15 +166,15 @@ function SelectMembers({
   }
 
   return (
-    <Select<MentionableUser>
+    <Select<string, MentionableUser>
       aria-label={ariaLabel}
       options={currentOptions}
-      components={memberSelectComponents}
+      components={{Value: MemberValue}}
       filterOption={filterMemberOption}
       isLoading={searchLoading}
       onInputChange={setSearch}
       onChange={option => onChange(option)}
-      value={selectedValue}
+      value={selectedValue ?? null}
       styles={selectStyles}
     />
   );

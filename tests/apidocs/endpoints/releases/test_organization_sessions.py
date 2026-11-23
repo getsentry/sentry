@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from django.test.client import RequestFactory
 from django.urls import reverse
@@ -23,7 +25,7 @@ class OrganizationSessionsDocsTest(APIDocsTestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
     def test_get(self) -> None:
-        query = {
+        query: dict[str, Any] = {
             "project": [self.project.id],
             "statsPeriod": "30d",
             "field": ["sum(session)"],

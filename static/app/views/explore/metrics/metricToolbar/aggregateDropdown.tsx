@@ -51,11 +51,7 @@ export function AggregateDropdown({
       ...group,
       options: group.options.map(opt =>
         disabledAggregates[opt.value]
-          ? {
-              ...opt,
-              disabled: true,
-              tooltip: disabledAggregates[opt.value],
-            }
+          ? {...opt, disabled: true, tooltip: disabledAggregates[opt.value]}
           : opt
       ),
     }));
@@ -92,6 +88,7 @@ export function AggregateDropdown({
     <CompositeSelect
       disabled={isDisabled || groups.length === 0}
       menuHeaderTrailingItems={
+        // Without a menu title, a hidden Clear button would leave an empty header.
         isDefaultSelection
           ? undefined
           : () => <CompositeSelect.ClearButton onClick={() => handleChange([])} />

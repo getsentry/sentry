@@ -1,9 +1,10 @@
 from typing import Any
 
+import jsonschema
 import pytest
 
 from sentry.event_manager import EventManager
-from sentry.interfaces.contexts import Contexts
+from sentry.interfaces.contexts import Contexts, contexts_response_schema
 from sentry.services import eventstore
 from sentry.testutils.pytest.fixtures import InstaSnapshotter
 from tests.sentry.event_manager.interfaces import CustomSnapshotter as CustomSnapshotterBase
@@ -237,3 +238,49 @@ def test_reserved_context_alias_self() -> None:
     # Verify valid_context was preserved
     assert "valid_context" in json_data
     assert json_data["valid_context"]["valid_key"] == "valid_value"
+
+
+def _validate_contexts(contexts: dict[str, Any]) -> None:
+    schema = contexts_response_schema()["additionalProperties"]
+    for context in contexts.values():
+        jsonschema.validate(context, schema)
+
+
+def test_response_schema_matches_serialized_contexts() -> None:
+    mgr = EventManager(
+        data={
+            "contexts": {
+                "os": {"name": "Windows", "version": "95", "rooted": True},
+                "device": {"model": "iPhone", "memory_size": 1234567890123456, "charging": True},
+                "gpu": {"id": 4318, "name": "GeForce"},
+                "trace": {"trace_id": "a" * 32, "span_id": "b" * 16, "op": "http.server"},
+                "otel": {"attributes": {"http.status": 200, "tags": ["a", "b"]}},
+                "unity": {"type": "unity", "install_mode": "Store"},
+                "custom": {"type": "custom", "count": 3, "nested": {"x": [1, "y"]}},
+            },
+            "event_id": "d718bb6c40be4ac9a0c55c4df1640130",
+        }
+    )
+    mgr.normalize()
+    evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
+    interface = evt.interfaces.get("contexts")
+    assert interface is not None
+    contexts = interface.to_json()
+    assert contexts["device"]["memory_size"] == "1234567890123456"
+    assert contexts["custom"]["type"] == "default"
+    _validate_contexts(contexts)
+
+
+@pytest.mark.parametrize(
+    "drifted",
+    [
+        {"type": "os", "rooted": "yes"},
+        {"type": "gpu", "id": 1.5},
+        {"type": "otel", "attributes": {"nested": {"x": 1}}},
+        {"type": "custom"},
+        {"name": "Windows"},
+    ],
+)
+def test_response_schema_rejects_drift(drifted: dict[str, Any]) -> None:
+    with pytest.raises(jsonschema.ValidationError):
+        _validate_contexts({"drifted": drifted})

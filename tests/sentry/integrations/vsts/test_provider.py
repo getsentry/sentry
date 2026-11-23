@@ -122,7 +122,7 @@ class TestVSTSNewOAuth2CallbackView(TestCase):
 
 @control_silo_test
 class TestVSTSOAuth2LoginView(TestCase):
-    def get_authorize_params(self) -> dict[str, str]:
+    def get_authorize_params(self) -> dict[str, str | int | None]:
         view = VSTSOAuth2LoginView(
             authorize_url="https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
             client_id="vsts-new-client-id",

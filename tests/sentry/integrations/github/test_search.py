@@ -14,7 +14,6 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.asserts import (
     assert_halt_metric,
     assert_middleware_metrics,
-    assert_slo_metric_calls,
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -98,16 +97,12 @@ class GithubSearchTest(APITestCase):
             {"value": 25, "label": "#25 AEIOU Error"},
             {"value": 45, "label": "#45 AEIOU Error"},
         ]
-        assert len(mock_record.mock_calls) == 8
+        assert len(mock_record.mock_calls) == 6
         middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
         assert_middleware_metrics(middleware_calls)
-        product_calls = mock_record.mock_calls[3:-1]
-        start1, start2, halt1, halt2 = product_calls
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED
-        assert halt1.args[0] == EventLifecycleOutcome.SUCCESS
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+        start, success = mock_record.mock_calls[3:-1]
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert success.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     def test_finds_external_issue_results_with_id(self) -> None:
@@ -143,17 +138,12 @@ class GithubSearchTest(APITestCase):
             {"value": "test/example", "label": "example"},
             {"value": "test/exhaust", "label": "exhaust"},
         ]
-        assert len(mock_record.mock_calls) == 8
+        assert len(mock_record.mock_calls) == 6
         middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
         assert_middleware_metrics(middleware_calls)
-        product_calls = mock_record.mock_calls[3:-1]
-        start1, start2, halt1, halt2 = (
-            product_calls  # calls get, which calls handle_search_repositories
-        )
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED
-        assert halt1.args[0] == EventLifecycleOutcome.SUCCESS
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+        start, success = mock_record.mock_calls[3:-1]
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert success.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     def test_prefetches_repo_results_with_empty_query(self) -> None:
@@ -380,20 +370,15 @@ class GithubSearchTest(APITestCase):
         resp = self.client.get(self.url, data={"field": "repo", "query": "nope", "repo": "example"})
         assert resp.status_code == 404
         assert "detail" in resp.data
-        assert len(mock_record.mock_calls) == 8
+        assert len(mock_record.mock_calls) == 6
         middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
         assert_middleware_metrics(middleware_calls)
-        product_calls = mock_record.mock_calls[3:-1]
-        start1, start2, halt1, halt2 = product_calls
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED
-        assert halt1.args[0] == EventLifecycleOutcome.HALTED
+        start, halt = mock_record.mock_calls[3:-1]
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
         assert_halt_metric(
             mock_record, SourceCodeSearchEndpointHaltReason.MISSING_REPOSITORY_OR_NO_ACCESS.value
         )
-        # NOTE: handle_search_repositories returns without raising an API error, so for the
-        # purposes of logging the GET request completes successfully
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     def test_finds_no_external_issues_results(self) -> None:
@@ -433,18 +418,13 @@ class GithubSearchTest(APITestCase):
             self.url, data={"field": "externalIssue", "query": "ex", "repo": "example"}
         )
         assert resp.status_code == 429
-        assert len(mock_record.mock_calls) == 8
+        assert len(mock_record.mock_calls) == 6
         middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
         assert_middleware_metrics(middleware_calls)
-        product_calls = mock_record.mock_calls[3:-1]
-        start1, start2, halt1, halt2 = product_calls
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED
-        assert halt1.args[0] == EventLifecycleOutcome.HALTED
+        start, halt = mock_record.mock_calls[3:-1]
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
         assert_halt_metric(mock_record, SourceCodeSearchEndpointHaltReason.RATE_LIMITED.value)
-        # NOTE: handle_search_issues returns without raising an API error, so for the
-        # purposes of logging the GET request completes successfully
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -460,18 +440,13 @@ class GithubSearchTest(APITestCase):
         )
         resp = self.client.get(self.url, data={"field": "repo", "query": "ex"})
         assert resp.status_code == 429
-        assert len(mock_record.mock_calls) == 8
+        assert len(mock_record.mock_calls) == 6
         middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
         assert_middleware_metrics(middleware_calls)
-        product_calls = mock_record.mock_calls[3:-1]
-        start1, start2, halt1, halt2 = product_calls
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED
-        assert halt1.args[0] == EventLifecycleOutcome.HALTED
+        start, halt = mock_record.mock_calls[3:-1]
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
         assert_halt_metric(mock_record, SourceCodeSearchEndpointHaltReason.RATE_LIMITED.value)
-        # NOTE: handle_search_repositories returns without raising an API error, so for the
-        # purposes of logging the GET request completes successfully
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
 
     # Request Validations
     # Test observability requests for GET requests failures here
@@ -479,42 +454,24 @@ class GithubSearchTest(APITestCase):
     def test_missing_field(self, mock_record: MagicMock) -> None:
         resp = self.client.get(self.url, data={"query": "XYZ"})
         assert resp.status_code == 400
-        assert len(mock_record.mock_calls) == 6
-        middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
-
-        assert_middleware_metrics(middleware_calls)
-
-        product_calls = mock_record.mock_calls[3:-1]
-        assert_slo_metric_calls(product_calls, EventLifecycleOutcome.HALTED)
-        assert_halt_metric(mock_record, SourceCodeSearchEndpointHaltReason.SERIALIZER_ERRORS.value)
+        assert len(mock_record.mock_calls) == 4
+        assert_middleware_metrics(mock_record.mock_calls)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_missing_query(self, mock_record: MagicMock) -> None:
         resp = self.client.get(self.url, data={"field": "externalIssue"})
 
         assert resp.status_code == 400
-        assert len(mock_record.mock_calls) == 6
-        middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
-        assert_middleware_metrics(middleware_calls)
-
-        product_calls = mock_record.mock_calls[3:-1]
-        assert_slo_metric_calls(product_calls, EventLifecycleOutcome.HALTED)
-        assert_halt_metric(mock_record, SourceCodeSearchEndpointHaltReason.SERIALIZER_ERRORS.value)
+        assert len(mock_record.mock_calls) == 4
+        assert_middleware_metrics(mock_record.mock_calls)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_missing_repository(self, mock_record: MagicMock) -> None:
         resp = self.client.get(self.url, data={"field": "externalIssue", "query": "XYZ"})
 
         assert resp.status_code == 400
-        assert len(mock_record.mock_calls) == 6
-        middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
-        assert_middleware_metrics(middleware_calls)
-
-        product_calls = mock_record.mock_calls[3:-1]
-        assert_slo_metric_calls(product_calls, EventLifecycleOutcome.HALTED)
-        assert_halt_metric(
-            mock_record, SourceCodeSearchEndpointHaltReason.MISSING_REPOSITORY_FIELD.value
-        )
+        assert len(mock_record.mock_calls) == 4
+        assert_middleware_metrics(mock_record.mock_calls)
 
     def test_invalid_field(self) -> None:
         resp = self.client.get(self.url, data={"field": "invalid-field", "query": "nope"})
@@ -538,15 +495,8 @@ class GithubSearchTest(APITestCase):
 
         assert resp.status_code == 404
 
-        assert len(mock_record.mock_calls) == 6
-        middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
-        assert_middleware_metrics(middleware_calls)
-
-        product_calls = mock_record.mock_calls[3:-1]
-        assert_slo_metric_calls(product_calls, EventLifecycleOutcome.HALTED)
-        assert_halt_metric(
-            mock_record, SourceCodeSearchEndpointHaltReason.MISSING_INTEGRATION.value
-        )
+        assert len(mock_record.mock_calls) == 4
+        assert_middleware_metrics(mock_record.mock_calls)
 
     def test_missing_installation(self) -> None:
         # remove organization integration aka "uninstalling" installation

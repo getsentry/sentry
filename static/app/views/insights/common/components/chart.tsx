@@ -39,7 +39,8 @@ import {
 } from 'sentry/utils/discover/charts';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {ChartType} from 'sentry/views/insights/common/components/chartTypes';
+
+import {ChartType} from './chartTypes';
 
 export {ChartType, isChartType} from 'sentry/views/insights/common/components/chartTypes';
 
@@ -350,11 +351,7 @@ export function Chart({
   ];
 
   const xAxis: XAXisOption = disableXAxis
-    ? {
-        show: false,
-        axisLabel: {show: true, margin: 0},
-        axisLine: {show: false},
-      }
+    ? {show: false, axisLabel: {show: true, margin: 0}, axisLine: {show: false}}
     : {};
 
   const formatter: TooltipFormatterCallback<TopLevelFormatterParams> = (
@@ -401,18 +398,10 @@ export function Chart({
     })(deDupedParams, asyncTicket);
   };
 
-  const legend = isLegendVisible
-    ? {
-        top: 0,
-        right: 10,
-        truncate: true,
-      }
-    : undefined;
+  const legend = isLegendVisible ? {top: 0, right: 10, truncate: true} : undefined;
 
   const areaChartProps = {
-    seriesOptions: {
-      showSymbol: false,
-    },
+    seriesOptions: {showSymbol: false},
     grid,
     yAxes,
     utc,
@@ -422,10 +411,7 @@ export function Chart({
     tooltip: {
       formatter,
       trigger: 'axis',
-      axisPointer: {
-        type: 'cross',
-        label: {show: false},
-      },
+      axisPointer: {type: 'cross', label: {show: false}},
       valueFormatter: (value, seriesName) => {
         return tooltipFormatter(
           value,

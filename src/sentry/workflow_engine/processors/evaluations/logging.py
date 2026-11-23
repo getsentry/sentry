@@ -2,17 +2,23 @@ from __future__ import annotations
 
 import logging
 import random
-from collections.abc import Mapping, Sequence
-from dataclasses import asdict, is_dataclass
-from typing import TYPE_CHECKING, cast, overload
+from collections.abc import Iterator, Mapping, Sequence
+from dataclasses import fields, is_dataclass
+from typing import TYPE_CHECKING, overload
 
 from sentry import features, options
 from sentry.utils.sdk import sdk_logger
 from sentry.workflow_engine.processors.evaluations.base import (
     BaseWorkflowEngineEvaluationArtifact,
 )
+from sentry.workflow_engine.processors.evaluations.condition import (
+    DataConditionEvaluationArtifact,
+)
 from sentry.workflow_engine.processors.evaluations.detector import ProcessDetectorsResult
-from sentry.workflow_engine.processors.evaluations.serialization import evaluation_artifacts
+from sentry.workflow_engine.processors.evaluations.serialization import (
+    EvaluationEmitter,
+    artifact_fields,
+)
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -28,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 def _is_sampled() -> bool:
-    sample_rate = cast(float, options.get("workflow_engine.evaluation_log_sample_rate"))
+    sample_rate = options.get("workflow_engine.evaluation_log_sample_rate")
     return random.random() < sample_rate
 
 
@@ -40,9 +46,7 @@ def should_log(
         return True
 
     if not isinstance(result, ProcessDetectorsResult):
-        target_workflow_ids = cast(
-            list[int], options.get("workflow_engine.evaluation_log_target_workflow_ids")
-        )
+        target_workflow_ids = options.get("workflow_engine.evaluation_log_target_workflow_ids")
         evaluated_workflow_ids = result.evaluated_workflow_ids()
         if any(workflow_id in evaluated_workflow_ids for workflow_id in target_workflow_ids):
             return True
@@ -50,63 +54,61 @@ def should_log(
     return _is_sampled()
 
 
-def redact_pii_from_artifact(artifact: dict[str, object]) -> dict[str, object]:
-    return _serialize_log_value(artifact)
+class LoggingEmitter(EvaluationEmitter[dict[str, object]]):
+    """Logs evaluation artifacts, redacting complex condition inputs."""
 
+    def filter(self, artifact: BaseWorkflowEngineEvaluationArtifact) -> dict[str, object]:
+        data = artifact_fields(artifact)
+        if isinstance(artifact, DataConditionEvaluationArtifact) and not isinstance(
+            artifact.input, ALLOWED_LOG_INPUT_TYPES
+        ):
+            # Condition input is arbitrary caller data that may contain PII.
+            data["input"] = None
+        return data
 
-@overload
-def _serialize_log_value(
-    value: BaseWorkflowEngineEvaluationArtifact, field_name: str | None = None
-) -> dict[str, object]: ...
+    def emit(
+        self,
+        organization: Organization,
+        result: WorkflowEngineResult,
+        evaluations: Iterator[dict[str, object]],
+    ) -> None:
+        # Evaluations are filtered lazily, so unsampled results skip serialization.
+        if not should_log(organization, result):
+            return
 
+        direct_to_sentry = options.get("workflow_engine.evaluation_logs_direct_to_sentry")
 
-@overload
-def _serialize_log_value[K](
-    value: Mapping[K, object], field_name: str | None = None
-) -> dict[K, object]: ...
+        is_detector_result = isinstance(result, ProcessDetectorsResult)
 
+        log_prefix = (
+            DETECTOR_EVALUATION_LOG_PREFIX if is_detector_result else WORKFLOW_EVALUATION_LOG_PREFIX
+        )
 
-@overload
-def _serialize_log_value(value: object, field_name: str | None = None) -> object: ...
+        for artifact in evaluations:
+            artifact["organization_id"] = organization.id
 
+            if direct_to_sentry:
+                sdk_logger.info(log_prefix, attributes=artifact)
+            else:
+                logger.info(log_prefix, extra=artifact)
 
-def _serialize_log_value(value: object, field_name: str | None = None) -> object:
-    """Serialize an artifact value while redacting complex condition inputs."""
-    if field_name == "input":
-        return value if isinstance(value, ALLOWED_LOG_INPUT_TYPES) else None
+    @overload
+    def serialize[K](self, value: Mapping[K, object]) -> dict[K, object]: ...
 
-    if is_dataclass(value) and not isinstance(value, type):
-        return _serialize_log_value(asdict(value))
+    @overload
+    def serialize(self, value: object) -> object: ...
 
-    if isinstance(value, Mapping):
-        return {key: _serialize_log_value(item, str(key)) for key, item in value.items()}
+    def serialize(self, value: object) -> object:
+        """Convert filtered dataclasses to dicts; log attributes otherwise keep their values."""
+        if is_dataclass(value) and not isinstance(value, type):
+            return {
+                field.name: self.serialize(getattr(value, field.name)) for field in fields(value)
+            }
 
-    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
-        return [_serialize_log_value(item) for item in value]
+        if isinstance(value, Mapping):
+            return {key: self.serialize(item) for key, item in value.items()}
 
-    return value
+        if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+            return [self.serialize(item) for item in value]
 
-
-def emit_evaluation_logs(
-    organization: Organization,
-    result: WorkflowEngineResult,
-) -> None:
-    if not should_log(organization, result):
-        return
-
-    direct_to_sentry = options.get("workflow_engine.evaluation_logs_direct_to_sentry")
-
-    is_detector_result = isinstance(result, ProcessDetectorsResult)
-
-    log_prefix = (
-        DETECTOR_EVALUATION_LOG_PREFIX if is_detector_result else WORKFLOW_EVALUATION_LOG_PREFIX
-    )
-
-    for evaluation in evaluation_artifacts(result):
-        artifact = _serialize_log_value(evaluation)
-        artifact["organization_id"] = organization.id
-
-        if direct_to_sentry:
-            sdk_logger.info(log_prefix, attributes=artifact)
-        else:
-            logger.info(log_prefix, extra=artifact)
+        return value

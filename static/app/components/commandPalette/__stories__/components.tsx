@@ -4,8 +4,8 @@ import {
   ModalBody,
   ModalFooter,
 } from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   CMDKAction,
   CommandPaletteProvider,
@@ -18,22 +18,22 @@ export function CommandPaletteDemo() {
       <CMDKAction display={{label: 'Go to Flex story'}} to="/scraps/layout/flex/" />
       <CMDKAction
         display={{label: 'Execute an action'}}
-        onAction={() => addSuccessMessage('Action executed')}
+        onAction={() => toast.success('Action executed')}
       />
       <CMDKAction display={{label: 'Parent action'}}>
         <CMDKAction
           display={{label: 'Child action'}}
-          onAction={() => addSuccessMessage('Child action executed')}
+          onAction={() => toast.success('Child action executed')}
         />
       </CMDKAction>
       <CMDKAction display={{label: 'Issues List'}}>
         <CMDKAction
           display={{label: 'Select all'}}
-          onAction={() => addSuccessMessage('Select all')}
+          onAction={() => toast.success('Select all')}
         />
         <CMDKAction
           display={{label: 'Deselect all'}}
-          onAction={() => addSuccessMessage('Deselect all')}
+          onAction={() => toast.success('Deselect all')}
         />
       </CMDKAction>
       <CommandPalette

@@ -8,7 +8,6 @@ from django.db.models import Q
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry
 
-from sentry import features
 from sentry.ai_monitoring.conversation_titles import (
     ConversationTitleSpanData,
     clamp_conversation_id_for_storage,
@@ -27,6 +26,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ai_agent_monitoring_tasks
 from sentry.utils import metrics
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     get_viewer_context,
@@ -65,9 +65,6 @@ def generate_ai_conversation_title(
         return
 
     organization = project.organization
-    if not features.has("organizations:gen-ai-conversation-title-generation", organization):
-        metrics.incr("ai_monitoring.conversation_title.skip", tags={"reason": "feature_disabled"})
-        return
     if organization.get_option("sentry:hide_ai_features"):
         metrics.incr("ai_monitoring.conversation_title.skip", tags={"reason": "hide_ai_features"})
         return
@@ -138,9 +135,7 @@ def spawn_conversation_title_generation(
 ) -> None:
     """Spawn one title-generation task per conversation (earliest user message wins)."""
     organization = project.organization
-    if not features.has(
-        "organizations:gen-ai-conversation-title-generation", organization
-    ) or organization.get_option("sentry:hide_ai_features"):
+    if organization.get_option("sentry:hide_ai_features"):
         return
 
     earliest_by_conversation: dict[str, ConversationTitleSpanData] = {}
@@ -173,9 +168,9 @@ def spawn_conversation_title_generation(
     if get_viewer_context() is None:
         scope = viewer_context_scope(
             ViewerContext(
+                actor=Actor(type=ActorType.SYSTEM),
                 organization_id=project.organization_id,
                 project_id=project.id,
-                actor_type=ActorType.SYSTEM,
             )
         )
 

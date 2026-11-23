@@ -5,7 +5,6 @@ import type {
   GroupIntegration,
   PlatformExternalIssue,
   SentryAppComponent,
-  SentryAppInstallation,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
@@ -24,7 +23,7 @@ export interface SentryAppIssueComponent extends BaseIssueComponent {
     organization: Organization;
     sentryApp: SentryAppComponent['sentryApp'];
     sentryAppComponent: SentryAppComponent;
-    sentryAppInstallation: SentryAppInstallation;
+    sentryAppInstallationUuid: string;
   };
   type: 'sentry-app-issue';
 }

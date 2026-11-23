@@ -1,10 +1,14 @@
-from django.contrib.auth.models import AnonymousUser
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from sentry import options
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
+
+if TYPE_CHECKING:
+    from sentry.auth.principal import RequestPrincipal
 
 READONLY_SCOPES = frozenset(
     [
@@ -23,11 +27,14 @@ def is_demo_mode_enabled() -> bool:
     return options.get("demo-mode.enabled")
 
 
-def is_demo_user(user: User | AnonymousUser | None | RpcUser) -> bool:
+def is_demo_user(user: RequestPrincipal | None) -> bool:
+    # circular: sentry.auth.principal imports this module
+    from sentry.auth.principal import acting_user_id
+
     if not user:
         return False
 
-    return user.id in options.get("demo-mode.users")
+    return acting_user_id(user) in options.get("demo-mode.users")
 
 
 def is_demo_org(organization: Organization | RpcOrganization | None) -> bool:

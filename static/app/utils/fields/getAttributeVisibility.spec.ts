@@ -1,4 +1,4 @@
-import {getAttributeVisibility} from 'sentry/utils/fields/getAttributeVisibility';
+import {getAttributeVisibility} from './getAttributeVisibility';
 
 describe('getAttributeVisibility', () => {
   it.each([

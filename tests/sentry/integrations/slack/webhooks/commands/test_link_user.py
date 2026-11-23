@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.slack.views.link_identity import SUCCESS_LINKED_MESSAGE, build_linking_url
 from sentry.integrations.slack.views.unlink_identity import (
     SUCCESS_UNLINKED_MESSAGE,
@@ -21,7 +22,10 @@ class SlackLinkIdentityViewTest(SlackCommandsTest):
 
     def test_link_user_identity(self) -> None:
         linking_url = build_linking_url(
-            self.integration, self.external_id, self.channel_id, self.response_url
+            serialize_integration(self.integration),
+            self.external_id,
+            self.channel_id,
+            self.response_url,
         )
 
         response = self.client.post(linking_url)

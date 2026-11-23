@@ -3,19 +3,22 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {IssueReplayCount} from 'sentry/components/group/issueReplayCount';
 import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
+
+import {IssueReplayCount} from './issueReplayCount';
 
 jest.mock('sentry/utils/replayCount/useReplayCountForIssues');
 
 function mockCount(count: undefined | number) {
   const getReplayCountForIssue = jest.fn().mockReturnValue(count);
-  jest.mocked(useReplayCountForIssues).mockReturnValue({
-    getReplayCountForIssue,
-    getReplayCountForIssues: jest.fn(),
-    issueHasReplay: jest.fn(),
-    issuesHaveReplay: jest.fn(),
-  });
+  jest
+    .mocked(useReplayCountForIssues)
+    .mockReturnValue({
+      getReplayCountForIssue,
+      getReplayCountForIssues: jest.fn(),
+      issueHasReplay: jest.fn(),
+      issuesHaveReplay: jest.fn(),
+    });
   return getReplayCountForIssue;
 }
 

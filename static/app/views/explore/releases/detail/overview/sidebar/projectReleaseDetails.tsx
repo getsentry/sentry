@@ -3,13 +3,13 @@ import {IconInfo} from '@sentry/icons/info';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
-import {DateTime} from 'sentry/components/dateTime';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -75,7 +75,7 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
               {dateReleased ? (
                 <DateTime date={dateReleased} />
               ) : (
-                <ButtonContainer>
+                <Flex justify="end" align="center" height="1lh">
                   <Tooltip
                     title={t(
                       'Set release date to %s',
@@ -104,7 +104,7 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
                       {t('Finalize')}
                     </FinalizeButton>
                   </Tooltip>
-                </ButtonContainer>
+                </Flex>
               )}
             </DescriptionList.Details>
             <DescriptionList.Term>{t('Version')}</DescriptionList.Term>
@@ -178,13 +178,6 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
 const StyledTextOverflow = styled(TextOverflow)`
   line-height: inherit;
   text-align: right;
-`;
-
-const ButtonContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  height: 1lh;
 `;
 
 const FinalizeButton = styled(Button)`

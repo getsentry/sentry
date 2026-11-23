@@ -30,11 +30,7 @@ const FILTER_TOKENS = [
   TokenType.REGEX_FILTER,
 ];
 
-type Token = {
-  type: TokenType;
-  value: string;
-  key?: string;
-};
+type Token = {type: TokenType; value: string; key?: string};
 
 function isOp(t: Token) {
   return t.type === TokenType.OPERATOR;
@@ -421,6 +417,22 @@ export class MutableSearch {
       this.addFilterValue(key, values[i]!);
     }
     this.addOp(')');
+    return this;
+  }
+
+  /**
+   * Adds one `key:[a,b]` filter. Values that contain spaces or list syntax
+   * characters are quoted so they stay a single list entry.
+   */
+  addFilterValueList(key: string, values: string[]) {
+    const listValues = values.map(value => {
+      const escaped = escapeFilterValue(value);
+      if (escaped === '' || /[\s(),\\"]/.test(escaped)) {
+        return `"${escapeDoubleQuotes(escaped)}"`;
+      }
+      return escaped;
+    });
+    this.addFilterValue(key, `[${listValues.join(',')}]`, false);
     return this;
   }
 

@@ -7,13 +7,15 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LOGS_GROUP_BY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
-import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
+
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import type {OurLogsResponseItem} from './types';
+import {OurLogKnownFieldKey} from './types';
+import type {UseInfiniteLogsQueryResult} from './useLogsQuery';
+import {useStreamingTimeseriesResult} from './useStreamingTimeseriesResult';
 
 function preciseTimestampFromMillis(timestamp: number) {
   return String(BigInt(timestamp) * 1_000_000n);
@@ -33,17 +35,11 @@ function Wrapper({children}: {children?: React.ReactNode}) {
 }
 
 const defaultRouterConfig: RouterConfig = {
-  location: {
-    pathname: '/',
-    query: {[LOGS_AUTO_REFRESH_KEY]: 'enabled'},
-  },
+  location: {pathname: '/', query: {[LOGS_AUTO_REFRESH_KEY]: 'enabled'}},
 };
 
 const idleRouterConfig: RouterConfig = {
-  location: {
-    pathname: '/',
-    query: {[LOGS_AUTO_REFRESH_KEY]: 'idle'},
-  },
+  location: {pathname: '/', query: {[LOGS_AUTO_REFRESH_KEY]: 'idle'}},
 };
 
 const severityGroupByRouterConfig: RouterConfig = {
@@ -78,10 +74,7 @@ describe('useStreamingTimeseriesResult', () => {
       isFetching: false,
       isPending: false,
       data: logFixtures,
-      meta: {
-        fields: {},
-        units: {},
-      },
+      meta: {fields: {}, units: {}},
       isEmpty: logFixtures.length === 0,
       fetchNextPage: jest.fn(),
       fetchPreviousPage: jest.fn(),
@@ -116,11 +109,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 70},
               {timestamp: 8000, value: 80},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
         ],
       },
@@ -148,11 +137,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 70},
               {timestamp: 8000, value: 80},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
         ],
         'avg(payload_size)': [
@@ -168,11 +153,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 7000},
               {timestamp: 8000, value: 8000},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
         ],
       },
@@ -201,11 +182,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 7},
               {timestamp: 8000, value: 8},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
           {
             yAxis: 'warn',
@@ -220,11 +197,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 70},
               {timestamp: 8000, value: 80},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
           {
             yAxis: 'info',
@@ -239,11 +212,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 700},
               {timestamp: 8000, value: 800},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
         ],
       },
@@ -272,11 +241,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 7},
               {timestamp: 8000, value: 8},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
           {
             yAxis: 'warn',
@@ -291,11 +256,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 70},
               {timestamp: 8000, value: 80},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
           {
             yAxis: 'info',
@@ -310,11 +271,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 700},
               {timestamp: 8000, value: 800},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
         ],
         'avg(payload_size)': [
@@ -331,11 +288,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 700},
               {timestamp: 8000, value: 800},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
           {
             yAxis: 'warn',
@@ -350,11 +303,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 7000},
               {timestamp: 8000, value: 8000},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
           {
             yAxis: 'info',
@@ -369,11 +318,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 70000},
               {timestamp: 8000, value: 80000},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
         ],
       },
@@ -405,11 +350,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 7},
               {timestamp: 8000, value: 8},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
           {
             yAxis: 'warn,backend',
@@ -427,11 +368,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 70},
               {timestamp: 8000, value: 80},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
         ],
       },
@@ -449,11 +386,7 @@ describe('useStreamingTimeseriesResult', () => {
 
     const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
-      {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: defaultRouterConfig,
-        organization,
-      }
+      {additionalWrapper: Wrapper, initialRouterConfig: defaultRouterConfig, organization}
     );
 
     expect(result.current.data).toEqual(mockTimeseriesData.data);
@@ -465,11 +398,7 @@ describe('useStreamingTimeseriesResult', () => {
 
     const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
-      {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: idleRouterConfig,
-        organization,
-      }
+      {additionalWrapper: Wrapper, initialRouterConfig: idleRouterConfig, organization}
     );
 
     expect(result.current.data).toEqual(mockTimeseriesData.data);
@@ -481,11 +410,7 @@ describe('useStreamingTimeseriesResult', () => {
 
     const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
-      {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: idleRouterConfig,
-        organization,
-      }
+      {additionalWrapper: Wrapper, initialRouterConfig: idleRouterConfig, organization}
     );
 
     expect(result.current.data).toEqual(mockTimeseriesData.data);
@@ -497,11 +422,7 @@ describe('useStreamingTimeseriesResult', () => {
 
     const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
-      {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: idleRouterConfig,
-        organization,
-      }
+      {additionalWrapper: Wrapper, initialRouterConfig: idleRouterConfig, organization}
     );
 
     expect(result.current.data).toEqual(mockTimeseriesData.data);
@@ -513,17 +434,103 @@ describe('useStreamingTimeseriesResult', () => {
 
     const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
-      {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: idleRouterConfig,
-        organization,
-      }
+      {additionalWrapper: Wrapper, initialRouterConfig: idleRouterConfig, organization}
     );
 
     expect(result.current.data).toEqual(mockTimeseriesData.data);
   });
 
   describe('single axis', () => {
+    it('streams into raw counts without changing smoothed values', () => {
+      const mockTimeseriesData = getMockSingleAxisTimeseries();
+      const raw = {
+        ...mockTimeseriesData.data['count(message)'][0],
+        requestedTransformations: [],
+      };
+      const transformed = {
+        ...raw,
+        requestedTransformations: ['smooth(sma,3)'],
+        values: [{timestamp: 100000, value: 999}],
+      };
+      mockTimeseriesData.data['count(message)'] = [transformed, raw];
+      const {result, rerender} = renderHookWithProviders(
+        (tableData: UseInfiniteLogsQueryResult) =>
+          useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
+        {
+          additionalWrapper: Wrapper,
+          initialProps: createMockTableData([]),
+          initialRouterConfig: defaultRouterConfig,
+          organization,
+        }
+      );
+
+      rerender(
+        createMockTableData([
+          LogFixture({
+            id: 'streamed-log',
+            [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+            [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(9000),
+          }),
+        ])
+      );
+
+      expect(
+        getTimeSeriesForQuery(result.current.data, 'count(message)', ['smooth(sma,3)'])[0]
+          ?.values
+      ).toEqual([{timestamp: 100000, value: 999}]);
+      const rawValues = getTimeSeriesForQuery(result.current.data, 'count(message)')[0]!
+        .values;
+      expect(rawValues[0]?.timestamp).toBe(2000);
+      expect(rawValues.at(-1)).toEqual({timestamp: 9000, value: 1, incomplete: true});
+    });
+
+    it('annotates new streamed groups as raw beside a transformed group', () => {
+      const mockTimeseriesData = getMockMultiGroupTimeseries();
+      const raw = {
+        ...mockTimeseriesData.data['count(message)'][0],
+        requestedTransformations: [],
+      };
+      const transformed = {...raw, requestedTransformations: ['fill(zero)']};
+      mockTimeseriesData.data['count(message)'] = [transformed, raw];
+      const {result, rerender} = renderHookWithProviders(
+        (tableData: UseInfiniteLogsQueryResult) =>
+          useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
+        {
+          additionalWrapper: Wrapper,
+          initialProps: createMockTableData([]),
+          initialRouterConfig: severityGroupByRouterConfig,
+          organization,
+        }
+      );
+
+      rerender(
+        createMockTableData([
+          LogFixture({
+            id: 'streamed-group-log',
+            [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+            [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+            severity: 'new-severity',
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(9000),
+          }),
+        ])
+      );
+
+      expect(
+        getTimeSeriesForQuery(result.current.data, 'count(message)', ['fill(zero)'])
+      ).toEqual([transformed]);
+      expect(
+        getTimeSeriesForQuery(result.current.data, 'count(message)').find(
+          row => row.yAxis === 'new-severity'
+        )
+      ).toEqual(
+        expect.objectContaining({
+          requestedTransformations: [],
+          values: expect.arrayContaining([{timestamp: 9000, value: 1, incomplete: true}]),
+        })
+      );
+    });
+
     it('should create buckets from table data and merge with timeseries', async () => {
       const mockTimeseriesData = getMockSingleAxisTimeseries();
 

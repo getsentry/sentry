@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -9,27 +9,14 @@ import {
   getAutofixArtifactFromSection,
   isCodeChangesArtifact,
   type AutofixSection,
-  type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {t, tn} from 'sentry/locale';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
-import {CopySectionMarkdown} from './copySectionMarkdown';
 import {IssuePreviewSection} from './issuePreviewSection';
-import {RetryableAutofixSection} from './retryableAutofixSection';
 import {WorkingIndicator} from './workingIndicator';
 
-export function IssuePreviewAutofixProposalSection({
-  autofix,
-  defaultExpanded,
-  readOnly = false,
-  section,
-}: {
-  autofix: ReturnType<typeof useExplorerAutofix>;
-  defaultExpanded: boolean;
-  section: AutofixSection;
-  readOnly?: boolean;
-}) {
+export function IssuePreviewAutofixProposalSection({section}: {section: AutofixSection}) {
   const patchesByRepo = useMemo(() => {
     const artifact = getAutofixArtifactFromSection(section);
     return collectPatches(isCodeChangesArtifact(artifact) ? artifact : []);
@@ -46,64 +33,42 @@ export function IssuePreviewAutofixProposalSection({
       : t('%s files changed in %s repos', filesChanged, patchesByRepo.size);
 
   return (
-    <RetryableAutofixSection
-      autofix={autofix}
-      readOnly={readOnly}
+    <IssuePreviewSection
       section={section}
-      step="code_changes"
+      summary={
+        section.status === 'processing' ? (
+          <WorkingIndicator blocks={section.blocks}>
+            {t('Generating code changes...')}
+          </WorkingIndicator>
+        ) : patchesByRepo.size > 0 ? (
+          <Text>{proposalSummary}</Text>
+        ) : (
+          <Text variant="muted">{t('No code changes were proposed.')}</Text>
+        )
+      }
     >
-      <IssuePreviewSection
-        aria-label={t('Code Changes')}
-        defaultExpanded={defaultExpanded}
-      >
-        <IssuePreviewSection.Title
-          trailingItems={
-            <Fragment>
-              <RetryableAutofixSection.Button />
-              <CopySectionMarkdown section={section} />
-            </Fragment>
-          }
-        >
-          {t('Code Changes')}
-        </IssuePreviewSection.Title>
-        <IssuePreviewSection.Summary>
-          <RetryableAutofixSection.Prompt
-            placeholder={t('Give Seer additional context to improve these code changes.')}
-            prompt={t('How can this code change be improved?')}
-          />
-          {section.status === 'processing' ? (
-            <WorkingIndicator blocks={section.blocks}>
-              {t('Generating code changes...')}
-            </WorkingIndicator>
-          ) : patchesByRepo.size > 0 ? (
-            <Text>{proposalSummary}</Text>
-          ) : (
-            <Text variant="muted">{t('No code changes were proposed.')}</Text>
-          )}
-        </IssuePreviewSection.Summary>
-        <IssuePreviewSection.Content>
-          <Stack gap="lg">
-            {Array.from(patchesByRepo.entries(), ([repoName, patches]) => (
-              <Stack key={repoName} gap="md">
-                <Text bold>{repoName}</Text>
-                <FileDiffList gap="0">
-                  {patches.map(patch => (
-                    <FileDiffViewer
-                      key={patch.patch.path}
-                      patch={patch.patch}
-                      fileUrl={patch.code_url}
-                      repoName={repoName}
-                      showBorder
-                      collapsible
-                    />
-                  ))}
-                </FileDiffList>
-              </Stack>
-            ))}
-          </Stack>
-        </IssuePreviewSection.Content>
-      </IssuePreviewSection>
-    </RetryableAutofixSection>
+      {patchesByRepo.size > 0 && (
+        <Stack gap="lg">
+          {Array.from(patchesByRepo.entries(), ([repoName, patches]) => (
+            <Stack key={repoName} gap="md">
+              <Text bold>{repoName}</Text>
+              <FileDiffList gap="0">
+                {patches.map(patch => (
+                  <FileDiffViewer
+                    key={patch.patch.path}
+                    patch={patch.patch}
+                    fileUrl={patch.code_url}
+                    repoName={repoName}
+                    showBorder
+                    collapsible
+                  />
+                ))}
+              </FileDiffList>
+            </Stack>
+          ))}
+        </Stack>
+      )}
+    </IssuePreviewSection>
   );
 }
 

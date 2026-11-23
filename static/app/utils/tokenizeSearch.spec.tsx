@@ -1,4 +1,4 @@
-import {MutableSearch, TokenType} from 'sentry/utils/tokenizeSearch';
+import {MutableSearch, TokenType} from './tokenizeSearch';
 
 describe('utils/tokenizeSearch', () => {
   describe('MutableSearch.fromQueryObject', () => {
@@ -20,9 +20,7 @@ describe('utils/tokenizeSearch', () => {
       {
         name: 'should convert a basic query string to a query object',
         string: 'is:unresolved',
-        object: {
-          tokens: [{type: TokenType.FILTER, key: 'is', value: 'unresolved'}],
-        },
+        object: {tokens: [{type: TokenType.FILTER, key: 'is', value: 'unresolved'}]},
       },
       {
         name: 'should convert quoted strings',
@@ -179,9 +177,7 @@ describe('utils/tokenizeSearch', () => {
       {
         name: 'correctly preserves leading/trailing escaped quotes',
         string: 'a:"\\"a\\""',
-        object: {
-          tokens: [{type: TokenType.FILTER, key: 'a', value: '\\"a\\"'}],
-        },
+        object: {tokens: [{type: TokenType.FILTER, key: 'a', value: '\\"a\\"'}]},
       },
       {
         name: 'correctly tokenizes escaped quotes',
@@ -543,6 +539,16 @@ describe('utils/tokenizeSearch', () => {
 
       results.addFilterValue('e', 'e1*e2\\e3');
       expect(results.formatString()).toBe('e:"e1\\*e2\\e3"');
+    });
+
+    it('adds a list filter and quotes values that contain spaces', () => {
+      const results = new MutableSearch([]);
+
+      results.addFilterValueList('browser.name', ['Chrome', 'Chrome Mobile']);
+      results.addFilterValueList('user.geo.subregion', ['21', '154']);
+      expect(results.formatString()).toBe(
+        'browser.name:[Chrome,"Chrome Mobile"] user.geo.subregion:[21,154]'
+      );
     });
 
     it('quotes filter keys containing colons', () => {

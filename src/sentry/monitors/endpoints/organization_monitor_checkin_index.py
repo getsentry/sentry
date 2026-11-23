@@ -10,10 +10,13 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.monitors.models import Monitor
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
 
 from .base import MonitorEndpoint
-from .base_monitor_checkin_index import MonitorCheckInMixin
+from .base_monitor_checkin_index import CHECKIN_LIST_RATE_LIMITS, MonitorCheckInMixin
 
 
 @cell_silo_endpoint
@@ -23,6 +26,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint, MonitorCheckInMix
         "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.CRONS
+    rate_limits = CHECKIN_LIST_RATE_LIMITS
 
     @extend_schema(
         operation_id="listOrganizationMonitorCheckins",
@@ -42,7 +46,11 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint, MonitorCheckInMix
         },
     )
     def get(
-        self, request: Request, organization, project, monitor
+        self,
+        request: Request,
+        organization: Organization,
+        project: Project,
+        monitor: Monitor,
     ) -> Response[list[MonitorCheckInSerializerResponse]]:
         """
         Retrieve a list of check-ins for a monitor

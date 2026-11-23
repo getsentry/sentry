@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.pullrequest import (
@@ -10,6 +12,8 @@ from sentry.api.serializers.models.pullrequest import (
     PullRequestSerializerResponse,
 )
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunPullRequest
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 # Within a run, outputs are ordered to match the questions that produced them
@@ -47,7 +51,7 @@ class SeerRunResponse(TypedDict):
 @register(SeerRun)
 class SeerRunSerializer(Serializer):
     def get_attrs(
-        self, item_list: Sequence[SeerRun], user: Any, **kwargs: Any
+        self, item_list: Sequence[SeerRun], user: User | RpcUser | AnonymousUser, **kwargs: object
     ) -> dict[SeerRun, dict[str, Any]]:
         # The reverse one-to-one accessor (``run.agent``) raises DoesNotExist when
         # absent, so map the agent rows explicitly rather than dereferencing it.
@@ -83,10 +87,14 @@ class SeerRunSerializer(Serializer):
         }
 
     def serialize(
-        self, obj: SeerRun, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+        self,
+        obj: SeerRun,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
     ) -> SeerRunResponse:
-        agent: SeerAgentRun | None = attrs.get("agent")
-        pull_requests = attrs.get("pull_requests", [])
+        agent = cast(SeerAgentRun | None, attrs.get("agent"))
+        pull_requests = cast(list[PullRequestSerializerResponse], attrs.get("pull_requests", []))
         return {
             "id": str(obj.uuid),
             "type": obj.type,

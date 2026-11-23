@@ -1,8 +1,8 @@
-import styled from '@emotion/styled';
 import {IconArrow} from '@sentry/icons/arrow';
 import {IconBusiness} from '@sentry/icons/business';
 
 import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Panel} from 'sentry/components/panels/panel';
@@ -14,10 +14,7 @@ import {LearnMoreButton} from 'getsentry/components/features/learnMoreButton';
 import PlanFeature from 'getsentry/components/features/planFeature';
 import {displayPlanName} from 'getsentry/utils/billing';
 
-type Props = {
-  features: string[];
-  organization: Organization;
-};
+type Props = {features: string[]; organization: Organization};
 
 export function DisabledDataForwarding({organization, features}: Props) {
   return (
@@ -29,7 +26,7 @@ export function DisabledDataForwarding({organization, features}: Props) {
             icon={<IconArrow direction="right" />}
             title={t('Your business intelligence workflow is missing crucial data')}
             action={
-              <ButtonGroup>
+              <Grid gap="lg" flow="column">
                 <Button
                   variant="primary"
                   icon={<IconBusiness />}
@@ -47,7 +44,7 @@ export function DisabledDataForwarding({organization, features}: Props) {
                 >
                   {t('Documentation')}
                 </LearnMoreButton>
-              </ButtonGroup>
+              </Grid>
             }
           >
             {plan === null
@@ -70,9 +67,3 @@ export function DisabledDataForwarding({organization, features}: Props) {
     </PlanFeature>
   );
 }
-
-const ButtonGroup = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${p => p.theme.space.lg};
-`;

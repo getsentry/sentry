@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 from django.db.models import OuterRef, Subquery
 
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
 from sentry.workflow_engine.models import (
     Action,
@@ -38,28 +37,28 @@ def create_workflow_fire_histories(
 
     If we're reporting a fire due to delayed processing, is_delayed should be True.
     """
+    organization = event_data.get_organization()
     # Create WorkflowFireHistory objects for workflows we fire actions for
     workflow_ids = set(
         WorkflowDataConditionGroup.objects.filter(
-            condition_group__dataconditiongroupaction__action__in=actions_to_fire
+            condition_group__dataconditiongroupaction__action__in=actions_to_fire,
+            workflow__organization_id=organization.id,
         ).values_list("workflow_id", flat=True)
     )
 
-    event_id = (
-        event_data.event.event_id
-        if isinstance(event_data.event, GroupEvent)
-        else event_data.event.id
-    )
+    event_id = event_data.event_id
 
     if start_timestamp:
         fire_latency_seconds = (datetime.now(timezone.utc) - start_timestamp).total_seconds()
-        group_type = event_data.group.issue_type.slug
 
         for _ in workflow_ids:
             metrics.timing(
                 "workflow_fire_history.latency",
                 fire_latency_seconds,
-                tags={"delayed": is_delayed, "group_type": group_type},
+                tags={
+                    "delayed": is_delayed,
+                    "group_type": event_data.group.issue_type.slug if event_data.group else "none",
+                },
             )
 
     fire_histories = [

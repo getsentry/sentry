@@ -6,6 +6,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, ExtrapolationMode
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 
+from sentry.models.dashboard_widget import TypesClass
 from sentry.search.eap.types import ColumnType, SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, DurationUnit, SizeUnit
 from sentry.search.events.types import SAMPLING_MODES
@@ -191,7 +192,6 @@ FALSEY_VALUES = {"0", "false"}
 BOOLEAN_VALUES = TRUTHY_VALUES.union(FALSEY_VALUES)
 
 PROJECT_FIELDS = {"project", "project.slug", "project.name"}
-REVERSE_CONTEXT_ERROR = "Unknown value {} for filter {}, expecting one of: {}"
 
 RESPONSE_CODE_MAP = {
     1: ["100", "101", "102"],
@@ -237,6 +237,7 @@ SAMPLING_MODE_MAP: dict[SAMPLING_MODES, DownsampledStorageConfig.Mode.ValueType]
     "BEST_EFFORT": DownsampledStorageConfig.MODE_BEST_EFFORT,
     "PREFLIGHT": DownsampledStorageConfig.MODE_PREFLIGHT,
     "NORMAL": DownsampledStorageConfig.MODE_NORMAL,
+    "LOW_PRIORITY": DownsampledStorageConfig.MODE_LOW_PRIORITY,
     SAMPLING_MODE_HIGHEST_ACCURACY: DownsampledStorageConfig.MODE_HIGHEST_ACCURACY,
     SAMPLING_MODE_HIGHEST_ACCURACY_FLEX_TIME: DownsampledStorageConfig.MODE_HIGHEST_ACCURACY_FLEXTIME,
 }
@@ -284,3 +285,27 @@ PROTO_TYPE_TO_ATTRIBUTE_TYPE_MAP: dict[AttributeKey.Type.ValueType, ColumnType] 
     AttributeKey.Type.TYPE_ARRAY_DOUBLE: "array",
     AttributeKey.Type.TYPE_ARRAY_BOOL: "array",
 }
+
+# Protobuf has a max recursion depth, set a maximum on our side because snuba will 400 on parsing a request that has too
+# many functions chained together
+MAX_BOOLEAN_DEPTH = 50
+
+# Snuba rejects TraceItemStatsRequests with more attributes than this
+# (MAX_REQUEST_ATTRIBUTES in snuba/web/rpc/v1/endpoint_trace_item_stats.py)
+MAX_STATS_REQUEST_ATTRIBUTES = 500
+
+
+class QueryPriorities(TypesClass):
+    """
+    Which query priority a dashboard or saved query should use.
+    Null on the model means normal.
+    """
+
+    NORMAL = 0
+    FASTER = 1
+
+    TYPES = [
+        (NORMAL, "normal"),
+        (FASTER, "faster"),
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]

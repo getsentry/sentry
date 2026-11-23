@@ -1,19 +1,13 @@
 import styled from '@emotion/styled';
 
-import {DeployBadge} from '@sentry/scraps/badge';
-
+import {DeployBadge} from 'sentry/components/core/badge/deployBadge';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {Deploy} from 'sentry/types/release';
 
-type Props = {
-  deploys: Deploy[];
-  orgSlug: string;
-  projectId: number;
-  version: string;
-};
+type Props = {deploys: Deploy[]; orgSlug: string; projectId: number; version: string};
 
 export function Deploys({version, orgSlug, projectId, deploys}: Props) {
   return (

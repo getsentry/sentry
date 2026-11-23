@@ -4,7 +4,7 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {type QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -84,6 +84,7 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    * Number of groups for a `groupBy` request. e.g., if `topEvents` is `5` and `groupBy` is `["transaction"]` this will group the results by `transaction` and fetch the top 5 results
    */
   topEvents?: number;
+  transformations?: ReadonlyArray<readonly string[]>;
 }
 
 export function useFetchSpanTimeSeries<
@@ -97,12 +98,14 @@ export function useFetchSpanTimeSeries<
   );
 }
 
-export function makeEventsTimeSeriesQueryKeyPrefix(organizationSlug: string) {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/events-timeseries/', {
-      path: {organizationIdOrSlug: organizationSlug},
-    }),
-  ] as const;
+export function makeEventsTimeSeriesFilter(
+  organizationSlug: string,
+  options?: QueryKeyEndpointOptions
+) {
+  return apiOptions.queryFilter(
+    '/organizations/$organizationIdOrSlug/events-timeseries/',
+    {path: {organizationIdOrSlug: organizationSlug}, ...options}
+  );
 }
 
 /**
@@ -127,6 +130,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     logQuery,
     metricQuery,
     spanQuery,
+    transformations,
   } = options;
 
   const organization = useOrganization();
@@ -149,6 +153,11 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   const logQueryParams = logQuery?.map(formatSearchStringForQueryParam);
   const metricQueryParams = metricQuery?.map(formatSearchStringForQueryParam);
   const spanQueryParams = spanQuery?.map(formatSearchStringForQueryParam);
+  const transformationParams = Object.fromEntries(
+    (transformations ?? []).flatMap((steps, index) =>
+      steps.length ? [[`transformations[${index}]`, steps]] : []
+    )
+  );
 
   return useQuery({
     ...apiOptions.as<EventsTimeSeriesResponse>()(
@@ -161,6 +170,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           dataset,
           referrer,
           yAxis,
+          ...transformationParams,
           ...normalizeDateTimeParams(selection.datetime),
           project: selection.projects,
           environment: selection.environments,

@@ -10,7 +10,7 @@ from sentry.workflow_engine.endpoints.serializers.workflow_group_history_seriali
     WorkflowGroupHistory,
     WorkflowGroupHistorySerializer,
 )
-from sentry.workflow_engine.models import DetectorGroup
+from sentry.workflow_engine.models import DetectorGroup, Workflow
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
 pytestmark = [requires_snuba]
@@ -85,19 +85,30 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
                     self.group,
                     3,
                     self.base_triggered_date,
-                    self.history[0].event_id,
                     detector=self.detector,
                 ),
                 WorkflowGroupHistory(
                     self.group_2,
                     1,
                     self.base_triggered_date,
-                    self.history[-1].event_id,
                     detector=self.detector_2,
                 ),
             ],
             self.user,
             WorkflowGroupHistorySerializer(),
+        )
+
+    def test_hidden_workflow_is_not_found(self) -> None:
+        hidden_workflow = self.create_workflow(
+            organization=self.organization, type=Workflow.Type.INBOX
+        )
+
+        self.get_error_response(
+            self.organization.slug,
+            hidden_workflow.id,
+            start=before_now(days=6),
+            end=before_now(days=0),
+            status_code=404,
         )
 
     def test_pagination(self) -> None:
@@ -114,7 +125,6 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
                     self.group,
                     3,
                     self.base_triggered_date,
-                    self.history[0].event_id,
                     detector=self.detector,
                 )
             ],
@@ -137,7 +147,6 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
                     self.group_2,
                     1,
                     self.base_triggered_date,
-                    self.history[-1].event_id,
                     detector=self.detector_2,
                 )
             ],
@@ -145,6 +154,36 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
             WorkflowGroupHistorySerializer(),
         )
         assert resp["X-Hits"] == "2"  # 2 unique groups, not 4 total history records
+
+    def test_history_excludes_inaccessible_projects(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, teams=[self.team])
+        restricted_team = self.create_team()
+        restricted_project = self.create_project(
+            organization=self.organization, teams=[restricted_team]
+        )
+        self.group_2.update(project=restricted_project)
+        self.detector_2.update(project=restricted_project)
+        self.history[-1].update(date_added=before_now(hours=1))
+        self.create_detector_workflow(workflow=self.workflow, detector=self.detector)
+        self.create_detector_workflow(workflow=self.workflow, detector=self.detector_2)
+        self.login_as(member)
+
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, statsPeriod="6d", per_page=1
+        )
+
+        assert [row["group"]["id"] for row in response.data] == [str(self.group.id)]
+        assert response["X-Hits"] == "1"
+
+        self.workflow.detectorworkflow_set.all().delete()
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, statsPeriod="6d"
+        )
+
+        assert [row["group"]["id"] for row in response.data] == [str(self.group.id)]
 
     def test_sort_by_last_triggered(self) -> None:
         """Default sort is lastTriggered DESC. Explicit sort=-count orders by count DESC."""

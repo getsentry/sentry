@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 @produces_variants(["default"])
 def template_v1(
     interface: Template, event: BaseEvent, context: GroupingContext, **kwargs: Any
-) -> ComponentsByVariant:
+) -> ComponentsByVariant[Any]:
     variant_name = context["variant_name"]
 
     filename_component = FilenameGroupingComponent()

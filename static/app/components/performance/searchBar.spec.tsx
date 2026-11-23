@@ -4,9 +4,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import type {SearchBarProps} from 'sentry/components/performance/searchBar';
-import {SearchBar} from 'sentry/components/performance/searchBar';
 import {EventView} from 'sentry/utils/discover/eventView';
+
+import type {SearchBarProps} from './searchBar';
+import {SearchBar} from './searchBar';
 
 describe('SearchBar', () => {
   let eventsMock: any;
@@ -40,9 +41,7 @@ describe('SearchBar', () => {
     async () => {
       eventsMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
-        body: {
-          data: [{transaction: 'clients.call'}, {transaction: 'clients.fetch'}],
-        },
+        body: {data: [{transaction: 'clients.call'}, {transaction: 'clients.fetch'}]},
       });
 
       render(<SearchBar {...testProps} />);
@@ -154,9 +153,7 @@ describe('SearchBar', () => {
     const onSearch = jest.fn();
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [{transaction: 'GET /my-endpoint'}],
-      },
+      body: {data: [{transaction: 'GET /my-endpoint'}]},
     });
 
     render(<SearchBar {...testProps} onSearch={onSearch} />);
@@ -174,9 +171,7 @@ describe('SearchBar', () => {
   it('appends additional filters', async () => {
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [{transaction: 'clients.call'}, {transaction: 'clients.fetch'}],
-      },
+      body: {data: [{transaction: 'clients.call'}, {transaction: 'clients.fetch'}]},
     });
 
     render(<SearchBar {...testProps} />);

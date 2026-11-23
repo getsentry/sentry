@@ -1,12 +1,9 @@
-import {ResultTable} from 'sentry/components/resultTable';
+import {ResultTable, ResultTableRowHeader} from 'sentry/components/resultTable';
 import type {User} from 'sentry/types/user';
 
 import type {SelectableContainerPanel} from 'admin/components/selectableContainer';
 
-type Props = {
-  Panel: SelectableContainerPanel;
-  user: User;
-};
+type Props = {Panel: SelectableContainerPanel; user: User};
 
 export function UserEmails({Panel, user}: Props) {
   const primary = user.email;
@@ -24,10 +21,10 @@ export function UserEmails({Panel, user}: Props) {
         <tbody>
           {emails.map((data, idx) => (
             <tr key={idx}>
-              <td>
+              <ResultTableRowHeader>
                 <strong>{data.email}</strong>
                 {data.email === primary && <small> — primary </small>}
-              </td>
+              </ResultTableRowHeader>
               <td data-label="Status">
                 {
                   // @ts-expect-error TS(2339): Property 'is_verified' does not exist on type '{ e... Remove this comment to see the full error message

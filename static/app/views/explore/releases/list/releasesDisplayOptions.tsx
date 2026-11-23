@@ -14,10 +14,7 @@ const displayOptions = {
   [ReleasesDisplayOption.USERS]: {label: t('Users')},
 };
 
-type Props = {
-  onSelect: (key: string) => void;
-  selected: ReleasesDisplayOption;
-};
+type Props = {onSelect: (key: string) => void; selected: ReleasesDisplayOption};
 
 export function ReleasesDisplayOptions({selected, onSelect}: Props) {
   return (
@@ -29,7 +26,6 @@ export function ReleasesDisplayOptions({selected, onSelect}: Props) {
           options={displayOptions}
           selected={selected}
           onSelect={onSelect}
-          style={{zIndex: 1}}
         />
       )}
     </Container>

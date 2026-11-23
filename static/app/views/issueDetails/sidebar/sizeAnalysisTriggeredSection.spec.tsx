@@ -5,7 +5,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
-import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/sidebar/sizeAnalysisTriggeredSection';
+
+import {SizeAnalysisTriggeredSection} from './sizeAnalysisTriggeredSection';
 
 describe('SizeAnalysisTriggeredSection', () => {
   const condition: MetricCondition = {
@@ -19,10 +20,7 @@ describe('SizeAnalysisTriggeredSection', () => {
     detectorId: 8,
     value: 4292608,
     conditions: [condition],
-    config: {
-      measurement: 'install_size',
-      thresholdType: 'absolute_diff',
-    },
+    config: {measurement: 'install_size', thresholdType: 'absolute_diff'},
     headArtifactId: 100,
     baseArtifactId: 99,
     headSizeMetricId: 200,
@@ -191,10 +189,7 @@ describe('SizeAnalysisTriggeredSection', () => {
         ...defaultEvent.occurrence!,
         evidenceData: {
           ...defaultEvidenceData,
-          config: {
-            ...defaultEvidenceData.config,
-            query: 'app_id:com.example.app',
-          },
+          config: {...defaultEvidenceData.config, query: 'app_id:com.example.app'},
         },
       },
     });

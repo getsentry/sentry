@@ -13,7 +13,7 @@ from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
 
 
-def raise_update_comment_exception(*args, **kwargs):
+def raise_update_comment_exception(*args: object, **kwargs: object) -> None:
     raise Exception("Something went wrong updating comment")
 
 

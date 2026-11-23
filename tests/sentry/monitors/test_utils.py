@@ -4,13 +4,13 @@ from uuid import uuid4
 
 from django.db import IntegrityError
 
+from sentry.monitors.models import get_detector_for_monitor
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.monitors.utils import (
     _fetch_associated_groups_eap,
     _fetch_associated_groups_snuba,
     ensure_cron_detector,
     ensure_cron_detector_deletion,
-    get_detector_for_monitor,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time

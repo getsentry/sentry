@@ -175,6 +175,19 @@ class GetRateLimitKeyTest(TestCase):
             == "ip:default:APITestEndpoint:GET:127.0.0.1"
         )
 
+    def test_service_account(self) -> None:
+        self.request.user = AnonymousUser()
+        self.request.auth = AuthenticatedToken(
+            kind="service_account", entity_id=42, organization_id=self.organization.id
+        )
+
+        assert (
+            get_rate_limit_key(
+                self.view, self.request, self.rate_limit_group, self.rate_limit_config
+            )
+            == "user:default:APITestEndpoint:GET:service_account:42"
+        )
+
     def test_org_auth_token(self) -> None:
         self.request.user = AnonymousUser()
         self.request.auth = AuthenticatedToken.from_token(

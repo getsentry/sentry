@@ -13,6 +13,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -24,11 +25,12 @@ import {
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import AutomationsList from 'sentry/views/automations/list';
 import {
   LLM_CONTEXT_MAX_ROWS,
   useLLMContext,
 } from 'sentry/views/seerExplorer/contexts/llmContext';
+
+import AutomationsList from './list';
 
 // Cells the container is too narrow to show are hidden rather than dropped, so
 // the row still holds every column in order: name, last triggered, action,
@@ -55,10 +57,7 @@ describe('AutomationsList', () => {
       url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       body: [AutomationFixture({name: 'Automation 1'})],
@@ -106,16 +105,8 @@ describe('AutomationsList', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       body: [
-        AutomationFixture({
-          id: '100',
-          name: 'Automation 1',
-          detectorIds: ['1'],
-        }),
-        AutomationFixture({
-          id: '101',
-          name: 'Automation 2',
-          detectorIds: ['2'],
-        }),
+        AutomationFixture({id: '100', name: 'Automation 1', detectorIds: ['1']}),
+        AutomationFixture({id: '101', name: 'Automation 2', detectorIds: ['2']}),
       ],
     });
 
@@ -137,16 +128,10 @@ describe('AutomationsList', () => {
     // Projects column should show the correct project for each row
     await waitFor(() => {
       expect(
-        within(rows[0]!).getByRole('link', {
-          name: 'View Project Details',
-          hidden: true,
-        })
+        within(rows[0]!).getByRole('link', {name: 'View Project Details', hidden: true})
       ).toHaveAttribute('aria-description', 'project-1');
       expect(
-        within(rows[1]!).getByRole('link', {
-          name: 'View Project Details',
-          hidden: true,
-        })
+        within(rows[1]!).getByRole('link', {name: 'View Project Details', hidden: true})
       ).toHaveAttribute('aria-description', 'project-2');
     });
 
@@ -200,11 +185,7 @@ describe('AutomationsList', () => {
 
     expect(mockAutomationsRequest).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          project: [1],
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({project: [1]})})
     );
   });
 
@@ -220,9 +201,7 @@ describe('AutomationsList', () => {
     expect(mockAutomationsRequest).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({
-          sortBy: '-lastTriggered',
-        }),
+        query: expect.objectContaining({sortBy: '-lastTriggered'}),
       })
     );
 
@@ -236,11 +215,7 @@ describe('AutomationsList', () => {
     await waitFor(() => {
       expect(mockAutomationsRequest).toHaveBeenLastCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            sortBy: 'name',
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({sortBy: 'name'})})
       );
     });
     expect(router.location.query.sort).toBe('name');
@@ -255,14 +230,37 @@ describe('AutomationsList', () => {
     await waitFor(() => {
       expect(mockAutomationsRequest).toHaveBeenLastCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            sortBy: '-name',
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({sortBy: '-name'})})
       );
     });
     expect(router.location.query.sort).toBe('-name');
+  });
+
+  it('clears the cursor in a new history entry when sorting', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      body: [AutomationFixture({name: 'Automation 1'})],
+    });
+    const {router} = render(<AutomationsList />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/automations/', query: {cursor: '0:25:0'}},
+      },
+    });
+    await screen.findByText('Automation 1');
+
+    await userEvent.click(
+      within(
+        screen.getByRole('columnheader', {name: 'Select all on page Name'})
+      ).getByRole('button')
+    );
+    await waitFor(() => expect(router.location.query.sort).toBe('name'));
+    const sortedQuery = router.location.query;
+    act(() => router.navigate(-1));
+
+    expect(sortedQuery.cursor).toBeUndefined();
+    await waitFor(() => expect(router.location.query.cursor).toBe('0:25:0'));
+    expect(router.location.query.sort).toBeUndefined();
   });
 
   describe('search', () => {
@@ -302,6 +300,25 @@ describe('AutomationsList', () => {
 
       await screen.findByText('My Automation');
       expect(mockAutomationCreatedBy).toHaveBeenCalled();
+    });
+
+    it('pushes the query without the cursor when searching', async () => {
+      const {router} = render(<AutomationsList />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/automations/', query: {cursor: '0:25:0', sort: 'name'}},
+        },
+      });
+      await screen.findByText('Automation 1');
+
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'created_by:me{enter}'
+      );
+      await waitFor(() =>
+        expect(router.location.query).toEqual({query: 'created_by:me', sort: 'name'})
+      );
+      expect(router.historyAction).toBe('PUSH');
     });
   });
 
@@ -429,7 +446,7 @@ describe('AutomationsList', () => {
           '/organizations/org-slug/workflows/',
           expect.objectContaining({
             data: {enabled: true},
-            query: {id: ['2'], query: undefined, project: undefined},
+            query: {id: ['2'], query: undefined, project: undefined, type: 'alert'},
           })
         );
       });
@@ -468,7 +485,7 @@ describe('AutomationsList', () => {
           '/organizations/org-slug/workflows/',
           expect.objectContaining({
             data: {enabled: false},
-            query: {id: ['1'], query: undefined, project: undefined},
+            query: {id: ['1'], query: undefined, project: undefined, type: 'alert'},
           })
         );
       });
@@ -505,7 +522,7 @@ describe('AutomationsList', () => {
         expect(deleteRequest).toHaveBeenCalledWith(
           '/organizations/org-slug/workflows/',
           expect.objectContaining({
-            query: {id: ['1'], query: undefined, project: undefined},
+            query: {id: ['1'], query: undefined, project: undefined, type: 'alert'},
           })
         );
       });
@@ -541,14 +558,8 @@ describe('AutomationsList', () => {
         url: '/organizations/org-slug/workflows/',
         method: 'GET',
         body: filteredAutomations,
-        headers: {
-          'X-Hits': '50',
-        },
-        match: [
-          MockApiClient.matchQuery({
-            query: 'action:slack',
-          }),
-        ],
+        headers: {'X-Hits': '50'},
+        match: [MockApiClient.matchQuery({query: 'action:slack'})],
       });
 
       // Click through menus to select action:slack
@@ -587,7 +598,7 @@ describe('AutomationsList', () => {
         expect(deleteRequest).toHaveBeenCalledWith(
           '/organizations/org-slug/workflows/',
           expect.objectContaining({
-            query: {id: undefined, query: 'action:slack', project: [1]},
+            query: {id: undefined, query: 'action:slack', project: [1], type: 'alert'},
           })
         );
       });
@@ -618,9 +629,7 @@ describe('AutomationsList', () => {
             id: '2',
             name: 'All Disabled Actions',
             actionFilters: [
-              ActionFilterFixture({
-                actions: [ActionFixture({status: 'disabled'})],
-              }),
+              ActionFilterFixture({actions: [ActionFixture({status: 'disabled'})]}),
             ],
           }),
           // Automation with mixed action statuses - should show warning
@@ -684,9 +693,7 @@ describe('AutomationsList', () => {
   });
 
   it('disables alert controls without alerts:write permission', async () => {
-    const noWriteOrg = OrganizationFixture({
-      access: ['org:read', 'alerts:read'],
-    });
+    const noWriteOrg = OrganizationFixture({access: ['org:read', 'alerts:read']});
 
     render(<AutomationsList />, {organization: noWriteOrg});
     await screen.findByTestId('automation-list-row');
@@ -699,14 +706,9 @@ describe('AutomationsList', () => {
   });
 
   it('does not enable bulk controls for project-scoped alert writers', async () => {
-    const teamAdminOrg = OrganizationFixture({
-      access: ['org:read', 'alerts:read'],
-    });
+    const teamAdminOrg = OrganizationFixture({access: ['org:read', 'alerts:read']});
     ProjectsStore.loadInitialData([
-      ProjectFixture({
-        ...project,
-        access: ['project:read', 'alerts:write'],
-      }),
+      ProjectFixture({...project, access: ['project:read', 'alerts:write']}),
     ]);
 
     render(<AutomationsList />, {organization: teamAdminOrg});
@@ -729,7 +731,6 @@ describe('AutomationsList', () => {
     function renderAndReadNode() {
       let getLLMContext: ReturnType<typeof useLLMContext>['getLLMContext'] | undefined;
       function Component() {
-        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         ({getLLMContext} = useLLMContext());
         return <AutomationsList />;
       }

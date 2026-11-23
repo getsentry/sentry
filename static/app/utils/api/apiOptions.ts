@@ -1,29 +1,60 @@
 import type {SkipToken} from '@tanstack/react-query';
 import {infiniteQueryOptions, queryOptions, skipToken} from '@tanstack/react-query';
 
-import {apiFetch, apiFetchInfinite} from 'sentry/utils/api/apiFetch';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ExtractPathParams, OptionalPathParams} from 'sentry/utils/api/getApiUrl';
-import type {KnownGetsentryApiUrls} from 'sentry/utils/api/knownGetsentryApiUrls';
-import type {KnownSentryApiUrls} from 'sentry/utils/api/knownSentryApiUrls.generated';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 
-type KnownApiUrls = KnownGetsentryApiUrls | KnownSentryApiUrls;
+import {apiFetch, apiFetchInfinite} from './apiFetch';
+import type {ApiResponse} from './apiFetch';
+import {
+  API_QUERY_KEY_MARKER,
+  type ApiQueryKey,
+  type InfiniteApiQueryKey,
+  type ParsedQueryKey,
+  type QueryKeyEndpointOptions,
+} from './apiQueryKey';
+import {getApiUrl} from './getApiUrl';
+import type {ExtractPathParams, OptionalPathParams} from './getApiUrl';
+import type {KnownGetsentryApiUrls} from './knownGetsentryApiUrls';
+import type {KnownSentryApiUrls} from './knownSentryApiUrls.generated';
+
+type KnownApiUrl = KnownGetsentryApiUrls | KnownSentryApiUrls;
 
 type Options = QueryKeyEndpointOptions & {staleTime: number | 'static'};
 
 type PathParamOptions<TApiPath extends string> =
   ExtractPathParams<TApiPath> extends never
     ? {path?: never}
-    : {path: Record<ExtractPathParams<TApiPath>, string | number> | SkipToken};
+    : {path: Record<ExtractPathParams<TApiPath>, string> | SkipToken};
+
+type SegmentPrefixes<TUrl extends string> = TUrl extends `/${infer Segment}/${infer Rest}`
+  ? `/${Segment}/` | `/${Segment}${SegmentPrefixes<`/${Rest}`>}`
+  : never;
+
+/**
+ * A known url, or a known url prefix that ends in `/*` to also match every url below it.
+ */
+type KnownApiUrlPattern = KnownApiUrl | `${SegmentPrefixes<KnownApiUrl>}*`;
+
+/**
+ * Exact urls need every path param. Prefixes may leave params open, but still need
+ * a `path` object, so matching every organization is written as `path: {}`.
+ */
+type PatternPathOptions<TPattern extends string> = TPattern extends `${infer TPrefix}*`
+  ? ExtractPathParams<TPrefix> extends never
+    ? {path?: never}
+    : {path: Partial<Record<ExtractPathParams<TPrefix>, string>>}
+  : ExtractPathParams<TPattern> extends never
+    ? {path?: never}
+    : {path: Record<ExtractPathParams<TPattern>, string>};
+
+type QueryKeyOptions<TPattern extends string> = QueryKeyEndpointOptions &
+  PatternPathOptions<TPattern> & {infinite?: true};
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function stripUndefinedValues(obj: Record<string, unknown>): Record<string, unknown> {
+function stripUndefinedValues<T extends Record<string, unknown>>(obj: T): T {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     if (value === undefined) {
@@ -38,7 +69,23 @@ function stripUndefinedValues(obj: Record<string, unknown>): Record<string, unkn
     }
     result[key] = value;
   }
-  return result;
+  // Only drops undefined values and the empty objects they leave behind
+  return result as T;
+}
+
+function getQueryKeyParams(
+  path: KnownApiUrl,
+  pathParams: Record<string, string> | SkipToken | undefined,
+  options: QueryKeyEndpointOptions
+) {
+  return {
+    url: getApiUrl(path, ...([{path: pathParams}] as OptionalPathParams<KnownApiUrl>)),
+    urlParts: path.split('/').filter(Boolean),
+    options: stripUndefinedValues({
+      ...options,
+      path: pathParams === skipToken ? undefined : pathParams,
+    }),
+  };
 }
 
 export const selectJson = <TData>(data: ApiResponse<TData>) => data.json;
@@ -50,7 +97,7 @@ export const selectJsonWithHeaders = <TData>(
 function _apiOptions<
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   TManualData = never,
-  TApiPath extends KnownApiUrls = KnownApiUrls,
+  TApiPath extends KnownApiUrl = KnownApiUrl,
   // todo: infer the actual data type from the ApiMapping
   TActualData = TManualData,
 >(
@@ -61,16 +108,54 @@ function _apiOptions<
     ? [Options & {path?: never}]
     : [Options & PathParamOptions<TApiPath>]
 ) {
-  const url = getApiUrl(path, ...([{path: pathParams}] as OptionalPathParams<TApiPath>));
-  const strippedOptions = stripUndefinedValues(options);
+  const queryKey: ApiQueryKey = [
+    API_QUERY_KEY_MARKER,
+    getQueryKeyParams(path, pathParams, options),
+  ];
 
   return queryOptions({
-    queryKey: [url, strippedOptions, {infinite: false}] as const,
+    queryKey,
     queryFn: pathParams === skipToken ? skipToken : apiFetch<TActualData>,
     enabled: pathParams !== skipToken,
     staleTime,
     select: selectJson,
   });
+}
+
+const isExactMatch = (url: KnownApiUrlPattern): url is KnownApiUrl => !url.endsWith('*');
+
+type ApiQueryFilter = {
+  readonly exact: false;
+  readonly queryKey: readonly [typeof API_QUERY_KEY_MARKER, Partial<ParsedQueryKey>];
+};
+
+function queryFilter<TPattern extends KnownApiUrlPattern>(
+  ...args: TPattern extends KnownApiUrlPattern
+    ? PatternPathOptions<TPattern> extends {path: unknown}
+      ? [url: TPattern, options: QueryKeyOptions<TPattern>]
+      : [url: TPattern, options?: QueryKeyOptions<TPattern>]
+    : never
+): ApiQueryFilter;
+function queryFilter(
+  url: KnownApiUrlPattern,
+  {
+    path,
+    infinite,
+    ...options
+  }: QueryKeyEndpointOptions & {infinite?: true; path?: Record<string, string>} = {}
+): ApiQueryFilter {
+  const exact = isExactMatch(url);
+  const keyOptions = stripUndefinedValues({...options, path: exact ? undefined : path});
+
+  const params: Partial<ParsedQueryKey> = {
+    ...(exact
+      ? {url: getApiUrl(url, ...([{path}] as OptionalPathParams<KnownApiUrl>))}
+      : {urlParts: url.slice(0, -1).split('/').filter(Boolean)}),
+    ...(Object.keys(keyOptions).length > 0 ? {options: keyOptions} : {}),
+    ...(infinite ? {infinite} : {}),
+  };
+
+  return {queryKey: [API_QUERY_KEY_MARKER, params], exact: false};
 }
 
 function parsePageParam<TQueryFnData = unknown>(dir: 'previous' | 'next') {
@@ -84,7 +169,7 @@ function parsePageParam<TQueryFnData = unknown>(dir: 'previous' | 'next') {
 function _apiOptionsInfinite<
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   TManualData = never,
-  TApiPath extends KnownApiUrls = KnownApiUrls,
+  TApiPath extends KnownApiUrl = KnownApiUrl,
   // todo: infer the actual data type from the ApiMapping
   TActualData = TManualData,
 >(
@@ -95,11 +180,13 @@ function _apiOptionsInfinite<
     ? [Options & {path?: never}]
     : [Options & PathParamOptions<TApiPath>]
 ) {
-  const url = getApiUrl(path, ...([{path: pathParams}] as OptionalPathParams<TApiPath>));
-  const strippedOptions = stripUndefinedValues(options);
+  const queryKey: InfiniteApiQueryKey = [
+    API_QUERY_KEY_MARKER,
+    {...getQueryKeyParams(path, pathParams, options), infinite: true},
+  ];
 
   return infiniteQueryOptions({
-    queryKey: [url, strippedOptions, {infinite: true}] as const,
+    queryKey,
     queryFn: pathParams === skipToken ? skipToken : apiFetchInfinite<TActualData>,
     getPreviousPageParam: parsePageParam('previous'),
     getNextPageParam: parsePageParam('next'),
@@ -156,7 +243,7 @@ function _apiOptionsInfinite<
 export const apiOptions = {
   as:
     <TManualData>() =>
-    <TApiPath extends KnownApiUrls = KnownApiUrls>(
+    <TApiPath extends KnownApiUrl = KnownApiUrl>(
       path: TApiPath,
       options: Options & PathParamOptions<TApiPath>
     ) =>
@@ -164,9 +251,29 @@ export const apiOptions = {
 
   asInfinite:
     <TManualData>() =>
-    <TApiPath extends KnownApiUrls = KnownApiUrls>(
+    <TApiPath extends KnownApiUrl = KnownApiUrl>(
       path: TApiPath,
       options: Options & PathParamOptions<TApiPath>
     ) =>
       _apiOptionsInfinite<TManualData>(path, options as never),
+
+  /**
+   * A cache filter for operations such as `invalidateQueries`,
+   * `setQueriesData`, and `queryCache.findAll`. Pass it directly to those operations.
+   *
+   * A url without `*` matches exactly that url, with any other options. A prefix
+   * ending in `/*` matches that url and everything below it, and leaves path
+   * params that are not passed open.
+   *
+   * @example
+   * ```ts
+   * apiOptions.queryFilter('/organizations/$organizationIdOrSlug/repos/', {
+   *   path: {organizationIdOrSlug: organization.slug},
+   * });
+   * apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/*', {
+   *   path: {organizationIdOrSlug: organization.slug},
+   * });
+   * ```
+   */
+  queryFilter,
 };

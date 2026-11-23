@@ -1,29 +1,29 @@
 import {Fragment} from 'react';
+import {useQueryStates} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {DocumentationHint} from 'sentry/components/documentationHint';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils/defined';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
-import {MetricsTabOnboarding} from 'sentry/views/explore/metrics/metricsOnboarding';
-import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
-import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {MetricsTabOnboarding} from './metricsOnboarding';
+import {MetricsTabContent} from './metricsTab';
+import {MultiMetricsQueryParamsProvider} from './multiMetricsQueryParams';
 
 const METRICS_TITLE = t('Application Metrics');
 
@@ -74,16 +74,16 @@ export default function MetricsContent() {
 
 const metricsFeedbackOptions = {
   messagePlaceholder: t('How can we make application metrics work better for you?'),
-  tags: {
-    'feedback.source': 'metrics-listing',
-    'feedback.owner': 'performance',
-  },
+  tags: {'feedback.source': 'metrics-listing', 'feedback.owner': 'performance'},
 };
 
 function MetricsHeader() {
-  const location = useLocation();
-  const pageId = decodeScalar(location.query[ID_KEY]);
-  const title = decodeScalar(location.query[TITLE_KEY]);
+  const [savedQueryParams] = useQueryStates({
+    [ID_KEY]: parseAsScalar,
+    [TITLE_KEY]: parseAsScalar,
+  });
+  const pageId = savedQueryParams[ID_KEY] ?? undefined;
+  const title = savedQueryParams[TITLE_KEY];
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
   const hasSavedQueryTitle =
@@ -114,7 +114,7 @@ function MetricsHeader() {
             type: 'page-title',
             label: title || METRICS_TITLE,
             labelTooltip: (
-              <DocumentationHint docsUrl="https://docs.sentry.io/product/explore/metrics/">
+              <DocumentationHint docsUrl="https://docs.sentry.io/product/metrics/">
                 {t(
                   'Track critical application signals using counters, gauges, and distributions.'
                 )}
@@ -123,15 +123,7 @@ function MetricsHeader() {
           }}
         />
       )}
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          feedbackOptions={metricsFeedbackOptions}
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
+      <TopBar.Slot name="feedback" feedbackOptions={metricsFeedbackOptions} />
     </Fragment>
   );
 }

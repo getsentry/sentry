@@ -189,7 +189,9 @@ class GroupHistory(Model):
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     release = FlexibleForeignKey("sentry.Release", null=True, db_constraint=False)
 
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    user_id = HybridCloudForeignKey[int | None, int | None](
+        settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL"
+    )
     team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
 
     status = BoundedPositiveIntegerField(
@@ -238,7 +240,7 @@ class GroupHistory(Model):
     @owner.setter
     def owner(self, actor: Actor | None) -> None:
         """Part of ActorOwned protocol"""
-        self.team_id = None
+        setattr(self, "team_id", None)
         self.user_id = None
         if actor and actor.is_user:
             self.user_id = actor.id

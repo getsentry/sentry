@@ -3,7 +3,8 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+
 import {ChartRenderingContext} from 'sentry/views/insights/common/components/chart';
 
 export type InsightChartModalOptions = {

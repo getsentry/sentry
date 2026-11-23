@@ -92,7 +92,7 @@ def ignore_unpublished_app_errors(
     func: Callable[Concatenate[SentryApp | RpcSentryApp, P], R],
 ) -> Callable[Concatenate[SentryApp | RpcSentryApp, P], R | None]:
     def wrapper(
-        sentry_app: SentryApp | RpcSentryApp, *args: P.args, **kwargs: P.kwargs
+        sentry_app: SentryApp | RpcSentryApp, /, *args: P.args, **kwargs: P.kwargs
     ) -> R | None:
         try:
             return func(sentry_app, *args, **kwargs)
@@ -244,11 +244,15 @@ def _webhook_timeout(
             yield timeout_seconds
         return
 
-    with sentry_sdk.start_span(op="sentry-app.webhook.overridden_timeout") as span:
-        span.set_tag("app_slug", installation.sentry_app.slug)
-        span.set_tag("organization_id", installation.organization_id)
-        span.set_tag("timeout_seconds", timeout_override)
-        span.set_tag("hard_timeout_seconds", hard_timeout_override)
+    with sentry_sdk.traces.start_span(name="sentry-app.webhook.overridden_timeout") as span:
+        span.set_attributes(
+            {
+                "app_slug": installation.sentry_app.slug,
+                "organization_id": installation.organization_id,
+                "timeout_seconds": timeout_override,
+                "hard_timeout_seconds": hard_timeout_override,
+            }
+        )
 
         with timeout_alarm(hard_timeout_override, _handle_webhook_timeout):
             yield timeout_override

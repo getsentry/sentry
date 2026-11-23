@@ -1,8 +1,13 @@
+from collections.abc import MutableMapping
+from typing import Any
+
 from sentry.event_manager import EventManager
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
-def validate_and_normalize(report, client_ip=None):
+def validate_and_normalize(
+    report: MutableMapping[str, Any], client_ip: str | None = None
+) -> MutableMapping[str, Any]:
     manager = EventManager(report, client_ip=client_ip)
     manager.normalize()
     return manager.get_data()

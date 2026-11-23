@@ -7,13 +7,13 @@ import {IconTelescope} from '@sentry/icons/telescope';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {formatDateTime} from '@sentry/scraps/dateTime';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getBuildNumber,
@@ -52,23 +52,14 @@ function BuildButton({
   const project = ProjectsStore.getById(String(projectId));
 
   const buildUrl =
-    getSizeBuildPath({
-      organizationSlug: organization.slug,
-      baseArtifactId: buildId,
-    }) ?? '';
+    getSizeBuildPath({organizationSlug: organization.slug, baseArtifactId: buildId}) ??
+    '';
   const platform = buildDetails.app_info?.platform ?? null;
 
   const dateToShow = dateBuilt || dateAdded;
-  const formattedDate = getFormattedDate(
-    dateToShow,
-    getFormat({timeZone: true, year: true}),
-    {
-      local: true,
-    }
-  );
-
-  // Build metadata parts for the second line
-  const metadataParts = [formattedDate];
+  const metadataParts = dateToShow
+    ? [formatDateTime(dateToShow, {year: 'always', showTimezone: true})]
+    : [];
   if (version) {
     metadataParts.unshift(`Version ${version}`);
   }
@@ -91,8 +82,8 @@ function BuildButton({
         })
       }
     >
-      <ContentWrapper>
-        <ClippedContent>
+      <Container width="100%" position="relative">
+        <Container overflow="hidden">
           <Stack gap="xs">
             <Flex align="center" gap="sm">
               {icon}
@@ -126,7 +117,7 @@ function BuildButton({
               </Text>
             </Flex>
           </Stack>
-        </ClippedContent>
+        </Container>
         {onRemove && (
           <CloseButtonWrapper>
             <Button
@@ -142,7 +133,7 @@ function BuildButton({
             />
           </CloseButtonWrapper>
         )}
-      </ContentWrapper>
+      </Container>
     </StyledLinkButton>
   );
 }
@@ -153,18 +144,9 @@ const StyledLinkButton = styled(LinkButton)`
   align-self: stretch;
 
   /* Override ButtonLabel overflow to allow close button to extend beyond */
-  > span:last-child {
+  && > [data-button-label] {
     overflow: visible;
   }
-`;
-
-const ContentWrapper = styled('div')`
-  position: relative;
-  width: 100%;
-`;
-
-const ClippedContent = styled('div')`
-  overflow: hidden;
 `;
 
 const CloseButtonWrapper = styled('div')`

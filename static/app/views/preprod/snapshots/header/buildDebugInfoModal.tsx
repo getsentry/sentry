@@ -2,10 +2,10 @@ import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import pick from 'lodash/pick';
 
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {openModal} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
@@ -20,9 +20,7 @@ const VISIBLE_FIELDS: Array<keyof SnapshotDetailsApiResponse> = [
   'vcs_info',
 ];
 
-type Props = ModalRenderProps & {
-  data: SnapshotDetailsApiResponse;
-};
+type Props = ModalRenderProps & {data: SnapshotDetailsApiResponse};
 
 function BuildDebugInfoModal({Header, Body, data}: Props) {
   const filteredData = useMemo(() => pick(data, VISIBLE_FIELDS), [data]);

@@ -7,6 +7,7 @@ from django.utils.functional import cached_property
 
 from sentry import analytics
 from sentry.analytics.events.sentry_app_token_exchanged import SentryAppTokenExchangedEvent
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
@@ -43,36 +44,58 @@ class GrantExchanger:
             operation_type=SentryAppInteractionType.AUTHORIZATIONS,
             event_type=SentryAppEventType.GRANT_EXCHANGER,
         ).capture() as lifecycle:
-            with transaction.atomic(using=router.db_for_write(ApiToken)):
-                try:
-                    lifecycle.add_extras(
-                        {
-                            "application_id": self.application.id,
-                            "grant_id": self.grant.id,
-                            "installation_id": self.install.id,
-                            "organization_id": self.install.organization_id,
-                            "user_id": self.user.id,
-                        }
-                    )
-                    lock = locks.get(
-                        ApiGrant.get_lock_key(self.grant.id),
-                        duration=10,
-                        name="api_grant",
-                    )
+            token: ApiToken | None = None
+            try:
+                lifecycle.add_extras(
+                    {
+                        "application_id": self.application.id,
+                        "grant_id": self.grant.id,
+                        "installation_id": self.install.id,
+                        "organization_id": self.install.organization_id,
+                        "user_id": self.user.id,
+                    }
+                )
+                lock = locks.get(
+                    ApiGrant.get_lock_key(self.grant.id),
+                    duration=10,
+                    name="api_grant",
+                )
 
-                    # we use a lock to prevent race conditions when creating the ApiToken
-                    # an attacker could send two requests to create an access/refresh token pair
-                    # at the same time, using the same grant, and get two different tokens
-                    with lock.acquire():
-                        self._validate()
-                        token = self._create_token()
+                # we use a lock to prevent race conditions when creating the ApiToken
+                # an attacker could send two requests to create an access/refresh token pair
+                # at the same time, using the same grant, and get two different tokens.
+                # We take the lock before the transaction opens, so the transaction commits
+                # before another request can take the lock. The outbox_context is
+                # just to flag that this is an outbox-producing operation.
+                with (
+                    lock.acquire(),
+                    outbox_context(transaction.atomic(using=router.db_for_write(ApiToken))),
+                ):
+                    self._validate()
+                    token = self._create_token()
 
-                        # Once it's exchanged it's no longer valid and should not be
-                        # exchangeable, so we delete it.
-                        self._delete_grant()
-                except SentryAppIntegratorError as e:
-                    lifecycle.record_halt(halt_reason=e)
-                    raise
+                    # Once it's exchanged it's no longer valid and should not be
+                    # exchangeable, so we delete it.
+                    self._delete_grant()
+            except (OutboxDatabaseError, OutboxFlushError) as e:
+                if token is None:
+                    raise SentryAppSentryError(
+                        message="Failed to exchange given grant",
+                        status_code=500,
+                        webhook_context={"installation_uuid": self.install.uuid},
+                    ) from e
+
+                # Guard against replication fanout failures. The token has been
+                # minted, and its outbox has been committed alongside it,
+                # guaranteeing that it will eventually be valid in all regions.
+                logger.warning(
+                    "grant-exchanger.outbox-flush-failure",
+                    extra={"token_id": token.id, "installation_uuid": self.install.uuid},
+                    exc_info=True,
+                )
+            except SentryAppIntegratorError as e:
+                lifecycle.record_halt(halt_reason=e)
+                raise
 
         self.record_analytics()
 
@@ -107,7 +130,16 @@ class GrantExchanger:
     def _delete_grant(self) -> None:
         # This will cause a set null to trigger which does not need to cascade an outbox
         with unguarded_write(router.db_for_write(ApiGrant)):
-            self.grant.delete()
+            _, deleted = self.grant.delete()
+
+        # if another request already deleted the grant, raise an error so
+        # that our transaction rolls back the token we created
+        if not deleted.get(ApiGrant._meta.label):
+            raise SentryAppIntegratorError(
+                "Could not find grant for given code",
+                webhook_context={"code": self.code, "installation_uuid": self.install.uuid},
+                status_code=401,
+            )
 
     def _create_token(self) -> ApiToken:
         token = ApiToken.objects.create(

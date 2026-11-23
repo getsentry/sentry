@@ -2,7 +2,7 @@ import {DeprecatedApiKeyFixture} from 'sentry-fixture/deprecatedApiKey';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationApiKeyDetails from 'sentry/views/settings/organizationApiKeys/organizationApiKeyDetails';
+import OrganizationApiKeyDetails from './organizationApiKeyDetails';
 
 describe('OrganizationApiKeyDetails', () => {
   const apiKey = DeprecatedApiKeyFixture();
@@ -18,9 +18,7 @@ describe('OrganizationApiKeyDetails', () => {
   it('renders', async () => {
     render(<OrganizationApiKeyDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/settings/org-slug/api-keys/${apiKey.id}/`,
-        },
+        location: {pathname: `/settings/org-slug/api-keys/${apiKey.id}/`},
         route: '/settings/:orgId/api-keys/:apiKey/',
       },
     });
@@ -38,9 +36,7 @@ describe('OrganizationApiKeyDetails', () => {
 
     render(<OrganizationApiKeyDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/settings/org-slug/api-keys/${apiKey.id}/`,
-        },
+        location: {pathname: `/settings/org-slug/api-keys/${apiKey.id}/`},
         route: '/settings/:orgId/api-keys/:apiKey/',
       },
     });
@@ -79,9 +75,7 @@ describe('OrganizationApiKeyDetails', () => {
 
     render(<OrganizationApiKeyDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/settings/org-slug/api-keys/${apiKey.id}/`,
-        },
+        location: {pathname: `/settings/org-slug/api-keys/${apiKey.id}/`},
         route: '/settings/:orgId/api-keys/:apiKey/',
       },
     });
@@ -110,9 +104,7 @@ describe('OrganizationApiKeyDetails', () => {
 
     render(<OrganizationApiKeyDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/settings/org-slug/api-keys/${apiKey.id}/`,
-        },
+        location: {pathname: `/settings/org-slug/api-keys/${apiKey.id}/`},
         route: '/settings/:orgId/api-keys/:apiKey/',
       },
     });

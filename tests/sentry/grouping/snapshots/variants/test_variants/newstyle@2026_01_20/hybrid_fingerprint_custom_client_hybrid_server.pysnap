@@ -5,7 +5,7 @@ app:
   hash: "b0dbf92202bf38adc8710e8ccd55d3df"
   contributing component: exception
   hint: None
-  fingerprint_info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\""}}
+  fingerprint_info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"{{ default }}\", \"soft-timelimit-exceeded\""}}
   root_component:
     app*
       exception*
@@ -173,7 +173,7 @@ system:
   hash: "e440cd285687bab8b861ff96fe713929"
   contributing component: exception
   hint: None
-  fingerprint_info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\""}}
+  fingerprint_info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"{{ default }}\", \"soft-timelimit-exceeded\""}}
   root_component:
     system*
       exception*

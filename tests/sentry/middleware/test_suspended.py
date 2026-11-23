@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import cached_property
+from typing import Any
 from unittest.mock import MagicMock, patch, sentinel
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.http import HttpRequest, HttpResponseBase
 from django.test import RequestFactory, override_settings
 from django.urls import re_path
 from django.utils.deprecation import MiddlewareMixin
@@ -18,6 +21,7 @@ from sentry.middleware.suspended import SuspendedUserMiddleware
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import no_silo_test
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.auth import EmailAuthBackend
@@ -27,44 +31,44 @@ class SuspendedUserMiddlewareUnitTest(TestCase):
     middleware = SuspendedUserMiddleware(lambda request: sentinel.response)
 
     @cached_property
-    def factory(self):
+    def factory(self) -> RequestFactory:
         return RequestFactory()
 
-    def _make_request(self, path="/test/", method="GET"):
+    def _make_request(self, path: str = "/test/", method: str = "GET") -> HttpRequest:
         factory_method = getattr(self.factory, method.lower(), self.factory.get)
         return factory_method(path)
 
-    def _make_mock_user(self, *, is_suspended=False):
+    def _make_mock_user(self, *, is_suspended: bool = False) -> MagicMock:
         mock_user = MagicMock()
         mock_user.is_authenticated = True
         mock_user.is_suspended = is_suspended
         mock_user.id = self.user.id
         return mock_user
 
-    def _make_suspended_request(self, path="/test/", method="GET"):
+    def _make_suspended_request(self, path: str = "/test/", method: str = "GET") -> HttpRequest:
         request = self._make_request(path, method)
         request.user = self._make_mock_user(is_suspended=True)
         return request
 
-    def test_anonymous_user_passes_through(self):
+    def test_anonymous_user_passes_through(self) -> None:
         request = self._make_request()
         request.user = AnonymousUser()
         result = self.middleware.process_request(request)
         assert result is None
 
-    def test_no_user_attribute_passes_through(self):
+    def test_no_user_attribute_passes_through(self) -> None:
         request = self._make_request()
         assert not hasattr(request, "user")
         result = self.middleware.process_request(request)
         assert result is None
 
-    def test_authenticated_non_suspended_user_passes_through(self):
+    def test_authenticated_non_suspended_user_passes_through(self) -> None:
         request = self._make_request()
         request.user = self._make_mock_user(is_suspended=False)
         result = self.middleware.process_request(request)
         assert result is None
 
-    def test_suspended_user_blocked_api_path(self):
+    def test_suspended_user_blocked_api_path(self) -> None:
         request = self._make_suspended_request(path="/api/0/organizations/")
         result = self.middleware.process_request(request)
         assert result is not None
@@ -72,57 +76,57 @@ class SuspendedUserMiddlewareUnitTest(TestCase):
         body = json.loads(result.content)
         assert body == {"detail": "Your account has been suspended."}
 
-    def test_suspended_user_blocked_web_path(self):
+    def test_suspended_user_blocked_web_path(self) -> None:
         request = self._make_suspended_request(path="/organizations/foo/")
         result = self.middleware.process_request(request)
         assert result is not None
         assert result.status_code == 403
         assert result.content == b"Your account has been suspended."
 
-    def test_exempt_path_reactivate(self):
+    def test_exempt_path_reactivate(self) -> None:
         request = self._make_suspended_request(path="/auth/reactivate/")
         result = self.middleware.process_request(request)
         assert result is None
 
-    def test_exempt_path_login(self):
+    def test_exempt_path_login(self) -> None:
         request = self._make_suspended_request(path="/auth/login/")
         result = self.middleware.process_request(request)
         assert result is None
 
-    def test_exempt_path_logout(self):
+    def test_exempt_path_logout(self) -> None:
         request = self._make_suspended_request(path="/auth/logout/")
         result = self.middleware.process_request(request)
         assert result is None
 
-    def test_exempt_path_api_auth_login(self):
+    def test_exempt_path_api_auth_login(self) -> None:
         request = self._make_suspended_request(path="/api/0/auth/login/")
         result = self.middleware.process_request(request)
         assert result is None
 
-    def test_api_auth_delete_exempt(self):
+    def test_api_auth_delete_exempt(self) -> None:
         request = self._make_suspended_request(path="/api/0/auth/", method="DELETE")
         result = self.middleware.process_request(request)
         assert result is None
 
-    def test_api_auth_get_blocked(self):
+    def test_api_auth_get_blocked(self) -> None:
         request = self._make_suspended_request(path="/api/0/auth/")
         result = self.middleware.process_request(request)
         assert result is not None
         assert result.status_code == 403
 
-    def test_api_auth_put_blocked(self):
+    def test_api_auth_put_blocked(self) -> None:
         request = self._make_suspended_request(path="/api/0/auth/", method="PUT")
         result = self.middleware.process_request(request)
         assert result is not None
         assert result.status_code == 403
 
-    def test_exempt_path_prefix_match(self):
+    def test_exempt_path_prefix_match(self) -> None:
         request = self._make_suspended_request(path="/auth/login/sso/")
         result = self.middleware.process_request(request)
         assert result is None
 
     @patch("sentry.middleware.suspended.logger")
-    def test_logger_error_called(self, mock_logger):
+    def test_logger_error_called(self, mock_logger: MagicMock) -> None:
         request = self._make_suspended_request(path="/api/0/organizations/")
         self.middleware.process_request(request)
 
@@ -140,7 +144,7 @@ class SuspendedUserMiddlewareUnitTest(TestCase):
 class SuspendedTestEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
-    def get(self, request):
+    def get(self, request: HttpRequest) -> Response:
         return Response({"ok": True})
 
 
@@ -156,7 +160,7 @@ urlpatterns = [
 class LeakyAuthMiddleware(MiddlewareMixin):
     """Simulates a new auth class that authenticates suspended users without checking is_suspended."""
 
-    def process_request(self, request):
+    def process_request(self, request: Any) -> None:
         auth_header = request.META.get("HTTP_AUTHORIZATION", "")
         if auth_header.startswith("Bearer "):
             user_id = auth_header.split(" ", 1)[1]
@@ -185,17 +189,17 @@ _MIDDLEWARE_LEAKY_AUTH = tuple(
 class SuspensionUnawareAuthBackend(EmailAuthBackend):
     """Simulates a bug where get_user() doesn't filter out suspended users."""
 
-    def get_user(self, user_id):
+    def get_user(self, user_id: int) -> RpcUser | None:  # type: ignore[override]
         return user_service.get_user(user_id=user_id)
 
 
 class SuspendedUserInjectionMiddleware:
     """Simulates a buggy middleware that injects a suspended user into the request."""
 
-    def __init__(self, get_response):
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponseBase]):
         self.get_response = get_response
 
-    def __call__(self, request):
+    def __call__(self, request: HttpRequest) -> HttpResponseBase:
         user_id = request.META.get("HTTP_X_INJECT_USER_ID")
         if user_id:
             request.user = User.objects.get(id=int(user_id))
@@ -221,7 +225,7 @@ class TestLeakyAuthClassBypass(APITestCase):
     endpoint = "suspended-test-endpoint"
 
     @override_settings(MIDDLEWARE=_MIDDLEWARE_LEAKY_AUTH)
-    def test_leaky_auth_class_suspended_user_blocked(self):
+    def test_leaky_auth_class_suspended_user_blocked(self) -> None:
         user = self.create_user()
         user.update(is_suspended=True)
         response = self.client.get(
@@ -232,7 +236,7 @@ class TestLeakyAuthClassBypass(APITestCase):
         assert response.json() == {"detail": "Your account has been suspended."}
 
     @override_settings(MIDDLEWARE=_MIDDLEWARE_LEAKY_AUTH)
-    def test_leaky_auth_class_normal_user_passes(self):
+    def test_leaky_auth_class_normal_user_passes(self) -> None:
         user = self.create_user()
         response = self.client.get(
             "/api/0/suspended-test/",
@@ -251,7 +255,7 @@ class TestLeakyAuthBackendBypass(APITestCase):
 
     endpoint = "suspended-test-endpoint"
 
-    def test_backend_bug_suspended_user_blocked(self):
+    def test_backend_bug_suspended_user_blocked(self) -> None:
         user = self.create_user()
         self.login_as(user)
         User.objects.filter(id=user.id).update(is_suspended=True)
@@ -270,7 +274,7 @@ class TestBuggyMiddlewareBypass(APITestCase):
 
     endpoint = "suspended-test-endpoint"
 
-    def test_injected_suspended_user_blocked(self):
+    def test_injected_suspended_user_blocked(self) -> None:
         user = self.create_user()
         user.update(is_suspended=True)
         response = self.client.get(
@@ -280,7 +284,7 @@ class TestBuggyMiddlewareBypass(APITestCase):
         assert response.status_code == 403
         assert response.json() == {"detail": "Your account has been suspended."}
 
-    def test_injected_normal_user_passes(self):
+    def test_injected_normal_user_passes(self) -> None:
         user = self.create_user()
         response = self.client.get(
             "/api/0/suspended-test/",
@@ -288,7 +292,7 @@ class TestBuggyMiddlewareBypass(APITestCase):
         )
         assert response.status_code == 200
 
-    def test_no_injection_header_unaffected(self):
+    def test_no_injection_header_unaffected(self) -> None:
         self.login_as(self.user)
         response = self.client.get("/api/0/suspended-test/")
         assert response.status_code != 403
@@ -304,7 +308,7 @@ class TestSessionNonceBypass(APITestCase):
 
     endpoint = "suspended-test-endpoint"
 
-    def test_no_nonce_set_suspension_caught(self):
+    def test_no_nonce_set_suspension_caught(self) -> None:
         user = self.create_user()
         assert user.session_nonce is None
         self.login_as(user)
@@ -313,7 +317,7 @@ class TestSessionNonceBypass(APITestCase):
         assert response.status_code == 403
 
     @override_settings(SESSION_ENGINE="django.contrib.sessions.backends.db")
-    def test_matching_nonce_raw_update_suspension_caught(self):
+    def test_matching_nonce_raw_update_suspension_caught(self) -> None:
         user = self.create_user()
         self.login_as(user)
         user.refresh_session_nonce()

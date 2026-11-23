@@ -1,5 +1,6 @@
 import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
-import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+
+import {getAlertTypeFromAggregateDataset} from './utils';
 
 describe('Wizard utils', () => {
   it('extracts lcp alert', () => {
@@ -64,10 +65,7 @@ describe('Wizard utils', () => {
 
   it('extracts error count alert', () => {
     expect(
-      getAlertTypeFromAggregateDataset({
-        aggregate: 'count()',
-        dataset: Dataset.ERRORS,
-      })
+      getAlertTypeFromAggregateDataset({aggregate: 'count()', dataset: Dataset.ERRORS})
     ).toBe('num_errors');
   });
 

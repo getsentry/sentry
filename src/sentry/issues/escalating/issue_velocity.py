@@ -255,5 +255,5 @@ def get_latest_threshold(project: Project) -> float:
     return threshold
 
 
-def get_redis_client() -> RedisCluster | StrictRedis:
+def get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
     return redis_clusters.get(settings.SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER)

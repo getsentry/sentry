@@ -1,0 +1,103 @@
+import type {CallbackDataParams} from 'echarts/types/dist/shared';
+
+import {defaultFormatAxisLabel, getFormatter} from './tooltip';
+
+const TIMESTAMP = 1_700_000_000_000;
+
+function seriesParam(seriesName: string, value: number): CallbackDataParams {
+  return {
+    seriesName,
+    data: [TIMESTAMP, value],
+    value: [TIMESTAMP, value],
+    marker: '',
+  } as CallbackDataParams;
+}
+
+function renderedSeriesNames(html: string): string[] {
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  return Array.from(container.querySelectorAll('.tooltip-series .tooltip-label')).map(
+    label => label.textContent?.trim() ?? ''
+  );
+}
+
+describe('getFormatter', () => {
+  const params = [
+    seriesParam('zero', 0),
+    seriesParam('low', 1),
+    seriesParam('high', 30),
+    seriesParam('negative', -5),
+    seriesParam('mid', 10),
+  ];
+
+  it('keeps the series order without a limit', () => {
+    const formatter = getFormatter({isGroupedByDate: true, showTimeInTooltip: true});
+    expect(renderedSeriesNames(formatter(params, '') as string)).toEqual([
+      'zero',
+      'low',
+      'high',
+      'negative',
+      'mid',
+    ]);
+  });
+
+  it('lists the highest values first and zeros last', () => {
+    const formatter = getFormatter({
+      isGroupedByDate: true,
+      showTimeInTooltip: true,
+      limit: 10,
+    });
+    expect(renderedSeriesNames(formatter(params, '') as string)).toEqual([
+      'high',
+      'mid',
+      'low',
+      'negative',
+      'zero',
+    ]);
+  });
+
+  it('drops the lowest values and zeros past the limit', () => {
+    const formatter = getFormatter({
+      isGroupedByDate: true,
+      showTimeInTooltip: true,
+      limit: 3,
+    });
+    expect(renderedSeriesNames(formatter(params, '') as string)).toEqual([
+      'high',
+      'mid',
+      'low',
+      '+2 more',
+    ]);
+  });
+
+  it('does not pass the "+X more" row to the formatters', () => {
+    const valueFormatter = jest.fn(String);
+    const nameFormatter = jest.fn((name: string) => name);
+    const formatter = getFormatter({
+      isGroupedByDate: true,
+      showTimeInTooltip: true,
+      limit: 1,
+      valueFormatter,
+      nameFormatter,
+    });
+    formatter(params, '');
+    expect(nameFormatter.mock.calls.map(([name]) => name)).toEqual(['high']);
+    expect(valueFormatter).toHaveBeenCalledTimes(1);
+  });
+});
+
+it('keeps the end date when a bucket spans matching days in different months', () => {
+  const year = new Date().getUTCFullYear();
+  const start = Date.UTC(year, 0, 1);
+  const end = Date.UTC(year, 1, 1);
+  expect(defaultFormatAxisLabel(start, true, true, true, false, end - start)).toBe(
+    'Jan 1 12:00 AM — Feb 1 12:00 AM (UTC)'
+  );
+});
+
+it('formats the timezone when the bucket size is not a number', () => {
+  const start = Date.UTC(2025, 0, 1);
+  expect(defaultFormatAxisLabel(start, true, true, true, false, NaN)).toBe(
+    'Jan 1, 2025 12:00 AM UTC'
+  );
+});

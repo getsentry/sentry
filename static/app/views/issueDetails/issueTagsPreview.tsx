@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import color from 'color';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Stack, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -28,12 +28,13 @@ import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
-import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
-import {useEventQuery} from 'sentry/views/issueDetails/hooks/useEventQuery';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {usePrefetchTagValues} from 'sentry/views/issueDetails/utils';
+
+import type {GroupTag} from './groupTags/useGroupTags';
+import {useGroupTags} from './groupTags/useGroupTags';
+import {useEventQuery} from './hooks/useEventQuery';
+import {Tab, TabPaths} from './types';
+import {useGroupDetailsRoute} from './useGroupDetailsRoute';
+import {usePrefetchTagValues} from './utils';
 
 const DEFAULT_TAGS = ['transaction', 'environment', 'release'];
 const FRONTEND_TAGS = ['browser', 'release', 'url', 'environment'];
@@ -97,11 +98,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
       name = <Text variant="muted">{t('(empty)')}</Text>;
     }
 
-    return {
-      name,
-      percentage: percent(value.count, tag.totalValues),
-      count: value.count,
-    };
+    return {name, percentage: percent(value.count, tag.totalValues), count: value.count};
   });
 
   const topSegment = segments[0];
@@ -117,7 +114,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   const otherPercentageString = getRoundedPercentage(otherPercentage);
 
   const tooltipContent = (
-    <TooltipLegend>
+    <Container padding="xs md">
       <LegendTitle>{tag.key}</LegendTitle>
       <LegendGrid>
         {segments.map((segment, idx) => (
@@ -139,7 +136,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
           </Fragment>
         )}
       </LegendGrid>
-    </TooltipLegend>
+    </Container>
   );
 
   return (
@@ -186,10 +183,7 @@ function DistributionsDrawerButton({
       <VerticalDistributionsDrawerButton
         aria-label={t('View issue tag distributions')}
         size="xs"
-        to={{
-          pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
-          query: location.query,
-        }}
+        to={{pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`, query: location.query}}
         replace
         disabled={tags.length === 0}
       >
@@ -207,10 +201,7 @@ function DistributionsDrawerButton({
   return (
     <DistributionsDrawerLink
       replace
-      to={{
-        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
-        query: location.query,
-      }}
+      to={{pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`, query: location.query}}
       onClick={() => {
         trackAnalytics('issue_details.issue_tags_click', {organization});
       }}
@@ -247,10 +238,7 @@ export function IssueTagsPreview({
     isError,
     isPending,
     data: tags,
-  } = useGroupTags({
-    groupId,
-    environment: environments,
-  });
+  } = useGroupTags({groupId, environment: environments});
 
   const tagsToPreview = useMemo(() => {
     if (!tags) {
@@ -359,10 +347,6 @@ const TopPercentage = styled('div')`
   text-align: right;
   margin-left: ${p => p.theme.space['2xs']};
   font-variant-numeric: tabular-nums;
-`;
-
-const TooltipLegend = styled('div')`
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
 `;
 
 const LegendGrid = styled('div')`

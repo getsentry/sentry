@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.feedback.tasks.update_user_reports",
     namespace=issues_tasks,
-    processing_deadline_duration=30,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
 def update_user_reports(

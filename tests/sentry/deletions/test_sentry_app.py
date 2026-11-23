@@ -41,11 +41,13 @@ class TestSentryAppDeletionTask(TestCase):
 
     def test_deletes_api_application(self) -> None:
         application = self.sentry_app.application
+        assert application is not None
         deletions.exec_sync(self.sentry_app)
         assert not ApiApplication.objects.filter(pk=application.id).exists()
 
     def test_deletes_proxy_user(self) -> None:
         proxy_user = self.sentry_app.proxy_user
+        assert proxy_user is not None
         deletions.exec_sync(self.sentry_app)
         assert not User.objects.filter(pk=proxy_user.id).exists()
 

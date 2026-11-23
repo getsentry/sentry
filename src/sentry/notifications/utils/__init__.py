@@ -13,6 +13,7 @@ from django.db.models import Count
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures, IntegrationProvider
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import integration_service
@@ -141,11 +142,10 @@ def process_serialized_committers(
         for commit in committer["commits"]:
             if commit["id"] not in commits:
                 commit_data = dict(commit)
-                commit_data["shortId"] = commit_data["id"][:7]
+                commit_data["shortId"] = cast(str, commit_data["id"])[:7]
                 commit_data["author"] = committer["author"]
-                commit_data["subject"] = (
-                    commit_data["message"].split("\n", 1)[0] if commit_data["message"] else ""
-                )
+                commit_message = cast(str | None, commit_data["message"])
+                commit_data["subject"] = commit_message.split("\n", 1)[0] if commit_message else ""
                 if commit.get("pullRequest"):
                     commit_data["pull_request"] = commit["pullRequest"]
                 commits[commit["id"]] = commit_data
@@ -211,7 +211,12 @@ def has_alert_integration(project: Project) -> bool:
     provider_keys = [
         provider.key for provider in integrations.all() if is_alert_rule_integration(provider)
     ]
-    if integration_service.get_integrations(organization_id=org.id, providers=provider_keys):
+    if integration_service.get_integrations(
+        organization_id=org.id,
+        providers=provider_keys,
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+    ):
         return True
 
     return False
@@ -320,7 +325,7 @@ def get_performance_issue_alert_subtitle(event: GroupEvent) -> str:
 
 
 def get_notification_group_title(
-    group: Group, event: Event | GroupEvent, max_length: int = 255, **kwargs: str
+    group: Group | None, event: Event | GroupEvent, max_length: int = 255, **kwargs: str
 ) -> str:
     if isinstance(event, GroupEvent) and event.occurrence is not None:
         issue_title = event.occurrence.issue_title

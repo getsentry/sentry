@@ -1,6 +1,7 @@
 import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
-import {deduplicatePullRequestActivities} from 'sentry/views/issueDetails/activitySection/activityLineItem/deduplicatePullRequestActivities';
+
+import {deduplicatePullRequestActivities} from './deduplicatePullRequestActivities';
 
 type ActivityOfType<Type extends GroupActivityType> = Extract<
   GroupActivity,
@@ -26,13 +27,10 @@ export type CollapsedSeerActivity = {
   };
 }[CollapsedSeerActivityType];
 
-export type ActivityFeedItem =
-  | {
-      activity: GroupActivity;
-      type: 'activity';
-      actorActivity?: GroupActivity;
-    }
-  | CollapsedSeerActivity;
+export type ActivityFeedItem = (
+  | {activity: GroupActivity; type: 'activity'; actorActivity?: GroupActivity}
+  | CollapsedSeerActivity
+) & {body?: React.ReactNode; variant?: 'card'};
 
 interface CollapsedStatusActivity {
   activities: ActivityFeedItem[];
@@ -42,6 +40,16 @@ interface CollapsedStatusActivity {
 }
 
 export type DisplayedActivityFeedItem = ActivityFeedItem | CollapsedStatusActivity;
+
+/**
+ * The activity that attributes a feed item. A collapsed Seer pair is
+ * attributed to whoever started the run, since completions come from Seer.
+ */
+export function getActorActivity(item: ActivityFeedItem): GroupActivity {
+  return item.type === 'activity'
+    ? (item.actorActivity ?? item.activity)
+    : item.startedActivity;
+}
 
 const RESOLUTION_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SET_RESOLVED,
@@ -118,35 +126,19 @@ function collapseSeerActivityPair(
   switch (completedActivity.type) {
     case GroupActivityType.SEER_RCA_COMPLETED:
       return startedActivity.type === GroupActivityType.SEER_RCA_STARTED
-        ? {
-            activity: completedActivity,
-            startedActivity,
-            type: completedActivity.type,
-          }
+        ? {activity: completedActivity, startedActivity, type: completedActivity.type}
         : null;
     case GroupActivityType.SEER_SOLUTION_COMPLETED:
       return startedActivity.type === GroupActivityType.SEER_SOLUTION_STARTED
-        ? {
-            activity: completedActivity,
-            startedActivity,
-            type: completedActivity.type,
-          }
+        ? {activity: completedActivity, startedActivity, type: completedActivity.type}
         : null;
     case GroupActivityType.SEER_CODING_COMPLETED:
       return startedActivity.type === GroupActivityType.SEER_CODING_STARTED
-        ? {
-            activity: completedActivity,
-            startedActivity,
-            type: completedActivity.type,
-          }
+        ? {activity: completedActivity, startedActivity, type: completedActivity.type}
         : null;
     case GroupActivityType.SEER_ITERATION_COMPLETED:
       return startedActivity.type === GroupActivityType.SEER_ITERATION_STARTED
-        ? {
-            activity: completedActivity,
-            startedActivity,
-            type: completedActivity.type,
-          }
+        ? {activity: completedActivity, startedActivity, type: completedActivity.type}
         : null;
   }
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import cast
+from collections.abc import Callable
+from typing import Any, cast
 from unittest.mock import Mock, patch
 
 import pytest
@@ -69,11 +70,11 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
 
     def _create_artifact(
         self,
-        with_commit_comparison=True,
-        pr_number=42,
-        provider="github",
-        app_id="com.example.app",
-        commit_comparison=None,
+        with_commit_comparison: bool = True,
+        pr_number: int | None = 42,
+        provider: str = "github",
+        app_id: str = "com.example.app",
+        commit_comparison: CommitComparison | None = None,
     ) -> PreprodArtifact:
         if with_commit_comparison and commit_comparison is None:
             commit_comparison = self.create_commit_comparison(
@@ -100,7 +101,7 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
     def _set_rules(self, raw: str = _RULES_JSON) -> None:
         self.project.update_option(RULES_OPTION_KEY, raw)
 
-    def _import_task(self):
+    def _import_task(self) -> Callable[..., Any]:
         from sentry.preprod.vcs.pr_comments.size_tasks import create_preprod_size_pr_comment_task
 
         return create_preprod_size_pr_comment_task
@@ -109,7 +110,9 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
 
     @patch(_CLIENT_PATH)
     @patch(_EVAL_PATH)
-    def test_creates_comment_when_rule_triggered(self, mock_eval, mock_get_client) -> None:
+    def test_creates_comment_when_rule_triggered(
+        self, mock_eval: Mock, mock_get_client: Mock
+    ) -> None:
         mock_client = Mock()
         mock_client.create_comment.return_value = {"id": 55555}
         mock_get_client.return_value = mock_client
@@ -136,7 +139,9 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
 
     @patch(_CLIENT_PATH)
     @patch(_EVAL_PATH)
-    def test_creates_comment_when_no_rules_configured(self, mock_eval, mock_get_client) -> None:
+    def test_creates_comment_when_no_rules_configured(
+        self, mock_eval: Mock, mock_get_client: Mock
+    ) -> None:
         mock_client = Mock()
         mock_client.create_comment.return_value = {"id": 1}
         mock_get_client.return_value = mock_client
@@ -153,7 +158,9 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
 
     @patch(_CLIENT_PATH)
     @patch(_EVAL_PATH)
-    def test_skips_when_rules_set_but_nothing_triggered(self, mock_eval, mock_get_client) -> None:
+    def test_skips_when_rules_set_but_nothing_triggered(
+        self, mock_eval: Mock, mock_get_client: Mock
+    ) -> None:
         mock_client = Mock()
         mock_get_client.return_value = mock_client
         mock_eval.return_value = _eval_result(triggered=False)
@@ -174,7 +181,7 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
     @patch(_CLIENT_PATH)
     @patch(_EVAL_PATH)
     def test_updates_existing_comment_even_without_trigger(
-        self, mock_eval, mock_get_client
+        self, mock_eval: Mock, mock_get_client: Mock
     ) -> None:
         mock_client = Mock()
         mock_get_client.return_value = mock_client
@@ -204,7 +211,7 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
 
     @patch(_CLIENT_PATH)
     @patch(_EVAL_PATH)
-    def test_skips_when_no_size_artifacts(self, mock_eval, mock_get_client) -> None:
+    def test_skips_when_no_size_artifacts(self, mock_eval: Mock, mock_get_client: Mock) -> None:
         mock_client = Mock()
         mock_get_client.return_value = mock_client
         # No evaluated artifacts: every sibling was skipped or had no size metrics.
@@ -228,7 +235,7 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
     @patch(_CLIENT_PATH)
     @patch(_EVAL_PATH)
     def test_updates_existing_comment_when_all_artifacts_are_skipped(
-        self, mock_eval, mock_get_client
+        self, mock_eval: Mock, mock_get_client: Mock
     ) -> None:
         mock_client = Mock()
         mock_get_client.return_value = mock_client
@@ -266,7 +273,9 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
 
     @patch(_CLIENT_PATH)
     @patch(_EVAL_PATH)
-    def test_skips_when_project_option_disabled(self, mock_eval, mock_get_client) -> None:
+    def test_skips_when_project_option_disabled(
+        self, mock_eval: Mock, mock_get_client: Mock
+    ) -> None:
         artifact = self._create_artifact()
 
         self._import_task()(artifact.id)
@@ -276,7 +285,7 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
 
     @patch(_CLIENT_PATH)
     @patch(_EVAL_PATH)
-    def test_skips_when_no_commit_comparison(self, mock_eval, mock_get_client) -> None:
+    def test_skips_when_no_commit_comparison(self, mock_eval: Mock, mock_get_client: Mock) -> None:
         self._enable()
         artifact = self._create_artifact(with_commit_comparison=False)
 
@@ -286,7 +295,7 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
 
     @patch(_CLIENT_PATH)
     @patch(_EVAL_PATH)
-    def test_skips_when_no_pr_number(self, mock_eval, mock_get_client) -> None:
+    def test_skips_when_no_pr_number(self, mock_eval: Mock, mock_get_client: Mock) -> None:
         self._enable()
         commit_comparison = self.create_commit_comparison(
             organization=self.organization, provider="github", pr_number=None
@@ -299,7 +308,7 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
 
     @patch(_CLIENT_PATH)
     @patch(_EVAL_PATH)
-    def test_skips_when_no_client(self, mock_eval, mock_get_client) -> None:
+    def test_skips_when_no_client(self, mock_eval: Mock, mock_get_client: Mock) -> None:
         mock_get_client.return_value = None
         self._enable()
         self._set_rules()
@@ -311,7 +320,7 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
 
     @patch(_CLIENT_PATH)
     @patch(_EVAL_PATH)
-    def test_skips_when_feature_flag_disabled(self, mock_eval, mock_get_client) -> None:
+    def test_skips_when_feature_flag_disabled(self, mock_eval: Mock, mock_get_client: Mock) -> None:
         self._enable()
         self._set_rules()
         artifact = self._create_artifact()
@@ -324,7 +333,7 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
 
     @patch(_CLIENT_PATH)
     @patch(_EVAL_PATH)
-    def test_skips_nonexistent_artifact(self, mock_eval, mock_get_client) -> None:
+    def test_skips_nonexistent_artifact(self, mock_eval: Mock, mock_get_client: Mock) -> None:
         self._import_task()(1234567)
 
         mock_get_client.assert_not_called()
@@ -333,7 +342,7 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
 
     @patch(_CLIENT_PATH)
     @patch(_EVAL_PATH)
-    def test_handles_api_error_and_reraises(self, mock_eval, mock_get_client) -> None:
+    def test_handles_api_error_and_reraises(self, mock_eval: Mock, mock_get_client: Mock) -> None:
         mock_client = Mock()
         mock_client.create_comment.side_effect = ApiError("boom", code=500)
         mock_get_client.return_value = mock_client
@@ -356,7 +365,7 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
     @patch(_CLIENT_PATH)
     @patch(_EVAL_PATH)
     def test_retry_after_update_failure_uses_update_not_create(
-        self, mock_eval, mock_get_client
+        self, mock_eval: Mock, mock_get_client: Mock
     ) -> None:
         mock_client = Mock()
         mock_get_client.return_value = mock_client
@@ -383,7 +392,7 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
     @patch(_CLIENT_PATH)
     @patch(_EVAL_PATH)
     def test_returns_without_retry_when_commit_comparison_deleted(
-        self, mock_eval, mock_get_client, mock_lock
+        self, mock_eval: Mock, mock_get_client: Mock, mock_lock: Mock
     ) -> None:
         mock_client = Mock()
         mock_get_client.return_value = mock_client
@@ -403,7 +412,7 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
     # --- end-to-end (real evaluation, unpatched) ------------------------
 
     @patch(_CLIENT_PATH)
-    def test_end_to_end_triggering_rule_creates_comment(self, mock_get_client) -> None:
+    def test_end_to_end_triggering_rule_creates_comment(self, mock_get_client: Mock) -> None:
         mock_client = Mock()
         mock_client.create_comment.return_value = {"id": 314}
         mock_get_client.return_value = mock_client

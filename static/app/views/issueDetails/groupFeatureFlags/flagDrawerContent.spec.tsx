@@ -7,7 +7,8 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {OrderBy} from 'sentry/components/events/featureFlags/utils';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
-import {FlagDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
+
+import {FlagDrawerContent} from './flagDrawerContent';
 
 describe('GroupFeatureFlagsDrawerContent', () => {
   function getEmptyState() {
@@ -51,9 +52,7 @@ describe('GroupFeatureFlagsDrawerContent', () => {
 
     expect(mockTagsEndpoint).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/1/tags/',
-      expect.objectContaining({
-        query: expect.objectContaining({useFlagsBackend: '1'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({useFlagsBackend: '1'})})
     );
 
     expect(screen.getByText('feature.organizations:my-feature')).toBeInTheDocument();
@@ -64,9 +63,7 @@ describe('GroupFeatureFlagsDrawerContent', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/',
       statusCode: 400,
-      body: {
-        detail: 'Bad request',
-      },
+      body: {detail: 'Bad request'},
     });
 
     const group = GroupFixture();
@@ -111,6 +108,31 @@ describe('GroupFeatureFlagsDrawerContent', () => {
     const emptyState = getEmptyState();
     expect(emptyState).toBeInTheDocument();
     expect(emptyState).toHaveTextContent('No feature flags were found for this search');
+  });
+
+  it('searches flags by value', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/',
+      body: FeatureFlagTagsFixture(),
+    });
+
+    const group = GroupFixture();
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <FlagDrawerContent
+          environments={[]}
+          group={group}
+          search="FALSE"
+          orderBy={OrderBy.NEWEST}
+        />
+      </GroupDataContextProvider>
+    );
+
+    // Only the first flag has a false value
+    expect(
+      await screen.findByText('feature.organizations:my-feature')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('my-rolled-out-feature')).not.toBeInTheDocument();
   });
 
   it('renders empty state when no flags returned and hasFlags', async () => {

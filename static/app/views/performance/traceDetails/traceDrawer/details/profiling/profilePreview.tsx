@@ -107,10 +107,7 @@ export function ProfilePreview({
       }
 
       if (event && profilerID) {
-        const query = {
-          eventId: event.id,
-          tid: spanThreadId,
-        };
+        const query = {eventId: event.id, tid: spanThreadId};
         return generateContinuousProfileFlamechartRouteWithQuery({
           organization,
           projectSlug: project.slug,
@@ -254,9 +251,9 @@ function SetupProfiling({link}: {link: string}) {
             {t('Get Started')}
           </LinkButton>
         </span>
-        <ImageContainer>
+        <Flex minWidth="200px" justify="center" display={{zero: 'none', md: 'flex'}}>
           <Image src={emptyStateImg} />
-        </ImageContainer>
+        </Flex>
       </StyledPanelBody>
     </Panel>
   );
@@ -274,16 +271,6 @@ const StyledPanelBody = styled(PanelBody)`
   justify-content: space-between;
   padding: ${p => p.theme.space.xl};
   container-type: inline-size;
-`;
-
-const ImageContainer = styled('div')`
-  display: flex;
-  min-width: 200px;
-  justify-content: center;
-
-  @container (max-width: 600px) {
-    display: none;
-  }
 `;
 
 const FlamegraphContainer = styled('div')`

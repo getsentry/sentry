@@ -2,16 +2,14 @@ import type {ComponentProps} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {AIInputSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput';
+import {AIInputSection} from './aiInput';
 
 const originalResizeObserver = window.ResizeObserver;
 
 function makeAiNode(
   messages: Array<{content: unknown; role: string}> | Record<string, unknown>
 ): ComponentProps<typeof AIInputSection>['node'] {
-  return makeAiNodeWithAttributes({
-    'gen_ai.input.messages': JSON.stringify(messages),
-  });
+  return makeAiNodeWithAttributes({'gen_ai.input.messages': JSON.stringify(messages)});
 }
 
 function makeAiNodeWithAttributes(
@@ -19,11 +17,8 @@ function makeAiNodeWithAttributes(
 ): ComponentProps<typeof AIInputSection>['node'] {
   return {
     id: 'span-id',
-    attributes: {
-      'gen_ai.operation.type': 'chat',
-      ...attributes,
-    },
-    value: {},
+    attributes: {'gen_ai.operation.type': 'chat', ...attributes},
+    value: {project_id: 1},
   } as unknown as ComponentProps<typeof AIInputSection>['node'];
 }
 
@@ -77,10 +72,7 @@ describe('AIInputSection', () => {
     render(
       <AIInputSection
         node={makeAiNode([
-          {
-            role: 'system',
-            content: {instructions: ['Be concise'], priority: 'high'},
-          },
+          {role: 'system', content: {instructions: ['Be concise'], priority: 'high'}},
         ])}
       />
     );
@@ -107,5 +99,36 @@ describe('AIInputSection', () => {
     expect(
       screen.getByText('You are Seer, a powerful AI assistant built by Sentry.')
     ).toBeVisible();
+  });
+
+  it('renders Code Mode input with its summary', async () => {
+    const code = 'for x in range(3):\n    print(x)';
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/1/ai/code-explanation/',
+      method: 'POST',
+      body: {summary: 'Print numbers in a loop'},
+      match: [MockApiClient.matchData({code, language: 'python'})],
+    });
+    render(
+      <AIInputSection
+        node={makeAiNodeWithAttributes({
+          'gen_ai.operation.type': 'tool',
+          'gen_ai.tool.name': 'execute_code',
+          'gen_ai.tool.call.arguments': JSON.stringify({code, language: 'python'}),
+        })}
+      />
+    );
+
+    expect(screen.getByRole('region', {name: 'Summary'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
+    expect(await screen.findByText('Print numbers in a loop')).toBeInTheDocument();
+    expect(screen.getByText('python')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_, element) => element?.tagName === 'CODE' && element.textContent === code
+      )
+    ).toBeInTheDocument();
   });
 });

@@ -29,11 +29,6 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {HeaderCell} from 'sentry/views/detectors/components/detectorListTable';
-import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';
-import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorListContent';
-import {DetectorListHeader} from 'sentry/views/detectors/list/common/detectorListHeader';
-import {InsightsRedirectNotice} from 'sentry/views/detectors/list/common/insightsRedirectNotice';
-import {useDetectorListQuery} from 'sentry/views/detectors/list/common/useDetectorListQuery';
 import {
   MonitorViewContext,
   type MonitorListAdditionalColumn,
@@ -55,6 +50,12 @@ import {
 import {selectCheckInData} from 'sentry/views/insights/crons/utils/selectCheckInData';
 import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
 
+import {DetectorListActions} from './common/detectorListActions';
+import {DetectorListContent} from './common/detectorListContent';
+import {DetectorListHeader} from './common/detectorListHeader';
+import {InsightsRedirectNotice} from './common/insightsRedirectNotice';
+import {useDetectorListQuery} from './common/useDetectorListQuery';
+
 function VisualizationCell({detector}: {detector: CronDetector}) {
   const cronId = detector.dataSources[0].queryObj.id;
   const cronEnvironments = detector.dataSources[0].queryObj.environments;
@@ -69,7 +70,12 @@ function VisualizationCell({detector}: {detector: CronDetector}) {
   });
 
   return (
-    <SimpleTable.RowCell column="-3 / -1" padding="lg 0" borderLeft="muted" height="100%">
+    <SimpleTable.RowCell
+      column="-3 / -1"
+      padding="lg 0"
+      borderLeft="secondary"
+      height="100%"
+    >
       <Stack gap="sm" width="100%" ref={elementRef}>
         {cronEnvironments.map(environment => {
           if (isPending) {
@@ -241,7 +247,7 @@ export default function CronDetectorsList() {
             <SimpleTable.RowCell
               column="-3 / -1"
               padding="lg 0"
-              borderLeft="muted"
+              borderLeft="secondary"
               height="100%"
             >
               <CheckInPlaceholder />

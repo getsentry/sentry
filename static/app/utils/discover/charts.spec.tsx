@@ -1,4 +1,7 @@
 import type {Series} from 'sentry/types/echarts';
+import {HOUR, MINUTE, SECOND} from 'sentry/utils/formatters';
+
+import {categorizeDuration} from './categorizeDuration';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
@@ -6,11 +9,8 @@ import {
   getDurationUnit,
   tooltipFormatter,
   tooltipFormatterUsingAggregateOutputType,
-} from 'sentry/utils/discover/charts';
-import {aggregateOutputType, DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
-import {HOUR, MINUTE, SECOND} from 'sentry/utils/formatters';
-
-import {categorizeDuration} from './categorizeDuration';
+} from './charts';
+import {aggregateOutputType, DurationUnit, SizeUnit} from './fields';
 
 describe('tooltipFormatter()', () => {
   it('formats values', () => {
@@ -290,14 +290,8 @@ describe('findRangeOfMultiSeries()', () => {
           {name: 3, value: 1950},
         ],
       },
-      {
-        seriesName: 'p95()',
-        data: [],
-      },
-      {
-        seriesName: 'p50()',
-        data: [],
-      },
+      {seriesName: 'p95()', data: []},
+      {seriesName: 'p50()', data: []},
     ];
     expect(findRangeOfMultiSeries(noDataSeries)).toStrictEqual({max: 2300, min: 1900});
   });

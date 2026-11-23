@@ -13,12 +13,12 @@ from enum import StrEnum
 from typing import NotRequired, TypedDict, TypeGuard
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.utils import timezone
 from jwt import PyJWTError
 from pydantic import ValidationError
 
+from sentry.auth.principal import RequestPrincipal, has_user
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.seer.models.agent_write_grant import (
     AGENT_SESSION_ID_MAX_LENGTH,
@@ -26,8 +26,6 @@ from sentry.seer.models.agent_write_grant import (
     SeerAgentWriteGrant,
 )
 from sentry.types.superuser import SuperuserAccess
-from sentry.users.models.user import User
-from sentry.users.services.user import RpcUser
 from sentry.utils import jwt
 
 FEATURE_FLAG = "organizations:seer-agent-token-flow"
@@ -66,7 +64,6 @@ class AgentPrincipal:
 
 
 type MintingPrincipal = AgentPrincipal | MintingPrincipalRejection
-type MintingUser = User | RpcUser | AnonymousUser
 
 
 class AgentTokenClaims(TypedDict):
@@ -93,12 +90,15 @@ def readonly_scopes() -> frozenset[str]:
     return frozenset(settings.SENTRY_READONLY_SCOPES)
 
 
+AGENT_DEFAULT_WRITE_SCOPES = frozenset({"seer:write"})
+
+
 def resolve_minting_principal(
-    user: MintingUser, auth: AuthenticatedToken | None
+    user: RequestPrincipal, auth: AuthenticatedToken | None
 ) -> MintingPrincipal:
     if is_agent_auth(auth):
         return MintingPrincipalRejection.AGENT
-    if isinstance(user, AnonymousUser):
+    if not has_user(user):
         return MintingPrincipalRejection.UNSUPPORTED
     if user.is_sentry_app:
         return MintingPrincipalRejection.INTEGRATION
@@ -156,10 +156,14 @@ def compute_token_scopes(
     session_id: str,
     requested_scopes: Iterable[str] | None = None,
 ) -> list[str]:
-    """De-escalation rule: ``caller_scopes ∩ (read-only ∪ approved grants)``, optionally
-    narrowed by ``requested_scopes``. Never exceeds the caller's own authority."""
+    """De-escalation rule: ``caller_scopes ∩ (read-only ∪ default writes ∪ approved grants)``,
+    optionally narrowed by ``requested_scopes``. Never exceeds the caller's own authority."""
     caller = set(caller_scopes)
-    allowed = readonly_scopes() | active_grant_scopes(organization_id, user_id, session_id)
+    allowed = (
+        readonly_scopes()
+        | AGENT_DEFAULT_WRITE_SCOPES
+        | active_grant_scopes(organization_id, user_id, session_id)
+    )
     effective = caller & allowed
     if requested_scopes is not None:
         effective &= set(requested_scopes)

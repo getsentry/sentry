@@ -3,10 +3,10 @@ import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {IntegrationType} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -21,9 +21,7 @@ type Props = {
   type: IntegrationType;
 } & ModalRenderProps;
 
-const schema = z.object({
-  message: z.string(),
-});
+const schema = z.object({message: z.string()});
 
 /**
  * This modal serves as a non-owner's confirmation step before sending
@@ -50,11 +48,7 @@ export function RequestIntegrationModal({
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'POST',
-        data: {
-          providerSlug: slug,
-          providerType: type,
-          message: data.message,
-        },
+        data: {providerSlug: slug, providerType: type, message: data.message},
       }),
     onMutate: () => {
       trackIntegrationAnalytics('integrations.request_install', {
@@ -64,12 +58,12 @@ export function RequestIntegrationModal({
       });
     },
     onSuccess: () => {
-      addSuccessMessage(t('Request successfully sent.'));
+      toast.success(t('Request successfully sent.'));
       onSuccess();
       closeModal();
     },
     onError: () => {
-      addErrorMessage(t('Error sending the request'));
+      toast.error(t('Error sending the request'));
     },
   });
 

@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 from typing import Any as TAny
 
 from django.conf import settings
@@ -29,6 +29,11 @@ _type = type
 logger = logging.getLogger("sentry")
 
 NoneType = type(None)
+
+
+def _is_none_type(value: object) -> bool:
+    return value is NoneType
+
 
 # Returned by a read hook when it has no value to serve for the key. A unique
 # object so it can never collide with a value a hook might legitimately return.
@@ -203,7 +208,13 @@ class OptionsManager:
         """
         self._read_hook = hook
 
-    def set(self, key: str, value, coerce=True, channel: UpdateChannel = UpdateChannel.UNKNOWN):
+    def set(
+        self,
+        key: str,
+        value: object,
+        coerce: bool = True,
+        channel: UpdateChannel = UpdateChannel.UNKNOWN,
+    ) -> bool | None:
         """
         Set the value for an option. If the cache is unavailable the action will
         still succeed.
@@ -239,7 +250,7 @@ class OptionsManager:
 
         return self.store.set(opt, value, channel=channel)
 
-    def lookup_key(self, key: str):
+    def lookup_key(self, key: str) -> Key:
         try:
             return self.registry[key]
         except KeyError:
@@ -306,7 +317,7 @@ class OptionsManager:
         """
         return key in settings.SENTRY_OPTIONS
 
-    def get(self, key: str, silent=False):
+    def get(self, key: str, silent: object = False) -> TAny:
         """
         Get the value of an option, falling back to the local configuration.
 
@@ -352,7 +363,7 @@ class OptionsManager:
                         return result
 
             if not (opt.flags & FLAG_NOSTORE):
-                result = self.store.get(opt, silent=silent)
+                result = self.store.get(opt, silent=cast(bool, silent))
                 if result is not None:
                     tags["source"] = "store"
                     record_option(key, result)
@@ -373,7 +384,7 @@ class OptionsManager:
             record_option(key, optval)
             return optval
 
-    def delete(self, key: str):
+    def delete(self, key: str) -> bool:
         """
         Permanently remove the value of an option.
 
@@ -395,14 +406,14 @@ class OptionsManager:
     def register(
         self,
         key: str,
-        default=None,
-        type=None,
+        default: object | Callable[[], object] | None = None,
+        type: Type[TAny] | None = None,
         flags: int = DEFAULT_FLAGS,
         ttl: int = DEFAULT_KEY_TTL,
         grace: int = DEFAULT_KEY_GRACE,
         # Optional info about how to group options together in the _admin ui. Only applies to
         # options marked `FLAG_ADMIN_MODIFIABLE`
-        grouping_info=None,
+        grouping_info: GroupingInfo | None = None,
     ) -> None:
         assert key not in self.registry, "Option already registered: %r" % key
 
@@ -424,7 +435,7 @@ class OptionsManager:
         if not callable(default):
             default_value = default
 
-            def default():
+            def default() -> object:
                 return default_value
 
         else:
@@ -437,7 +448,7 @@ class OptionsManager:
             if default_value is None:
                 default_value = ""
 
-                def default():
+                def default() -> object:
                     return default_value
 
             type = type_from_value(default_value)
@@ -445,7 +456,7 @@ class OptionsManager:
         # We disallow None as a value for options since this is ambiguous and doesn't
         # really make sense as config options. There should be a sensible default
         # value instead that matches the type expected, rather than relying on None.
-        if type is NoneType:
+        if _is_none_type(type):
             raise TypeError("Options must not be None")
 
         # Make sure the type is correct at registration time
@@ -474,7 +485,7 @@ class OptionsManager:
             # Raise here or nah?
             raise UnknownOption(key)
 
-    def validate(self, options, warn=False):
+    def validate(self, options: Mapping[str, object], warn: bool = False) -> None:
         for k, v in options.items():
             try:
                 self.validate_option(k, v)
@@ -483,7 +494,7 @@ class OptionsManager:
                     raise
                 sys.stderr.write("* Unknown config option found: %s\n" % e)
 
-    def validate_option(self, key: str, value):
+    def validate_option(self, key: str, value: object) -> None:
         opt = self.lookup_key(key)
         if not opt.type.test(value):
             raise TypeError(f"{key!r}: got {_type(value)!r}, expected {opt.type!r}")
@@ -494,7 +505,7 @@ class OptionsManager:
         """
         return self.registry.values()
 
-    def filter(self, flag: int | None = None):
+    def filter(self, flag: int | None = None) -> Iterable[Key]:
         """
         Return an iterator that's filtered by which flags are set on a key.
         """
@@ -515,7 +526,7 @@ class OptionsManager:
         return self.store.get_last_update_channel(opt)
 
     def can_update(
-        self, key: str, value, channel: UpdateChannel, include_drift: bool = True
+        self, key: str, value: object, channel: UpdateChannel, include_drift: bool = True
     ) -> NotWritableReason | None:
         """
         Return the reason the provided channel cannot update the option

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 
-import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {useListItemCheckboxContext} from './useListItemCheckboxState';
 
 const CheckboxClickTarget = styled('label')`
   cursor: pointer;

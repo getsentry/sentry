@@ -3,7 +3,7 @@ import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {SentryApplicationRowButtons} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow/sentryApplicationRowButtons';
+import {SentryApplicationRowButtons} from './sentryApplicationRowButtons';
 
 describe('Sentry App Row Buttons', () => {
   const removeApp = jest.fn();
@@ -116,12 +116,7 @@ describe('Sentry App Row Buttons', () => {
             create: {
               uri: '/api/sentry/issue-link/create/',
               required_fields: [
-                {
-                  type: 'text',
-                  label: 'Task Name',
-                  name: 'title',
-                  default: 'issue.title',
-                },
+                {type: 'text', label: 'Task Name', name: 'title', default: 'issue.title'},
               ],
             },
             link: {

@@ -25,7 +25,7 @@ from sentry.testutils.helpers.analytics import assert_last_analytics_event
 def assert_processing_errors_equal(
     error_1: CheckinProcessingError,
     error_2: CheckinProcessingError,
-):
+) -> None:
     assert error_1.errors == error_2.errors
     assert error_2.checkin == error_2.checkin
 
@@ -60,6 +60,18 @@ class CheckinProcessErrorsManagerTest(TestCase):
         fetched_processing_error = get_errors_for_projects([self.project])
         assert len(fetched_processing_error) == 1
         assert_processing_errors_equal(processing_error, fetched_processing_error[0])
+
+    def test_store_monitor_not_found_skips_lookup(self) -> None:
+        monitor = self.create_monitor()
+        processing_error = build_checkin_processing_error(
+            [{"type": ProcessingErrorType.MONITOR_NOT_FOUND}],
+            message_overrides={"project_id": self.project.id},
+            payload_overrides={"monitor_slug": monitor.slug},
+        )
+        with self.assertNumQueries(0):
+            store_error(processing_error, None)
+        assert get_errors_for_monitor(monitor) == []
+        assert len(get_errors_for_projects([self.project])) == 1
 
     def test_store_max(self) -> None:
         monitor = self.create_monitor()
@@ -234,7 +246,7 @@ class CheckinProcessErrorsManagerTest(TestCase):
 class HandleProcessingErrorsTest(TestCase):
     @mock.patch("sentry.monitors.processing_errors.manager.ANALYTICS_SAMPLING_RATE", 1.0)
     @mock.patch("sentry.analytics.record")
-    def test(self, mock_record) -> None:
+    def test(self, mock_record: mock.Mock) -> None:
         monitor = self.create_monitor()
         exception = ProcessingErrorsException(
             [{"type": ProcessingErrorType.CHECKIN_INVALID_GUID}],
@@ -275,7 +287,7 @@ class HandleProcessingErrorsTest(TestCase):
         assert get_errors_for_monitor(monitor) == []
 
     @mock.patch("sentry.monitors.processing_errors.manager.random.random", return_value=0.5)
-    def test_rate_limited_errors_are_sampled_out(self, mock_random) -> None:
+    def test_rate_limited_errors_are_sampled_out(self, mock_random: mock.Mock) -> None:
         monitor = self.create_monitor()
         handle_processing_errors(
             build_checkin_item(
@@ -290,7 +302,7 @@ class HandleProcessingErrorsTest(TestCase):
         assert get_errors_for_monitor(monitor) == []
 
     @mock.patch("sentry.monitors.processing_errors.manager.random.random", return_value=0.0)
-    def test_rate_limited_errors_are_sampled_in(self, mock_random) -> None:
+    def test_rate_limited_errors_are_sampled_in(self, mock_random: mock.Mock) -> None:
         monitor = self.create_monitor()
         handle_processing_errors(
             build_checkin_item(
@@ -305,7 +317,33 @@ class HandleProcessingErrorsTest(TestCase):
         assert len(get_errors_for_monitor(monitor)) == 1
 
     @mock.patch("sentry.monitors.processing_errors.manager.random.random", return_value=0.5)
-    def test_throttled_type_alongside_a_real_error_is_stored(self, mock_random) -> None:
+    def test_over_quota_errors_are_sampled_out(self, mock_random: mock.Mock) -> None:
+        monitor = self.create_monitor()
+        handle_processing_errors(
+            build_checkin_item(
+                message_overrides={"project_id": self.project.id},
+                payload_overrides={"monitor_slug": monitor.slug},
+            ),
+            ProcessingErrorsException([{"type": ProcessingErrorType.MONITOR_OVER_QUOTA}]),
+        )
+
+        assert get_errors_for_monitor(monitor) == []
+
+    @mock.patch("sentry.monitors.processing_errors.manager.random.random", return_value=0.0)
+    def test_over_quota_errors_are_sampled_in(self, mock_random: mock.Mock) -> None:
+        monitor = self.create_monitor()
+        handle_processing_errors(
+            build_checkin_item(
+                message_overrides={"project_id": self.project.id},
+                payload_overrides={"monitor_slug": monitor.slug},
+            ),
+            ProcessingErrorsException([{"type": ProcessingErrorType.MONITOR_OVER_QUOTA}]),
+        )
+
+        assert len(get_errors_for_monitor(monitor)) == 1
+
+    @mock.patch("sentry.monitors.processing_errors.manager.random.random", return_value=0.5)
+    def test_throttled_type_alongside_a_real_error_is_stored(self, mock_random: mock.Mock) -> None:
         monitor = self.create_monitor()
         handle_processing_errors(
             build_checkin_item(

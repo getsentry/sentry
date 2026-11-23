@@ -3,7 +3,8 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 
@@ -40,11 +41,7 @@ describe('ConsoleSDKInvitesSettings', () => {
     expect(mock).toHaveBeenCalledTimes(1);
 
     // Mock successful response for retry
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'GET',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: []});
 
     await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
 
@@ -68,11 +65,7 @@ describe('ConsoleSDKInvitesSettings', () => {
       },
     ];
 
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'GET',
-      body: invites,
-    });
+    MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: invites});
 
     render(<ConsoleSDKInvitesSettings />, {organization: defaultOrganization});
 
@@ -92,11 +85,7 @@ describe('ConsoleSDKInvitesSettings', () => {
 
     OrganizationsStore.addOrReplace(orgWithoutConsoleAccess);
 
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'GET',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: []});
 
     render(<ConsoleSDKInvitesSettings />, {organization: orgWithoutConsoleAccess});
 
@@ -133,11 +122,7 @@ describe('ConsoleSDKInvitesSettings', () => {
       },
     ];
 
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'GET',
-      body: invites,
-    });
+    MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: invites});
 
     render(<ConsoleSDKInvitesSettings />, {organization: orgWithExhaustedQuota});
 
@@ -149,7 +134,7 @@ describe('ConsoleSDKInvitesSettings', () => {
 
   describe('revoking platform invites', () => {
     it('allows revoking a platform invite', async () => {
-      jest.spyOn(indicators, 'addSuccessMessage');
+      jest.spyOn(toast, 'success');
 
       const invites = [
         {
@@ -160,11 +145,7 @@ describe('ConsoleSDKInvitesSettings', () => {
         },
       ];
 
-      MockApiClient.addMockResponse({
-        url: ENDPOINT,
-        method: 'GET',
-        body: invites,
-      });
+      MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: invites});
 
       const deleteMock = MockApiClient.addMockResponse({
         url: ENDPOINT,
@@ -200,11 +181,11 @@ describe('ConsoleSDKInvitesSettings', () => {
         );
       });
 
-      expect(indicators.addSuccessMessage).toHaveBeenCalled();
+      expect(toast.success).toHaveBeenCalled();
     });
 
     it('shows error message when revoke fails', async () => {
-      jest.spyOn(indicators, 'addErrorMessage');
+      jest.spyOn(toast, 'error');
 
       const invites = [
         {
@@ -215,17 +196,9 @@ describe('ConsoleSDKInvitesSettings', () => {
         },
       ];
 
-      MockApiClient.addMockResponse({
-        url: ENDPOINT,
-        method: 'GET',
-        body: invites,
-      });
+      MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: invites});
 
-      MockApiClient.addMockResponse({
-        url: ENDPOINT,
-        method: 'DELETE',
-        statusCode: 500,
-      });
+      MockApiClient.addMockResponse({url: ENDPOINT, method: 'DELETE', statusCode: 500});
 
       render(<ConsoleSDKInvitesSettings />, {organization: defaultOrganization});
 
@@ -233,7 +206,7 @@ describe('ConsoleSDKInvitesSettings', () => {
       await userEvent.click(dismissButton);
 
       await waitFor(() => {
-        expect(indicators.addErrorMessage).toHaveBeenCalled();
+        expect(toast.error).toHaveBeenCalled();
       });
     });
 
@@ -257,11 +230,7 @@ describe('ConsoleSDKInvitesSettings', () => {
         },
       ];
 
-      MockApiClient.addMockResponse({
-        url: ENDPOINT,
-        method: 'GET',
-        body: invites,
-      });
+      MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: invites});
 
       const deleteMock = MockApiClient.addMockResponse({
         url: ENDPOINT,
@@ -304,11 +273,7 @@ describe('ConsoleSDKInvitesSettings', () => {
           },
         ];
 
-        MockApiClient.addMockResponse({
-          url: ENDPOINT,
-          method: 'GET',
-          body: invites,
-        });
+        MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: invites});
 
         render(<ConsoleSDKInvitesSettings />, {organization: org});
 
@@ -340,11 +305,7 @@ describe('ConsoleSDKInvitesSettings', () => {
           },
         ];
 
-        MockApiClient.addMockResponse({
-          url: ENDPOINT,
-          method: 'GET',
-          body: invites,
-        });
+        MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: invites});
 
         const deleteMock = MockApiClient.addMockResponse({
           url: ENDPOINT,

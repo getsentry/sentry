@@ -10,10 +10,12 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.project import Project
+from sentry.monitors.models import Monitor
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
 
 from .base import ProjectMonitorEndpoint
-from .base_monitor_checkin_index import MonitorCheckInMixin
+from .base_monitor_checkin_index import CHECKIN_LIST_RATE_LIMITS, MonitorCheckInMixin
 
 
 @cell_silo_endpoint
@@ -23,6 +25,7 @@ class ProjectMonitorCheckInIndexEndpoint(ProjectMonitorEndpoint, MonitorCheckInM
         "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.CRONS
+    rate_limits = CHECKIN_LIST_RATE_LIMITS
 
     @extend_schema(
         operation_id="listProjectMonitorCheckins",
@@ -42,7 +45,7 @@ class ProjectMonitorCheckInIndexEndpoint(ProjectMonitorEndpoint, MonitorCheckInM
         },
     )
     def get(
-        self, request: Request, project, monitor
+        self, request: Request, project: Project, monitor: Monitor
     ) -> Response[list[MonitorCheckInSerializerResponse]]:
         """
         Retrieve a list of check-ins for a monitor

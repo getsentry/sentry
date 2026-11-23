@@ -1,6 +1,6 @@
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
+import {useLogsPinning} from './useLogsPinning';
 
 describe('useLogsPinning', () => {
   it('starts with an empty pinnedRows when the location has no logsPinned query', () => {
@@ -11,9 +11,7 @@ describe('useLogsPinning', () => {
 
   it('starts with a single id in pinnedRows when the location has a single logsPinned value', () => {
     const {result} = renderHookWithProviders(() => useLogsPinning(), {
-      initialRouterConfig: {
-        location: {pathname: '/', query: {logsPinned: 'log-1'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {logsPinned: 'log-1'}}},
     });
 
     expect(result.current?.getPinnedRowIds()).toEqual(['log-1']);
@@ -51,9 +49,7 @@ describe('useLogsPinning', () => {
 
   it('removes the id from pinnedRows when togglePinnedRow is called for a pinned id', () => {
     const {result} = renderHookWithProviders(() => useLogsPinning(), {
-      initialRouterConfig: {
-        location: {pathname: '/', query: {logsPinned: 'log-1'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {logsPinned: 'log-1'}}},
     });
 
     act(() => {
@@ -79,9 +75,7 @@ describe('useLogsPinning', () => {
 
   it('removes the id from pinnedRows when removePinnedRows is called for a pinned id', () => {
     const {result} = renderHookWithProviders(() => useLogsPinning(), {
-      initialRouterConfig: {
-        location: {pathname: '/', query: {logsPinned: 'log-1'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {logsPinned: 'log-1'}}},
     });
 
     act(() => {

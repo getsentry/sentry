@@ -1,18 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
-import {getProjectSettingsCommandPaletteSections} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
+import {getProjectSettingsCommandPaletteSections} from './projectSettingsCommandPaletteActions';
 
 describe('ProjectSettingsCommandPaletteActions', () => {
   it('returns current project settings sections with visibility rules applied', () => {
-    const organization = OrganizationFixture({
-      access: ['project:write'],
-      features: ['performance-view'],
-      slug: 'acme',
-    });
-    const project = DetailedProjectFixture({
-      slug: 'frontend',
-    });
+    const organization = OrganizationFixture({access: ['project:write'], slug: 'acme'});
+    const project = DetailedProjectFixture({slug: 'frontend'});
 
     const sections = getProjectSettingsCommandPaletteSections({organization, project});
 
@@ -39,9 +33,7 @@ describe('ProjectSettingsCommandPaletteActions', () => {
                 }),
               ]),
             }),
-            expect.objectContaining({
-              label: 'SDK setup',
-            }),
+            expect.objectContaining({label: 'SDK setup'}),
             expect.objectContaining({
               display: expect.objectContaining({label: 'Webhooks (Legacy)'}),
               to: '/settings/acme/projects/frontend/legacy-webhooks/',
@@ -61,6 +53,36 @@ describe('ProjectSettingsCommandPaletteActions', () => {
               items: expect.arrayContaining([
                 expect.objectContaining({
                   to: '/settings/acme/projects/frontend/replays/',
+                }),
+              ]),
+            }),
+          ]),
+        }),
+      ])
+    );
+  });
+
+  it('titles the index item "General" with settings-v3', () => {
+    const organization = OrganizationFixture({slug: 'acme'});
+    const project = DetailedProjectFixture({slug: 'frontend'});
+
+    const sections = getProjectSettingsCommandPaletteSections({
+      organization,
+      project,
+      settingsV3: true,
+    });
+
+    expect(sections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label: 'frontend',
+          items: expect.arrayContaining([
+            expect.objectContaining({
+              label: 'General',
+              items: expect.arrayContaining([
+                expect.objectContaining({
+                  display: expect.objectContaining({label: 'General'}),
+                  to: '/settings/acme/projects/frontend/',
                 }),
               ]),
             }),

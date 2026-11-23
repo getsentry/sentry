@@ -1,22 +1,22 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
 import {IconSort} from '@sentry/icons/sort';
+import {useQueryStates} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {SearchBar} from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SortOption} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 
 import {SavedQueriesTable} from './savedQueriesTable';
@@ -26,9 +26,12 @@ type Option = {label: string; value: SortOption};
 export function SavedQueriesLandingContent() {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const location = useLocation();
   const hasLogsFeature = isLogsEnabled(organization);
-  const searchQuery = decodeScalar(location.query.query);
+  const [queryParams, setQueryParams] = useQueryStates(
+    {query: parseAsScalar, ownedCursor: parseAsScalar, sharedCursor: parseAsScalar},
+    {history: 'push'}
+  );
+  const searchQuery = queryParams.query ?? undefined;
   const [sort, setSort] = useState<SortOption>('mostStarred');
   const sortOptions: Option[] = [
     {value: 'mostStarred', label: t('Most Starred')},
@@ -40,24 +43,20 @@ export function SavedQueriesLandingContent() {
   ];
   return (
     <div>
-      <FilterContainer>
-        <SearchBarContainer>
+      <Flex align="center" marginBottom="xl" gap="md">
+        <Container flex="1">
           <SearchBar
             onSearch={newQuery => {
-              navigate({
-                pathname: location.pathname,
-                query: {
-                  ...location.query,
-                  query: newQuery,
-                  ownedCursor: undefined,
-                  sharedCursor: undefined,
-                },
+              void setQueryParams({
+                query: newQuery,
+                ownedCursor: null,
+                sharedCursor: null,
               });
             }}
             defaultQuery={searchQuery}
             placeholder={t('Search for a query')}
           />
-        </SearchBarContainer>
+        </Container>
         <CompactSelect
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} icon={<IconSort />} size="md">
@@ -112,7 +111,7 @@ export function SavedQueriesLandingContent() {
             {t('Create Query')}
           </LinkButton>
         )}
-      </FilterContainer>
+      </Flex>
       <SavedQueriesTable
         mode="owned"
         perPage={20}
@@ -133,13 +132,3 @@ export function SavedQueriesLandingContent() {
     </div>
   );
 }
-const FilterContainer = styled('div')`
-  display: flex;
-  margin-bottom: ${p => p.theme.space.xl};
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;
-
-const SearchBarContainer = styled('div')`
-  flex: 1;
-`;

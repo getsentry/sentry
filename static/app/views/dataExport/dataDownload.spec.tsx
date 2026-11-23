@@ -1,10 +1,16 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ExportQueryType} from 'sentry/components/exports/useDataExport';
-import DataDownload, {DownloadStatus} from 'sentry/views/dataExport/dataDownload';
+
+import DataDownload, {DownloadStatus} from './dataDownload';
 
 describe('DataDownload', () => {
   beforeEach(MockApiClient.clearMockResponses);
@@ -21,10 +27,7 @@ describe('DataDownload', () => {
   const getDataExportDetails = (body: any, statusCode = 200) =>
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/data-export/${dataExportId}/`,
-      body: {
-        query: {type: ExportQueryType.ISSUES_BY_TAG},
-        ...body,
-      },
+      body: {query: {type: ExportQueryType.ISSUES_BY_TAG}, ...body},
       statusCode,
     });
 
@@ -40,9 +43,7 @@ describe('DataDownload', () => {
       download: {
         status: 403,
         statusText: 'Forbidden',
-        responseJSON: {
-          detail: 'You are not allowed',
-        },
+        responseJSON: {detail: 'You are not allowed'},
       },
     };
     getDataExportDetails({errors}, 403);
@@ -125,10 +126,7 @@ describe('DataDownload', () => {
     getDataExportDetails({
       dateExpired,
       status,
-      query: {
-        type: ExportQueryType.DISCOVER,
-        info: {},
-      },
+      query: {type: ExportQueryType.DISCOVER, info: {}},
     });
 
     render(<DataDownload />, {initialRouterConfig});
@@ -141,10 +139,7 @@ describe('DataDownload', () => {
     getDataExportDetails({
       dateExpired,
       status,
-      query: {
-        type: ExportQueryType.ISSUES_BY_TAG,
-        info: {},
-      },
+      query: {type: ExportQueryType.ISSUES_BY_TAG, info: {}},
     });
 
     render(<DataDownload />, {initialRouterConfig});
@@ -164,6 +159,29 @@ describe('DataDownload', () => {
     render(<DataDownload />, {initialRouterConfig});
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getByRole('button', {name: 'Open in Explore'})).toBeInTheDocument();
+  });
+
+  it('should keep the case setting when opening a logs export in Explore', async () => {
+    getDataExportDetails({
+      dateExpired,
+      status: DownloadStatus.VALID,
+      query: {
+        type: ExportQueryType.EXPLORE,
+        info: {
+          dataset: 'logs',
+          field: ['message'],
+          project: [1],
+          query: 'message:deleted',
+          sort: [],
+          caseInsensitive: '1',
+        },
+      },
+    });
+
+    const {router} = render(<DataDownload />, {initialRouterConfig});
+    await userEvent.click(await screen.findByRole('button', {name: 'Open in Explore'}));
+
+    expect(router.location.query.caseInsensitive).toBe('1');
   });
 
   it('should render with null organization', async () => {

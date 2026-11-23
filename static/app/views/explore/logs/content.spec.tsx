@@ -18,13 +18,13 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+
+import LogsPage from './content';
+import type {OurLogsResponseItem} from './types';
 import {
   LOGS_AGGREGATES_TIMESTAMP_FIELD,
   LOGS_AGGREGATES_TRACE_FIELD,
-} from 'sentry/views/explore/logs/useLogsAggregatesTable';
-
-import LogsPage from './content';
+} from './useLogsAggregatesTable';
 
 beforeEach(() => {
   mockElementSize();
@@ -61,9 +61,7 @@ describe('LogsPage', () => {
     eventsTimeSeriesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
-      body: {
-        timeSeries: [TimeSeriesFixture()],
-      },
+      body: {timeSeries: [TimeSeriesFixture()]},
     });
 
     MockApiClient.addMockResponse({
@@ -111,6 +109,31 @@ describe('LogsPage', () => {
     });
   });
 
+  it('keeps the sidebar hidden until Advanced is pressed', async () => {
+    render(<LogsPage />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: `/organizations/${organization.slug}/explore/logs/`},
+      },
+    });
+
+    expect(screen.queryByTestId('logs-toolbar')).not.toBeInTheDocument();
+    const expandSidebar = await screen.findByRole('button', {name: 'Expand sidebar'});
+    expect(expandSidebar).toHaveTextContent('Advanced');
+
+    await userEvent.click(expandSidebar);
+    expect(screen.getByTestId('logs-toolbar')).toBeInTheDocument();
+
+    const collapseSidebar = screen.getByRole('button', {name: 'Collapse sidebar'});
+    expect(collapseSidebar).not.toHaveTextContent('Advanced');
+    await userEvent.click(collapseSidebar);
+
+    expect(screen.queryByTestId('logs-toolbar')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Expand sidebar'})).toHaveTextContent(
+      'Advanced'
+    );
+  });
+
   it('should call APIs as expected', async () => {
     render(<LogsPage />, {
       organization,
@@ -142,12 +165,7 @@ describe('LogsPage', () => {
       organization: onboardingOrganization,
       project: onboardingProject,
       setupPageFilters: onboardingSetupPageFilters,
-    } = initializeLogsTest({
-      project: {
-        hasLogs: false,
-        platform: 'javascript-react',
-      },
-    });
+    } = initializeLogsTest({project: {hasLogs: false, platform: 'javascript-react'}});
     TeamStore.loadInitialData([TeamFixture()]);
     MockApiClient.addMockResponse({
       url: `/projects/${onboardingOrganization.slug}/${onboardingProject.slug}/`,
@@ -168,10 +186,7 @@ describe('LogsPage', () => {
     jest
       .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
       .mockImplementation(() => {
-        return {
-          project: onboardingProject,
-          isProjectActive: true,
-        };
+        return {project: onboardingProject, isProjectActive: true};
       });
 
     onboardingSetupPageFilters();
@@ -295,10 +310,7 @@ describe('LogsPage', () => {
     });
 
     it('enables autorefresh when Switch is clicked', async () => {
-      render(<LogsPage />, {
-        organization,
-        initialRouterConfig,
-      });
+      render(<LogsPage />, {organization, initialRouterConfig});
 
       await waitFor(() => {
         expect(screen.getByTestId('logs-table')).toBeInTheDocument();
@@ -387,12 +399,12 @@ describe('LogsPage', () => {
       expect(switchInput).not.toBeChecked();
       expect(switchInput).toBeEnabled();
 
-      // 3 calls total
       // - one for the table
       // - one for the normal sample mode count
       // - one for the high accuracy sample mode count
-      // - one for the table refetch triggered by resetQueries when auto-refresh is paused
-      expect(eventTableMock).toHaveBeenCalledTimes(4);
+      // - one for the live table refetch triggered by removeQueries when auto-refresh is paused
+      // - one for the high fidelity table query once auto-refresh is paused
+      expect(eventTableMock).toHaveBeenCalledTimes(5);
 
       eventTableMock.mockClear();
       eventTableMock = setupEventsMock(autorefreshBaseFixtures.slice(0, 5));

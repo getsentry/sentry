@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Generator
+from collections.abc import Generator, Iterator
 from typing import Any, TypedDict, Unpack
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from django.http import HttpRequest
 from django.http.request import HttpHeaders
 from django.test import RequestFactory, override_settings
 from requests import Response
@@ -60,9 +61,9 @@ def create_request_headers(
     secret: str,
     signature_path: str,
     integration_id: int | None = None,
-    request_body=b"",
-    base_url="https://example.com/api",
-):
+    request_body: bytes = b"",
+    base_url: str = "https://example.com/api",
+) -> SiloHttpHeaders:
     signature = encode_subnet_signature(
         secret=secret,
         base_url=base_url,
@@ -130,7 +131,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         mock_metrics: MagicMock,
         metric_prefix: str = "hybrid_cloud.integration_proxy",
         kwargs_to_match: dict[str, Any] | None = None,
-    ):
+    ) -> None:
         metric_name = f"{metric_prefix}.{metric_name}"
         logged_metrics = {call.args[0] for call in mock_metrics.call_args_list}
 
@@ -159,7 +160,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         count: int,
         mock_metrics: MagicMock,
         tags: Tags | None = None,
-    ):
+    ) -> None:
         metric_name = "hybrid_cloud.integration_proxy.proxy_failure"
         # Most failure types are raised before the integration resolves, so the sentinel is the
         # common case; tests for failures raised after resolution pass the real provider.
@@ -481,7 +482,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 1)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.FAILURE, 1)
 
-    def raise_exception(self, exc_type: type[Exception], *args, **kwargs):
+    def raise_exception(self, exc_type: type[Exception], *args: object, **kwargs: object) -> None:
         raise exc_type(*args)
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
@@ -965,7 +966,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         first_chunk = b"partial-"
 
-        def iter_then_raise(chunk_size):
+        def iter_then_raise(chunk_size: int | None) -> Iterator[bytes]:
             yield first_chunk
             raise ChunkedEncodingError("connection reset")
 
@@ -1054,7 +1055,7 @@ class IntegrationProxyRequestValidatorTest(TestCase):
             integration_id=self.integration.id
         )
 
-    def build_request(self, **extra_headers: Unpack[SiloHttpHeaders]):
+    def build_request(self, **extra_headers: Unpack[SiloHttpHeaders]) -> HttpRequest:
         """
         Build a request with a valid subnet signature over the default proxy path, letting
         individual tests override single headers to exercise each validation failure.

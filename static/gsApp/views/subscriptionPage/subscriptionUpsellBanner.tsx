@@ -4,13 +4,14 @@ import businessUpgrade from 'getsentry-images/product_trial/business-upgrade-not
 import businessTrial from 'getsentry-images/product_trial/try-sentry-business-present.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
+import {UpgradeOrTrialButton} from 'getsentry/components/upgradeOrTrialButton';
 import type {Subscription} from 'getsentry/types';
 import {
   hasPartnerMigrationFeature,
@@ -48,10 +49,7 @@ const getSubscriptionBannerText = (
         : t('Request a Free Sentry Performance Trial'),
       tct(
         '[italicized] your Organization’s owner to start a [featuresName] trial (See what I did there?).',
-        {
-          italicized: <i>{t('Bug')}</i>,
-          featuresName,
-        }
+        {italicized: <i>{t('Bug')}</i>, featuresName}
       ),
     ];
   }
@@ -67,9 +65,7 @@ const getSubscriptionBannerText = (
         t('Request an Upgrade to Business'),
         tct(
           '[italicized] your Organization’s owner to upgrade Sentry (See what I did there?).',
-          {
-            italicized: <i>{t('Bug')}</i>,
-          }
+          {italicized: <i>{t('Bug')}</i>}
         ),
       ];
 };
@@ -134,7 +130,7 @@ export function SubscriptionUpsellBanner({
             <TrialBadge subscription={subscription} organization={organization} />
           )}
         </IntegationBannerTitle>
-        <IntegationBannerDescription>
+        <Container marginBottom="lg" maxWidth="440px">
           {description}{' '}
           <Button
             size="zero"
@@ -145,7 +141,7 @@ export function SubscriptionUpsellBanner({
           >
             {t('Learn More')}
           </Button>
-        </IntegationBannerDescription>
+        </Container>
         <UpgradeOrTrialButton
           subscription={subscription}
           organization={organization}
@@ -161,7 +157,14 @@ export function SubscriptionUpsellBanner({
           }}
         </UpgradeOrTrialButton>
       </div>
-      <BannerImage src={subscription.canTrial ? businessTrial : businessUpgrade} />
+      <Container display={{zero: 'none', '5xl': 'block'}}>
+        {containerProps => (
+          <BannerImage
+            {...containerProps}
+            src={subscription.canTrial ? businessTrial : businessUpgrade}
+          />
+        )}
+      </Container>
       <CloseBannerButton
         variant="link"
         aria-label={t('Dismiss')}
@@ -196,11 +199,6 @@ const IntegationBannerTitle = styled('div')`
   font-weight: 600;
 `;
 
-const IntegationBannerDescription = styled('div')`
-  margin-bottom: ${p => p.theme.space.lg};
-  max-width: 440px;
-`;
-
 const CloseBannerButton = styled(Button)`
   position: absolute;
   display: block;
@@ -213,13 +211,8 @@ const CloseBannerButton = styled(Button)`
 
 const BannerImage = styled('img')`
   position: absolute;
-  display: none;
   bottom: 0px;
   right: 4rem;
   pointer-events: none;
   max-height: 90%;
-
-  @container (min-width: ${p => p.theme.container['5xl']}) {
-    display: block;
-  }
 `;

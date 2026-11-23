@@ -11,8 +11,6 @@ import {Container, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {FeedbackListHeader} from 'sentry/components/feedback/list/feedbackListHeader';
-import {FeedbackListItem} from 'sentry/components/feedback/list/feedbackListItem';
 import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import {InfiniteListItems} from 'sentry/components/infiniteList/infiniteListItems';
 import {InfiniteListState} from 'sentry/components/infiniteList/infiniteListState';
@@ -20,11 +18,14 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {FeedbackListHeader} from './feedbackListHeader';
+import {FeedbackListItem} from './feedbackListItem';
 
 function NoFeedback() {
   return (
@@ -91,7 +92,7 @@ export function FeedbackList({onItemSelect}: Props) {
     <ListItemCheckboxProvider
       hits={Number(queryResult.data?.pages[0]?.headers['X-Hits'] ?? issues.length)}
       knownIds={issues.map(issue => issue.id)}
-      endpointOptions={safeParseQueryKey(listApiOptions.queryKey)?.options}
+      endpointOptions={parseQueryKey(listApiOptions.queryKey).options}
     >
       <FeedbackListHeader />
       <Stack flexGrow={1} paddingBottom="xs">

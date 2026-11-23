@@ -1,5 +1,6 @@
 from csp.middleware import CSPMiddleware
 from django.conf import settings
+from django.http import HttpResponse
 from django.views.generic import View
 
 from sentry import options
@@ -14,7 +15,7 @@ class JiraSentryUIBaseView(View):
 
     html_file: str  # abstract
 
-    def get_response(self, context):
+    def get_response(self, context: dict[str, object]) -> HttpResponse:
         """
         Wrap the HTML rendered using the template at `self.html_file` in a Response and
         add the requisite CSP headers before returning it.

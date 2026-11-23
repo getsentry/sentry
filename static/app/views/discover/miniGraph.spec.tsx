@@ -5,24 +5,20 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import {EventsRequest} from 'sentry/components/charts/eventsRequest';
 import {EventView} from 'sentry/utils/discover/eventView';
-import MiniGraph from 'sentry/views/discover/miniGraph';
+
+import MiniGraph from './miniGraph';
 
 jest.mock('sentry/components/charts/eventsRequest');
 
 describe('Discover > MiniGraph', () => {
   const features = ['discover-basic'];
-  const location = LocationFixture({
-    query: {query: 'tag:value'},
-    pathname: '/',
-  });
+  const location = LocationFixture({query: {query: 'tag:value'}, pathname: '/'});
 
   let organization!: ReturnType<typeof OrganizationFixture>;
   let eventView!: ReturnType<typeof EventView.fromSavedQueryOrLocation>;
 
   beforeEach(() => {
-    organization = OrganizationFixture({
-      features,
-    });
+    organization = OrganizationFixture({features});
     eventView = EventView.fromSavedQueryOrLocation(undefined, location);
 
     MockApiClient.clearMockResponses();

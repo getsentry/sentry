@@ -1,4 +1,4 @@
-import {Component, createRef, type ReactNode} from 'react';
+import {Component, Fragment, createRef, type ReactNode} from 'react';
 import {withTheme, type CSSObject, type Theme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconWarning} from '@sentry/icons/warning';
@@ -6,8 +6,8 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import type {InputProps} from '@sentry/scraps/input';
 import {Input} from '@sentry/scraps/input';
-import type {ControlProps, SelectValue, SingleValueProps} from '@sentry/scraps/select';
-import {Select, components} from '@sentry/scraps/select';
+import type {ControlProps, SelectValue} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
@@ -109,16 +109,12 @@ type Props = {
 };
 
 class _QueryField extends Component<Props> {
-  FieldSelectComponents = {
-    SingleValue: ({data, ...props}: SingleValueProps<FieldValueOption>): ReactNode => {
-      return (
-        <components.SingleValue data={data} {...props}>
-          <span data-test-id="label">{data.label}</span>
-          {data.value && this.renderTag(data.value.kind, data.label, data.value.meta)}
-        </components.SingleValue>
-      );
-    },
-  };
+  SelectedValue = ({option}: {option: FieldValueOption}): ReactNode => (
+    <Fragment>
+      <span data-test-id="label">{option.label}</span>
+      {option.value && this.renderTag(option.value.kind, option.label, option.value.meta)}
+    </Fragment>
+  );
 
   FieldSelectStyles = {
     singleValue(provided: CSSObject) {
@@ -148,10 +144,7 @@ class _QueryField extends Component<Props> {
         fieldValue = {kind: 'field', field: value.meta.name};
         break;
       case FieldValueKind.NUMERIC_METRICS:
-        fieldValue = {
-          kind: 'calculatedField',
-          field: value.meta.name,
-        };
+        fieldValue = {kind: 'calculatedField', field: value.meta.name};
         break;
       case FieldValueKind.FUNCTION:
         if (current.kind === 'function') {
@@ -177,11 +170,7 @@ class _QueryField extends Component<Props> {
         }
         break;
       case FieldValueKind.EQUATION:
-        fieldValue = {
-          kind: 'equation',
-          field: value.meta.name,
-          alias: value.meta.name,
-        };
+        fieldValue = {kind: 'equation', field: value.meta.name, alias: value.meta.name};
         break;
       default:
         throw new Error('Invalid field type found in column picker');
@@ -325,23 +314,12 @@ class _QueryField extends Component<Props> {
       if (name.startsWith('measurements.')) {
         return {
           kind: FieldValueKind.CUSTOM_MEASUREMENT,
-          meta: {
-            name,
-            dataType: 'number',
-            functions,
-          },
+          meta: {name, dataType: 'number', functions},
         };
       }
       // Likely a tag that was deleted but left behind in a saved query
       // Cook up a tag option so select control works.
-      return {
-        kind: FieldValueKind.TAG,
-        meta: {
-          name,
-          dataType: 'string',
-          unknown: true,
-        },
-      };
+      return {kind: FieldValueKind.TAG, meta: {name, dataType: 'string', unknown: true}};
     }
     return null;
   }
@@ -477,11 +455,8 @@ class _QueryField extends Component<Props> {
             onChange={this.handleFieldParameterChange}
             disabled={disabled || disableParameterSelector}
             menuPortalTarget={portalProps.menuPortalTarget}
-            styles={{
-              ...portalProps.styles,
-              ...this.FieldSelectStyles,
-            }}
-            components={this.FieldSelectComponents}
+            styles={{...portalProps.styles, ...this.FieldSelectStyles}}
+            components={{Value: this.SelectedValue}}
           />
         );
       }
@@ -607,7 +582,7 @@ class _QueryField extends Component<Props> {
       );
     });
 
-    const selectProps: ControlProps = {
+    const selectProps: ControlProps<FieldValue> = {
       name: 'field',
       options: Object.values(allFieldOptions),
       placeholder: placeholder ?? t('(Required)'),
@@ -663,7 +638,7 @@ class _QueryField extends Component<Props> {
         <Select
           {...selectProps}
           styles={this.FieldSelectStyles}
-          components={this.FieldSelectComponents}
+          components={{Value: this.SelectedValue}}
         />
         {parameters}
       </Container>
@@ -720,9 +695,7 @@ export class BufferedInput extends Component<BufferedInputProps, InputState> {
     this.input = createRef();
   }
 
-  state: InputState = {
-    value: this.props.value,
-  };
+  state: InputState = {value: this.props.value};
 
   private input: React.RefObject<HTMLInputElement | null>;
 

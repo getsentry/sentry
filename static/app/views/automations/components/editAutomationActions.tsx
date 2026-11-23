@@ -1,11 +1,11 @@
 import {Observer} from 'mobx-react-lite';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {Grid} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openConfirmModal} from 'sentry/components/confirm';
 import type {FormModel} from 'sentry/components/forms/model';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
@@ -41,14 +41,10 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
   const toggleDisabled = () => {
     const newEnabled = !automation.enabled;
     updateAutomation(
-      {
-        id: automation.id,
-        name: automation.name,
-        enabled: newEnabled,
-      },
+      {id: automation.id, name: automation.name, enabled: newEnabled},
       {
         onSuccess: data => {
-          addSuccessMessage(data.enabled ? t('Alert enabled') : t('Alert disabled'));
+          toast.success(data.enabled ? t('Alert enabled') : t('Alert disabled'));
         },
       }
     );

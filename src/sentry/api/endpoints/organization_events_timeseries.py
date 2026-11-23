@@ -1,6 +1,8 @@
 import logging
-from datetime import datetime, timedelta
-from typing import Any
+from collections.abc import Mapping, Sequence
+from datetime import datetime, timedelta, timezone
+from types import ModuleType
+from typing import Any, cast
 
 import sentry_sdk
 from django.db import connections
@@ -10,8 +12,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import traces
 
-from sentry import analytics, features, quotas
-from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
+from sentry import features, quotas
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -30,12 +31,13 @@ from sentry.api.helpers.ingestion_delay import (
     get_ingestion_delay_status,
     serialize_ingestion_status,
 )
-from sentry.api.helpers.timeseries_transformations import get_transformations
+from sentry.api.helpers.timeseries_transformations import Transformation, get_transformations
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.cache import default_cache
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.explore.models import ExploreSavedFormula, ExploreSavedQueryDataset
 from sentry.ingestion_delay.status import IngestionDelayStatus
@@ -57,6 +59,7 @@ from sentry.snuba import (
     spans_metrics,
     transactions,
 )
+from sentry.snuba.enrichment_attributes_rpc import EnrichmentAttributes
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.query_sources import QuerySource
@@ -64,6 +67,7 @@ from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
+from sentry.snuba.uptime_results import UptimeResults
 from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
@@ -72,6 +76,7 @@ from sentry.utils.snuba import SnubaTSResult
 
 TOP_EVENTS_DATASETS = {
     discover,
+    EnrichmentAttributes,
     functions,
     metrics_performance,
     metrics_enhanced_performance,
@@ -92,6 +97,12 @@ DATASET_TO_FORMULA_DATASET = {
 logger = logging.getLogger(__name__)
 
 INGESTION_DELAY_TIMEOUT = 1.0  # p99 returns in less than 1 second
+INCREMENTAL_CACHE_KEY = "timeseries:{dataset_label}:{query_string}:{columns}:{rollup}:{projects}"
+# chosen arbitrarily, can tune later
+INCREMENTAL_CACHE_TTL = int(timedelta(hours=24).total_seconds())
+# We can only store 50mb in cache, a timestamp & 1 aggregate is about 52 bytes, s o the actual max is closer to one
+# million, doing 500k so we have room to grow
+MAX_CACHE_LENGTH = 500_000
 
 
 def _get_ingestion_delay_status_in_thread(
@@ -109,6 +120,100 @@ def null_zero(value: float) -> float | None:
         return None
     else:
         return value
+
+
+def cache_candidate(
+    dataset: Any,
+    snuba_params: SnubaParams,
+    query: str,
+    query_columns: list[str],
+    rollup: int,
+    top_events: int,
+) -> bool:
+    """Check if this query is a good candidate for caching
+
+    We're starting very conservatively so we only want to cache the homepage query for the explore page basically
+    We want to go off the shape of the query since it can be made throughout the application
+    """
+    if (
+        dataset == Spans
+        and query == ""
+        and query_columns == ["count(span.duration)"]
+        and rollup in [1800, 10_800]
+        and top_events == 0
+    ):
+        return True
+    return False
+
+
+def create_cache_key(
+    dataset: Any, snuba_params: SnubaParams, query: str, query_columns: list[str], rollup: int
+) -> str:
+    """Create a cache key, currently this assumes we're only caching the home page query on explore"""
+    return INCREMENTAL_CACHE_KEY.format(
+        dataset_label=type(dataset).__name__,
+        query_string=query,
+        columns=",".join(query_columns),
+        rollup=rollup,
+        projects=",".join([str(pid) for pid in snuba_params.project_ids]),
+    )
+
+
+def update_result_with_cache(
+    cache_key: str,
+    cached: Any,
+    result: Any,
+    cached_timestamps: list[int] | None,
+    original_start: datetime | None,
+    snuba_params: SnubaParams,
+    axis: str,
+) -> None:
+    final_result = []
+    to_update = {}
+    if cached and cached_timestamps:
+        for row in result.data["data"]:
+            if row["time"] in cached_timestamps:
+                to_update[row["time"]] = row
+            else:
+                cached.append(row)
+    else:
+        cached = result.data["data"]
+
+    processed = result.data["processed_timeseries"]
+    for row, sample_count, sampling_rate, confidence in zip(
+        result.data["data"],
+        processed.sample_count,
+        processed.sampling_rate,
+        processed.confidence,
+    ):
+        label = next(key for key in sample_count if key != "time")
+        row["sampleCount"] = sample_count.get(label)
+        row["sampleRate"] = sampling_rate.get(label)
+        row["confidence"] = confidence.get(label)
+
+    for index, row in enumerate(cached):
+        if row["time"] in to_update:
+            cached[index].update(to_update[row["time"]])
+    start = original_start if original_start is not None else snuba_params.start_date
+    for row in cached:
+        if start.timestamp() <= row["time"] <= snuba_params.end_date.timestamp():
+            final_result.append(row)
+    processed.sample_count = [
+        {"time": row["time"], axis: row.get("sampleCount")} for row in final_result
+    ]
+    processed.sampling_rate = [
+        {"time": row["time"], axis: row.get("sampleRate")} for row in final_result
+    ]
+    processed.confidence = [
+        {"time": row["time"], axis: row.get("confidence")} for row in final_result
+    ]
+    if len(cached) > MAX_CACHE_LENGTH:
+        cached = cached[MAX_CACHE_LENGTH:]
+    default_cache.set(cache_key, cached, timeout=INCREMENTAL_CACHE_TTL)
+    result.data["data"] = final_result
+    # Retore the original_start
+    if original_start:
+        snuba_params.start = original_start
 
 
 @extend_schema(tags=["Explore"])
@@ -177,6 +282,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             VisibilityParams.SORT,
             VisibilityParams.GROUP_BY,
             VisibilityParams.Y_AXIS,
+            VisibilityParams.TRANSFORMATIONS,
             VisibilityParams.EXPLORE_QUERY,
             VisibilityParams.DISABLE_AGGREGATE_EXTRAPOLATION,
             VisibilityParams.PREVENT_METRIC_AGGREGATES,
@@ -198,6 +304,11 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         This endpoint can return timeseries for either 1 or many axis, and results grouped to the top events depending
         on the parameters passed
 
+        Explicitly requested transformations return HTTP 400 with a `detail` message when the
+        interpolation and smoothing feature is disabled or the dataset cannot execute them.
+        Timeseries queries are not supported for the uptime results dataset.
+        Queries cannot combine `topEvents` with `comparisonDelta`.
+
         **Note**: For queries extending past `30d`, spanning billions of rows, or running on projects with low
         sample rates, the aggregation `yAxis=count_unique()` and filters on high-cardinality
         fields (such as `query=user.id:bc`) will not return accurate results. Use these queries for rough
@@ -212,14 +323,29 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         ):
             top_events = self.get_top_events(request)
             comparison_delta = self.get_comparison_delta(request)
-            if features.has(
+            transformations = get_transformations(request)
+            dataset = self.get_dataset(request, organization)
+            if dataset == UptimeResults:
+                raise ParseError(
+                    detail="Timeseries queries are not supported for dataset uptime_results"
+                )
+            if top_events > 0 and comparison_delta is not None:
+                raise ParseError(detail="comparisonDelta is not supported with topEvents")
+
+            if transformations and not features.has(
                 "organizations:explore-interpolation-and-smoothing",
                 organization,
                 actor=request.user,
             ):
-                get_transformations(request)
+                raise ParseError(
+                    detail="Timeseries transformations are not enabled for this organization"
+                )
 
-            dataset = self.get_dataset(request, organization)
+            if transformations and dataset not in RPC_DATASETS:
+                raise ParseError(
+                    detail="Timeseries transformations are not supported for dataset "
+                    f"{request.GET.get('dataset', 'discover')}"
+                )
             # Add more here until top events is supported on all the datasets
             if top_events > 0:
                 if dataset not in TOP_EVENTS_DATASETS:
@@ -273,6 +399,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     rollup,
                     comparison_delta,
                     additional_queries,
+                    transformations,
                 )
                 ingestion_delay_status = None
                 if ingestion_delay_future is not None:
@@ -377,6 +504,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         rollup: int,
         comparison_delta: timedelta | None,
         additional_queries: AdditionalQueries,
+        transformations: Mapping[int, Sequence[Transformation]] | None = None,
     ) -> SnubaTSResult | dict[str, SnubaTSResult]:
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
         include_other = request.GET.get("excludeOther") != "1"
@@ -398,8 +526,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         sentry_sdk.set_attribute("query.query_source", query_source.value)
 
         # We are going to start ratcheting usage of this endpoint for legacy
-        # datasets. For now, log usage from blocked orgs but still permit the
-        # request.
+        # datasets. For now, log all external usage but still permit the
+        # request. Logging allowlisted (unblocked) orgs too lets us see who
+        # still relies on these datasets before shrinking the allowlist.
         is_external_api_request = request.auth and referrer == Referrer.API_AUTH_TOKEN_EVENTS
         is_legacy_dataset = dataset in {transactions, discover, metrics_enhanced_performance}
         is_blocked = features.has(
@@ -407,19 +536,58 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             organization,
             actor=request.user,
         )
-        if is_external_api_request and is_legacy_dataset and is_blocked:
+        if is_external_api_request and is_legacy_dataset:
             sdk_logger.warning(
-                "events endpoint called by blocked org",
+                "events endpoint called with legacy dataset",
                 attributes={
                     "org_id": organization.id,
                     "org_slug": organization.slug,
+                    "is_blocked": is_blocked,
                     "effective_dataset": DATASET_LABELS.get(dataset, ""),
                     "requested_dataset": request.GET.get("dataset", ""),
                     "endpoint_name": "organization-events-timeseries",
                 },
             )
-
-        self._emit_analytics_event(organization, referrer)
+        incremental_loading = not transformations and features.has(
+            "organizations:explore-incremental-timeseries",
+            organization,
+            actor=request.user,
+        )
+        # skipCache only applies while incremental caching is enabled.
+        skip_cache = incremental_loading and request.GET.get("skipCache") == "1"
+        is_cache_candidate = False
+        if incremental_loading and not skip_cache:
+            with traces.start_span("get_cache") as span:
+                if is_cache_candidate := cache_candidate(
+                    dataset, snuba_params, query, query_columns, rollup, top_events
+                ):
+                    original_start = None
+                    cached_timestamps = None
+                    cache_key = create_cache_key(
+                        dataset, snuba_params, query, query_columns, rollup
+                    )
+                    if cached := default_cache.get(cache_key):
+                        cached_rows = cast(Sequence[Mapping[str, int]], cached)
+                        cached_timestamps = sorted(row["time"] for row in cached_rows)
+                        # Don't use the cache if we haven't queried the start before
+                        # If this works well we can fork two queries in the future but keeping it simple for now
+                        if cached_timestamps[0] > snuba_params.start_date.timestamp():
+                            span.set_attribute("query.invalid_cache_reason", "missing_start")
+                            span.set_attribute("query.truncated", "None")
+                            is_cache_candidate = False
+                        # still query the last 3 timestamps
+                        elif len(cached_timestamps) > 3:
+                            original_start = snuba_params.start_date
+                            snuba_params.start = datetime.fromtimestamp(
+                                cached_timestamps[-3], tz=timezone.utc
+                            )
+                            span.set_attribute("query.truncated", "by_cache")
+                        else:
+                            span.set_attribute("query.truncated", "None")
+                    else:
+                        span.set_attribute("query.cache_hit", "missing")
+                else:
+                    span.set_attribute("query.invalid_cache_reason", "non_candidate")
 
         if top_events > 0:
             raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
@@ -432,7 +600,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 if "timestamp" in [col.strip("-") for col in raw_orderby]:
                     raise ParseError("Cannot order by timestamp")
             if dataset in RPC_DATASETS:
-                return dataset.run_top_events_timeseries_query(
+                rpc_top_events = dataset.run_top_events_timeseries_query(
                     params=snuba_params,
                     query_string=query,
                     y_axes=query_columns,
@@ -445,7 +613,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     sampling_mode=snuba_params.sampling_mode,
                     equations=self.get_equation_list(organization, request, param_name="groupBy"),
                     additional_queries=additional_queries,
+                    transformations=transformations,
                 )
+                return rpc_top_events
             return dataset.top_events_timeseries(
                 timeseries_columns=query_columns,
                 selected_columns=raw_groupby,
@@ -466,7 +636,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             )
 
         if dataset in RPC_DATASETS:
-            return dataset.run_timeseries_query(
+            result = dataset.run_timeseries_query(
                 params=snuba_params,
                 query_string=query,
                 y_axes=query_columns,
@@ -475,7 +645,21 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 sampling_mode=snuba_params.sampling_mode,
                 comparison_delta=comparison_delta,
                 additional_queries=additional_queries,
+                transformations=transformations,
             )
+            if incremental_loading and not skip_cache and is_cache_candidate:
+                with traces.start_span("set_cache"):
+                    # Query columns 0 is fine here since we only have 1 cache candidate right now
+                    update_result_with_cache(
+                        cache_key,
+                        cached,
+                        result,
+                        cached_timestamps,
+                        original_start,
+                        snuba_params,
+                        query_columns[0],
+                    )
+            return result
 
         return dataset.timeseries_query(
             selected_columns=query_columns,
@@ -498,7 +682,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         axes: list[str],
         snuba_params: SnubaParams,
         rollup: int,
-        dataset,
+        dataset: ModuleType,
         organization: Organization,
         ingestion_delay_status: IngestionDelayStatus | None = None,
     ) -> StatsResponse:
@@ -550,20 +734,25 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
     ) -> list[TimeSeries]:
         serialized_result = []
         if isinstance(result, SnubaTSResult):
-            for axis in axes:
+            for axis_index, axis in enumerate(axes):
                 serialized_result.append(
-                    self.serialize_timeseries(result, axis, rollup, boundaries)
+                    self.serialize_timeseries(result, axis, rollup, boundaries, axis_index)
                 )
         else:
             for key, value in result.items():
-                for axis in axes:
+                for axis_index, axis in enumerate(axes):
                     serialized_result.append(
-                        self.serialize_timeseries(value, axis, rollup, boundaries)
+                        self.serialize_timeseries(value, axis, rollup, boundaries, axis_index)
                     )
         return serialized_result
 
     def serialize_timeseries(
-        self, result: SnubaTSResult, axis: str, rollup: int, boundaries: BucketBoundaries
+        self,
+        result: SnubaTSResult,
+        axis: str,
+        rollup: int,
+        boundaries: BucketBoundaries,
+        axis_index: int = 0,
     ) -> TimeSeries:
         unit, field_type = self.get_unit_and_type(axis, result.data["meta"]["fields"][axis])
         series_meta = SeriesMeta(
@@ -585,14 +774,32 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         )
 
         timeseries_values = []
-        for row in result.data["data"]:
-            value_row = Row(timestamp=row["time"] * 1000, value=row.get(axis, 0), incomplete=False)
+        value_column = axis
+        transformation_flags = None
+        comparison_transformation_flags = None
+        if "processed_timeseries" in result.data:
+            processed_timeseries = result.data["processed_timeseries"]
+            value_column = processed_timeseries.transformation_aliases.get(axis_index, axis)
+            transformation_flags = processed_timeseries.transformation_flags.get(axis_index)
+            comparison_transformation_flags = processed_timeseries.comparison_transformation_flags
+        for index, row in enumerate(result.data["data"]):
+            value_row = Row(
+                timestamp=row["time"] * 1000, value=row.get(value_column, 0), incomplete=False
+            )
 
             if reason := boundaries.incomplete_reason(row["time"], rollup):
                 value_row["incomplete"] = True
                 value_row["incompleteReason"] = reason
             if "comparisonCount" in row:
                 value_row["comparisonValue"] = row["comparisonCount"]
+                if comparison_transformation_flags is not None:
+                    value_row["comparisonFilled"] = comparison_transformation_flags.filled[index]
+                    value_row["comparisonSmoothed"] = comparison_transformation_flags.smoothed[
+                        index
+                    ]
+            if transformation_flags is not None:
+                value_row["filled"] = transformation_flags.filled[index]
+                value_row["smoothed"] = transformation_flags.smoothed[index]
             timeseries_values.append(value_row)
 
         if "groupby" in result.data:
@@ -614,16 +821,3 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         timeseries["values"] = timeseries_values
 
         return timeseries
-
-    def _emit_analytics_event(self, organization: Organization, referrer: str) -> None:
-        if "agent-monitoring" not in referrer:
-            return
-        try:
-            analytics.record(
-                AgentMonitoringQuery(
-                    organization_id=organization.id,
-                    referrer=referrer,
-                )
-            )
-        except Exception as e:
-            sentry_sdk.capture_exception(e)

@@ -76,13 +76,18 @@ Dev server URLs: full devserver `http://dev.getsentry.net:8000`; frontend-only `
 
 #### Typechecking
 
-Run `pnpm run typecheck` to run the typescript type checker. It does not accept file paths. DO NOT use `tsc` directly.
+Run `pnpm run typecheck` to check the frontend TypeScript projects with tsrs. It does not accept file paths. Run it separately from Rsbuild. Do not use `tsc` directly.
 
 #### Linting
 
 ```bash
 pnpm run lint:js                          # all JS/TS
-pnpm run lint:js components/avatar.tsx    # specific file(s)
+pnpm run lint:js static/app/components/avatar.tsx # selected files in their owning projects
+pnpm --filter @sentry/icons lint          # Icons: JS/TS, CSS
+pnpm --filter @sentry/scraps lint         # Scraps: JS/TS, CSS
+pnpm run lint:suppressions --ci          # check suppression budgets for all workspaces
+pnpm run lint:suppressions --prune       # reduce suppression budgets for all workspaces
+pnpm run lint:format                     # formatting for the whole repository
 pnpm run fix                              # auto-fix
 ```
 
@@ -100,6 +105,7 @@ Use the right AGENTS.md for the area you're working in:
 - **Backend** (`src/**/*.py`) → `src/AGENTS.md` (backend patterns)
 - **Tests** (`tests/**/*.py`, `src/**/tests/**/*.py`) → `tests/AGENTS.md` (testing patterns)
 - **Frontend** (`static/**/*.{ts,tsx,js,jsx,css,scss}`) → `static/AGENTS.md` (frontend patterns)
+- **GitHub Actions** (`.github/workflows/**`) → `docs/github-actions.md` (where step logic goes, `actions/github-script`, tests, tokens)
 - **General** → This file (`AGENTS.md`) for Sentry overview and commands
 
 Workflow steering (commit, pre-commit, hybrid cloud, etc.) lives in **skills** (`.agents/skills/`). Attach or read the area `AGENTS.md` when working in that tree. Add or update guidance in the appropriate AGENTS.md or skill—do not duplicate long guidance in editor-specific rule files.

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from sentry import tagstore
@@ -9,6 +10,7 @@ from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.client.base import BaseApiClient
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiTimeoutError
+from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.utils.anonymizeip import anonymize_ip
 from sentry.utils.hashlib import md5_text
 
@@ -21,14 +23,14 @@ class SplunkApiClient(BaseApiClient):
     plugin_name = "splunk"
     allow_redirects = False
 
-    def __init__(self, endpoint, token):
+    def __init__(self, endpoint: str, token: str) -> None:
         self.endpoint = endpoint
         self.token = token
         super().__init__(verify_ssl=False)
 
-    def request(self, data):
+    def request(self, data: Mapping[str, object]) -> BaseApiResponse:
         headers = {"Authorization": f"Splunk {self.token}"}
-        return self._request(
+        response = self._request(
             path=self.endpoint,
             method="post",
             data=data,
@@ -37,6 +39,7 @@ class SplunkApiClient(BaseApiClient):
             timeout=5,
             allow_text=True,
         )
+        return response
 
 
 class SplunkForwarder(BaseDataForwarder):
@@ -61,7 +64,7 @@ class SplunkForwarder(BaseDataForwarder):
 
         return None
 
-    def initialize_variables(self, event: Event | GroupEvent, config: dict[str, Any]):
+    def initialize_variables(self, event: Event | GroupEvent, config: dict[str, Any]) -> None:
         self.project_token = config.get("token")
         self.project_index = config.get("index")
         self.project_instance = config.get("instance_url")
@@ -76,7 +79,7 @@ class SplunkForwarder(BaseDataForwarder):
         return f"{self.provider.value}:{md5_text(self.project_token).hexdigest()}"
 
     def get_event_payload_properties(self, event: Event | GroupEvent) -> dict[str, Any]:
-        props = {
+        props: dict[str, object] = {
             "event_id": event.event_id,
             "issue_id": event.group_id,
             "project_id": event.project.slug,

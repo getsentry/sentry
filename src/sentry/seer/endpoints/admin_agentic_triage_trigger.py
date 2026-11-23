@@ -31,6 +31,7 @@ class SeerAdminAgenticTriageTriggerEndpoint(Endpoint):
                 return Response({"detail": "organization_id must be a valid integer"}, status=400)
 
         dry_run = bool(request.data.get("dry_run", False))
+        single_run = bool(request.data.get("single_run", False))
 
         max_candidates_raw = request.data.get("max_candidates")
         max_candidates: int | None
@@ -47,6 +48,8 @@ class SeerAdminAgenticTriageTriggerEndpoint(Endpoint):
         options: SeerAgenticTriageRunOptionsPartial = {"source": "manual", "dry_run": dry_run}
         if max_candidates is not None:
             options["max_candidates"] = max_candidates
+        if single_run:
+            options["single_run"] = True
 
         if organization_id is None:
             schedule_agentic_triage.apply_async(kwargs={"run_options": options})
