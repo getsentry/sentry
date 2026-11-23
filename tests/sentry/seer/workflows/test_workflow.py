@@ -231,7 +231,7 @@ class SeerWorkflowCreateTest(TestCase):
             ({}, "Set a prompt or a skill"),
             ({"prompt": "Check checkout latency", "skill": "agentic_triage"}, "valid under each"),
             ({"skill": "unknown"}, "unknown"),
-            ({"prompt": ""}, "non-empty"),
+            ({"prompt": ""}, "too short"),
         )
         for invalid_settings, error in invalid:
             with pytest.raises(WorkflowUpdateError, match=error):
