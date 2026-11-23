@@ -116,6 +116,31 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         "additionalProperties": False,
     }
 
+    seer_investigation_config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Seer Investigation Workflow Schema",
+        "type": "object",
+        "properties": {
+            "frequency": {
+                "description": "How often the workflow should fire for a Group (minutes)",
+                "type": "integer",
+                "minimum": 0,
+            },
+            "cron": {
+                "description": "Cron expression the workflow runs on",
+                "type": "string",
+                "minLength": 1,
+            },
+            "timezone": {
+                "description": "IANA timezone the cron expression runs in",
+                "type": "string",
+                "minLength": 1,
+            },
+        },
+        "dependentRequired": {"timezone": ["cron"]},
+        "additionalProperties": False,
+    }
+
     __repr__ = sane_repr("organization_id")
 
     class Meta:
@@ -130,6 +155,11 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         indexes = [
             models.Index(fields=["type", "organization"], name="workflow_type_org_idx"),
         ]
+
+    def get_config_schema(self) -> dict[str, Any]:
+        if self.type == Workflow.Type.SEER_INVESTIGATION:
+            return self.seer_investigation_config_schema
+        return self.config_schema
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name, "type": self.type}

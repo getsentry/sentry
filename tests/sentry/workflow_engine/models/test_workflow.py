@@ -1,5 +1,6 @@
 import pytest
 from django.core.exceptions import ValidationError
+from jsonschema import ValidationError as JSONSchemaValidationError
 
 from sentry.constants import ObjectStatus
 from sentry.workflow_engine.models import Workflow
@@ -108,6 +109,24 @@ class WorkflowTest(BaseWorkflowTest):
 
         with pytest.raises(ValidationError):
             workflow2.full_clean()
+
+    def test_config_schema_depends_on_type(self) -> None:
+        schedule = {"frequency": 0, "cron": "0 9 * * 1", "timezone": "America/New_York"}
+        self.create_workflow(
+            organization=self.organization, type=Workflow.Type.SEER_INVESTIGATION, config=schedule
+        )
+
+        for workflow_type, config in (
+            (Workflow.Type.ALERT, schedule),
+            (Workflow.Type.SEER_INVESTIGATION, {"timezone": "UTC"}),
+            (Workflow.Type.SEER_INVESTIGATION, {"cron": ""}),
+            (Workflow.Type.SEER_INVESTIGATION, {"cron": "0 9 * * 1", "unknown": True}),
+        ):
+            with self.subTest(workflow_type=workflow_type, config=config):
+                with pytest.raises(JSONSchemaValidationError, match="Invalid config"):
+                    self.create_workflow(
+                        organization=self.organization, type=workflow_type, config=config
+                    )
 
     def test_duplicate_name(self) -> None:
         name = "my-dupe-name"
