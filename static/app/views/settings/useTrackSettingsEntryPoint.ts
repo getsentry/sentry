@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import type {LocationDescriptor} from 'history';
 
 import {getLocationHref} from 'sentry/components/commandPalette/ui/locationUtils';
@@ -19,28 +18,25 @@ export function useTrackSettingsEntryPoint(entryPoint: SettingsEntryPoint) {
   const organization = useOrganization({allowNull: true});
   const {pathname} = useLocation();
 
-  return useCallback(
-    (to: LocationDescriptor) => {
-      if (getSettingsScope(pathname).scope) {
-        return;
-      }
+  return (to: LocationDescriptor) => {
+    if (getSettingsScope(pathname).scope) {
+      return;
+    }
 
-      const destination = new URL(getLocationHref(to), window.location.origin);
-      if (destination.origin !== window.location.origin) {
-        return;
-      }
+    const destination = new URL(getLocationHref(to), window.location.origin);
+    if (destination.origin !== window.location.origin) {
+      return;
+    }
 
-      const scope = getSettingsScope(destination.pathname).scope;
-      if (!scope) {
-        return;
-      }
+    const scope = getSettingsScope(destination.pathname).scope;
+    if (!scope) {
+      return;
+    }
 
-      trackAnalytics('settings.entry_point_clicked', {
-        organization,
-        entry_point: entryPoint,
-        scope,
-      });
-    },
-    [organization, pathname, entryPoint]
-  );
+    trackAnalytics('settings.entry_point_clicked', {
+      organization,
+      entry_point: entryPoint,
+      scope,
+    });
+  };
 }
