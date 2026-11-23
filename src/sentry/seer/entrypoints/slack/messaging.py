@@ -62,29 +62,12 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Every alert for an issue registers its Slack thread for Autofix updates, and each registration
-# extends the group cache's expiry, so a frequently alerting issue can collect thousands of threads
-# and fan one update out to all of them. A run only needs the threads people are likely watching.
-MAX_AUTOFIX_UPDATE_THREADS = 20
 
-
-def get_recent_autofix_threads(threads: Sequence[SlackThreadDetails]) -> list[SlackThreadDetails]:
-    """
-    Returns at most MAX_AUTOFIX_UPDATE_THREADS distinct threads, keeping the most recently added
-    ones in their original order. Threads are appended as alerts are sent, so the newest are last.
-    """
-    seen: set[tuple[str, str]] = set()
-    recent: list[SlackThreadDetails] = []
-    for thread in reversed(threads):
-        key = (thread["channel_id"], thread["thread_ts"])
-        if key in seen:
-            continue
-        seen.add(key)
-        recent.append(thread)
-        if len(recent) == MAX_AUTOFIX_UPDATE_THREADS:
-            break
-    recent.reverse()
-    return recent
+def get_latest_thread_per_channel(
+    threads: Sequence[SlackThreadDetails],
+) -> list[SlackThreadDetails]:
+    # Every alert adds a thread, so an often-alerting issue would fan one update out to thousands.
+    return list({thread["channel_id"]: thread for thread in threads}.values())
 
 
 def _render_tracked(
@@ -289,11 +272,11 @@ def schedule_all_thread_updates(
         organization_id=organization_id,
     ).capture() as lifecycle:
         serialized_data = serialize_notification_data(data)
-        # Bound here too, so a cache entry that grew past the limit can't fan out.
-        recent_threads = get_recent_autofix_threads(threads)
-        lifecycle.add_extra("thread_count", len(recent_threads))
-        lifecycle.add_extra("dropped_thread_count", len(threads) - len(recent_threads))
-        for thread in recent_threads:
+        # Bound here too, so an already oversized cache entry can't fan out.
+        latest_threads = get_latest_thread_per_channel(threads)
+        lifecycle.add_extra("thread_count", len(latest_threads))
+        lifecycle.add_extra("dropped_thread_count", len(threads) - len(latest_threads))
+        for thread in latest_threads:
             process_thread_update.apply_async(
                 kwargs={
                     "integration_id": integration_id,
