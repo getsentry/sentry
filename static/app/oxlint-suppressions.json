@@ -418,7 +418,7 @@
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
   "components/group/inboxBadges/shortId.tsx": {
-    "@sentry/scraps/prefer-primitives": {"count": 2}
+    "@sentry/scraps/prefer-primitives": {"count": 1}
   },
   "components/group/inboxBadges/timesTag.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 2}

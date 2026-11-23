@@ -29,7 +29,11 @@ const AvatarWrapper = styled('div')`
 `;
 
 const IdWrapper = styled('div')`
-  overflow: hidden;
+  /* Center the cap height on the avatar instead of Rubik's lopsided line box */
+  text-box: trim-both cap alphabetic;
+  /* Only clip horizontally so glyphs can paint past the trimmed box */
+  overflow-x: clip;
+  min-width: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
