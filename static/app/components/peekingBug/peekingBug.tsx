@@ -11,6 +11,7 @@ import {retryableImport} from 'sentry/utils/retryableImport';
 const BugArt = lazy(() => retryableImport(() => import('./bugArt')));
 
 const HOVER_DELAY = 3.5;
+const POP = 1;
 const at = (offset: number) => `${(HOVER_DELAY + offset).toFixed(2)}s`;
 
 const SCALE = 0.6;
@@ -22,9 +23,9 @@ const FACE_LIFT = 3;
 const FINE_HOVER = '(hover: hover) and (pointer: fine)';
 
 const BUGS = [
-  {center: 1, hidden: 120, antennae: 86, eyes: 28},
-  {center: -7.5, hidden: 136, antennae: 102, eyes: 36},
-  {center: -11.5, hidden: 137, antennae: 103, eyes: 40},
+  {center: 1, hidden: 120, antennae: 86},
+  {center: -7.5, hidden: 136, antennae: 102},
+  {center: -11.5, hidden: 137, antennae: 103},
 ] as const;
 
 let lastShownBug: number | undefined;
@@ -104,12 +105,11 @@ interface BugLayerProps {
 }
 
 function BugLayer({bug, hasHovered, side}: BugLayerProps) {
-  const {center, hidden, antennae, eyes} = BUGS[bug]!;
+  const {center, hidden, antennae} = BUGS[bug]!;
   const style = {
     '--center': center,
     '--hidden': hidden,
     '--antennae': antennae,
-    '--eyes': eyes,
   } as React.CSSProperties;
 
   return (
@@ -122,16 +122,12 @@ function BugLayer({bug, hasHovered, side}: BugLayerProps) {
     >
       <g className="rise1">
         <g className="rise2">
-          <g className="rise3">
-            <g className="look">
-              <g className="squash">
-                {hasHovered && (
-                  <Suspense fallback={null}>
-                    <BugArt index={bug} />
-                  </Suspense>
-                )}
-              </g>
-            </g>
+          <g className="squash">
+            {hasHovered && (
+              <Suspense fallback={null}>
+                <BugArt index={bug} />
+              </Suspense>
+            )}
           </g>
         </g>
       </g>
@@ -145,18 +141,6 @@ const sniff = keyframes`
   35% { transform: rotate(9deg); }
   55% { transform: rotate(-7deg); }
   75% { transform: rotate(4deg); }
-`;
-
-const perk = keyframes`
-  0%, 100% { transform: none; }
-  30% { transform: rotate(8deg); }
-  60% { transform: rotate(-5deg); }
-`;
-
-const look = keyframes`
-  0%, 100% { transform: none; }
-  18%, 42% { transform: rotate(-6deg); }
-  62%, 86% { transform: rotate(5deg); }
 `;
 
 const settle = keyframes`
@@ -224,17 +208,12 @@ const Layer = styled('svg')`
     transform: translateY(calc((var(--hidden) - var(--antennae)) * 1px));
   }
   .rise2 {
-    transform: translateY(calc((var(--antennae) - var(--eyes)) * 1px));
-  }
-  .rise3 {
-    transform: translateY(calc(var(--eyes) * 1px));
+    transform: translateY(calc(var(--antennae) * 1px));
   }
   .rise1,
-  .rise2,
-  .rise3 {
+  .rise2 {
     transition: transform 0.2s cubic-bezier(0.55, 0, 0.9, 0.45);
   }
-  .look,
   .squash {
     transform-origin: calc(var(--center) * 1px) 0;
   }
@@ -250,8 +229,7 @@ const Hideout = styled(Flex)`
 
   &[data-resting] .layer,
   &[data-resting] .rise1,
-  &[data-resting] .rise2,
-  &[data-resting] .rise3 {
+  &[data-resting] .rise2 {
     transition: none !important;
   }
 
@@ -281,7 +259,7 @@ const Hideout = styled(Flex)`
         clip-path: inset(${LEDGE}px 0 0 0);
         transition:
           visibility 0s ${at(0)},
-          clip-path 0.14s ease-in ${at(2.84)},
+          clip-path 0.14s ease-in ${at(POP + 0.24)},
           translate ${p => p.theme.motion.snap.fast};
       }
 
@@ -301,27 +279,19 @@ const Hideout = styled(Flex)`
       }
       .rise2 {
         transform: none;
-        transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1) ${at(0.9)};
-      }
-      .rise3 {
-        transform: none;
-        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.3, 1) ${at(2.6)};
+        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.3, 1) ${at(POP)};
       }
 
-      .look {
-        animation: ${look} 1s ease-in-out ${at(1.5)};
-      }
       .squash {
         animation:
-          ${settle} 0.7s ${at(2.92)},
-          ${breathe} 1.6s ease-in-out ${at(3.7)} infinite alternate;
+          ${settle} 0.7s ${at(POP + 0.32)},
+          ${breathe} 1.6s ease-in-out ${at(POP + 1.1)} infinite alternate;
       }
       .antenna {
         animation:
           ${sniff} 0.6s ease-in-out calc(${at(0.3)} + var(--side) * 0.08s),
-          ${perk} 0.5s ease-in-out calc(${at(2.3)} + var(--side) * 0.06s),
-          ${boing} 0.85s ease-out calc(${at(3)} + var(--side) * 0.05s),
-          ${sway} 4.8s calc(${at(3.9)} + var(--side) * 0.9s) infinite;
+          ${boing} 0.85s ease-out calc(${at(POP + 0.4)} + var(--side) * 0.05s),
+          ${sway} 4.8s calc(${at(POP + 1.3)} + var(--side) * 0.9s) infinite;
       }
     }
   }
