@@ -1,3 +1,5 @@
+import select
+import socket
 from collections.abc import Generator
 from concurrent.futures import ThreadPoolExecutor  # noqa: S016
 from threading import Barrier
@@ -13,6 +15,7 @@ from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 class FakeClient:
     def __init__(self) -> None:
         self.closed = False
+        self.clients: dict[str, object] = {}
 
     def close(self) -> None:
         self.closed = True
@@ -130,6 +133,34 @@ def test_reconnects_after_age() -> None:
     assert old_client.closed
     assert not new_client.closed
     assert len(client_class.created) == 2
+
+
+def test_reconnects_when_the_server_closed_the_connection() -> None:
+    with socket.create_server(("127.0.0.1", 0)) as server:
+        server.settimeout(10)
+        host, port = server.getsockname()
+        # With noreply a command returns once it's sent, so the test needs no server thread.
+        cache = ReconnectingMemcache(
+            f"{host}:{port}", {"OPTIONS": {"default_noreply": True, "ignore_exc": True}}
+        )
+
+        cache.delete("first")
+        (server_client,) = cache._cache.clients.values()
+        client_sock = server_client.sock
+
+        first_conn, _ = server.accept()
+        with first_conn:
+            first_conn.settimeout(10)
+            assert b"first" in first_conn.recv(1024)
+
+        # Wait for the close to reach the client's socket.
+        assert select.select([client_sock], [], [], 10)[0]
+
+        cache.delete("second")
+        second_conn, _ = server.accept()
+        with second_conn:
+            second_conn.settimeout(10)
+            assert b"second" in second_conn.recv(1024)
 
 
 def test_backends_of_one_alias_get_the_same_reconnect_age() -> None:

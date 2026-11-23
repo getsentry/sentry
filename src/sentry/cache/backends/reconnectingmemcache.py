@@ -1,3 +1,4 @@
+import socket
 import threading
 import time
 from collections.abc import Mapping, Sequence
@@ -20,6 +21,30 @@ class _ThreadClients(threading.local):
 
 
 _thread_clients = _ThreadClients()
+
+
+def _is_unusable(sock: socket.socket) -> bool:
+    timeout = sock.gettimeout()
+    sock.settimeout(0)
+    try:
+        # memcached only sends replies, so an idle socket has nothing to read
+        # unless the server closed it.
+        sock.recv(1, socket.MSG_PEEK)
+    except BlockingIOError:
+        return False
+    except OSError:
+        return True
+    finally:
+        sock.settimeout(timeout)
+    return True
+
+
+def _close_dropped_connections(client: pymemcache.Client) -> None:
+    for server_client in client.clients.values():
+        sock = getattr(server_client, "sock", None)
+        if sock is not None and _is_unusable(sock):
+            server_client.close()
+            metrics.incr("cache.memcache.dropped_connection")
 
 
 class ReconnectingMemcache(PyMemcacheCache):
@@ -46,7 +71,10 @@ class ReconnectingMemcache(PyMemcacheCache):
 
     @property
     def _cache(self) -> pymemcache.Client:
-        """Return this thread's client, replacing it once it reaches reconnect_age."""
+        """
+        Return this thread's client, replacing it once it reaches reconnect_age.
+        Connections the server closed are dropped, so the command reconnects.
+        """
         clients = _thread_clients.by_key
         state = clients.get(self._client_key)
 
@@ -58,5 +86,7 @@ class ReconnectingMemcache(PyMemcacheCache):
         if state is None:
             client = self._class(self.client_servers, **(self._options or {}))
             state = clients[self._client_key] = _ThreadClient(time.time(), client)
+        else:
+            _close_dropped_connections(state.client)
 
         return state.client
