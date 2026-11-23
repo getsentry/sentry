@@ -1137,13 +1137,9 @@ describe('DetectorEdit', () => {
       );
     });
 
-    it('hides transactions dataset when deprecateTransactionAlerts feature flag is enabled for new detectors', async () => {
-      const organizationWithDeprecation = OrganizationFixture({
-        features: ['visibility-explore-view', 'discover-saved-queries-deprecation'],
-      });
-
+    it('hides transactions dataset for new detectors', async () => {
       render(<DetectorNewSettings />, {
-        organization: organizationWithDeprecation,
+        organization,
         initialRouterConfig: metricRouterConfig,
       });
 
