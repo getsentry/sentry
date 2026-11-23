@@ -30,8 +30,8 @@ _workflow_cache = CacheMapping[_WorkflowCacheKey, set[Workflow]](
     ttl_seconds=CACHE_TTL,
 )
 
-# Keep all environments in one entry so changing an environment only invalidates
-# one key. Activity workflows are a small, internal subset of an organization's workflows.
+# Keep all environments in one entry so changing an environment only invalidates one key.
+# Activity workflows are a small, internal subset of an organization's workflows.
 _activity_workflow_cache = CacheMapping[int, set[Workflow]](
     str,
     namespace="activity_workflows_by_organization",
