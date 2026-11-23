@@ -24,11 +24,11 @@ from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.db.models.fields.bounded import I64_MAX
-from sentry.incidents.grouptype import MetricIssue, MetricIssueDetectorHandler, MetricUpdate
+from sentry.incidents.grouptype import MetricIssue, MetricIssueDetectorHandler
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
-from sentry.incidents.utils.types import ProcessedSubscriptionUpdate
+from sentry.incidents.utils.types import MetricUpdate, ProcessedSubscriptionUpdate
 from sentry.investigations.services.breached_metrics import code_mode_dataset
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import process_occurrence_message

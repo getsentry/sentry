@@ -4,10 +4,10 @@ from dataclasses import asdict
 import pytest
 
 from sentry.db.models import NodeData
-from sentry.incidents.grouptype import MetricIssueEvidenceData
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
 from sentry.incidents.typings.metric_detector import MetricIssueContext, OpenPeriodContext
+from sentry.incidents.utils.types import MetricIssueEvidenceData
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.notifications.models.notificationaction import ActionTarget

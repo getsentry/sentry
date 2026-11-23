@@ -20,7 +20,7 @@ from sentry.workflow_engine.models import Action, Condition, Detector
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 if TYPE_CHECKING:
-    from sentry.incidents.grouptype import MetricIssueEvidenceData
+    from sentry.incidents.utils.types import MetricIssueEvidenceData
     from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 
 CONDITION_TO_ALERT_RULE_THRESHOLD_TYPE = {

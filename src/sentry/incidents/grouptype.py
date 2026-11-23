@@ -3,17 +3,13 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, TypedDict
+from typing import Any
 
 from sentry.incidents.handlers.condition import *  # noqa
 from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
-from sentry.incidents.utils.types import (
-    AnomalyDetectionUpdate,
-    AnomalyDetectionValues,
-    ProcessedSubscriptionUpdate,
-)
+from sentry.incidents.utils.types import AnomalyDetectionUpdate, MetricResult, MetricUpdate
 from sentry.integrations.metric_alerts import TEXT_COMPARISON_DELTA, describe_query_metric
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.ratelimits.sliding_windows import Quota
@@ -21,7 +17,7 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.actor import parse_and_validate_actor
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import DetectorOccurrence, StatefulDetectorHandler
-from sentry.workflow_engine.handlers.detector.base import EventData, EvidenceData
+from sentry.workflow_engine.handlers.detector.base import EventData
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_source import DataPacket
@@ -35,26 +31,6 @@ from sentry.workflow_engine.types import (
 )
 
 logger = logging.getLogger(__name__)
-
-MetricUpdate = ProcessedSubscriptionUpdate | AnomalyDetectionUpdate
-
-MetricResult = float | AnomalyDetectionValues
-
-
-# Post-serialization: what's stored in evidence data after JSON round-trip.
-class StoredAnomalyDetectionResult(TypedDict):
-    value: float
-    source_id: str
-    subscription_id: str
-    timestamp: str
-
-
-StoredMetricResult = float | StoredAnomalyDetectionResult | None
-
-
-@dataclass
-class MetricIssueEvidenceData(EvidenceData[StoredMetricResult]):
-    alert_id: int
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
