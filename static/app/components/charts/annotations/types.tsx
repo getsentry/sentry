@@ -1,3 +1,7 @@
+import type {RawFlag} from 'sentry/components/featureFlags/utils';
+
+import type {TimeseriesAnnotation} from './timeseriesAnnotation';
+
 export type AnnotationKind = 'release' | 'flag' | 'timeseriesAnnotation';
 
 /**
@@ -9,4 +13,9 @@ export interface AnnotationItem {
   kind: AnnotationKind;
   start: number;
   title: string;
+  action?: RawFlag['action'];
+  annotationType?: TimeseriesAnnotation['annotationType'];
+  end?: number | 'ongoing';
+  environmentId?: TimeseriesAnnotation['environmentId'];
+  severity?: TimeseriesAnnotation['severity'];
 }

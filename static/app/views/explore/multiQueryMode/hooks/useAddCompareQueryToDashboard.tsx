@@ -76,7 +76,5 @@ export function useAddCompareQueryToDashboard(query: ReadableExploreQueryParts) 
     });
   }, [organization, location, getEventView]);
 
-  return {
-    addToDashboard,
-  };
+  return {addToDashboard};
 }

@@ -6,7 +6,6 @@ import type {Organization} from 'sentry/types/organization';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -82,12 +81,11 @@ export function seerCreditCheckApiOptions(
  * Matches the org's credit checks for every operation, so they can all be
  * rechecked at once, for example after credits are added.
  */
-export function seerCreditChecksQueryKey(organization: Organization) {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/seer/credit-check/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
-  ];
+export function seerCreditChecksFilter(organization: Organization) {
+  return apiOptions.queryFilter(
+    '/organizations/$organizationIdOrSlug/seer/credit-check/',
+    {path: {organizationIdOrSlug: organization.slug}}
+  );
 }
 
 interface UseSeerCreditCheckOptions {

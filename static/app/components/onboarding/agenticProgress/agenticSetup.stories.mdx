@@ -70,6 +70,7 @@ export function ProjectSetupExample() {
         isAgentConnected={state !== 'connecting'}
         hasInitFailed={false}
         hasProgressFailed={false}
+        hasRunFailed={state === 'failed'}
         onRefresh={() => {}}
         onRetry={() => setState('connecting')}
         onCopyCommand={() => {}}

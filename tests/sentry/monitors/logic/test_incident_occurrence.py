@@ -73,6 +73,7 @@ class IncidentOccurrenceTestCase(TestCase):
             monitor_environment=self.monitor_environment,
             starting_checkin=self.failed_checkin,
             starting_timestamp=self.last_checkin,
+            last_successful_timestamp=self.successful_checkin.date_added,
             grouphash="abcd",
         )
 
@@ -182,7 +183,7 @@ class IncidentOccurrenceTestCase(TestCase):
         self, mock_produce_occurrence_to_kafka: mock.MagicMock
     ) -> None:
         self.build_occurrence_test_data()
-        self.successful_checkin.delete()
+        self.incident.update(last_successful_timestamp=None)
 
         send_incident_occurrence(
             self.failed_checkin,

@@ -74,6 +74,11 @@ build-api-docs: build-deprecated-docs build-spectacular-docs
 	@echo "--> Dereference the json schema for ease of use"
 	pnpm run deref-api-docs
 
+# Records the undocumented API responses from a test run with SENTRY_OPENAPI_RESPONSE_CHECK=report
+# in tests/apidocs/openapi-response-baseline.json. Only the endpoint methods the run called change.
+api-response-baseline:
+	@python3 -m tools.openapi_response_baseline $(ARGS)
+
 # The internal RPC method schema, which CI's openapi-diff checks for breaking changes.
 # It also ships with @sentry/api releases (static/packages/api) next to the API spec.
 build-rpc-schema:
@@ -146,9 +151,12 @@ build-chartcuterie-config:
 	@echo "--> Building chartcuterie config module"
 	pnpm run build-chartcuterie-config
 
+# CI sets this to pytest-selected.py when it has test durations to balance
+# shards with.
+ACCEPTANCE_PYTEST ?= -m pytest
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	python3 -b -m pytest tests/acceptance --reuse-db --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log --junit-xml=".artifacts/acceptance.junit.xml" -o junit_suite_name=acceptance
+	python3 -b $(ACCEPTANCE_PYTEST) tests/acceptance --reuse-db --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log --junit-xml=".artifacts/acceptance.junit.xml" -o junit_suite_name=acceptance
 	@echo ""
 
 test-cli: create-db

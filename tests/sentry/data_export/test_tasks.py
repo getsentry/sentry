@@ -1,9 +1,8 @@
-from typing import Any, Iterable, cast
+from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from django.db import IntegrityError
-from django.http import StreamingHttpResponse
 from django.urls import reverse
 
 from sentry.data_export.base import ExportQueryType
@@ -914,8 +913,8 @@ class AssembleDownloadExploreTest(
         )
         dl_response = self.client.get(f"{details_url}?download=1")
         assert dl_response.status_code == 200
-        stream = cast(StreamingHttpResponse, dl_response).streaming_content
-        return b"".join(cast(Iterable[bytes], stream)).strip()
+        stream = dl_response.streaming_content
+        return b"".join(stream).strip()
 
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_explore_spans_dataset_called_correctly(self, emailer: MagicMock) -> None:

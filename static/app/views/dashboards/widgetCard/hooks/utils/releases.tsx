@@ -141,9 +141,7 @@ export function getReleasesRequestData(
     };
   }
 
-  const requestData = {
-    field: aggregates.map(fieldsToDerivedMetrics),
-  };
+  const requestData = {field: aggregates.map(fieldsToDerivedMetrics)};
 
   if (
     rawOrderby &&

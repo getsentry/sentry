@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Any, cast
+from typing import Any
 
 import orjson
 import redis
@@ -180,7 +180,7 @@ class RedisReprocessingStore(ReprocessingStore):
         pending_key = _get_sync_counter_key(group_id)
         pending = self.redis.get(pending_key)
         ttl = self.redis.ttl(pending_key)
-        return cast("str | None", pending), ttl
+        return pending, ttl
 
     def get_progress(self, group_id: int) -> ReprocessingInfo | None:
         info = self.redis.get(_get_info_reprocessed_key(group_id))

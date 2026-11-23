@@ -211,10 +211,7 @@ export function EventEntryStacktraceFixture(params = {}): EntryStacktrace {
             "'client'": '<raven.base.Client object at 0x107bb8210>',
             "'data'": null,
             "'k'": '[Filtered]',
-            "'options'": {
-              "'data'": null,
-              "'tags'": null,
-            },
+            "'options'": {"'data'": null, "'tags'": null},
           },
           minGroupingLevel: 1,
         },

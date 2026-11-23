@@ -13,9 +13,7 @@ const {SPAN_GROUP, HTTP_RESPONSE_CONTENT_LENGTH, RAW_DOMAIN, SPAN_DESCRIPTION} =
   SpanFields;
 
 describe('SampleImages', () => {
-  const organization = OrganizationFixture({
-    features: ['insight-modules'],
-  });
+  const organization = OrganizationFixture({features: ['insight-modules']});
 
   beforeEach(() => {
     setupMocks();
@@ -93,8 +91,6 @@ const setupMockRequests = (
   MockApiClient.addMockResponse({
     url: '/projects/org-slug/project-slug/performance/configure/',
     method: 'GET',
-    body: {
-      enable_images: enableImages,
-    },
+    body: {enable_images: enableImages},
   });
 };

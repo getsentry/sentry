@@ -38,10 +38,7 @@ export function PreviewSection() {
 
   const schedule =
     scheduleType === ScheduleType.CRONTAB
-      ? {
-          type: ScheduleType.CRONTAB as const,
-          value: debouncedScheduleCrontab,
-        }
+      ? {type: ScheduleType.CRONTAB as const, value: debouncedScheduleCrontab}
       : {
           type: ScheduleType.INTERVAL as const,
           value: scheduleIntervalValue,

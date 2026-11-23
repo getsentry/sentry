@@ -118,6 +118,8 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         if file_m is None:
             raise Http404
         file = file_m.file
+        if file is None:
+            raise Http404
 
         try:
             fp = file.getfile()

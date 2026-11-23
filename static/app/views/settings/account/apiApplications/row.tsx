@@ -18,10 +18,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 
-type Props = {
-  app: ApiApplication;
-  onRemove: (app: ApiApplication) => void;
-};
+type Props = {app: ApiApplication; onRemove: (app: ApiApplication) => void};
 
 export function Row({app, onRemove}: Props) {
   const [isLoading, setLoading] = useState(false);

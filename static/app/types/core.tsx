@@ -24,12 +24,7 @@ export type ObjectStatus =
   | 'pending_deletion'
   | 'deletion_in_progress';
 
-export type Actor = {
-  id: string;
-  name: string;
-  type: 'user' | 'team';
-  email?: string;
-};
+export type Actor = {id: string; name: string; type: 'user' | 'team'; email?: string};
 
 export type DateString = Date | string | null;
 
@@ -94,15 +89,9 @@ type InitialState = {type: 'initial'};
 
 type LoadingState = {type: 'loading'};
 
-type ResolvedState<T> = {
-  data: T;
-  type: 'resolved';
-};
+type ResolvedState<T> = {data: T; type: 'resolved'};
 
-type ErroredState = {
-  error: string;
-  type: 'errored';
-};
+type ErroredState = {error: string; type: 'errored'};
 
 export type RequestState<T> =
   | EmptyState

@@ -41,10 +41,7 @@ describe('UpsellProvider', () => {
     SubscriptionStore.set(org.slug, sub);
 
     // might re-load the org/sub after a trial starts
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/',
-      body: org,
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/', body: org});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -56,10 +53,7 @@ describe('UpsellProvider', () => {
       body: [TeamFixture()],
     });
 
-    MockApiClient.addMockResponse({
-      url: `/customers/${org.slug}/`,
-      body: sub,
-    });
+    MockApiClient.addMockResponse({url: `/customers/${org.slug}/`, body: sub});
 
     return org;
   };
@@ -82,9 +76,7 @@ describe('UpsellProvider', () => {
       >
         {renderer}
       </UpsellProvider>,
-      {
-        organization: org,
-      }
+      {organization: org}
     );
 
     expect(screen.getByText('Start Trial')).toBeInTheDocument();
@@ -108,9 +100,7 @@ describe('UpsellProvider', () => {
 
     const {router} = render(
       <UpsellProvider source="test-abc">{renderer}</UpsellProvider>,
-      {
-        organization: org,
-      }
+      {organization: org}
     );
 
     expect(screen.getByText('Upgrade Plan')).toBeInTheDocument();
@@ -121,9 +111,7 @@ describe('UpsellProvider', () => {
     expect(router.location).toEqual(
       expect.objectContaining({
         pathname: `/checkout/${org.slug}/`,
-        query: {
-          referrer: 'upsell-test-abc',
-        },
+        query: {referrer: 'upsell-test-abc'},
       })
     );
   });
@@ -155,9 +143,7 @@ describe('UpsellProvider', () => {
       <UpsellProvider source="test-abc" triggerMemberRequests>
         {renderer}
       </UpsellProvider>,
-      {
-        organization: org,
-      }
+      {organization: org}
     );
     expect(screen.getByText('Request Trial')).toBeInTheDocument();
 
@@ -179,9 +165,7 @@ describe('UpsellProvider', () => {
       <UpsellProvider source="test-abc" triggerMemberRequests>
         {renderer}
       </UpsellProvider>,
-      {
-        organization: org,
-      }
+      {organization: org}
     );
 
     expect(screen.getByText('Request Upgrade')).toBeInTheDocument();
@@ -191,14 +175,7 @@ describe('UpsellProvider', () => {
   });
 
   it('opens modal with showConfirmation', async () => {
-    populateOrg(
-      {
-        access: ['org:billing'],
-      },
-      {
-        canTrial: true,
-      }
-    );
+    populateOrg({access: ['org:billing']}, {canTrial: true});
 
     const renderer = createRenderer();
     const handleTrialStarted = jest.fn();
@@ -216,9 +193,7 @@ describe('UpsellProvider', () => {
       >
         {renderer}
       </UpsellProvider>,
-      {
-        organization: org,
-      }
+      {organization: org}
     );
     await userEvent.click(screen.getByTestId('test-render'));
 

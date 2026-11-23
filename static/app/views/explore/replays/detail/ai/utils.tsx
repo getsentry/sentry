@@ -38,10 +38,7 @@ export enum ReplaySummaryTemp {
 
 export interface SummaryResponse {
   created_at: string | null;
-  data: {
-    summary: string;
-    time_ranges: TimeRanges;
-  } | null;
+  data: {summary: string; time_ranges: TimeRanges} | null;
   num_segments: number | null;
   status: ReplaySummaryStatus;
 }

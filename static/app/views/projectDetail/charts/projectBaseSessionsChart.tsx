@@ -162,16 +162,10 @@ type ChartProps = {
   previousTimeSeries?: Series[];
 };
 
-type ChartState = {
-  forceUpdate: boolean;
-  seriesSelection: Record<string, boolean>;
-};
+type ChartState = {forceUpdate: boolean; seriesSelection: Record<string, boolean>};
 
 class Chart extends Component<ChartProps, ChartState> {
-  state: ChartState = {
-    seriesSelection: {},
-    forceUpdate: false,
-  };
+  state: ChartState = {seriesSelection: {}, forceUpdate: false};
 
   shouldComponentUpdate(nextProps: ChartProps, nextState: ChartState) {
     if (nextState.forceUpdate) {
@@ -282,9 +276,7 @@ class Chart extends Component<ChartProps, ChartState> {
   get chartOptions(): Omit<LineChartProps, 'series'> {
     return {
       grid: {left: '10px', right: '10px', top: '40px', bottom: '0px'},
-      seriesOptions: {
-        showSymbol: false,
-      },
+      seriesOptions: {showSymbol: false},
       tooltip: {
         trigger: 'axis',
         truncate: 80,
@@ -306,9 +298,7 @@ class Chart extends Component<ChartProps, ChartState> {
       },
       yAxis: this.isCrashFree
         ? {
-            axisLabel: {
-              formatter: (value: number) => displayCrashFreePercent(value),
-            },
+            axisLabel: {formatter: (value: number) => displayCrashFreePercent(value)},
             scale: true,
             max: 100,
           }

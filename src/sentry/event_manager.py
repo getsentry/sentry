@@ -34,7 +34,6 @@ from sentry import (
     options,
     quotas,
     reprocessing2,
-    tsdb,
 )
 from sentry.analytics.events.event_processing_error_recorded import EventProcessingErrorRecorded
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks
@@ -145,7 +144,6 @@ from sentry.signals import (
     issue_unresolved,
 )
 from sentry.tasks.process_buffer import buffer_incr
-from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
@@ -579,7 +577,6 @@ class EventManager:
         _get_or_create_release_associated_models(jobs, projects)
         _increment_release_associated_counts_many(jobs, projects)
         _get_or_create_group_release_many(jobs)
-        _tsdb_record_all_metrics(jobs)
 
         if attachments:
             attachments = filter_attachments_for_group(attachments, job)
@@ -1091,46 +1088,6 @@ def _get_or_create_group_release(
                 metrics_tags=resolve_tags,
             )
             _record_resolve_model("grouprelease", resolve_tags)
-
-
-def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
-    """
-    Do all tsdb-related things for save_event in here s.t. we can potentially
-    put everything in a single redis pipeline someday.
-    """
-
-    # XXX: validate whether anybody actually uses those metrics
-
-    for job in jobs:
-        incrs = []
-        records = []
-        incrs.append((TSDBModel.project, job["project_id"]))
-        event = job["event"]
-        release = job["release"]
-        environment = job["environment"]
-        user = job["user"]
-
-        for group_info in job["groups"]:
-            incrs.append((TSDBModel.group, group_info.group.id))
-            if user:
-                records.append(
-                    (TSDBModel.users_affected_by_group, group_info.group.id, (user.tag_value,))
-                )
-
-        if release:
-            incrs.append((TSDBModel.release, release.id))
-
-        if user:
-            project_id = job["project_id"]
-            records.append((TSDBModel.users_affected_by_project, project_id, (user.tag_value,)))
-
-        if incrs:
-            tsdb.backend.incr_multi(incrs, timestamp=event.datetime, environment_id=environment.id)
-
-        if records:
-            tsdb.backend.record_multi(
-                records, timestamp=event.datetime, environment_id=environment.id
-            )
 
 
 def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
@@ -2960,7 +2917,6 @@ def save_transaction_events(
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)
-    _tsdb_record_all_metrics(jobs)
     _materialize_event_metrics(jobs)
     _nodestore_save_many(jobs=jobs, app_feature="transactions")
     _eventstream_insert_many(jobs)

@@ -150,6 +150,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:inbound-filters-preview", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Let custom inbound filters match on the environment. Needs inbound-filters-v2 too.
     manager.add("organizations:inbound-filters-environment-condition", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Let custom inbound filters match on the browser name and version. Needs inbound-filters-v2 too.
+    manager.add("organizations:inbound-filters-browser-condition", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Double write the legacy inbound filter lists into custom filter rows for this org, ahead of the per-list stage option.
     manager.add("organizations:inbound-filters-legacy-double-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Serve the legacy IP address list to Relay as a generic filter instead of the native clientIps setting.
@@ -300,6 +302,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Relay git fetches and pushes for coding jobs through Sentry's git endpoint, with the org's integration credentials
     manager.add("organizations:scm-git-endpoint", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Repair renamed GitHub and GitHub Enterprise repositories during sync.
+    manager.add("organizations:scm-repo-sync-renames", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Seer Agent panel for AI-powered data exploration
     manager.add("organizations:seer-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the Seer Automations UI and APIs
@@ -351,8 +355,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-agent-enable-assisted-query-code-mode", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Explorer Impact assessments
     manager.add("organizations:seer-impact-assessment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable browser notifications for autofix runs
-    manager.add("organizations:autofix-browser-notifications", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show the "Open in Seer Agent (debug)" button in the autofix drawer
     manager.add("organizations:autofix-seer-agent-debug", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # On green CI: mark ready for review and request review from the triggering user.
@@ -588,6 +590,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
 
     # Enable lightweight RCA clustering write path (generate embeddings on new issues)
     manager.add("organizations:supergroups-lightweight-rca-clustering-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Return issues in the same supergroup from the related issues endpoint (type=same_supergroup)
+    manager.add("organizations:related-issues-supergroups", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     manager.add("projects:workflow-engine-performance-detectors", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 

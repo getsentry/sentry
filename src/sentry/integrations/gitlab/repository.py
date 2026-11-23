@@ -74,7 +74,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         client = installation.get_client()
 
         repo_id = setup_config["identifier"]
-        instance = cast(str, installation.model.metadata["instance"])
+        instance = installation.model.metadata["instance"]
 
         try:
             project = cast(GitLabProject, client.get_project(repo_id))
@@ -202,11 +202,8 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
                 )
                 return self._format_commits(client, repo, commits)
             else:
-                comparison = cast(
-                    Mapping[str, object],
-                    client.compare_commits(repo.config["project_id"], start_sha, end_sha),
-                )
-                commits = cast(Sequence[GitLabCommit], comparison["commits"])
+                comparison = client.compare_commits(repo.config["project_id"], start_sha, end_sha)
+                commits = comparison["commits"]
                 return self._format_commits(client, repo, commits)
         except Exception as e:
             raise installation.raise_error(e)
@@ -237,7 +234,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         """GitLab commit lists don't come with diffs so we have
         to make additional round trips.
         """
-        diffs = cast(Sequence[GitLabDiff], client.get_diff(repo.config["project_id"], sha))
+        diffs = client.get_diff(repo.config["project_id"], sha)
         return self._transform_patchset(diffs)
 
     def _transform_patchset(self, patch_set: Sequence[GitLabDiff]) -> list[CommitPatchFile]:

@@ -61,9 +61,7 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
       if (Number.isInteger(value)) {
         return formatAbbreviatedNumber(value);
       }
-      return value.toLocaleString(undefined, {
-        maximumFractionDigits: 20,
-      });
+      return value.toLocaleString(undefined, {maximumFractionDigits: 20});
     case 'percentage': {
       const fractionUnit = isAFractionUnit(unit) ? unit : FractionUnit.RATIO;
       return formatPercentage(

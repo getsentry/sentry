@@ -25,9 +25,7 @@ export function useSizeAnalysisComparison({
   baseMetricId,
   headMetricId,
   project,
-}: MetricIds & {
-  project: Project;
-}) {
+}: MetricIds & {project: Project}) {
   const organization = useOrganization();
 
   return useQuery(

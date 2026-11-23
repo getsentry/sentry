@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Any, ClassVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.core.cache import cache
 from django.db import models
@@ -703,7 +703,8 @@ class GroupManager(BaseManager["Group"]):
             external_issues = external_issues.filter(key=external_issue_key)
 
         group_link_subquery = GroupLink.objects.filter(
-            linked_id__in=external_issues.values_list("id", flat=True)
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id__in=external_issues.values_list("id", flat=True),
         ).values_list("group_id", flat=True)
 
         return self.filter(
@@ -952,7 +953,7 @@ class Group(Model):
         self.message = strip(self.message)
         if self.message:
             self.message = truncatechars(self.message.splitlines()[0], 255)
-        if cast("int | None", self.times_seen) is None:
+        if self.times_seen is None:
             self.times_seen = 1
         super().save(
             force_insert=force_insert,

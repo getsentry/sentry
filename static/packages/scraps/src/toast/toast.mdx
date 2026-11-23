@@ -67,9 +67,7 @@ The API provides four variants:
 Pass a `ToastOptions` object as the second argument:
 
 ```tsx
-toast.error('Could not save changes', {
-  duration: 10_000,
-});
+toast.error('Could not save changes', {duration: 10_000});
 ```
 
 - `duration` is in milliseconds. It defaults to `6_000`. Use `Infinity` for a persistent toast.

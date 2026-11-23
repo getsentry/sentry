@@ -10,10 +10,7 @@ const theme = ThemeFixture();
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
-): TraceTreeNodeExtra => ({
-  organization: OrganizationFixture(),
-  ...overrides,
-});
+): TraceTreeNodeExtra => ({organization: OrganizationFixture(), ...overrides});
 
 describe('RootNode', () => {
   describe('constructor', () => {
@@ -59,10 +56,7 @@ describe('RootNode', () => {
 
       const headerTitle = rootNode.traceHeaderTitle;
 
-      expect(headerTitle).toEqual({
-        title: 'Trace',
-        subtitle: rootNode.description,
-      });
+      expect(headerTitle).toEqual({title: 'Trace', subtitle: rootNode.description});
     });
   });
 

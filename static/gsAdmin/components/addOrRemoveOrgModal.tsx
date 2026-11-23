@@ -17,14 +17,9 @@ interface AddOrRemoveOrgModalProps extends ModalRenderProps {
   userId: string;
 }
 
-type AddToOrgFormValues = {
-  organizationSlug: string;
-  role: string;
-};
+type AddToOrgFormValues = {organizationSlug: string; role: string};
 
-type RemoveFromOrgFormValues = {
-  organizationSlug: string;
-};
+type RemoveFromOrgFormValues = {organizationSlug: string};
 
 const addToOrgSchema = z.object({
   organizationSlug: z.string().trim().min(1, 'Organization slug is required'),
@@ -94,10 +89,7 @@ function AddToOrgModal({
                 <field.Select
                   value={field.state.value}
                   onChange={field.handleChange}
-                  options={ORG_ROLES.map(role => ({
-                    value: role.id,
-                    label: role.name,
-                  }))}
+                  options={ORG_ROLES.map(role => ({value: role.id, label: role.name}))}
                   placeholder="Choose a role"
                 />
               </field.Layout.Stack>

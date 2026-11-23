@@ -166,10 +166,7 @@ export function useOAuthDeviceFlow() {
   }
 
   if (!userCode || contextQuery.data?.stage === 'codeEntry') {
-    return {
-      state: {...loadingState, isPreparingCode: false} as const,
-      actions,
-    };
+    return {state: {...loadingState, isPreparingCode: false} as const, actions};
   }
 
   if (!context) {

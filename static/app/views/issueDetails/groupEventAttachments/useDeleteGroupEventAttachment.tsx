@@ -19,9 +19,7 @@ type DeleteGroupEventAttachmentVariables = FetchGroupEventAttachmentsApiOptionsP
   projectSlug: string;
 };
 
-type DeleteGroupEventAttachmentContext = {
-  previous?: ApiResponse<IssueAttachment[]>;
-};
+type DeleteGroupEventAttachmentContext = {previous?: ApiResponse<IssueAttachment[]>};
 
 export function useDeleteGroupEventAttachment() {
   const queryClient = useQueryClient();

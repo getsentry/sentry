@@ -144,16 +144,10 @@ export function useInvitationFlow(params: InvitationParams) {
       (inviteQuery.error.status === 400 || inviteQuery.error.status === 404);
 
     if (isInvalidInvite) {
-      return {
-        state: {...mutationState, status: 'invalid'} as const,
-        actions,
-      };
+      return {state: {...mutationState, status: 'invalid'} as const, actions};
     }
 
-    return {
-      state: {...mutationState, status: 'unavailable'} as const,
-      actions,
-    };
+    return {state: {...mutationState, status: 'unavailable'} as const, actions};
   }
 
   const authOrganization = authOrganizationQuery.data;
@@ -163,10 +157,7 @@ export function useInvitationFlow(params: InvitationParams) {
     authOrganizationQuery.isError ||
     (needsAccountAuthentication && authConfigQuery.isError)
   ) {
-    return {
-      state: {...mutationState, status: 'unavailable'} as const,
-      actions,
-    };
+    return {state: {...mutationState, status: 'unavailable'} as const, actions};
   }
 
   // Keep the account and its disabled action together until the new form is ready.

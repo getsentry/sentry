@@ -4,9 +4,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {DataSecrecy} from 'sentry/views/settings/components/dataSecrecy';
 
 describe('DataSecrecy', () => {
-  const {organization} = initializeOrg({
-    organization: {features: ['data-secrecy']},
-  });
+  const {organization} = initializeOrg({organization: {features: ['data-secrecy']}});
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -14,10 +12,7 @@ describe('DataSecrecy', () => {
   });
 
   it('renders with access disabled', () => {
-    const orgWithoutAccess = {
-      ...organization,
-      allowSuperuserAccess: false,
-    };
+    const orgWithoutAccess = {...organization, allowSuperuserAccess: false};
 
     render(<DataSecrecy />, {organization: orgWithoutAccess});
 
@@ -30,10 +25,7 @@ describe('DataSecrecy', () => {
   });
 
   it('renders with access enabled', () => {
-    const orgWithAccess = {
-      ...organization,
-      allowSuperuserAccess: true,
-    };
+    const orgWithAccess = {...organization, allowSuperuserAccess: true};
 
     render(<DataSecrecy />, {organization: orgWithAccess});
 
@@ -51,10 +43,7 @@ describe('DataSecrecy', () => {
       method: 'PUT',
     });
 
-    const orgWithoutAccess = {
-      ...organization,
-      allowSuperuserAccess: false,
-    };
+    const orgWithoutAccess = {...organization, allowSuperuserAccess: false};
 
     render(<DataSecrecy />, {organization: orgWithoutAccess});
 
@@ -67,10 +56,7 @@ describe('DataSecrecy', () => {
     await waitFor(() => {
       expect(mockUpdate).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/`,
-        expect.objectContaining({
-          method: 'PUT',
-          data: {allowSuperuserAccess: true},
-        })
+        expect.objectContaining({method: 'PUT', data: {allowSuperuserAccess: true}})
       );
     });
   });
@@ -81,10 +67,7 @@ describe('DataSecrecy', () => {
       method: 'PUT',
     });
 
-    const orgWithAccess = {
-      ...organization,
-      allowSuperuserAccess: true,
-    };
+    const orgWithAccess = {...organization, allowSuperuserAccess: true};
 
     render(<DataSecrecy />, {organization: orgWithAccess});
 
@@ -97,10 +80,7 @@ describe('DataSecrecy', () => {
     await waitFor(() => {
       expect(mockUpdate).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/`,
-        expect.objectContaining({
-          method: 'PUT',
-          data: {allowSuperuserAccess: false},
-        })
+        expect.objectContaining({method: 'PUT', data: {allowSuperuserAccess: false}})
       );
     });
   });

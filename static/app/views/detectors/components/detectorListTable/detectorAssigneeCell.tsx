@@ -4,10 +4,7 @@ import {ActorAvatar} from '@sentry/scraps/avatar';
 
 import type {Actor} from 'sentry/types/core';
 
-type DetectorAssigneeCellProps = {
-  assignee: Actor | null;
-  className?: string;
-};
+type DetectorAssigneeCellProps = {assignee: Actor | null; className?: string};
 
 function AssigneeContent({assignee}: {assignee: Actor | null}) {
   if (!assignee) {
