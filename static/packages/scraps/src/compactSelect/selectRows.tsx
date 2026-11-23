@@ -23,14 +23,14 @@ export interface SectionRowLayout {
   toggleAllButton: boolean;
 }
 
-export interface SelectSectionRow<T extends ListItemBase> {
+interface SelectSectionRow<T extends ListItemBase> {
   layout: SectionRowLayout;
   node: Node<T>;
   /** Measurement props for the section's own row, when virtualized. */
   rowProps: VirtualRowProps | undefined;
 }
 
-export interface SelectOptionRow<T extends ListItemBase> {
+interface SelectOptionRow<T extends ListItemBase> {
   node: Node<T>;
   /** Set when virtualized, see `getVisibleOptionPositions`. */
   position: OptionPosition | undefined;
