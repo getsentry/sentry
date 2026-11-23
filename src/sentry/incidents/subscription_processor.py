@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import TypeVar
 
 from django.conf import settings
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
@@ -17,6 +16,7 @@ from sentry.incidents.utils.query_helpers import (
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
 from sentry.incidents.utils.types import (
     AnomalyDetectionUpdate,
+    MetricUpdate,
     ProcessedSubscriptionUpdate,
     QuerySubscriptionUpdate,
 )
@@ -28,22 +28,16 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
 from sentry.utils.memory import track_memory_usage
-from sentry.workflow_engine.generated_schema_types import MetricIssueDetectorConfig
+from sentry.workflow_engine.caches.detector import get_detectors_by_data_source
 from sentry.workflow_engine.models import DataPacket, Detector
-from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.processors.data_packet import process_data_packet
-from sentry.workflow_engine.types import DetectorGroupKey
 
 logger = logging.getLogger(__name__)
-REDIS_TTL = int(timedelta(days=7).total_seconds())
-# Stores a minimum threshold that represents a session count under which we don't evaluate crash
-# rate alert, and the update is just dropped. If it is set to None, then no minimum threshold
-# check is applied
-# ToDo(ahmed): This is still experimental. If we decide that it makes sense to keep this
-#  functionality, then maybe we should move this to constants
-CRASH_RATE_ALERT_MINIMUM_THRESHOLD: int | None = None
 
-T = TypeVar("T")
+REDIS_TTL = int(timedelta(days=7).total_seconds())
+# Minimum sessions/users needed before crash rate detection will apply. Setting it to `None`
+# disables it.
+CRASH_RATE_ALERT_MINIMUM_THRESHOLD: int | None = None
 
 
 class SubscriptionProcessor:
@@ -52,49 +46,56 @@ class SubscriptionProcessor:
     Use the `process` classmethod as the entry point.
     """
 
-    def __init__(
-        self,
-        subscription: QuerySubscription,
-        detector: Detector,
-    ) -> None:
+    def __init__(self, subscription: QuerySubscription, detector: Detector) -> None:
         """
         Initialize with pre-validated subscription and detector.
         Use the `process` classmethod rather than calling this directly.
         """
         self.subscription = subscription
+        self.subscription_id = str(subscription.id)
         self.detector = detector
-        self.last_update = get_detector_last_update(detector, subscription.project_id)
+        self.dataset = self.subscription.snuba_query.dataset
+        self.project = self.subscription.project
+
+        # The subscription's `subscription_id` field is nullable (since it's only set once Snuba
+        # accepts the subscription), but we wouldn't get here if it weren't set, as the subscription
+        # update consumer only calls this processor once it's used the id to found the subscription
+        # record.
+        assert self.subscription.subscription_id is not None
+        self.snuba_subscription_id = self.subscription.subscription_id
 
     @classmethod
     def process(
-        cls,
-        subscription: QuerySubscription,
-        subscription_update: QuerySubscriptionUpdate,
+        cls, subscription: QuerySubscription, subscription_update: QuerySubscriptionUpdate
     ) -> bool:
         """
         Entry point for processing a subscription update.
         Returns False if required objects don't exist or are invalid.
         """
-        # Look up detector
-        try:
-            detector = Detector.objects.get(
-                data_sources__source_id=str(subscription.id),
-                data_sources__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-            )
-        except Detector.DoesNotExist:
+        detectors = get_detectors_by_data_source(
+            str(subscription.id), DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        )
+
+        if len(detectors) == 0:
             logger.info("Detector not found", extra={"subscription_id": subscription.id})
             metrics.incr(
-                "incidents.subscription_processor.detector_lookup",
-                tags={"found": "False"},
+                "incidents.subscription_processor.detector_lookup", tags={"found": "False"}
+            )
+            return False
+        elif len(detectors) > 1:
+            logger.warning("Multiple detectors found", extra={"subscription_id": subscription.id})
+            metrics.incr(
+                "incidents.subscription_processor.detector_lookup", tags={"found": "Mulitiple"}
             )
             return False
 
-        metrics.incr(
-            "incidents.subscription_processor.detector_lookup",
-            tags={"found": "True"},
-        )
+        detector = detectors[0]
+        metrics.incr("incidents.subscription_processor.detector_lookup", tags={"found": "True"})
 
-        # Fetch and cache Project
+        if not detector.enabled:
+            logger.info("Detector disabled", extra={"subscription_id": subscription.id})
+            return False
+
         try:
             project = Project.objects.get_from_cache(id=subscription.project_id)
             subscription.set_cached_field_value("project", project)
@@ -106,11 +107,9 @@ class SubscriptionProcessor:
             metrics.incr("incidents.alert_rules.ignore_deleted_project")
             return False
 
-        # Fetch and cache Organization
         organization = Organization.objects.get_from_cache(id=project.organization_id)
         project.set_cached_field_value("organization", organization)
 
-        # Create processor and run
         processor = cls(subscription, detector)
         return processor.process_update(subscription_update)
 
@@ -127,7 +126,7 @@ class SubscriptionProcessor:
         # crashed sessions directly or users experiencing at least one crashed session. Either way,
         # snuba returns the counts, not the rate, so we have to do the percentage calculation
         # ourselves.
-        if self.subscription.snuba_query.dataset == Dataset.Metrics.value:
+        if self.dataset == Dataset.Metrics.value:
             total_count = raw_data.get("count", 0)
             crash_count = raw_data.get("crashed", 0)
 
@@ -159,18 +158,17 @@ class SubscriptionProcessor:
         Note: Only the current value is included in the subscription update, so this requires a
         snuba query in order to get the baseline value.
         """
-        detector_config: MetricIssueDetectorConfig = self.detector.config
         snuba_query = self.subscription.snuba_query
 
         baseline_window_end = subscription_update["timestamp"] - timedelta(
-            seconds=detector_config["comparison_delta"]
+            seconds=self.detector.config["comparison_delta"]
         )
         baseline_window_start = baseline_window_end - timedelta(seconds=snuba_query.time_window)
         baseline_value = run_query_for_window(
             snuba_query=snuba_query,
-            subscription_id=subscription_update["subscription_id"],
-            org_id=self.subscription.project.organization.id,
-            project_ids=[self.subscription.project_id],
+            subscription_id=self.snuba_subscription_id,
+            org_id=self.project.organization.id,
+            project_ids=[self.project.id],
             window_start=baseline_window_start,
             window_end=baseline_window_end,
             referrer=Referrer.SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY,
@@ -182,95 +180,97 @@ class SubscriptionProcessor:
 
         return (current_value / baseline_value) * 100
 
-    def get_evaluation_value(self, subscription_update: QuerySubscriptionUpdate) -> float | None:
+    def _create_data_packet(
+        self, subscription_update: QuerySubscriptionUpdate
+    ) -> DataPacket[MetricUpdate] | None:
         extracted_value = self._extract_value_from_update(subscription_update)
+
         if extracted_value is None:
             return None
 
-        if self.detector.config["detection_type"] == AlertRuleDetectionType.PERCENT.value:
-            return (
+        entity = subscription_update.get("entity", "")
+        timestamp = subscription_update["timestamp"]
+        detection_type = self.detector.config["detection_type"]
+        processed_subscription_update: MetricUpdate
+
+        if detection_type == AlertRuleDetectionType.STATIC.value:
+            processed_subscription_update = ProcessedSubscriptionUpdate(
+                entity=entity,
+                subscription_id=self.snuba_subscription_id,
+                values={"value": extracted_value},
+                timestamp=timestamp,
+            )
+
+        elif detection_type == AlertRuleDetectionType.PERCENT.value:
+            percent_value = (
                 # TODO: We have a handful of (broken) crash rate detectors which are wrongly stored
                 # with `detection_type: 'percent'`. Once we fix those bad detectors (and add
                 # validation to make sure no such detectors ever reappear), we can remove this
                 # branch in the logic.
                 extracted_value
-                if self.subscription.snuba_query.dataset == Dataset.Metrics.value
+                if self.dataset == Dataset.Metrics.value
                 else self._get_percent_detector_value(extracted_value, subscription_update)
             )
 
-        # Static and dynamic detectors use the extracted value as is
-        return extracted_value
+            if percent_value is None:
+                return None
 
-    def _create_and_process_data_packet(
-        self,
-        detector: Detector,
-        subscription_update: QuerySubscriptionUpdate,
-        evaluation_value: float,
-    ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]]:
-        detector_cfg: MetricIssueDetectorConfig = detector.config
-        if detector_cfg["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
-            anomaly_detection_packet = AnomalyDetectionUpdate(
-                entity=subscription_update.get("entity", ""),
-                subscription_id=subscription_update["subscription_id"],
+            processed_subscription_update = ProcessedSubscriptionUpdate(
+                entity=entity,
+                subscription_id=self.snuba_subscription_id,
+                values={"value": percent_value},
+                timestamp=timestamp,
+            )
+
+        elif detection_type == AlertRuleDetectionType.DYNAMIC.value:
+            processed_subscription_update = AnomalyDetectionUpdate(
+                entity=entity,
+                subscription_id=self.snuba_subscription_id,
                 values={
-                    "value": evaluation_value,
-                    "source_id": str(self.subscription.id),
-                    "subscription_id": subscription_update["subscription_id"],
-                    "timestamp": self.last_update,
+                    "value": extracted_value,
+                    "source_id": self.subscription_id,
+                    "subscription_id": self.snuba_subscription_id,
+                    "timestamp": timestamp,
                 },
-                timestamp=self.last_update,
+                timestamp=timestamp,
             )
-            anomaly_detection_data_packet = DataPacket[AnomalyDetectionUpdate](
-                source_id=str(self.subscription.id), packet=anomaly_detection_packet
-            )
-            results = process_data_packet(
-                anomaly_detection_data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-            )
-        else:
-            metric_packet = ProcessedSubscriptionUpdate(
-                entity=subscription_update.get("entity", ""),
-                subscription_id=subscription_update["subscription_id"],
-                values={"value": evaluation_value},
-                timestamp=self.last_update,
-            )
-            metric_data_packet = DataPacket[ProcessedSubscriptionUpdate](
-                source_id=str(self.subscription.id), packet=metric_packet
-            )
-            results = process_data_packet(metric_data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 
-        return results
+        else:
+            logger.error(
+                f"Unknown detection type: '{detection_type}'",
+                extra={"subscription_id": self.subscription_id, "detector_id": self.detector.id},
+            )
+            return None
+
+        return DataPacket(source_id=self.subscription_id, packet=processed_subscription_update)
 
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> bool:
         """
-        Core processing method. Assumes subscription has cached project/organization
-        and detector exists (enforced by the `process` classmethod).
+        Core processing method. Assumes subscription has cached project/organization and detector
+        exists (enforced by the `process` classmethod).
         """
-        dataset = self.subscription.snuba_query.dataset
-        organization = self.subscription.project.organization
-
-        if not is_metric_subscription_allowed(dataset, organization):
+        if not is_metric_subscription_allowed(self.dataset, self.project.organization):
             metrics.incr(
                 "incidents.alert_rules.ignore_update_not_enabled",
-                tags={"dataset": dataset},
+                tags={"dataset": self.dataset},
             )
             return False
 
-        if subscription_update["timestamp"] <= self.last_update:
+        # Subscriptions updates are delivered via Kafka, which can lead to them arriving out of
+        # order and/or multiple times. To prevent processing out-of-date/duplicate data, we store
+        # the timestamp of the latest update we processed, and check it against incoming updates.
+        last_update_date = get_detector_last_update(self.detector, self.subscription.project_id)
+        if subscription_update["timestamp"] <= last_update_date:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return False
 
-        self.last_update = subscription_update["timestamp"]
-
-        if (
-            len(subscription_update["values"]["data"]) > 1
-            and self.subscription.snuba_query.dataset != Dataset.Metrics.value
-        ):
+        if len(subscription_update["values"]["data"]) > 1 and self.dataset != Dataset.Metrics.value:
             logger.warning(
                 "Subscription returned more than 1 row of data",
                 extra={
-                    "subscription_id": self.subscription.id,
-                    "dataset": self.subscription.snuba_query.dataset,
-                    "snuba_subscription_id": self.subscription.subscription_id,
+                    "subscription_id": self.subscription_id,
+                    "dataset": self.dataset,
+                    "snuba_subscription_id": self.snuba_subscription_id,
                     "result": subscription_update,
                 },
             )
@@ -280,26 +280,21 @@ class SubscriptionProcessor:
             track_memory_usage("incidents.alert_rules.process_update_memory"),
         ):
             metrics.incr("incidents.alert_rules.process_update.start")
-            evaluation_value = self.get_evaluation_value(subscription_update)
+            data_packet = self._create_data_packet(subscription_update)
 
-            # `get_evaluation_value` will return None if there's no usable value
-            if evaluation_value is None:
+            # `_create_data_packet` will return None if there's no usable value for the detector to
+            # evaluate
+            if data_packet is None:
                 metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
-                # We have an invalid aggregate, but we _did_ process the update, so we store
-                # last_update to reflect that and avoid reprocessing.
-                store_detector_last_update(
-                    self.detector, self.subscription.project.id, self.last_update
-                )
-                return False
+            else:
+                process_data_packet(data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 
-            self._create_and_process_data_packet(
-                self.detector, subscription_update, evaluation_value
-            )
-            # Ensure that we have last_update stored for all Detector evaluations.
-            store_detector_last_update(
-                self.detector, self.subscription.project.id, self.last_update
-            )
-            return True
+        # Whether or not the value was valid, we processed the update, so bump the stored last
+        # update time to avoid reprocessing it. This happens after processing, not before, so an
+        # update interrupted partway through can still be redelivered and reprocessed.
+        store_detector_last_update(self.detector, self.project.id, subscription_update["timestamp"])
+
+        return data_packet is not None
 
 
 def build_detector_last_update_key(detector: Detector, project_id: int) -> str:
