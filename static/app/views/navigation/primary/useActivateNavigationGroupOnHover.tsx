@@ -28,8 +28,7 @@ import {useMouseMovement} from './useMouseMovement';
  * 2. If it looks like the user is skimming the side of the nav (e.g. they are browsing the secondary
  *    nav), an extra delay is added to prevent accidental activation.
  *
- * Hover activation is skipped for groups without a secondary navigation, and
- * while the active group has none.
+ * Hover activation is skipped for groups without a secondary navigation.
  */
 
 interface UseActivateNavigationGroupOnHoverProps {
@@ -134,11 +133,9 @@ export function useActivateNavigationGroupOnHover({
       setActiveGroup(group);
     };
 
-    // A group without a secondary navigation has nothing to preview. While the
-    // active group has none (e.g. the inbox), no secondary sidebar is on screen,
-    // so a preview would push the page aside instead of swapping the sidebar.
-    const canPreview =
-      hasSecondaryNavigation(group) && hasSecondaryNavigation(activeGroup);
+    // Hovering a group without a secondary navigation would only hide the
+    // secondary sidebar, so there is nothing to preview.
+    const canPreview = hasSecondaryNavigation(group);
 
     return {
       'aria-current': isActive ? ('location' as const) : undefined,

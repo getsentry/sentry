@@ -2026,26 +2026,50 @@ describe('desktop navigation', () => {
             within(secondaryNav).getByRole('link', {name: 'Feed'})
           ).toBeInTheDocument();
         });
+      });
 
-        it('does not preview groups on hover from the inbox', async () => {
-          render(
-            <PrimaryNavigationContextProvider>
-              <Navigation />
-            </PrimaryNavigationContextProvider>,
-            navigationContext({
-              organization: universalInbox,
-              initialRouterConfig: {
-                location: {pathname: '/organizations/org-slug/inbox/'},
-              },
-            })
+      it('previews hovered groups as an overlay on the inbox', async () => {
+        const {router} = render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: universalInbox,
+            initialRouterConfig: {location: {pathname: '/organizations/org-slug/inbox/'}},
+          })
+        );
+
+        const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+        await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
+        await waitFor(() => {
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'true'
           );
+        });
+        expect(await screen.findByRole('link', {name: 'Traces'})).toBeInTheDocument();
+        // The inbox decides that the sidebar is collapsed, so it cannot be expanded.
+        expect(screen.queryByRole('button', {name: 'Expand'})).not.toBeInTheDocument();
 
-          await hoverAndWait('Explore');
-
+        await userEvent.unhover(primaryNav);
+        await waitFor(() => {
           expect(
-            screen.queryByRole('navigation', {name: 'Secondary Navigation'})
+            screen.queryByTestId('collapsed-secondary-sidebar')
           ).not.toBeInTheDocument();
         });
+
+        // The user's expanded preference is kept for the rest of the app.
+        await userEvent.click(screen.getByRole('link', {name: 'Issues'}));
+        expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+        expect(
+          screen.getByRole('navigation', {name: 'Secondary Navigation'})
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByTestId('collapsed-secondary-sidebar')
+        ).not.toBeInTheDocument();
+        expect(
+          localStorage.getItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY)
+        ).toBeNull();
       });
 
       it('shows the secondary navigation after navigating away from the inbox', async () => {

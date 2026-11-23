@@ -131,7 +131,11 @@ export function PrimaryNavigationContextProvider(
   );
 
   return (
-    <SecondaryNavigationContextProvider>
+    // Pages without a secondary navigation keep the sidebar collapsed, so hovering
+    // a primary item previews its group over the page instead of pushing it aside.
+    <SecondaryNavigationContextProvider
+      forceCollapsed={!hasSecondaryNavigation(activeRouteGroup)}
+    >
       <PrimaryNavigationContext.Provider value={value}>
         {props.children}
       </PrimaryNavigationContext.Provider>
