@@ -124,7 +124,6 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             "filters": {"minEventCount": 10},
             "outputPolicy": {"review_mode": "manual"},
             "seededDefault": "scheduled_investigation",
-            "triggerSettings": {},
             "actionSettings": {},
             "nextRunAt": None,
             "dateAdded": config.date_added,
@@ -507,7 +506,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         config.refresh_from_db()
         assert config.filters["environments"] == []
 
-    def test_put_replaces_schedule_and_prompt(self) -> None:
+    def test_put_replaces_prompt(self) -> None:
         config = self.create_config()
         Factories.create_seer_workflow_config_project(config, self.project)
 
@@ -515,14 +514,10 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             self.organization.slug,
             config.id,
             method="put",
-            triggerSettings={"cron": "0 9 * * 1"},
             actionSettings={"prompt": "Check checkout latency"},
         )
 
-        assert response.data["triggerSettings"] == {"cron": "0 9 * * 1"}
         assert response.data["actionSettings"] == {"prompt": "Check checkout latency"}
-        config.refresh_from_db()
-        assert config.extras["trigger_settings"] == response.data["triggerSettings"]
         workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
         assert workflow.action_settings == response.data["actionSettings"]
 
@@ -530,7 +525,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             self.organization.slug,
             config.id,
             method="put",
-            triggerSettings={"cron": "not a cron"},
+            actionSettings={"prompt": "Check checkout latency", "skill": "agentic_triage"},
             status_code=400,
         )
 
@@ -1320,7 +1315,6 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "filters": {},
             "outputPolicy": {},
             "seededDefault": None,
-            "triggerSettings": {},
             "actionSettings": {},
             "nextRunAt": None,
             "dateAdded": config.date_added,
@@ -1485,17 +1479,15 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         assert sorted(response.data["projects"]) == sorted([self.project.id, other.id])
         assert self.selected_project_ids(config) == sorted([self.project.id, other.id])
 
-    def test_creates_scheduled_investigation_with_schedule_and_prompt(self) -> None:
+    def test_creates_scheduled_investigation_with_prompt(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
             strategy="scheduled_investigation",
             projectIds=[self.project.id],
-            triggerSettings={"cron": "0 9 * * 1"},
             actionSettings={"prompt": "Check checkout latency"},
             status_code=201,
         )
 
-        assert response.data["triggerSettings"] == {"cron": "0 9 * * 1"}
         assert response.data["actionSettings"] == {"prompt": "Check checkout latency"}
 
     def test_all_projects(self) -> None:

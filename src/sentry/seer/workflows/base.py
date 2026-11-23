@@ -386,11 +386,6 @@ class ConfigUpdate:
             raise WorkflowUpdateError("The automation has no backing workflow")
         return workflow
 
-    def set_trigger_settings(self, trigger_settings: dict[str, Any]) -> None:
-        extras = SeerWorkflowConfigExtras.parse_obj(self.config.extras)
-        extras.trigger_settings = trigger_settings
-        self.set_extras(extras)
-
     def set_action_settings(self, action_settings: Mapping[str, Any]) -> None:
         data = self.definition.validate_action_settings(action_settings).dict(exclude_none=True)
         action = self._investigation_action()
