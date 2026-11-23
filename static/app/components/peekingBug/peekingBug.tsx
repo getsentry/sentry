@@ -10,7 +10,7 @@ import {retryableImport} from 'sentry/utils/retryableImport';
 
 const BugArt = lazy(() => retryableImport(() => import('./bugArt')));
 
-const HOVER_DELAY = 3.5;
+const HOVER_DELAY = 5;
 const POP = 1;
 const at = (offset: number) => `${(HOVER_DELAY + offset).toFixed(2)}s`;
 
@@ -119,7 +119,6 @@ function BugLayer({bug, hasHovered, side}: BugLayerProps) {
       viewBox={`${VIEW_BOX.x} ${VIEW_BOX.y} ${VIEW_BOX.width} ${VIEW_BOX.height}`}
       style={style}
       aria-hidden
-      focusable="false"
     >
       <g className="rise1">
         <g className="rise2">
