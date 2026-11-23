@@ -1,11 +1,10 @@
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Annotated, Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.apidocs.descriptions import ApiDescription
-from sentry.incidents.utils.process_update_helpers import calculate_event_date_from_update_date
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
@@ -49,6 +48,18 @@ def get_short_ids_by_group_id(group_ids: Iterable[int]) -> dict[int, str | None]
     groups = Group.objects.filter(id__in=set(group_ids)).select_related("project")
 
     return {group.id: group.qualified_short_id for group in groups}
+
+
+def calculate_event_date_from_update_date(update_date: datetime, time_window: int) -> datetime:
+    """
+    Calculates the date that an event actually happened based on the date that we
+    received the update. This takes into account time window and threshold period.
+    :return:
+    """
+    # Subscriptions label buckets by the end of the bucket, whereas discover
+    # labels them by the front. This causes us an off-by-one error with event dates,
+    # so to prevent this we subtract a bucket off of the date.
+    return update_date - timedelta(seconds=time_window)
 
 
 @register(GroupOpenPeriodActivity)

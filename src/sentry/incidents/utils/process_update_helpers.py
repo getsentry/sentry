@@ -1,6 +1,6 @@
 import logging
 import math
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 from snuba_sdk import Column, Condition, Limit, Op
@@ -156,15 +156,3 @@ def run_query_for_window(
         return None
 
     return normalize_snuba_query_result(value)
-
-
-def calculate_event_date_from_update_date(update_date: datetime, time_window: int) -> datetime:
-    """
-    Calculates the date that an event actually happened based on the date that we
-    received the update. This takes into account time window and threshold period.
-    :return:
-    """
-    # Subscriptions label buckets by the end of the bucket, whereas discover
-    # labels them by the front. This causes us an off-by-one error with event dates,
-    # so to prevent this we subtract a bucket off of the date.
-    return update_date - timedelta(seconds=time_window)
