@@ -49,8 +49,6 @@ interface SelectRowsProps<T extends ListItemBase> {
   hiddenOptions: ReadonlySet<Key>;
   /** The visible top-level nodes of the list's collection. */
   listItems: Array<Node<T>>;
-  /** Vertical CSS padding (px) of the list, at each end. */
-  listPadding: number;
   renderOption: (row: SelectOptionRow<T>) => React.ReactNode;
   renderSection: (
     section: SelectSectionRow<T>,
@@ -82,7 +80,6 @@ export function SelectRows<T extends ListItemBase>({
   focusedKey,
   hiddenOptions,
   listItems,
-  listPadding,
   renderOption,
   renderSection,
   scrollElement,
@@ -134,7 +131,6 @@ export function SelectRows<T extends ListItemBase>({
       return separator + header;
     },
     focusedKey,
-    listPadding,
     scrollRef,
     size,
     widestKey,

@@ -1,6 +1,5 @@
 import type * as React from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
@@ -11,6 +10,7 @@ import {SelectRows} from '@sentry/scraps/compactSelect/selectRows';
 import {
   ListLabel,
   ListSeparator,
+  ListScrollArea,
   ListWrap,
   SizeLimitMessage,
 } from '@sentry/scraps/compactSelect/styles';
@@ -19,7 +19,6 @@ import {
   getVisibleListItems,
   hasVisibleLeadingItems,
 } from '@sentry/scraps/compactSelect/utils';
-import {Container} from '@sentry/scraps/layout';
 import {ReserveLeadingSlot, type ListItemProps} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation';
@@ -104,11 +103,6 @@ interface ListBoxProps<T extends ListItemBase>
    * If true, virtualization will be enabled for the list
    */
   virtualized?: boolean;
-  /**
-   * Vertical padding (in px) of the list above its first item, used to align
-   * virtualized rows. Defaults to `theme.space.xs`, the vertical padding of `ListWrap`.
-   */
-  virtualizedListPadding?: number;
 }
 
 const EMPTY_SET = new Set<never>();
@@ -143,13 +137,11 @@ export function ListBox<T extends ListItemBase>({
   showDetails = true,
   onAction,
   virtualized,
-  virtualizedListPadding,
   scrollContainerRef,
   className,
   ...props
 }: ListBoxProps<T>) {
   const {t} = useTranslation();
-  const theme = useTheme();
   const listElementRef = useRef<HTMLUListElement>(null);
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null);
@@ -269,10 +261,8 @@ export function ListBox<T extends ListItemBase>({
         {listItems.length !== 0 && label && (
           <ListLabel {...labelProps}>{label}</ListLabel>
         )}
-        <Container
+        <ListScrollArea
           ref={refs}
-          height="100%"
-          overflowY="auto"
           className={className}
           style={hasEverOverflowed ? {scrollbarGutter: 'stable'} : undefined}
         >
@@ -293,7 +283,6 @@ export function ListBox<T extends ListItemBase>({
                 focusedKey={listState.selectionManager.focusedKey}
                 selectionMode={listState.selectionManager.selectionMode}
                 showSectionHeaders={showSectionHeaders}
-                listPadding={virtualizedListPadding ?? parseFloat(theme.space.xs)}
                 renderOption={({node, position, rowProps}) => (
                   <ListBoxOption
                     item={node}
@@ -319,7 +308,7 @@ export function ListBox<T extends ListItemBase>({
               </SizeLimitMessage>
             )}
           </ListWrap>
-        </Container>
+        </ListScrollArea>
       </ReserveLeadingSlot>
     </ListBoxDetailsHoverContext>
   );

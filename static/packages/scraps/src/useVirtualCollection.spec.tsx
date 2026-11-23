@@ -19,7 +19,6 @@ import {useVirtualCollection, VirtualRows, type VirtualRow} from './useVirtualCo
 const ROW_COUNT = 300;
 const ROW_HEIGHT = 36;
 const VIEWPORT_HEIGHT = 100;
-const LIST_PADDING = 4;
 
 const nodes = Array.from(
   {length: ROW_COUNT},
@@ -52,7 +51,6 @@ function TestList({
     enabled: true,
     scrollRef,
     focusedKey,
-    listPadding: LIST_PADDING,
   });
 
   return (
@@ -105,8 +103,6 @@ describe('useVirtualCollection', () => {
     expect(keys.length).toBeGreaterThan(0);
     expect(keys.length).toBeLessThan(ROW_COUNT);
 
-    // The list's own padding is CSS, so spacers and rows add up to the rows'
-    // height alone.
     expect(sum(spacerHeights()) + keys.length * ROW_HEIGHT).toBe(ROW_COUNT * ROW_HEIGHT);
   });
 

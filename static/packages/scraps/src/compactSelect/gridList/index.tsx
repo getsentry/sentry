@@ -1,6 +1,5 @@
 import type * as React from 'react';
 import {useContext, useId, useMemo, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {useGridList} from '@react-aria/gridlist';
 import {mergeProps} from '@react-aria/utils';
@@ -12,6 +11,7 @@ import {SelectRows} from '@sentry/scraps/compactSelect/selectRows';
 import {
   ListLabel,
   ListSeparator,
+  ListScrollArea,
   ListWrap,
   SizeLimitMessage,
 } from '@sentry/scraps/compactSelect/styles';
@@ -21,7 +21,6 @@ import {
   getVisibleOptionPositions,
   hasVisibleLeadingItems,
 } from '@sentry/scraps/compactSelect/utils';
-import {Container} from '@sentry/scraps/layout';
 import {ControlContext, ReserveLeadingSlot} from '@sentry/scraps/menu';
 import {useTranslation} from '@sentry/scraps/translation';
 
@@ -87,7 +86,6 @@ function GridList<T extends ListItemBase>({
   ...props
 }: GridListProps<T>) {
   const {t} = useTranslation();
-  const theme = useTheme();
   const ref = useRef<HTMLUListElement>(null);
   const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null);
   const labelId = useId();
@@ -129,7 +127,7 @@ function GridList<T extends ListItemBase>({
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel id={labelId}>{label}</ListLabel>}
       {overlayIsOpen && (
-        <Container ref={setScrollElement} height="100%" overflowY="auto">
+        <ListScrollArea ref={setScrollElement}>
           <ListWrap
             {...mergedProps}
             aria-rowcount={rowCount}
@@ -146,8 +144,6 @@ function GridList<T extends ListItemBase>({
               focusedKey={listState.selectionManager.focusedKey}
               selectionMode={listState.selectionManager.selectionMode}
               showSectionHeaders
-              // Matches the vertical padding of `ListWrap`.
-              listPadding={parseFloat(theme.space.xs)}
               renderOption={({node, position, rowProps}) => (
                 <GridListOption
                   node={node}
@@ -171,7 +167,7 @@ function GridList<T extends ListItemBase>({
               </SizeLimitMessage>
             )}
           </ListWrap>
-        </Container>
+        </ListScrollArea>
       )}
     </ReserveLeadingSlot>
   );

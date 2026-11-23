@@ -10,30 +10,7 @@ import {SectionSeparator as MenuSectionSeparator} from '@sentry/scraps/menu';
 
 export const ListWrap = styled('ul')`
   margin: 0;
-  padding: ${p => p.theme.space.xs} 0;
-
-  /* Add 1px to top padding if preceded by menu header, to account for the header's
-  shadow border */
-  [data-menu-has-header='true'] > div > &:first-of-type {
-    padding-top: calc(${p => p.theme.space.xs} + 1px);
-  }
-
-  /* Add 1px to bottom padding if succeeded by menu footer, to account for the footer's
-  shadow border */
-  [data-menu-has-footer='true'] > div > &:last-of-type {
-    padding-bottom: calc(${p => p.theme.space.xs} + 1px);
-  }
-
-  /* Remove top padding if preceded by search input, since search input already has
-  vertical padding. Account for InputGroup wrapper div. */
-  div:has(input) ~ &&:first-of-type,
-  div:has(input) ~ div > &&:first-of-type {
-    padding-top: 0;
-  }
-
-  &:empty {
-    padding: 0;
-  }
+  padding: 0;
 
   /* Should scroll if it's in a non-composite select */
   :only-of-type {
@@ -50,6 +27,22 @@ export const ListWrap = styled('ul')`
   in its row. */
   [data-menu-has-header='false'] &:first-of-type [data-section-header]:first-child {
     padding-top: 0;
+  }
+`;
+
+/**
+ * The element a list scrolls in. As in DropdownMenu, the list's vertical inset is
+ * a margin on this element rather than padding on the list: rows start at the top
+ * of the scroll area, so the virtualizer places them without being told the
+ * inset, and the inset stays visible while the rows scroll.
+ */
+export const ListScrollArea = styled('div')`
+  height: 100%;
+  overflow-y: auto;
+  margin: ${p => p.theme.space.xs} 0;
+
+  &:has(> ${ListWrap}:empty) {
+    margin: 0;
   }
 `;
 

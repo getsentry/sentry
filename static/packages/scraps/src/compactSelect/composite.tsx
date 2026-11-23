@@ -12,7 +12,7 @@ import {ClearButton, Control} from './control';
 import type {ControlProps} from './control';
 import type {MultipleListProps, SingleListProps} from './list';
 import {List} from './list';
-import {EmptyMessage} from './styles';
+import {EmptyMessage, ListScrollArea, ListWrap} from './styles';
 import type {SelectKey, SelectOption} from './types';
 import {getItemsWithKeys} from './utils';
 
@@ -201,8 +201,14 @@ const RegionsWrap = styled('div')`
     padding-bottom: calc(${p => p.theme.space.xs} + 1px);
   }
 
-  /* Remove padding inside lists */
-  > ul {
-    padding: 0;
+  /* The regions scroll together in this element, not in their own scroll areas,
+  so a region's inset is padding: margins would collapse with the separator's
+  margins between regions. */
+  > ${ListScrollArea} {
+    margin: 0;
+  }
+
+  > ${ListScrollArea}:has(> ${ListWrap}:not(:empty)) {
+    padding: ${p => p.theme.space.xs} 0;
   }
 `;

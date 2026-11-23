@@ -109,7 +109,9 @@ export interface UseVirtualCollectionOptions<T> {
   /** Whether to virtualize. When false, every node is returned as a row. */
   enabled: boolean;
   /**
-   * The element that scrolls. Rows and spacers must render inside it.
+   * The element that scrolls. Rows and spacers must render inside it, with no
+   * vertical padding between it and the first row: rows are placed from its top.
+   * Put a list's inset outside it, as a margin, like DropdownMenu does.
    */
   scrollRef: React.RefObject<HTMLElement | null>;
   /**
@@ -127,11 +129,6 @@ export interface UseVirtualCollectionOptions<T> {
   focusedKey?: Key | null;
   /** Keys of nodes to leave out, whether they are sections, their children or top-level items. */
   hiddenKeys?: ReadonlySet<Key>;
-  /**
-   * Vertical CSS padding (px) of the list, at each end. The first row starts
-   * below it, and rows scrolled into view keep clear of it.
-   */
-  listPadding?: number;
   /**
    * Space (px) above each row in a section except the first, if the rows are
    * spaced that way. The virtualizer measures a row's border box, so the space
@@ -190,7 +187,7 @@ export interface VirtualCollection<T> {
  * </ul>
  * ```
  *
- * Spacers keep the list's own element and padding intact, so a virtualized
+ * Spacers keep the list's own element intact, so a virtualized
  * list has the same DOM structure and styling as a regular one.
  */
 export function useVirtualCollection<T>({
@@ -200,7 +197,6 @@ export function useVirtualCollection<T>({
   estimateSize,
   focusedKey,
   hiddenKeys,
-  listPadding = 0,
   sectionRowSpace = 0,
   size = 'md',
   widestKey,
@@ -250,11 +246,6 @@ export function useVirtualCollection<T>({
     // unmeasured rows are still current: `getItemKey` is a new function on
     // every render, so the virtualizer rebuilds its offsets.
     estimateKey: `${size}-${sectionRowSpace}`,
-    paddingStart: listPadding,
-    // The list's padding is the same at both ends, so a row scrolled into view
-    // at the bottom clears it too.
-    scrollPaddingStart: listPadding,
-    scrollPaddingEnd: listPadding,
     overscan: 1,
     rangeExtractor,
     observeElementRect: observeViewportCappedRect,
@@ -276,7 +267,7 @@ export function useVirtualCollection<T>({
         if (!node) {
           return [];
         }
-        const previousEnd = virtualItems[position - 1]?.end ?? listPadding;
+        const previousEnd = virtualItems[position - 1]?.end ?? 0;
         return [
           {
             node,
@@ -291,10 +282,7 @@ export function useVirtualCollection<T>({
   // without padding of its own would otherwise be 0px tall, and the
   // virtualizer mounts no rows into a viewport of 0px, so it would stay empty.
   const last = virtualItems.at(-1);
-  return {
-    rows,
-    spaceAfter: enabled ? Math.max(0, totalSize - (last?.end ?? listPadding)) : 0,
-  };
+  return {rows, spaceAfter: enabled ? Math.max(0, totalSize - (last?.end ?? 0)) : 0};
 }
 
 interface VirtualRowGroup<T> {
