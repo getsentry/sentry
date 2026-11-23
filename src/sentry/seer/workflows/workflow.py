@@ -5,7 +5,7 @@ from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, Literal, overload
+from typing import Literal, overload
 
 from django.db import router, transaction
 from django.db.models import Count, Q, QuerySet
@@ -51,9 +51,6 @@ from sentry.service_accounts.services.service_account import (
 logger = logging.getLogger(__name__)
 
 SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,)
-SEER_DEFAULT_ACTION_SETTINGS: dict[SeerWorkflowStrategy, dict[str, Any]] = {
-    SeerWorkflowStrategy.SCHEDULED_INVESTIGATION: {"skill": "agentic_triage"},
-}
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -70,13 +67,13 @@ class SeerWorkflow:
 
     @classmethod
     def ensure_defaults(cls, organization_id: int) -> None:
-        """Seed each default that has no seeded config; disabled ones count as existing."""
+        """Seed defaults for strategies with no config; disabled configs count as existing."""
         database = router.db_for_write(SeerWorkflowConfig)
         configs = SeerWorkflowConfig.objects.using(database).filter(
             organization_id=organization_id,
-            extras__seeded_default__in=[s.value for s in SEER_DEFAULT_WORKFLOW_STRATEGIES],
+            strategy__in=[s.value for s in SEER_DEFAULT_WORKFLOW_STRATEGIES],
         )
-        existing = set(configs.values_list("extras__seeded_default", flat=True))
+        existing = set(configs.values_list("strategy", flat=True))
         if all(s.value in existing for s in SEER_DEFAULT_WORKFLOW_STRATEGIES):
             return
 
@@ -85,7 +82,7 @@ class SeerWorkflow:
             list(
                 Organization.objects.using(database).select_for_update().filter(id=organization_id)
             )
-            existing = set(configs.values_list("extras__seeded_default", flat=True))
+            existing = set(configs.values_list("strategy", flat=True))
             for strategy in SEER_DEFAULT_WORKFLOW_STRATEGIES:
                 if strategy.value in existing:
                     continue
@@ -93,10 +90,9 @@ class SeerWorkflow:
                     organization_id=organization_id,
                     strategy=strategy.value,
                     filters=SeerWorkflowFilters(all_projects=True).dict(),
-                    extras=SeerWorkflowConfigExtras(
-                        seeded_default=strategy,
-                        action_settings=SEER_DEFAULT_ACTION_SETTINGS.get(strategy),
-                    ).dict(exclude_none=True),
+                    extras=SeerWorkflowConfigExtras(seeded_default=strategy).dict(
+                        exclude_none=True
+                    ),
                 )
                 update = ConfigUpdate(LockedConfig(config), get_definition(strategy))
                 update.setup_backing_workflow(name=None, created_by_id=None, enabled=False)

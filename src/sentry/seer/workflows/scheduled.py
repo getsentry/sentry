@@ -16,7 +16,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Literal, assert_never
 
 from django.db.models import QuerySet
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, validator
 
 from sentry import features
 from sentry.cadence.api import (
@@ -77,21 +77,6 @@ class ScheduleSettings(BaseModel):
         return value
 
 
-class ScheduledInvestigationSettings(BaseModel):
-    prompt: str | None = Field(default=None, min_length=1, max_length=4096)
-    # A prompt Seer maintains, instead of one stored on the config.
-    skill: Literal["agentic_triage"] | None = None
-
-    class Config:
-        extra = "forbid"
-
-    @root_validator
-    def prompt_or_skill(cls, values: dict[str, Any]) -> dict[str, Any]:
-        if values.get("prompt") is not None and values.get("skill") is not None:
-            raise ValueError("Set a prompt or a skill, not both")
-        return values
-
-
 class ScheduledRunInputs(BaseModel):
     """The inputs of a scheduled run, recorded in its snapshot."""
 
@@ -149,7 +134,6 @@ class ScheduleDefinition(AutomationDefinition[ScheduledRunInputs]):
     strategy = SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
     inputs_type = ScheduledRunInputs
     settings_type = ScheduleSettings
-    action_settings_type = ScheduledInvestigationSettings
     scoped_by: Literal["projects", "monitors"] = "projects"
 
     def projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
