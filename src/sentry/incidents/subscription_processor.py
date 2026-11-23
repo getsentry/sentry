@@ -33,12 +33,10 @@ from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.processors.data_packet import process_data_packet
 
 logger = logging.getLogger(__name__)
+
 REDIS_TTL = int(timedelta(days=7).total_seconds())
-# Stores a minimum threshold that represents a session count under which we don't evaluate crash
-# rate alert, and the update is just dropped. If it is set to None, then no minimum threshold
-# check is applied
-# ToDo(ahmed): This is still experimental. If we decide that it makes sense to keep this
-#  functionality, then maybe we should move this to constants
+# Minimum sessions/users needed before crash rate detection will apply. Setting it to `None`
+# disables it.
 CRASH_RATE_ALERT_MINIMUM_THRESHOLD: int | None = None
 
 
@@ -48,11 +46,7 @@ class SubscriptionProcessor:
     Use the `process` classmethod as the entry point.
     """
 
-    def __init__(
-        self,
-        subscription: QuerySubscription,
-        detector: Detector,
-    ) -> None:
+    def __init__(self, subscription: QuerySubscription, detector: Detector) -> None:
         """
         Initialize with pre-validated subscription and detector.
         Use the `process` classmethod rather than calling this directly.
@@ -72,9 +66,7 @@ class SubscriptionProcessor:
 
     @classmethod
     def process(
-        cls,
-        subscription: QuerySubscription,
-        subscription_update: QuerySubscriptionUpdate,
+        cls, subscription: QuerySubscription, subscription_update: QuerySubscriptionUpdate
     ) -> bool:
         """
         Entry point for processing a subscription update.
@@ -254,8 +246,8 @@ class SubscriptionProcessor:
 
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> bool:
         """
-        Core processing method. Assumes subscription has cached project/organization
-        and detector exists (enforced by the `process` classmethod).
+        Core processing method. Assumes subscription has cached project/organization and detector
+        exists (enforced by the `process` classmethod).
         """
         if not is_metric_subscription_allowed(self.dataset, self.project.organization):
             metrics.incr(
