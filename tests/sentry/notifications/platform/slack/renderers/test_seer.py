@@ -367,7 +367,7 @@ def assert_auto_reload_button(
     assert button.text.text == "Configure auto-reload"
     assert button.url is not None
     url = urlsplit(button.url)
-    assert url.path == f"/organizations/{organization.slug}/issues/"
+    assert url.path == f"/settings/{organization.slug}/billing/overview/"
     assert url.fragment == fragment
     assert button.action_id is not None
     routing = decode_action_id(button.action_id)

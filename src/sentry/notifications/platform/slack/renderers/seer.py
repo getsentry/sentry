@@ -239,7 +239,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                         style="primary",
                         url=link_decorator.decorate_url(
                             organization.absolute_url(
-                                f"/organizations/{organization.slug}/issues/", fragment=fragment
+                                f"/settings/{organization.slug}/billing/overview/",
+                                fragment=fragment,
                             )
                         ),
                         action_id=encode_action_id(
