@@ -324,6 +324,41 @@ class SeerSlackRendererTest(TestCase):
         assert list_element.style == "ordered"
         assert len(list_element.elements) == 3
 
+    def test_render_autofix_update_truncates_long_summary(self) -> None:
+        data = self._create_update(
+            current_point=AutofixStoppingPoint.ROOT_CAUSE, summary="a" * 5000
+        )
+        renderable = SeerSlackRenderer._render_autofix_update(data, link_decorator(data))
+        summary_block = renderable["blocks"][1]
+        assert isinstance(summary_block, SectionBlock)
+        summary_block.validate_json()
+        assert summary_block.text is not None
+        assert len(summary_block.text.text) == SectionBlock.text_max_length
+        assert summary_block.text.text.endswith("...")
+
+    def test_render_autofix_update_truncates_long_diff_inside_fence(self) -> None:
+        data = self._create_update(
+            current_point=AutofixStoppingPoint.CODE_CHANGES,
+            changes=[
+                {
+                    "repo_name": "org/repo",
+                    "title": "Fix the bug",
+                    "description": "Handle the missing value",
+                    "diff": "+ line\n" * 2000,
+                }
+            ],
+        )
+        renderable = SeerSlackRenderer._render_autofix_update(data, link_decorator(data))
+        change_block = renderable["blocks"][1]
+        assert isinstance(change_block, SectionBlock)
+        change_block.validate_json()
+        assert change_block.text is not None
+        text = change_block.text.text
+        assert len(text) == SectionBlock.text_max_length
+        assert text.startswith("_In org/repo_:\n*Fix the bug*\nHandle the missing value\n```+ line")
+        assert text.endswith("...```")
+        assert text.count("```") == 2
+
     @patch(
         "sentry.notifications.platform.templates.seer.organization_service.get_option",
         return_value=False,
