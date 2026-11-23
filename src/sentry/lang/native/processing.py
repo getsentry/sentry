@@ -10,6 +10,8 @@ from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import ParseDebugIdError
 
 from sentry import features, options
+from sentry.lang.javascript import processing as javascript_processing
+from sentry.lang.javascript.utils import JAVASCRIPT_PLATFORMS
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.flamegraphs import (
     MAX_SYMBOLICATION_FRAMES,
@@ -556,20 +558,37 @@ def _process_flamegraphs(symbolicator: Symbolicator, data: Any) -> bool:
         for attachment_index, payload in flamegraphs.get_flamegraphs():
             reason = "processing_error"
             try:
-                modules, frame_ids, stacktraces = _get_flamegraph_stacktraces(payload)
+                is_javascript = payload["platform"] in JAVASCRIPT_PLATFORMS
+                get_stacktraces = (
+                    javascript_processing.get_flamegraph_stacktraces
+                    if is_javascript
+                    else _get_flamegraph_stacktraces
+                )
+                modules, frame_ids, stacktraces = get_stacktraces(payload)
                 if not stacktraces:
                     metrics.incr(
                         "process.native.flamegraph.skipped", tags={"reason": "no_stacktraces"}
                     )
                     continue
                 reason = "request_error"
-                response = symbolicator.process_payload(
-                    platform=payload["platform"],
-                    stacktraces=stacktraces,
-                    modules=modules,
-                    frame_order=FrameOrder.caller_first,
-                    apply_source_context=False,
-                )
+                if is_javascript:
+                    response = symbolicator.process_js(
+                        platform=payload["platform"],
+                        stacktraces=stacktraces,
+                        modules=modules,
+                        release=data.get("release"),
+                        dist=data.get("dist"),
+                        frame_order=FrameOrder.caller_first,
+                        apply_source_context=False,
+                    )
+                else:
+                    response = symbolicator.process_payload(
+                        platform=payload["platform"],
+                        stacktraces=stacktraces,
+                        modules=modules,
+                        frame_order=FrameOrder.caller_first,
+                        apply_source_context=False,
+                    )
                 if not response or response.get("status") != "completed":
                     metrics.incr(
                         "process.native.flamegraph.skipped", tags={"reason": "request_error"}
@@ -582,7 +601,12 @@ def _process_flamegraphs(symbolicator: Symbolicator, data: Any) -> bool:
                     )
                     continue
                 reason = "merge_error"
-                output = _merge_flamegraph_frames(payload, frame_ids, resolved_stacktraces)
+                merge_frames = (
+                    javascript_processing.merge_flamegraph_frames
+                    if is_javascript
+                    else _merge_flamegraph_frames
+                )
+                output = merge_frames(payload, frame_ids, resolved_stacktraces)
                 reason = "save_error"
                 attachments_changed |= flamegraphs.save(attachment_index, output)
             except SymbolicationTimeout as error:

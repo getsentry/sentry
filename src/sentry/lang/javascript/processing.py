@@ -5,6 +5,7 @@ from typing import Any
 
 from sentry.lang.javascript.utils import JAVASCRIPT_PLATFORMS
 from sentry.lang.native.error import SymbolicationFailed, write_error
+from sentry.lang.native.flamegraphs import MAX_SYMBOLICATION_FRAMES
 from sentry.lang.native.symbolicator import FrameOrder, Symbolicator
 from sentry.models.eventerror import EventErrorType
 from sentry.stacktraces.processing import find_stacktraces_in_data
@@ -235,6 +236,42 @@ def _normalize_frame(raw_frame: Any) -> dict[str, Any]:
             frame[key] = value
 
     return frame
+
+
+def get_flamegraph_stacktraces(
+    payload: dict[str, Any],
+) -> tuple[list[dict[str, Any]], list[int], list[dict[str, Any]]]:
+    # Apply the same eligibility rules and request normalization as event stacks.
+    modules = sourcemap_images_from_data(payload)
+    frame_ids = []
+    stacktraces = []
+    if not modules:
+        return [], [], []
+    for frame_id, frame in enumerate(payload["frames"][:MAX_SYMBOLICATION_FRAMES]):
+        if _handles_frame(frame, payload):
+            frame_ids.append(frame_id)
+            stacktraces.append({"frames": [_normalize_frame(frame)]})
+    return modules, frame_ids, stacktraces
+
+
+def merge_flamegraph_frames(
+    payload: dict[str, Any], frame_ids: list[int], stacktraces: list[dict[str, Any]]
+) -> dict[str, Any]:
+    output = {**payload, "frames": list(payload["frames"])}
+    for frame_id, stacktrace in zip(frame_ids, stacktraces):
+        resolved = stacktrace.get("frames", [])
+        if len(resolved) != 1:
+            continue
+        original = dict(payload["frames"][frame_id])
+        if "data" in original:
+            original["data"] = dict(original["data"])
+        merged = _merge_frame(original, resolved[0])
+        in_app = is_in_app(merged)
+        if in_app is not None:
+            merged["in_app"] = in_app
+        output["frames"][frame_id] = merged
+    output["_symbolication"] = {"status": "completed"}
+    return output
 
 
 def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
