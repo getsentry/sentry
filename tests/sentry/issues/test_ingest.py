@@ -13,7 +13,10 @@ from sentry.api.helpers.group_index.update import handle_priority
 from sentry.constants import MAX_CULPRIT_LENGTH, parse_log_level
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue, MetricIssueDetectorHandler
-from sentry.incidents.utils.types import AnomalyDetectionUpdate, ProcessedSubscriptionUpdate
+from sentry.incidents.utils.types import (
+    MetricDetectorDataPacket,
+    StaticDetectorProcessedSubscriptionUpdate,
+)
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
@@ -53,7 +56,7 @@ from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import raw_query
 from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataPacket
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -289,7 +292,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         # Create event
         event = self.store_event(data={}, project_id=self.project.id)
 
-        query_subscription_update: ProcessedSubscriptionUpdate = ProcessedSubscriptionUpdate(
+        query_subscription_update = StaticDetectorProcessedSubscriptionUpdate(
             entity="events",
             subscription_id=str(query_subscription.id),
             values={"value": 15},
@@ -297,7 +300,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         )
 
         handler = MetricIssueDetectorHandler(detector)
-        data_packet: DataPacket[ProcessedSubscriptionUpdate | AnomalyDetectionUpdate] = DataPacket(
+        data_packet = MetricDetectorDataPacket(
             str(query_subscription.id), query_subscription_update
         )
         eval_result = handler._evaluate(data_packet)

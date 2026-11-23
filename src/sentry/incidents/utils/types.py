@@ -8,6 +8,7 @@ from sentry.incidents.utils.constants import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION as DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
 )
 from sentry.workflow_engine.handlers.detector.base import EvidenceData
+from sentry.workflow_engine.models.data_source import DataPacket
 
 
 class QuerySubscriptionUpdateValues(TypedDict):
@@ -21,11 +22,15 @@ class QuerySubscriptionUpdate(TypedDict):
     timestamp: datetime
 
 
-class SubscriptionUpdateValues(TypedDict):
+class StaticDetectorEvaluationValues(TypedDict):
     value: float
 
 
-class AnomalyDetectionValues(TypedDict):
+class PercentDetectorEvaluationValues(TypedDict):
+    value: float
+
+
+class AnomalyDetectionEvaluationValues(TypedDict):
     value: float
     source_id: str
     subscription_id: str
@@ -33,25 +38,53 @@ class AnomalyDetectionValues(TypedDict):
 
 
 @dataclass
-class ProcessedSubscriptionUpdate:
+class MetricDetectorProcessedSubscriptionUpdateBase[ValuesType]:
+    """
+    A processed subscription update, ready to be sent to a metric detector. Subclassed by detection
+    type, so the detector handler can tell them apart.
+    """
+
     entity: str
     subscription_id: str
-    values: SubscriptionUpdateValues
+    values: ValuesType
     timestamp: datetime
 
 
 @dataclass
-class AnomalyDetectionUpdate:
-    entity: str
-    subscription_id: str
-    values: AnomalyDetectionValues
-    timestamp: datetime
+class StaticDetectorProcessedSubscriptionUpdate(
+    MetricDetectorProcessedSubscriptionUpdateBase[StaticDetectorEvaluationValues]
+):
+    pass
 
 
-MetricUpdate = ProcessedSubscriptionUpdate | AnomalyDetectionUpdate
+@dataclass
+class PercentDetectorProcessedSubscriptionUpdate(
+    MetricDetectorProcessedSubscriptionUpdateBase[PercentDetectorEvaluationValues]
+):
+    pass
 
 
-MetricResult = float | AnomalyDetectionValues
+@dataclass
+class AnomalyDetectionProcessedSubscriptionUpdate(
+    MetricDetectorProcessedSubscriptionUpdateBase[AnomalyDetectionEvaluationValues]
+):
+    pass
+
+
+MetricDetectorProcessedSubscriptionUpdate = (
+    StaticDetectorProcessedSubscriptionUpdate
+    | PercentDetectorProcessedSubscriptionUpdate
+    | AnomalyDetectionProcessedSubscriptionUpdate
+)
+
+
+MetricDetectorDataPacket = DataPacket[MetricDetectorProcessedSubscriptionUpdate]
+StaticDetectorDataPacket = DataPacket[StaticDetectorProcessedSubscriptionUpdate]
+PercentDetectorDataPacket = DataPacket[PercentDetectorProcessedSubscriptionUpdate]
+AnomalyDetectionDataPacket = DataPacket[AnomalyDetectionProcessedSubscriptionUpdate]
+
+
+MetricResult = float | AnomalyDetectionEvaluationValues
 
 
 # Post-serialization: what's stored in evidence data after JSON round-trip.

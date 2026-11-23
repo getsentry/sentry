@@ -7,7 +7,10 @@ from django.test import override_settings
 from urllib3.response import HTTPResponse
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
-from sentry.incidents.utils.types import AnomalyDetectionUpdate
+from sentry.incidents.utils.types import (
+    AnomalyDetectionDataPacket,
+    AnomalyDetectionProcessedSubscriptionUpdate,
+)
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
     AnomalyDetectionSensitivity,
@@ -18,7 +21,7 @@ from sentry.seer.anomaly_detection.types import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.subscriptions import create_snuba_subscription
-from sentry.workflow_engine.models import Condition, DataPacket
+from sentry.workflow_engine.models import Condition
 from sentry.workflow_engine.types import ConditionError, DetectorPriorityLevel
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
@@ -38,7 +41,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         self.detector.update(config={"detection_type": "dynamic"})
         self.detector.save()
 
-        packet = AnomalyDetectionUpdate(
+        packet = AnomalyDetectionProcessedSubscriptionUpdate(
             subscription_id=str(self.subscription.id),
             values={
                 "value": 1,
@@ -55,7 +58,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         )
         self.data_source.detectors.add(self.detector)
 
-        self.data_packet = DataPacket[AnomalyDetectionUpdate](
+        self.data_packet = AnomalyDetectionDataPacket(
             source_id=str(packet.subscription_id),
             packet=packet,
         )
@@ -238,7 +241,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         seer_return_value = self.high_confidence_seer_response
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
-        packet = AnomalyDetectionUpdate(
+        packet = AnomalyDetectionProcessedSubscriptionUpdate(
             subscription_id=str(self.subscription.id),
             values={
                 "value": float("nan"),
@@ -249,7 +252,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             timestamp=datetime.now(UTC),
             entity="test-entity",
         )
-        data_packet = DataPacket[AnomalyDetectionUpdate](
+        data_packet = AnomalyDetectionDataPacket(
             source_id=str(packet.subscription_id),
             packet=packet,
         )

@@ -11,7 +11,7 @@ from sentry.conf.server import (
     SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
     SEER_ANOMALY_DETECTION_ENDPOINT_URL,
 )
-from sentry.incidents.utils.types import AnomalyDetectionValues
+from sentry.incidents.utils.types import AnomalyDetectionEvaluationValues
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
@@ -159,7 +159,7 @@ def get_anomaly_data_from_seer(
     seasonality: AnomalyDetectionSeasonality,
     threshold_type: AnomalyDetectionThresholdType,
     subscription: QuerySubscription,
-    subscription_update: AnomalyDetectionValues,
+    subscription_update: AnomalyDetectionEvaluationValues,
 ) -> list[TimeSeriesPoint] | None:
     snuba_query: SnubaQuery = subscription.snuba_query
     aggregation_value = subscription_update.get("value")
