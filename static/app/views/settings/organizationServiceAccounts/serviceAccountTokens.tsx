@@ -21,6 +21,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t, tn} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getPaginationProps} from 'sentry/utils/pagination';
+import {capitalize} from 'sentry/utils/string/capitalize';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens/tokenUtils';
 
@@ -81,10 +82,7 @@ function TokenExpiry({dateExpires}: {dateExpires: string | null}) {
     return <Tag variant="danger">{t('Expired')}</Tag>;
   }
   if (expires.diff(moment(), 'days') < EXPIRING_SOON_DAYS) {
-    const relative = expires.fromNow();
-    return (
-      <Tag variant="warning">{relative.charAt(0).toUpperCase() + relative.slice(1)}</Tag>
-    );
+    return <Tag variant="warning">{capitalize(expires.fromNow())}</Tag>;
   }
   return (
     <Text>

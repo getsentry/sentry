@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import moment from 'moment-timezone';
 import {z} from 'zod';
 
@@ -87,15 +88,20 @@ export function CreateTokenModal({
   const organization = useOrganization();
   const createToken = useCreateServiceAccountToken(organization, account.id);
   // The API rejects scopes the caller doesn't hold, even when the account has them.
-  const callerScopes = new Set<string>(organization.access);
-  const grantableScopes = account.scopes.filter(scope => callerScopes.has(scope));
+  const grantableScopes = useMemo(() => {
+    const callerScopes = new Set<string>(organization.access);
+    return account.scopes.filter(scope => callerScopes.has(scope));
+  }, [account.scopes, organization.access]);
 
-  const defaultValues: FormValues = {
-    name: '',
-    scopeMode: 'all',
-    scopes: grantableScopes,
-    expiration: DEFAULT_EXPIRATION,
-  };
+  const defaultValues = useMemo<FormValues>(
+    () => ({
+      name: '',
+      scopeMode: 'all',
+      scopes: grantableScopes,
+      expiration: DEFAULT_EXPIRATION,
+    }),
+    [grantableScopes]
+  );
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -137,7 +143,7 @@ export function CreateTokenModal({
             {field => (
               <field.Layout.Stack
                 label={t('Name')}
-                hintText={t('Where you’ll use it, e.g. "GitHub Actions: prod".')}
+                hintText={t('Where you’ll use it, e.g. ‘GitHub Actions: prod’.')}
                 required
               >
                 <field.Input
