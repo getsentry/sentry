@@ -1399,7 +1399,7 @@ describe('trace view', () => {
       );
     }
 
-    function mockClockDriftTrace() {
+    function mockClockDriftTrace({nestedQuery = false}: {nestedQuery?: boolean} = {}) {
       mockPerformanceSubscriptionDetailsResponse();
       mockProjectDetailsResponse();
       mockTraceResponse({
@@ -1434,6 +1434,21 @@ describe('trace view', () => {
                     parent_span_id: 'server-request',
                     start_timestamp: 8.05,
                     end_timestamp: 8.1,
+                    // A chain of db spans is grouped into a parent autogroup
+                    children: nestedQuery
+                      ? [
+                          makeEAPSpan({
+                            event_id: 'server-query-nested',
+                            op: 'db',
+                            description: 'SELECT * FROM teams',
+                            project_id: 2,
+                            sdk_name: 'sentry.python.django',
+                            parent_span_id: 'server-query',
+                            start_timestamp: 8.06,
+                            end_timestamp: 8.09,
+                          }),
+                        ]
+                      : [],
                   }),
                 ],
               }),
@@ -1578,6 +1593,17 @@ describe('trace view', () => {
       expect(await screen.findByTestId('trace-clock-drift-ghost')).toBeInTheDocument();
       // Only the root of the moved subtree is marked in the duration label
       expect(screen.getAllByTestId('trace-clock-drift-icon')).toHaveLength(1);
+    });
+
+    it('shows the recorded position of a selected autogroup in a moved subtree', async () => {
+      mockClockDriftTrace({nestedQuery: true});
+      storeClockDriftCorrectionPreference();
+
+      render(<TraceView />, {initialRouterConfig, organization});
+
+      await userEvent.click(await screen.findByText('Autogrouped'));
+
+      expect(await screen.findByTestId('trace-clock-drift-ghost')).toBeInTheDocument();
     });
 
     it('explains the shift when hovering the recorded position', async () => {
