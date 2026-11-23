@@ -75,10 +75,11 @@ export interface BaseTextProps {
   /**
    * Trims the text box to the glyph bounds with `text-box-trim`. Set to false when
    * the content is taller than a line of text, such as a tag or pill, so it isn't
-   * clipped when combined with `ellipsis`.
+   * clipped when combined with `ellipsis`. Set to `'cap'` to trim to the cap height
+   * and baseline instead, which centers all-caps text such as issue IDs next to an icon.
    * @default true
    */
-  trim?: boolean;
+  trim?: boolean | 'cap';
 
   /**
    * Determines how text should be underlined.
@@ -242,7 +243,10 @@ export const getTextStyles = (p: TextStyleProps) => css`
         ]
   };
 
-  overflow: ${p.ellipsis ? 'hidden' : undefined};
+  /* A cap trimmed box would clip anything below the baseline, so only clip sideways.
+     Unlike hidden, clip doesn't let a flex item shrink, so reset its min-width. */
+  overflow: ${p.ellipsis ? (p.trim === 'cap' ? 'clip visible' : 'hidden') : undefined};
+  min-width: ${p.ellipsis && p.trim === 'cap' ? 0 : undefined};
   text-overflow: ${p.ellipsis ? 'ellipsis' : undefined};
   white-space: ${p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined};
   text-wrap: ${p.textWrap ?? undefined};
@@ -265,7 +269,7 @@ export const getTextStyles = (p: TextStyleProps) => css`
     .join(' ')};
   text-transform: ${p.uppercase ? 'uppercase' : undefined};
 
-  text-box-edge: text text;
+  text-box-edge: ${p.trim === 'cap' ? 'cap alphabetic' : 'text text'};
   text-box-trim: ${p.trim === false ? 'none' : 'trim-both'};
 `;
 
