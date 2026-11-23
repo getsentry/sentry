@@ -3,7 +3,7 @@ import {matchQuery, useQueryClient, type Query} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
-import {makeEventsTimeSeriesQueryKeyPrefix} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {makeEventsTimeSeriesFilter} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -23,16 +23,12 @@ export function useRefetchOutdatedTimeseries() {
       return;
     }
 
-    const queryKeyPrefix = makeEventsTimeSeriesQueryKeyPrefix(organization.slug);
-    const timeseriesFilters = {
-      queryKey: [...queryKeyPrefix, {query: {referrer: METRIC_TIMESERIES_REFERRER}}],
-    };
-    const triggerFilters = {
-      queryKey: [
-        ...queryKeyPrefix,
-        {query: {referrer: METRIC_TIMESERIES_REFERRER, sampling: SAMPLING_MODE.NORMAL}},
-      ],
-    };
+    const timeseriesFilters = makeEventsTimeSeriesFilter(organization.slug, {
+      query: {referrer: METRIC_TIMESERIES_REFERRER},
+    });
+    const triggerFilters = makeEventsTimeSeriesFilter(organization.slug, {
+      query: {referrer: METRIC_TIMESERIES_REFERRER, sampling: SAMPLING_MODE.NORMAL},
+    });
 
     const fetchStartedAt = new WeakMap<Query, number>();
     const dataRequestedAt = new WeakMap<Query, number>();

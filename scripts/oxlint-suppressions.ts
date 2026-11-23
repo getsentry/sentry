@@ -53,6 +53,7 @@ const stateDirectory = path.join(root, '.artifacts/lint-incubator/transactions')
 const lock = path.join(stateDirectory, 'owner.json');
 const require = createRequire(path.join(root, 'package.json'));
 const nativeCLI = path.join(path.dirname(require.resolve('oxlint')), 'cli.js');
+const formatterCLI = path.join(path.dirname(require.resolve('oxfmt')), 'cli.js');
 const typeAwareBackend = fileURLToPath(
   new URL('bin/tsrs-lint', import.meta.resolve('tsrs/package.json'))
 );
@@ -115,6 +116,17 @@ function serialize(value: Suppressions) {
     null,
     2
   )}\n`;
+}
+
+// Budgets are committed, so we write them the way the format hook would, using the
+// same oxfmt config and ignore patterns.
+function formatAsset(name: string, bytes: string) {
+  return execFileSync(process.execPath, [formatterCLI, '--stdin-filepath', name], {
+    cwd: root,
+    encoding: 'utf8',
+    input: bytes,
+    maxBuffer: 64 * 1024 * 1024,
+  });
 }
 
 function atomicWrite(file: string, bytes: string | Uint8Array) {
@@ -279,7 +291,7 @@ function partition(counts: Suppressions): Assets {
     Object.entries(result).map(([name, budgets]) => [
       name,
       Object.keys(budgets).length > 0
-        ? Buffer.from(serialize(budgets)).toString('base64')
+        ? Buffer.from(formatAsset(name, serialize(budgets))).toString('base64')
         : null,
     ])
   );

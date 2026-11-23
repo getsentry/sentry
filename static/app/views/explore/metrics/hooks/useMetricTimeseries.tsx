@@ -9,6 +9,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import {useExploreQuerySpeed} from 'sentry/views/explore/hooks/useExploreQuerySpeed';
 import {shouldTriggerHighAccuracy} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {
   SAMPLING_MODE,
@@ -35,6 +36,8 @@ interface UseMetricTimeseriesOptions {
 }
 
 export function useMetricTimeseries({traceMetric, enabled}: UseMetricTimeseriesOptions) {
+  const {isReady: querySpeedReady, samplingMode: querySamplingMode} =
+    useExploreQuerySpeed();
   const visualizes = useMetricVisualizes();
   const {selection} = usePageFilters();
   const search = useQueryParamsSearch();
@@ -111,12 +114,17 @@ export function useMetricTimeseries({traceMetric, enabled}: UseMetricTimeseriesO
 
   const progressiveResult = useProgressiveQuery<typeof useMetricTimeseriesImpl>({
     queryHookImplementation: useMetricTimeseriesImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
-    queryHookArgs: {traceMetric, queryExtras: undefined, enabled},
+    queryHookArgs: {
+      traceMetric,
+      queryExtras: undefined,
+      enabled: enabled && querySpeedReady,
+    },
     queryOptions: {
       canTriggerHighAccuracy,
       onHighAccuracyRequest,
       onHighAccuracySuccess,
       onHighAccuracyError,
+      samplingMode: querySamplingMode,
     },
   });
 
@@ -203,7 +211,5 @@ function useMetricTimeseriesImpl({
     DiscoverDatasets.TRACEMETRICS
   );
 
-  return {
-    result: timeseriesResult,
-  };
+  return {result: timeseriesResult};
 }

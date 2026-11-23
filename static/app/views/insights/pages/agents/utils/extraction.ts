@@ -80,9 +80,7 @@ const inputItemSchema = z.object({
   fields: z.record(z.string(), fieldSchema).optional(),
 });
 
-const outputItemSchema = z.object({
-  answers: z.record(z.string(), answerSchema),
-});
+const outputItemSchema = z.object({answers: z.record(z.string(), answerSchema)});
 
 /**
  * Parses a messages attribute and returns its first item matching `schema`.

@@ -19,6 +19,9 @@ env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   NODE_OPTIONS: '--max-old-space-size=5120'
 
+permissions:
+  contents: read
+
 jobs:
   files-changed:
     name: detect what files changed
@@ -40,6 +43,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Check for frontend file changes
         uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
@@ -56,8 +60,10 @@ jobs:
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       # Setup custom TypeScript matcher, see https://github.com/actions/setup-node/issues/97
       - name: setup matchers
@@ -65,8 +71,8 @@ jobs:
           echo "::remove-matcher owner=masters::"
           echo "::add-matcher::.github/tsc.json"
 
-      - name: tsc
-        id: tsc
+      - name: Type check with tsrs
+        id: typecheck
         run: pnpm run typecheck
 
   oxlint:
@@ -84,8 +90,9 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: ${{ github.event_name == 'pull_request' && '100' || '1' }}
+          persist-credentials: false
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: Find verified lint baseline
         if: github.event_name == 'pull_request'
@@ -149,7 +156,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.oxlint.outputs.budgets == 'stale'
     permissions:
       contents: read
-    uses: ./.github/workflows/prune-oxlint-suppressions.yml
+    uses: $/.github/workflows/prune-oxlint-suppressions.yml
     secrets:
       SENTRY_INTERNAL_APP_PRIVATE_KEY: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
@@ -164,8 +171,10 @@ jobs:
         command: [knip, 'knip:prod', 'knip:cycles']
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: ${{ matrix.command }}
         run: pnpm run ${{ matrix.command }}
@@ -184,8 +193,9 @@ jobs:
         with:
           # PRs need history for git merge-base to find the fork point.
           fetch-depth: ${{ github.event_name == 'pull_request' && '100' || '1' }}
+          persist-credentials: false
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: Test workspace CI runner
         run: node --test scripts/testCi.test.ts
@@ -235,12 +245,14 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
+        with:
+          persist-credentials: false
 
       # Must run before the parallel group: it parses $GITHUB_EVENT_PATH, which the
       # runner truncates whenever a step starts (getsentry/sentry#127566). It is also
       # a composite action, and the runner corrupts shared job state when a composite
       # overlaps another step (actions/runner#4789).
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       # None of these depend on each other, fetch them all at once. Nothing in this
       # group may read $GITHUB_EVENT_PATH (e.g. actions/setup-node, pnpm/action-setup,
@@ -293,23 +305,20 @@ jobs:
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: Generate form field registry
         run: node scripts/extractFormFields.ts
 
       - name: Check for changes
-        run: |
-          if ! git diff --exit-code static/app/views/settings/fieldRegistry.generated.ts; then
-            echo ""
-            echo "❌ Form field registry is out of sync!"
-            echo ""
-            echo "Run the following command and commit the changes:"
-            echo "  node scripts/extractFormFields.ts"
-            echo ""
-            exit 1
-          fi
+        run: >-
+          .github/workflows/scripts/check-generated-file.sh
+          static/app/views/settings/fieldRegistry.generated.ts
+          'Form field registry'
+          'node scripts/extractFormFields.ts'
 
   embed-widgets:
     if: needs.files-changed.outputs.embed_widget_schema == 'true'
@@ -318,23 +327,33 @@ jobs:
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: Generate embed widgets
         run: pnpm run gen:embed-widgets
 
       - name: Check for changes
-        run: |
-          if ! git diff --exit-code src/sentry/seer/agent/embed_widgets.generated.json; then
-            echo ""
-            echo "❌ Embed widgets JSON schema is out of sync!"
-            echo ""
-            echo "Run the following command and commit the changes:"
-            echo "  pnpm run gen:embed-widgets"
-            echo ""
-            exit 1
-          fi
+        run: >-
+          .github/workflows/scripts/check-generated-file.sh
+          src/sentry/seer/agent/embed_widgets.generated.json
+          'Embed widgets JSON schema'
+          'pnpm run gen:embed-widgets'
+
+  # Runs on every PR: nav files import constants from anywhere, so no path filter is complete.
+  seer-nav-snapshot:
+    name: seer nav snapshot
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
+
+      # The generator is standard library only, so no sentry env is needed.
+      - name: Check the Seer nav snapshot
+        run: python3 -m tools.seer_nav.generate_snapshot --check
 
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)
@@ -350,11 +369,13 @@ jobs:
         knip,
         form-field-registry,
         embed-widgets,
+        seer-nav-snapshot,
       ]
     name: Frontend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
+    permissions: {}
     steps:
       # If any jobs we depend on fail, we will fail since this is a required check
       # NOTE: A timeout is considered a failure

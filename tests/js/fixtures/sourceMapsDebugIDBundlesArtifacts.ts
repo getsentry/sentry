@@ -6,10 +6,7 @@ export function SourceMapsDebugIDBundlesArtifactsFixture(
   return {
     bundleId: '7227e105-744e-4066-8c69-3e5e344723fc',
     associations: [
-      {
-        release: 'v2.0',
-        dist: null,
-      },
+      {release: 'v2.0', dist: null},
       {
         release: 'frontend@2e318148eac9298ec04a662ae32b4b093b027f0a',
         dist: ['android', 'iOS'],

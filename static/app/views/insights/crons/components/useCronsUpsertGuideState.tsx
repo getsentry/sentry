@@ -62,13 +62,8 @@ interface PlatformGuideState {
  */
 export function useCronsUpsertGuideState(): PlatformGuideState {
   const [{platform: platformKey, guide: guideKey}, setQueryParams] = useQueryStates(
-    {
-      platform: platformParser,
-      guide: guideParser,
-    },
-    {
-      history: 'replace',
-    }
+    {platform: platformParser, guide: guideParser},
+    {history: 'replace'}
   );
 
   const guideVisible = platformKey !== null && guideKey !== null;
@@ -93,14 +88,7 @@ export function useCronsUpsertGuideState(): PlatformGuideState {
   const platform = platformGuides.find(v => v.platform === platformKey) ?? null;
   const guide = platform?.guides.find(g => g.key === guideKey) ?? null;
 
-  return {
-    platformKey,
-    platform,
-    guideKey,
-    guide,
-    guideVisible,
-    setPlatformGuide,
-  };
+  return {platformKey, platform, guideKey, guide, guideVisible, setPlatformGuide};
 }
 
 /**

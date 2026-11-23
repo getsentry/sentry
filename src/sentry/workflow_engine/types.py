@@ -350,6 +350,8 @@ class DataConditionHandler(Generic[T]):
     comparison_json_schema: ClassVar[dict[str, Any]]
     condition_result_schema: ClassVar[dict[str, Any]] = {}
     label_template = ""
+    # Internal conditions can be provisioned by code, but not configured through APIs.
+    is_internal: ClassVar[bool] = False
 
     @staticmethod
     def evaluate_value(value: T, comparison: Any) -> DataConditionResult:
@@ -378,11 +380,14 @@ class DataConditionHandler(Generic[T]):
 
 class WorkflowTriggerDataConditionHandler(DataConditionHandler[WorkflowEventData]):
     group = DataConditionHandler.Group.WORKFLOW_TRIGGER
+    # DataCondition.get_condition_result() only evaluates booleans for workflow conditions.
+    condition_result_schema = {"type": "boolean"}
     preview_behavior: ClassVar[WorkflowTriggerPreviewBehavior | UnsupportedPreviewBehavior]
 
 
 class ActionFilterDataConditionHandler(DataConditionHandler[T]):
     group = DataConditionHandler.Group.ACTION_FILTER
+    condition_result_schema = {"type": "boolean"}
     preview_behavior: ClassVar[ActionFilterPreviewBehavior | UnsupportedPreviewBehavior]
 
 

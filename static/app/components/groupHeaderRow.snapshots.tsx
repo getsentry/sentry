@@ -17,9 +17,7 @@ jest.mock('sentry/utils/useLocation', () => ({
   useLocation: () => ({pathname: '/', query: {}, search: '', hash: ''}),
 }));
 // oxlint-disable-next-line @sentry/scraps/no-restricted-module-mocks
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: () => () => {},
-}));
+jest.mock('sentry/utils/useNavigate', () => ({useNavigate: () => () => {}}));
 // oxlint-disable-next-line @sentry/scraps/no-restricted-module-mocks
 jest.mock('sentry/components/pageFilters/usePageFilters', () => ({
   usePageFilters: () => ({
@@ -33,9 +31,7 @@ jest.mock('@tanstack/react-query', () => ({
 jest.mock('@tanstack/react-pacer', () => ({
   useDebouncer: () => ({maybeExecute: () => {}, cancel: () => {}}),
 }));
-jest.mock('@react-aria/interactions', () => ({
-  useHover: () => ({hoverProps: {}}),
-}));
+jest.mock('@react-aria/interactions', () => ({useHover: () => ({hoverProps: {}})}));
 jest.mock('sentry/components/errorBoundary', () => ({
   ErrorBoundary: ({children}: {children: React.ReactNode}) => children,
 }));
@@ -51,10 +47,7 @@ function SsrLink({to, children}: LinkProps) {
   return <a href={typeof to === 'string' ? to : '#'}>{children}</a>;
 }
 
-const ssrLinkBehavior = {
-  component: SsrLink,
-  behavior: (props: LinkProps) => props,
-};
+const ssrLinkBehavior = {component: SsrLink, behavior: (props: LinkProps) => props};
 
 const project = ProjectFixture({slug: 'javascript', platform: 'javascript'});
 
@@ -68,10 +61,7 @@ const defaultGroup = GroupFixture({
   project,
 });
 
-const bookmarkedGroup = GroupFixture({
-  ...defaultGroup,
-  isBookmarked: true,
-});
+const bookmarkedGroup = GroupFixture({...defaultGroup, isBookmarked: true});
 
 const resolvedGroup = GroupFixture({
   id: '1337',

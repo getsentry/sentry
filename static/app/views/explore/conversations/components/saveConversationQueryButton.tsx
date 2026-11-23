@@ -47,13 +47,7 @@ export function SaveConversationQueryButton() {
           starred: starred ?? true,
           agent: agent?.length ? agent : undefined,
           errorsOnly: errorsOnly || undefined,
-          query: [
-            {
-              fields: [],
-              mode: Mode.SAMPLES,
-              query: searchQuery ?? '',
-            },
-          ],
+          query: [{fields: [], mode: Mode.SAMPLES, query: searchQuery ?? ''}],
         },
       });
     },

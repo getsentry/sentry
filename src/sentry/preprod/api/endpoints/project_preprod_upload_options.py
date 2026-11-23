@@ -19,13 +19,18 @@ from sentry.objectstore.types import ObjectstoreUploadOptions
 from sentry.utils.http import absolute_uri
 
 
+class SnapshotUploadPermission(ProjectReleasePermission):
+    # This GET issues a write credential, so require the same scopes as publishing a snapshot.
+    scope_map = {"GET": ProjectReleasePermission.scope_map["POST"]}
+
+
 @cell_silo_endpoint
 class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (ProjectReleasePermission,)
+    permission_classes = (SnapshotUploadPermission,)
 
     def get(self, request: Request, project: Project) -> Response:
         requested = request.GET.get("usecase")

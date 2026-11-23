@@ -109,6 +109,8 @@ def get_option_value(function: Mapping[str, Any], option: str) -> Any:
 
     # if we don't have the settings set, read from our options
     if not settings.SENTRY_RELEASE_REGISTRY_BASEURL:
+        if option == OPTION_ACCOUNT_NUMBER:
+            return settings.SENTRY_AWS_LAMBDA_ACCOUNT_NUMBER
         return options.get(option_field)
 
     # otherwise, read from the cache
@@ -148,7 +150,7 @@ def get_version_of_arn(arn: str) -> int:
 def _get_arn_from_layer(layer: object) -> str:
     # layer could be a string or dict
     if isinstance(layer, dict):
-        return cast(str, layer["Arn"])
+        return layer["Arn"]
     return cast(str, layer)
 
 

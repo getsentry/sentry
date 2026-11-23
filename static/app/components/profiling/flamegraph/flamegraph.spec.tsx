@@ -9,19 +9,19 @@ import ProfilesAndTransactionProvider from 'sentry/views/explore/profiling/trans
 
 window.ResizeObserver =
   window.ResizeObserver ||
-  jest.fn().mockImplementation(() => ({
-    disconnect: jest.fn(),
-    observe: jest.fn(),
-    unobserve: jest.fn(),
-  }));
+  jest
+    .fn()
+    .mockImplementation(() => ({
+      disconnect: jest.fn(),
+      observe: jest.fn(),
+      unobserve: jest.fn(),
+    }));
 
 Element.prototype.scrollTo = () => {};
 
 // Replace the webgl renderer with a dom renderer for tests
 jest.mock('sentry/utils/profiling/renderers/flamegraphRendererWebGL', () => {
-  return {
-    FlamegraphRendererWebGL: mockFlameGraphRenderer,
-  };
+  return {FlamegraphRendererWebGL: mockFlameGraphRenderer};
 });
 
 const flamechart = {
@@ -108,12 +108,7 @@ describe('Flamegraph', () => {
           pathname: '/explore/profiles/profile/foo-project/profile-id/flamegraph/',
         },
         route: '/explore/profiles/profile/:projectId/:eventId/',
-        children: [
-          {
-            path: 'flamegraph/',
-            element: <ProfileFlamegraph />,
-          },
-        ],
+        children: [{path: 'flamegraph/', element: <ProfileFlamegraph />}],
       },
     });
 
@@ -142,12 +137,7 @@ describe('Flamegraph', () => {
           pathname: '/explore/profiles/profile/foo-project/profile-id/flamegraph/',
         },
         route: '/explore/profiles/profile/:projectId/:eventId/',
-        children: [
-          {
-            path: 'flamegraph/',
-            element: <ProfileFlamegraph />,
-          },
-        ],
+        children: [{path: 'flamegraph/', element: <ProfileFlamegraph />}],
       },
     });
 
@@ -183,12 +173,7 @@ describe('Flamegraph', () => {
           },
         },
         route: '/explore/profiles/profile/:projectId/:eventId/',
-        children: [
-          {
-            path: 'flamegraph/',
-            element: <ProfileFlamegraph />,
-          },
-        ],
+        children: [{path: 'flamegraph/', element: <ProfileFlamegraph />}],
       },
     });
 
@@ -217,17 +202,10 @@ describe('Flamegraph', () => {
       initialRouterConfig: {
         location: {
           pathname: '/explore/profiles/profile/foo-project/profile-id/flamegraph/',
-          query: {
-            query: 'profiling transaction',
-          },
+          query: {query: 'profiling transaction'},
         },
         route: '/explore/profiles/profile/:projectId/:eventId/',
-        children: [
-          {
-            path: 'flamegraph/',
-            element: <ProfileFlamegraph />,
-          },
-        ],
+        children: [{path: 'flamegraph/', element: <ProfileFlamegraph />}],
       },
     });
 

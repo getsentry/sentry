@@ -7,18 +7,9 @@ import {useTraceMeta, type TraceMetaTrace} from './useTraceMeta';
 const organization = OrganizationFixture();
 
 const mockedTraces: TraceMetaTrace[] = [
-  {
-    traceSlug: 'slug1',
-    timestamp: 1,
-  },
-  {
-    traceSlug: 'slug2',
-    timestamp: 2,
-  },
-  {
-    traceSlug: 'slug3',
-    timestamp: 3,
-  },
+  {traceSlug: 'slug1', timestamp: 1},
+  {traceSlug: 'slug2', timestamp: 2},
+  {traceSlug: 'slug3', timestamp: 3},
 ];
 
 describe('useTraceMeta', () => {
@@ -36,9 +27,7 @@ describe('useTraceMeta', () => {
         metricsCount: 1,
         performanceIssuesCount: 1,
         spansCount: 1,
-        spansCountMap: {
-          op1: 1,
-        },
+        spansCountMap: {op1: 1},
         uptimeCount: 0,
       },
     });
@@ -51,10 +40,7 @@ describe('useTraceMeta', () => {
         metricsCount: 2,
         performanceIssuesCount: 1,
         spansCount: 1,
-        spansCountMap: {
-          op1: 1,
-          op2: 1,
-        },
+        spansCountMap: {op1: 1, op2: 1},
         uptimeCount: 0,
       },
     });
@@ -67,9 +53,7 @@ describe('useTraceMeta', () => {
         metricsCount: 3,
         performanceIssuesCount: 1,
         spansCount: 1,
-        spansCountMap: {
-          op3: 1,
-        },
+        spansCountMap: {op3: 1},
         uptimeCount: 1,
       },
     });
@@ -95,11 +79,7 @@ describe('useTraceMeta', () => {
         metricsCount: 6,
         performanceIssuesCount: 3,
         spansCount: 3,
-        spansCountMap: {
-          op1: 2,
-          op2: 1,
-          op3: 1,
-        },
+        spansCountMap: {op1: 2, op2: 1, op3: 1},
         uptimeCount: 1,
       },
       errors: [],
@@ -110,10 +90,7 @@ describe('useTraceMeta', () => {
   });
 
   it('accepts trace metadata with span counts', async () => {
-    const trace = {
-      traceSlug: 'slug-without-transactions-count',
-      timestamp: 1,
-    };
+    const trace = {traceSlug: 'slug-without-transactions-count', timestamp: 1};
 
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -124,9 +101,7 @@ describe('useTraceMeta', () => {
         metricsCount: 1,
         performanceIssuesCount: 0,
         spansCount: 529,
-        spansCountMap: {
-          processor: 113,
-        },
+        spansCountMap: {processor: 113},
         uptimeCount: 0,
       },
     });
@@ -144,9 +119,7 @@ describe('useTraceMeta', () => {
       metricsCount: 1,
       performanceIssuesCount: 0,
       spansCount: 529,
-      spansCountMap: {
-        processor: 113,
-      },
+      spansCountMap: {processor: 113},
       uptimeCount: 0,
     });
   });
@@ -393,9 +366,7 @@ describe('useTraceMeta', () => {
         metricsCount: 1,
         performanceIssuesCount: 1,
         spansCount: 1,
-        spansCountMap: {
-          op1: 1,
-        },
+        spansCountMap: {op1: 1},
         uptimeCount: 0,
       },
     });
@@ -408,9 +379,7 @@ describe('useTraceMeta', () => {
         metricsCount: 1,
         performanceIssuesCount: 1,
         spansCount: 1,
-        spansCountMap: {
-          op2: 1,
-        },
+        spansCountMap: {op2: 1},
         uptimeCount: 0,
       },
     });
@@ -436,10 +405,7 @@ describe('useTraceMeta', () => {
         metricsCount: 2,
         performanceIssuesCount: 2,
         spansCount: 2,
-        spansCountMap: {
-          op1: 1,
-          op2: 1,
-        },
+        spansCountMap: {op1: 1, op2: 1},
         uptimeCount: 0,
       },
       errors: [expect.any(Error)],

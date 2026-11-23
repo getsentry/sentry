@@ -75,9 +75,7 @@ async function extractDiffMutations({
           });
           // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
           item[formattedTimestamp].adds = {
-            document: {
-              html: node?.documentElement?.outerHTML,
-            },
+            document: {html: node?.documentElement?.outerHTML},
           };
         }
       } else if (
@@ -98,9 +96,7 @@ async function extractDiffMutations({
           }
 
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          adds[selector] = {
-            document: node.outerHTML,
-          };
+          adds[selector] = {document: node.outerHTML};
         }
 
         const attributes = {};
@@ -168,9 +164,7 @@ async function extractDiffMutations({
           }
 
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          removes[selector] = {
-            html: node.outerHTML,
-          };
+          removes[selector] = {html: node.outerHTML};
         }
 
         collection.set(frame, {

@@ -11,9 +11,7 @@ import {
 } from './useCanEditAutomation';
 
 describe('useAutomationEditPermission', () => {
-  const organization = OrganizationFixture({
-    access: ['org:read', 'alerts:read'],
-  });
+  const organization = OrganizationFixture({access: ['org:read', 'alerts:read']});
   const writableProject = ProjectFixture({
     id: '1',
     access: ['project:read', 'alerts:write'],

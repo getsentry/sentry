@@ -47,6 +47,10 @@ it.each([
   ],
   ['arrow import', "const load = () => import('./component');"],
   ['commented arrow import', "const load = () => /* webpack */ import('./component');"],
+  [
+    'arrow import inside JSX',
+    "const element = <div>{() => import('./component')}</div>;",
+  ],
 ])('collects a lazy %s', (_description, source) => {
   expect(collectLazyImportSpecifiers(source)).toEqual(['./component']);
 });
@@ -57,12 +61,22 @@ it.each([
   ['nested arrow expression', "const load = () => ready ? import('./component') : null;"],
   ['chained arrow import', "const load = () => import('./component').then(load);"],
   ['non-literal import', 'const load = () => import(component);'],
+  ['non-import call', "const load = () => load('./component'); import('./other');"],
   [
     'import with options',
     "const load = () => import('./component', {with: {type: 'json'}});",
   ],
 ])('does not collect a %s', (_description, source) => {
   expect(collectLazyImportSpecifiers(source)).toEqual([]);
+});
+
+it('collects a lazy import after a type assertion in a .ts file', () => {
+  expect(
+    collectLazyImportSpecifiers(
+      "const value = <string>input;\nconst load = () => import('./component');",
+      'lazyImports.ts'
+    )
+  ).toEqual(['./component']);
 });
 
 it('updates the cached allowlist when a lazy importer is linted again', () => {
@@ -97,6 +111,12 @@ it('updates the cached allowlist when a lazy importer is linted again', () => {
         },
       ],
     });
+    tester.run('unresolvable lazy import', noDefaultExports, {
+      valid: [
+        {code: "export const load = () => import('./missing');", filename: importer},
+      ],
+      invalid: [],
+    });
     tester.run('restore lazy import', noDefaultExports, {
       valid: [{code: importerSource, filename: importer}],
       invalid: [],
@@ -121,10 +141,7 @@ const ruleTester = new RuleTester();
 
 ruleTester.run('no-default-exports', noDefaultExports, {
   valid: [
-    {
-      code: 'export function MyComponent() { return <div />; }',
-      filename: 'valid.tsx',
-    },
+    {code: 'export function MyComponent() { return <div />; }', filename: 'valid.tsx'},
     {
       code: `
 export function MyComponentInner() { return <div />; }
@@ -132,14 +149,8 @@ export default wrap(MyComponentInner);
 `,
       filename: 'valid.tsx',
     },
-    {
-      code: 'export const MyComponent = () => <div />;',
-      filename: 'valid.tsx',
-    },
-    {
-      code: 'export const util = () => null;',
-      filename: 'valid.tsx',
-    },
+    {code: 'export const MyComponent = () => <div />;', filename: 'valid.tsx'},
+    {code: 'export const util = () => null;', filename: 'valid.tsx'},
     {
       code: `
         export const a = 1;
@@ -147,25 +158,27 @@ export default wrap(MyComponentInner);
       `,
       filename: 'valid.tsx',
     },
+    {code: 'export class MyClass {}', filename: 'valid.tsx'},
+    {code: 'const x = 1;', filename: 'valid.tsx'},
+    {code: 'export default withConfig(MyComponent);', filename: 'valid.tsx'},
+    {code: 'export default styled(MyComponent)`color: red;`;', filename: 'valid.tsx'},
+    {code: 'export default withConfig(MyComponent) as React.FC;', filename: 'valid.tsx'},
     {
-      code: 'export class MyClass {}',
+      code: "export {default as MyComponent} from './myComponent';",
+      filename: 'valid.tsx',
+    },
+    {code: 'export default 42;', filename: '/no-tsconfig/valid.tsx'},
+    {
+      code: "export * from './a'; export * as Components from './b';",
       filename: 'valid.tsx',
     },
     {
-      code: 'const x = 1;',
-      filename: 'valid.tsx',
+      code: 'function Target() { return null; } export {Target as default};',
+      filename: `${__dirname}/fixtures/lazyTarget.ts`,
     },
     {
-      code: 'export default withConfig(MyComponent);',
-      filename: 'valid.tsx',
-    },
-    {
-      code: 'export default styled(MyComponent)`color: red;`;',
-      filename: 'valid.tsx',
-    },
-    {
-      code: 'export default withConfig(MyComponent) as React.FC;',
-      filename: 'valid.tsx',
+      code: "export * as default from './defaultFunction';",
+      filename: `${__dirname}/fixtures/lazyTarget.ts`,
     },
   ],
   invalid: [
@@ -331,6 +344,47 @@ export default wrap(MyComponentInner);
     },
     {
       code: 'export default [1, 2, 3];',
+      errors: [{messageId: 'forbidden'}],
+      filename: 'invalid.tsx',
+    },
+    {
+      code: `
+        import imported from './imported';
+        const local = 1;
+        export default imported;
+      `,
+      output: null,
+      errors: [{messageId: 'forbidden'}],
+      filename: 'invalid.tsx',
+    },
+    {
+      code: 'function example() {} export default example;',
+      output: 'export function example() {}',
+      errors: [{messageId: 'forbidden'}],
+      filename: 'invalid.tsx',
+    },
+    {
+      code: 'const a = 1; export {a as default};',
+      errors: [{messageId: 'forbidden'}],
+      filename: 'invalid.tsx',
+    },
+    {
+      code: "export {default} from './a';",
+      errors: [{messageId: 'forbidden'}],
+      filename: 'invalid.tsx',
+    },
+    {
+      code: "export {a as 'default'} from './a';",
+      errors: [{messageId: 'forbidden'}],
+      filename: 'invalid.tsx',
+    },
+    {
+      code: "export * as default from './a';",
+      errors: [{messageId: 'forbidden'}],
+      filename: 'invalid.tsx',
+    },
+    {
+      code: "export * as 'default' from './a';",
       errors: [{messageId: 'forbidden'}],
       filename: 'invalid.tsx',
     },

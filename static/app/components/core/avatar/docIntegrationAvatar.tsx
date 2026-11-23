@@ -26,30 +26,15 @@ function getDocIntegrationAvatarProps(
   const name = docIntegration.name;
 
   if (!docIntegration.avatar?.avatarType) {
-    return {
-      type: 'letter_avatar',
-      identifier,
-      name,
-      title: name,
-    };
+    return {type: 'letter_avatar', identifier, name, title: name};
   }
 
   switch (docIntegration.avatar.avatarType) {
     case 'letter_avatar':
-      return {
-        type: 'letter_avatar',
-        identifier,
-        name,
-        title: name,
-      };
+      return {type: 'letter_avatar', identifier, name, title: name};
     case 'upload':
       if (!docIntegration.avatar.avatarUrl) {
-        return {
-          type: 'letter_avatar',
-          identifier,
-          name,
-          title: name,
-        };
+        return {type: 'letter_avatar', identifier, name, title: name};
       }
       return {
         type: 'upload',
@@ -59,12 +44,7 @@ function getDocIntegrationAvatarProps(
       };
     case 'gravatar':
       if (!docIntegration.avatar.avatarUrl) {
-        return {
-          type: 'letter_avatar',
-          identifier,
-          name,
-          title: name,
-        };
+        return {type: 'letter_avatar', identifier, name, title: name};
       }
       return {
         type: 'gravatar',
@@ -73,11 +53,6 @@ function getDocIntegrationAvatarProps(
         name,
       };
     default:
-      return {
-        type: 'letter_avatar',
-        identifier,
-        name,
-        title: name,
-      };
+      return {type: 'letter_avatar', identifier, name, title: name};
   }
 }

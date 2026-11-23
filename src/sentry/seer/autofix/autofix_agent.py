@@ -290,7 +290,7 @@ def _group_and_referrer_from_run(
         SeerAgentRun.objects.filter(
             run__organization_id=organization.id,
             run__seer_run_state_id=run_id,
-            source__in=(FEATURE_ID, LEGACY_FEATURE_ID),
+            source__in=(FEATURE_ID, LEGACY_FEATURE_ID, SINGLE_RUN_FEATURE_ID),
         )
         .values("group_id", "extras")
         .first()  # noqa: S035

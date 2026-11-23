@@ -12,11 +12,7 @@ import type {IssueView} from './issueViewUtils';
 
 const constructCountTimeFrame = (
   timeFilters: PageFilterDatetime
-): {
-  end?: string;
-  start?: string;
-  statsPeriod?: string;
-} => {
+): {end?: string; start?: string; statsPeriod?: string} => {
   if (timeFilters.period) {
     return {statsPeriod: timeFilters.period};
   }

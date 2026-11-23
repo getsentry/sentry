@@ -97,9 +97,7 @@ export function SortableWidget(props: Props) {
     disabled: props.isGeneratedDashboard,
   });
 
-  const disableTransactionWidget =
-    organization.features.includes('discover-saved-queries-deprecation') &&
-    widget.widgetType === WidgetType.TRANSACTIONS;
+  const disableTransactionWidget = widget.widgetType === WidgetType.TRANSACTIONS;
 
   const disableEdit = !isWidgetEditable(widget.displayType);
 

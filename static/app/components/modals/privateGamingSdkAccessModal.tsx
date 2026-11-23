@@ -102,9 +102,7 @@ export function PrivateGamingSdkAccessModal({
         toast.error(
           tct(
             'Invitation to console repositories for these platforms have failed: [errors]',
-            {
-              errors: platformsWithErrors.join(','),
-            }
+            {errors: platformsWithErrors.join(',')}
           )
         );
       }
@@ -118,9 +116,12 @@ export function PrivateGamingSdkAccessModal({
         setSubmittedPlatforms(successfulPlatforms);
       }
 
-      queryClient.invalidateQueries({
-        queryKey: [`/organizations/${organization.slug}/console-sdk-invites/`],
-      });
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter(
+          '/organizations/$organizationIdOrSlug/console-sdk-invites/',
+          {path: {organizationIdOrSlug: organization.slug}}
+        )
+      );
     },
     onError: errorResponse => {
       const errorMessage = tct('[error] - [detail]', {

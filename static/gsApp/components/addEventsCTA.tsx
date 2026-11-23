@@ -80,21 +80,17 @@ export function AddEventsCTA(props: Props) {
 
   const action =
     _action ?? getBestActionToIncreaseEventLimits(organization, subscription);
-  const commonProps: Partial<ButtonProps | LinkButtonProps> & {
-    'data-test-id'?: string;
-  } = {
-    size: 'xs',
-    variant: 'primary',
-    busy,
-    disabled: busy,
-    'data-test-id': `btn-${action}`,
-    ...buttonProps,
-  };
+  const commonProps: Partial<ButtonProps | LinkButtonProps> & {'data-test-id'?: string} =
+    {
+      size: 'xs',
+      variant: 'primary',
+      busy,
+      disabled: busy,
+      'data-test-id': `btn-${action}`,
+      ...buttonProps,
+    };
 
-  const requestArgs = {
-    api,
-    organization,
-  };
+  const requestArgs = {api, organization};
 
   const handleAnalytics = () => {
     trackGetsentryAnalytics('add_event_cta.clicked_cta', {
@@ -136,11 +132,7 @@ export function AddEventsCTA(props: Props) {
           onClick={async () => {
             handleAnalytics();
             await wrapRequest(
-              sendAddEventsRequest({
-                eventTypes,
-                notificationType,
-                ...requestArgs,
-              })
+              sendAddEventsRequest({eventTypes, notificationType, ...requestArgs})
             );
             handleRequestSent?.();
           }}

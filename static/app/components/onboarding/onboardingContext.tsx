@@ -40,10 +40,7 @@ type OnboardingContextProps = {
 const ONBOARDING_SESSION_KEY = 'onboarding';
 
 type OnboardingSessionState = {
-  agentSetupProjectBaseline?: {
-    organizationId: string;
-    projectIds: string[];
-  };
+  agentSetupProjectBaseline?: {organizationId: string; projectIds: string[]};
   agenticProgressClientRunId?: string;
   agenticProgressOnboardingCode?: string;
   createdProject?: CreatedProject;
@@ -110,7 +107,10 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
   // that stages a destination then creates a fresh project rather than
   // reusing one whose workflow may target another channel. Declared before
   // the stale-repo guard so that guard's clear of the derived state wins.
-  // Drop this once sessions written before it shipped are gone.
+  // The context also reads the legacy slug until this lift lands (see
+  // `createdProject` below), so the first render, and any redirect it decides,
+  // already sees the project. Drop both once sessions written before it
+  // shipped are gone.
   const hadLegacyCreatedProjectSlug = useRef(!!onboarding?.createdProjectSlug);
   useEffect(() => {
     if (hadLegacyCreatedProjectSlug.current) {
@@ -168,7 +168,11 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
       setSelectedFeatures: (selectedFeatures?: ProductSolution[]) => {
         setOnboarding(prev => ({...prev, selectedFeatures}));
       },
-      createdProject: onboarding?.createdProject,
+      createdProject:
+        onboarding?.createdProject ??
+        (onboarding?.createdProjectSlug
+          ? {slug: onboarding.createdProjectSlug, messagingSelection: undefined}
+          : undefined),
       setCreatedProject: (createdProject?: CreatedProject) => {
         setOnboarding(prev => ({...prev, createdProject}));
       },

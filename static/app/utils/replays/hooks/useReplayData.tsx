@@ -13,9 +13,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiFetch, useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {useConcurrencyLimitedQueryFn} from 'sentry/utils/api/concurrency/useConcurrencyLimitedQueryFn';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
@@ -36,10 +34,7 @@ export function replayRecordApiOptions({
 }) {
   return apiOptions.as<{data: unknown}>()(
     '/organizations/$organizationIdOrSlug/replays/$replayId/',
-    {
-      path: replayId ? {organizationIdOrSlug, replayId} : skipToken,
-      staleTime: Infinity,
-    }
+    {path: replayId ? {organizationIdOrSlug, replayId} : skipToken, staleTime: Infinity}
   );
 }
 
@@ -74,15 +69,7 @@ export function replayAttachmentsApiOptions({
 }) {
   return apiOptions.as<unknown>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/recording-segments/',
-    {
-      path: {
-        organizationIdOrSlug,
-        projectIdOrSlug,
-        replayId,
-      },
-      query,
-      staleTime: Infinity,
-    }
+    {path: {organizationIdOrSlug, projectIdOrSlug, replayId}, query, staleTime: Infinity}
   );
 }
 
@@ -270,10 +257,7 @@ export function useReplayData({replayId, orgSlug}: Options): Result {
     queries: enableErrors
       ? errorCursors.map(cursor =>
           queryOptions({
-            ...getErrorsQueryOptions({
-              cursor,
-              per_page: ERRORS_PER_PAGE,
-            }),
+            ...getErrorsQueryOptions({cursor, per_page: ERRORS_PER_PAGE}),
             select: selectJsonWithHeaders,
           })
         )
@@ -362,24 +346,14 @@ export function useReplayData({replayId, orgSlug}: Options): Result {
         })
       );
     }
-    const eventsUrl = getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-      path: {organizationIdOrSlug: orgSlug},
-    });
-
     // Invalidate fetched replay error events for all replayIds. Narrow to
     // `referrer=replay_details` so unrelated /events/ queries aren't refetched.
-    queryClient.invalidateQueries({
-      predicate: query => {
-        const queryKey = safeParseQueryKey(query.queryKey);
-        if (!queryKey) {
-          return false;
-        }
-        return (
-          queryKey.url === eventsUrl &&
-          queryKey.options?.query?.referrer === 'replay_details'
-        );
-      },
-    });
+    queryClient.invalidateQueries(
+      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/events/', {
+        path: {organizationIdOrSlug: orgSlug},
+        query: {referrer: 'replay_details'},
+      })
+    );
   }, [orgSlug, replayId, projectSlug, queryClient]);
 
   const {allErrors, feedbackEventIds} = useMemo(() => {

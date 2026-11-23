@@ -13,26 +13,47 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
+from sentry.auth.principal import resolve_actor
 from sentry.models.organization import Organization
-from sentry.timeseries_annotations.endpoints.serializers import TimeseriesAnnotationSerializer
+from sentry.timeseries_annotations.endpoints.serializers import (
+    TimeseriesAnnotationPostSerializer,
+    TimeseriesAnnotationSerializer,
+)
 from sentry.timeseries_annotations.models import (
     AnnotationScope,
     AnnotationType,
     IntervalType,
+    Severity,
     TimeseriesAnnotation,
 )
+from sentry.timeseries_annotations.service import (
+    TimeseriesAnnotationData,
+    create_timeseries_annotation,
+)
+from sentry.viewer_context import ActorId, ActorType
+
+
+class TimeseriesAnnotationPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+    }
 
 
 @extend_schema(tags=["Timeseries Annotations"])
 @cell_silo_endpoint
 class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
-    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
+    }
+    permission_classes = (TimeseriesAnnotationPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
@@ -56,6 +77,14 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
             .filter(Q(project_id__in=project_ids) | Q(project_id__isnull=True))
         )
 
+        # Environment-level annotations are scoped like projects: a request filtering by
+        # environment still sees org-wide (null environment) rows, never another env's.
+        environments = self.get_environments(request, organization)
+        if environments:
+            queryset = queryset.filter(
+                Q(environment_id__in=[e.id for e in environments]) | Q(environment_id__isnull=True)
+            )
+
         scopes = _parse_labels(request.GET.getlist("scope"), AnnotationScope, "scope")
         if scopes:
             queryset = queryset.filter(scope__in=scopes)
@@ -65,6 +94,10 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
         )
         if types:
             queryset = queryset.filter(annotation_type__in=types)
+
+        severities = _parse_labels(request.GET.getlist("severity"), Severity, "severity")
+        if severities:
+            queryset = queryset.filter(severity__in=severities)
 
         # Client-side bucketing is correct only when the window fits one page; once results span
         # pages it undercounts. Server-side bucketing to come.
@@ -77,6 +110,57 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
                 list(rows), request.user, TimeseriesAnnotationSerializer()
             ),
         )
+
+    def post(self, request: Request, organization: Organization) -> Response:
+        """
+        Create a timeseries annotation
+        """
+        if not features.has(
+            "organizations:timeseries-annotations", organization, actor=request.user
+        ):
+            raise ResourceDoesNotExist
+
+        serializer = TimeseriesAnnotationPostSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        data = serializer.validated_data
+
+        project_id = data.get("projectId")
+        if project_id is not None:
+            # Trust get_projects, not the body: a project the caller can't reach raises 403.
+            self.get_projects(request, organization, project_ids={project_id})
+
+        end = data.get("endTimestamp")
+        annotation = create_timeseries_annotation(
+            TimeseriesAnnotationData(
+                organization_id=organization.id,
+                project_id=project_id,
+                annotation_type=data["annotationType"],
+                description=data["description"],
+                start_timestamp=data["startTimestamp"],
+                end_timestamp=end,
+                interval_type=IntervalType.RANGE if end is not None else IntervalType.POINT,
+                scope=data["scope"],
+                severity=data["severity"],
+                tags=data.get("tags"),
+                created_by=_creating_actor(request),
+            )
+        )
+        return Response(
+            serialize(annotation, request.user, TimeseriesAnnotationSerializer()), status=201
+        )
+
+
+def _creating_actor(request: Request) -> ActorId | None:
+    """The user or service account behind the request, as a stored-creator reference."""
+    actor = resolve_actor(request.user, request.auth)
+    if actor is None:
+        return None
+    if actor.type in (ActorType.USER, ActorType.AGENT):
+        return ActorId(ActorType.USER, actor.user_id)
+    if actor.type == ActorType.SERVICE_ACCOUNT:
+        return ActorId(ActorType.SERVICE_ACCOUNT, actor.actor_id)
+    return None
 
 
 def _window_overlap(start: datetime, end: datetime) -> Q:
@@ -97,7 +181,7 @@ def _window_overlap(start: datetime, end: datetime) -> Q:
 
 
 def _parse_labels(
-    labels: Iterable[str], enum_cls: type[AnnotationScope | AnnotationType], param: str
+    labels: Iterable[str], enum_cls: type[AnnotationScope | AnnotationType | Severity], param: str
 ) -> list[int]:
     by_label = {label: value for value, label in enum_cls.as_choices()}
     try:

@@ -80,10 +80,7 @@ const clientSchema = z.object({
 function clientDetailsQueryOptions(clientID: string) {
   return apiOptions.as<ClientDetailsResponse>()(
     '/_admin/instance-level-oauth/$clientId/',
-    {
-      path: {clientId: clientID},
-      staleTime: 0,
-    }
+    {path: {clientId: clientID}, staleTime: 0}
   );
 }
 

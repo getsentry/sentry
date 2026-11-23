@@ -74,6 +74,11 @@ build-api-docs: build-deprecated-docs build-spectacular-docs
 	@echo "--> Dereference the json schema for ease of use"
 	pnpm run deref-api-docs
 
+# Records the undocumented API responses from a test run with SENTRY_OPENAPI_RESPONSE_CHECK=report
+# in tests/apidocs/openapi-response-baseline.json. Only the endpoint methods the run called change.
+api-response-baseline:
+	@python3 -m tools.openapi_response_baseline $(ARGS)
+
 # The internal RPC method schema, which CI's openapi-diff checks for breaking changes.
 # It also ships with @sentry/api releases (static/packages/api) next to the API spec.
 build-rpc-schema:
@@ -92,7 +97,8 @@ api-owner-map:
 	@mkdir -p .artifacts
 	@sentry django api_endpoint_owners --output .artifacts/api-endpoint-owners.json
 
-# Writes api_exceptions/exceptions.json or updates it with ARGS="--files example_file" (note this needs the owner map from `make api-owner-map`)
+# Writes api_exceptions/exceptions.json, or updates it with ARGS="--files example_file" (only those files) or ARGS="--update" (every file).
+# Updates keep each entry's status, reason and first_seen. (note: needs the owner map from `make api-owner-map`)
 api-baseline:
 	@echo "--> Generating the API exceptions baseline"
 	@python3 -m tools.api_guidelines.generate_baseline $(ARGS)
@@ -145,9 +151,12 @@ build-chartcuterie-config:
 	@echo "--> Building chartcuterie config module"
 	pnpm run build-chartcuterie-config
 
+# CI sets this to pytest-selected.py when it has test durations to balance
+# shards with.
+ACCEPTANCE_PYTEST ?= -m pytest
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	python3 -b -m pytest tests/acceptance --reuse-db --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log --junit-xml=".artifacts/acceptance.junit.xml" -o junit_suite_name=acceptance
+	python3 -b $(ACCEPTANCE_PYTEST) tests/acceptance --reuse-db --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log --junit-xml=".artifacts/acceptance.junit.xml" -o junit_suite_name=acceptance
 	@echo ""
 
 test-cli: create-db

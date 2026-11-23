@@ -126,10 +126,7 @@ export default function UsageLog() {
   };
 
   const eventNameOptions =
-    eventNames?.map(type => ({
-      label: formatEntryTitle(type),
-      value: type,
-    })) ?? [];
+    eventNames?.map(type => ({label: formatEntryTitle(type), value: type})) ?? [];
   const selectedEventName = selectedEvent || undefined;
 
   const usageLogContent = (

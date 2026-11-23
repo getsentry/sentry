@@ -50,29 +50,15 @@ function getRuleLabel(type: RuleType) {
 function getMethodLabel(type: MethodType) {
   switch (type) {
     case MethodType.MASK:
-      return {
-        label: t('Mask'),
-        description: t('Replace with ****'),
-      };
+      return {label: t('Mask'), description: t('Replace with ****')};
     case MethodType.HASH:
-      return {
-        label: t('Hash'),
-        description: t('Replace with DEADBEEF'),
-      };
+      return {label: t('Hash'), description: t('Replace with DEADBEEF')};
     case MethodType.REMOVE:
-      return {
-        label: t('Remove'),
-        description: t('Replace with null'),
-      };
+      return {label: t('Remove'), description: t('Replace with null')};
     case MethodType.REPLACE:
-      return {
-        label: t('Replace'),
-        description: t('Replace with Placeholder'),
-      };
+      return {label: t('Replace'), description: t('Replace with Placeholder')};
     default:
-      return {
-        label: '',
-      };
+      return {label: ''};
   }
 }
 
@@ -101,21 +87,12 @@ export function getDatasetLabelLong(dataset: AllowedDataScrubbingDatasets) {
 }
 
 const binarySuggestions: SourceSuggestion[] = [
-  {
-    type: SourceSuggestionType.BINARY,
-    value: '&&',
-  },
-  {
-    type: SourceSuggestionType.BINARY,
-    value: '||',
-  },
+  {type: SourceSuggestionType.BINARY, value: '&&'},
+  {type: SourceSuggestionType.BINARY, value: '||'},
 ];
 
 const unarySuggestions: SourceSuggestion[] = [
-  {
-    type: SourceSuggestionType.UNARY,
-    value: '!',
-  },
+  {type: SourceSuggestionType.UNARY, value: '!'},
 ];
 
 const valueSuggestions: SourceSuggestion[] = [
@@ -280,18 +257,11 @@ export class TraceItemFieldSelector {
     Array<SelectorToFieldMapping | SelectorToAttributeMapping>
   > = {
     [AllowedDataScrubbingDatasets.LOGS]: [
-      {
-        regex: /^\$log\.attributes\.'([^']+)'\.value$/,
-      },
-      {
-        regex: /^\$log\.body$/,
-        fieldName: 'message',
-      },
+      {regex: /^\$log\.attributes\.'([^']+)'\.value$/},
+      {regex: /^\$log\.body$/, fieldName: 'message'},
     ],
     [AllowedDataScrubbingDatasets.METRICS]: [
-      {
-        regex: /^\$trace_metric\.attributes\.'([^']+)'\.value$/,
-      },
+      {regex: /^\$trace_metric\.attributes\.'([^']+)'\.value$/},
     ],
     [AllowedDataScrubbingDatasets.DEFAULT]: [],
   };
@@ -492,25 +462,15 @@ export class TraceItemFieldSelector {
     });
   }
 
-  static fromNonAttributeFields(dataset: AllowedDataScrubbingDatasets): Array<{
-    key: string;
-    label: string;
-    selector: string;
-  }> | null {
+  static fromNonAttributeFields(
+    dataset: AllowedDataScrubbingDatasets
+  ): Array<{key: string; label: string; selector: string}> | null {
     const nonAttributeFields: Record<
       AllowedDataScrubbingDatasets,
-      Array<{
-        key: string;
-        label: string;
-        selector: string;
-      }> | null
+      Array<{key: string; label: string; selector: string}> | null
     > = {
       [AllowedDataScrubbingDatasets.LOGS]: [
-        {
-          selector: '$log.body',
-          key: 'body',
-          label: t('body'),
-        },
+        {selector: '$log.body', key: 'body', label: t('body')},
       ],
       [AllowedDataScrubbingDatasets.METRICS]: null,
       [AllowedDataScrubbingDatasets.DEFAULT]: null,
@@ -533,26 +493,17 @@ export class TraceItemFieldSelector {
  */
 export function validateTraceItemFieldSelector(
   traceItemFieldSelector: TraceItemFieldSelector
-): {
-  isValid: boolean;
-  error?: string;
-} {
+): {isValid: boolean; error?: string} {
   try {
     const field = traceItemFieldSelector.toField();
     if (!field) {
-      return {
-        isValid: false,
-        error: t('Unable to extract field from selector'),
-      };
+      return {isValid: false, error: t('Unable to extract field from selector')};
     }
 
     const dataset = traceItemFieldSelector.getDataset();
     const reconstructedSelector = TraceItemFieldSelector.fromField(dataset, field);
     if (!reconstructedSelector) {
-      return {
-        isValid: false,
-        error: t('Unable to reconstruct selector from field'),
-      };
+      return {isValid: false, error: t('Unable to reconstruct selector from field')};
     }
 
     const originalSelector = traceItemFieldSelector.getSelector();

@@ -26,6 +26,15 @@ from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.related.combine import combine
 from sentry.issues.related.contributing import CONTRIBUTING_DESCRIPTION, contributing_issues
+from sentry.issues.related.investigations import (
+    INVESTIGATIONS_DESCRIPTION,
+    linked_investigations,
+)
+from sentry.issues.related.same_supergroup import (
+    SAME_SUPERGROUP_DESCRIPTION,
+    same_supergroup_issues,
+)
+from sentry.issues.related.same_title import SAME_TITLE_DESCRIPTION, same_title_issues
 from sentry.issues.related.same_trace import SAME_TRACE_DESCRIPTION, same_trace_issues
 from sentry.issues.related.similar_stacktrace import (
     SIMILAR_STACKTRACE_DESCRIPTION,
@@ -57,6 +66,9 @@ TYPE_DESCRIPTIONS = [
     (RelationType.SIMILAR_STACKTRACE.value, SIMILAR_STACKTRACE_DESCRIPTION),
     (RelationType.SAME_TRACE.value, SAME_TRACE_DESCRIPTION),
     (RelationType.CONTRIBUTING.value, CONTRIBUTING_DESCRIPTION),
+    (RelationType.SAME_TITLE.value, SAME_TITLE_DESCRIPTION),
+    (RelationType.SAME_SUPERGROUP.value, SAME_SUPERGROUP_DESCRIPTION),
+    (RelationType.INVESTIGATIONS.value, INVESTIGATIONS_DESCRIPTION),
 ]
 
 
@@ -65,7 +77,8 @@ class GroupRelatedQuerySerializer(serializers.Serializer[dict[str, Any]]):
         choices=[value for value, _description in TYPE_DESCRIPTIONS],
         required=False,
         help_text=(
-            "Which types of related issues to return. Repeat to ask for several. Defaults to all."
+            "Which types of related issues or investigations to return. Repeat to ask for "
+            "several. Defaults to all."
             "\n\n" + build_choice_description_list(TYPE_DESCRIPTIONS)
         ),
     )
@@ -74,7 +87,7 @@ class GroupRelatedQuerySerializer(serializers.Serializer[dict[str, Any]]):
         default=10,
         min_value=1,
         max_value=100,
-        help_text="The maximum number of issues to return for each type.",
+        help_text="The maximum number of issues or investigations to return for each type.",
     )
     eventId = serializers.UUIDField(
         required=False,
@@ -156,6 +169,14 @@ class GroupRelatedEndpoint(GroupEndpoint):
             )
         if not requested_types or RelationType.CONTRIBUTING in requested_types:
             results[RelationType.CONTRIBUTING] = contributing_issues(ctx)
+        if not requested_types or RelationType.SAME_TITLE in requested_types:
+            results[RelationType.SAME_TITLE] = same_title_issues(ctx)
+        if not requested_types or RelationType.SAME_SUPERGROUP in requested_types:
+            results[RelationType.SAME_SUPERGROUP] = same_supergroup_issues(
+                ctx, _readable_projects(request, group.project.organization_id)
+            )
+        if not requested_types or RelationType.INVESTIGATIONS in requested_types:
+            results[RelationType.INVESTIGATIONS] = linked_investigations(ctx, request.access)
 
         if all(
             result.meta["status"] == RelationTypeStatus.UNAVAILABLE for result in results.values()

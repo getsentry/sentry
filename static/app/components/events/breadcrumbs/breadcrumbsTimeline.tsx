@@ -170,12 +170,7 @@ export function BreadcrumbsTimeline({
   });
 
   return (
-    <div
-      style={{
-        height: totalSize,
-        position: 'relative',
-      }}
-    >
+    <div style={{height: totalSize, position: 'relative'}}>
       <VirtualOffset offset={virtualItems?.[0]?.start ?? 0}>
         <Timeline.Container>{items}</Timeline.Container>
       </VirtualOffset>

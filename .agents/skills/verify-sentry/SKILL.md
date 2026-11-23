@@ -1,6 +1,7 @@
 ---
 name: verify-sentry
-description: Verify the Sentry web app (getsentry/sentry) as a real user, against a disposable local devserver driven with agent-browser, with stored state checked through the API. One skill for the whole app; `features/` holds one file per system. Mapped today: new-org onboarding, project creation in an existing org, the coding-agent handoff, the manual "Configure <Platform> SDK" setup docs, and onboarding navigation state, for owner and member. Use when asked to verify, battle-test, or re-prove Sentry product behavior in a browser, or when a change touches a mapped system, such as `static/app/views/onboarding/`, `static/app/views/projectInstall/`, `static/app/components/agentHandoff/`, or `src/sentry/agent_handoff/`.
+description: >-
+  Verify the Sentry web app (getsentry/sentry) as a real user, against a disposable local devserver driven with agent-browser, with stored state checked through the API. One skill for the whole app; `features/` holds one file per system. Mapped today: new-org onboarding, project creation in an existing org, the coding-agent handoff, the manual "Configure <Platform> SDK" setup docs, and onboarding navigation state, for owner and member. Use when asked to verify, battle-test, or re-prove Sentry product behavior in a browser, or when a change touches a mapped system, such as `static/app/views/onboarding/`, `static/app/views/projectInstall/`, `static/app/components/agentHandoff/`, or `src/sentry/agent_handoff/`.
 ---
 
 # Verify Sentry
@@ -24,12 +25,11 @@ Preconditions, once per machine: `devenv sync` has run, and `devservices up --mo
 
 Feature flags. Sentry-only dev has no flag handler, so `SENTRY_FEATURES` in the overlay decides every flag. `--flags` takes a comma list of the profiles below. They are the flags that the mapped systems need today; add a profile when a new feature file needs another flag:
 
-| `--flags` name         | Flag                                                                                                                            | Default |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| `agentic`              | `organizations:onboarding-agentic-setup` (agent card on welcome and on `/projects/new/`)                                        | on      |
-| `scm-project-creation` | `organizations:onboarding-scm-project-creation` (SCM create-project form)                                                       | on      |
-| `messaging`            | `organizations:onboarding-scm-messaging-experiment` (adds the `scm-messaging` step)                                             | off     |
-| `scm`                  | `organizations:onboarding-scm` (registered and API-exposed; no frontend code reads it today, and the SCM steps show without it) | off     |
+| `--flags` name         | Flag                                                                                     | Default |
+| ---------------------- | ---------------------------------------------------------------------------------------- | ------- |
+| `agentic`              | `organizations:onboarding-agentic-setup` (agent card on welcome and on `/projects/new/`) | on      |
+| `scm-project-creation` | `organizations:onboarding-scm-project-creation` (SCM create-project form)                | on      |
+| `messaging`            | `organizations:onboarding-scm-messaging-experiment` (adds the `scm-messaging` step)      | off     |
 
 The overlay always turns on `organizations:session-replay`, `organizations:ourlogs-enabled`, and `organizations:tracemetrics-enabled`, because SaaS plans grant them and the product toggles render disabled without them. It also sets the agent handoff options `onboarding.agent-handoff.client-id` and `oauth.setup-code.allowed-client-ids` to `verify-sentry-agent-cli`. `seed` creates that public OAuth application. To change flags, run `stop`, then `launch` again.
 

@@ -12,10 +12,7 @@ describe('MessageFormatter', () => {
   it('Should print console message with placeholders correctly', () => {
     const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       ReplayConsoleFrameFixture({
-        data: {
-          arguments: ['This is a %s', 'test'],
-          logger: 'console',
-        },
+        data: {arguments: ['This is a %s', 'test'], logger: 'console'},
         level: BreadcrumbLevelType.LOG,
         message: 'This is a %s test',
         timestamp: new Date('2022-06-22T20:00:39.959Z'),
@@ -50,10 +47,7 @@ describe('MessageFormatter', () => {
   it('Should print console message with objects correctly', () => {
     const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       ReplayConsoleFrameFixture({
-        data: {
-          arguments: ['test', 1, false, {}],
-          logger: 'console',
-        },
+        data: {arguments: ['test', 1, false, {}], logger: 'console'},
         level: BreadcrumbLevelType.LOG,
         message: 'test 1 false [object Object]',
         timestamp: new Date('2022-06-22T16:49:11.198Z'),
@@ -69,10 +63,7 @@ describe('MessageFormatter', () => {
   it('Should print console message correctly when it is an Error object', async () => {
     const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       ReplayConsoleFrameFixture({
-        data: {
-          arguments: [{}],
-          logger: 'console',
-        },
+        data: {arguments: [{}], logger: 'console'},
         level: BreadcrumbLevelType.ERROR,
         message: 'Error: this is my error message',
         timestamp: new Date('2022-06-22T20:00:39.958Z'),
@@ -89,10 +80,7 @@ describe('MessageFormatter', () => {
   it('Should print empty object in case there is no message prop', () => {
     const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       ReplayConsoleFrameFixture({
-        data: {
-          arguments: [{}],
-          logger: 'console',
-        },
+        data: {arguments: [{}], logger: 'console'},
         level: BreadcrumbLevelType.ERROR,
         timestamp: new Date('2022-06-22T20:00:39.958Z'),
       }),
@@ -110,9 +98,7 @@ describe('MessageFormatter', () => {
           arguments: [
             '%c prev state',
             'color: #9E9E9E; font-weight: bold; background-image: url(foo);',
-            {
-              cart: [],
-            },
+            {cart: []},
           ],
           logger: 'console',
         },
@@ -138,10 +124,7 @@ describe('MessageFormatter', () => {
   it('Should print arrays correctly', async () => {
     const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       ReplayConsoleFrameFixture({
-        data: {
-          arguments: ['test', ['foo', 'bar']],
-          logger: 'console',
-        },
+        data: {arguments: ['test', ['foo', 'bar']], logger: 'console'},
         level: BreadcrumbLevelType.LOG,
         message: 'test foo,bar',
         timestamp: new Date('2022-06-23T17:09:31.158Z'),
@@ -160,10 +143,7 @@ describe('MessageFormatter', () => {
   it('Should print literal %', () => {
     const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       ReplayConsoleFrameFixture({
-        data: {
-          arguments: ['This is a literal 100%'],
-          logger: 'console',
-        },
+        data: {arguments: ['This is a literal 100%'], logger: 'console'},
         level: BreadcrumbLevelType.LOG,
         message: 'This is a literal 100%',
         timestamp: new Date('2022-06-22T20:00:39.959Z'),
@@ -178,10 +158,7 @@ describe('MessageFormatter', () => {
   it('Should print unbound %s placeholder', () => {
     const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       ReplayConsoleFrameFixture({
-        data: {
-          arguments: ['Unbound placeholder %s'],
-          logger: 'console',
-        },
+        data: {arguments: ['Unbound placeholder %s'], logger: 'console'},
         level: BreadcrumbLevelType.LOG,
         message: 'Unbound placeholder %s',
         timestamp: new Date('2022-06-22T20:00:39.959Z'),
