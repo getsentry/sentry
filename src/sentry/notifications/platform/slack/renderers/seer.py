@@ -77,7 +77,7 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
     AutofixStoppingPoint.ROOT_CAUSE: AutofixStageConfig(
         heading=":mag:  *Root Cause Analysis*",
         label="Fix with Seer",
-        working_text="Seer is peering into the void...",
+        working_text="Seer is peering into the void... Updates will appear in this thread.",
         completed_text="Seer's eye has seen the root cause",
     ),
     AutofixStoppingPoint.SOLUTION: AutofixStageConfig(
@@ -220,35 +220,24 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         message = data.message
         blocks: list[Block] = [SectionBlock(text=message)]
 
-        style: str | None
-        url: str | None
-        if data.has_billing_access:
-            try:
-                organization = Organization.objects.get_from_cache(id=data.organization_id)
-            except Organization.DoesNotExist:
-                return SlackRenderable(blocks=blocks, text=message)
-            text = "Configure auto-reload"
-            action = SlackAction.SEER_VIEW_BILLING
-            style = "primary"
-            url = link_decorator.decorate_url(
-                organization.absolute_url(f"/settings/{organization.slug}/billing/overview/")
-            )
-        else:
-            # TODO(alexsohn): this click does nothing until the handler emails the admins.
-            text = "Contact Admin"
-            action = SlackAction.SEER_REQUEST_CREDITS
-            style = None
-            url = None
+        try:
+            organization = Organization.objects.get_from_cache(id=data.organization_id)
+        except Organization.DoesNotExist:
+            return SlackRenderable(blocks=blocks, text=message)
 
         blocks.append(
             ActionsBlock(
                 elements=[
                     ButtonElement(
-                        text=text,
-                        style=style,
-                        url=url,
+                        text="Configure auto-reload",
+                        style="primary",
+                        url=link_decorator.decorate_url(
+                            organization.absolute_url(
+                                f"/settings/{organization.slug}/billing/overview/"
+                            )
+                        ),
                         action_id=encode_action_id(
-                            action=action.value,
+                            action=SlackAction.SEER_VIEW_BILLING.value,
                             organization_id=data.organization_id,
                             project_id=None,
                         ),
@@ -361,7 +350,11 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
     @classmethod
     def _render_investigation_started(cls, data: SeerInvestigationStarted) -> SlackRenderable:
-        text = f"<@{data.slack_user_id}> started a Seer investigation for this alert."
+        text = (
+            f"<@{data.slack_user_id}> started a Seer investigation for this alert."
+            if data.slack_user_id
+            else "Sentry started a Seer investigation for this alert."
+        )
         return SlackRenderable(blocks=[MarkdownBlock(text=text)], text=text)
 
     @classmethod

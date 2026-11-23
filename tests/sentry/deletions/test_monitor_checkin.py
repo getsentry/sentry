@@ -43,7 +43,7 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
         )
         monitor_env = MonitorEnvironment.objects.create(monitor=monitor, environment_id=env.id)
         for _ in range(num_checkins):
-            MonitorCheckIn.objects.create(
+            self.create_monitor_checkin(
                 monitor_environment=monitor_env,
                 status=CheckInStatus.OK,
             )
@@ -120,7 +120,7 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
             environment_id=env.id,
         )
         for status in (CheckInStatus.OK, CheckInStatus.ERROR, CheckInStatus.OK):
-            MonitorCheckIn.objects.create(
+            self.create_monitor_checkin(
                 monitor_environment=monitor_env,
                 status=status,
             )
@@ -152,7 +152,7 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
             monitor=monitor,
             environment_id=env.id,
         )
-        checkin = MonitorCheckIn.objects.create(
+        checkin = self.create_monitor_checkin(
             monitor_environment=monitor_env,
             status=CheckInStatus.ERROR,
         )
@@ -192,15 +192,15 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
         )
 
         # Create check-ins
-        checkin1 = MonitorCheckIn.objects.create(
+        checkin1 = self.create_monitor_checkin(
             monitor_environment=monitor_env,
             status=CheckInStatus.ERROR,
         )
-        checkin2 = MonitorCheckIn.objects.create(
+        checkin2 = self.create_monitor_checkin(
             monitor_environment=monitor_env,
             status=CheckInStatus.OK,
         )
-        checkin3 = MonitorCheckIn.objects.create(
+        checkin3 = self.create_monitor_checkin(
             monitor_environment=monitor_env,
             status=CheckInStatus.ERROR,
         )
@@ -281,15 +281,15 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
         )
 
         # Create multiple check-ins to test bulk deletion
-        checkin1 = MonitorCheckIn.objects.create(
+        checkin1 = self.create_monitor_checkin(
             monitor_environment=monitor_env,
             status=CheckInStatus.ERROR,
         )
-        checkin2 = MonitorCheckIn.objects.create(
+        checkin2 = self.create_monitor_checkin(
             monitor_environment=monitor_env,
             status=CheckInStatus.ERROR,
         )
-        checkin3 = MonitorCheckIn.objects.create(
+        checkin3 = self.create_monitor_checkin(
             monitor_environment=monitor_env,
             status=CheckInStatus.OK,
         )
@@ -363,11 +363,11 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
         )
 
         # Create check-ins
-        failed_checkin = MonitorCheckIn.objects.create(
+        failed_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_env,
             status=CheckInStatus.ERROR,
         )
-        ok_checkin = MonitorCheckIn.objects.create(
+        ok_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_env,
             status=CheckInStatus.OK,
         )
@@ -414,11 +414,11 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
             monitor=monitor1,
             environment_id=env.id,
         )
-        checkin1_m1 = MonitorCheckIn.objects.create(
+        checkin1_m1 = self.create_monitor_checkin(
             monitor_environment=monitor_env1,
             status=CheckInStatus.ERROR,
         )
-        checkin2_m1 = MonitorCheckIn.objects.create(
+        checkin2_m1 = self.create_monitor_checkin(
             monitor_environment=monitor_env1,
             status=CheckInStatus.OK,
         )
@@ -443,11 +443,11 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
             monitor=monitor2,
             environment_id=env.id,
         )
-        checkin1_m2 = MonitorCheckIn.objects.create(
+        checkin1_m2 = self.create_monitor_checkin(
             monitor_environment=monitor_env2,
             status=CheckInStatus.ERROR,
         )
-        checkin2_m2 = MonitorCheckIn.objects.create(
+        checkin2_m2 = self.create_monitor_checkin(
             monitor_environment=monitor_env2,
             status=CheckInStatus.OK,
         )

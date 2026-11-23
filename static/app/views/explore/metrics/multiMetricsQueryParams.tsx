@@ -26,7 +26,7 @@ import {
   type MetricQueriesControllerValue,
 } from './useMetricQueriesController';
 
-export const MAX_METRICS_ALLOWED = 8;
+export const MAX_METRICS_ALLOWED = 10;
 
 function encodeMetricQueries(metricQueries: BaseMetricQuery[]): string[] {
   return metricQueries
@@ -53,9 +53,7 @@ interface MultiMetricsQueryParamsProviderProps {
   children: ReactNode;
 }
 
-const metricQueryParsers = {
-  metric: parseAsFieldList.withOptions({history: 'push'}),
-};
+const metricQueryParsers = {metric: parseAsFieldList.withOptions({history: 'push'})};
 
 export function MultiMetricsQueryParamsProvider({
   children,

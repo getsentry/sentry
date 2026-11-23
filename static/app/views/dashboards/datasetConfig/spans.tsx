@@ -31,6 +31,7 @@ import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/const
 import {
   DisplayType,
   type DashboardFilters,
+  type DashboardQueryPriority,
   type Widget,
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
@@ -116,11 +117,7 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
     ) {
       acc[aggregate] = AGGREGATIONS[aggregate];
     } else if (NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregate)) {
-      acc[aggregate] = {
-        isSortable: true,
-        outputType: null,
-        parameters: [],
-      };
+      acc[aggregate] = {isSortable: true, outputType: null, parameters: []};
     } else {
       acc[aggregate] = {
         isSortable: true,
@@ -226,7 +223,14 @@ export const SpansConfig: DatasetConfig<
   useTableQuery: useSpansTableQuery,
   ...spansResponseTransforms,
   filterAggregateParams,
-  getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
+  getCustomFieldRenderer: (
+    field,
+    meta,
+    widget,
+    _organization,
+    dashboardFilters,
+    queryPriority
+  ) => {
     if (field === 'id') {
       return renderEventInTraceView;
     }
@@ -246,7 +250,7 @@ export const SpansConfig: DatasetConfig<
       field === INTERNAL_ERROR_COUNT_FIELD ||
       strippedField === INTERNAL_ERROR_COUNT_FIELD
     ) {
-      return renderInternalErrorCount(widget, dashboardFilters);
+      return renderInternalErrorCount(widget, dashboardFilters, queryPriority);
     }
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
@@ -401,7 +405,11 @@ function renderTransactionAsLinkable(data: EventData, baggage: RenderFunctionBag
 // Renders the count of internal errors for a given widget and dashboard filters.
 // Displays 0 if a row receives null count.
 // Returns a link to the explore page with the internal error filter applied.
-function renderInternalErrorCount(widget?: Widget, dashboardFilters?: DashboardFilters) {
+function renderInternalErrorCount(
+  widget?: Widget,
+  dashboardFilters?: DashboardFilters,
+  queryPriority?: DashboardQueryPriority
+) {
   return function (data: EventData, baggage: RenderFunctionBaggage) {
     const {organization, eventView} = baggage;
     const selection = eventView?.getPageFilters();
@@ -422,17 +430,17 @@ function renderInternalErrorCount(widget?: Widget, dashboardFilters?: DashboardF
     errorQuery.addStringFilter('span.status:[internal_error,error]');
     const widgetWithErrorFilter: Widget = {
       ...widget,
-      queries: widget.queries.map(q => ({
-        ...q,
-        conditions: errorQuery.formatString(),
-      })),
+      queries: widget.queries.map(q => ({...q, conditions: errorQuery.formatString()})),
     };
 
+    const selectedQueryIndex = 0;
     const getRowExploreUrl = getWidgetTableRowExploreUrlFunction(
       selection,
       widgetWithErrorFilter,
       organization,
-      dashboardFilters
+      dashboardFilters,
+      selectedQueryIndex,
+      queryPriority
     );
     const target = getRowExploreUrl(data);
 

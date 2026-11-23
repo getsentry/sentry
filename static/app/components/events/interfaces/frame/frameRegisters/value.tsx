@@ -7,11 +7,7 @@ import {t} from 'sentry/locale';
 import type {Meta} from 'sentry/types/group';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
-type Props = {
-  isHexadecimal: boolean;
-  meta: Meta | undefined;
-  value: string | number;
-};
+type Props = {isHexadecimal: boolean; meta: Meta | undefined; value: string | number};
 
 function formatRegisterValue(value: string | number, isHexadecimal: boolean) {
   const parsed = typeof value === 'string' ? parseInt(value, 16) : value;

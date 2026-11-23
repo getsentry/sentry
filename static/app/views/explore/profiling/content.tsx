@@ -6,7 +6,7 @@ import type {Location} from 'history';
 import {Alert} from '@sentry/scraps/alert';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {DocumentationHint} from 'sentry/components/documentationHint';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -79,35 +79,20 @@ function ProfilingContentInner() {
 
   const dispatchDataState = useLandingAnalytics();
   const updateWidget1DataState = useCallback(
-    (dataState: DataState) =>
-      dispatchDataState({
-        dataKey: 'widget1Data',
-        dataState,
-      }),
+    (dataState: DataState) => dispatchDataState({dataKey: 'widget1Data', dataState}),
     [dispatchDataState]
   );
   const updateWidget2DataState = useCallback(
-    (dataState: DataState) =>
-      dispatchDataState({
-        dataKey: 'widget2Data',
-        dataState,
-      }),
+    (dataState: DataState) => dispatchDataState({dataKey: 'widget2Data', dataState}),
     [dispatchDataState]
   );
   const updateFlamegraphDataState = useCallback(
-    (dataState: DataState) =>
-      dispatchDataState({
-        dataKey: 'flamegraphData',
-        dataState,
-      }),
+    (dataState: DataState) => dispatchDataState({dataKey: 'flamegraphData', dataState}),
     [dispatchDataState]
   );
   const updateTransactionsTableDataState = useCallback(
     (dataState: DataState) =>
-      dispatchDataState({
-        dataKey: 'transactionsTableData',
-        dataState,
-      }),
+      dispatchDataState({dataKey: 'transactionsTableData', dataState}),
     [dispatchDataState]
   );
 
@@ -132,26 +117,11 @@ function ProfilingContentInner() {
 
   const onTabChange = (newTab: 'flamegraph' | 'transactions') => {
     // make sure to reset the state of the tabs
-    dispatchDataState({
-      dataKey: 'flamegraphData',
-      dataState: 'pending',
-    });
-    dispatchDataState({
-      dataKey: 'transactionsTableData',
-      dataState: 'pending',
-    });
+    dispatchDataState({dataKey: 'flamegraphData', dataState: 'pending'});
+    dispatchDataState({dataKey: 'transactionsTableData', dataState: 'pending'});
 
-    trackAnalytics('profiling_views.landing.tab_change', {
-      organization,
-      tab: newTab,
-    });
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        tab: newTab,
-      },
-    });
+    trackAnalytics('profiling_views.landing.tab_change', {organization, tab: newTab});
+    navigate({...location, query: {...location.query, tab: newTab}});
   };
 
   const maxPickableDays = useMaxPickableDays({
@@ -222,28 +192,30 @@ function ProfilingContentInner() {
                   )}
                   <Stack gap="lg">
                     <Tabs value={tab} onChange={onTabChange}>
-                      <TabList>
-                        <TabList.Item key="transactions">
-                          {t('Transactions')}
-                          <StyledQuestionTooltip
-                            position="top"
-                            size="sm"
-                            title={t(
-                              'Transactions breakdown the profiling data by transactions to provide a more focused view of the data. It allows you to view an aggregate flamegraph for just that transaction and find specific examples.'
-                            )}
-                          />
-                        </TabList.Item>
-                        <TabList.Item key="flamegraph">
-                          {t('Aggregate Flamegraph')}
-                          <StyledQuestionTooltip
-                            position="top"
-                            size="sm"
-                            title={t(
-                              'Aggregate flamegraphs are a visual representation of stacktraces that helps identify where a program spends its time. Look for the widest stacktraces as they indicate where your application is spending more time.'
-                            )}
-                          />
-                        </TabList.Item>
-                      </TabList>
+                      {({TabList}) => (
+                        <TabList>
+                          <TabList.Item key="transactions">
+                            {t('Transactions')}
+                            <StyledQuestionTooltip
+                              position="top"
+                              size="sm"
+                              title={t(
+                                'Transactions breakdown the profiling data by transactions to provide a more focused view of the data. It allows you to view an aggregate flamegraph for just that transaction and find specific examples.'
+                              )}
+                            />
+                          </TabList.Item>
+                          <TabList.Item key="flamegraph">
+                            {t('Aggregate Flamegraph')}
+                            <StyledQuestionTooltip
+                              position="top"
+                              size="sm"
+                              title={t(
+                                'Aggregate flamegraphs are a visual representation of stacktraces that helps identify where a program spends its time. Look for the widest stacktraces as they indicate where your application is spending more time.'
+                              )}
+                            />
+                          </TabList.Item>
+                        </TabList>
+                      )}
                     </Tabs>
                     {tab === 'flamegraph' ? (
                       <FlamegraphTab onDataState={updateFlamegraphDataState} />
@@ -281,11 +253,7 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
     (searchQuery: string) => {
       navigate({
         ...location,
-        query: {
-          ...location.query,
-          cursor: undefined,
-          query: searchQuery || undefined,
-        },
+        query: {...location.query, cursor: undefined, query: searchQuery || undefined},
       });
     },
     [location, navigate]

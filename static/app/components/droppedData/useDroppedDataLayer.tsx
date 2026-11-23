@@ -1,18 +1,23 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 
+import type {AnnotationKind} from 'sentry/components/charts/annotations/types';
 import type {ChartLayersControlProps} from 'sentry/components/charts/chartLayersControl';
+import type {ChartContextDrawerTarget} from 'sentry/components/charts/contextDrawer/chartContextDrawer';
+import {useChartContextDrawer} from 'sentry/components/charts/contextDrawer/useChartContextDrawer';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import type {DroppedDataAnalyticsSource} from 'sentry/utils/analytics/exploreAnalyticsEvents';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {useDroppedDataDrawer} from './drawer/useDroppedDataDrawer';
 import {hasDroppedData} from './buckets';
 import type {DroppedDataFilterNoteProps} from './droppedDataFilterNote';
 import {datasetNoun, droppedDataLabel} from './outcomes';
 import type {DroppedDataProps} from './types';
 import {useDroppedData, type UseDroppedDataParams} from './useDroppedData';
 
-const DROPPED_DATA_LAYER = 'dropped-data';
+export const DROPPED_DATA_LAYER = 'dropped-data';
 
 const SUPPORTED_DATASETS = new Set<DiscoverDatasets>([
   DiscoverDatasets.ERRORS,
@@ -26,8 +31,11 @@ interface UseDroppedDataLayerParams extends UseDroppedDataParams {
 }
 
 interface UseDroppedDataLayerOptions {
+  source: DroppedDataAnalyticsSource;
+  annotationKinds?: readonly AnnotationKind[];
   enabled?: boolean;
   hidden?: boolean;
+  showAnnotationTabs?: boolean;
 }
 
 interface DroppedDataLayer {
@@ -35,6 +43,7 @@ interface DroppedDataLayer {
   filterNote: Pick<DroppedDataFilterNoteProps, 'dataset' | 'environments'> | undefined;
   isLoading: boolean;
   layerControl: ChartLayersControlProps | undefined;
+  openContextDrawer: (target?: ChartContextDrawerTarget) => void;
 }
 
 /**
@@ -43,15 +52,28 @@ interface DroppedDataLayer {
  */
 export function useDroppedDataLayer(
   {environments, ...params}: UseDroppedDataLayerParams,
-  {enabled = true, hidden = false}: UseDroppedDataLayerOptions = {}
+  {
+    source,
+    annotationKinds,
+    enabled = true,
+    hidden = false,
+    showAnnotationTabs = false,
+  }: UseDroppedDataLayerOptions
 ): DroppedDataLayer {
+  const organization = useOrganization();
   const {dataset} = params;
   const isEnabled = enabled && SUPPORTED_DATASETS.has(dataset);
   const {droppedEvents, acceptedEvents, isLoading} = useDroppedData(params, {
     enabled: isEnabled,
   });
   const [isLayerOn, setIsLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer(params, {enabled: isEnabled});
+  const openContextDrawer = useChartContextDrawer(params, {
+    source,
+    annotationKinds,
+    enabled: isEnabled,
+    showAnnotationTabs,
+  });
+  const openDroppedDataTab = useCallback(() => openContextDrawer(), [openContextDrawer]);
 
   const isLoaded = isEnabled && defined(droppedEvents);
   const canShowDroppedData = isEnabled && hasDroppedData(droppedEvents, acceptedEvents);
@@ -59,8 +81,9 @@ export function useDroppedDataLayer(
 
   return {
     band: isBandShown
-      ? {dataset, droppedEvents, acceptedEvents, onClick: openDroppedDataDrawer}
+      ? {dataset, droppedEvents, acceptedEvents, onClick: openDroppedDataTab}
       : undefined,
+    openContextDrawer,
     filterNote: isBandShown ? {dataset, environments} : undefined,
     isLoading: isEnabled && isLayerOn && !hidden && isLoading,
     layerControl: isLoaded
@@ -79,7 +102,15 @@ export function useDroppedDataLayer(
                   ),
             },
           ],
-          onChange: (_value, selected) => setIsLayerOn(selected),
+          onChange: (_value, selected) => {
+            setIsLayerOn(selected);
+            trackAnalytics('explore.dropped_data.layer_toggled', {
+              organization,
+              dataset,
+              source,
+              selected,
+            });
+          },
         }
       : undefined,
   };

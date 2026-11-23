@@ -8,6 +8,7 @@ from rest_framework.request import Request
 
 from sentry import audit_log
 from sentry.auth import access
+from sentry.auth.access import RpcBackedAccess
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.models.auditlogentry import AuditLogEntry
@@ -15,14 +16,17 @@ from sentry.models.dashboard import Dashboard
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.impl import DatabaseBackedOrganizationService
 from sentry.service_accounts.endpoints.organization_service_accounts import (
+    ADD_SCOPES_HIDDEN_PROJECTS_ERROR,
     ALL_PROJECTS_ROLE_ERROR,
     ALL_PROJECTS_WITH_PROJECTS_ERROR,
     MAX_PROJECT_IDS_PER_REQUEST,
+    NARROW_ALL_PROJECTS_ERROR,
     OrganizationServiceAccountDetailsEndpoint,
     ServiceAccountCreateSerializer,
 )
 from sentry.service_accounts.models import (
     ServiceAccount,
+    ServiceAccountOwnerKind,
     ServiceAccountProject,
     ServiceAccountProjectReplica,
     ServiceAccountReplica,
@@ -84,6 +88,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
                 "scopes": ["org:read", "project:read"],
                 "projectIds": [str(project.id) for project in sorted(projects, key=lambda p: p.id)],
                 "allProjects": False,
+                "ownerKind": None,
                 "dateCreated": first.date_added,
             },
         ]
@@ -148,6 +153,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
         assert service_account.scope_list == ["event:read", "project:read"]
         assert service_account.is_active
         assert service_account.created_by_id == self.user.id
+        assert service_account.owner_kind == ServiceAccountOwnerKind.ORGANIZATION
         assert project_ids_for(service_account) == [project.id]
         assert response.data == {
             "id": str(service_account.id),
@@ -155,6 +161,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
             "scopes": ["event:read", "project:read"],
             "projectIds": [str(project.id)],
             "allProjects": False,
+            "ownerKind": "organization",
             "dateCreated": service_account.date_added,
         }
 
@@ -511,8 +518,21 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
             "scopes": ["org:read", "project:read"],
             "projectIds": [str(self.projects[0].id)],
             "allProjects": False,
+            "ownerKind": None,
             "dateCreated": self.service_account.date_added,
         }
+
+    def test_get_owned_account_returns_owner_kind(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization,
+            name="Seer: nightly triage #1",
+            owner_kind=ServiceAccountOwnerKind.SEER_WORKFLOW_CONFIG,
+        )
+
+        with self.feature(FEATURE_FLAG):
+            response = self.get_success_response(self.organization.slug, service_account.id)
+
+        assert response.data["ownerKind"] == "seer_workflow_config"
 
     def test_get_missing(self) -> None:
         with self.feature(FEATURE_FLAG):
@@ -692,6 +712,110 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
         service_account.refresh_from_db()
         assert service_account.name == "seer-explorer"
         assert not service_account.all_projects
+
+    def login_as_limited_caller(self) -> int:
+        """
+        Log in as a caller with `service_account:write` who reaches only the returned
+        project. No shipped role does this, so the test turns off the manager's global
+        access.
+        """
+        team = self.create_team(organization=self.organization)
+        with assume_test_silo_mode(SiloMode.CELL):
+            visible = self.create_project(organization=self.organization, teams=[team])
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, role="manager", teams=[team])
+        self.login_as(user)
+        patcher = mock.patch.object(
+            RpcBackedAccess, "has_global_access", new_callable=mock.PropertyMock, return_value=False
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        return visible.id
+
+    def test_limited_caller_cannot_add_scopes_to_account_with_hidden_projects(self) -> None:
+        self.login_as_limited_caller()
+
+        with self.feature(FEATURE_FLAG):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.service_account.id,
+                method="put",
+                scopes=["org:read", "project:read", "event:read"],
+                status_code=403,
+            )
+            assert response.data["detail"] == ADD_SCOPES_HIDDEN_PROJECTS_ERROR
+            self.service_account.refresh_from_db()
+            assert self.service_account.scope_list == ["org:read", "project:read"]
+
+            # Removing scopes and renaming don't widen the account.
+            self.get_success_response(
+                self.organization.slug,
+                self.service_account.id,
+                method="put",
+                name="renamed",
+                scopes=["org:read"],
+            )
+        self.service_account.refresh_from_db()
+        assert self.service_account.name == "renamed"
+        assert self.service_account.scope_list == ["org:read"]
+
+    def test_limited_caller_can_add_scopes_when_all_projects_are_visible(self) -> None:
+        visible_id = self.login_as_limited_caller()
+        service_account = self.create_service_account(
+            organization=self.organization,
+            name="nightly-triage",
+            scope_list=["org:read"],
+            project_ids=[visible_id],
+        )
+
+        with self.feature(FEATURE_FLAG):
+            self.get_success_response(
+                self.organization.slug,
+                service_account.id,
+                method="put",
+                scopes=["org:read", "event:read"],
+            )
+        service_account.refresh_from_db()
+        assert service_account.scope_list == ["event:read", "org:read"]
+
+    def test_limited_caller_replace_keeps_hidden_projects(self) -> None:
+        visible_id = self.login_as_limited_caller()
+        hidden_id = self.projects[0].id
+
+        with self.feature(FEATURE_FLAG):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.service_account.id,
+                method="put",
+                projectIds=[visible_id],
+            )
+            assert response.data["projectIds"] == [str(hidden_id), str(visible_id)]
+            assert project_ids_for(self.service_account) == [hidden_id, visible_id]
+
+            self.get_success_response(
+                self.organization.slug, self.service_account.id, method="put", projectIds=[]
+            )
+        assert project_ids_for(self.service_account) == [hidden_id]
+
+    def test_limited_caller_cannot_narrow_all_projects(self) -> None:
+        visible_id = self.login_as_limited_caller()
+        service_account = self.create_service_account(
+            organization=self.organization, name="seer-explorer", all_projects=True
+        )
+
+        with self.feature(FEATURE_FLAG):
+            response = self.get_error_response(
+                self.organization.slug,
+                service_account.id,
+                method="put",
+                allProjects=False,
+                projectIds=[visible_id],
+                status_code=403,
+            )
+        assert response.data["detail"] == NARROW_ALL_PROJECTS_ERROR
+        service_account.refresh_from_db()
+        assert service_account.all_projects
+        assert project_ids_for(service_account) == []
 
     def test_update_rejects_inactive_projects_without_changing_grants(self) -> None:
         inactive = [

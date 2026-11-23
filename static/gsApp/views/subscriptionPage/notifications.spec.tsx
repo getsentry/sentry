@@ -7,9 +7,7 @@ import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import Notifications from 'getsentry/views/subscriptionPage/notifications';
 
 describe('Subscription > Notifications', () => {
-  const organization = OrganizationFixture({
-    slug: 'chum-bucket',
-  });
+  const organization = OrganizationFixture({slug: 'chum-bucket'});
   const subscription = SubscriptionFixture({organization});
 
   beforeEach(() => {
@@ -93,9 +91,7 @@ describe('Subscription > Notifications', () => {
     render(<Notifications subscription={subscription} />, {organization});
 
     expect(await screen.findByText('90%')).toBeInTheDocument();
-    const textbox = screen.getByRole('textbox', {
-      name: 'Subscription consumption',
-    });
+    const textbox = screen.getByRole('textbox', {name: 'Subscription consumption'});
 
     await userEvent.click(textbox);
     await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '70%'}));
@@ -119,9 +115,7 @@ describe('Subscription > Notifications', () => {
 
     expect(await screen.findByText('On-Demand consumption')).toBeInTheDocument();
 
-    const onDemandInput = screen.getByRole('textbox', {
-      name: 'On-Demand consumption',
-    });
+    const onDemandInput = screen.getByRole('textbox', {name: 'On-Demand consumption'});
     await userEvent.click(onDemandInput);
     await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '80%'}));
     await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '50%'}));
@@ -146,9 +140,7 @@ describe('Subscription > Notifications', () => {
 
     expect(await screen.findByText('90%')).toBeInTheDocument();
     await userEvent.click(
-      screen.getByRole('textbox', {
-        name: 'Subscription consumption',
-      })
+      screen.getByRole('textbox', {name: 'Subscription consumption'})
     );
     await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '60%'}));
     await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
@@ -157,10 +149,7 @@ describe('Subscription > Notifications', () => {
       `/customers/${organization.slug}/spend-notifications/`,
       expect.objectContaining({
         method: 'POST',
-        data: {
-          reservedPercent: [90, 60],
-          perProductOndemandPercent: [80, 50],
-        },
+        data: {reservedPercent: [90, 60], perProductOndemandPercent: [80, 50]},
       })
     );
   });

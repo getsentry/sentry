@@ -748,6 +748,39 @@ const orgCiGuardrails = {
   },
 } satisfies Suite;
 
+const viewerContext = {
+  files: ['src/sentry/**/*.py'],
+  context: {diff},
+  rules: {
+    replacesViewerContextActor: {
+      threshold: 0.8,
+      prompt:
+        "Does this change introduce incorrect attribution for a sentry.viewer_context actor? Flag a change that replaces an available originating actor with SYSTEM or UNKNOWN while continuing work on that actor's behalf, or recreates an AGENT as USER from its delegated user ID instead of carrying forward the AGENT. Only flag when the visible code establishes that the original actor is available and the operation still acts on its behalf. SYSTEM is valid for work Sentry initiates independently, including scheduled work users do not control. UNKNOWN is valid when no actor can be resolved. Ignore other enums named ActorType and code that only reads the acting user ID without changing attribution. " +
+        CAUSED_BY_THIS_CHANGE,
+      values: [
+        {
+          value: 'INTRODUCED',
+          description:
+            'This change introduces a ViewerContext actor replacement that loses a known originating identity or delegated attribution.',
+          severity: 'warn',
+          report:
+            'Preserve the originating ViewerContext actor when continuing work on its behalf, including across a background handoff. Keep AGENT attribution when a user delegates the work.',
+        },
+        {
+          value: 'PREEXISTING',
+          description:
+            'The same attribution problem already existed and this change did not introduce it.',
+        },
+        {
+          value: 'NONE',
+          description:
+            'The changed code preserves attribution, correctly selects a new actor, or provides insufficient evidence of an attribution mistake.',
+        },
+      ],
+    },
+  },
+} satisfies Suite;
+
 export default {
   model: jev,
   files: [
@@ -758,5 +791,5 @@ export default {
     'static/gsApp/**/*.tsx',
   ],
   ignores: ['**/tests/**', '**/testutils/**'],
-  suites: {api, audit, frontend, security, voice, orgCiGuardrails},
+  suites: {api, audit, frontend, security, voice, orgCiGuardrails, viewerContext},
 } satisfies Config;

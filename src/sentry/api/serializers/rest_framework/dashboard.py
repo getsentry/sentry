@@ -21,7 +21,7 @@ from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.issue_search import parse_search_query
-from sentry.models.dashboard import Dashboard, QueryPriorities
+from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardFieldLink,
@@ -38,6 +38,7 @@ from sentry.models.dashboard_widget import (
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
+from sentry.search.eap.constants import QueryPriorities
 from sentry.search.eap.trace_metrics.validator import extract_trace_metric_from_aggregate
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.fields import is_function
@@ -50,6 +51,7 @@ from sentry.tasks.on_demand_metrics import (
     set_or_create_on_demand_state,
 )
 from sentry.utils.dates import parse_stats_period
+from sentry.utils.sdk import sdk_logger
 from sentry.utils.snuba import UnqualifiedQueryError
 from sentry.utils.strings import oxfordize_list
 
@@ -759,15 +761,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             "organizations:on-demand-metrics-extraction-widgets", organization
         )
 
-        if (
-            features.has(
-                "organizations:discover-saved-queries-deprecation",
-                self.context["organization"],
-                actor=self.context["request"].user,
-            )
-            and not data.get("id")
-            and data.get("widget_type") == DashboardWidgetTypes.TRANSACTION_LIKE
-        ):
+        if not data.get("id") and data.get("widget_type") == DashboardWidgetTypes.TRANSACTION_LIKE:
             raise serializers.ValidationError(
                 {
                     "widget_type": "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
@@ -1157,14 +1151,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         widget_errors: list[dict[str, Any]] = [{} for _ in widgets]
         for widget_index, widget in enumerate(widgets):
             queries = widget.get("queries", [])
-            queries = cast("list[dict[str, Any]]", queries)
             query_errors: list[dict[str, Any] | list[Any]] = [{} for _ in queries]
             for query_index, data in enumerate(queries):
                 if "aggregates" not in data and "transformations" not in data:
                     continue
-                query = existing_queries.get(
-                    (cast("int | None", widget.get("id")), cast("int | None", data.get("id")))
-                )
+                query = existing_queries.get((widget.get("id"), data.get("id")))
                 try:
                     validate_transformation_indices(
                         data.get("transformations", query.transformations if query else None) or {},
@@ -1366,25 +1357,17 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     # Create a new widget.
                     self.create_widget(instance, data)
                 else:
-                    sentry_sdk.set_context(
-                        "dashboard",
-                        {
-                            "org_slug": instance.organization.slug,
-                            "dashboard_id": instance.id,
-                            "widget_id": widget_id,
-                            "existing_widget_ids": list(existing_map.keys()),
-                            "requested_widget_ids": widget_ids,
+                    # Usually a client saving a stale copy of the dashboard after one of its
+                    # widgets was deleted elsewhere, so log it instead of creating an error.
+                    sdk_logger.info(
+                        "dashboard.update_widgets.widget_not_in_dashboard",
+                        attributes={
+                            "dashboard.org_slug": instance.organization.slug,
+                            "dashboard.dashboard_id": instance.id,
+                            "dashboard.widget_id": widget_id,
+                            "dashboard.existing_widget_ids": str(list(existing_map.keys())),
+                            "dashboard.requested_widget_ids": str(widget_ids),
                         },
-                    )
-                    sentry_sdk.set_attribute("dashboard.org_slug", instance.organization.slug)
-                    sentry_sdk.set_attribute("dashboard.dashboard_id", instance.id)
-                    sentry_sdk.set_attribute("dashboard.widget_id", widget_id)
-                    sentry_sdk.set_attribute(
-                        "dashboard.existing_widget_ids", str(list(existing_map.keys()))
-                    )
-                    sentry_sdk.set_attribute("dashboard.requested_widget_ids", str(widget_ids))
-                    sentry_sdk.capture_message(
-                        "Attempted to update widget not belonging to dashboard."
                     )
                     raise serializers.ValidationError(
                         "You cannot update widgets that are not part of this dashboard."
@@ -1406,13 +1389,12 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             description=widget_data.get("description", None),
             thresholds=widget_data.get("thresholds", None),
             interval=widget_data.get("interval", "5m"),
-            widget_type=cast(
-                "int",
+            widget_type=(
                 None
                 if is_text_widget
-                else widget_data.get("widget_type", DashboardWidgetTypes.ERROR_EVENTS),
+                else widget_data.get("widget_type", DashboardWidgetTypes.ERROR_EVENTS)
             ),
-            discover_widget_split=cast("int", widget_data.get("discover_widget_split", None)),
+            discover_widget_split=widget_data.get("discover_widget_split", None),
             limit=widget_data.get("limit", None),
             detail={
                 "layout": widget_data.get("layout"),

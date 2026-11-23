@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from redis.exceptions import RedisError
+from rediscluster.exceptions import RedisClusterException
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.ratelimits.base import RateLimiter
@@ -79,7 +80,7 @@ class RedisRateLimiter(RateLimiter):
 
         try:
             current_count = self.client.get(redis_key)
-        except RedisError:
+        except (RedisError, RedisClusterException):
             # Don't report any existing hits when there is a redis error.
             # Log what happened and move on
             logger.exception("Failed to retrieve current value from redis")
@@ -113,7 +114,7 @@ class RedisRateLimiter(RateLimiter):
             pipe.expire(redis_key, expiration)
             pipeline_result = pipe.execute()
             result = pipeline_result[0]
-        except (RedisError, IndexError):
+        except (RedisError, RedisClusterException, IndexError):
             # We don't want rate limited endpoints to fail when ratelimits
             # can't be updated. We do want to know when that happens.
             logger.exception("Failed to retrieve current rate limit value from redis")

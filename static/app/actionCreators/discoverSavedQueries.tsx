@@ -14,9 +14,7 @@ export function fetchSavedQuery(
     getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/', {
       path: {organizationIdOrSlug: orgId, queryId},
     }),
-    {
-      method: 'GET',
-    }
+    {method: 'GET'}
   );
 
   promise.catch(() => {
@@ -34,10 +32,7 @@ export function createSavedQuery(
     getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/', {
       path: {organizationIdOrSlug: orgId},
     }),
-    {
-      method: 'POST',
-      data: query,
-    }
+    {method: 'POST', data: query}
   );
 
   promise.catch(() => {
@@ -55,10 +50,7 @@ export function updateSavedQuery(
     getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/', {
       path: {organizationIdOrSlug: orgId, queryId: String(query.id)},
     }),
-    {
-      method: 'PUT',
-      data: query,
-    }
+    {method: 'PUT', data: query}
   );
 
   promise.catch(() => {
@@ -77,9 +69,7 @@ export function updateSavedQueryVisit(
     getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/visit/', {
       path: {organizationIdOrSlug: orgId, queryId: String(queryId)},
     }),
-    {
-      method: 'POST',
-    }
+    {method: 'POST'}
   );
 
   return promise;

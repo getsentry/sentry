@@ -1,5 +1,5 @@
+import {useContext, Fragment, useRef} from 'react';
 import type {ElementType, Ref} from 'react';
-import {Fragment, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabProps} from '@react-aria/tabs';
@@ -12,11 +12,10 @@ import {Link} from '@sentry/scraps/link';
 import type {Theme} from '@sentry/scraps/theme';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
+import {TabsContext} from './context';
 import {isModifiedClick, tabsShouldForwardProp} from './utils';
 
-const StyledTabWrap = styled('li', {
-  shouldForwardProp: tabsShouldForwardProp,
-})<{
+const StyledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   overflowing: boolean;
   selected: boolean;
 }>`
@@ -216,6 +215,9 @@ export function Tab({
   as = 'li',
   tooltipProps,
 }: TabProps) {
+  const {
+    rootProps: {onChange},
+  } = useContext(TabsContext);
   const wrapperRef = useObjectRef(ref);
   const controlRef = useRef<HTMLElement>(null);
   const {
@@ -224,11 +226,11 @@ export function Tab({
     props: {to, hidden},
   } = item;
   const {tabProps, isSelected, isDisabled} = useTab(
-    {key, isDisabled: hidden, shouldSelectOnPressUp: !!to},
+    {key, isDisabled: hidden, shouldSelectOnPressUp: to !== undefined},
     state,
     controlRef
   );
-  const isLink = !!to && !isDisabled;
+  const isLink = to !== undefined && !isDisabled;
   const styleProps = {orientation, variant, selected: isSelected, size};
   const content = (
     <Fragment>
@@ -272,6 +274,7 @@ export function Tab({
             }
           }}
           onClick={event => {
+            onChange?.(String(key));
             if (!isModifiedClick(event)) {
               tabProps.onClick?.(event);
             }

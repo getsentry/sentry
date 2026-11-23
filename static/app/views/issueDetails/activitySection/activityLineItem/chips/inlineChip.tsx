@@ -60,6 +60,8 @@ const chipFrameStyles = (p: {theme: Theme}) => css`
   background: ${p.theme.colors.gray100};
   color: ${p.theme.tokens.content.secondary};
   font-weight: ${p.theme.font.weight.sans.regular};
+  /* Keeps the text closer to centered on the icon than the inherited 1.4. */
+  line-height: 1;
   vertical-align: middle;
   white-space: nowrap;
 

@@ -50,8 +50,5 @@ export function useFormattedCode(options: UseFormattedCodeOptions) {
       : beautify.js(options.code, options.options);
   }, [beautify, options.code, options.language, options.options]);
 
-  return {
-    formattedCode,
-    isPending: options.language ? isPending : false,
-  };
+  return {formattedCode, isPending: options.language ? isPending : false};
 }

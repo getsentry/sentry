@@ -50,9 +50,7 @@ const BASE_CONVERSATION = {
   user: null,
 };
 
-const organization = OrganizationFixture({
-  features: ['gen-ai-conversations'],
-});
+const organization = OrganizationFixture();
 
 function mockConversations(body: Array<Record<string, unknown>>) {
   return MockApiClient.addMockResponse({
@@ -61,14 +59,9 @@ function mockConversations(body: Array<Record<string, unknown>>) {
   });
 }
 
-function TestConversationsTable({persistColumnWidths}: {persistColumnWidths?: boolean}) {
+function TestConversationsTable() {
   const conversations = useConversations();
-  return (
-    <ConversationsTable
-      conversations={conversations}
-      persistColumnWidths={persistColumnWidths}
-    />
-  );
+  return <ConversationsTable conversations={conversations} />;
 }
 
 function renderTable() {
@@ -168,12 +161,7 @@ describe('ConversationsTable', () => {
       {
         ...BASE_CONVERSATION,
         title: 'A conversation',
-        user: {
-          id: '1',
-          email: 'sarah@example.com',
-          username: null,
-          ip_address: null,
-        },
+        user: {id: '1', email: 'sarah@example.com', username: null, ip_address: null},
       },
     ]);
 
@@ -313,31 +301,6 @@ describe('ConversationsTable', () => {
     await waitFor(() => {
       const stored = localStorage.getItem(COLUMN_WIDTHS_STORAGE_KEY);
       expect(stored && JSON.parse(stored)).toEqual({tools: 300});
-    });
-  });
-
-  it('ignores and does not persist column widths when persistence is disabled', async () => {
-    localStorage.setItem(COLUMN_WIDTHS_STORAGE_KEY, JSON.stringify({tools: 400}));
-    mockConversations([
-      {...BASE_CONVERSATION, title: 'With tools', toolNames: ['execute_query']},
-    ]);
-
-    render(<TestConversationsTable persistColumnWidths={false} />, {organization});
-
-    await screen.findByText('With tools');
-    expect(screen.getByTestId('grid-editable').style.gridTemplateColumns).not.toContain(
-      '400px'
-    );
-
-    dragHandle(screen.getByRole('separator', {name: 'Tools'}), {from: 0, to: 300});
-
-    await waitFor(() => {
-      expect(screen.getByTestId('grid-editable').style.gridTemplateColumns).toContain(
-        '300px'
-      );
-    });
-    expect(JSON.parse(localStorage.getItem(COLUMN_WIDTHS_STORAGE_KEY)!)).toEqual({
-      tools: 400,
     });
   });
 
@@ -573,10 +536,7 @@ describe('parseStoredColumnWidths', () => {
 
   it('drops widths below the grid minimum', () => {
     expect(
-      parseStoredColumnWidths({
-        tools: COL_WIDTH_MINIMUM - 1,
-        age: COL_WIDTH_UNDEFINED,
-      })
+      parseStoredColumnWidths({tools: COL_WIDTH_MINIMUM - 1, age: COL_WIDTH_UNDEFINED})
     ).toEqual({});
   });
 

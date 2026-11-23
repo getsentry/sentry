@@ -180,7 +180,7 @@ def get_or_create_source_notebook(
                     organization=organization,
                     source_key=source_key,
                     status=NotebookStatus.ACTIVE,
-                ).first()
+                ).first()  # noqa: S035
                 if active is not None:
                     return active, False
                 raise

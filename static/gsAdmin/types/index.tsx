@@ -76,11 +76,7 @@ type RelocationStep = keyof typeof RelocationSteps;
 
 type RelocationProvenance = 'SELF_HOSTED' | 'SAAS_TO_SAAS';
 
-type RelocationAssociatedUser = {
-  email: string;
-  id: string;
-  username: string;
-};
+type RelocationAssociatedUser = {email: string; id: string; username: string};
 
 export type Relocation = {
   creator: RelocationAssociatedUser | null;

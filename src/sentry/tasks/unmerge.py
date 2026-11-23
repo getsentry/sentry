@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections import defaultdict
+import time
 from collections.abc import Callable, Collection, Mapping, Sequence
 from datetime import datetime
 from functools import reduce
@@ -9,9 +9,10 @@ from typing import Any
 
 from django.db import router, transaction
 from django.db.models.base import Model
+from sentry_sdk import traces
 from taskbroker_client.state import current_task
 
-from sentry import features, similarity, tsdb
+from sentry import features, similarity
 from sentry.constants import DEFAULT_LOGGER_NAME, parse_log_level
 from sentry.culprit import generate_culprit
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
@@ -36,11 +37,9 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_merge_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
-from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.unmerge import InitialUnmergeArgs, SuccessiveUnmergeArgs, UnmergeArgs, UnmergeArgsBase
 from sentry.utils import metrics
-from sentry.utils.eventuser import EventUser
 from sentry.utils.query import task_run_batch_query
 
 logger = logging.getLogger(__name__)
@@ -273,16 +272,6 @@ def truncate_denormalizations(project: Project, group: Group) -> None:
     for instance in GroupEnvironment.objects.filter(group_id=group.id):
         instance.delete()
 
-    environment_ids = list(
-        Environment.objects.filter(projects=group.project).values_list("id", flat=True)
-    )
-
-    tsdb.backend.delete([TSDBModel.group], [group.id], environment_ids=environment_ids)
-
-    tsdb.backend.delete_distinct_counts(
-        [TSDBModel.users_affected_by_group], [group.id], environment_ids=environment_ids
-    )
-
     # Don't do MinHash work if we use embeddings-based similarity.
     if not project_uses_seer_similarity(project):
         similarity.delete(project, group)
@@ -368,72 +357,11 @@ def repair_group_release_data(
             instance.update(first_seen=first_seen)
 
 
-def get_event_user_from_interface(value: dict[str, Any], project: Project) -> EventUser:
-    return EventUser(
-        user_ident=value.get("id"),
-        email=value.get("email"),
-        username=value.get("valuename"),
-        ip_address=value.get("ip_address"),
-        project_id=project.id,
-        name=None,
-    )
-
-
-def collect_tsdb_data(
-    caches: Mapping[str, Any], project: Project, events: Sequence[GroupEvent]
-) -> tuple[
-    dict[datetime, dict[TSDBModel, dict[tuple[int, int], int]]],
-    dict[datetime, dict[TSDBModel, dict[tuple[int, int], set[str]]]],
-]:
-    counters: dict[datetime, dict[TSDBModel, dict[tuple[int, int], int]]] = defaultdict(
-        lambda: defaultdict(lambda: defaultdict(int))
-    )
-
-    sets: dict[datetime, dict[TSDBModel, dict[tuple[int, int], set[str]]]] = defaultdict(
-        lambda: defaultdict(lambda: defaultdict(set))
-    )
-
-    for event in events:
-        environment = caches["Environment"](project.organization_id, get_environment_name(event))
-
-        counters[event.datetime][TSDBModel.group][(event.group_id, environment.id)] += 1
-
-        user = event.data.get("user")
-        if user:
-            tag_value = get_event_user_from_interface(user, project).tag_value
-            if tag_value is not None:
-                sets[event.datetime][TSDBModel.users_affected_by_group][
-                    (event.group_id, environment.id)
-                ].add(tag_value)
-
-    return counters, sets
-
-
-def repair_tsdb_data(
-    caches: Mapping[str, Any], project: Project, events: Sequence[GroupEvent]
-) -> None:
-    counters, sets = collect_tsdb_data(caches, project, events)
-
-    for timestamp, data in counters.items():
-        for model, keys in data.items():
-            for (key, environment_id), value in keys.items():
-                tsdb.backend.incr(model, key, timestamp, value, environment_id=environment_id)
-
-    for timestamp, sets_data in sets.items():
-        for model, sets_keys in sets_data.items():
-            for (key, environment_id), sets_values in sets_keys.items():
-                # TODO: This should use `record_multi` rather than `record`.
-                tsdb.backend.record(
-                    model, key, list(sets_values), timestamp, environment_id=environment_id
-                )
-
-
 def repair_denormalizations(
     caches: Mapping[str, Any], project: Project, events: Sequence[GroupEvent]
 ) -> None:
     repair_group_environment_data(caches, project, events)
     repair_group_release_data(caches, project, events)
-    repair_tsdb_data(caches, project, events)
 
     # Don't do MinHash work if we use embeddings-based similarity.
     if not project_uses_seer_similarity(project):
@@ -552,17 +480,22 @@ def start_unmerge(
 def unmerge(*posargs: Any, **kwargs: Any) -> None:
     with action_context_scope(ActionSource.SYSTEM):
         args = UnmergeArgsBase.parse_arguments(*posargs, **kwargs)
-        extra = {"source_id": args.source_id, "project_id": args.project_id}
+        batch_started_at = time.monotonic()
 
         # Self-chain idempotency guard. If this activation already produced its continuation in a
         # prior delivery, this execution is a broker re-pend: no-op so we don't fork the chain (and
         # skip the redundant re-processing). Only effective inside a worker (current_task() set).
         task_state = current_task()
         activation_id = task_state.id if task_state else None
+        extra = {
+            "source_id": args.source_id,
+            "project_id": args.project_id,
+            "activation_id": activation_id,
+        }
         if activation_id and already_spawned(_TASK_KEY, activation_id):
             logger.info(
                 "unmerge.duplicate_redelivery.skipped",
-                extra={**extra, "activation_id": activation_id},
+                extra=extra,
             )
             metrics.incr("taskworker.selfchain.duplicate_skipped", tags={"task": _TASK_KEY})
             return
@@ -599,18 +532,30 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
             last_event = args.last_event
             locked_primary_hashes = list(args.locked_primary_hashes)
 
-        last_event, raw_events = task_run_batch_query(
-            filter=eventstore.Filter(project_ids=[args.project_id], group_ids=[source.id]),
-            batch_size=args.batch_size,
-            state=last_event,
-            referrer="unmerge",
-            tenant_ids={"organization_id": source.project.organization_id},
-            eap_conditions=build_group_id_in_filter([source.id]),
-        )
-        # Convert Event objects to GroupEvent objects
-        events: list[GroupEvent] = [event.for_group(source) for event in raw_events]
-        # Log info related to this unmerge
-        logger.info("unmerge.check", extra={**extra, "num_events": len(events)})
+        fetch_started_at = time.monotonic()
+        with traces.start_span(name="unmerge.fetch_events"):
+            last_event, raw_events = task_run_batch_query(
+                filter=eventstore.Filter(project_ids=[args.project_id], group_ids=[source.id]),
+                batch_size=args.batch_size,
+                state=last_event,
+                referrer="unmerge",
+                tenant_ids={"organization_id": source.project.organization_id},
+                eap_conditions=build_group_id_in_filter([source.id]),
+            )
+        copy_started_at = time.monotonic()
+        with traces.start_span(name="unmerge.copy_events"):
+            events: list[GroupEvent] = [event.for_group(source) for event in raw_events]
+        processing_started_at = time.monotonic()
+        batch_extra = {
+            **extra,
+            "num_events": len(events),
+            "batch_size": args.batch_size,
+            "cursor_timestamp": last_event["timestamp"] if last_event else None,
+            "setup_seconds": fetch_started_at - batch_started_at,
+            "fetch_seconds": copy_started_at - fetch_started_at,
+            "copy_seconds": processing_started_at - copy_started_at,
+        }
+        logger.info("unmerge.check", extra=batch_extra)
 
         # If there are no more events to process, we're done with the migration.
         if not events:
@@ -624,6 +569,13 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
                 )
                 if eventstream_state:
                     args.replacement.stop_snuba_replacement(eventstream_state)
+            logger.info(
+                "unmerge.batch_complete",
+                extra={
+                    **batch_extra,
+                    "processing_seconds": time.monotonic() - processing_started_at,
+                },
+            )
             return
 
         source_events = []
@@ -696,3 +648,10 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
         # activation will short-circuit at the guard above instead of spawning again.
         if activation_id:
             mark_spawned(_TASK_KEY, activation_id)
+        logger.info(
+            "unmerge.batch_complete",
+            extra={
+                **batch_extra,
+                "processing_seconds": time.monotonic() - processing_started_at,
+            },
+        )

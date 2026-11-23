@@ -5,10 +5,7 @@ import {t} from 'sentry/locale';
 import {resolveHostname} from './api/resolveHostname';
 import {downloadFromHref} from './downloadFromHref';
 
-type ErrorDetail = {
-  code?: string;
-  message?: string;
-} | null;
+type ErrorDetail = {code?: string; message?: string} | null;
 
 interface DownloadPreprodArtifactOptions {
   artifactId: string | number;
@@ -31,10 +28,7 @@ export async function downloadPreprodArtifact({
   );
 
   try {
-    const response = await fetch(downloadUrl, {
-      method: 'HEAD',
-      credentials: 'include',
-    });
+    const response = await fetch(downloadUrl, {method: 'HEAD', credentials: 'include'});
 
     if (!response.ok) {
       if (response.status === 403) {

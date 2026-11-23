@@ -156,7 +156,7 @@ describe("public fields contract", () => {
 
   test("typed HTTP narrowing preserves custom SentryApiError subclasses", async () => {
     class ApplicationError extends SentryApiError {
-      readonly code = "application-permission";
+      override readonly code = "application-permission";
     }
     const response = Response.json({}, { status: 403 });
     const custom = new ApplicationError(403, {}, response, false);

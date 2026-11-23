@@ -4,11 +4,13 @@ import logging
 from collections.abc import Mapping, Sequence
 from typing import Any, NamedTuple
 
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
+)
 from slack_sdk.models.blocks import MarkdownBlock
 from taskbroker_client.retry import Retry
 
 from sentry import analytics
-from sentry.auth.access import from_user
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -16,7 +18,12 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.models.organization import Organization
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import SeerAgentOutOfCredits
-from sentry.seer.credits import SeerFeature, SeerOperation, can_run_seer_operation
+from sentry.seer.credits import (
+    SeerCreditDenialReason,
+    SeerOperation,
+    check_seer_operation,
+    get_denial_reason,
+)
 from sentry.seer.entrypoints.metrics import (
     SlackEntrypointEventLifecycleMetric,
     SlackEntrypointInteractionType,
@@ -30,7 +37,6 @@ from sentry.seer.entrypoints.slack.cache import SlackSeerAgentMessageCache
 from sentry.seer.entrypoints.slack.entrypoint import (
     EntrypointSetupError,
     SlackAgentEntrypoint,
-    SlackThreadDetails,
 )
 from sentry.seer.entrypoints.slack.mention import (
     SlackMessageLink,
@@ -51,6 +57,7 @@ from sentry.seer.entrypoints.slack.metrics import (
     ProcessReactionFailureReason,
     ProcessReactionHaltReason,
 )
+from sentry.seer.entrypoints.slack.types import SlackThreadDetails
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
@@ -151,7 +158,6 @@ def process_mention_for_slack(
                 status="",
             )
             return
-        entrypoint.user_id = user.id
 
         if not organization.has_access(user):
             lifecycle.record_halt(ProcessMentionHaltReason.USER_NOT_ORG_MEMBER)
@@ -170,15 +176,16 @@ def process_mention_for_slack(
             return
 
         # Check credits up front so an org without them gets an answer right away.
-        if not can_run_seer_operation(
-            organization, SeerFeature.EXPLORER, SeerOperation.AGENT_CHAT_MESSAGE
-        ):
+        credits = check_seer_operation(
+            organization, SEER_BILLING_FEATURE_SEER_AGENT_SLACK, SeerOperation.AGENT_CHAT_MESSAGE
+        )
+        if not credits.has_enough_credits:
             lifecycle.record_halt(ProcessMentionHaltReason.OUT_OF_SEER_CREDITS)
             _send_out_of_credits_message(
                 entrypoint=entrypoint,
                 organization=organization,
-                user=user,
                 thread_ts=thread_ts or ts,
+                denial_reason=get_denial_reason(credits),
             )
             # The webhook set "is thinking..." before queueing this task; clear it.
             entrypoint.install.set_thread_status(
@@ -426,8 +433,8 @@ def _send_out_of_credits_message(
     *,
     entrypoint: SlackAgentEntrypoint,
     organization: Organization,
-    user: RpcUser,
     thread_ts: str,
+    denial_reason: SeerCreditDenialReason | None,
 ) -> None:
     """Reply in the thread, for everyone to see, that the org is out of Seer credits."""
     try:
@@ -435,8 +442,7 @@ def _send_out_of_credits_message(
             install=entrypoint.install,
             thread=SlackThreadDetails(thread_ts=thread_ts, channel_id=entrypoint.channel_id),
             data=SeerAgentOutOfCredits(
-                organization_id=organization.id,
-                has_billing_access=from_user(user, organization).has_scope("org:billing"),
+                organization_id=organization.id, denial_reason=denial_reason
             ),
         )
     except Exception as e:

@@ -8,10 +8,11 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ProgressBar} from 'sentry/components/progressBar';
 import type {SeerCreditUsageMeterProps} from 'sentry/components/seer/outOfCredits/seerCreditUsageMeter';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
+  SEER_AUTO_RELOAD_MODAL_HASH,
   seerWalletAutoTopUpOptions,
   seerWalletBalanceOptions,
 } from 'getsentry/views/subscriptionPage/seerWallet/seerWalletOptions';
@@ -24,11 +25,8 @@ const WARNING_PERCENT = 90;
 
 export function SeerCreditUsageMeter({hasEnoughCredits}: SeerCreditUsageMeterProps) {
   const organization = useOrganization();
-  // Without `seer-credit-checks` the chat looks as it did before, and only
-  // token-billed orgs have a wallet to show.
-  const isEnabled =
-    organization.features.includes('seer-credit-checks') &&
-    organization.features.includes('token-billed-seer-enabled');
+  // Only token-billed orgs have a wallet to show.
+  const isEnabled = organization.features.includes('token-billed-seer-enabled');
   // Every member can read the wallet, but the auto-reload settings need
   // `org:billing`, so other members see the meter without them.
   const canReadAutoReload = organization.access.includes('org:billing');
@@ -58,12 +56,9 @@ export function SeerCreditUsageMeter({hasEnoughCredits}: SeerCreditUsageMeterPro
     <SeerCreditUsageMeterView
       percentUsed={wallet.percentUsed}
       remaining={wallet.balance}
-      total={wallet.included.total + wallet.purchased.total}
       autoReloadEnabled={autoTopUp?.enabled ?? null}
       hasEnoughCredits={hasEnoughCredits}
-      // The Seer wallet card on the billing overview is where auto-reload is
-      // configured until there is an in-place modal.
-      configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
+      configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/${SEER_AUTO_RELOAD_MODAL_HASH}`}
     />
   );
 }
@@ -88,7 +83,6 @@ interface SeerCreditUsageMeterViewProps {
    */
   percentUsed: number;
   remaining: number;
-  total: number;
   /**
    * Keeps the tooltip open, for stories and screenshots.
    */
@@ -105,7 +99,6 @@ export function SeerCreditUsageMeterView({
   hasEnoughCredits,
   percentUsed,
   remaining,
-  total,
   forceTooltipVisible,
 }: SeerCreditUsageMeterViewProps) {
   // The balance can go negative, which would put the share used past 100%.
@@ -130,10 +123,9 @@ export function SeerCreditUsageMeterView({
                 })}
           </Text>
           <Text>
-            {tct('[remaining]/[total] credits remaining.', {
-              remaining: Math.max(remaining, 0).toLocaleString(),
-              total: total.toLocaleString(),
-            })}
+            {/* No total: the wallet only knows what's left of the purchased credits,
+                so a total would shrink as they're used, down to the included credits. */}
+            {tn('%s credit remaining.', '%s credits remaining.', Math.max(remaining, 0))}
           </Text>
           <AutoReloadStatus
             autoReloadEnabled={autoReloadEnabled}
@@ -181,9 +173,9 @@ function AutoReloadStatus({
   return <Text>{t('Credits will reload automatically.')}</Text>;
 }
 
-const UsageBar = styled(ProgressBar, {
-  shouldForwardProp: prop => prop !== 'isWarning',
-})<{isWarning: boolean}>`
+const UsageBar = styled(ProgressBar, {shouldForwardProp: prop => prop !== 'isWarning'})<{
+  isWarning: boolean;
+}>`
   width: 50px;
   height: 10px;
   flex-shrink: 0;

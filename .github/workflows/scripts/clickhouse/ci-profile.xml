@@ -1,0 +1,16 @@
+<!--
+CI only, installed by bootstrap-snuba.py: don't log or sample-profile every
+query. Profile settings apply when a session starts, so this has to be loaded
+before the per-worker Snuba containers connect.
+-->
+<clickhouse>
+    <profiles>
+        <default>
+            <log_queries>0</log_queries>
+            <log_processors_profiles>0</log_processors_profiles>
+            <query_profiler_real_time_period_ns>0</query_profiler_real_time_period_ns>
+            <query_profiler_cpu_time_period_ns>0</query_profiler_cpu_time_period_ns>
+            <memory_profiler_step>0</memory_profiler_step>
+        </default>
+    </profiles>
+</clickhouse>

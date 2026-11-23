@@ -54,6 +54,7 @@ describe('useOnboardingAgentSetupRun', () => {
     expect(request).toHaveBeenCalledTimes(1);
     expect(request.mock.calls[0]?.[1]?.data).toEqual({
       clientRunId: expect.any(String),
+      origin: 'onboarding',
     });
 
     rerender();
@@ -67,10 +68,7 @@ describe('useOnboardingAgentSetupRun', () => {
       method: 'POST',
       body: run,
     });
-    const options = {
-      organization,
-      additionalWrapper: OnboardingContextProvider,
-    };
+    const options = {organization, additionalWrapper: OnboardingContextProvider};
 
     const firstRender = renderHookWithProviders(
       () => useOnboardingAgentSetupRun({enabled: true}),
@@ -98,6 +96,7 @@ describe('useOnboardingAgentSetupRun', () => {
     expect(request).toHaveBeenCalledTimes(2);
     expect(request.mock.calls[1]?.[1]?.data).toEqual({
       clientRunId: storedClientRunId,
+      origin: 'onboarding',
     });
   });
 
@@ -123,7 +122,10 @@ describe('useOnboardingAgentSetupRun', () => {
 
     await waitFor(() => expect(result.current.run).toBeDefined());
     const replacementSession = request.mock.calls[0]?.[1]?.data;
-    expect(replacementSession).toEqual({clientRunId: expect.any(String)});
+    expect(replacementSession).toEqual({
+      clientRunId: expect.any(String),
+      origin: 'onboarding',
+    });
     expect(replacementSession.clientRunId).not.toBe(staleClientRunId);
     await waitFor(() =>
       expect(JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')).toEqual({
@@ -161,6 +163,7 @@ describe('useOnboardingAgentSetupRun', () => {
     expect(nextSession.agenticProgressOnboardingCode).toBeUndefined();
     expect(request.mock.calls[1]?.[1]?.data).toEqual({
       clientRunId: nextSession.agenticProgressClientRunId,
+      origin: 'onboarding',
     });
   });
 });

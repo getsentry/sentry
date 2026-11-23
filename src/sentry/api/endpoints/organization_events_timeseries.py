@@ -67,6 +67,7 @@ from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
+from sentry.snuba.uptime_results import UptimeResults
 from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
@@ -303,6 +304,11 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         This endpoint can return timeseries for either 1 or many axis, and results grouped to the top events depending
         on the parameters passed
 
+        Explicitly requested transformations return HTTP 400 with a `detail` message when the
+        interpolation and smoothing feature is disabled or the dataset cannot execute them.
+        Timeseries queries are not supported for the uptime results dataset.
+        Queries cannot combine `topEvents` with `comparisonDelta`.
+
         **Note**: For queries extending past `30d`, spanning billions of rows, or running on projects with low
         sample rates, the aggregation `yAxis=count_unique()` and filters on high-cardinality
         fields (such as `query=user.id:bc`) will not return accurate results. Use these queries for rough
@@ -317,15 +323,29 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         ):
             top_events = self.get_top_events(request)
             comparison_delta = self.get_comparison_delta(request)
-            transformations = {}
-            if features.has(
+            transformations = get_transformations(request)
+            dataset = self.get_dataset(request, organization)
+            if dataset == UptimeResults:
+                raise ParseError(
+                    detail="Timeseries queries are not supported for dataset uptime_results"
+                )
+            if top_events > 0 and comparison_delta is not None:
+                raise ParseError(detail="comparisonDelta is not supported with topEvents")
+
+            if transformations and not features.has(
                 "organizations:explore-interpolation-and-smoothing",
                 organization,
                 actor=request.user,
             ):
-                transformations = get_transformations(request)
+                raise ParseError(
+                    detail="Timeseries transformations are not enabled for this organization"
+                )
 
-            dataset = self.get_dataset(request, organization)
+            if transformations and dataset not in RPC_DATASETS:
+                raise ParseError(
+                    detail="Timeseries transformations are not supported for dataset "
+                    f"{request.GET.get('dataset', 'discover')}"
+                )
             # Add more here until top events is supported on all the datasets
             if top_events > 0:
                 if dataset not in TOP_EVENTS_DATASETS:
@@ -528,7 +548,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     "endpoint_name": "organization-events-timeseries",
                 },
             )
-        incremental_loading = features.has(
+        incremental_loading = not transformations and features.has(
             "organizations:explore-incremental-timeseries",
             organization,
             actor=request.user,
@@ -580,63 +600,52 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 if "timestamp" in [col.strip("-") for col in raw_orderby]:
                     raise ParseError("Cannot order by timestamp")
             if dataset in RPC_DATASETS:
-                rpc_top_events = cast(
-                    "SnubaTSResult | dict[str, SnubaTSResult]",
-                    dataset.run_top_events_timeseries_query(
-                        params=snuba_params,
-                        query_string=query,
-                        y_axes=query_columns,
-                        raw_groupby=raw_groupby,
-                        orderby=self.get_orderby(request),
-                        limit=top_events,
-                        include_other=include_other,
-                        referrer=referrer,
-                        config=self.get_rpc_config(dataset, request, organization),
-                        sampling_mode=snuba_params.sampling_mode,
-                        equations=self.get_equation_list(
-                            organization, request, param_name="groupBy"
-                        ),
-                        additional_queries=additional_queries,
-                        transformations=transformations,
-                    ),
-                )
-                return rpc_top_events
-            return cast(
-                "SnubaTSResult | dict[str, SnubaTSResult]",
-                dataset.top_events_timeseries(
-                    timeseries_columns=query_columns,
-                    selected_columns=raw_groupby,
-                    equations=self.get_equation_list(organization, request),
-                    user_query=query,
-                    snuba_params=snuba_params,
-                    orderby=self.get_orderby(request),
-                    rollup=rollup,
-                    limit=top_events,
-                    organization=organization,
-                    referrer=referrer + ".find-topn",
-                    allow_empty=False,
-                    zerofill_results=True,
-                    include_other=include_other,
-                    query_source=query_source,
-                    transform_alias_to_input_format=True,
-                    fallback_to_transactions=True,
-                ),
-            )
-
-        if dataset in RPC_DATASETS:
-            result = cast(
-                "SnubaTSResult | dict[str, SnubaTSResult]",
-                dataset.run_timeseries_query(
+                rpc_top_events = dataset.run_top_events_timeseries_query(
                     params=snuba_params,
                     query_string=query,
                     y_axes=query_columns,
+                    raw_groupby=raw_groupby,
+                    orderby=self.get_orderby(request),
+                    limit=top_events,
+                    include_other=include_other,
                     referrer=referrer,
                     config=self.get_rpc_config(dataset, request, organization),
                     sampling_mode=snuba_params.sampling_mode,
-                    comparison_delta=comparison_delta,
+                    equations=self.get_equation_list(organization, request, param_name="groupBy"),
                     additional_queries=additional_queries,
                     transformations=transformations,
-                ),
+                )
+                return rpc_top_events
+            return dataset.top_events_timeseries(
+                timeseries_columns=query_columns,
+                selected_columns=raw_groupby,
+                equations=self.get_equation_list(organization, request),
+                user_query=query,
+                snuba_params=snuba_params,
+                orderby=self.get_orderby(request),
+                rollup=rollup,
+                limit=top_events,
+                organization=organization,
+                referrer=referrer + ".find-topn",
+                allow_empty=False,
+                zerofill_results=True,
+                include_other=include_other,
+                query_source=query_source,
+                transform_alias_to_input_format=True,
+                fallback_to_transactions=True,
+            )
+
+        if dataset in RPC_DATASETS:
+            result = dataset.run_timeseries_query(
+                params=snuba_params,
+                query_string=query,
+                y_axes=query_columns,
+                referrer=referrer,
+                config=self.get_rpc_config(dataset, request, organization),
+                sampling_mode=snuba_params.sampling_mode,
+                comparison_delta=comparison_delta,
+                additional_queries=additional_queries,
+                transformations=transformations,
             )
             if incremental_loading and not skip_cache and is_cache_candidate:
                 with traces.start_span("set_cache"):
@@ -652,22 +661,19 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     )
             return result
 
-        return cast(
-            "SnubaTSResult | dict[str, SnubaTSResult]",
-            dataset.timeseries_query(
-                selected_columns=query_columns,
-                query=query,
-                snuba_params=snuba_params,
-                rollup=rollup,
-                referrer=referrer,
-                zerofill_results=True,
-                comparison_delta=comparison_delta,
-                allow_metric_aggregates=allow_metric_aggregates,
-                has_metrics=True,
-                query_source=query_source,
-                fallback_to_transactions=True,
-                transform_alias_to_input_format=True,
-            ),
+        return dataset.timeseries_query(
+            selected_columns=query_columns,
+            query=query,
+            snuba_params=snuba_params,
+            rollup=rollup,
+            referrer=referrer,
+            zerofill_results=True,
+            comparison_delta=comparison_delta,
+            allow_metric_aggregates=allow_metric_aggregates,
+            has_metrics=True,
+            query_source=query_source,
+            fallback_to_transactions=True,
+            transform_alias_to_input_format=True,
         )
 
     def serialize_stats_data(

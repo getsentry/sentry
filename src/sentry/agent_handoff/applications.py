@@ -9,9 +9,9 @@ def get_handoff_application(scope_list: Sequence[str]) -> ApiApplication | None:
     if not client_id or client_id not in options.get("oauth.setup-code.allowed-client-ids"):
         return None
 
-    application = ApiApplication.objects.filter(
+    application = ApiApplication.objects.get_or_none(
         client_id=client_id, status=ApiApplicationStatus.active
-    ).first()
+    )
     if (
         application is None
         or not application.is_public

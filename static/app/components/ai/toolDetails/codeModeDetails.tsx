@@ -36,7 +36,7 @@ export function CodeModeDetails({code, language, projectId}: Props) {
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/ai/code-explanation/',
       {
         path: canExplain
-          ? {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId}
+          ? {organizationIdOrSlug: organization.slug, projectIdOrSlug: String(projectId)}
           : skipToken,
         method: 'POST',
         data: canExplain ? {code: requestCode, language: requestLanguage} : undefined,

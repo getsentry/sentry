@@ -1,8 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {TabPanels} from '@sentry/scraps/tabs';
-
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import {DetailsWrapper} from 'sentry/views/explore/logs/styles';
@@ -119,9 +117,7 @@ export const StyledSimpleTableHeader = styled(SimpleTable.HeaderRow)`
   top: 0;
 `;
 
-export const StickyTableRow = styled(SimpleTable.Row)<{
-  sticky?: boolean;
-}>`
+export const StickyTableRow = styled(SimpleTable.Row)<{sticky?: boolean}>`
   ${p =>
     p.sticky &&
     css`
@@ -153,8 +149,4 @@ export const MetricsDetailsWrapper = styled(DetailsWrapper)`
 
 export const NumericSimpleTableRowCell = styled(StyledSimpleTableRowCell)`
   justify-content: flex-end;
-`;
-
-export const StyledTabPanels = styled(TabPanels)`
-  overflow: auto;
 `;

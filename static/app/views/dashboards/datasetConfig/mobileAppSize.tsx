@@ -91,10 +91,7 @@ function getPrimaryFieldOptions(
   const mobileAppSizeFields: Record<string, FieldValueOption> = {
     'measurement:install_size': {
       label: 'install_size',
-      value: {
-        kind: FieldValueKind.TAG,
-        meta: {name: 'install_size', dataType: 'number'},
-      },
+      value: {kind: FieldValueKind.TAG, meta: {name: 'install_size', dataType: 'number'}},
     },
     'measurement:download_size': {
       label: 'download_size',
@@ -217,7 +214,7 @@ export const MobileAppSizeConfig: DatasetConfig<EventsTimeSeriesResponse, TableD
   enableEquations: false,
   SearchBar: MobileAppSizeSearchBar,
   useSearchBarDataProvider: useMobileAppSizeSearchBarDataProvider,
-  supportedDisplayTypes: [DisplayType.LINE],
+  supportedDisplayTypes: [DisplayType.LINE, DisplayType.BAR],
   getTableFieldOptions: getPrimaryFieldOptions,
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,

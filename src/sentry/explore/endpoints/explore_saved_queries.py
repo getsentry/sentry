@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import re
-from typing import cast
-
 import sentry_sdk
 from django.db import router, transaction
 from django.db.models import Case, Count, Exists, F, IntegerField, OrderBy, OuterRef, Subquery, When
@@ -16,7 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
-from sentry.api.endpoints.organization_explore_formulas import FORMULA_PREFIX
+from sentry.api.endpoints.organization_explore_formulas import saved_formula_regex
 from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
@@ -241,7 +238,7 @@ def sync_prebuilt_queries(organization: Organization) -> None:
                 }
             else:
                 continue
-            prebuilt_version = cast(int, prebuilt_query["prebuilt_version"])
+            prebuilt_version = prebuilt_query["prebuilt_version"]
             if prebuilt_query["prebuilt_id"] in saved_prebuilt_query_ids:
                 saved_prebuilt_query = saved_prebuilt_queries.get(
                     prebuilt_id=prebuilt_query["prebuilt_id"]
@@ -497,13 +494,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
             "organizations:explore-saved-formulas", organization, actor=request.user
         )
         if formula is not None and saved_formula_feature:
-            if formula.startswith(FORMULA_PREFIX):
-                formula = re.escape(formula)
-                queryset = queryset.filter(
-                    query__query__regex=rf'(^|[^\\]"|[[:space:]])(-)?{formula}\([^")]*\)(:|")'
-                )
-            else:
-                raise ParseError(f"Formulas start with {FORMULA_PREFIX}")
+            queryset = queryset.filter(query__query__regex=saved_formula_regex(formula))
 
         starred = request.query_params.get("starred")
 
@@ -594,6 +585,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
             name=data["name"],
             query=data["query"],
             dataset=data["dataset"],
+            query_priority=data.get("query_priority"),
             **get_creator_reference(request),
         )
 

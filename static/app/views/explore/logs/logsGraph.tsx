@@ -186,7 +186,7 @@ function Graph({
   const [chartInterval, setChartInterval, intervalOptions] = useChartInterval();
   const droppedData = useDroppedDataLayer(
     {dataset: DiscoverDatasets.OURLOGS, interval: chartInterval},
-    {hidden: tableIsEmpty || tableIsPending}
+    {source: 'explore', hidden: tableIsEmpty || tableIsPending}
   );
 
   // Invalid `_if` filters skip the backend request; surface that as a chart error
@@ -212,10 +212,7 @@ function Graph({
     const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopEvents);
     const resultForChart = (
       hasValidConditionalFilter
-        ? {
-            ...timeseriesResult,
-            isPending: timeseriesResult.isPending || tableIsPending,
-          }
+        ? {...timeseriesResult, isPending: timeseriesResult.isPending || tableIsPending}
         : {
             ...timeseriesResult,
             error: new Error(getConditionalFilterInvalidSeriesMessageForYAxis(aggregate)),

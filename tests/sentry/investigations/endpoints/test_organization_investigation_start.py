@@ -175,7 +175,6 @@ class OrganizationInvestigationStartTest(APITestCase):
 
     @override_settings(
         SEER_API_SHARED_SECRET="viewer-context-test-secret",
-        SENTRY_VIEWER_CONTEXT_ENABLED=True,
     )
     @mock.patch(
         "sentry.tasks.seer.investigation.dispatch_investigation_orchestration_commands.delay"

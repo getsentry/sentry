@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.agent_handoff.endpoints.claim_agent_handoff import ClaimAgentHandoffEndpoint
 from sentry.agent_handoff.endpoints.organization_agent_handoff import (
     OrganizationAgentHandoffEndpoint,
 )
@@ -79,13 +80,6 @@ from sentry.api.endpoints.organization_unsubscribe import (
 )
 from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
-from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
-from sentry.api.endpoints.release_thresholds.release_threshold_details import (
-    ReleaseThresholdDetailsEndpoint,
-)
-from sentry.api.endpoints.release_thresholds.release_threshold_index import (
-    ReleaseThresholdIndexEndpoint,
-)
 from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
     ReleaseThresholdStatusIndexEndpoint,
 )
@@ -331,7 +325,6 @@ from sentry.issues.endpoints import (
     GroupNotesEndpoint,
     GroupPullRequestsEndpoint,
     GroupRelatedEndpoint,
-    GroupSimilarIssuesEmbeddingsEndpoint,
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
     GroupTombstoneEndpoint,
@@ -620,7 +613,11 @@ from sentry.seer.endpoints.organization_seer_monitoring_providers import (
     OrganizationSeerMonitoringIdentityTokenEndpoint,
     OrganizationSeerMonitoringIntegrationTokenEndpoint,
 )
+from sentry.seer.endpoints.organization_seer_nav_links import OrganizationSeerNavLinksEndpoint
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
+from sentry.seer.endpoints.organization_seer_repo_access import (
+    OrganizationSeerRepoAccessEndpoint,
+)
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
 from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
@@ -730,6 +727,9 @@ from sentry.telemetry_classifiers.endpoints.organization_telemetry_classifiers i
 from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpoint
 from sentry.tempest.endpoints.tempest_credentials_details import TempestCredentialsDetailsEndpoint
 from sentry.tempest.endpoints.tempest_ips import TempestIpsEndpoint
+from sentry.timeseries_annotations.endpoints.organization_timeseries_annotation_endpoint import (
+    OrganizationTimeseriesAnnotationEndpoint,
+)
 from sentry.uptime.endpoints.organiation_uptime_alert_index import (
     OrganizationUptimeAlertIndexEndpoint,
 )
@@ -945,7 +945,7 @@ from .endpoints.relay import (
     RelayRegisterResponseEndpoint,
 )
 from .endpoints.seer_models import SeerModelsEndpoint
-from .endpoints.setup_wizard import SetupWizard
+from .endpoints.setup_wizard import SetupWizard, SetupWizardSession
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
@@ -1041,11 +1041,6 @@ def create_group_urls(
             r"^(?P<issue_id>[^/]+)/similar/$",
             GroupSimilarIssuesEndpoint.as_view(),
             name=f"{name_prefix}-group-similar",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^/]+)/similar-issues-embeddings/$",
-            GroupSimilarIssuesEmbeddingsEndpoint.as_view(),
-            name=f"{name_prefix}-group-similar-issues-embeddings",
         ),
         re_path(
             r"^(?P<issue_id>[^/]+)/external-issues/$",
@@ -2343,11 +2338,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationReleasesEndpoint.as_view(),
         name="sentry-api-0-organization-releases",
     ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/release-thresholds/$",
-        ReleaseThresholdIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-release-thresholds",
-    ),
     # TODO: also integrate release threshold status into the releases response?
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/release-threshold-statuses/$",
@@ -2485,6 +2475,18 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-notebooks",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/timeseries-annotations/$",
+        OrganizationTimeseriesAnnotationEndpoint.as_view(),
+        name="sentry-api-0-organization-timeseries-annotations",
+    ),
+    # Deprecated alias of the route above; kept live until the frontend moves to
+    # /timeseries-annotations/, then deleted.
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/annotations/$",
+        OrganizationTimeseriesAnnotationEndpoint.as_view(),
+        name="sentry-api-0-organization-annotations-deprecated",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<notebook_id>[^/]+)/$",
         OrganizationNotebookDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-details",
@@ -2600,6 +2602,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-chat-suggestions",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/nav-links/$",
+        OrganizationSeerNavLinksEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-nav-links",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/autofix-overview/$",
         OrganizationSeerAutofixOverviewEndpoint.as_view(),
         name="sentry-api-0-organization-seer-autofix-overview",
@@ -2608,6 +2615,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/autofix-scm-info/$",
         OrganizationSeerAutofixScmInfoEndpoint.as_view(),
         name="sentry-api-0-organization-seer-autofix-scm-info",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/repo-access/$",
+        OrganizationSeerRepoAccessEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-repo-access",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/runs/$",
@@ -3201,16 +3213,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/releases/$",
         ProjectReleasesEndpoint.as_view(),
         name="sentry-api-0-project-releases",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/release-thresholds/$",
-        ReleaseThresholdEndpoint.as_view(),
-        name="sentry-api-0-project-release-thresholds",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/release-thresholds/(?P<release_threshold>[^/]+)/$",
-        ReleaseThresholdDetailsEndpoint.as_view(),
-        name="sentry-api-0-project-release-thresholds-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/commits/$",
@@ -3869,6 +3871,11 @@ INTERNAL_URLS = [
 ]
 
 urlpatterns = [
+    re_path(
+        r"^agent-handoff/$",
+        ClaimAgentHandoffEndpoint.as_view(),
+        name="sentry-api-0-agent-handoff-claim",
+    ),
     # Relay
     re_path(
         r"^relays/",
@@ -4018,6 +4025,11 @@ urlpatterns = [
         name="sentry-api-0-integration-features",
     ),
     # Project Wizard
+    re_path(
+        r"^wizard/(?P<wizard_hash>[^/]+)/session/$",
+        SetupWizardSession.as_view(),
+        name="sentry-api-0-project-wizard-session",
+    ),
     re_path(
         r"^wizard/$",
         SetupWizard.as_view(),

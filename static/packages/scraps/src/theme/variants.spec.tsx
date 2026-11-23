@@ -2,6 +2,8 @@ import {expectTypeOf} from 'expect-type';
 
 import type {
   AlertVariant,
+  BackgroundToken,
+  BorderToken,
   BorderVariant,
   ButtonVariant,
   ContentVariant,
@@ -25,16 +27,65 @@ it('preserves the variant unions and constrains tracked button variants', () => 
   expectTypeOf<GraphicsVariant>().toEqualTypeOf<
     'accent' | 'danger' | 'neutral' | 'promotion' | 'success' | 'warning'
   >();
-  expectTypeOf<BorderVariant>().toEqualTypeOf<
-    | 'accent'
-    | 'danger'
-    | 'promotion'
-    | 'success'
-    | 'warning'
+  expectTypeOf<BorderToken>().toEqualTypeOf<
     | 'primary'
     | 'secondary'
-    | 'muted'
-    | 'none'
+    | 'neutral.muted'
+    | 'neutral.moderate'
+    | 'neutral.vibrant'
+    | 'accent.muted'
+    | 'accent.moderate'
+    | 'accent.vibrant'
+    | 'promotion.muted'
+    | 'promotion.moderate'
+    | 'promotion.vibrant'
+    | 'danger.muted'
+    | 'danger.moderate'
+    | 'danger.vibrant'
+    | 'warning.muted'
+    | 'warning.moderate'
+    | 'warning.vibrant'
+    | 'success.muted'
+    | 'success.moderate'
+    | 'success.vibrant'
+    | 'onVibrant.light'
+    | 'onVibrant.dark'
+    | 'transparent.neutral.muted'
+    | 'transparent.neutral.moderate'
+    | 'transparent.neutral.vibrant'
+    | 'transparent.accent.muted'
+    | 'transparent.accent.moderate'
+    | 'transparent.accent.vibrant'
+    | 'transparent.promotion.muted'
+    | 'transparent.promotion.moderate'
+    | 'transparent.promotion.vibrant'
+    | 'transparent.danger.muted'
+    | 'transparent.danger.moderate'
+    | 'transparent.danger.vibrant'
+    | 'transparent.warning.muted'
+    | 'transparent.warning.moderate'
+    | 'transparent.warning.vibrant'
+    | 'transparent.success.muted'
+    | 'transparent.success.moderate'
+    | 'transparent.success.vibrant'
+  >();
+  expectTypeOf<BorderVariant>().toEqualTypeOf<BorderToken | 'none'>();
+  expectTypeOf<BackgroundToken>().toEqualTypeOf<
+    | 'primary'
+    | 'secondary'
+    | 'tertiary'
+    | 'overlay'
+    | 'accent.vibrant'
+    | 'promotion.vibrant'
+    | 'danger.vibrant'
+    | 'warning.vibrant'
+    | 'success.vibrant'
+    | 'transparent.neutral.muted'
+    | 'transparent.accent.muted'
+    | 'transparent.promotion.muted'
+    | 'transparent.danger.muted'
+    | 'transparent.warning.muted'
+    | 'transparent.success.muted'
   >();
   expectTypeOf<TagVariant>().toEqualTypeOf<
     'muted' | 'info' | 'success' | 'warning' | 'danger' | 'promotion'

@@ -102,6 +102,40 @@ def requeue_autofix_feedback(run_id: int, items: Sequence[QueuedAutofixFeedback]
         pipe.execute()
 
 
+def record_skipped_autofix_feedback(
+    *,
+    log_ctx: PrIterationLogContext,
+    feedback: Feedback,
+    reason: str,
+    referrer: AutofixReferrer,
+    run_state: SeerRunState,
+) -> None:
+    """Say why a feedback item was never queued.
+
+    The counterpart of ``enqueue_autofix_feedback``'s ``queued`` line, for
+    feedback the project gate turned away before it reached the queue.
+    """
+    metrics.incr(
+        "autofix.pr_iteration.step",
+        tags={
+            "checkpoint": "skipped",
+            "reason": reason,
+            "referrer": referrer.value,
+            "feedback_kind": feedback_kind([feedback]),
+        },
+        sample_rate=1.0,
+    )
+    log_ctx.info(
+        "autofix.pr_iteration.feedback.queue",
+        outcome="skipped",
+        reason=reason,
+        feedback_source=feedback.source.type,
+        feedback_id=feedback.feedback_id,
+        referrer=referrer.value,
+        **feedback.source.log_fields(run_state),
+    )
+
+
 def clear_queued_autofix_feedback(run_id: int) -> None:
     redis_clusters.get(_REDIS_CLUSTER).delete(_feedback_queue_key(run_id))
 

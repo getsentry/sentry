@@ -8,6 +8,10 @@ import {Container, Flex, Stack, type ContainerProps} from '@sentry/scraps/layout
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {
+  ChartLayersControl,
+  type ChartLayersControlProps,
+} from 'sentry/components/charts/chartLayersControl';
 import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
@@ -77,6 +81,7 @@ interface VisualizationWidgetProps {
   droppedData?: DroppedDataProps;
   isDroppedDataLoading?: boolean;
   isFullScreen?: boolean;
+  layerControl?: ChartLayersControlProps;
   legendSelection?: LegendSelection;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: {
@@ -107,6 +112,7 @@ function VisualizationWidgetComponent({
   isFullScreen,
   droppedData,
   isDroppedDataLoading,
+  layerControl,
   showReleases = true,
 }: VisualizationWidgetProps) {
   const onWidgetError = useWidgetErrorCallback();
@@ -130,10 +136,7 @@ function VisualizationWidgetComponent({
   });
 
   const releases =
-    releasesWithDate?.map(({date, version}) => ({
-      timestamp: date,
-      version,
-    })) ?? [];
+    releasesWithDate?.map(({date, version}) => ({timestamp: date, version})) ?? [];
 
   return (
     <WidgetCardDataLoader
@@ -183,6 +186,7 @@ function VisualizationWidgetComponent({
             isFullScreen={isFullScreen}
             droppedData={droppedData}
             isDroppedDataLoading={isDroppedDataLoading}
+            layerControl={layerControl}
             widgetInterval={timeseriesInterval ?? widgetInterval}
           />
         );
@@ -224,6 +228,7 @@ interface VisualizationWidgetContentProps {
   isDroppedDataLoading?: boolean;
   isFullScreen?: boolean;
   isSampled?: boolean | null;
+  layerControl?: ChartLayersControlProps;
   legendSelection?: LegendSelection;
   onLegendSelectionChange?: (selection: LegendSelection) => void;
   onZoom?: EChartDataZoomHandler;
@@ -254,6 +259,7 @@ function VisualizationWidgetContent({
   isFullScreen,
   droppedData,
   isDroppedDataLoading,
+  layerControl,
   widgetInterval,
 }: VisualizationWidgetContentProps) {
   const theme = useTheme();
@@ -331,10 +337,7 @@ function VisualizationWidgetContent({
         )?.value;
 
         const value = tableDataRows
-          ? matchTimeSeriesToTableRowValue({
-              tableDataRows,
-              timeSeries,
-            })
+          ? matchTimeSeriesToTableRowValue({tableDataRows, timeSeries})
           : null;
         const dataType = timeSeries.meta.valueType;
         const dataUnit = timeSeries.meta.valueUnit ?? undefined;
@@ -404,11 +407,7 @@ function VisualizationWidgetContent({
         return (
           <Fragment key={plottable.name}>
             <Container>
-              <SeriesColorIndicator
-                style={{
-                  backgroundColor: colorPalette[index],
-                }}
-              />
+              <SeriesColorIndicator style={{backgroundColor: colorPalette[index]}} />
             </Container>
             <Tooltip title={label} showOnlyOnOverflow>
               {labelContent}
@@ -489,6 +488,10 @@ function VisualizationWidgetContent({
     );
   }
 
+  const legendActions = layerControl ? (
+    <ChartLayersControl triggerLabel="title" {...layerControl} />
+  ) : undefined;
+
   if (showBreakdownData) {
     return (
       <Stack height="100%">
@@ -504,6 +507,7 @@ function VisualizationWidgetContent({
             onLegendSelectionChange={onLegendSelectionChange}
             renderTooltipSeriesDetails={renderTooltipSeriesDetails}
             droppedData={droppedData}
+            legendActions={legendActions}
           />
         </Container>
         <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
@@ -529,6 +533,7 @@ function VisualizationWidgetContent({
           onLegendSelectionChange={onLegendSelectionChange}
           renderTooltipSeriesDetails={renderTooltipSeriesDetails}
           droppedData={droppedData}
+          legendActions={legendActions}
         />
       </Container>
       <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>

@@ -100,9 +100,7 @@ describe('useVirtualizedTree', () => {
       result.current.handleExpandTreeNode(
         result.current.tree.roots[0]!,
         !result.current.tree.roots[0]!.expanded,
-        {
-          expandChildren: true,
-        }
+        {expandChildren: true}
       );
     });
 
@@ -131,9 +129,7 @@ describe('useVirtualizedTree', () => {
       result.current.handleExpandTreeNode(
         result.current.tree.roots[0]!,
         !result.current.tree.roots[0]!.expanded,
-        {
-          expandChildren: true,
-        }
+        {expandChildren: true}
       );
       result.current.dispatch({type: 'set scroll top', payload: 50});
     });
@@ -166,9 +162,7 @@ describe('useVirtualizedTree', () => {
       result.current.handleExpandTreeNode(
         result.current.tree.roots[0]!,
         !result.current.tree.roots[0]!.expanded,
-        {
-          expandChildren: true,
-        }
+        {expandChildren: true}
       );
       result.current.dispatch({type: 'set scroll top', payload: 100});
     });
@@ -201,9 +195,7 @@ describe('useVirtualizedTree', () => {
       result.current.handleExpandTreeNode(
         result.current.tree.roots[0]!,
         !result.current.tree.roots[0]!.expanded,
-        {
-          expandChildren: true,
-        }
+        {expandChildren: true}
       );
       result.current.dispatch({type: 'set scroll top', payload: 50});
     });
@@ -234,9 +226,7 @@ describe('useVirtualizedTree', () => {
       result.current.handleExpandTreeNode(
         result.current.tree.roots[0]!,
         !result.current.tree.roots[0]!.expanded,
-        {
-          expandChildren: true,
-        }
+        {expandChildren: true}
       );
       result.current.dispatch({type: 'set scroll top', payload: 50});
     });

@@ -24,11 +24,7 @@ describe('SubscriptionHeader', () => {
       url: '/customers/org-slug/billing-details/',
       method: 'GET',
     });
-    MockApiClient.addMockResponse({
-      url: '/customers/org-slug/',
-      method: 'GET',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/customers/org-slug/', method: 'GET', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       body: {},
@@ -121,9 +117,7 @@ describe('SubscriptionHeader', () => {
     SubscriptionStore.set(organization.slug, subscription);
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />,
-      {
-        additionalWrapper: SecondaryNavigationContextProvider,
-      }
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
   }
 
@@ -152,13 +146,8 @@ describe('SubscriptionHeader', () => {
   });
 
   it('renders header cards and manage plan button for self-serve free customers', async () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_f',
-    });
+    const organization = OrganizationFixture({access: ['org:billing']});
+    const subscription = SubscriptionFixture({organization, plan: 'am3_f'});
     SubscriptionStore.set(organization.slug, subscription);
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />,
@@ -174,13 +163,8 @@ describe('SubscriptionHeader', () => {
   });
 
   it('renders header cards and manage plan button for self-serve paid customers', async () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_team',
-    });
+    const organization = OrganizationFixture({access: ['org:billing']});
+    const subscription = SubscriptionFixture({organization, plan: 'am3_team'});
     SubscriptionStore.set(organization.slug, subscription);
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />,
@@ -196,9 +180,7 @@ describe('SubscriptionHeader', () => {
   });
 
   it('renders header cards and manage plan button for self-serve free partner customers', async () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
+    const organization = OrganizationFixture({access: ['org:billing']});
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
@@ -219,9 +201,7 @@ describe('SubscriptionHeader', () => {
   });
 
   it('renders header cards and manage plan button for self-serve paid partner customers', async () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
+    const organization = OrganizationFixture({access: ['org:billing']});
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_team',
@@ -242,9 +222,7 @@ describe('SubscriptionHeader', () => {
   });
 
   it('hides manage plan button and renders header cards for managed customers', async () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
+    const organization = OrganizationFixture({access: ['org:billing']});
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_business_ent_auf',
@@ -266,9 +244,7 @@ describe('SubscriptionHeader', () => {
   });
 
   it('hides manage plan button and renders header cards for managed customers with OD supported', async () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
+    const organization = OrganizationFixture({access: ['org:billing']});
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_business_ent_auf',
@@ -291,10 +267,7 @@ describe('SubscriptionHeader', () => {
 
   it('hides manage plan button and renders header cards for self-serve free customers and user without billing perms', async () => {
     const organization = OrganizationFixture({});
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_f',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'am3_f'});
     SubscriptionStore.set(organization.slug, subscription);
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />,
@@ -311,10 +284,7 @@ describe('SubscriptionHeader', () => {
 
   it('hides manage plan button and renders header cards for self-serve paid customers and user without billing perms', async () => {
     const organization = OrganizationFixture({});
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_team',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'am3_team'});
     SubscriptionStore.set(organization.slug, subscription);
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />,
@@ -330,13 +300,8 @@ describe('SubscriptionHeader', () => {
   });
 
   it('renders header cards, manage plan button, and trial alert for self-serve customers on subscription trial', async () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_t',
-    });
+    const organization = OrganizationFixture({access: ['org:billing']});
+    const subscription = SubscriptionFixture({organization, plan: 'am3_t'});
     SubscriptionStore.set(organization.slug, subscription);
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />,
@@ -353,9 +318,7 @@ describe('SubscriptionHeader', () => {
   });
 
   it('renders header cards and manage plan button for self-serve paid customers on plan trial', async () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
+    const organization = OrganizationFixture({access: ['org:billing']});
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_team',
@@ -376,13 +339,8 @@ describe('SubscriptionHeader', () => {
   });
 
   it('renders header cards for customers on subscription enterprise trial', async () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_t_ent',
-    });
+    const organization = OrganizationFixture({access: ['org:billing']});
+    const subscription = SubscriptionFixture({organization, plan: 'am3_t_ent'});
     SubscriptionStore.set(organization.slug, subscription);
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />,
@@ -397,9 +355,7 @@ describe('SubscriptionHeader', () => {
   });
 
   it('does not render new payment failure alert for past due subscriptions without flag', async () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
+    const organization = OrganizationFixture({access: ['org:billing']});
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_team',
@@ -419,13 +375,8 @@ describe('SubscriptionHeader', () => {
   });
 
   it('renders managed note for non-self-serve subscriptions', () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      canSelfServe: false,
-    });
+    const organization = OrganizationFixture({access: ['org:billing']});
+    const subscription = SubscriptionFixture({organization, canSelfServe: false});
 
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />,
@@ -443,13 +394,8 @@ describe('SubscriptionHeader', () => {
   });
 
   it('does not render managed note for self-serve subscriptions', () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      canSelfServe: true,
-    });
+    const organization = OrganizationFixture({access: ['org:billing']});
+    const subscription = SubscriptionFixture({organization, canSelfServe: true});
 
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />,
@@ -459,12 +405,8 @@ describe('SubscriptionHeader', () => {
   });
 
   it('does not render trial alert when not on trial', () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-    });
+    const organization = OrganizationFixture({access: ['org:billing']});
+    const subscription = SubscriptionFixture({organization});
     render(
       <SubscriptionHeader organization={organization} subscription={subscription} />,
       {additionalWrapper: SecondaryNavigationContextProvider}

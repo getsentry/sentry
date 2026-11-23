@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString} from 'nuqs';
 
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -8,20 +9,19 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {CHARTS_PER_PAGE} from 'sentry/views/explore/components/attributeBreakdowns/constants';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 
 type AttributeDistributionData = Record<string, Array<{label: string; value: number}>>;
 
 type AttributeBreakdowns = {
   data: Array<{
     // Read both keys during the backend rename rollout (attribute_distributions -> attributeDistributions).
-    attributeDistributions?: {
-      data: AttributeDistributionData;
-    };
-    attribute_distributions?: {
-      data: AttributeDistributionData;
-    };
+    attributeDistributions?: {data: AttributeDistributionData};
+    attribute_distributions?: {data: AttributeDistributionData};
   }>;
 };
+
+const ATTRIBUTE_BREAKDOWNS_QUERY_PARSERS = {query: parseAsString.withDefault('')};
 
 // The /trace-items/stats/ endpoint returns a paginated response.
 export function useAttributeBreakdowns({
@@ -34,7 +34,10 @@ export function useAttributeBreakdowns({
   const organization = useOrganization();
   const location = useLocation();
   const {selection: pageFilters, isReady: pageFiltersReady} = usePageFilters();
-  const queryString = location.query.query?.toString() ?? '';
+  const queryString = loadQueryParamsFromLocation(
+    ATTRIBUTE_BREAKDOWNS_QUERY_PARSERS,
+    location
+  ).query;
   const [caseInsensitive] = useCaseInsensitivity();
 
   const queryParams = useMemo(() => {

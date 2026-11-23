@@ -34,13 +34,19 @@ from sentry.apidocs.response_types import (
     DetailResponse,
     ValidationErrorResponse,
 )
+from sentry.auth.access import has_member_scope
 from sentry.auth.principal import has_user, require_user
 from sentry.auth.services.auth import auth_service
 from sentry.auth.superuser import is_active_superuser
-from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
+from sentry.core.endpoints.organization_member_index import (
+    OrganizationMemberRequestSerializer,
+    TeamAssignmentsField,
+)
 from sentry.core.endpoints.organization_member_utils import (
     ROLE_CHOICES,
     RelaxedMemberPermission,
+    TeamAssignment,
+    TeamAssignmentDiff,
     get_allowed_org_roles,
     save_team_assignments,
 )
@@ -114,12 +120,9 @@ class UpdateOrgMemberRolesSerializer(OrganizationMemberRequestSerializer):
         choices=ROLE_CHOICES,
         required=False,
     )
-    teamRoles = serializers.ListField(
+    teamRoles = TeamAssignmentsField(
         help_text=_team_roles_description,
         required=False,
-        allow_null=True,
-        default=list,
-        child=serializers.JSONField(),
     )
 
 
@@ -247,6 +250,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         auth_provider = auth_service.get_auth_provider(organization_id=organization.id)
 
         result = serializer.validated_data
+        team_assignments: tuple[TeamAssignment, ...] | None = result.get("teamRoles")
 
         if getattr(member.flags, "partnership:restricted"):
             return Response(
@@ -256,8 +260,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 status=403,
             )
 
-        is_member = not request.access.has_scope("member:admin") and (
-            request.access.has_scope("member:invite")
+        is_member = not has_member_scope(request.access, "member:admin") and (
+            has_member_scope(request.access, "member:invite")
         )
         members_can_invite = not organization.flags.disable_member_invite
         # Members can only resend invites
@@ -293,7 +297,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     return Response({"detail": ERR_RATE_LIMITED}, status=429)
 
                 if result.get("regenerate"):
-                    if request.access.has_scope("member:admin"):
+                    if has_member_scope(request.access, "member:admin"):
                         with transaction.atomic(router.db_for_write(OrganizationMember)):
                             member.regenerate_token()
                             member.save()
@@ -328,13 +332,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         # Set the team-role before org-role. If the org-role has elevated permissions
         # on the teams, the team-roles can be overwritten later
-        team_roles = teams = None
-        if "teamRoles" in result:
+        team_roles: tuple[TeamAssignment, ...] | None = None
+        teams = None
+        if team_assignments is not None:
             # If orgs do not have the flag, we'll set their team-roles to None
             team_roles = (
-                result.get("teamRoles")
+                team_assignments
                 if features.has("organizations:team-roles", organization)
-                else [(team, None) for team, _ in result.get("teamRoles", [])]
+                else tuple(TeamAssignment(assignment.team, None) for assignment in team_assignments)
             )
         elif "teams" in result:
             teams = result.get("teams")
@@ -349,10 +354,12 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     status=400,
                 )
 
-        if team_roles:
-            diff = save_team_assignments(member, None, team_roles)  # type: ignore[arg-type]
-        else:
+        if team_roles is not None:
+            diff = save_team_assignments(member, None, team_roles)
+        elif "teams" in result:
             diff = save_team_assignments(member, teams)
+        else:
+            diff = TeamAssignmentDiff([], [])
 
         for change in diff.added:
             self.create_audit_entry(
@@ -522,10 +529,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
             else:
                 if acting_member != member:
-                    if not request.access.has_scope("member:admin"):
-                        if (
-                            not organization.flags.disable_member_invite
-                            and request.access.has_scope("member:invite")
+                    if not has_member_scope(request.access, "member:admin"):
+                        if not organization.flags.disable_member_invite and has_member_scope(
+                            request.access, "member:invite"
                         ):
                             return self._handle_deletion_by_member(
                                 request, organization, member, acting_member
@@ -538,7 +544,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                             return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
         # TODO(dcramer): do we even need this check?
-        elif not request.access.has_scope("member:admin"):
+        elif not has_member_scope(request.access, "member:admin"):
             return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
 
         if member.is_only_member_with_org_write():

@@ -348,19 +348,16 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
         # TicketRuleModal only needs the ticket-creation form for this request.
         if self.params.get("action") == "create":
-            return cast(
-                "IntegrationConfigSerializerResponse",
-                {
-                    **base,
-                    "configOrganization": [],
-                    # This method comes from IssueBasicIntegration within the integration's installation class
-                    "createIssueConfig": installation.get_create_issue_config(  # type: ignore[attr-defined]
-                        None,
-                        user,
-                        params=self.params,
-                    ),
-                },
-            )
+            return {
+                **base,
+                "configOrganization": [],
+                # This method comes from IssueBasicIntegration within the integration's installation class
+                "createIssueConfig": installation.get_create_issue_config(  # type: ignore[attr-defined]
+                    None,
+                    user,
+                    params=self.params,
+                ),
+            }
 
         return cast(
             "IntegrationConfigSerializerResponse",
@@ -415,19 +412,31 @@ class OrganizationIntegrationSerializer(Serializer):
         # API request for config options.
         integration: RpcIntegration = attrs.get("integration")  # type: ignore[assignment]
         organization: RpcOrganization | None = attrs.get("organization")
-        integration_config = serialize(
+        integration_config: Mapping[str, Any] | None = serialize(
             objects=integration,
             user=user,
             serializer=IntegrationConfigSerializer(obj.organization_id, params=self.params),
             include_config=include_config,
             organization=organization,
         )
+        if integration_config is None:
+            # The nested serializer already logged the provider error. Leave the config
+            # keys out: the ticket rule form falls back to its saved fields only when
+            # createIssueConfig is missing, and an empty list would wipe them on save.
+            logger.warning(
+                "organization_integration.config_fallback",
+                extra={
+                    "integration_id": integration.id,
+                    "integration_provider": integration.provider,
+                },
+            )
+            integration_config = serialize(integration, user, IntegrationSerializer())
         serialized_integration: MutableMapping[str, Any] = {**integration_config}
 
         organization_integration_fields = {
             "externalId": integration.external_id,
             "organizationId": obj.organization_id,
-            "organizationIntegrationStatus": cast(ObjectStatusName, obj.get_status_display()),
+            "organizationIntegrationStatus": obj.get_status_display(),
             "gracePeriodEnd": obj.grace_period_end,
         }
         if self.params.get("action") == "create":

@@ -177,7 +177,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         if not derived_should_be_correct(group.project):
             return
 
-        derived = GroupDerivedData.objects.filter(group_id=group.id).first()
+        derived = GroupDerivedData.objects.get_or_none(group_id=group.id)
         if derived is None:
             return
 

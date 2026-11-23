@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_HEADLESS,
+)
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -69,6 +72,7 @@ class SeerAdminAutofixSingleRunEndpoint(Endpoint):
                     actor_user_id=actor.user_id,
                     stopping_point=stopping_point,
                     single_run=True,
+                    billing_feature=SEER_BILLING_FEATURE_AUTOFIX_HEADLESS,
                 )
             except NoSeerQuotaException:
                 return Response({"detail": "Organization has no Seer quota"}, status=400)

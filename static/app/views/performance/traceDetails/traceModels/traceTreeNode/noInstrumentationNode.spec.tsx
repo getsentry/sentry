@@ -10,10 +10,7 @@ import {NoInstrumentationNode} from './noInstrumentationNode';
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
-): TraceTreeNodeExtra => ({
-  organization: OrganizationFixture(),
-  ...overrides,
-});
+): TraceTreeNodeExtra => ({organization: OrganizationFixture(), ...overrides});
 
 const createMissingInstrumentationSpan = (
   overrides: Partial<TraceTree.MissingInstrumentationSpan> = {}
@@ -92,18 +89,12 @@ describe('NoInstrumentationNode', () => {
 
     it('should set parent correctly', () => {
       const extra = createMockExtra();
-      const parentValue = makeEAPSpan({
-        event_id: 'parent-span',
-        is_transaction: true,
-      });
+      const parentValue = makeEAPSpan({event_id: 'parent-span', is_transaction: true});
       const previousSpanValue = makeEAPSpan({
         event_id: 'previous-span',
         end_timestamp: 1500,
       });
-      const nextSpanValue = makeEAPSpan({
-        event_id: 'next-span',
-        start_timestamp: 2000,
-      });
+      const nextSpanValue = makeEAPSpan({event_id: 'next-span', start_timestamp: 2000});
       const missingInstrValue = createMissingInstrumentationSpan();
 
       const parentNode = new EapSpanNode(null, parentValue, extra);
@@ -157,10 +148,7 @@ describe('NoInstrumentationNode', () => {
         extra
       );
 
-      expect(node.traceHeaderTitle).toEqual({
-        title: 'Trace',
-        subtitle: undefined,
-      });
+      expect(node.traceHeaderTitle).toEqual({title: 'Trace', subtitle: undefined});
     });
   });
 
@@ -303,12 +291,8 @@ describe('NoInstrumentationNode', () => {
   describe('matchById', () => {
     it('should match by previous node ID', () => {
       const extra = createMockExtra();
-      const previousSpanValue = makeEAPSpan({
-        event_id: 'previous-span-id',
-      });
-      const nextSpanValue = makeEAPSpan({
-        event_id: 'next-span-id',
-      });
+      const previousSpanValue = makeEAPSpan({event_id: 'previous-span-id'});
+      const nextSpanValue = makeEAPSpan({event_id: 'next-span-id'});
       const missingInstrValue = createMissingInstrumentationSpan();
 
       const previousNode = new EapSpanNode(null, previousSpanValue, extra);
@@ -326,12 +310,8 @@ describe('NoInstrumentationNode', () => {
 
     it('should match by next node ID', () => {
       const extra = createMockExtra();
-      const previousSpanValue = makeEAPSpan({
-        event_id: 'previous-span-id',
-      });
-      const nextSpanValue = makeEAPSpan({
-        event_id: 'next-span-id',
-      });
+      const previousSpanValue = makeEAPSpan({event_id: 'previous-span-id'});
+      const nextSpanValue = makeEAPSpan({event_id: 'next-span-id'});
       const missingInstrValue = createMissingInstrumentationSpan();
 
       const previousNode = new EapSpanNode(null, previousSpanValue, extra);
@@ -349,12 +329,8 @@ describe('NoInstrumentationNode', () => {
 
     it('should return false when ID does not match either node', () => {
       const extra = createMockExtra();
-      const previousSpanValue = makeEAPSpan({
-        event_id: 'previous-span-id',
-      });
-      const nextSpanValue = makeEAPSpan({
-        event_id: 'next-span-id',
-      });
+      const previousSpanValue = makeEAPSpan({event_id: 'previous-span-id'});
+      const nextSpanValue = makeEAPSpan({event_id: 'next-span-id'});
       const missingInstrValue = createMissingInstrumentationSpan();
 
       const previousNode = new EapSpanNode(null, previousSpanValue, extra);
@@ -372,12 +348,8 @@ describe('NoInstrumentationNode', () => {
 
     it('should handle undefined node IDs', () => {
       const extra = createMockExtra();
-      const previousSpanValue = makeEAPSpan({
-        event_id: undefined,
-      });
-      const nextSpanValue = makeEAPSpan({
-        event_id: 'next-span-id',
-      });
+      const previousSpanValue = makeEAPSpan({event_id: undefined});
+      const nextSpanValue = makeEAPSpan({event_id: 'next-span-id'});
       const missingInstrValue = createMissingInstrumentationSpan();
 
       const previousNode = new EapSpanNode(null, previousSpanValue, extra);

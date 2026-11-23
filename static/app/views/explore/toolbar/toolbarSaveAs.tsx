@@ -48,6 +48,7 @@ import {
   hasConditionalAggregateFilter,
   withReadableConditionalFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
+import {isHeatMapAggregate} from 'sentry/views/explore/utils/heatMapAggregate';
 import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
@@ -102,7 +103,7 @@ export function ToolbarSaveAs() {
       // The monitor form has no way to express an `_if` filter and silently falls back
       // to its default aggregate when given one, so don't offer a monitor that would
       // not match the series.
-      disabled: hasConditionalAggregateFilter(yAxis),
+      disabled: hasConditionalAggregateFilter(yAxis) || isHeatMapAggregate(yAxis),
       to: getAlertsUrl({
         project,
         query,
@@ -168,11 +169,7 @@ export function ToolbarSaveAs() {
   });
 
   items.push({
-    ...getSaveAsAlertMenuItem({
-      alertsUrls,
-      submenu: true,
-      disabled: hasTransformations,
-    }),
+    ...getSaveAsAlertMenuItem({alertsUrls, submenu: true, disabled: hasTransformations}),
     details: alertCaseDetails,
   });
 
@@ -183,6 +180,7 @@ export function ToolbarSaveAs() {
       return {
         key: String(index),
         label: func ? prettifyParsedFunction(func) : visualize.yAxis,
+        disabled: isHeatMapAggregate(visualize.yAxis),
         onAction: () => {
           trackAnalytics('trace_explorer.save_as', {
             save_type: 'dashboard',
@@ -200,6 +198,7 @@ export function ToolbarSaveAs() {
     textValue: t('Dashboard widget'),
     details: dashboardCaseDetails,
     submenu: chartOptions.length > 1 ? true : false,
+    disabled: chartOptions.length === 1 && chartOptions[0]!.disabled,
     label: t('Dashboard widget'),
     children: chartOptions.length > 1 ? chartOptions : undefined,
     onAction: () => {

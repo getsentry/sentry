@@ -84,6 +84,7 @@ export interface Options {
  */
 interface State {
   allowedImports: Array<{name: string; source: string; member?: string}>;
+  componentNames: Set<string>;
   hint: string;
 }
 
@@ -146,15 +147,8 @@ export const restrictJsxSlotChildren = defineRule({
             items: {
               type: 'object',
               properties: {
-                componentNames: {
-                  type: 'array',
-                  items: {type: 'string'},
-                },
-                propNames: {
-                  type: 'array',
-                  minItems: 1,
-                  items: {type: 'string'},
-                },
+                componentNames: {type: 'array', items: {type: 'string'}},
+                propNames: {type: 'array', minItems: 1, items: {type: 'string'}},
                 allowed: {
                   type: 'array',
                   minItems: 1,
@@ -162,11 +156,7 @@ export const restrictJsxSlotChildren = defineRule({
                     type: 'object',
                     properties: {
                       source: {type: 'string'},
-                      names: {
-                        type: 'array',
-                        minItems: 1,
-                        items: {type: 'string'},
-                      },
+                      names: {type: 'array', minItems: 1, items: {type: 'string'}},
                     },
                     required: ['source', 'names'],
                     additionalProperties: false,
@@ -182,20 +172,18 @@ export const restrictJsxSlotChildren = defineRule({
         additionalProperties: false,
       },
     ],
-    messages: {
-      forbidden: "<{{name}}> is not allowed in '{{prop}}'. Use: {{allowed}}.",
-    },
+    messages: {forbidden: "<{{name}}> is not allowed in '{{prop}}'. Use: {{allowed}}."},
   },
 
   create(context) {
     const options = context.options[0] as Options | undefined;
     const slotsConfig = options?.slots ?? [];
 
-    const slotState = new Map();
+    const slotState = new Map<string, State>();
 
     for (const slot of slotsConfig) {
       const allowed = slot.allowed;
-      const state = {
+      const state: State = {
         allowedImports: allowed.flatMap(entry =>
           entry.names.map(name => {
             const dot = name.indexOf('.');
@@ -250,11 +238,12 @@ export const restrictJsxSlotChildren = defineRule({
         }
       }
 
-      // recurse into direct JSX children
-      for (const child of jsxElement.children) {
-        if (child.type === 'JSXElement') {
-          checkSlotTree(child, propName, state);
-        } else if (child.type === 'JSXFragment') {
+      checkChildren(jsxElement.children, propName, state);
+    }
+
+    function checkChildren(children: ESTree.JSXChild[], propName: string, state: State) {
+      for (const child of children) {
+        if (child.type === 'JSXElement' || child.type === 'JSXFragment') {
           checkExpression(child, propName, state);
         } else if (child.type === 'JSXExpressionContainer') {
           checkExpression(child.expression, propName, state);
@@ -273,10 +262,6 @@ export const restrictJsxSlotChildren = defineRule({
       propName: string,
       state: State
     ) {
-      if (!expr) {
-        return;
-      }
-
       if (expr.type === 'JSXElement') {
         checkSlotTree(expr, propName, state);
         return;
@@ -284,15 +269,7 @@ export const restrictJsxSlotChildren = defineRule({
 
       // shorthand fragment <> — recurse into children
       if (expr.type === 'JSXFragment') {
-        for (const child of expr.children) {
-          if (child.type === 'JSXElement') {
-            checkSlotTree(child, propName, state);
-          } else if (child.type === 'JSXFragment') {
-            checkExpression(child, propName, state);
-          } else if (child.type === 'JSXExpressionContainer') {
-            checkExpression(child.expression, propName, state);
-          }
-        }
+        checkChildren(expr.children, propName, state);
         return;
       }
 
@@ -305,12 +282,10 @@ export const restrictJsxSlotChildren = defineRule({
 
       // condition && <A/>  /  condition || <A/>  /  condition ?? <A/>
       if (expr.type === 'LogicalExpression') {
-        if (expr.operator === '&&') {
-          checkExpression(expr.right, propName, state);
-        } else if (expr.operator === '||' || expr.operator === '??') {
+        if (expr.operator !== '&&') {
           checkExpression(expr.left, propName, state);
-          checkExpression(expr.right, propName, state);
         }
+        checkExpression(expr.right, propName, state);
         return;
       }
 
@@ -320,8 +295,6 @@ export const restrictJsxSlotChildren = defineRule({
     const importTracker = createImportTracker(context);
 
     return {
-      ...importTracker.visitors,
-
       JSXAttribute(node) {
         const propName = node.name.type === 'JSXIdentifier' ? node.name.name : null;
         if (!propName) {
@@ -347,19 +320,14 @@ export const restrictJsxSlotChildren = defineRule({
 
         const expr = node.value.expression;
 
-        // Arrow / function with expression body: slotProp={() => <SomeElement>}
         // Block-body callbacks are intentionally not checked (see rule docs).
-        if (
-          (expr.type === 'ArrowFunctionExpression' ||
-            expr.type === 'FunctionExpression') &&
-          expr.body &&
-          expr.body.type !== 'BlockStatement'
-        ) {
-          checkExpression(expr.body, propName, state);
-          return;
-        }
-
-        checkExpression(expr, propName, state);
+        checkExpression(
+          expr.type === 'ArrowFunctionExpression' && expr.body.type !== 'BlockStatement'
+            ? expr.body
+            : expr,
+          propName,
+          state
+        );
       },
     };
   },

@@ -1,38 +1,25 @@
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import {useMutation} from '@tanstack/react-query';
+import isEqual from 'lodash/isEqual';
 
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {getHandoffPrompt} from './handoffPrompt';
-
-function formatPrompt(code: string) {
-  return getHandoffPrompt(code, handoffCode => `\`${handoffCode}\``);
-}
-
-export enum AgentHandoffFlow {
-  CREATE_PROJECT = 'create_project',
-  ONBOARDING = 'onboarding',
-}
+import {formatHandoffPrompt} from './handoffPrompt';
+import {AgentHandoffFlow, type AgentHandoffContext} from './types';
 
 interface Handoff {
   code: string;
   expiresAt: string;
+  handoffId: string;
 }
 
-interface ProjectSetupContext {
-  runId: string;
+interface PreparedPrompt {
+  handoffId: string;
+  text: string;
 }
-
-interface HandoffContexts {
-  [AgentHandoffFlow.CREATE_PROJECT]: ProjectSetupContext;
-  [AgentHandoffFlow.ONBOARDING]: ProjectSetupContext;
-}
-
-export type AgentHandoffContext<Flow extends AgentHandoffFlow = AgentHandoffFlow> =
-  HandoffContexts[Flow];
 
 interface HandoffPromptOptions<Flow extends AgentHandoffFlow> {
   context: AgentHandoffContext<Flow>;
@@ -47,7 +34,9 @@ interface PromptContext<
 }
 
 interface CachedHandoff<Flow extends AgentHandoffFlow>
-  extends PromptContext<Flow>, Handoff {}
+  extends PromptContext<Flow>, Handoff {
+  copied?: boolean;
+}
 
 interface CopyPromptOptions {
   disableIpPinning: boolean;
@@ -62,7 +51,7 @@ function isHandoffStale<Flow extends AgentHandoffFlow>(
   return (
     handoff.organizationSlug !== context.organizationSlug ||
     handoff.flow !== context.flow ||
-    handoff.context.runId !== context.context.runId ||
+    !isEqual(handoff.context, context.context) ||
     handoff.disableIpPinning !== context.disableIpPinning ||
     Date.parse(handoff.expiresAt) <= Date.now() + PROMPT_EXPIRATION_BUFFER_MS
   );
@@ -76,9 +65,13 @@ function clipboardError() {
 
 /**
  * Mints short-lived handoff codes and copies a prompt containing them without exposing
- * the code in the UI. Valid codes are cached until their context changes or they approach
- * expiration, and concurrent copy requests share the same operation. Call copyPrompt
+ * the code in the UI. Concurrent copy requests share the same operation. Call copyPrompt
  * directly from the user gesture that authorizes clipboard access.
+ *
+ * Codes are single-use. Once a copied code could have been pasted into an agent, which
+ * means the page was hidden after the copy, the next copy mints a fresh code. Repeated
+ * copies while the page stays visible reuse the code, so mashing the button does not
+ * mint a pile of unused codes.
  */
 export function useAgentHandoff<Flow extends AgentHandoffFlow>(
   flow: Flow,
@@ -86,14 +79,24 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
 ) {
   const organization = useOrganization();
   const handoff = useRef<CachedHandoff<Flow> | null>(null);
-  const copyOperation = useRef<Promise<void> | null>(null);
+  const copyOperation = useRef<Promise<string> | null>(null);
   const mutation = useMutation({
     gcTime: 0,
     retry: false,
-    mutationFn: (operation: Promise<void>) => operation,
+    mutationFn: (operation: Promise<string>) => operation,
   });
 
-  async function getPrompt(options: HandoffPromptOptions<Flow>) {
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.hidden && handoff.current?.copied) {
+        handoff.current = null;
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
+
+  async function getPrompt(options: HandoffPromptOptions<Flow>): Promise<PreparedPrompt> {
     const promptContext: PromptContext<Flow> = {
       ...options,
       flow,
@@ -102,7 +105,10 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
 
     const cachedHandoff = handoff.current;
     if (cachedHandoff && !isHandoffStale(cachedHandoff, promptContext)) {
-      return formatPrompt(cachedHandoff.code);
+      return {
+        handoffId: cachedHandoff.handoffId,
+        text: formatHandoffPrompt(cachedHandoff.code, flow, options.context),
+      };
     }
 
     try {
@@ -119,7 +125,10 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
       });
       handoff.current = {...minted, ...promptContext};
 
-      return formatPrompt(minted.code);
+      return {
+        handoffId: minted.handoffId,
+        text: formatHandoffPrompt(minted.code, flow, options.context),
+      };
     } catch {
       throw new Error(t('Unable to create your agent prompt. Try again.'));
     }
@@ -130,18 +139,14 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
       return Promise.reject(new Error(t('Your agent prompt is still being prepared.')));
     }
 
-    const promptText = getPrompt({...options, context});
-    const clipboardPayload = promptText.then(
-      text => new Blob([text], {type: 'text/plain'})
+    const preparedPrompt = getPrompt({...options, context});
+    const clipboardPayload = preparedPrompt.then(
+      ({text}) => new Blob([text], {type: 'text/plain'})
     );
     let clipboardWrite: Promise<void>;
     try {
       clipboardWrite = navigator.clipboard
-        .write([
-          new ClipboardItem({
-            'text/plain': clipboardPayload,
-          }),
-        ])
+        .write([new ClipboardItem({'text/plain': clipboardPayload})])
         .catch(() => {
           throw clipboardError();
         });
@@ -149,7 +154,7 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
       clipboardWrite = Promise.reject(clipboardError());
     }
 
-    return Promise.allSettled([promptText, clipboardPayload, clipboardWrite]).then(
+    return Promise.allSettled([preparedPrompt, clipboardPayload, clipboardWrite]).then(
       ([promptResult, , clipboardResult]) => {
         if (promptResult.status === 'rejected') {
           throw promptResult.reason;
@@ -158,6 +163,14 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
         if (clipboardResult.status === 'rejected') {
           throw clipboardResult.reason;
         }
+
+        const cachedHandoff = handoff.current;
+        if (cachedHandoff?.handoffId === promptResult.value.handoffId) {
+          // The page can be hidden before the clipboard write settles, and then no
+          // visibilitychange will follow to retire the code.
+          handoff.current = document.hidden ? null : {...cachedHandoff, copied: true};
+        }
+        return promptResult.value.handoffId;
       }
     );
   }

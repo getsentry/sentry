@@ -23,11 +23,7 @@ export const performance: OnboardingConfig = {
             "Configuration should happen as early as possible in your application's lifecycle."
           ),
         },
-        {
-          type: 'code',
-          language: 'tsx',
-          code: getClientSetupSnippet(params),
-        },
+        {type: 'code', language: 'tsx', code: getClientSetupSnippet(params)},
       ],
     },
   ],

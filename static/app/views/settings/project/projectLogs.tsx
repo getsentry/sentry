@@ -15,9 +15,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {ProjectPermissionAlert} from './projectPermissionAlert';
 import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
-const logsSchema = z.object({
-  'sentry:relay_automatic_json_expansion': z.boolean(),
-});
+const logsSchema = z.object({'sentry:relay_automatic_json_expansion': z.boolean()});
 
 type LogsSchema = z.infer<typeof logsSchema>;
 

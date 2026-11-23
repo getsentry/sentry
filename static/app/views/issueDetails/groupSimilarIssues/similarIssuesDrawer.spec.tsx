@@ -46,38 +46,18 @@ describe('SimilarIssuesDrawer', () => {
       body: {features: []},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/related-issues/`,
-      match: [
-        MockApiClient.matchQuery({
-          type: 'same_root_cause',
-        }),
-      ],
-      body: {data: [], type: 'same_root_cause'},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/related-issues/`,
-      match: [
-        MockApiClient.matchQuery({
-          type: 'trace_connected',
-        }),
-      ],
-      body: {data: [], type: 'trace_connected'},
+      url: `/organizations/${organization.slug}/issues/${group.id}/related/`,
+      match: [MockApiClient.matchQuery({type: ['same_trace']})],
+      body: {data: [], meta: {types: [{type: 'same_trace', status: 'ok'}]}},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/events/latest/`,
-      body: {},
-    });
   });
 
   it('renders the content as expected', async () => {
-    render(<SimilarIssuesDrawer group={group} />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<SimilarIssuesDrawer group={group} />, {organization, initialRouterConfig});
 
     expect(screen.getByText('Similar Issues')).toHaveAttribute(
       'aria-current',
