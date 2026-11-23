@@ -29,12 +29,12 @@ const STRATEGIES = [
 
 const strategyParser = parseAsStringLiteral(STRATEGIES)
   .withDefault('breached_metric_investigation')
-  // Keeps the selected strategy in the URL even when it is the default
   .withOptions({clearOnDefault: false});
 
 export default function NewAutomationPage() {
   const organization = useOrganization();
   const enabled = useAutomationsEnabled();
+  // Synced with ?strategy=
   const [strategy, setStrategy] = useQueryState('strategy', strategyParser);
 
   if (!enabled) {

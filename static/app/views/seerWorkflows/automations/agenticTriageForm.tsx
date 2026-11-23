@@ -47,7 +47,7 @@ import {
 /**
  * A scope with no projects is only valid for users who can't choose any
  */
-function getSchema(allowNoProjects: boolean) {
+function getSchema({allowNoProjects}: {allowNoProjects: boolean}) {
   return z.object({
     name: z.string().trim().min(1, t('Give your automation a name.')).max(64),
     enabled: z.boolean(),
@@ -123,25 +123,27 @@ export function AgenticTriageForm(props: Props) {
   const firstProject = projects
     .filter(project => project.hasAccess)
     .sort((a, b) => a.slug.localeCompare(b.slug))[0];
-  const hasNoProjects = !hasAllProjectsAccess && !firstProject;
-  const schema = getSchema(hasNoProjects);
+
+  const schema = getSchema({allowNoProjects: !firstProject});
   // All projects when the user can grant them, otherwise their first project
-  let defaultProjects: ProjectSelection = {
-    allProjects: hasAllProjectsAccess,
-    projectIds: !hasAllProjectsAccess && firstProject ? [firstProject.id] : [],
-  };
-  if (props.mode === 'edit') {
-    defaultProjects = getProjectSelection(props.config.projects);
-  }
-  const savedEnvironment =
-    props.mode === 'edit' ? (props.config.environments[0] ?? '') : '';
+  const defaultProjects: ProjectSelection =
+    props.mode === 'edit'
+      ? getProjectSelection(props.config.projects)
+      : {
+          allProjects: hasAllProjectsAccess,
+          projectIds: !hasAllProjectsAccess && firstProject ? [firstProject.id] : [],
+        };
+
   // Keeps a saved environment outside the presets selectable
+  const currEnvironment =
+    props.mode === 'edit' ? (props.config.environments[0] ?? '') : '';
   const environmentOptions =
-    !savedEnvironment || ENVIRONMENTS.includes(savedEnvironment)
+    !currEnvironment || ENVIRONMENTS.includes(currEnvironment)
       ? ENVIRONMENTS
-      : [...ENVIRONMENTS, savedEnvironment];
+      : [...ENVIRONMENTS, currEnvironment];
+
+  // Mutations
   const createConfig = useCreateConfig();
-  // Only called in edit mode, where the config ID is known
   const updateConfig = useUpdateConfig({
     configId: props.mode === 'edit' ? props.config.id : '',
   });
@@ -187,6 +189,7 @@ export function AgenticTriageForm(props: Props) {
     props.onSaved();
     return config;
   };
+
   const form = useScrapsForm({
     ...defaultFormOptions,
     ...(props.mode === 'edit' ? {formId: props.formId} : {}),
@@ -197,7 +200,7 @@ export function AgenticTriageForm(props: Props) {
           ? t('Agentic Triage')
           : (props.config.name ?? STRATEGY_META.agentic_triage_v2.label),
       projects: defaultProjects,
-      environment: savedEnvironment,
+      environment: currEnvironment,
       serviceAccountProjects: getServiceAccountProjectSelection(serviceAccount),
       scopes:
         serviceAccount?.scopes ??
@@ -233,6 +236,7 @@ export function AgenticTriageForm(props: Props) {
   const hasChanges = useStore(form.store, state => !state.isDefaultValue);
   const setFormHasChanges = props.mode === 'edit' ? props.setFormHasChanges : undefined;
   useEffect(() => setFormHasChanges?.(hasChanges), [setFormHasChanges, hasChanges]);
+
   const serviceAccountProjects = useStore(
     form.store,
     state => state.values.serviceAccountProjects
@@ -320,9 +324,9 @@ export function AgenticTriageForm(props: Props) {
                             field.handleChange(next);
                           }}
                           emptyMessage={
-                            hasNoProjects
-                              ? t('No projects')
-                              : t('Add projects for this automation to triage.')
+                            firstProject
+                              ? t('Add projects for this automation to triage.')
+                              : t('You do not have access to any projects.')
                           }
                         />
                       )}

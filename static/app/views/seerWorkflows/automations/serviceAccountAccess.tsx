@@ -255,7 +255,7 @@ export function ProjectSelector({
             disabled={canToggleAllProjects && !scopeAllProjects}
             title={
               scopeAllProjects
-                ? t('Included by automation scope')
+                ? t('Set by automation scope')
                 : t('Only roles with access to all projects can change this.')
             }
           >
