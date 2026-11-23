@@ -69,11 +69,12 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
   );
   const {mutate: removeInboxItems, isPending: isRemoving} = useMutation({
     ...removeInboxItemsMutationOptions({organization, queryClient}),
-    onSuccess: (_data, {ids}) =>
+    onSuccess: () =>
       toast.success(t('Removed 1 item'), {
         action: {
           label: t('Undo'),
-          onClick: () => updateInboxItems({selection: ids, update: {undoRemoval: true}}),
+          onClick: () =>
+            updateInboxItems({selection: [item.id], update: {undoRemoval: true}}),
         },
       }),
     onError: () => toast.error(t('Unable to remove item')),
@@ -84,7 +85,7 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
       {props => (
         <ItemRow {...props} data-inbox-item data-selected={isSelected}>
           <InteractionStateLayer />
-          <Grid columns="max-content 8px minmax(0, 1fr)" gap="xs" align="center">
+          <Grid columns="max-content 8px minmax(0, 1fr)" gap="xs md" align="center">
             <Container
               column="1 / 2"
               row="1 / span 2"
