@@ -4,11 +4,13 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {InboxItemFixture} from 'sentry-fixture/inboxItem';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PRELOAD_HANDLE} from 'sentry/router/preload';
 import {buildRoutes} from 'sentry/router/routes';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupActivityType, type GroupActivity} from 'sentry/types/group';
 import Inbox from 'sentry/views/inbox';
 import {InvestigationDetailFixture} from 'sentry/views/investigations/fixtures';
@@ -152,6 +154,7 @@ describe('Inbox', () => {
   });
 
   beforeEach(() => {
+    ProjectsStore.reset();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/inbox/',
       body: [issueItem, notebookItem, readNotebookItem],
@@ -163,13 +166,18 @@ describe('Inbox', () => {
     });
   });
 
-  it('shows subject titles and event summaries with short IDs for issues', async () => {
+  it('shows subject titles and event summaries with short IDs and project icons for issues', async () => {
     render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
     expect(
       await screen.findByRole('link', {name: issueItem.subject.title})
     ).toHaveAttribute('href', '/organizations/org-slug/inbox/issue/7656018581/');
     expect(screen.getByText('PROJECT-42')).toBeInTheDocument();
+    expect(screen.getByTestId('platform-icon-default')).toBeInTheDocument();
+    act(() => {
+      ProjectsStore.loadInitialData([ProjectFixture({id: '1', platform: 'python'})]);
+    });
+    expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
     expect(screen.getByText('Assigned to you')).toBeInTheDocument();
     expect(
       screen.getByRole('link', {name: notebookItem.subject.title})
