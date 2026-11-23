@@ -156,6 +156,5 @@ def check_single_auth_identity(auth_identity_id: int) -> None:
             organization_service.update_membership_flags(organization_member=om)
 
     now = timezone.now()
-    # Left to the outbox drain: cells only need last_verified within the 7-day SSO window
     with outbox_context(flush=False):
         auth_identity.update(last_verified=now, last_synced=now)
