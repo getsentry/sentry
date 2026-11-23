@@ -33,6 +33,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_analytics_events
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
@@ -1402,6 +1403,64 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert get_response.status_code == 200
         assert post_response.status_code == 200
+
+    def _pending_scm_connect_state(self) -> SeerRunState:
+        return SeerRunState(
+            run_id=789,
+            blocks=[],
+            status="awaiting_user_input",
+            updated_at="2024-01-01T00:00:00Z",
+            owner_user_id=self.user.id,
+            pending_user_input=PendingUserInput(
+                id="input-1",
+                input_type="connect_scm",
+                data={"repo_name": "acme-labs/app", "failure_reason": "no_scm_integration"},
+            ),
+        )
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_scm_connect_popup_records_members_cannot_install_integrations(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=789, user_id=self.user.id
+        )
+        mock_client_class.return_value.get_run.return_value = self._pending_scm_connect_state()
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.login_as(member)
+
+        with assert_analytics_events(
+            [
+                SeerScmConnectShownEvent(
+                    organization_id=self.organization.id,
+                    user_id=member.id,
+                    run_id=789,
+                    input_id="input-1",
+                    failure_reason="no_scm_integration",
+                    can_install_integrations=False,
+                ),
+            ],
+        ):
+            response = self.client.get(f"{self.url}789/")
+
+        assert response.status_code == 200
+
+    @patch("sentry.auth.scope_declaration.capture_message")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_get_checks_no_undeclared_scopes(
+        self, mock_client_class: MagicMock, capture_message: MagicMock
+    ) -> None:
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=789, user_id=self.user.id
+        )
+        mock_client_class.return_value.get_run.return_value = self._pending_scm_connect_state()
+
+        with override_options({"api.permission-scope-audit.enabled": True}):
+            response = self.client.get(f"{self.url}789/")
+
+        assert response.status_code == 200
+        capture_message.assert_not_called()
 
 
 @with_feature("organizations:seer-explorer")
