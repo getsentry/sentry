@@ -51,7 +51,6 @@ from sentry.service_accounts.services.service_account import (
 logger = logging.getLogger(__name__)
 
 SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,)
-# What each seeded default runs. Seer loads the agentic triage prompt from its skill.
 SEER_DEFAULT_ACTION_SETTINGS: dict[SeerWorkflowStrategy, dict[str, Any]] = {
     SeerWorkflowStrategy.SCHEDULED_INVESTIGATION: {"skill": "agentic_triage"},
 }
@@ -71,11 +70,7 @@ class SeerWorkflow:
 
     @classmethod
     def ensure_defaults(cls, organization_id: int) -> None:
-        """Seed each default that has no config; disabled configs count as existing.
-
-        A strategy's user-created configs don't count, so a user's own scheduled
-        investigation doesn't stop the default from being seeded.
-        """
+        """Seed each default that has no seeded config; disabled ones count as existing."""
         database = router.db_for_write(SeerWorkflowConfig)
         configs = SeerWorkflowConfig.objects.using(database).filter(
             organization_id=organization_id,
