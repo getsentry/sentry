@@ -8,6 +8,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {CreateSampleEventButton} from 'sentry/components/onboarding/createSampleEventButton';
+import {PeekingBug} from 'sentry/components/peekingBug/peekingBug';
 import {t} from 'sentry/locale';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Group} from 'sentry/types/group';
@@ -87,29 +88,33 @@ export function FirstEventFooter({
         ) : null}
         {/* if hasn't sent first event, allow creation of sample error */}
         {project.firstEvent ? (
-          <LinkButton
-            onClick={() => {
-              trackAnalytics('onboarding.scm_take_to_error_clicked', {
-                organization,
-                platform: project.platform,
-              });
-            }}
-            to={`/organizations/${organization.slug}/issues/${
-              firstIssue && 'id' in firstIssue ? `${firstIssue.id}/` : ''
-            }?referrer=onboarding-first-event-footer`}
-            variant="primary"
-          >
-            {t('Take me to my error')}
-          </LinkButton>
+          <PeekingBug>
+            <LinkButton
+              onClick={() => {
+                trackAnalytics('onboarding.scm_take_to_error_clicked', {
+                  organization,
+                  platform: project.platform,
+                });
+              }}
+              to={`/organizations/${organization.slug}/issues/${
+                firstIssue && 'id' in firstIssue ? `${firstIssue.id}/` : ''
+              }?referrer=onboarding-first-event-footer`}
+              variant="primary"
+            >
+              {t('Take me to my error')}
+            </LinkButton>
+          </PeekingBug>
         ) : (
-          <CreateSampleEventButton
-            project={project}
-            source="targeted-onboarding"
-            variant="primary"
-            hasScmOnboarding
-          >
-            {t('View Sample Error')}
-          </CreateSampleEventButton>
+          <PeekingBug>
+            <CreateSampleEventButton
+              project={project}
+              source="targeted-onboarding"
+              variant="primary"
+              hasScmOnboarding
+            >
+              {t('View Sample Error')}
+            </CreateSampleEventButton>
+          </PeekingBug>
         )}
       </OnboardingButtonBar>
     </GridFooter>

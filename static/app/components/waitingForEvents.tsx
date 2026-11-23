@@ -15,6 +15,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {CreateSampleEventButton} from './onboarding/createSampleEventButton';
+import {PeekingBug} from './peekingBug/peekingBug';
 
 type Props = {
   org: Organization;
@@ -87,16 +88,18 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
       action={
         <Fragment>
           {project && (
-            <LinkButton
-              data-test-id="install-instructions"
-              variant="primary"
-              to={makeProjectsPathname({
-                path: `/${project.slug}/getting-started/`,
-                organization: org,
-              })}
-            >
-              {t('Installation Instructions')}
-            </LinkButton>
+            <PeekingBug>
+              <LinkButton
+                data-test-id="install-instructions"
+                variant="primary"
+                to={makeProjectsPathname({
+                  path: `/${project.slug}/getting-started/`,
+                  organization: org,
+                })}
+              >
+                {t('Installation Instructions')}
+              </LinkButton>
+            </PeekingBug>
           )}
           {sampleLink}
         </Fragment>

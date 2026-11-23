@@ -36,6 +36,7 @@ import {StepTitles} from './onboarding/gettingStartedDoc/step';
 import type {DocsParams, OnboardingStep} from './onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from './onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from './onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import {PeekingBug} from './peekingBug/peekingBug';
 
 export function SetupTitle({project}: {project: Project}) {
   return (
@@ -64,20 +65,22 @@ function WaitingIndicator({project}: {project: Project}) {
   }
 
   return (
-    <LinkButton
-      onClick={() =>
-        trackAnalytics('growth.onboarding_take_to_error', {
-          organization,
-          platform: project.platform,
-        })
-      }
-      to={`/organizations/${organization.slug}/issues/${
-        firstIssue !== true && 'id' in firstIssue ? `${firstIssue.id}/` : ''
-      }?referrer=onboarding-first-event-indicator`}
-      variant="primary"
-    >
-      {t('Take me to my error')}
-    </LinkButton>
+    <PeekingBug>
+      <LinkButton
+        onClick={() =>
+          trackAnalytics('growth.onboarding_take_to_error', {
+            organization,
+            platform: project.platform,
+          })
+        }
+        to={`/organizations/${organization.slug}/issues/${
+          firstIssue !== true && 'id' in firstIssue ? `${firstIssue.id}/` : ''
+        }?referrer=onboarding-first-event-indicator`}
+        variant="primary"
+      >
+        {t('Take me to my error')}
+      </LinkButton>
+    </PeekingBug>
   );
 }
 

@@ -14,6 +14,7 @@ import {Text} from '@sentry/scraps/text';
 import {useAutofixCreditCheck} from 'sentry/components/events/autofix/autofixCredits';
 import {AUTOFIX_USER_CONTEXT_MAX_LENGTH} from 'sentry/components/events/autofix/types';
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {PeekingBug} from 'sentry/components/peekingBug/peekingBug';
 import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -112,7 +113,7 @@ export function AutofixStartCard({
         ) : (
           <LegacyStartCardContent />
         )}
-        {startButton}
+        <PeekingBug>{startButton}</PeekingBug>
       </Stack>
     );
   }
