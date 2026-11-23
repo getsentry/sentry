@@ -18,6 +18,7 @@ import {
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {
   getVisibleListItems,
+  getVisibleOptionPositions,
   hasVisibleLeadingItems,
 } from '@sentry/scraps/compactSelect/utils';
 import {Container} from '@sentry/scraps/layout';
@@ -114,6 +115,12 @@ function GridList<T extends ListItemBase>({
     () => hasVisibleLeadingItems(listItems, hiddenOptions),
     [listItems, hiddenOptions]
   );
+  // Screen readers cannot count the rows of a virtualized grid from the DOM.
+  const rowCount = useMemo(
+    () =>
+      virtualized ? getVisibleOptionPositions(listItems, hiddenOptions).size : undefined,
+    [virtualized, listItems, hiddenOptions]
+  );
 
   const mergedProps = mergeProps(gridProps, props);
 
@@ -123,7 +130,13 @@ function GridList<T extends ListItemBase>({
       {listItems.length !== 0 && label && <ListLabel id={labelId}>{label}</ListLabel>}
       {overlayIsOpen && (
         <Container ref={setScrollElement} height="100%" overflowY="auto">
-          <ListWrap {...mergedProps} onKeyDown={onKeyDown} ref={ref}>
+          <ListWrap
+            {...mergedProps}
+            aria-rowcount={rowCount}
+            aria-colcount={rowCount === undefined ? undefined : 1}
+            onKeyDown={onKeyDown}
+            ref={ref}
+          >
             <SelectRows
               listItems={listItems}
               hiddenOptions={hiddenOptions}
@@ -135,10 +148,11 @@ function GridList<T extends ListItemBase>({
               showSectionHeaders
               // Matches the vertical padding of `ListWrap`.
               listPadding={parseFloat(theme.space.xs)}
-              renderOption={({node, rowProps}) => (
+              renderOption={({node, position, rowProps}) => (
                 <GridListOption
                   node={node}
                   listState={listState}
+                  rowIndex={position?.rowIndex}
                   size={size}
                   data-index={rowProps?.['data-index']}
                   ref={rowProps?.ref}

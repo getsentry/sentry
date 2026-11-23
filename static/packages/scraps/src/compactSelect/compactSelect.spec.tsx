@@ -2249,6 +2249,64 @@ describe('CompactSelect', () => {
 
       expect(await screen.findAllByRole('option')).toHaveLength(500);
     });
+
+    it('announces the position of a list box option among the visible options', async () => {
+      render(
+        <CompactSelect
+          search
+          options={sections}
+          value={undefined}
+          onChange={jest.fn()}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+
+      // Each section's options form their own set.
+      const first = await screen.findByRole('option', {name: 'A 0'});
+      expect(first).toHaveAttribute('aria-posinset', '1');
+      expect(first).toHaveAttribute('aria-setsize', '250');
+
+      // Only "B 249" matches. The hidden options stay in the collection, but
+      // are not counted.
+      await userEvent.type(screen.getByPlaceholderText('Search…'), 'B 249');
+      await waitFor(() => expect(screen.getAllByRole('option')).toHaveLength(1));
+      const match = screen.getByRole('option', {name: 'B 249'});
+      expect(match).toHaveAttribute('aria-posinset', '1');
+      expect(match).toHaveAttribute('aria-setsize', '1');
+    });
+
+    it('announces the position of a grid row among the visible rows', async () => {
+      render(
+        <CompactSelect
+          mode="grid"
+          menuWidth={300}
+          options={sections}
+          value={undefined}
+          onChange={jest.fn()}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+
+      expect(await screen.findByRole('grid')).toHaveAttribute('aria-rowcount', '500');
+      expect(screen.getByRole('row', {name: 'A 0'})).toHaveAttribute(
+        'aria-rowindex',
+        '1'
+      );
+
+      // Rows are numbered across sections.
+      await waitFor(() => expect(screen.getByRole('row', {name: 'A 0'})).toHaveFocus());
+      await userEvent.keyboard('{End}');
+      await waitFor(() =>
+        expect(screen.getByRole('row', {name: 'B 249'})).toHaveAttribute(
+          'aria-rowindex',
+          '500'
+        )
+      );
+    });
   });
 });
 
