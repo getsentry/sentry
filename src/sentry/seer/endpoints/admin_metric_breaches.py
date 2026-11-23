@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass, replace
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, TypedDict
 from uuid import uuid4
 
@@ -29,7 +29,10 @@ from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
 from sentry.incidents.utils.types import (
+    AnomalyDetectionProcessedSubscriptionUpdate,
     MetricDetectorDataPacket,
+    MetricDetectorProcessedSubscriptionUpdate,
+    PercentDetectorProcessedSubscriptionUpdate,
     StaticDetectorProcessedSubscriptionUpdate,
 )
 from sentry.investigations.services.breached_metrics import code_mode_dataset
@@ -162,19 +165,51 @@ def synthetic_value(condition: DataCondition) -> float:
     return value
 
 
+def _create_synthetic_subscription_update(
+    context: SyntheticBreachContext, value: float, timestamp: datetime
+) -> MetricDetectorProcessedSubscriptionUpdate:
+    """
+    Build a fake subscription update of the type matching the detector's detection type.
+    """
+    entity = "admin-synthetic-metric-breach"
+    subscription_id = str(context.subscription.id)
+    detection_type = context.detector.config["detection_type"]
+
+    if detection_type == AlertRuleDetectionType.DYNAMIC.value:
+        return AnomalyDetectionProcessedSubscriptionUpdate(
+            entity=entity,
+            subscription_id=subscription_id,
+            values={
+                "value": value,
+                "source_id": subscription_id,
+                "subscription_id": subscription_id,
+                "timestamp": timestamp,
+            },
+            timestamp=timestamp,
+        )
+    elif detection_type == AlertRuleDetectionType.PERCENT.value:
+        return PercentDetectorProcessedSubscriptionUpdate(
+            entity=entity,
+            subscription_id=subscription_id,
+            values={"value": value},
+            timestamp=timestamp,
+        )
+    else:  # Process of elimination - must be a static detector
+        return StaticDetectorProcessedSubscriptionUpdate(
+            entity=entity,
+            subscription_id=subscription_id,
+            values={"value": value},
+            timestamp=timestamp,
+        )
+
+
 def create_synthetic_breach(context: SyntheticBreachContext) -> tuple[Group, str]:
     submitted_at = timezone.now()
     breach_start = submitted_at - timedelta(minutes=15)
     value = synthetic_value(context.condition)
     packet = MetricDetectorDataPacket(
         source_id=str(context.subscription.id),
-        # TODO: Split this up by detection type
-        packet=StaticDetectorProcessedSubscriptionUpdate(
-            entity="admin-synthetic-metric-breach",
-            subscription_id=str(context.subscription.id),
-            values={"value": value},
-            timestamp=breach_start,
-        ),
+        packet=_create_synthetic_subscription_update(context, value, breach_start),
     )
     handler = MetricIssueDetectorHandler(context.detector)
     priority = DetectorPriorityLevel(context.condition.condition_result)
