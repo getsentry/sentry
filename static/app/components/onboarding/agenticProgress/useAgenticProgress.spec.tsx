@@ -1,6 +1,11 @@
 import {AgenticProgressRunFixture} from 'sentry-fixture/agenticProgressRun';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  renderHookWithProviders,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {useAgenticProgress} from './useAgenticProgress';
 
@@ -38,6 +43,7 @@ describe('useAgenticProgress', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
