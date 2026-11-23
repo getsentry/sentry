@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -22,10 +23,10 @@ export default function NewServiceAccount() {
       <ServiceAccountForm
         defaultValues={defaultValues}
         submitLabel={t('Create Service Account')}
-        onCancel={() => navigate(getServiceAccountsUrl(organization.slug))}
+        onCancel={() => navigate(normalizeUrl(getServiceAccountsUrl(organization.slug)))}
         onSubmit={async input => {
           const account = await createAccount.mutateAsync(input);
-          navigate(getServiceAccountUrl(organization.slug, account.id));
+          navigate(normalizeUrl(getServiceAccountUrl(organization.slug, account.id)));
         }}
       />
     </Fragment>

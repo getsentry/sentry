@@ -536,7 +536,7 @@ export function Control<Value extends SelectKey>({
               <FocusScope contain>
                 {hasHeader && (
                   <Header
-                    borderBottom={searchEnabled ? 'none' : 'muted'}
+                    borderBottom={searchEnabled ? 'none' : 'secondary'}
                     padding={searchEnabled ? 'xs lg 0 lg' : 'xs lg'}
                   >
                     {/* The clear button's height, so the header doesn't resize

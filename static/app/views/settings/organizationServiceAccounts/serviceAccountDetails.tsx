@@ -15,6 +15,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -28,6 +29,7 @@ import {
   ServiceAccountPermissionTable,
 } from './serviceAccountPermissionTable';
 import {ProjectAccessBadges} from './serviceAccountProjectAccess';
+import {ServiceAccountTokens} from './serviceAccountTokens';
 import type {ServiceAccount} from './types';
 import {useCannotManageReason} from './useServiceAccountAccess';
 
@@ -79,7 +81,7 @@ function ServiceAccountActions({account}: {account: ServiceAccount}) {
             deleteAccount.mutate(undefined, {
               onSuccess: () => {
                 toast.success(t('Service account deleted.'));
-                navigate(listUrl);
+                navigate(normalizeUrl(listUrl));
               },
               onError: error => {
                 toast.error(
@@ -149,6 +151,8 @@ export default function ServiceAccountDetails() {
             </Text>
           </Detail>
         </Grid>
+
+        <ServiceAccountTokens account={account} />
 
         <Stack gap="lg">
           <Heading as="h3">{t('Permissions')}</Heading>

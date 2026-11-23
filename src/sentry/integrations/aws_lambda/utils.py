@@ -150,7 +150,7 @@ def get_version_of_arn(arn: str) -> int:
 def _get_arn_from_layer(layer: object) -> str:
     # layer could be a string or dict
     if isinstance(layer, dict):
-        return cast(str, layer["Arn"])
+        return layer["Arn"]
     return cast(str, layer)
 
 

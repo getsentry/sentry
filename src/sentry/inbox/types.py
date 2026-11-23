@@ -2,16 +2,15 @@ from __future__ import annotations
 
 import hashlib
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from enum import StrEnum
 from functools import partial
 from random import random
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import orjson
 from django.db import router, transaction
-from django.db.models.functions import Greatest
 from django.utils import timezone
 
 from sentry import features, options
@@ -25,6 +24,9 @@ from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItem
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
+
+if TYPE_CHECKING:
+    from sentry.inbox.response_types import InboxSubjectResponse
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -64,6 +66,17 @@ def _schedule_event_retention(items: Sequence[InboxItem]) -> None:
             safe_execute(cleanup_inbox_item_events.delay, item_id=item.id)
 
 
+@dataclass(frozen=True, kw_only=True)
+class InboxSubject(ABC):
+    """Details about a subject, fetched from its source each time inbox items are serialized."""
+
+    id: int
+    title: str
+
+    @abstractmethod
+    def serialize(self) -> InboxSubjectResponse: ...
+
+
 class InboxItemType[SubjectT](ABC):
     """Groups activity for the same subject into one inbox item per recipient."""
 
@@ -77,10 +90,10 @@ class InboxItemType[SubjectT](ABC):
     def get_organization_id(self, subject: SubjectT) -> int: ...
 
     @abstractmethod
-    def get_titles(
+    def get_subjects(
         self, *, organization: Organization, subject_ids: Sequence[str]
-    ) -> dict[str, str]:
-        """Titles keyed by subject ID, scoped to organization. Omit missing subjects."""
+    ) -> Mapping[str, InboxSubject]:
+        """Subjects keyed by subject ID, scoped to organization. Omit missing subjects."""
 
     @abstractmethod
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
@@ -158,6 +171,7 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
         payload = asdict(data)
         tags = {"event_type": self.event_type}
         using = router.db_for_write(InboxItem)
+        activity_at = timezone.now()
 
         with (
             metrics.timer("inbox.record.duration", tags=tags),
@@ -170,14 +184,14 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
                         user_id=user_id,
                         subject_type=self.item_type.subject_type,
                         subject_id=subject_id,
-                        last_activity_at=timezone.now(),
+                        last_activity_at=activity_at,
                         status=ObjectStatus.ACTIVE,
                     )
                     for user_id in sorted(recipients)
                 ],
                 update_conflicts=True,
                 unique_fields=["user_id", "organization", "subject_type", "subject_id"],
-                update_fields=["status"],
+                update_fields=["status", "last_activity_at", "date_updated"],
             )
             events = []
             for item in items:
@@ -193,19 +207,9 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
                 )
                 if created:
                     events.append(event)
-                activity_at = event.date_added if created else timezone.now()
-                item.last_activity_at = Greatest("last_activity_at", activity_at)
-                item.date_updated = activity_at
-            transaction.on_commit(
-                partial(_schedule_item_retention, items),
-                using=router.db_for_write(InboxItem),
-            )
-            transaction.on_commit(
-                partial(_schedule_event_retention, items),
-                using=router.db_for_write(InboxItem),
-            )
-            InboxItem.objects.bulk_update(items, ["last_activity_at", "date_updated"])
 
+            transaction.on_commit(partial(_schedule_item_retention, items), using=using)
+            transaction.on_commit(partial(_schedule_event_retention, items), using=using)
             transaction.on_commit(
                 lambda: metrics.incr("inbox.events.processed", amount=len(recipients), tags=tags),
                 using=using,

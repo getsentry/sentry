@@ -258,7 +258,7 @@ describe('WidgetBuilderSlideout', () => {
             query: {
               field: [],
               yAxis: ['count()'],
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.LINE,
             },
           },
@@ -338,7 +338,7 @@ describe('WidgetBuilderSlideout', () => {
             query: {
               field: ['count()'],
               yAxis: [],
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.TABLE,
             },
           },
@@ -381,10 +381,7 @@ describe('WidgetBuilderSlideout', () => {
         initialRouterConfig: {
           location: {
             pathname: '/dashboards/',
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.BIG_NUMBER,
-            },
+            query: {dataset: WidgetType.ERRORS, displayType: DisplayType.BIG_NUMBER},
           },
         },
       }
@@ -444,7 +441,7 @@ describe('WidgetBuilderSlideout', () => {
           location: {
             pathname: '/dashboards/1/',
             query: {
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.LINE,
               yAxis: ['count()'],
               thresholds: '{"max_values":{"max1":100,"max2":200},"unit":null}',
@@ -490,7 +487,7 @@ describe('WidgetBuilderSlideout', () => {
           location: {
             pathname: '/dashboards/1/',
             query: {
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.LINE,
               yAxis: ['count()'],
               thresholds:
@@ -648,12 +645,9 @@ describe('WidgetBuilderSlideout', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('should show deprecation alert when flag enabled', async () => {
+  it('should show deprecation alert for transaction widgets', async () => {
     const organizationWithFeature = OrganizationFixture({
-      features: [
-        'discover-saved-queries-deprecation',
-        'performance-transaction-deprecation-banner',
-      ],
+      features: ['performance-transaction-deprecation-banner'],
     });
     render(
       <WidgetBuilderProvider>
@@ -692,10 +686,7 @@ describe('WidgetBuilderSlideout', () => {
 
   it('links to the spans dataset keeping only the page filters when editing a transaction widget', async () => {
     const organizationWithFeature = OrganizationFixture({
-      features: [
-        'discover-saved-queries-deprecation',
-        'performance-transaction-deprecation-banner',
-      ],
+      features: ['performance-transaction-deprecation-banner'],
     });
     render(
       <WidgetBuilderProvider>
@@ -735,7 +726,10 @@ describe('WidgetBuilderSlideout', () => {
     );
   });
 
-  it('should not show deprecation alert when flag enabled', async () => {
+  it('should not show deprecation alert for non-transaction widgets', async () => {
+    const organizationWithFeature = OrganizationFixture({
+      features: ['performance-transaction-deprecation-banner'],
+    });
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
@@ -750,25 +744,24 @@ describe('WidgetBuilderSlideout', () => {
         />
       </WidgetBuilderProvider>,
       {
-        organization,
+        organization: organizationWithFeature,
         initialRouterConfig: {
           route: '/dashboards/:widgetIndex/',
           location: {
             pathname: '/dashboards/1/',
-            query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
+            query: {dataset: WidgetType.ERRORS, displayType: DisplayType.LINE},
           },
         },
       }
     );
     renderGlobalModal();
 
-    await waitFor(() => {
-      expect(
-        screen.queryByText(
-          /You may have limited functionality due to the ongoing migration of transactions to spans/i
-        )
-      ).not.toBeInTheDocument();
-    });
+    expect(await screen.findByText('Visualize')).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        /Editing of transaction-based widgets is disabled, as we migrate to the span dataset/i
+      )
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('transaction-widget-disabled-wrapper')
     ).not.toBeInTheDocument();

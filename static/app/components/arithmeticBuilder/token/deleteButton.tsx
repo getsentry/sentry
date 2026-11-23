@@ -4,7 +4,7 @@ import {IconClose} from '@sentry/icons/close';
 
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import type {Token} from 'sentry/components/arithmeticBuilder/token';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {defined} from 'sentry/utils/defined';
 
 interface DeleteButtonProps {

@@ -3,6 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import OrganizationServiceAccounts from '.';
@@ -102,6 +103,36 @@ describe('OrganizationServiceAccounts', () => {
 
     expect(await screen.findByText('No service accounts yet')).toBeInTheDocument();
     expect(request).toHaveBeenCalled();
+  });
+
+  it('links to the account on customer domains', async () => {
+    const initialConfig = ConfigStore.getState();
+    ConfigStore.set('customerDomain', {
+      subdomain: organization.slug,
+      organizationUrl: `https://${organization.slug}.sentry.io`,
+      sentryUrl: 'https://sentry.io',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/service-accounts/`,
+      body: [
+        {
+          id: '10',
+          name: 'github-actions-deploy',
+          scopes: ['org:read'],
+          projectIds: [],
+          allProjects: true,
+          ownerKind: 'organization',
+          dateCreated: '2026-11-01T00:00:00Z',
+        },
+      ],
+    });
+
+    render(<OrganizationServiceAccounts />, {organization});
+
+    expect(
+      await screen.findByRole('link', {name: 'github-actions-deploy'})
+    ).toHaveAttribute('href', '/settings/service-accounts/10/');
+    ConfigStore.loadInitialData(initialConfig);
   });
 
   it('shows an empty state', async () => {

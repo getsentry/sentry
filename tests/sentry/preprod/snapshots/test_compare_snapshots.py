@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 from unittest.mock import ANY, MagicMock, call, patch
 
 import orjson
@@ -339,7 +339,7 @@ class ProcessChunkTest(TestCase):
             base_snapshot_metrics=base,
             state=PreprodSnapshotComparison.State.PROCESSING,
         )
-        comparison.chunks_total = cast("int", chunks_total)
+        comparison.chunks_total = chunks_total
         if done_indices is not None:
             comparison.chunks_done_indices = done_indices
         comparison.save()
@@ -593,7 +593,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         comparison = self.create_preprod_snapshot_comparison(
             head_snapshot_metrics=head, base_snapshot_metrics=base, state=state
         )
-        comparison.chunks_total = cast("int", chunks_total)
+        comparison.chunks_total = chunks_total
         if done_indices is not None:
             comparison.chunks_done_indices = done_indices
         comparison.save()
@@ -1130,7 +1130,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
             base_snapshot_metrics=base_metrics,
             state=PreprodSnapshotComparison.State.PROCESSING,
         )
-        assert cast("object", comparison.chunks_total) is None
+        assert comparison.chunks_total is None
 
         head_manifest = SnapshotManifest(
             images={"changed.png": ImageMetadata(content_hash="h1", width=100, height=100)},

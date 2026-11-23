@@ -1,6 +1,11 @@
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
+/**
+ * Opens the auto-reload modal on any organization page. A link can say why Seer
+ * stopped by adding one of the credit check's denial reasons, for example
+ * `#open-seer-auto-reload-modal:daily_cap_exceeded`.
+ */
 export const SEER_AUTO_RELOAD_MODAL_HASH = '#open-seer-auto-reload-modal';
 
 export type SeerWalletBalance = {

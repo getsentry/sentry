@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict, cast
+from typing import Any, NotRequired, TypedDict
 
 from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -39,6 +39,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.access import Access
 from sentry.auth.principal import acting_user_id
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.organizations.services.organization import (
@@ -65,6 +66,12 @@ ALL_PROJECTS_WITH_PROJECTS_ERROR = (
 ALL_PROJECTS_ROLE_ERROR = (
     "Only a role with access to all projects, such as Manager or Owner,"
     " can give a service account access to all projects."
+)
+NARROW_ALL_PROJECTS_ERROR = (
+    "Only a caller with access to all projects can narrow a service account's projects."
+)
+ADD_SCOPES_HIDDEN_PROJECTS_ERROR = (
+    "You can't add scopes to a service account that has projects you can't access."
 )
 
 SERVICE_ACCOUNT_ID = OpenApiParameter(
@@ -141,6 +148,16 @@ def _check_can_grant_all_projects(request: Request) -> None:
     role = request.access.role
     if role is None or not roles.get(role).is_global:
         raise PermissionDenied(ALL_PROJECTS_ROLE_ERROR)
+
+
+def hidden_project_ids(access: Access, service_account: ServiceAccount) -> set[int]:
+    """The account's linked projects the caller can't access. Empty for all-projects accounts."""
+    if access.has_global_access:
+        return set()
+    linked = ServiceAccountProject.objects.filter(service_account=service_account).values_list(
+        "project_id", flat=True
+    )
+    return set(linked) - access.accessible_project_ids
 
 
 class ServiceAccountCreateSerializer(serializers.Serializer):
@@ -307,7 +324,7 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
         )
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
-        data = cast(ServiceAccountCreateRequestData, serializer.validated_data)
+        data = serializer.validated_data
         all_projects = data.get("allProjects", False)
         if all_projects:
             _check_can_grant_all_projects(request)
@@ -418,25 +435,37 @@ class OrganizationServiceAccountDetailsEndpoint(ServiceAccountScopedEndpointBase
         )
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
-        data = cast(ServiceAccountUpdateRequestData, serializer.validated_data)
+        data = serializer.validated_data
 
         try:
             with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
                 service_account = ServiceAccount.objects.select_for_update().get(
                     id=service_account.id, is_active=True
                 )
+                # Checked against the locked row, so the checks see the grants being changed.
+                hidden = hidden_project_ids(request.access, service_account)
                 if "name" in data:
                     service_account.name = data["name"]
                 if "scopes" in data:
+                    if hidden and set(data["scopes"]) - set(service_account.scope_list):
+                        raise PermissionDenied(ADD_SCOPES_HIDDEN_PROJECTS_ERROR)
                     service_account.scope_list = data["scopes"]
-                # Checked against the locked row, so keeping all projects on an account
-                # also needs the role, even when the request doesn't mention it.
-                service_account.all_projects = data.get("allProjects", service_account.all_projects)
+                all_projects = data.get("allProjects", service_account.all_projects)
+                if (
+                    service_account.all_projects
+                    and not all_projects
+                    and not request.access.has_global_access
+                ):
+                    raise PermissionDenied(NARROW_ALL_PROJECTS_ERROR)
+                service_account.all_projects = all_projects
+                # Keeping all projects on an account also needs the role, even when the
+                # request doesn't mention it.
                 if service_account.all_projects:
                     _check_can_grant_all_projects(request)
                     service_account.replace_projects([])
                 elif "projectIds" in data:
-                    service_account.replace_projects(data["projectIds"] or [])
+                    # A replace keeps the projects the caller can't see.
+                    service_account.replace_projects({*(data["projectIds"] or []), *hidden})
                 service_account.save()
         except ServiceAccount.DoesNotExist:
             # Deleted by another request after convert_args loaded it.

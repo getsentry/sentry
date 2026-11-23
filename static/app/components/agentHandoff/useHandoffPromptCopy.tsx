@@ -20,7 +20,9 @@ export function useHandoffPromptCopy<Flow extends AgentHandoffFlow>({
 }: UseHandoffPromptCopyOptions<Flow>) {
   const [useIpPinning, setUseIpPinning] = useState(true);
   const handoff = useAgentHandoff(flow, context);
-  const copyDisabled = !context || handoff.isPending;
+  // Minting the code is near-instant, so a busy or disabled state while it runs
+  // only flashes. copyPrompt ignores clicks until the request settles.
+  const copyDisabled = !context;
 
   function copyPrompt() {
     if (handoff.isPending) {

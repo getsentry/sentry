@@ -18,8 +18,12 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {DateTimeProvider} from '@sentry/scraps/dateTime';
+
+import type {ReplayPrefs} from 'sentry/components/replays/preferences/replayPreferences';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
@@ -201,6 +205,41 @@ describe('ReplayDetailsEntityHeader', () => {
     // the stack would not pick up the current user after they watch.
     await waitFor(() => expect(viewedBy).toHaveBeenCalled());
   });
+
+  it.each<[ReplayPrefs['timestampType'], string]>([
+    ['relative', '5min ago'],
+    ['absolute', 'Jun 8, 2025 9:05:09 PM PDT'],
+  ])(
+    'draws the start time as the %s timestamp preference asks',
+    (timestampType, text) => {
+      jest.setSystemTime(new Date('2025-06-09T04:10:09Z'));
+      const replayRecord = replayRecordFixture({
+        started_at: new Date('2025-06-09T04:05:09Z'),
+      });
+      mockViewedBy(replayRecord.id);
+      const prefs: ReplayPrefs = {
+        isSkippingInactive: true,
+        playbackSpeed: 1,
+        timestampType,
+      };
+
+      // Pending renders the header from the replay record without a full reader.
+      render(
+        <DateTimeProvider value={{timezone: 'America/Los_Angeles', clock: '12'}}>
+          <ReplayPreferencesContextProvider
+            prefsStrategy={{_prefs: prefs, get: () => prefs, set: () => {}}}
+          >
+            <ReplayDetailsEntityHeader
+              readerResult={readerResultFixture({replayRecord, isPending: true})}
+            />
+          </ReplayPreferencesContextProvider>
+        </DateTimeProvider>,
+        {organization}
+      );
+
+      expect(screen.getByText(text)).toBeInTheDocument();
+    }
+  );
 
   it('holds the stats while the reader is still pending', () => {
     const replayRecord = replayRecordFixture({count_dead_clicks: 1});
