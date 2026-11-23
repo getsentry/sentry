@@ -60,7 +60,6 @@ class SubscriptionProcessor:
         """
         self.subscription = subscription
         self.detector = detector
-        self.last_update = get_detector_last_update(detector, subscription.project_id)
 
     @classmethod
     def process(
@@ -204,6 +203,7 @@ class SubscriptionProcessor:
         subscription_update: QuerySubscriptionUpdate,
         evaluation_value: float,
     ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]]:
+        timestamp = subscription_update["timestamp"]
         detector_cfg: MetricIssueDetectorConfig = detector.config
         if detector_cfg["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
             anomaly_detection_packet = AnomalyDetectionUpdate(
@@ -213,9 +213,9 @@ class SubscriptionProcessor:
                     "value": evaluation_value,
                     "source_id": str(self.subscription.id),
                     "subscription_id": subscription_update["subscription_id"],
-                    "timestamp": self.last_update,
+                    "timestamp": timestamp,
                 },
-                timestamp=self.last_update,
+                timestamp=timestamp,
             )
             anomaly_detection_data_packet = DataPacket[AnomalyDetectionUpdate](
                 source_id=str(self.subscription.id), packet=anomaly_detection_packet
@@ -228,7 +228,7 @@ class SubscriptionProcessor:
                 entity=subscription_update.get("entity", ""),
                 subscription_id=subscription_update["subscription_id"],
                 values={"value": evaluation_value},
-                timestamp=self.last_update,
+                timestamp=timestamp,
             )
             metric_data_packet = DataPacket[ProcessedSubscriptionUpdate](
                 source_id=str(self.subscription.id), packet=metric_packet
@@ -252,11 +252,13 @@ class SubscriptionProcessor:
             )
             return False
 
-        if subscription_update["timestamp"] <= self.last_update:
+        # Subscriptions updates are delivered via Kafka, which can lead to them arriving out of
+        # order and/or multiple times. To prevent processing out-of-date/duplicate data, we store
+        # the timestamp of the latest update we processed, and check it against incoming updates.
+        last_update_date = get_detector_last_update(self.detector, self.subscription.project_id)
+        if subscription_update["timestamp"] <= last_update_date:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return False
-
-        self.last_update = subscription_update["timestamp"]
 
         if (
             len(subscription_update["values"]["data"]) > 1
@@ -282,21 +284,19 @@ class SubscriptionProcessor:
             # `get_evaluation_value` will return None if there's no usable value
             if evaluation_value is None:
                 metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
-                # We have an invalid aggregate, but we _did_ process the update, so we store
-                # last_update to reflect that and avoid reprocessing.
-                store_detector_last_update(
-                    self.detector, self.subscription.project.id, self.last_update
+            else:
+                self._create_and_process_data_packet(
+                    self.detector, subscription_update, evaluation_value
                 )
-                return False
 
-            self._create_and_process_data_packet(
-                self.detector, subscription_update, evaluation_value
-            )
-            # Ensure that we have last_update stored for all Detector evaluations.
-            store_detector_last_update(
-                self.detector, self.subscription.project.id, self.last_update
-            )
-            return True
+        # Whether or not the value was valid, we processed the update, so bump the stored last
+        # update time to avoid reprocessing it. This happens after processing, not before, so an
+        # update interrupted partway through can still be redelivered and reprocessed.
+        store_detector_last_update(
+            self.detector, self.subscription.project_id, subscription_update["timestamp"]
+        )
+
+        return evaluation_value is not None
 
 
 def build_detector_last_update_key(detector: Detector, project_id: int) -> str:
