@@ -9,6 +9,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AnsiText} from 'sentry/components/ansiText';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -22,6 +23,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getMessage, getTitle} from 'sentry/utils/events';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -34,7 +36,10 @@ import {EventDetailsHeader} from 'sentry/views/issueDetails/eventDetailsHeader';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
-import {relatedIssuesApiOptions} from 'sentry/views/issueDetails/groupRelatedIssues/relatedIssuesApiOptions';
+import {
+  relatedIssuesApiOptions,
+  type RelatedIssue,
+} from 'sentry/views/issueDetails/groupRelatedIssues/relatedIssuesApiOptions';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
 import {issueFirstLastReleaseQueryOptions} from 'sentry/views/issueDetails/issueFirstLastReleaseQueryOptions';
@@ -304,23 +309,24 @@ function InboxIssueRelated({group}: Pick<InboxIssueSectionProps, 'group'>) {
 
   // Investigations come before issues
   const rows = [
-    ...data.investigations.map(({investigation}) => (
+    ...data.investigations.map(({investigation, reason, hypothesisStatement}) => (
       <InboxIssueRelatedRow
         key={`investigation-${investigation.id}`}
         icon={<IconSeer size="sm" />}
         to={getInvestigationPath(organization.slug, investigation.id)}
-      >
-        {investigation.title}
-      </InboxIssueRelatedRow>
+        title={investigation.title}
+        reason={reason ?? t('Hypothesis: %s', hypothesisStatement)}
+      />
     )),
-    ...data.data.map(({issue}) => (
+    ...data.data.map(({issue, relations}) => (
       <InboxIssueRelatedRow
         key={`issue-${issue.id}`}
         icon={<IconIssues size="sm" />}
         to={normalizeUrl(`/organizations/${organization.slug}/issues/${issue.id}/`)}
-      >
-        {issue.shortId} – {issue.title}
-      </InboxIssueRelatedRow>
+        shortId={issue.shortId}
+        title={issue.title}
+        reason={relations.map(getRelationLabel).join(' · ')}
+      />
     )),
   ].slice(0, RELATED_SHOWN);
 
@@ -344,22 +350,58 @@ function InboxIssueRelated({group}: Pick<InboxIssueSectionProps, 'group'>) {
   return <Stack gap="md">{rows}</Stack>;
 }
 
+/**
+ * Why the endpoint matched a related issue, for its tooltip.
+ */
+function getRelationLabel(relation: RelatedIssue['relations'][number]) {
+  switch (relation.type) {
+    case 'similar_stacktrace':
+      return t('Similar stack trace (%s)', formatPercentage(relation.score, 0));
+    case 'same_trace':
+      return t('Same trace');
+    case 'same_title':
+      return t('Same title');
+    case 'same_supergroup':
+      return t('Same supergroup');
+    case 'contributing':
+      return t('Contributed to this alert');
+  }
+}
+
+/**
+ * A related issue or investigation. The row cuts off a long title, so its tooltip shows the full
+ * title and why it's related.
+ */
 function InboxIssueRelatedRow({
   icon,
   to,
-  children,
+  title,
+  reason,
+  shortId,
 }: {
-  children: ReactNode;
   icon: ReactNode;
+  reason: string;
+  title: string;
   to: string;
+  shortId?: string;
 }) {
   return (
     <Flex gap="sm" align="center" minWidth={0}>
       {linkProps => (
-        <IssueTitleLink {...linkProps} to={to}>
-          {icon}
-          <Text ellipsis>{children}</Text>
-        </IssueTitleLink>
+        <Tooltip
+          skipWrapper
+          title={
+            <Stack gap="xs">
+              <Text>{title}</Text>
+              <Text variant="muted">{reason}</Text>
+            </Stack>
+          }
+        >
+          <IssueTitleLink {...linkProps} to={to}>
+            {icon}
+            <Text ellipsis>{shortId ? `${shortId} – ${title}` : title}</Text>
+          </IssueTitleLink>
+        </Tooltip>
       )}
     </Flex>
   );
