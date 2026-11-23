@@ -338,8 +338,8 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         )
         self.login_as(user=team_admin)
 
-    def test_project_write_cannot_redirect_splunk_without_token(self) -> None:
-        data_forwarder = self.create_data_forwarder(
+    def _create_splunk_forwarder(self) -> DataForwarder:
+        return self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SPLUNK,
             config={
                 "instance_url": "https://splunk.example.com",
@@ -348,6 +348,9 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
                 "token": "org-token",
             },
         )
+
+    def test_project_write_cannot_redirect_splunk_without_token(self) -> None:
+        data_forwarder = self._create_splunk_forwarder()
         project = self.create_project(organization=self.organization, teams=[self.team])
         self.create_data_forwarder_project(data_forwarder=data_forwarder, project=project)
         self._login_as_team_admin()
@@ -369,15 +372,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         assert project_config.get_config()["instance_url"] == "https://splunk.example.com"
 
     def test_project_write_can_redirect_splunk_with_own_token(self) -> None:
-        data_forwarder = self.create_data_forwarder(
-            provider=DataForwarderProviderSlug.SPLUNK,
-            config={
-                "instance_url": "https://splunk.example.com",
-                "index": "main",
-                "source": "sentry",
-                "token": "org-token",
-            },
-        )
+        data_forwarder = self._create_splunk_forwarder()
         project = self.create_project(organization=self.organization, teams=[self.team])
         self._login_as_team_admin()
 
@@ -398,15 +393,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         assert project_config.get_config()["token"] == "team-token"
 
     def test_project_write_can_override_splunk_index_only(self) -> None:
-        data_forwarder = self.create_data_forwarder(
-            provider=DataForwarderProviderSlug.SPLUNK,
-            config={
-                "instance_url": "https://splunk.example.com",
-                "index": "main",
-                "source": "sentry",
-                "token": "org-token",
-            },
-        )
+        data_forwarder = self._create_splunk_forwarder()
         project = self.create_project(organization=self.organization, teams=[self.team])
         self._login_as_team_admin()
 
@@ -458,15 +445,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         ).exists()
 
     def test_org_write_can_redirect_splunk_with_org_token(self) -> None:
-        data_forwarder = self.create_data_forwarder(
-            provider=DataForwarderProviderSlug.SPLUNK,
-            config={
-                "instance_url": "https://splunk.example.com",
-                "index": "main",
-                "source": "sentry",
-                "token": "org-token",
-            },
-        )
+        data_forwarder = self._create_splunk_forwarder()
         project = self.create_project(organization=self.organization, teams=[self.team])
 
         self.get_success_response(
