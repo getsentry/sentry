@@ -277,8 +277,7 @@ export function InputSection({
       {prLinksBar}
       <Stack gap="lg" padding="lg xl">
         {notice}
-        {/* The editor and its toolbar read as one field, so the focus ring wraps both. */}
-        <ComposerFrame border="primary" radius="lg">
+        <Stack border="primary" radius="lg">
           <StyledComposer
             isWarningPlaceholder={interruptState === 'completed'}
             ref={composerRef}
@@ -341,19 +340,11 @@ export function InputSection({
               />
             )}
           </Flex>
-        </ComposerFrame>
+        </Stack>
       </Stack>
     </Container>
   );
 }
-
-const ComposerFrame = styled(Stack)`
-  transition: box-shadow ${p => p.theme.motion.smooth.fast};
-
-  &:focus-within {
-    ${p => p.theme.focusRing()};
-  }
-`;
 
 const StyledComposer = styled(Composer, {
   shouldForwardProp: prop => prop !== 'isWarningPlaceholder',
@@ -365,10 +356,10 @@ const StyledComposer = styled(Composer, {
   border-bottom: 0;
   border-radius: ${p => p.theme.radius.lg} ${p => p.theme.radius.lg} 0 0;
 
+  /* Draw the focus ring inside the editor so it never covers the toolbar below. */
   &:focus,
   &:focus-visible {
-    box-shadow: 0 1px 0 0 ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk}
-      inset;
+    box-shadow: inset 0 0 0 2px ${p => p.theme.tokens.focus.default};
   }
 
   &:empty::before {

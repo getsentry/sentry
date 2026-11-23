@@ -1026,7 +1026,7 @@ export function SeerExplorerContent({
             />
           }
           leadingToolbarItems={
-            <Fragment>
+            <Flex align="center">
               {toolbarMenu}
               <SeerExplorerSettingsMenu
                 isPipSupported={isPipSupported}
@@ -1038,7 +1038,7 @@ export function SeerExplorerContent({
                 onOverrideBashModeToggle={() => setOverrideBashModeEnabled(v => !v)}
                 conversationsUrl={conversationsUrl}
               />
-            </Fragment>
+            </Flex>
           }
           interruptState={interruptState}
           onInputChange={handleInputChange}
