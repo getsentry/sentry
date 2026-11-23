@@ -80,9 +80,7 @@ export function CodeOwnerFileTable({
             },
           }
         ),
-        {
-          method: 'GET',
-        }
+        {method: 'GET'}
       );
 
       const data = await api.requestPromise(
@@ -96,10 +94,7 @@ export function CodeOwnerFileTable({
             },
           }
         ),
-        {
-          method: 'PUT',
-          data: {raw: codeownerFile.raw},
-        }
+        {method: 'PUT', data: {raw: codeownerFile.raw}}
       );
       onUpdate({...codeowner, ...data});
       toast.success(t('CODEOWNERS file sync successful.'));
@@ -121,9 +116,7 @@ export function CodeOwnerFileTable({
             },
           }
         ),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       );
       onDelete(codeowner);
       toast.success(t('Deletion successful'));
@@ -176,16 +169,8 @@ export function CodeOwnerFileTable({
           <SimpleTable.RowCell gap="md">
             <DropdownMenu
               items={[
-                {
-                  key: 'view',
-                  label: t('View'),
-                  onAction: handleView(codeowner),
-                },
-                {
-                  key: 'sync',
-                  label: t('Sync'),
-                  onAction: handleSync(codeowner),
-                },
+                {key: 'view', label: t('View'), onAction: handleView(codeowner)},
+                {key: 'sync', label: t('Sync'), onAction: handleSync(codeowner)},
                 {
                   key: 'delete',
                   label: t('Delete'),
@@ -194,6 +179,7 @@ export function CodeOwnerFileTable({
                 },
               ]}
               position="bottom-end"
+              strategy="fixed"
               trigger={triggerProps => (
                 <OverlayTrigger.IconButton
                   {...triggerProps}
@@ -213,7 +199,6 @@ export function CodeOwnerFileTable({
 }
 
 const StyledSimpleTable = styled(SimpleTable)`
-  position: static;
   overflow: auto;
   white-space: nowrap;
 `;

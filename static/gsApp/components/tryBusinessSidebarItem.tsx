@@ -73,10 +73,7 @@ function TryBusinessSidebarItem(props: Props) {
       .join('_');
 
     if (document.location.hash === AUTO_OPEN_HASH) {
-      openUpsellModal({
-        organization: props.organization,
-        source: source || 'direct',
-      });
+      openUpsellModal({organization: props.organization, source: source || 'direct'});
     }
   }, [props.organization]);
 

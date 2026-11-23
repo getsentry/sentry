@@ -5,9 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {BackendJsonAutoSaveForm} from './backendJsonAutoSaveForm';
 
 const org = OrganizationFixture();
-const mutationOptions = {
-  mutationFn: jest.fn().mockResolvedValue({}),
-};
+const mutationOptions = {mutationFn: jest.fn().mockResolvedValue({})};
 
 describe('ChoiceMapperAdapter', () => {
   it('renders choice_mapper with empty value showing only Add button', async () => {
@@ -85,9 +83,7 @@ describe('ChoiceMapperAdapter', () => {
             },
           },
         }}
-        initialValue={{
-          repo1: {on_resolve: 'closed', on_unresolve: 'open'},
-        }}
+        initialValue={{repo1: {on_resolve: 'closed', on_unresolve: 'open'}}}
         mutationOptions={mutationOptions}
       />,
       {organization: org}
@@ -190,9 +186,7 @@ describe('ChoiceMapperAdapter', () => {
 
     await waitFor(() => {
       expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
-        {
-          status_mapping: {repo1: {on_resolve: 'closed'}},
-        },
+        {status_mapping: {repo1: {on_resolve: 'closed'}}},
         expect.anything()
       );
     });
@@ -253,9 +247,7 @@ describe('ChoiceMapperAdapter', () => {
 
     await waitFor(() => {
       expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
-        {
-          status_mapping: {repo1: {on_resolve: 'closed', on_unresolve: 'reopened'}},
-        },
+        {status_mapping: {repo1: {on_resolve: 'closed', on_unresolve: 'reopened'}}},
         expect.anything()
       );
     });
@@ -269,9 +261,7 @@ describe('ChoiceMapperAdapter', () => {
           type: 'choice_mapper',
           label: 'Status Mapping',
           addButtonText: 'Add Repo',
-          addDropdown: {
-            items: [{value: 'repo1', label: 'my-org/repo1'}],
-          },
+          addDropdown: {items: [{value: 'repo1', label: 'my-org/repo1'}]},
           columnLabels: {on_resolve: 'When Resolved'},
           mappedColumnLabel: 'Repository',
           mappedSelectors: {
@@ -293,9 +283,7 @@ describe('ChoiceMapperAdapter', () => {
 
     await waitFor(() => {
       expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
-        {
-          status_mapping: {},
-        },
+        {status_mapping: {}},
         expect.anything()
       );
     });
@@ -309,9 +297,7 @@ describe('ChoiceMapperAdapter', () => {
           type: 'choice_mapper',
           label: 'Status Mapping',
           addButtonText: 'Add Repo',
-          addDropdown: {
-            items: [{value: 'repo1', label: 'my-org/repo1'}],
-          },
+          addDropdown: {items: [{value: 'repo1', label: 'my-org/repo1'}]},
           columnLabels: {on_resolve: 'When Resolved'},
           mappedColumnLabel: 'Repository',
           mappedSelectors: {
@@ -336,9 +322,7 @@ describe('ChoiceMapperAdapter', () => {
 
     await waitFor(() => {
       expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
-        {
-          status_mapping: {repo1: {on_resolve: 'open'}},
-        },
+        {status_mapping: {repo1: {on_resolve: 'open'}}},
         expect.anything()
       );
     });
@@ -394,7 +378,7 @@ describe('ChoiceMapperAdapter', () => {
     expect(screen.getByText('Type to search')).toBeInTheDocument();
 
     // Type a search query into the search input
-    await userEvent.type(screen.getByRole('textbox'), 'cool');
+    await userEvent.type(screen.getByRole('searchbox'), 'cool');
 
     // Wait for search results to appear
     expect(
@@ -423,11 +407,7 @@ describe('ChoiceMapperAdapter', () => {
           type: 'choice_mapper',
           label: 'Status Mapping',
           addButtonText: 'Add GitHub Project',
-          addDropdown: {
-            items: [],
-            url: searchUrl,
-            searchField: 'repo',
-          },
+          addDropdown: {items: [], url: searchUrl, searchField: 'repo'},
           columnLabels: {on_resolve: 'When Resolved'},
           mappedColumnLabel: 'Repository',
           mappedSelectors: {
@@ -449,7 +429,7 @@ describe('ChoiceMapperAdapter', () => {
     await userEvent.click(
       await screen.findByRole('button', {name: /Add GitHub Project/i})
     );
-    await userEvent.type(screen.getByRole('textbox'), 'cool');
+    await userEvent.type(screen.getByRole('searchbox'), 'cool');
     await userEvent.click(
       await screen.findByRole('option', {name: 'Cool Repo (friendly name)'})
     );
@@ -500,9 +480,7 @@ describe('ChoiceMapperAdapter', () => {
             },
           },
         }}
-        initialValue={{
-          '10000': {on_resolve: '1'},
-        }}
+        initialValue={{'10000': {on_resolve: '1'}}}
         mutationOptions={mutationOptions}
       />,
       {organization: org}
@@ -524,10 +502,7 @@ describe('ChoiceMapperAdapter', () => {
   it('choice_mapper does not fetch for pre-populated rows', async () => {
     const statusUrl = '/extensions/jira/search/my-org/42/';
 
-    const mockRequest = MockApiClient.addMockResponse({
-      url: statusUrl,
-      body: [],
-    });
+    const mockRequest = MockApiClient.addMockResponse({url: statusUrl, body: []});
 
     render(
       <BackendJsonAutoSaveForm
@@ -536,9 +511,7 @@ describe('ChoiceMapperAdapter', () => {
           type: 'choice_mapper',
           label: 'Status Mapping',
           addButtonText: 'Add Jira Project',
-          addDropdown: {
-            items: [{value: '10000', label: 'Project A'}],
-          },
+          addDropdown: {items: [{value: '10000', label: 'Project A'}]},
           columnLabels: {on_resolve: 'When Resolved'},
           mappedColumnLabel: 'Jira Project',
           perItemMapping: true,
@@ -554,9 +527,7 @@ describe('ChoiceMapperAdapter', () => {
             },
           },
         }}
-        initialValue={{
-          '10000': {on_resolve: '1'},
-        }}
+        initialValue={{'10000': {on_resolve: '1'}}}
         mutationOptions={mutationOptions}
       />,
       {organization: org}
@@ -581,9 +552,7 @@ describe('ChoiceMapperAdapter', () => {
           type: 'choice_mapper',
           label: 'Status Mapping',
           addButtonText: 'Add Repo',
-          addDropdown: {
-            items: [{value: 'repo1', label: 'my-org/repo1'}],
-          },
+          addDropdown: {items: [{value: 'repo1', label: 'my-org/repo1'}]},
           columnLabels: {on_resolve: 'When Resolved'},
           mappedColumnLabel: 'Repository',
           mappedSelectors: {

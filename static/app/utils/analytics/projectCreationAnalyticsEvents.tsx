@@ -8,6 +8,7 @@ export type ProjectCreationVariant = 'scm' | 'legacy';
 
 export type ProjectCreationEventParameters = {
   'project_creation.agent_setup_command_copied': {
+    handoff_id: string;
     source: 'install_command' | 'prompt';
     variant: ProjectCreationVariant;
     run_id?: string;
@@ -25,9 +26,7 @@ export type ProjectCreationEventParameters = {
     field: 'threshold' | 'metric' | 'interval';
     variant?: ProjectCreationVariant;
   };
-  'project_creation.back_button_clicked': {
-    variant?: ProjectCreationVariant;
-  };
+  'project_creation.back_button_clicked': {variant?: ProjectCreationVariant};
   // SCM-first project creation wizard steps. SCM vs legacy rides in `variant`
   // (see scmFlowVariantParams); these events are only emitted by the SCM cores
   // today, so `variant` is `scm` in practice, but stays optional so a future
@@ -74,9 +73,7 @@ export type ProjectCreationEventParameters = {
     project_id: string;
     variant?: ProjectCreationVariant;
   };
-  'project_creation.manage_providers_clicked': {
-    variant?: ProjectCreationVariant;
-  };
+  'project_creation.manage_providers_clicked': {variant?: ProjectCreationVariant};
   'project_creation.next_step_clicked': {
     newOrg: boolean;
     platform: string;
@@ -85,12 +82,8 @@ export type ProjectCreationEventParameters = {
     step: string;
     variant?: ProjectCreationVariant;
   };
-  'project_creation.notify_channel_changed': {
-    variant?: ProjectCreationVariant;
-  };
-  'project_creation.notify_integration_changed': {
-    variant?: ProjectCreationVariant;
-  };
+  'project_creation.notify_channel_changed': {variant?: ProjectCreationVariant};
+  'project_creation.notify_integration_changed': {variant?: ProjectCreationVariant};
   'project_creation.notify_integration_toggled': {
     enabled: boolean;
     variant?: ProjectCreationVariant;
@@ -99,9 +92,7 @@ export type ProjectCreationEventParameters = {
     provider: string;
     variant?: ProjectCreationVariant;
   };
-  'project_creation.platform_change_platform_clicked': {
-    variant?: ProjectCreationVariant;
-  };
+  'project_creation.platform_change_platform_clicked': {variant?: ProjectCreationVariant};
   'project_creation.platform_feature_toggled': {
     enabled: boolean;
     feature: string;
@@ -112,12 +103,8 @@ export type ProjectCreationEventParameters = {
     option: string;
     variant?: ProjectCreationVariant;
   };
-  'project_creation.project_details_create_clicked': {
-    variant?: ProjectCreationVariant;
-  };
-  'project_creation.project_details_create_failed': {
-    variant?: ProjectCreationVariant;
-  };
+  'project_creation.project_details_create_clicked': {variant?: ProjectCreationVariant};
+  'project_creation.project_details_create_failed': {variant?: ProjectCreationVariant};
   'project_creation.project_details_name_edited': {
     custom: boolean;
     variant?: ProjectCreationVariant;
@@ -148,9 +135,7 @@ export type ProjectCreationEventParameters = {
     project_id: string;
     variant?: ProjectCreationVariant;
   };
-  'project_creation.skip_detection_clicked': {
-    variant?: ProjectCreationVariant;
-  };
+  'project_creation.skip_detection_clicked': {variant?: ProjectCreationVariant};
   'project_creation.source_maps_wizard_button_copy_clicked': {
     platform: string;
     project_id: string;

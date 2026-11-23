@@ -304,6 +304,39 @@ class OrganizationTraceItemAttributesMergedEndpointTest(
         assert attributes["shared.attribute"]["context"] == {}
         assert attributes["project"]["context"]["brief"]
 
+    def test_includes_otel_status_in_context_when_the_convention_is_in_otel(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(minutes=10).replace(microsecond=0),
+            tags={"gen_ai.request.model": "gpt-4"},
+        )
+
+        response = self.do_request(query={"attributeType": "string", "expand": "context"})
+
+        assert response.status_code == 200, response.content
+        attributes = {attribute["name"]: attribute for attribute in response.data}
+        assert attributes["gen_ai.request.model"]["context"]["isInOtel"] is True
+        assert "isInOtel" not in attributes["device.class"]["context"]
+
+    def test_includes_unit_in_context_when_the_attribute_has_one(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(minutes=10).replace(microsecond=0),
+            measurements={"http.response_content_length": 100},
+        )
+
+        response = self.do_request(query={"attributeType": "number", "expand": "context"})
+
+        assert response.status_code == 200, response.content
+        attributes = {attribute["name"]: attribute for attribute in response.data}
+        assert attributes["http.response_content_length"]["context"]["unit"] == "byte"
+
     def test_includes_internal_convention_attributes_when_user_is_staff(self) -> None:
         self.store_segment(
             self.project.id,

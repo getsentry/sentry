@@ -8,7 +8,10 @@ import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE} from './rageAndDeadClicksWidget';
 import {SERVER_TREE_WIDGET_TEMPLATE} from './serverTreeWidget';
 import type {WidgetTemplate} from './types';
-import {SCORE_BREAKDOWN_WHEEL_WIDGET} from './webVitalsWidgets';
+import {
+  SCORE_BREAKDOWN_WHEEL_TRACE_METRICS_WIDGET,
+  SCORE_BREAKDOWN_WHEEL_WIDGET,
+} from './webVitalsWidgets';
 
 export const getDefaultWidgets = (organization: Organization) => {
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
@@ -292,7 +295,9 @@ export const getDefaultWidgets = (organization: Organization) => {
         },
       ],
     },
-    SCORE_BREAKDOWN_WHEEL_WIDGET,
+    organization.features.includes('dashboards-web-vitals-trace-metrics')
+      ? SCORE_BREAKDOWN_WHEEL_TRACE_METRICS_WIDGET
+      : SCORE_BREAKDOWN_WHEEL_WIDGET,
   ];
 
   spanWidgets.push(SERVER_TREE_WIDGET_TEMPLATE, RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE);

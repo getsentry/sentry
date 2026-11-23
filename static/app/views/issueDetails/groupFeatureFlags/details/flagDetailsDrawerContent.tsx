@@ -4,6 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -13,7 +14,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {DateTime} from 'sentry/components/dateTime';
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
 import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
@@ -22,6 +22,7 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -135,7 +136,7 @@ export function FlagDetailsDrawerContent({group}: Props) {
       </Container>
       {isPending || isError || !flagLog.json.data.length ? null : (
         <Pagination
-          pageLinks={pageLinks}
+          {...getPaginationProps(pageLinks)}
           onCursor={cursor => {
             trackAnalytics('flags.logs-paginated', {
               direction: cursor?.endsWith(':1') ? 'prev' : 'next',
@@ -166,7 +167,7 @@ function FlagDetailsRow({flagValue}: {flagValue: RawFlag}) {
             {getFlagActionLabel(flagValue.action)}
           </SimpleTable.RowCell>
           <SimpleTable.RowCell position="relative">
-            <DateTime date={flagValue.createdAt} year timeZone />
+            <DateTime date={flagValue.createdAt} year="always" showTimezone />
             <FlagValueActionsMenu flagValue={flagValue} />
           </SimpleTable.RowCell>
         </SimpleTable.Row>
@@ -181,7 +182,7 @@ function GroupFirstSeenRow({group}: {group: Group}) {
       <SimpleTable.RowCell column="span 2">{t('Issue First Seen')}</SimpleTable.RowCell>
       <SimpleTable.RowCell />
       <SimpleTable.RowCell>
-        <DateTime date={group.firstSeen} year timeZone />
+        <DateTime date={group.firstSeen} year="always" showTimezone />
       </SimpleTable.RowCell>
     </SimpleTable.Row>
   );

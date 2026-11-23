@@ -15,6 +15,7 @@ import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDeleteQuery} from 'sentry/views/explore/hooks/useDeleteQuery';
 import {
@@ -129,10 +130,7 @@ export function SavedQueriesTable({
   const getHandleUpdateFromSavedQuery = useCallback(
     (savedQuery: CombinedSavedQuery) => {
       return ({name}: {name: string}) => {
-        return updateQueryFromSavedQuery({
-          ...savedQuery,
-          name,
-        } as CombinedSavedQuery);
+        return updateQueryFromSavedQuery({...savedQuery, name} as CombinedSavedQuery);
       };
     },
     [updateQueryFromSavedQuery]
@@ -352,7 +350,7 @@ export function SavedQueriesTable({
           );
         })}
       </SavedEntityTable>
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      <Pagination {...getPaginationProps(pageLinks)} onCursor={handleCursor} />
     </Container>
   );
 }

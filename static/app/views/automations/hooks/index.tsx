@@ -16,6 +16,7 @@ import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import type {
   Automation,
   AutomationFireHistory,
+  AutomationType,
   NewAutomation,
 } from 'sentry/types/workflowEngine/automations';
 import type {
@@ -27,6 +28,9 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+// All user-facing alert pages only ask for "alert" workflows
+const ALERT_AUTOMATION_TYPE: AutomationType = 'alert';
 
 export const automationsApiOptions = (
   organization: Organization,
@@ -40,22 +44,19 @@ export const automationsApiOptions = (
     sortBy?: string;
   }
 ) => {
-  const query = options
-    ? {
-        query: options.query,
-        sortBy: options.sortBy,
-        id: options.ids,
-        per_page: options.limit,
-        cursor: options.cursor,
-        project: options.projects,
-        detector: options.detector,
-      }
-    : undefined;
-
   return queryOptions({
     ...apiOptions.as<Automation[]>()('/organizations/$organizationIdOrSlug/workflows/', {
       path: {organizationIdOrSlug: organization.slug},
-      query,
+      query: {
+        type: ALERT_AUTOMATION_TYPE,
+        query: options?.query,
+        sortBy: options?.sortBy,
+        id: options?.ids,
+        per_page: options?.limit,
+        cursor: options?.cursor,
+        project: options?.projects,
+        detector: options?.detector,
+      },
       staleTime: 0,
     }),
     retry: false,
@@ -144,15 +145,10 @@ export function useCreateAutomation({
         getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
           path: {organizationIdOrSlug: org.slug},
         }),
-        {
-          method: 'POST',
-          data,
-        }
+        {method: 'POST', data}
       ),
     onSuccess: _ => {
-      queryClient.invalidateQueries({
-        queryKey: automationsApiOptions(org).queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: automationsApiOptions(org).queryKey});
     },
     onError: error => {
       if (suppressErrorMessage) {
@@ -177,14 +173,10 @@ export function useDeleteAutomationMutation() {
         getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/', {
           path: {organizationIdOrSlug: org.slug, workflowId: automationId},
         }),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: automationsApiOptions(org).queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: automationsApiOptions(org).queryKey});
       toast.success(t('Alert deleted'));
     },
     onError: error => {
@@ -215,14 +207,13 @@ export function useDeleteAutomationsMutation() {
             id: params.ids,
             query: params.query,
             project: params.projects,
+            type: ALERT_AUTOMATION_TYPE,
           },
         }
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: automationsApiOptions(org).queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: automationsApiOptions(org).queryKey});
       toast.success(t('Alerts deleted'));
     },
     onError: error => {
@@ -248,10 +239,7 @@ export function useUpdateAutomation({
         getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/', {
           path: {organizationIdOrSlug: org.slug, workflowId: data.id},
         }),
-        {
-          method: 'PUT',
-          data,
-        }
+        {method: 'PUT', data}
       ),
     onSuccess: data => {
       // Update cache with new automation data
@@ -260,9 +248,7 @@ export function useUpdateAutomation({
         previous => ({...previous, json: data, headers: previous?.headers ?? {}})
       );
       // Invalidate list query
-      queryClient.invalidateQueries({
-        queryKey: automationsApiOptions(org).queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: automationsApiOptions(org).queryKey});
     },
     onError: error => {
       if (suppressErrorMessage) {
@@ -299,14 +285,13 @@ export function useUpdateAutomationsMutation() {
             id: params.ids,
             query: params.query,
             project: params.projects,
+            type: ALERT_AUTOMATION_TYPE,
           },
         }
       );
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: automationsApiOptions(org).queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: automationsApiOptions(org).queryKey});
       toast.success(variables.enabled ? t('Alerts enabled') : t('Alerts disabled'));
     },
     onError: (error, variables) => {
@@ -339,16 +324,11 @@ export function useSendTestNotification(
         getApiUrl('/organizations/$organizationIdOrSlug/test-fire-actions/', {
           path: {organizationIdOrSlug: org.slug},
         }),
-        {
-          method: 'POST',
-          data: {actions, projectSlug},
-        }
+        {method: 'POST', data: {actions, projectSlug}}
       ),
     ...options,
     onSuccess: (data, variables, onMutateResult, context) => {
-      queryClient.invalidateQueries({
-        queryKey: automationsApiOptions(org).queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: automationsApiOptions(org).queryKey});
       toast.success(
         tn('Notification fired!', 'Notifications sent!', variables.actions.length)
       );

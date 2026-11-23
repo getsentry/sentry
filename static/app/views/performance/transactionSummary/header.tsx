@@ -1,11 +1,10 @@
 import {Fragment, useCallback} from 'react';
 import type {Location} from 'history';
 
-import {TabList} from '@sentry/scraps/tabs';
+import type {TabsComponents} from '@sentry/scraps/tabs';
 
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {ReplayCountBadge} from 'sentry/components/replays/replayCountBadge';
 import {t} from 'sentry/locale';
@@ -13,7 +12,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import type {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
 import {useReplayCountForTransaction} from 'sentry/utils/replayCount/useReplayCountForTransaction';
 import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
@@ -46,6 +44,7 @@ import {transactionSummaryRouteWithQuery} from './utils';
 const REPLAY_COUNT_LIMIT = 50;
 
 type Props = {
+  TabList: TabsComponents<Tab>['TabList'];
   currentTab: Tab;
   eventView: EventView;
   location: Location;
@@ -53,16 +52,15 @@ type Props = {
   projectId: string;
   projects: Project[];
   transactionName: string;
-  metricsCardinality?: MetricsCardinalityContext;
   onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
 };
 
 export function TransactionHeader({
+  TabList: HeaderTabList,
   eventView,
   organization,
   projects,
   projectId,
-  metricsCardinality,
   location,
   transactionName,
   onChangeThreshold,
@@ -104,13 +102,12 @@ export function TransactionHeader({
   );
 
   const onTabChange = useCallback(
-    (newTab: string) => {
+    (newTab: Tab) => {
       // Prevent infinite rerenders
       if (newTab === currentTab) {
         return;
       }
 
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const analyticsKey = TAB_ANALYTICS[newTab];
       if (analyticsKey) {
         trackAnalytics(analyticsKey, {
@@ -119,15 +116,13 @@ export function TransactionHeader({
         });
       }
 
-      navigate(normalizeUrl(getNewRoute(newTab as Tab)));
+      navigate(normalizeUrl(getNewRoute(newTab)));
     },
     [getNewRoute, organization, location, projects, currentTab, navigate]
   );
 
   function handleCreateAlertSuccess() {
-    trackAnalytics('performance_views.summary.create_alert_clicked', {
-      organization,
-    });
+    trackAnalytics('performance_views.summary.create_alert_clicked', {organization});
   }
 
   const project = projects.find(p => p.id === projectId);
@@ -149,12 +144,8 @@ export function TransactionHeader({
     limit: REPLAY_COUNT_LIMIT,
   });
 
-  const tabList = (
-    <TabList
-      outerWrapStyles={{
-        gridColumn: '1 / -1',
-      }}
-    >
+  const renderTabList = (TabList: TabsComponents<Tab>['TabList']) => (
+    <TabList outerWrapStyles={{gridColumn: '1 / -1'}}>
       <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
       <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
       <TabList.Item key={Tab.REPLAYS} textValue={t('Replays')} hidden={!hasSessionReplay}>
@@ -173,38 +164,31 @@ export function TransactionHeader({
         type: 'page-title' as const,
         label: transactionName,
         leadingGraphic: project && (
-          <IdBadge disableLink project={project} avatarSize={16} hideName />
+          <ProjectsBadge
+            projectPlatforms={project.platform ? [project.platform] : ['default']}
+          />
         ),
       },
       hideDefaultTabs: true,
-      tabs: {
-        onTabChange,
-        tabList,
-        value: currentTab,
-      },
+      tabs: {onTabChange, renderTabList, value: currentTab},
       breadcrumbs: getTransactionSummaryParentCrumbs({
         location,
         organization,
-        transaction: {
-          name: transactionName,
-          project: projectId,
-        },
+        transaction: {name: transactionName, project: projectId},
         view,
       }).map(({label, to}) => ({type: 'link' as const, label, to})),
       headerActions: (
         <Fragment>
-          {metricsCardinality?.isLoading ? null : (
-            <CreateAlertFromViewButton
-              size="sm"
-              eventView={eventView}
-              organization={organization}
-              projects={projects}
-              onClick={handleCreateAlertSuccess}
-              referrer="performance"
-              alertType="trans_duration"
-              aria-label={t('Create Alert')}
-            />
-          )}
+          <CreateAlertFromViewButton
+            size="sm"
+            eventView={eventView}
+            organization={organization}
+            projects={projects}
+            onClick={handleCreateAlertSuccess}
+            referrer="performance"
+            alertType="trans_duration"
+            aria-label={t('Create Alert')}
+          />
           <TeamKeyTransactionButton
             eventView={eventView}
             organization={organization}
@@ -244,7 +228,7 @@ export function TransactionHeader({
         onChangeThreshold={onChangeThreshold}
       />
       <TopBar.Slot name="actions">
-        {!metricsCardinality?.isLoading && !deprecateTransactionAlerts(organization) ? (
+        {deprecateTransactionAlerts(organization) ? null : (
           <CreateAlertFromViewButton
             eventView={eventView}
             organization={organization}
@@ -254,39 +238,29 @@ export function TransactionHeader({
             alertType="trans_duration"
             aria-label={t('Create Alert')}
           />
-        ) : null}
+        )}
       </TopBar.Slot>
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
-      <TabList
-        outerWrapStyles={{
-          gridColumn: '1 / -1',
-        }}
-      >
-        <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
-        <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
-        <TabList.Item
+      <HeaderTabList outerWrapStyles={{gridColumn: '1 / -1'}}>
+        <HeaderTabList.Item key={Tab.TRANSACTION_SUMMARY}>
+          {t('Overview')}
+        </HeaderTabList.Item>
+        <HeaderTabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</HeaderTabList.Item>
+        <HeaderTabList.Item
           key={Tab.REPLAYS}
           textValue={t('Replays')}
           hidden={!hasSessionReplay}
         >
           {t('Replays')}
           <ReplayCountBadge count={replaysCount} limit={REPLAY_COUNT_LIMIT} />
-        </TabList.Item>
-        <TabList.Item
+        </HeaderTabList.Item>
+        <HeaderTabList.Item
           key={Tab.PROFILING}
           textValue={t('Profiling')}
           hidden={!hasProfiling}
         >
           {t('Profiles')}
-        </TabList.Item>
-      </TabList>
+        </HeaderTabList.Item>
+      </HeaderTabList>
     </Layout.Header>
   );
 }

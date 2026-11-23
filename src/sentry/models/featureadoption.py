@@ -127,7 +127,7 @@ class FeatureAdoptionRedisBackend:
     def __init__(self, key_tpl: str = FEATURE_ADOPTION_REDIS_KEY, **options: object) -> None:
         self.key_tpl = key_tpl
         _, self.cluster, _config = get_dynamic_cluster_from_options(
-            "SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS", options
+            "SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS", options, decode_responses=True
         )
 
     def in_cache(self, organization_id: int, feature_id: int) -> bool:
@@ -221,7 +221,7 @@ class FeatureAdoptionManager(BaseManager["FeatureAdoption"]):
     def get_by_slug(self, organization: Organization, slug: str) -> FeatureAdoption | None:
         return self.filter(
             organization=organization, feature_id=manager.get_by_slug(slug).id
-        ).first()
+        ).first()  # noqa: S035
 
 
 @cell_silo_model

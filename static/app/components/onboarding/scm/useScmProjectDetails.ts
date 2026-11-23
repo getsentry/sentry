@@ -474,8 +474,8 @@ export function useScmProjectDetails({
       isCompletingRef.current = false;
       setIsCompleting(false);
     }
+    // oxlint-disable-next-line react/preserve-manual-memoization
   }, [
-    // oxlint-disable-next-line react/memo-dependencies
     accessTeams,
     alertRuleConfig,
     canSubmit,

@@ -176,9 +176,7 @@ export function Chart({
             type: 'bar',
             data: seriesData[CHART_SELECTED_SERIES_NAME].map(cohort => cohort.value),
             name: CHART_SELECTED_SERIES_NAME,
-            itemStyle: {
-              color: cohort1Color,
-            },
+            itemStyle: {color: cohort1Color},
             barMaxWidth: CHART_MAX_BAR_WIDTH,
             animation: false,
           },
@@ -186,9 +184,7 @@ export function Chart({
             type: 'bar',
             data: seriesData[CHART_BASELINE_SERIES_NAME].map(cohort => cohort.value),
             name: CHART_BASELINE_SERIES_NAME,
-            itemStyle: {
-              color: cohort2Color,
-            },
+            itemStyle: {color: cohort2Color},
             barMaxWidth: CHART_MAX_BAR_WIDTH,
             animation: false,
           },

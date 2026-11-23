@@ -3,6 +3,7 @@ from __future__ import annotations
 from enum import StrEnum
 
 from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.credits import SeerOperation
 
 
 class AutofixStep(StrEnum):
@@ -12,6 +13,19 @@ class AutofixStep(StrEnum):
     SOLUTION = "solution"
     CODE_CHANGES = "code_changes"
     PR_ITERATION = "pr_iteration"
+
+    @property
+    def seer_operation(self) -> SeerOperation:
+        """The Seer credit check operation corresponding to this step."""
+        match self:
+            case AutofixStep.ROOT_CAUSE:
+                return SeerOperation.AUTOFIX_ROOT_CAUSE
+            case AutofixStep.SOLUTION:
+                return SeerOperation.AUTOFIX_SOLUTION
+            case AutofixStep.CODE_CHANGES:
+                return SeerOperation.AUTOFIX_CODE_CHANGES
+            case AutofixStep.PR_ITERATION:
+                return SeerOperation.AUTOFIX_PR_ITERATION
 
     @staticmethod
     def from_autofix_stopping_point(

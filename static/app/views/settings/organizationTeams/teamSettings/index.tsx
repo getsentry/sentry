@@ -49,10 +49,7 @@ export default function TeamSettings() {
       fetchMutation<Team>({
         method: 'PUT',
         url: getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            teamIdOrSlug: team.slug,
-          },
+          path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: team.slug},
         }),
         data,
       }),

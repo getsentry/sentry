@@ -739,7 +739,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 name="spans",
                 query_string=query_string,
                 selected_columns=[*AI_CONVERSATION_ATTRIBUTES, *META_COLUMNS],
-                orderby=["precise.start_ts"],
+                orderby=["precise.start_ts", "span_id"],
                 offset=offset,
                 limit=limit,
                 referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,

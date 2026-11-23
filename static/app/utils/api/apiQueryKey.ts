@@ -1,5 +1,3 @@
-import {z} from 'zod';
-
 import type {getApiUrl} from './getApiUrl';
 
 export type RequestMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
@@ -16,63 +14,83 @@ export type QueryKeyEndpointOptions = {
   query?: Record<string, unknown>;
 };
 
-const apiUrlSchema = z.custom<ApiUrl>(val => typeof val === 'string');
-const optionsSchema = z.custom<QueryKeyEndpointOptions>(
-  val => typeof val === 'object' && val !== null && !Array.isArray(val)
-);
-const markerSchema = z.object({infinite: z.boolean()});
+type ApiQueryKeyOptions = QueryKeyEndpointOptions & {path?: Record<string, string>};
 
-const queryKeySchema = z
-  .tuple([apiUrlSchema, optionsSchema, markerSchema])
-  .transform(([url, options, marker]) => ({
-    url,
-    options,
-    isInfinite: marker.infinite,
-  }));
+type ApiQueryKeyParams = {
+  options: ApiQueryKeyOptions;
+  /**
+   * The resolved url that gets requested
+   */
+  url: ApiUrl;
+  /**
+   * The url template split into segments, with `$param` placeholders kept.
+   * Use it to match every query below a url prefix, across all param values.
+   */
+  urlParts: readonly string[];
+  /**
+   * Only set on infinite queries, so a non-infinite key used as a filter
+   * matches both variants of the same url.
+   */
+  infinite?: never;
+};
 
-export type CanonicalApiQueryKey = readonly [
-  ApiUrl,
-  QueryKeyEndpointOptions,
-  {infinite: false},
+type InfiniteApiQueryKeyParams = Omit<ApiQueryKeyParams, 'infinite'> & {infinite: true};
+
+export const API_QUERY_KEY_MARKER = '_api';
+
+export type ApiQueryKey = readonly [
+  typeof API_QUERY_KEY_MARKER,
+  ApiQueryKeyParams,
+  ...unknown[],
 ];
 
-// Legacy input forms accepted by query-key parsing and normalized to three slots.
-type LooseApiQueryKey = readonly [ApiUrl] | readonly [ApiUrl, QueryKeyEndpointOptions];
-
-export type ApiQueryKey = LooseApiQueryKey | CanonicalApiQueryKey;
 export type InfiniteApiQueryKey = readonly [
-  ApiUrl,
-  QueryKeyEndpointOptions,
-  {infinite: true},
+  typeof API_QUERY_KEY_MARKER,
+  InfiniteApiQueryKeyParams,
+  ...unknown[],
 ];
 
-type ParsedQueryKey = z.infer<typeof queryKeySchema>;
+/**
+ * The request params of an api query key, as `parseQueryKey` returns them.
+ */
+export type ParsedQueryKey = ApiQueryKeyParams | InfiniteApiQueryKeyParams;
 
-export function parseQueryKey(
-  queryKey: ApiQueryKey | InfiniteApiQueryKey
-): ParsedQueryKey {
-  const normalized = queryKey.length === 3 ? queryKey : normalizeQueryKey(queryKey);
-  return queryKeySchema.parse(normalized);
+function isApiQueryKey(
+  queryKey: readonly unknown[]
+): queryKey is ApiQueryKey | InfiniteApiQueryKey {
+  if (queryKey[0] !== API_QUERY_KEY_MARKER) {
+    return false;
+  }
+
+  const params = queryKey[1];
+  return (
+    typeof params === 'object' &&
+    params !== null &&
+    'url' in params &&
+    typeof params.url === 'string' &&
+    'urlParts' in params &&
+    Array.isArray(params.urlParts) &&
+    'options' in params &&
+    typeof params.options === 'object' &&
+    params.options !== null &&
+    !Array.isArray(params.options)
+  );
 }
 
-const safeParseCache = new WeakMap<readonly unknown[], ParsedQueryKey | undefined>();
+/**
+ * Reads the request params of an api query key, without coupling callers to the key's layout.
+ */
+export function parseQueryKey<TQueryKey extends ApiQueryKey | InfiniteApiQueryKey>(
+  queryKey: TQueryKey
+): TQueryKey[1] {
+  return queryKey[1];
+}
 
+/**
+ * Like `parseQueryKey`, but for keys that may not be api query keys.
+ */
 export function safeParseQueryKey(
   queryKey: readonly unknown[]
 ): ParsedQueryKey | undefined {
-  if (safeParseCache.has(queryKey)) {
-    return safeParseCache.get(queryKey);
-  }
-
-  const result = queryKeySchema.safeParse(queryKey).data;
-  safeParseCache.set(queryKey, result);
-  return result;
-}
-
-export function normalizeQueryKey(key: ApiQueryKey): CanonicalApiQueryKey {
-  if (key.length === 3) {
-    return key;
-  }
-  const [url, options] = key;
-  return [url, options ?? {}, {infinite: false}] as const;
+  return isApiQueryKey(queryKey) ? parseQueryKey(queryKey) : undefined;
 }

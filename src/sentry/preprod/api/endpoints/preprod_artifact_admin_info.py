@@ -88,9 +88,9 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
             InstallablePreprodArtifact.objects.filter(preprod_artifact_id=head_artifact_id_int)
         )
 
-        snapshot_metrics = PreprodSnapshotMetrics.objects.filter(
+        snapshot_metrics = PreprodSnapshotMetrics.objects.get_or_none(
             preprod_artifact_id=head_artifact_id_int
-        ).first()
+        )
 
         snapshot_comparison = None
         if snapshot_metrics:

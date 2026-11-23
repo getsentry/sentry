@@ -5,7 +5,6 @@ from typing import Annotated, Any, Literal, TypedDict, cast
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
-from rest_framework import status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -257,13 +256,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
           `routing_hint` when fetching item details for a row in this response. It identifies how
           the table query was routed and is omitted when no hint is available.
         """
-        if not self.has_feature(organization, request):
-            return Response(
-                {
-                    "detail": "Discover, Performance, or Explore is required to access this endpoint."
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         referrer = request.GET.get("referrer")
         sentry_sdk.set_attribute("query.raw_referrer", referrer or "")
@@ -745,23 +737,20 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 def flex_time_data_fn(limit: int, page_token: PageToken | None) -> dict[str, Any]:
                     config = get_rpc_config()
 
-                    return cast(
-                        dict[str, Any],
-                        scoped_dataset.run_table_query(
-                            params=snuba_params,
-                            query_string=scoped_query or "",
-                            selected_columns=self.get_field_list(organization, request),
-                            equations=self.get_equation_list(organization, request),
-                            orderby=self.get_orderby(request),
-                            offset=0,  # required but not used because we're using page tokens here
-                            limit=limit,
-                            referrer=referrer,
-                            config=config,
-                            sampling_mode=snuba_params.sampling_mode,
-                            page_token=page_token,
-                            additional_queries=additional_queries,
-                            max_string_length=max_string_length,
-                        ),
+                    return scoped_dataset.run_table_query(
+                        params=snuba_params,
+                        query_string=scoped_query or "",
+                        selected_columns=self.get_field_list(organization, request),
+                        equations=self.get_equation_list(organization, request),
+                        orderby=self.get_orderby(request),
+                        offset=0,  # required but not used because we're using page tokens here
+                        limit=limit,
+                        referrer=referrer,
+                        config=config,
+                        sampling_mode=snuba_params.sampling_mode,
+                        page_token=page_token,
+                        additional_queries=additional_queries,
+                        max_string_length=max_string_length,
                     )
 
                 return EAPPageTokenPaginator(data_fn=flex_time_data_fn), EAPPageTokenCursor

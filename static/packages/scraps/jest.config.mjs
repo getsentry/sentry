@@ -4,9 +4,7 @@ const config = {
   testEnvironment: '<rootDir>/test/env/environment.mjs',
   setupFilesAfterEnv: ['<rootDir>/test/env/setup.ts'],
   testMatch: ['<rootDir>/src/**/*.spec.{ts,tsx}'],
-  moduleNameMapper: {
-    '^@sentry/scraps/(.*)$': '<rootDir>/src/$1',
-  },
+  moduleNameMapper: {'^@sentry/scraps/(.*)$': '<rootDir>/src/$1'},
   transform: {
     '^.+\\.[jt]sx?$': [
       '@swc/jest',
@@ -14,9 +12,7 @@ const config = {
         jsc: {
           target: 'es2022',
           parser: {syntax: 'typescript', tsx: true},
-          transform: {
-            react: {runtime: 'automatic', importSource: '@emotion/react'},
-          },
+          transform: {react: {runtime: 'automatic', importSource: '@emotion/react'}},
         },
       },
     ],

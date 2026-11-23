@@ -109,16 +109,10 @@ function convertProfileMeasurementsToUIFrames(
     return undefined;
   }
 
-  const measurements: UIFrameMeasurements = {
-    unit: measurement.unit,
-    values: [],
-  };
+  const measurements: UIFrameMeasurements = {unit: measurement.unit, values: []};
 
   for (const value of measurement.values) {
-    measurements.values.push({
-      elapsed: value.elapsed_since_start_ns,
-      value: value.value,
-    });
+    measurements.values.push({elapsed: value.elapsed_since_start_ns, value: value.value});
   }
 
   return measurements;
@@ -443,10 +437,7 @@ function Flamegraph(): ReactElement {
         const values: ProfileSeriesMeasurement['values'] = [];
 
         for (const value of measurements.values) {
-          values.push({
-            value: value.value,
-            elapsed: value.elapsed_since_start_ns,
-          });
+          values.push({value: value.value, elapsed: value.elapsed_since_start_ns});
         }
         cpuMeasurements.push({name, unit: measurements?.unit, values});
       }
@@ -471,17 +462,10 @@ function Flamegraph(): ReactElement {
       const values: ProfileSeriesMeasurement['values'] = [];
 
       for (const value of memory_footprint.values) {
-        values.push({
-          value: value.value,
-          elapsed: value.elapsed_since_start_ns,
-        });
+        values.push({value: value.value, elapsed: value.elapsed_since_start_ns});
       }
 
-      measures.push({
-        unit: memory_footprint.unit,
-        name: 'Heap Usage',
-        values,
-      });
+      measures.push({unit: memory_footprint.unit, name: 'Heap Usage', values});
     }
 
     const native_memory_footprint = profileGroup.measurements?.memory_native_footprint;
@@ -489,10 +473,7 @@ function Flamegraph(): ReactElement {
       const values: ProfileSeriesMeasurement['values'] = [];
 
       for (const value of native_memory_footprint.values) {
-        values.push({
-          value: value.value,
-          elapsed: value.elapsed_since_start_ns,
-        });
+        values.push({value: value.value, elapsed: value.elapsed_since_start_ns});
       }
 
       measures.push({
@@ -717,9 +698,7 @@ function Flamegraph(): ReactElement {
       // the total range is rendered and perfectly aligned from top to bottom.
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
-        {
-          width: {min: 1},
-        }
+        {width: {min: 1}}
       );
 
       return newView;
@@ -761,9 +740,7 @@ function Flamegraph(): ReactElement {
       // the total range is rendered and perfectly aligned from top to bottom.
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
-        {
-          width: {min: 1},
-        }
+        {width: {min: 1}}
       );
 
       return newView;
@@ -805,9 +782,7 @@ function Flamegraph(): ReactElement {
       // the total range is rendered and perfectly aligned from top to bottom.
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
-        {
-          width: {min: 1},
-        }
+        {width: {min: 1}}
       );
 
       return newView;
@@ -1218,15 +1193,7 @@ function Flamegraph(): ReactElement {
 
     const renderer = initializeFlamegraphRenderer(
       [FlamegraphRendererWebGL, FlamegraphRenderer2D],
-      [
-        flamegraphCanvasRef,
-        flamegraph,
-        flamegraphTheme,
-        {
-          colorCoding,
-          draw_border: true,
-        },
-      ]
+      [flamegraphCanvasRef, flamegraph, flamegraphTheme, {colorCoding, draw_border: true}]
     );
 
     if (renderer === null) {
@@ -1338,28 +1305,18 @@ function Flamegraph(): ReactElement {
 
           // if we find the frame on the active thread, it always takes priority
           if (newScore > 0 && currentProfile.threadId === threadID) {
-            return {
-              frame,
-              threadId: currentProfile.threadId,
-              isActiveThread: true,
-            };
+            return {frame, threadId: currentProfile.threadId, isActiveThread: true};
           }
 
           return newScore <= oldScore
             ? prevCandidate
-            : {
-                frame,
-                threadId: currentProfile.threadId,
-              };
+            : {frame, threadId: currentProfile.threadId};
         },
         null
       );
 
       if (defined(candidate)) {
-        dispatch({
-          type: 'set thread id',
-          payload: candidate.threadId,
-        });
+        dispatch({type: 'set thread id', payload: candidate.threadId});
         return;
       }
     }
@@ -1367,10 +1324,7 @@ function Flamegraph(): ReactElement {
     // fall back case, when we finally load the active profile index from the profile,
     // make sure we update the thread id so that it is show first
     if (defined(threadID)) {
-      dispatch({
-        type: 'set thread id',
-        payload: threadID,
-      });
+      dispatch({type: 'set thread id', payload: threadID});
     }
   }, [profileGroup, highlightFrames, flamegraphProfiles.threadId, dispatch, sorting]);
 

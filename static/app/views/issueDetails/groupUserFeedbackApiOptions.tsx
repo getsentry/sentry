@@ -5,9 +5,7 @@ import type {QueryParamValue} from 'sentry/utils/useLocation';
 
 interface GroupUserFeedbackProps {
   groupId: string;
-  query: {
-    cursor?: QueryParamValue;
-  };
+  query: {cursor?: QueryParamValue};
 }
 
 export function groupUserFeedbackApiOptions(

@@ -61,7 +61,7 @@ describe('ClassifiersList', () => {
         id: '11',
         projectId: '2',
         name: 'Slow spans',
-        resultAttribute: 'sentry.classifier.slow_spans',
+        resultAttribute: 'slow_spans',
         dataset: 'trace_spans',
       }),
     ]);
@@ -73,13 +73,13 @@ describe('ClassifiersList', () => {
     ).closest('tr')!;
     expect(within(conversationRow).getByText('frontend')).toBeInTheDocument();
     expect(
-      within(conversationRow).getByText('sentry.classifier.user_frustration')
+      within(conversationRow).getByText('sentry.enrichment.user_frustration')
     ).toBeInTheDocument();
     expect(within(conversationRow).getByText('Conversations')).toBeInTheDocument();
 
     const spanRow = screen.getByRole('link', {name: 'Slow spans'}).closest('tr')!;
     expect(within(spanRow).getByText('backend')).toBeInTheDocument();
-    expect(within(spanRow).getByText('sentry.classifier.slow_spans')).toBeInTheDocument();
+    expect(within(spanRow).getByText('sentry.enrichment.slow_spans')).toBeInTheDocument();
     expect(within(spanRow).getByText('Spans')).toBeInTheDocument();
   });
 
@@ -133,6 +133,41 @@ describe('ClassifiersList', () => {
       expect.objectContaining({
         query: expect.objectContaining({project: [2], cursor: '0:25:0', per_page: 25}),
       })
+    );
+  });
+
+  it('searches classifiers and resets the cursor', async () => {
+    mockClassifiers([TelemetryClassifierFixture()]);
+    const searchRequest = MockApiClient.addMockResponse({
+      url: classifiersUrl,
+      body: [TelemetryClassifierFixture({id: '11', name: 'Tool failure'})],
+      match: [MockApiClient.matchQuery({query: 'status:enabled'})],
+    });
+
+    const {router} = renderList({cursor: '0:25:0'});
+
+    await userEvent.type(
+      await screen.findByRole('combobox', {name: 'Add a search term'}),
+      'status:enabled{enter}'
+    );
+
+    expect(await screen.findByRole('link', {name: 'Tool failure'})).toBeInTheDocument();
+    expect(searchRequest).toHaveBeenCalled();
+    expect(router.location.query).toEqual({query: 'status:enabled'});
+    expect(router.historyAction).toBe('PUSH');
+  });
+
+  it('shows an empty state when no classifiers match the search', async () => {
+    const request = mockClassifiers([]);
+
+    renderList({query: 'frustr'});
+
+    expect(
+      await screen.findByText('No classifiers match your search.')
+    ).toBeInTheDocument();
+    expect(request).toHaveBeenCalledWith(
+      classifiersUrl,
+      expect.objectContaining({query: expect.objectContaining({query: 'frustr'})})
     );
   });
 

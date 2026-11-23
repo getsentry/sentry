@@ -227,7 +227,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
 
     def search_issues(self, query: str | None, **kwargs: object) -> dict[str, Any]:
         client = self.get_client()
-        repo = cast(str, kwargs["repo"])
+        repo = kwargs["repo"]
         resp = client.search_issues(repo, query)
         assert isinstance(resp, dict)
         return resp

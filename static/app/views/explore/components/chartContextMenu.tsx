@@ -22,6 +22,7 @@ import {
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import {hasConditionalAggregateFilter} from 'sentry/views/explore/utils/conditionalAggregate';
+import {isHeatMapAggregate} from 'sentry/views/explore/utils/heatMapAggregate';
 import {
   getCreateAlertForLabel,
   getSaveAsAlertMenuItem,
@@ -66,7 +67,8 @@ export function ChartContextMenu({
           disabled:
             hasTransformations ||
             isVisualizeEquation(visualizeYAxes[0]!) ||
-            hasConditionalAggregateFilter(yAxis),
+            hasConditionalAggregateFilter(yAxis) ||
+            isHeatMapAggregate(yAxis),
           to: getAlertsUrl({
             project,
             query,
@@ -129,6 +131,7 @@ export function ChartContextMenu({
       textValue: t('Add to Dashboard'),
       details: dashboardCaseDetails,
       label: t('Add to Dashboard'),
+      disabled: visualizeYAxes.some(visualize => isHeatMapAggregate(visualize.yAxis)),
       onAction: () => {
         trackAnalytics('trace_explorer.save_as', {
           save_type: 'dashboard',

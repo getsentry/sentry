@@ -35,9 +35,7 @@ it('observes autosized textarea width and preserves the forwarded ref', () => {
   const observe = jest.spyOn(ResizeObserver.prototype, 'observe');
   const ref = createRef<HTMLTextAreaElement>();
   try {
-    render(<TextArea ref={ref} autosize rows={2} maxRows={5} />, {
-      wrapper: ThemeWrapper,
-    });
+    render(<TextArea ref={ref} autosize rows={2} maxRows={5} />, {wrapper: ThemeWrapper});
     expect(ref.current).toBe(screen.getByRole('textbox'));
     expect(observe).toHaveBeenCalledWith(ref.current, {box: 'border-box'});
   } finally {

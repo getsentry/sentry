@@ -24,9 +24,7 @@ export function IssueSourceLinkAction({isHovering = false}: IssueSourceLinkActio
   const {frame, event, isExpanded} = useStackTraceFrameContext();
   const {project} = useStackTraceContext();
 
-  const storeComponents = useSentryAppComponents({
-    componentType: 'stacktrace-link',
-  });
+  const storeComponents = useSentryAppComponents({componentType: 'stacktrace-link'});
   const components = useMemo(
     () =>
       storeComponents.filter(
@@ -58,10 +56,7 @@ export function IssueSourceLinkAction({isHovering = false}: IssueSourceLinkActio
       justify="end"
       width={{zero: 'auto', xl: hasContent ? 'max-content' : '0'}}
       flex={{zero: '0 1 auto', xl: hasContent ? '0 0 max-content' : '0 0 0'}}
-      height={{
-        zero: 'auto',
-        xl: hasContent ? `${HOVER_ACTIONS_SLOT_HEIGHT}px` : '0',
-      }}
+      height={{zero: 'auto', xl: hasContent ? `${HOVER_ACTIONS_SLOT_HEIGHT}px` : '0'}}
       // Reserve the hover actions height at every width so rows don't grow on hover
       minHeight={hasContent ? `${HOVER_ACTIONS_SLOT_HEIGHT}px` : '0'}
       overflow={{zero: 'visible', xl: 'hidden'}}

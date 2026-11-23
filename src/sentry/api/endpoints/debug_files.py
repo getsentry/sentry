@@ -331,9 +331,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
             )
             return HttpResponse({"Too many download requests"}, status=429)
 
-        debug_file = ProjectDebugFile.objects.filter(
-            id=debug_file_id, project_id=project.id
-        ).first()
+        debug_file = ProjectDebugFile.objects.get_or_none(id=debug_file_id, project_id=project.id)
 
         if debug_file is None:
             raise Http404
@@ -520,7 +518,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 debug_file = (
                     ProjectDebugFile.objects.filter(id=validated_id, project_id=project.id)
                     .select_related("file")
-                    .first()
+                    .get_or_none()
                 )
                 if debug_file is not None:
                     debug_file.delete()

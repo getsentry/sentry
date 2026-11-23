@@ -16,62 +16,24 @@ import {hasPerformance} from 'getsentry/utils/billing';
 import type {ProductUnavailableUpsellAlert} from 'getsentry/utils/trackGetsentryAnalytics';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-function getUpdatePlanLabel({
-  hasSessionReplay,
-  hasPerformanceView,
-}: {
-  hasPerformanceView: boolean;
-  hasSessionReplay: boolean;
-}) {
-  if (!hasSessionReplay && !hasPerformanceView) {
-    return t(
-      'Update your organization to the latest version of its plan to use Performance and Session Replay.'
-    );
-  }
-
-  if (!hasSessionReplay) {
-    return t(
-      'Update your organization to the latest version of its plan to use Session Replay.'
-    );
-  }
-
+function getUpdatePlanLabel() {
   return t(
-    'Update your organization to the latest version of its plan to use Performance.'
+    'Update your organization to the latest version of its plan to use Session Replay.'
   );
 }
 
-function getRequestUpdateLabel({
-  hasSessionReplay,
-  hasPerformanceView,
-}: {
-  hasPerformanceView: boolean;
-  hasSessionReplay: boolean;
-}) {
-  if (!hasSessionReplay && !hasPerformanceView) {
-    return t(
-      'To use Performance and Session Replay, request an owner in your organization to update its plan to the latest version.'
-    );
-  }
-
-  if (!hasSessionReplay) {
-    return t(
-      'To use Session Replay, request an owner in your organization to update its plan to the latest version.'
-    );
-  }
-
+function getRequestUpdateLabel() {
   return t(
-    'To use Performance, request an owner in your organization to update its plan to the latest version.'
+    'To use Session Replay, request an owner in your organization to update its plan to the latest version.'
   );
 }
 
 function RequestUpdateAlert({
   children,
   organization,
-  hasPerformanceView,
   hasSessionReplay,
 }: {
   children: React.ReactNode;
-  hasPerformanceView: boolean;
   hasSessionReplay: boolean;
   organization: Organization;
 }) {
@@ -84,11 +46,11 @@ function RequestUpdateAlert({
   } = useMemo(
     () => ({
       organization,
-      has_performance: hasPerformanceView,
+      has_performance: true,
       has_session_replay: hasSessionReplay,
       action: 'request_update',
     }),
-    [organization, hasPerformanceView, hasSessionReplay]
+    [organization, hasSessionReplay]
   );
 
   useEffect(() => {
@@ -142,12 +104,10 @@ function UpdatePlanAlert({
   subscription,
   isAncientPlan,
   canSelfServe,
-  hasPerformanceView,
   hasSessionReplay,
 }: {
   canSelfServe: boolean;
   children: React.ReactNode;
-  hasPerformanceView: boolean;
   hasSessionReplay: boolean;
   isAncientPlan: boolean;
   organization: Organization;
@@ -166,11 +126,11 @@ function UpdatePlanAlert({
   } = useMemo(
     () => ({
       organization,
-      has_performance: hasPerformanceView,
+      has_performance: true,
       has_session_replay: hasSessionReplay,
       action: isAncientPlan || !canSelfServe ? 'manage_subscription' : 'update_plan',
     }),
-    [organization, hasPerformanceView, hasSessionReplay, isAncientPlan, canSelfServe]
+    [organization, hasSessionReplay, isAncientPlan, canSelfServe]
   );
 
   useEffect(() => {
@@ -226,9 +186,7 @@ function ProductUnavailableCTAContainer({
   subscription: Subscription;
 }) {
   const hasSessionReplay = organization.features.includes('session-replay');
-  const hasPerformanceView = organization.features.includes('performance-view');
-
-  if (hasSessionReplay && hasPerformanceView) {
+  if (hasSessionReplay) {
     return null;
   }
 
@@ -246,17 +204,12 @@ function ProductUnavailableCTAContainer({
       isAncientPlan={isAncientPlan}
       canSelfServe={canSelfServe}
       hasSessionReplay={hasSessionReplay}
-      hasPerformanceView={hasPerformanceView}
     >
-      {getUpdatePlanLabel({hasSessionReplay, hasPerformanceView})}
+      {getUpdatePlanLabel()}
     </UpdatePlanAlert>
   ) : (
-    <RequestUpdateAlert
-      hasSessionReplay={hasSessionReplay}
-      hasPerformanceView={hasPerformanceView}
-      organization={organization}
-    >
-      {getRequestUpdateLabel({hasSessionReplay, hasPerformanceView})}
+    <RequestUpdateAlert hasSessionReplay={hasSessionReplay} organization={organization}>
+      {getRequestUpdateLabel()}
     </RequestUpdateAlert>
   );
 }

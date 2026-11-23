@@ -47,7 +47,7 @@ class OrganizationInvestigationBaseTest(APITestCase):
             "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": investigation.id,
+                "notebook_id": investigation.id,
             },
         )
 
@@ -73,7 +73,7 @@ class OrganizationInvestigationBaseTest(APITestCase):
             "sentry-api-0-organization-investigation-orchestration",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": investigation.id,
+                "notebook_id": investigation.id,
             },
         )
 
@@ -106,7 +106,7 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
             "sentry-api-0-organization-investigation-orchestration",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": investigation.id,
+                "notebook_id": investigation.id,
             },
         )
 
@@ -132,7 +132,7 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
             "sentry-api-0-organization-investigation-orchestration",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": investigation.id,
+                "notebook_id": investigation.id,
             },
         )
 
@@ -140,7 +140,7 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
             "sentry-api-0-organization-investigation-orchestration-commands",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": investigation.id,
+                "notebook_id": investigation.id,
             },
         )
 
@@ -169,7 +169,7 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
             "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": investigation.id,
+                "notebook_id": investigation.id,
             },
         )
 
@@ -209,7 +209,7 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
             "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": investigation.id,
+                "notebook_id": investigation.id,
             },
         )
         response = self.client.get(detail_url)

@@ -108,6 +108,10 @@ search_config = SearchConfig.create_from(
 )
 
 
+ARRAY_ATTRIBUTE_KEY_ALIASES: dict[str, str] = {
+    "tags[install_groups,array]": "install_groups",
+}
+
 BYTE_FIELD_KEYS = frozenset({"download_size", "install_size"})
 
 
@@ -283,7 +287,7 @@ def apply_filters(
 
         assert isinstance(token, SearchFilter)
 
-        name = token.key.name
+        name = ARRAY_ATTRIBUTE_KEY_ALIASES.get(token.key.name, token.key.name)
 
         # Handle free text search
         if name == "text":

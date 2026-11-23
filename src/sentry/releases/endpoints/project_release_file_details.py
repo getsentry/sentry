@@ -32,7 +32,6 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams, ReleaseParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.debug_files.release_files import maybe_renew_releasefiles
 from sentry.models.distribution import Distribution
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -140,9 +139,7 @@ class ReleaseFileDetailsMixin:
             raise ResourceDoesNotExist
         if isinstance(id, int):
             try:
-                releasefile = ReleaseFile.public_objects.get(release_id=release.id, id=file_id)
-                maybe_renew_releasefiles([releasefile])
-                return releasefile
+                return ReleaseFile.public_objects.get(release_id=release.id, id=file_id)
             except ReleaseFile.DoesNotExist:
                 raise ResourceDoesNotExist
         else:

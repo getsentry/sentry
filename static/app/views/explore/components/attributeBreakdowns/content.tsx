@@ -6,6 +6,7 @@ import {
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
+import {getSpansHeatMapYAxis} from 'sentry/views/explore/spans/charts/spansHeatMap';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 
 import {AttributeDistribution} from './attributeDistributionContent';
@@ -24,12 +25,15 @@ export function AttributeBreakdownsContent() {
   const {extrapolate} = loadQueryParamsFromLocation(COHORT_QUERY_PARSERS, location);
 
   if (chartSelection) {
-    const yAxis = visualizes[chartSelection.chartIndex]?.yAxis ?? '';
+    const visualize = visualizes[chartSelection.chartIndex];
+    const yAxis = visualize?.yAxis ?? '';
 
     return (
       <CohortComparison
         selection={chartSelection.selection}
         yAxis={yAxis}
+        yAttribute={visualize ? getSpansHeatMapYAxis(visualize) : undefined}
+        yRange={chartSelection.yRange}
         query={query}
         dataset={dataset}
         extrapolate={extrapolate}

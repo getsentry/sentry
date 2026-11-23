@@ -32,9 +32,7 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'To enable logging, you need to configure the enabled logs option in the appender configuration. You may also set [code:minimumLevel] to configure which log messages are sent to Sentry.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -67,9 +65,7 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Once the handler is configured with logging enabled, any logs at or above the [code:minimumLevel] will be sent to Sentry.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

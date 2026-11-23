@@ -2,7 +2,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {GroupRelatedIssues} from 'sentry/views/issueDetails/groupRelatedIssues';
 
@@ -14,47 +14,33 @@ describe('Related Issues View', () => {
   const group1 = '15';
   const group2 = '20';
   const orgIssuesEndpoint = `/organizations/${orgSlug}/issues/`;
+  const relatedEndpoint = `/organizations/${orgSlug}/issues/${groupId}/related/`;
 
   const errorType = 'RuntimeError';
-  const onlySameRootData = {
-    type: 'same_root_cause',
-    data: [group1, group2],
-  };
-  const onlyTraceConnectedData = {
-    type: 'trace_connected',
-    data: [group1, group2],
-    meta: {
-      event_id: 'abcd',
-      trace_id: '1234',
-    },
-  };
   const issuesData = [
     GroupFixture({
       id: group1,
       shortId: `EARTH-${group1}`,
       project: ProjectFixture({id: '3', name: 'Earth', slug: 'earth'}),
-      metadata: {
-        type: errorType,
-      },
+      metadata: {type: errorType},
       lastSeen: '2024-03-15T20:15:30Z',
     }),
     GroupFixture({
       id: group2,
       shortId: `EARTH-${group2}`,
       project: ProjectFixture({id: '3', name: 'Earth', slug: 'earth'}),
-      metadata: {
-        type: errorType,
-      },
+      metadata: {type: errorType},
       lastSeen: '2024-03-16T20:15:30Z',
     }),
   ];
+  const sameTraceData = {
+    data: issuesData.map(issue => ({issue, relations: [{type: 'same_trace'}]})),
+    meta: {types: [{type: 'same_trace', status: 'ok', eventId: 'abcd', traceId: '1234'}]},
+  };
 
   beforeEach(() => {
     // GroupList calls this but we don't need it for this test
-    MockApiClient.addMockResponse({
-      url: `/organizations/${orgSlug}/users/`,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: `/organizations/${orgSlug}/users/`, body: []});
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/`,
       body: group,
@@ -66,74 +52,18 @@ describe('Related Issues View', () => {
     jest.clearAllMocks();
   });
 
-  it('renders with same root issues', async () => {
-    const sameRootIssuesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${orgSlug}/issues/${groupId}/related-issues/`,
-      match: [
-        MockApiClient.matchQuery({
-          type: 'same_root_cause',
-        }),
-      ],
-      body: onlySameRootData,
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${orgSlug}/issues/${groupId}/related-issues/`,
-      match: [
-        MockApiClient.matchQuery({
-          type: 'trace_connected',
-        }),
-      ],
-      body: [],
-    });
-    const issuesMock = MockApiClient.addMockResponse({
-      url: orgIssuesEndpoint,
-      body: issuesData,
-    });
-
-    render(<GroupRelatedIssues group={group} />, {
-      organization,
-    });
-
-    // Wait for the issues showing up on the table
-    expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();
-    expect(await screen.findByText(`EARTH-${group2}`)).toBeInTheDocument();
-
-    expect(sameRootIssuesMock).toHaveBeenCalled();
-    expect(issuesMock).toHaveBeenCalled();
-    const linkButton = screen.getByRole('button', {name: /open in issues/i});
-    expect(linkButton).toHaveAttribute(
-      'href',
-      // Opening in Issues needs to include the group we are currently viewing
-      `/organizations/org-slug/issues/?project=-1&query=${encodeURIComponent(`issue.id:[${groupId},${group1},${group2}]`)}`
-    );
-  });
-
-  it('renders with trace connected issues', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${orgSlug}/issues/${groupId}/related-issues/`,
-      match: [
-        MockApiClient.matchQuery({
-          type: 'same_root_cause',
-        }),
-      ],
-      body: [],
-    });
+  it('renders issues in the same trace', async () => {
     const traceIssuesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${orgSlug}/issues/${groupId}/related-issues/`,
-      match: [
-        MockApiClient.matchQuery({
-          type: 'trace_connected',
-        }),
-      ],
-      body: onlyTraceConnectedData,
+      url: relatedEndpoint,
+      match: [MockApiClient.matchQuery({type: ['same_trace'], limit: 100})],
+      body: sameTraceData,
     });
     const issuesMock = MockApiClient.addMockResponse({
       url: orgIssuesEndpoint,
+      match: [MockApiClient.matchQuery({query: `issue.id:[${group1},${group2}]`})],
       body: issuesData,
     });
-    render(<GroupRelatedIssues group={group} />, {
-      organization,
-    });
+    render(<GroupRelatedIssues group={group} />, {organization});
 
     // Wait for the issues showing up on the table
     expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();
@@ -152,5 +82,29 @@ describe('Related Issues View', () => {
       'href',
       `/organizations/org-slug/issues/?project=-1&query=${encodeURIComponent('trace:1234')}`
     );
+  });
+
+  it('shows an error and retries when trace search is unavailable', async () => {
+    MockApiClient.addMockResponse({
+      url: relatedEndpoint,
+      match: [MockApiClient.matchQuery({type: ['same_trace']})],
+      statusCode: 503,
+      body: {detail: 'Related issues are temporarily unavailable. Try again later.'},
+    });
+    render(<GroupRelatedIssues group={group} />, {organization});
+
+    expect(
+      await screen.findByText('Unable to load related issues, please try again later')
+    ).toBeInTheDocument();
+
+    MockApiClient.addMockResponse({
+      url: relatedEndpoint,
+      match: [MockApiClient.matchQuery({type: ['same_trace']})],
+      body: sameTraceData,
+    });
+    MockApiClient.addMockResponse({url: orgIssuesEndpoint, body: issuesData});
+    await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+
+    expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();
   });
 });

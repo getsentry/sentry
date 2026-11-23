@@ -13,11 +13,11 @@ function solidImage(hex: string): string {
   )}`;
 }
 
-function uploadedAvatarOrganization(avatarUrl: string) {
+function logoOrganization(hex: string) {
   return OrganizationFixture({
     name: 'Acme',
     slug: 'acme',
-    avatar: {avatarType: 'upload', avatarUuid: null, avatarUrl},
+    avatar: {avatarType: 'upload', avatarUuid: null, avatarUrl: solidImage(hex)},
   });
 }
 
@@ -26,30 +26,22 @@ function uploadedAvatarOrganization(avatarUrl: string) {
  * Seed the sampled color so the header renders what it shows once sampling
  * finishes.
  */
-function sampledQueryClient(avatarUrl?: string, sampledColor?: string): QueryClient {
+function sampledQueryClient(logo?: Logo): QueryClient {
   // No garbage collection timers, so Jest can exit once the snapshots are taken.
   const queryClient = new QueryClient({defaultOptions: {queries: {gcTime: Infinity}}});
-  if (avatarUrl && sampledColor) {
-    for (const themeType of ['light', 'dark']) {
-      queryClient.setQueryData(['avatar-button-chonk', avatarUrl, themeType], {
-        chonk: sampledColor,
-        dominant: sampledColor,
-        style: 'fill',
-      });
-    }
+  if (logo) {
+    queryClient.setQueryData(['avatar-image-analysis', solidImage(logo.color)], {
+      tint: logo.tint,
+      edge: logo.color,
+      style: 'fill',
+    });
   }
   return queryClient;
 }
 
-function MenuHeaderFrame({
-  children,
-  queryClient,
-}: {
-  children: ReactNode;
-  queryClient: QueryClient;
-}) {
+function Frame({children, sampled}: {children: ReactNode; sampled?: Logo}) {
   return (
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={sampledQueryClient(sampled)}>
       <Container width="258px" padding="sm lg">
         {children}
       </Container>
@@ -57,73 +49,118 @@ function MenuHeaderFrame({
   );
 }
 
-const SAMPLED_AVATAR_COLORS = {
-  // Dark and saturated: the menu header used to wash this out to grey-purple.
-  purple: '#6513a6',
-  yellow: '#ffd000',
-  // Already darker than the default gradient, so the header keeps it.
-  'near-black': '#1a1a1a',
-};
+const LONG_NAME = 'a-very-long-slug-that-keeps-going-past-the-menu-edge';
+
+interface Logo {
+  color: string;
+  kind: string;
+  tint: string | null;
+}
+
+// Bright, where the gradient used to start near black.
+const BRIGHT_LOGO: Logo = {kind: 'bright', color: '#ffd744', tint: '#ffd744'};
+
+const LOGOS: Logo[] = [
+  BRIGHT_LOGO,
+  {kind: 'saturated', color: '#e3442a', tint: '#e3442a'},
+  // Already darker than the default gradient.
+  {kind: 'dark', color: '#12424a', tint: '#12424a'},
+  // No colored pixels, so the header keeps its default gradient.
+  {kind: 'neutral', color: '#000000', tint: null},
+];
 
 describe('NavigationMenuHeader', () => {
-  it.snapshot.each<keyof typeof SAMPLED_AVATAR_COLORS>([
-    'purple',
-    'yellow',
-    'near-black',
-  ])(
-    'organization-image-avatar-%s',
-    colorName => {
-      const sampledColor = SAMPLED_AVATAR_COLORS[colorName];
-      const avatarUrl = solidImage(sampledColor);
-      return (
-        <MenuHeaderFrame queryClient={sampledQueryClient(avatarUrl, sampledColor)}>
+  for (const logo of LOGOS) {
+    it.snapshot(
+      `organization-logo-${logo.kind}`,
+      () => (
+        <Frame sampled={logo}>
           <NavigationMenuHeader
-            organization={uploadedAvatarOrganization(avatarUrl)}
+            organization={logoOrganization(logo.color)}
             projectCount={12}
           />
-        </MenuHeaderFrame>
-      );
-    },
-    colorName => ({tags: {avatar: 'image', color: colorName, area: 'core'}})
-  );
+        </Frame>
+      ),
+      {tags: {avatar: 'image', logo: logo.kind, area: 'core'}}
+    );
+  }
 
   // Before an image avatar has been sampled, the header uses its default gradient.
   it.snapshot(
-    'organization-image-avatar-unsampled',
+    'organization-logo-unsampled',
     () => (
-      <MenuHeaderFrame queryClient={sampledQueryClient()}>
+      <Frame>
         <NavigationMenuHeader
-          organization={uploadedAvatarOrganization(
-            solidImage(SAMPLED_AVATAR_COLORS.purple)
-          )}
+          organization={logoOrganization(BRIGHT_LOGO.color)}
           projectCount={12}
         />
-      </MenuHeaderFrame>
+      </Frame>
     ),
-    {tags: {avatar: 'image', color: 'unsampled', area: 'core'}}
+    {tags: {avatar: 'image', logo: 'unsampled', area: 'core'}}
   );
 
   it.snapshot(
     'organization-letter-avatar',
     () => (
-      <MenuHeaderFrame queryClient={sampledQueryClient()}>
+      <Frame>
         <NavigationMenuHeader
           organization={OrganizationFixture({name: 'Acme', slug: 'acme'})}
           projectCount={1}
         />
-      </MenuHeaderFrame>
+      </Frame>
     ),
     {tags: {avatar: 'letter', area: 'core'}}
   );
 
+  // A title that wraps must not squeeze the avatar.
   it.snapshot(
-    'user-letter-avatar',
+    'organization-long-name',
     () => (
-      <MenuHeaderFrame queryClient={sampledQueryClient()}>
+      <Frame>
+        <NavigationMenuHeader
+          organization={OrganizationFixture({name: LONG_NAME, slug: LONG_NAME})}
+          projectCount={2}
+        />
+      </Frame>
+    ),
+    {tags: {avatar: 'letter', name: 'long', area: 'core'}}
+  );
+
+  it.snapshot(
+    'user-long-name',
+    () => (
+      <Frame>
+        <NavigationMenuHeader
+          user={UserFixture({name: LONG_NAME, email: 'jane@example.com'})}
+        />
+      </Frame>
+    ),
+    {tags: {avatar: 'letter', name: 'long', area: 'core'}}
+  );
+
+  // The user menu takes its gradient from the organization's avatar.
+  it.snapshot(
+    'user-with-organization-logo',
+    () => (
+      <Frame sampled={BRIGHT_LOGO}>
+        <NavigationMenuHeader
+          user={UserFixture({name: 'Jane Doe', email: 'jane@example.com'})}
+          organization={logoOrganization(BRIGHT_LOGO.color)}
+        />
+      </Frame>
+    ),
+    {tags: {avatar: 'image', logo: 'bright', area: 'core'}}
+  );
+
+  // Without an organization, the user menu uses the default gradient.
+  it.snapshot(
+    'user-without-organization',
+    () => (
+      <Frame>
         <NavigationMenuHeader
           user={UserFixture({name: 'Jane Doe', email: 'jane@example.com'})}
         />
-      </MenuHeaderFrame>
+      </Frame>
     ),
     {tags: {avatar: 'letter', area: 'core'}}
   );

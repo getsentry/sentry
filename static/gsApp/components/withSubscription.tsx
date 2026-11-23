@@ -10,9 +10,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 
-type InjectedSubscriptionProps = {
-  subscription: Subscription;
-};
+type InjectedSubscriptionProps = {subscription: Subscription};
 
 type DependentProps = {
   organization?: Organization;
@@ -29,10 +27,7 @@ type Options = {
   noLoader?: boolean;
 };
 
-type State = {
-  loadFailed: boolean;
-  subscription?: Subscription;
-};
+type State = {loadFailed: boolean; subscription?: Subscription};
 
 /**
  * HoC to inject the subscription object into the wrapped component. The
@@ -52,10 +47,7 @@ export function withSubscription<P extends InjectedSubscriptionProps>(
   > {
     static displayName = `withSubscription(${getDisplayName(WrappedComponent)})`;
 
-    state: State = {
-      loadFailed: false,
-      subscription: this.props.subscription,
-    };
+    state: State = {loadFailed: false, subscription: this.props.subscription};
 
     componentDidMount() {
       this.mounted = true;
@@ -83,10 +75,13 @@ export function withSubscription<P extends InjectedSubscriptionProps>(
       this.unsubscribe();
     }
 
-    unsubscribe = SubscriptionStore.listen(
-      (subscription: Subscription) => this.onSubscriptionChange(subscription),
-      undefined
-    );
+    unsubscribe = SubscriptionStore.subscribe((state, prevState) => {
+      for (const [orgSlug, subscription] of Object.entries(state)) {
+        if (subscription !== prevState[orgSlug]) {
+          this.onSubscriptionChange(subscription);
+        }
+      }
+    });
     private mounted = false;
 
     async checkLoadResult(orgSlug: string, load: Promise<void>) {

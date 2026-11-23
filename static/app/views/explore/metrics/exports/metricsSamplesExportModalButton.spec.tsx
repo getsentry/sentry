@@ -118,19 +118,13 @@ describe('MetricsSamplesExportModalButton', () => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        datetime: {start: null, end: null, period: '24h', utc: null},
-      })
+      PageFiltersFixture({datetime: {start: null, end: null, period: '24h', utc: null}})
     );
     eventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: {data: []},
     });
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it('asks the server export for the accuracy the table escalates to', async () => {

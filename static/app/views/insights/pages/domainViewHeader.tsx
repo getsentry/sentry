@@ -7,13 +7,16 @@ import type {
   BreadcrumbListProps,
   BreadcrumbTitleItem,
 } from '@sentry/scraps/breadcrumbList';
-import type {TabListItemProps} from '@sentry/scraps/tabs';
-import {TabList} from '@sentry/scraps/tabs';
+import {Container} from '@sentry/scraps/layout';
+import {
+  LinkTabs,
+  Tabs,
+  type LinkTabListItemProps,
+  type TabsComponents,
+} from '@sentry/scraps/tabs';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
@@ -35,7 +38,7 @@ import {
   isModuleVisible,
 } from './utils';
 
-export type Props = {
+export type Props<T extends string = string> = {
   domainBaseUrl: string;
   domainTitle: string;
   modules: ModuleName[];
@@ -44,10 +47,14 @@ export type Props = {
   additonalHeaderActions?: React.ReactNode;
   headerTitle?: string | BreadcrumbTitleItem;
   hideDefaultTabs?: boolean;
-  tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
+  tabs?: {
+    onTabChange: (key: T) => void;
+    renderTabList: (TabList: TabsComponents<T>['TabList']) => React.ReactNode;
+    value: T;
+  };
 };
 
-export function DomainViewHeader({
+export function DomainViewHeader<T extends string = string>({
   modules,
   headerTitle,
   domainTitle,
@@ -57,7 +64,7 @@ export function DomainViewHeader({
   additionalBreadCrumbs = [],
   domainBaseUrl,
   tabs,
-}: Props) {
+}: Props<T>) {
   const organization = useOrganization();
   const location = useLocation();
   const moduleURLBuilder = useModuleURLBuilder();
@@ -70,12 +77,7 @@ export function DomainViewHeader({
   const isAgentMonitoring = view === 'ai-agents';
   const isSessionsInsights = selectedModule === ModuleName.SESSIONS;
 
-  const tabValue =
-    hideDefaultTabs && tabs?.value ? tabs.value : (selectedModule ?? OVERVIEW_PAGE_TITLE);
-
-  const globalQuery = {
-    ...extractSelectionParameters(location?.query),
-  };
+  const globalQuery = {...extractSelectionParameters(location?.query)};
 
   // The domain link is only useful when there is a deeper page below it;
   // otherwise the domain itself is the current page title.
@@ -91,7 +93,7 @@ export function DomainViewHeader({
         ]
       : undefined;
 
-  const tabList: TabListItemProps[] = [
+  const tabList = [
     {
       key: OVERVIEW_PAGE_TITLE,
       children: OVERVIEW_PAGE_TITLE,
@@ -108,7 +110,7 @@ export function DomainViewHeader({
           query: globalQuery,
         },
       })),
-  ];
+  ] satisfies LinkTabListItemProps[];
 
   const feedbackConfig: Array<[boolean, {owner: string; source: string}]> = [
     [isAgentMonitoring, {owner: 'telemetry-experience', source: 'agent-monitoring'}],
@@ -142,25 +144,28 @@ export function DomainViewHeader({
         {additonalHeaderActions && (
           <TopBar.Slot name="actions">{additonalHeaderActions}</TopBar.Slot>
         )}
-        <TopBar.Slot name="feedback">
-          <FeedbackButton
-            feedbackOptions={feedbackOptions}
-            aria-label={t('Give Feedback')}
-            tooltipProps={{title: t('Give Feedback')}}
-          >
-            {null}
-          </FeedbackButton>
-        </TopBar.Slot>
-        <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
-          {!hideDefaultTabs && (
-            <TabList>
-              {tabList.map(tab => (
-                <TabList.Item {...tab} key={tab.key} />
-              ))}
-            </TabList>
-          )}
-          {hideDefaultTabs && tabs?.tabList}
-        </Layout.HeaderTabs>
+        <TopBar.Slot name="feedback" feedbackOptions={feedbackOptions} />
+        <Container column="1 / -1">
+          {tabsRootProps =>
+            hideDefaultTabs && tabs ? (
+              <Tabs value={tabs.value} onChange={tabs.onTabChange} {...tabsRootProps}>
+                {({TabList}) => tabs.renderTabList(TabList)}
+              </Tabs>
+            ) : (
+              <LinkTabs value={selectedModule ?? OVERVIEW_PAGE_TITLE} {...tabsRootProps}>
+                {({TabList}) =>
+                  !hideDefaultTabs && (
+                    <TabList>
+                      {tabList.map(tab => (
+                        <TabList.Item {...tab} key={tab.key} />
+                      ))}
+                    </TabList>
+                  )
+                }
+              </LinkTabs>
+            )
+          }
+        </Container>
       </Layout.Header>
     </Fragment>
   );

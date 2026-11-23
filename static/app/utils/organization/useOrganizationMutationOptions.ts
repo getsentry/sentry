@@ -22,17 +22,14 @@ export function useOrganizationMutationOptions(organization: Organization) {
 
   const queryOptions = apiOptions.as<Organization>()(
     '/organizations/$organizationIdOrSlug/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
   );
 
   return mutationOptions({
     onMutate: (data: Variables) => {
       const previousOrganization =
         queryClient.getQueryData(queryOptions.queryKey)?.json ||
-        OrganizationStore.get().organization ||
+        OrganizationStore.getState().organization ||
         organization;
 
       if (!previousOrganization) {

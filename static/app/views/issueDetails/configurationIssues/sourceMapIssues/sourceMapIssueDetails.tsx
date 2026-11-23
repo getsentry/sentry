@@ -3,7 +3,7 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 import {Container} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import type {SourceMapDebugResponse} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
+import {sourceMapDebugApiOptions} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {
   getSourceMapsDocLinks,
   projectPlatformToDocsMap,
@@ -12,7 +12,6 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {StickyEventNav} from 'sentry/views/issueDetails/eventDetails';
@@ -49,23 +48,18 @@ export function SourceMapIssueDetails({
     typeof sampleEventId === 'string' &&
     sampleEventId.length > 0 &&
     event?.sdk?.name?.startsWith('sentry.javascript.');
-  const sourceMapQuery = useQuery({
-    ...apiOptions.as<SourceMapDebugResponse>()(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/source-map-debug/',
-      {
-        path: canDiagnose
-          ? {
-              organizationIdOrSlug: organization.slug,
-              projectIdOrSlug: project.slug,
-              eventId: sampleEventId,
-            }
-          : skipToken,
-        staleTime: Infinity,
-      }
-    ),
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
+  const sourceMapQuery = useQuery(
+    sourceMapDebugApiOptions(
+      canDiagnose
+        ? {
+            organizationSlug: organization.slug,
+            projectSlug: project.slug,
+            eventId: sampleEventId,
+            sdkName: event?.sdk?.name ?? null,
+          }
+        : skipToken
+    )
+  );
 
   let state: DiagnosisState;
   if (isEventPending) {

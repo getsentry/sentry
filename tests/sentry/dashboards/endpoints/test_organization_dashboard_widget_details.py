@@ -1556,6 +1556,30 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
+    def test_widget_type_tracemetrics_wheel(self) -> None:
+        data = {
+            "title": "Performance Score",
+            "widgetType": "tracemetrics",
+            "displayType": "wheel",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["performance_score()", "opportunity_score()"],
+                    "columns": ["performance_score()", "opportunity_score()"],
+                    "aggregates": [],
+                    "orderby": "",
+                }
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
     def test_heatmap_rejects_equation_aggregate(self) -> None:
         data = {
             "title": "Test Metrics Heat Map",

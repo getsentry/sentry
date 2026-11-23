@@ -72,7 +72,11 @@ class HybridCloudTestMixin:
 
 
 class SimulatedTransactionWatermarks(threading.local):
-    state: dict[str, int] = {}
+    def __init__(self) -> None:
+        # Set per thread. As a class attribute, every thread but the main one shared a
+        # single dict, so one thread's watermark made another flush its on_commit hooks
+        # inside an open transaction.
+        self.state: dict[str, int] = {}
 
     @staticmethod
     def get_transaction_depth(connection: BaseDatabaseWrapper) -> int:

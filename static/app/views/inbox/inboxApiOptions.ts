@@ -1,5 +1,6 @@
 import {
   mutationOptions,
+  skipToken,
   type InfiniteData,
   type QueryClient,
 } from '@tanstack/react-query';
@@ -11,7 +12,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
-import type {InboxFilters, InboxItem, InboxSubject} from './types';
+import type {InboxFilters, InboxItem, InboxSubjectRef} from './types';
 
 const INBOX_ITEMS_PER_PAGE = 25;
 
@@ -28,12 +29,28 @@ type InboxItemsUpdate = {
  * or by checkbox selection for bulk actions.
  */
 type InboxItemsTarget =
-  | {subject: InboxSubject}
+  | {subject: InboxSubjectRef}
   | {selection: ListItemCheckboxState['selectedIds']};
 
 type UpdateInboxItemsVariables = InboxItemsTarget & {update: InboxItemsUpdate};
 
 type InboxListData = InfiniteData<ApiResponse<InboxItem[]>>;
+
+export function inboxUnreadCountApiOptions(organization: Organization | null) {
+  return {
+    ...apiOptions.as<{count: number}>()(
+      '/organizations/$organizationIdOrSlug/inbox/count/',
+      {
+        path: organization?.features.includes('universal-inbox')
+          ? {organizationIdOrSlug: organization.slug}
+          : skipToken,
+        query: {is_read: 'false'},
+        staleTime: 0,
+      }
+    ),
+    refetchOnWindowFocus: 'always' as const,
+  };
+}
 
 export function inboxItemsApiOptions(organization: Organization, filters: InboxFilters) {
   return {
@@ -45,6 +62,7 @@ export function inboxItemsApiOptions(organization: Organization, filters: InboxF
           per_page: INBOX_ITEMS_PER_PAGE,
           ...(filters.subjectType.length > 0 && {subject_type: filters.subjectType}),
           ...(filters.eventType.length > 0 && {event_type: filters.eventType}),
+          ...(filters.recipient.length > 0 && {recipient: filters.recipient}),
         },
         staleTime: 30_000,
       }
@@ -55,10 +73,7 @@ export function inboxItemsApiOptions(organization: Organization, filters: InboxF
 
 function getTargetQuery(target: InboxItemsTarget) {
   if ('subject' in target) {
-    return {
-      subject_type: [target.subject.subjectType],
-      subject_id: target.subject.subjectId,
-    };
+    return {subject_type: [target.subject.type], subject_id: target.subject.id};
   }
   return target.selection === 'all' ? {} : {id: target.selection};
 }
@@ -66,8 +81,7 @@ function getTargetQuery(target: InboxItemsTarget) {
 function isTargetedItem(item: InboxItem, target: InboxItemsTarget) {
   if ('subject' in target) {
     return (
-      item.subjectType === target.subject.subjectType &&
-      item.subjectId === target.subject.subjectId
+      item.subject.type === target.subject.type && item.subject.id === target.subject.id
     );
   }
   return target.selection === 'all' || target.selection.includes(item.id);
@@ -76,12 +90,10 @@ function isTargetedItem(item: InboxItem, target: InboxItemsTarget) {
 /**
  * Matches the cached inbox lists for every combination of filters.
  */
-function getInboxListsQueryKey(organization: Organization) {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/inbox/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
-  ];
+function getInboxListsFilter(organization: Organization) {
+  return apiOptions.queryFilter('/organizations/$organizationIdOrSlug/inbox/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
 }
 
 /**
@@ -99,10 +111,10 @@ async function updateCachedInboxItems({
   target: InboxItemsTarget;
   updateItem: (item: InboxItem) => InboxItem | null;
 }) {
-  const queryKey = getInboxListsQueryKey(organization);
-  await queryClient.cancelQueries({queryKey});
+  const filter = getInboxListsFilter(organization);
+  await queryClient.cancelQueries(filter);
 
-  queryClient.setQueriesData<InboxListData>({queryKey}, prev =>
+  queryClient.setQueriesData<InboxListData>(filter, prev =>
     prev
       ? {
           ...prev,
@@ -132,6 +144,45 @@ function applyReadState(item: InboxItem, isRead: boolean): InboxItem {
   };
 }
 
+function getInboxCountFilter(organization: Organization) {
+  return apiOptions.queryFilter('/organizations/$organizationIdOrSlug/inbox/count/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
+}
+
+export function removeInboxItemsMutationOptions({
+  organization,
+  queryClient,
+}: {
+  organization: Organization;
+  queryClient: QueryClient;
+}) {
+  const filter = getInboxListsFilter(organization);
+
+  return mutationOptions({
+    mutationFn: ({ids}: {ids: string[]}) =>
+      fetchMutation<void>({
+        method: 'DELETE',
+        url: getApiUrl('/organizations/$organizationIdOrSlug/inbox/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        options: {query: {id: ids}},
+      }),
+    onMutate: async ({ids}) => {
+      await updateCachedInboxItems({
+        organization,
+        queryClient,
+        target: {selection: ids},
+        updateItem: () => null,
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({...filter, refetchType: 'active'});
+      queryClient.invalidateQueries(getInboxCountFilter(organization));
+    },
+  });
+}
+
 /**
  * Updates the read state of, or restores, the targeted inbox items.
  */
@@ -142,7 +193,7 @@ export function updateInboxItemsMutationOptions({
   organization: Organization;
   queryClient: QueryClient;
 }) {
-  const queryKey = getInboxListsQueryKey(organization);
+  const filter = getInboxListsFilter(organization);
 
   return mutationOptions({
     mutationFn: ({update, ...target}: UpdateInboxItemsVariables) =>
@@ -154,6 +205,8 @@ export function updateInboxItemsMutationOptions({
         options: {query: getTargetQuery(target)},
         data: update,
       }),
+    // Keep automatic and explicit read-state updates in the order they were requested.
+    scope: {id: `inbox-updates:${organization.id}`},
     onMutate: async ({update, ...target}) => {
       const {isRead} = update;
       if (isRead === undefined) {
@@ -168,20 +221,14 @@ export function updateInboxItemsMutationOptions({
     },
     onSettled: (_data, error, {update}) => {
       queryClient.invalidateQueries({
-        queryKey,
+        ...filter,
         // Failed updates are refetched rather than restored from a snapshot, which could
         // overwrite overlapping updates. Restored items are not in the cache, so they only
         // show up after a refetch. Otherwise the read state is already applied, and lists
         // are only marked stale in case they loaded during the request.
         refetchType: error || update.undoRemoval ? 'active' : 'none',
       });
-      queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/inbox/count/', {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-        ],
-      });
+      queryClient.invalidateQueries(getInboxCountFilter(organization));
     },
   });
 }

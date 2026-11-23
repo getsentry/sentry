@@ -49,6 +49,20 @@ class SeerWorkflowRunLifecycle:
     run_id: int
     organization_id: int
 
+    @classmethod
+    def create(
+        cls, config: SeerWorkflowConfig, *, trigger_key: str, extras: SeerWorkflowRunExtras
+    ) -> SeerWorkflowRunLifecycle:
+        """Record a queued run of ``config``. Callers must hold the config's row lock."""
+        run = SeerWorkflowRun.objects.using(router.db_for_write(SeerWorkflowRun)).create(
+            organization_id=config.organization_id,
+            workflow_config=config,
+            trigger_key=trigger_key,
+            status=SeerWorkflowRunStatus.QUEUED,
+            extras=json.loads(extras.json()),
+        )
+        return cls(run_id=run.id, organization_id=run.organization_id)
+
     def get_run(self) -> SeerWorkflowRun:
         """Fetch the run without acquiring a lock."""
         return self._run_queryset().get()
@@ -277,7 +291,7 @@ def deliver_workflow_result(
     agent_run = (
         SeerAgentRun.objects.select_related("run__organization")
         .filter(run__organization_id=organization_id, source=feature_id, run__uuid=run_uuid)
-        .first()
+        .first()  # noqa: S035
     )
     if agent_run is None:
         logger.warning("seer.workflow.delivery.missing_run", extra=log_extra)
@@ -321,7 +335,7 @@ def finish_workflow_run(
         agent_run = (
             SeerAgentRun.objects.select_for_update(of=("self",))
             .filter(run_id=run_id, run__organization_id=organization_id, source=feature_id)
-            .first()
+            .get_or_none()
         )
         if agent_run is None or agent_run.extras.get("status") in TERMINAL_STATUSES:
             return

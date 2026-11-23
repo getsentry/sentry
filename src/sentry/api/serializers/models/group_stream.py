@@ -223,9 +223,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         base = super().serialize(obj, attrs, user)
 
         if self.stats_period:
-            extra: _MaybeStats = {
-                "stats": {self.stats_period: cast("list[tuple[int, int]]", attrs["stats"])}
-            }
+            extra: _MaybeStats = {"stats": {self.stats_period: attrs["stats"]}}
         else:
             extra = {}
 
@@ -472,9 +470,11 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     ]
     sessionCount: NotRequired[
         Annotated[
-            int,
+            int | None,
             ApiDescription(
-                "Number of sessions in the issue's project over the query time range. Only included when requested with expand=sessions"
+                "Number of sessions in the issue's project over the query time range. "
+                "Null when session data is unavailable. Only included with expand=sessions "
+                "when a stats period is enabled and stats is not collapsed"
             ),
         ]
     ]
@@ -788,7 +788,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 else:
                     result["filtered"] = None
 
-            if self._expand("sessions"):
+            if self.stats_period and self._expand("sessions"):
                 result["sessionCount"] = attrs["sessionCount"]
 
         if self._expand("inbox"):

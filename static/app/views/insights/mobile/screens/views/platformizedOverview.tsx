@@ -6,9 +6,7 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModuleName} from 'sentry/views/insights/types';
 
 export function PlatformizedMobileVitalsOverview() {
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.SPANS],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.SPANS]});
 
   return (
     <ModulePageProviders

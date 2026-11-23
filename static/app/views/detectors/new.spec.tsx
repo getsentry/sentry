@@ -54,9 +54,7 @@ describe('DetectorNew', () => {
     expect(router.location).toEqual(
       expect.objectContaining({
         pathname: '/organizations/org-slug/monitors/new/settings/',
-        query: expect.objectContaining({
-          detectorType: 'uptime_domain_failure',
-        }),
+        query: expect.objectContaining({detectorType: 'uptime_domain_failure'}),
       })
     );
   });
@@ -82,10 +80,7 @@ describe('DetectorNew', () => {
     expect(router.location).toEqual(
       expect.objectContaining({
         pathname: '/organizations/org-slug/monitors/new/settings/',
-        query: {
-          detectorType: 'uptime_domain_failure',
-          project: '2',
-        },
+        query: {detectorType: 'uptime_domain_failure', project: '2'},
       })
     );
   });

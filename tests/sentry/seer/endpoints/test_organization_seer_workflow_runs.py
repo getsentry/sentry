@@ -1,10 +1,9 @@
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import patch
 
 from django.db import connections, router
-from django.db.models import F
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -15,6 +14,7 @@ from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.models.group import GroupStatus
 from sentry.notebooks.models import NotebookStatus
 from sentry.seer.endpoints.organization_seer_workflow_runs import (
     SeerWorkflowRunsResponse,
@@ -33,6 +33,7 @@ from sentry.seer.monitor_cleanup.runs import deliver_monitor_cleanup_result
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 from sentry.workflow_engine.models import Workflow
@@ -87,6 +88,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                 {
                     "id": str(run.id),
                     "configId": str(self.config.id),
+                    "configName": "Seer automation",
                     "strategy": "breached_metric_investigation",
                     "trigger": None,
                     "status": "running",
@@ -293,19 +295,101 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             == "false"
         )
 
-    def test_config_and_organization_scope_apply_before_pagination(self) -> None:
+    def test_adjacent_absolute_creation_time_ranges(self) -> None:
+        boundary = datetime(2025, 1, 1, tzinfo=UTC)
+        earlier = self.create_run(status=None, date_completed=boundary)
+        earlier.update(date_added=boundary - timedelta(microseconds=1))
+        at_boundary = self.create_run()
+        at_boundary.update(date_added=boundary)
+
+        before = self.get_success_response(
+            self.organization.slug, start="2024-12-31T00:00:00", end="2025-01-01T01:00:00+01:00"
+        )
+        assert [run["id"] for run in before.data["runs"]] == [str(earlier.id)]
+        since = self.get_success_response(
+            self.organization.slug, start="2025-01-01T00:00:00", end="2025-01-02T00:00:00Z"
+        )
+        assert [run["id"] for run in since.data["runs"]] == [str(at_boundary.id)]
+
+        queued = self.get_success_response(self.organization.slug, status="queued")
+        assert [run["id"] for run in queued.data["runs"]] == [str(at_boundary.id)]
+        failed = self.get_success_response(self.organization.slug, status="failed")
+        assert failed.data == {"runs": []}
+
+    @freeze_time()
+    def test_relative_creation_time_ranges_and_precedence(self) -> None:
+        now = timezone.now()
+        recent = self.create_run()
+        recent.update(date_added=now - timedelta(hours=12))
+        previous = self.create_run()
+        previous.update(date_added=now - timedelta(days=10))
+        historical = self.create_run()
+        historical.update(date_added=now - timedelta(days=120))
+
+        absolute = {
+            "start": (now - timedelta(days=121)).isoformat(),
+            "end": (now - timedelta(days=119)).isoformat(),
+        }
+        relative = {"statsPeriodStart": "14d", "statsPeriodEnd": "7d"}
+        latest = self.get_success_response(
+            self.organization.slug, statsPeriod="24h", **relative, **absolute
+        )
+        assert [run["id"] for run in latest.data["runs"]] == [str(recent.id)]
+        prior = self.get_success_response(self.organization.slug, **relative, **absolute)
+        assert [run["id"] for run in prior.data["runs"]] == [str(previous.id)]
+        all_runs = self.get_success_response(self.organization.slug)
+        assert [run["id"] for run in all_runs.data["runs"]] == [
+            str(recent.id),
+            str(previous.id),
+            str(historical.id),
+        ]
+
+    def test_combined_filters_and_visibility_apply_before_pagination(self) -> None:
         same_time = timezone.now()
-        older = self.create_run()
-        newer = self.create_run()
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(
+            organization=self.organization, user=member, role="member", teams=[self.team]
+        )
+        older = self.create_run(status=SeerWorkflowRunStatus.FAILED)
+        newer = self.create_run(status=SeerWorkflowRunStatus.FAILED)
         older.update(date_added=same_time)
         newer.update(date_added=same_time)
+        self.create_run().update(date_added=same_time)
+        self.create_run(status=SeerWorkflowRunStatus.FAILED).update(
+            date_added=same_time + timedelta(hours=1)
+        )
+        self.create_run(status=SeerWorkflowRunStatus.FAILED).update(
+            date_added=same_time - timedelta(microseconds=1)
+        )
+        hidden = self.create_project(teams=[self.create_team(organization=self.organization)])
+        self.create_run(status=SeerWorkflowRunStatus.FAILED, project_ids=[hidden.id]).update(
+            date_added=same_time
+        )
         other_config = Factories.create_seer_workflow_config(
             self.organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
         )
-        Factories.create_seer_workflow_run(self.organization, workflow_config=other_config)
-        Factories.create_seer_workflow_run(self.create_organization(), workflow_config=self.config)
+        for org, config in (
+            (self.organization, other_config),
+            (self.create_organization(), self.config),
+        ):
+            Factories.create_seer_workflow_run(
+                org,
+                workflow_config=config,
+                status=SeerWorkflowRunStatus.FAILED,
+                extras=older.extras,
+            ).update(date_added=same_time)
+        self.login_as(member)
 
-        first = self.get_success_response(self.organization.slug, config=self.config.id, per_page=1)
+        first = self.get_success_response(
+            self.organization.slug,
+            config=self.config.id,
+            start=same_time.isoformat(),
+            end=(same_time + timedelta(hours=1)).isoformat(),
+            status="failed",
+            per_page=1,
+        )
         assert [run["id"] for run in first.data["runs"]] == [str(newer.id)]
         links = parse_link_header(first.headers["Link"])
         next_url = next(url for url, link in links.items() if link["rel"] == "next")
@@ -350,6 +434,35 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         self.create_run()
         response = self.get_success_response(self.organization.slug, config=I64_MAX)
         assert response.data == {"runs": []}
+
+    def test_invalid_run_filters(self) -> None:
+        for filters in (
+            {"start": "2025-01-01"},
+            {"end": "2025-01-02"},
+            {"start": "2025-01-01", "end": "2025-02-30"},
+            {"start": "2025-01-01", "end": "1e100"},
+            {"start": "2025-01-01T00:00:00Z", "end": "2025-01-01T01:00:00+01:00"},
+            {"start": "2025-01-02", "end": "2025-01-01"},
+            {"statsPeriod": "last week"},
+            {"statsPeriodStart": "7d"},
+            {"statsPeriodEnd": "1d"},
+            {"statsPeriodStart": "1d", "statsPeriodEnd": "7d"},
+            {"status": "partial"},
+        ):
+            response = self.get_error_response(self.organization.slug, status_code=400, **filters)
+            assert response.data["detail"], filters
+
+    @freeze_time()
+    def test_repeated_date_and_status_use_last_value(self) -> None:
+        hour_ago = timezone.now() - timedelta(hours=1)
+        recent = self.create_run()
+        recent.update(date_added=hour_ago)
+        self.create_run().update(date_added=timezone.now() - timedelta(days=2))
+        self.create_run(status=SeerWorkflowRunStatus.FAILED).update(date_added=hour_ago)
+        response = self.get_success_response(
+            self.organization.slug, statsPeriod=["7d", "1d"], status=["failed", "queued"]
+        )
+        assert [run["id"] for run in response.data["runs"]] == [str(recent.id)]
 
     def test_foreign_and_legacy_configs_are_not_available(self) -> None:
         foreign_org = self.create_organization(owner=self.user)
@@ -432,7 +545,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             Factories.create_seer_workflow_run_execution(run)
         runs = list(
             SeerWorkflowRun.objects.filter(id__in=[run.id for run in created])
-            .annotate(strategy=F("workflow_config__strategy"))
+            .select_related("workflow_config__backing_workflow")
             .order_by("id")
         )
         using = router.db_for_read(SeerWorkflowRunExecution)
@@ -483,22 +596,8 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
 
     def test_returns_the_triggering_monitor(self) -> None:
         detector = self.create_detector(project=self.project)
-        run = self.create_run(
-            inputs={
-                "event_id": "a" * 32,
-                "occurrence_id": "abc",
-                "detector_id": detector.id,
-                "evidence": {},
-                "observed_at": "2025-01-01T10:00:00Z",
-                "environment": "production",
-                "group_id": 1,
-                "group_short_id": "BACKEND-1A",
-                "project_id": self.project.id,
-                "binding_id": 1,
-                "workflow_id": 1,
-                "action_id": 1,
-            }
-        )
+        group = self.create_group(project=self.project)
+        run = self.create_run(inputs=self.monitor_inputs(detector.id, self.project.id, group.id))
 
         response = self.get_success_response(self.organization.slug)
 
@@ -507,14 +606,113 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         assert serialized_run["trigger"] == {
             "type": "monitor",
             "detectorId": str(detector.id),
+            "detectorName": detector.name,
             "environment": "production",
             "eventId": "a" * 32,
-            "groupId": "1",
+            "groupExists": True,
+            "groupId": str(group.id),
             "groupShortId": "BACKEND-1A",
             "observedAt": datetime(2025, 1, 1, 10, tzinfo=UTC),
             "occurrenceId": "abc",
             "projectId": str(self.project.id),
         }
+
+    def test_returns_the_config_name(self) -> None:
+        self.config.update(
+            backing_workflow=self.create_workflow(
+                organization=self.organization, name="Checkout latency"
+            )
+        )
+        self.create_run()
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["configName"] == "Checkout latency"
+
+    def test_detector_name_is_null_for_a_deleted_detector(self) -> None:
+        detector = self.create_detector(project=self.project)
+        detector_id = detector.id
+        self.create_run(inputs=self.monitor_inputs(detector_id, self.project.id))
+        detector.delete()
+
+        response = self.get_success_response(self.organization.slug)
+
+        trigger = response.data["runs"][0]["trigger"]
+        assert trigger["detectorId"] == str(detector_id)
+        assert trigger["detectorName"] is None
+
+    def test_detector_name_is_null_when_the_detector_left_the_trigger_project(self) -> None:
+        detector = self.create_detector(project=self.create_project())
+        self.create_run(inputs=self.monitor_inputs(detector.id, self.project.id))
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"]["detectorName"] is None
+
+    def test_detector_name_is_null_for_a_foreign_detector(self) -> None:
+        foreign_project = self.create_project(organization=self.create_organization())
+        detector = self.create_detector(project=foreign_project)
+        self.create_run(inputs=self.monitor_inputs(detector.id, foreign_project.id))
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"]["detectorName"] is None
+
+    def test_triggered_runs_only_require_access_to_the_trigger_project(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        team = self.create_team(organization=self.organization)
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
+        visible_project = self.create_project(teams=[team])
+        hidden_project = self.create_project(
+            teams=[self.create_team(organization=self.organization)]
+        )
+        visible_detector = self.create_detector(project=visible_project, name="Visible monitor")
+        hidden_detector = self.create_detector(project=hidden_project, name="Hidden monitor")
+        # Triggered in a hidden project, even though the saved scope is fully visible.
+        self.create_run(
+            project_ids=[visible_project.id],
+            inputs=self.monitor_inputs(hidden_detector.id, hidden_project.id),
+        )
+        # Triggered in a visible project, even though the saved scope includes a hidden one.
+        visible = self.create_run(
+            project_ids=[visible_project.id, hidden_project.id],
+            inputs=self.monitor_inputs(visible_detector.id, visible_project.id),
+        )
+        self.login_as(member)
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert [(run["id"], run["trigger"]["detectorName"]) for run in response.data["runs"]] == [
+            (str(visible.id), "Visible monitor"),
+        ]
+        assert "Hidden monitor" not in response.content.decode()
+
+    def test_group_exists_is_false_for_a_deleted_group(self) -> None:
+        detector = self.create_detector(project=self.project)
+        deleted = self.create_group(project=self.project)
+        deleted_id = deleted.id
+        pending_deletion = self.create_group(
+            project=self.project, status=GroupStatus.PENDING_DELETION
+        )
+        pending_run = self.create_run(
+            inputs=self.monitor_inputs(detector.id, self.project.id, pending_deletion.id)
+        )
+        deleted_run = self.create_run(
+            inputs=self.monitor_inputs(detector.id, self.project.id, deleted_id)
+        )
+        deleted.delete()
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert [
+            (run["id"], run["trigger"]["groupId"], run["trigger"]["groupExists"])
+            for run in response.data["runs"]
+        ] == [
+            (str(deleted_run.id), str(deleted_id), False),
+            (str(pending_run.id), str(pending_deletion.id), False),
+        ]
 
     def test_returns_cron_trigger_for_scheduled_runs(self) -> None:
         self.config.update(strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
@@ -537,6 +735,24 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         response = self.get_success_response(self.organization.slug)
 
         assert response.data["runs"][0]["trigger"] is None
+
+    def monitor_inputs(
+        self, detector_id: int, project_id: int, group_id: int = 1
+    ) -> dict[str, object]:
+        return {
+            "event_id": "a" * 32,
+            "occurrence_id": "abc",
+            "detector_id": detector_id,
+            "evidence": {},
+            "observed_at": "2025-01-01T10:00:00Z",
+            "environment": "production",
+            "group_id": group_id,
+            "group_short_id": "BACKEND-1A",
+            "project_id": project_id,
+            "binding_id": 1,
+            "workflow_id": 1,
+            "action_id": 1,
+        }
 
     def create_run(
         self,

@@ -1,10 +1,10 @@
 import type {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
-import qs from 'query-string';
 
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {FieldKind} from 'sentry/utils/fields';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import type {
   DashboardFilters,
   GlobalFilter,

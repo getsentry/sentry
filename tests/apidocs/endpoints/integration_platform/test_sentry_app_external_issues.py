@@ -73,7 +73,7 @@ class SentryAppDocsTest(APIDocsTestCase):
         self.validate_schema(RequestFactory().post(url, data), response)
 
         request_body = self.cached_schema.content()["paths"][
-            "/api/0/sentry-app-installations/{uuid}/external-issue-actions/"
+            "/sentry-app-installations/{uuid}/external-issue-actions/"
         ]["post"]["requestBody"]
         assert request_body["required"] is True
         schema = request_body["content"]["application/json"]["schema"]

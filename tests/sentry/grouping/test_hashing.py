@@ -72,7 +72,7 @@ class SecondaryGroupingTest(TestCase):
         def mock_calculate_event_grouping(
             project: Project, event: Event, grouping_config: GroupingConfig
         ) -> tuple[list[str], dict[str, BaseVariant]]:
-            # We only want `_calculate_event_grouping` to error inside of `_calculate_secondary_hash`,
+            # We only want `_calculate_event_grouping` to error inside of `_calculate_secondary_hashes`,
             # not anywhere else it's called
             if grouping_config["id"] == NO_MSG_PARAM_CONFIG:
                 raise secondary_grouping_error

@@ -2,8 +2,8 @@ import {getContextKeys} from 'sentry/components/events/contexts/dataUtils';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 
-// Fields emitted by `_produce_gpu_occurrence` in
-// src/sentry/lang/native/processing.py when teapot decodes a GPU crash.
+// Fields emitted by `_build_gpu_crash_context` in
+// src/sentry/lang/native/gpu.py when teapot decodes a GPU crash.
 enum GPUCrashContextKeys {
   STATUS = 'status',
   HANDLER = 'handler',
@@ -29,35 +29,81 @@ enum GPUCrashContextKeys {
   SHADER_DEBUG_INFO_UID = 'shader_debug_info_uid',
   PC_ADDRESS = 'pc_address',
   MISSING_DIF_COUNT = 'missing_dif_count',
+  FAULT_CATEGORY = 'fault_category',
+  LAST_GPU_OPERATION = 'last_gpu_operation',
+  ENGINE = 'engine',
+  CLIENT = 'client',
+  DEVICE_STATE = 'device_state',
+  ACTIVE_WARPS = 'active_warps',
+  FAULTING_PC = 'faulting_pc',
+  FAULT_NAME = 'fault_name',
+  FAULT_DETAIL = 'fault_detail',
+  RESOURCE = 'resource',
+  RESOURCE_DESTROYED = 'resource_destroyed',
+  SHADER_SIZE = 'shader_size',
+  FAULTED_WARPS = 'faulted_warps',
+  WARNINGS = 'warnings',
 }
+
+export type FaultCategory =
+  | 'shader_hang'
+  | 'gpu_hang'
+  | 'page_fault'
+  | 'dma_fault'
+  | 'out_of_memory'
+  | 'device_reset'
+  | 'device_stopped'
+  | 'device_removed'
+  | 'unknown';
+
+export type FaultedWarp = {
+  fault_detail?: string;
+  fault_name?: string;
+  pc?: string;
+  shader_mapping?: {File?: string; Line?: number} | null;
+};
 
 export interface GPUCrashContext {
   // Any custom keys users may set
   [key: string]: any;
   [GPUCrashContextKeys.ACCESS_TYPE]?: string;
+  [GPUCrashContextKeys.ACTIVE_WARPS]?: number;
   [GPUCrashContextKeys.ADAPTER_RESET]?: boolean;
   [GPUCrashContextKeys.APPLICATION_NAME]?: string;
   [GPUCrashContextKeys.APPLICATION_VERSION]?: string;
+  [GPUCrashContextKeys.CLIENT]?: string;
   [GPUCrashContextKeys.DECODE_TIME_MS]?: number;
   [GPUCrashContextKeys.DEVICE_NAME]?: string;
+  [GPUCrashContextKeys.DEVICE_STATE]?: string;
   [GPUCrashContextKeys.DEVICE_STATUS]?: string;
   [GPUCrashContextKeys.DRIVER_VERSION]?: string;
+  [GPUCrashContextKeys.ENGINE]?: string;
   [GPUCrashContextKeys.ENGINE_RESET]?: boolean;
+  [GPUCrashContextKeys.FAULTED_WARPS]?: FaultedWarp[];
+  [GPUCrashContextKeys.FAULTING_PC]?: string;
+  [GPUCrashContextKeys.FAULT_CATEGORY]?: FaultCategory;
   [GPUCrashContextKeys.FAULT_CODE]?: string;
   [GPUCrashContextKeys.FAULT_DESCRIPTION]?: string;
+  [GPUCrashContextKeys.FAULT_DETAIL]?: string;
+  [GPUCrashContextKeys.FAULT_NAME]?: string;
   [GPUCrashContextKeys.FAULT_TYPE]?: string;
   [GPUCrashContextKeys.GRAPHICS_API]?: string;
   [GPUCrashContextKeys.HANDLER]?: string;
+  [GPUCrashContextKeys.LAST_GPU_OPERATION]?: string;
   [GPUCrashContextKeys.MISSING_DIF_COUNT]?: number;
   [GPUCrashContextKeys.OS_VERSION]?: string;
   [GPUCrashContextKeys.PC_ADDRESS]?: string;
+  [GPUCrashContextKeys.RESOURCE]?: string;
+  [GPUCrashContextKeys.RESOURCE_DESTROYED]?: boolean;
   [GPUCrashContextKeys.SDK_VERSION]?: string;
   [GPUCrashContextKeys.SHADER_DEBUG_INFO_UID]?: string;
   [GPUCrashContextKeys.SHADER_HASH]?: string;
   [GPUCrashContextKeys.SHADER_NAME]?: string;
+  [GPUCrashContextKeys.SHADER_SIZE]?: number;
   [GPUCrashContextKeys.SHADER_TYPE]?: string;
   [GPUCrashContextKeys.STATUS]?: string;
   [GPUCrashContextKeys.VIRTUAL_ADDRESS]?: string;
+  [GPUCrashContextKeys.WARNINGS]?: Array<{code?: string; message?: string}>;
 }
 
 export function getGPUCrashContextData({
@@ -76,11 +122,7 @@ export function getGPUCrashContextData({
       case GPUCrashContextKeys.SDK_VERSION:
         return {key: ctxKey, subject: t('SDK Version'), value: data.sdk_version};
       case GPUCrashContextKeys.DECODE_TIME_MS:
-        return {
-          key: ctxKey,
-          subject: t('Decode Time (ms)'),
-          value: data.decode_time_ms,
-        };
+        return {key: ctxKey, subject: t('Decode Time (ms)'), value: data.decode_time_ms};
       case GPUCrashContextKeys.FAULT_TYPE:
         return {key: ctxKey, subject: t('Fault Type'), value: data.fault_type};
       case GPUCrashContextKeys.FAULT_DESCRIPTION:
@@ -92,27 +134,15 @@ export function getGPUCrashContextData({
       case GPUCrashContextKeys.FAULT_CODE:
         return {key: ctxKey, subject: t('Fault Code'), value: data.fault_code};
       case GPUCrashContextKeys.VIRTUAL_ADDRESS:
-        return {
-          key: ctxKey,
-          subject: t('Virtual Address'),
-          value: data.virtual_address,
-        };
+        return {key: ctxKey, subject: t('Virtual Address'), value: data.virtual_address};
       case GPUCrashContextKeys.ACCESS_TYPE:
         return {key: ctxKey, subject: t('Access Type'), value: data.access_type};
       case GPUCrashContextKeys.DEVICE_NAME:
         return {key: ctxKey, subject: t('Device Name'), value: data.device_name};
       case GPUCrashContextKeys.DEVICE_STATUS:
-        return {
-          key: ctxKey,
-          subject: t('Device Status'),
-          value: data.device_status,
-        };
+        return {key: ctxKey, subject: t('Device Status'), value: data.device_status};
       case GPUCrashContextKeys.DRIVER_VERSION:
-        return {
-          key: ctxKey,
-          subject: t('Driver Version'),
-          value: data.driver_version,
-        };
+        return {key: ctxKey, subject: t('Driver Version'), value: data.driver_version};
       case GPUCrashContextKeys.GRAPHICS_API:
         return {key: ctxKey, subject: t('Graphics API'), value: data.graphics_api};
       case GPUCrashContextKeys.OS_VERSION:
@@ -132,11 +162,7 @@ export function getGPUCrashContextData({
       case GPUCrashContextKeys.ENGINE_RESET:
         return {key: ctxKey, subject: t('Engine Reset'), value: data.engine_reset};
       case GPUCrashContextKeys.ADAPTER_RESET:
-        return {
-          key: ctxKey,
-          subject: t('Adapter Reset'),
-          value: data.adapter_reset,
-        };
+        return {key: ctxKey, subject: t('Adapter Reset'), value: data.adapter_reset};
       case GPUCrashContextKeys.SHADER_HASH:
         return {key: ctxKey, subject: t('Shader Hash'), value: data.shader_hash};
       case GPUCrashContextKeys.SHADER_NAME:

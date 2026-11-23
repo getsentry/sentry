@@ -31,7 +31,7 @@ class NodeInfo:
 # Based on configuration, this could be:
 # - a `rediscluster` Cluster (actually `RetryingRedisCluster`)
 # - a `StrictRedis` client for a single host
-Cluster = Union[RedisCluster, "StrictRedis[bytes]"]
+Cluster = Union[RedisCluster, "StrictRedis[str]", "StrictRedis[bytes]"]
 
 
 def get_memory_usage(node_id: str, info: Mapping[str, Any]) -> ServiceMemory:

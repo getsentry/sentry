@@ -1,7 +1,4 @@
-export type AgenticRunSession = {
-  clientRunId: string;
-  onboardingCode: string;
-};
+export type AgenticRunSession = {clientRunId: string; onboardingCode?: string};
 
 type AgenticProgressStage =
   | 'connect_mcp'
@@ -52,8 +49,4 @@ export type AgenticProgressRun = {
   stages: AgenticProgressStageState[];
   updatedAt: string;
   onboardingCode?: string;
-};
-
-export type InitializedAgenticProgressRun = AgenticProgressRun & {
-  onboardingCode: string;
 };

@@ -20,6 +20,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -48,9 +49,7 @@ import {ProjectAllocationsTable} from './projectAllocationsTable';
 import {RootAllocationCard} from './rootAllocationCard';
 import {BigNumUnits, getRequestErrorMessage} from './utils';
 
-type Props = {
-  subscription: Subscription;
-};
+type Props = {subscription: Subscription};
 
 const DEFAULT_SPEND_ALLOCATION_PERIODS = 1;
 
@@ -265,9 +264,7 @@ export function SpendAllocationsRoot({subscription}: Props) {
         getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/index/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       );
     } catch (err: any) {
       if (err.status === 409) {
@@ -302,9 +299,7 @@ export function SpendAllocationsRoot({subscription}: Props) {
           subscription={subscription}
         />
       ),
-      {
-        closeEvents: 'escape-key',
-      }
+      {closeEvents: 'escape-key'}
     );
   };
 
@@ -509,7 +504,10 @@ export function SpendAllocationsRoot({subscription}: Props) {
               spendAllocations={currentAllocations}
             />
             {pageLinks && (
-              <Pagination pageLinks={pageLinks} onCursor={setCurrentCursor} />
+              <Pagination
+                {...getPaginationProps(pageLinks)}
+                onCursor={setCurrentCursor}
+              />
             )}
           </Fragment>
         )}

@@ -13,9 +13,7 @@ describe('Monitor Details', () => {
   const monitor = MonitorFixture({project});
 
   const initialRouterConfig = {
-    location: {
-      pathname: `/alerts/rules/crons/${project.slug}/${monitor.slug}/details/`,
-    },
+    location: {pathname: `/alerts/rules/crons/${project.slug}/${monitor.slug}/details/`},
     route: '/alerts/rules/crons/:projectId/:monitorSlug/details/',
   };
 
@@ -45,10 +43,7 @@ describe('Monitor Details', () => {
       url: `/projects/${organization.slug}/${project.slug}/monitors/${monitor.slug}/processing-errors/`,
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/detectors/', body: []});
   });
 
   it('renders', async () => {

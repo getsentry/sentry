@@ -17,6 +17,7 @@ from sentry.ai_monitoring.conversation_aggregates import (
     parse_conversation_aggregates,
 )
 from sentry.ai_monitoring.conversation_query import (
+    CONVERSATION_RESOLVER_CONFIG,
     compile_conversation_query,
     is_conversation_id_lookup,
 )
@@ -252,14 +253,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         direct_id_lookup = is_conversation_id_lookup(user_query)
 
         with handle_query_errors():
-            resolver = Spans.get_resolver(
-                snuba_params,
-                SearchResolverConfig(
-                    auto_fields=True,
-                    disable_aggregate_extrapolation=True,
-                    fields_acl=FieldsACL(functions={"elapsed_if"}),
-                ),
-            )
+            resolver = Spans.get_resolver(snuba_params, CONVERSATION_RESOLVER_CONFIG)
             query_string = compile_conversation_query(user_query, resolver)
 
             def data_fn(offset: int, limit: int) -> list[AIConversationResponse]:
@@ -366,11 +360,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             offset=offset,
             limit=limit,
             referrer=Referrer.API_AI_CONVERSATIONS.value,
-            config=SearchResolverConfig(
-                auto_fields=True,
-                disable_aggregate_extrapolation=True,
-                fields_acl=FieldsACL(functions={"elapsed_if"}),
-            ),
+            config=CONVERSATION_RESOLVER_CONFIG,
             sampling_mode=sampling_mode,
         )
 

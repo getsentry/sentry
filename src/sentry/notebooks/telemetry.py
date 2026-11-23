@@ -5,7 +5,7 @@ import logging
 import sentry_sdk
 from django.utils import timezone
 
-from sentry.notebooks.models import Notebook, NotebookBlockExecution
+from sentry.notebooks.models import Notebook, NotebookActionRequest, NotebookBlockExecution
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -27,19 +27,43 @@ def record_duration(name: str, value: float, attributes: dict[str, str]) -> None
     )
 
 
-def investigation_attributes(investigation: Notebook) -> dict[str, str]:
+def notebook_attributes(notebook: Notebook) -> dict[str, str]:
     return {
-        "source_type": str(investigation.source.get("type") or investigation.source_type),
+        "source_type": str(notebook.source.get("type") or notebook.source_type),
         "template": "manual",
     }
 
 
+def record_notebook_started(notebook: Notebook) -> None:
+    record_count("investigations.started", notebook_attributes(notebook))
+
+
 def execution_attributes(execution: NotebookBlockExecution) -> dict[str, str]:
     return {
-        **investigation_attributes(execution.block.notebook),
+        **notebook_attributes(execution.block.notebook),
         "block_kind": execution.block.kind,
         "executor": execution.executor,
     }
+
+
+def _action_request_attributes(action_request: NotebookActionRequest) -> dict[str, str]:
+    attributes = {"kind": action_request.action_kind or "advice"}
+    provider = (action_request.action_payload or {}).get("provider")
+    if provider:
+        attributes["provider"] = str(provider)
+    return attributes
+
+
+def record_action_request_suggested(action_request: NotebookActionRequest) -> None:
+    record_count(
+        "investigations.action_request.suggested", _action_request_attributes(action_request)
+    )
+
+
+def record_action_request_applied(action_request: NotebookActionRequest) -> None:
+    record_count(
+        "investigations.action_request.applied", _action_request_attributes(action_request)
+    )
 
 
 def record_execution_cancelled(execution: NotebookBlockExecution, *, reason: str) -> None:
@@ -49,20 +73,20 @@ def record_execution_cancelled(execution: NotebookBlockExecution, *, reason: str
     )
 
 
-def record_investigation_completed(investigation: Notebook) -> None:
-    attributes = investigation_attributes(investigation)
+def record_notebook_completed(notebook: Notebook) -> None:
+    attributes = notebook_attributes(notebook)
     record_count("investigations.completed", attributes)
     record_duration(
         "investigations.duration",
-        (timezone.now() - investigation.date_added).total_seconds(),
+        (timezone.now() - notebook.date_added).total_seconds(),
         attributes,
     )
 
 
-def record_investigation_failed(investigation: Notebook, *, reason: str) -> None:
+def record_notebook_failed(notebook: Notebook, *, reason: str) -> None:
     record_count(
         "investigations.failed",
-        {**investigation_attributes(investigation), "reason": reason},
+        {**notebook_attributes(notebook), "reason": reason},
     )
 
 
@@ -108,25 +132,23 @@ def record_execution_failed(
     )
 
 
-def record_title_generation_completed(investigation: Notebook) -> None:
-    record_count(
-        "investigations.title_generation.completed", investigation_attributes(investigation)
-    )
+def record_title_generation_completed(notebook: Notebook) -> None:
+    record_count("investigations.title_generation.completed", notebook_attributes(notebook))
 
 
 def record_title_generation_failed(
-    investigation: Notebook, *, reason: str, seer_run_id: int | None
+    notebook: Notebook, *, reason: str, seer_run_id: int | None
 ) -> None:
     record_count(
         "investigations.title_generation.failed",
-        {**investigation_attributes(investigation), "reason": reason},
+        {**notebook_attributes(notebook), "reason": reason},
     )
-    record_investigation_failed(investigation, reason=reason)
+    record_notebook_failed(notebook, reason=reason)
     logger.warning(
         "investigations.title_generation.failed",
         extra={
-            "organization_id": investigation.organization_id,
-            "investigation_id": investigation.id,
+            "organization_id": notebook.organization_id,
+            "investigation_id": notebook.id,
             "seer_run_id": seer_run_id,
             "reason": reason,
         },

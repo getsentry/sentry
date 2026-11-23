@@ -12,4 +12,4 @@ class LockManager:
         Retrieve a ``Lock`` instance.
         """
         metrics.incr("lockmanager.get", tags={"lock_name": name} if name else None)
-        return Lock(self.backend, key, duration)
+        return Lock(self.backend, key, duration, name=name)

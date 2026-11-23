@@ -24,10 +24,7 @@ export function InvoiceFixture(
     isPaid: true,
     isRefunded: false,
     nextChargeAttempt: null,
-    sender: {
-      name: 'Sentry',
-      address: ['The internet'],
-    },
+    sender: {name: 'Sentry', address: ['The internet']},
     receipt: {
       url: `https://sentry.io/organizations/${mockOrg.slug}/payments/1a2b/pdf/3c4d/`,
     },

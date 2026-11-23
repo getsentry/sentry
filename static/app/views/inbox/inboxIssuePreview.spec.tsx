@@ -4,7 +4,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupStatus} from 'sentry/types/group';
@@ -35,9 +35,37 @@ describe('InboxIssuePreview', () => {
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
       body: {owners: [], rules: []},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
+      body: {firstRelease: null, lastRelease: null},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-components/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-installations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/related/`,
+      body: {data: [], meta: {types: []}},
+    });
   });
 
-  it('shows the issue header and activity', async () => {
+  it('shows the issue header and overview', async () => {
     render(<InboxIssuePreview groupId={group.id} />, {organization});
 
     expect(
@@ -46,17 +74,56 @@ describe('InboxIssuePreview', () => {
     expect(screen.getByLabelText('327,482 events')).toBeInTheDocument();
     expect(screen.getByLabelText('35,097 affected users')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Archive'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Modify issue priority'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Modify issue assignee'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
+    expect(screen.getByRole('tab', {name: 'Overview'})).toHaveAttribute(
       'aria-selected',
       'true'
     );
+    expect(screen.getByRole('heading', {name: 'Issue timeline'})).toBeInTheDocument();
     expect(screen.getByRole('combobox', {name: 'Add a comment'})).toBeInTheDocument();
+
+    const sidebar = screen.getByRole('complementary', {name: 'Issue overview'});
+    expect(
+      within(sidebar).getByRole('button', {name: 'Modify issue assignee'})
+    ).toBeInTheDocument();
+    expect(
+      within(sidebar).getByRole('button', {name: 'Modify issue priority'})
+    ).toBeInTheDocument();
+    expect(within(sidebar).getByText('First seen')).toBeInTheDocument();
+    expect(within(sidebar).getByText('Last seen')).toBeInTheDocument();
+    expect(await within(sidebar).findByText('No related issues')).toBeInTheDocument();
+    expect(
+      await within(sidebar).findByRole('heading', {name: 'External links', level: 3})
+    ).toBeInTheDocument();
+    expect(
+      within(sidebar).queryByRole('button', {name: 'Collapse Section'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('links to the top three related issues', async () => {
+    const relatedIssues = ['11', '12', '13', '14'].map(id => ({
+      issue: GroupFixture({id, shortId: `CHECKOUT-${id}`, title: `Checkout error ${id}`}),
+      relations: [{type: 'same_trace'}],
+    }));
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/related/`,
+      body: {data: relatedIssues, meta: {types: [{type: 'same_trace', status: 'ok'}]}},
+    });
+
+    render(<InboxIssuePreview groupId={group.id} />, {organization});
+
+    const sidebar = await screen.findByRole('complementary', {name: 'Issue overview'});
+    expect(
+      await within(sidebar).findByRole('link', {name: 'CHECKOUT-11 – Checkout error 11'})
+    ).toHaveAttribute('href', `/organizations/${organization.slug}/issues/11/`);
+    expect(
+      within(sidebar).getByRole('link', {name: 'CHECKOUT-12 – Checkout error 12'})
+    ).toBeInTheDocument();
+    expect(
+      within(sidebar).getByRole('link', {name: 'CHECKOUT-13 – Checkout error 13'})
+    ).toBeInTheDocument();
+    expect(
+      within(sidebar).queryByRole('link', {name: 'CHECKOUT-14 – Checkout error 14'})
+    ).not.toBeInTheDocument();
   });
 
   it('resolves the issue from the header actions', async () => {

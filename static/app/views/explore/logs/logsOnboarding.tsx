@@ -63,10 +63,7 @@ import {
 import {SetupLogsButton} from './setupLogsButton';
 import {StyledPageFilterBar} from './styles';
 
-type OnboardingProps = {
-  organization: Organization;
-  project: Project;
-};
+type OnboardingProps = {organization: Organization; project: Project};
 
 const AI_SETUP_PROMPT =
   'Please instrument Sentry logging. Include some examples following best practices.';
@@ -358,7 +355,7 @@ function Onboarding({organization, project}: OnboardingProps) {
         <div>
           <LinkButton
             size="sm"
-            href="https://docs.sentry.io/product/explore/logs/getting-started/"
+            href="https://docs.sentry.io/product/logs/getting-started/"
             external
             onClick={() => {
               trackAnalytics('logs.onboarding_platform_docs_viewed', {
@@ -387,10 +384,7 @@ function Onboarding({organization, project}: OnboardingProps) {
     isPerformanceSelected: false,
     isProfilingSelected: false,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: [ProductSolution.LOGS],
     feedbackOptions: {},
     urlPrefix,

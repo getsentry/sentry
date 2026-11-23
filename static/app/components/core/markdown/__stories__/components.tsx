@@ -43,7 +43,6 @@ export function StreamingDemo() {
       }
       buffer += STREAMING_CHUNKS[i];
       setText(buffer);
-      // oxlint-disable-next-line react/todo
       i++;
       setTimeout(nextChunk, 150 + Math.random() * 200);
     }
@@ -91,10 +90,7 @@ export function CustomComponentsDemo() {
                   <a
                     key={i}
                     href={`/issues/${part}/`}
-                    style={{
-                      color: 'var(--purple400)',
-                      textDecoration: 'underline',
-                    }}
+                    style={{color: 'var(--purple400)', textDecoration: 'underline'}}
                   >
                     {part}
                   </a>
