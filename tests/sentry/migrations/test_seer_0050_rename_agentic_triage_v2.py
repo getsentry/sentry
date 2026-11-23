@@ -1,8 +1,11 @@
+import pytest
+
 from django.db.migrations.state import StateApps
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip(reason="Migration already applied; test is slow and only useful before merge")
 class RenameAgenticTriageV2Test(TestMigrations):
     app = "seer"
     migrate_from = "0049_add_seerworkflowrun_source"
