@@ -14,10 +14,7 @@ from sentry.service_accounts.models import (
     ServiceAccountProject,
     validate_grantable_scopes,
 )
-from sentry.service_accounts.services.service_account.model import (
-    RpcDeactivatedServiceAccountToken,
-    RpcServiceAccount,
-)
+from sentry.service_accounts.services.service_account.model import RpcServiceAccount
 from sentry.service_accounts.services.service_account.serial import serialize_service_account
 from sentry.service_accounts.services.service_account.service import ServiceAccountService
 
@@ -152,27 +149,11 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
         )
 
     def delete_service_account(self, *, organization_id: int, service_account_id: int) -> None:
-        self.deactivate_service_account(
-            organization_id=organization_id, service_account_id=service_account_id
-        )
-
-    def deactivate_service_account(
-        self, *, organization_id: int, service_account_id: int
-    ) -> list[RpcDeactivatedServiceAccountToken] | None:
         service_account = ServiceAccount.objects.get_or_none(
             id=service_account_id, organization_id=organization_id
         )
-        if service_account is None:
-            return None
-        tokens = service_account.deactivate()
-        if tokens is None:
-            return None
-        return [
-            RpcDeactivatedServiceAccountToken(
-                id=token.id, name=token.name, scope_list=list(token.scope_list)
-            )
-            for token in tokens
-        ]
+        if service_account is not None:
+            service_account.deactivate()
 
 
 def _serialize_with_projects(service_account: ServiceAccount) -> RpcServiceAccount:
