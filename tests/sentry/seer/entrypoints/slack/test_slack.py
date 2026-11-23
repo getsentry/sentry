@@ -1479,13 +1479,9 @@ class SlackAgentEntrypointTest(TestCase):
         state = _agent_state(SEER_OUT_OF_CREDITS_TEXT)
         state.status = "error"
         state.failure_reason = "out_of_credits"
+        state.credit_denial_reason = "daily_cap_exceeded"
 
-        SlackAgentEntrypoint.on_agent_update(
-            cache_payload=cache_payload,
-            run_id=12345,
-            state=state,
-            denial_reason="daily_cap_exceeded",
-        )
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
 
         data = mock_send.call_args.kwargs["data"]
         assert isinstance(data, SeerAgentOutOfCredits)

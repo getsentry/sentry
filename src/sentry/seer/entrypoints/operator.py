@@ -41,7 +41,7 @@ from sentry.seer.autofix.utils import (
     get_automation_handoff,
     is_issue_category_eligible,
 )
-from sentry.seer.credits import SeerOperation, get_run_denial_reason
+from sentry.seer.credits import SeerOperation
 from sentry.seer.entrypoints.cache import (
     SeerOperatorAgentCache,
     SeerOperatorAutofixCache,
@@ -1222,7 +1222,6 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> None:
                         cache_payload=cache_payload,
                         run_id=run_id,
                         state=state,
-                        denial_reason=get_run_denial_reason(state),
                     )
                 except IntegrationError:
                     # The refresh task retries integration errors.
