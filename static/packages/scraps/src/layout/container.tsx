@@ -80,6 +80,9 @@ interface ContainerLayoutProps {
   minHeight?: Responsive<CSS['minHeight']>;
   maxHeight?: Responsive<CSS['maxHeight']>;
 
+  /**
+   * Border color on all sides. Renders a 1px solid border.
+   */
   border?: Responsive<BorderVariant>;
   borderTop?: Responsive<BorderVariant>;
   borderBottom?: Responsive<BorderVariant>;
