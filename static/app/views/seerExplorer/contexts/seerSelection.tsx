@@ -113,6 +113,7 @@ export function useSeerSelection() {
   const store = useContext(SeerSelectionContext);
   const state = useSyncExternalStore(
     store?.subscribe ?? noopSubscribe,
+    store?.getState ?? getInitialState,
     store?.getState ?? getInitialState
   );
   const setIncluded = useCallback(

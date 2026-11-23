@@ -20,8 +20,26 @@ export function SeerSelectionToggle() {
     return null;
   }
 
-  const label = getSeerSelectionLabel(selection);
+  return (
+    <SeerSelectionTagButton
+      label={getSeerSelectionLabel(selection)}
+      isIncluded={isIncluded}
+      onToggle={() => setIncluded(!isIncluded)}
+    />
+  );
+}
 
+interface SeerSelectionTagButtonProps {
+  isIncluded: boolean;
+  label: string;
+  onToggle: () => void;
+}
+
+export function SeerSelectionTagButton({
+  isIncluded,
+  label,
+  onToggle,
+}: SeerSelectionTagButtonProps) {
   return (
     <Button
       size="zero"
@@ -33,7 +51,7 @@ export function SeerSelectionToggle() {
           ? t('Seer sees your selection. Click to leave it out.')
           : t('Click to let Seer see your selection.'),
       }}
-      onClick={() => setIncluded(!isIncluded)}
+      onClick={onToggle}
     >
       <Tag
         variant={isIncluded ? 'info' : 'muted'}
