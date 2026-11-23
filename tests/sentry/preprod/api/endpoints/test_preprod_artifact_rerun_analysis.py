@@ -1,4 +1,4 @@
-from typing import Any, cast
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.models.files.file import File
@@ -73,7 +73,7 @@ class BaseRerunAnalysisTest(APITestCase):
             new_metric.metrics_artifact_type
             == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
         )
-        assert cast("object", new_metric.analysis_file_id) is None
+        assert new_metric.analysis_file_id is None
 
         assert not PreprodArtifactSizeComparison.objects.filter(id=comparison.id).exists()
         for analysis_file in analysis_files:
@@ -83,9 +83,9 @@ class BaseRerunAnalysisTest(APITestCase):
         """Asserts that artifact state is reset"""
         artifact.refresh_from_db()
         assert artifact.state == PreprodArtifact.ArtifactState.UPLOADED
-        assert cast("object", artifact.error_code) is None
-        assert cast("object", artifact.error_message) is None
-        assert cast("object", artifact.installable_app_error_code) is None
+        assert artifact.error_code is None
+        assert artifact.error_message is None
+        assert artifact.installable_app_error_code is None
         assert artifact.installable_app_error_message is None
 
 
