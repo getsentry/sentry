@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
-import {useTheme, css} from '@emotion/react';
+import {css} from '@emotion/react';
 import {IconBroadcast} from '@sentry/icons/broadcast';
 import {IconSearch} from '@sentry/icons/search';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
@@ -10,7 +10,7 @@ import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {useModal, closeModal} from '@sentry/scraps/modal';
-import {Select, type StylesConfig, createFilter} from '@sentry/scraps/select';
+import {createFilter, Select} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 import {ToggleCard} from '@sentry/scraps/toggleCard';
 
@@ -93,7 +93,6 @@ export function ScmPlatformFeaturesCore({
   selectedRepository,
 }: ScmPlatformFeaturesCoreProps) {
   const isOnboarding = analyticsFlow === 'onboarding';
-  const theme = useTheme();
   const {openModal} = useModal();
   const organization = useOrganization();
 
