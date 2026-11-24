@@ -2655,6 +2655,47 @@ describe('ActivitySection', () => {
     const timeline = await screen.findByTestId('activity-timeline');
     expect(timeline).toHaveTextContent('Impact assessed as High (73.5)');
     expect(timeline).toHaveTextContent('Users cannot submit an order.');
+    expect(timeline).not.toHaveTextContent('Citations:');
+  });
+
+  it('renders Impact assessment citations with the citations flag', async () => {
+    const impactGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.IMPACT_ASSESSMENT,
+          id: 'impact-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            score: 73.5,
+            level: 'high',
+            description: 'Users cannot submit an order.',
+            citations: [
+              {
+                source: 'event',
+                reference: 'entire-event:event-id',
+                claim: 'The request failed before order creation.',
+              },
+            ],
+            sourceEventId: '7f4b9a95abc449a8a5afc3d1d2683a8b',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={impactGroup} project={impactGroup.project}>
+        <ActivitySection group={impactGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({
+          features: ['seer-impact-assessment-citations'],
+        }),
+      }
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
     expect(timeline).toHaveTextContent('Citations:');
     expect(screen.getByTestId('impact-activity-details')).toBeInTheDocument();
 
