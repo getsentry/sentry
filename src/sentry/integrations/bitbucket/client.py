@@ -61,7 +61,7 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
 
     # Bitbucket Cloud defaults to pagelen=10 and caps at 100.
     page_size = 100
-    page_number_limit = 50
+    page_number_limit = 200
 
     def __init__(self, integration: RpcIntegration | Integration) -> None:
         self.shared_secret = integration.metadata["shared_secret"]
