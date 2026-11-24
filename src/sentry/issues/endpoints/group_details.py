@@ -69,6 +69,7 @@ from sentry.issues.derived.tasks import reconcile_group_status
 from sentry.issues.endpoints.bases.group import GroupEndpoint, GroupPermission
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.models.groupderiveddata import GroupDerivedData
+from sentry.issues.related.follow_ups import VIEW, record_follow_up
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
@@ -432,6 +433,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 self._report_status_inconsistency(group)
             except Exception:
                 logger.exception("group.details.get.reconcile_status_failed")
+
+            record_follow_up(request, [group], VIEW)
 
             metrics.incr(
                 "group.get.http_response",

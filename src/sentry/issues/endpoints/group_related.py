@@ -26,6 +26,7 @@ from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.related.combine import combine
 from sentry.issues.related.contributing import CONTRIBUTING_DESCRIPTION, contributing_issues
+from sentry.issues.related.follow_ups import record_shown
 from sentry.issues.related.investigations import (
     INVESTIGATIONS_DESCRIPTION,
     linked_investigations,
@@ -182,7 +183,9 @@ class GroupRelatedEndpoint(GroupEndpoint):
             result.meta["status"] == RelationTypeStatus.UNAVAILABLE for result in results.values()
         ):
             return Response({"detail": ALL_TYPES_UNAVAILABLE_DETAIL}, status=503)
-        return Response(combine(ctx, results))
+        response = combine(ctx, results)
+        record_shown(request, group, response)
+        return Response(response)
 
 
 def _get_group_event(group: Group, event_id: str) -> GroupEvent | None:
