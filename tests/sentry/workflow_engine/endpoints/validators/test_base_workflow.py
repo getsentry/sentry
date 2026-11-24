@@ -733,18 +733,6 @@ class TestWorkflowValidatorCreate(TestCase):
 
         assert workflow.type == WorkflowType.ALERT
 
-    def test_create_workflow_limit_ignores_hidden_workflows(self) -> None:
-        self.create_workflow(organization=self.organization, type=WorkflowType.INBOX)
-
-        with self.options({"workflow_engine.max_workflows_per_org": 1}):
-            validator = WorkflowValidator(data=self.valid_data, context=self.context)
-
-            assert validator.is_valid() is True
-
-            workflow = validator.create(validator.validated_data)
-
-        assert workflow.id is not None
-
     def test_create_workflow_limit_only_counts_alerts(self) -> None:
         self.create_workflow(organization=self.organization, type=WorkflowType.INBOX)
 

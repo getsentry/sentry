@@ -194,25 +194,6 @@ class TestDetectorSerializer(TestCase):
             "latestGroup": mock.ANY,
         }
 
-    def test_serialize_hides_hidden_workflow_ids(self) -> None:
-        detector = self.create_detector(
-            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
-        )
-
-        alert_workflow = self.create_workflow(organization_id=self.organization.id)
-
-        hidden_workflow = self.create_workflow(
-            organization_id=self.organization.id, type=WorkflowType.INBOX
-        )
-
-        self.create_detector_workflow(detector=detector, workflow=alert_workflow)
-
-        self.create_detector_workflow(detector=detector, workflow=hidden_workflow)
-
-        result = serialize(detector)
-
-        assert result["workflowIds"] == [str(alert_workflow.id)]
-
     def test_serialize_includes_workflow_types_open_for_list(self) -> None:
         detector = self.create_detector(
             project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
