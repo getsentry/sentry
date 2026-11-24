@@ -2,6 +2,8 @@
 
 import sentry.db.models.fields.bounded
 from django.db import migrations, models
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.new_migrations.monkey.special import SafeRunSQL
@@ -11,6 +13,21 @@ INDEX_NAME = "sentry_rele_release_1b7aea_idx"
 HAND_BUILT_INDEX_NAME = "sentry_releasefile_rid_dist_michal_tmp"
 # The new index and the (release_id, ident) unique index both lead with release_id.
 RELEASE_ID_INDEX_NAME = "sentry_releasefile_release_id_7b1436d6"
+
+
+# A killed CONCURRENTLY build leaves an INVALID index that IF NOT EXISTS would keep,
+# and the single-column index would then be dropped without a replacement.
+def drop_invalid_index(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT indisvalid FROM pg_index WHERE indexrelid = to_regclass(%s)", [INDEX_NAME]
+        )
+        row = cursor.fetchone()
+    if row is None or row[0]:
+        return
+    # Left at 0: the drop waits on open transactions, and the build below runs untimed too.
+    schema_editor.execute("SET statement_timeout TO 0")
+    schema_editor.execute(f'DROP INDEX CONCURRENTLY IF EXISTS "{INDEX_NAME}"')
 
 
 class Migration(CheckedMigration):
@@ -42,6 +59,11 @@ class Migration(CheckedMigration):
                     reverse_sql=migrations.RunSQL.noop,
                     hints={"tables": ["sentry_releasefile"]},
                 ),
+                migrations.RunPython(
+                    drop_invalid_index,
+                    migrations.RunPython.noop,
+                    hints={"tables": ["sentry_releasefile"]},
+                ),
                 SafeRunSQL(
                     f'CREATE INDEX CONCURRENTLY IF NOT EXISTS "{INDEX_NAME}" '
                     'ON "sentry_releasefile" ("release_id", "dist_id")',
@@ -57,6 +79,8 @@ class Migration(CheckedMigration):
                         'ON "sentry_releasefile" ("release_id")'
                     ),
                     hints={"tables": ["sentry_releasefile"]},
+                    # The drop waits on open transactions, which can outlast the statement timeout.
+                    use_statement_timeout=False,
                 ),
             ],
             state_operations=[
