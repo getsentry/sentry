@@ -55,6 +55,7 @@ def test_onboarding_claim_issues_reporting_code() -> None:
     assert "using the organization slug above" in guide
     assert "guide's Onboarding Progress section" in guide
     assert "https://docs.sentry.io/index.md" not in guide
+    assert "fetch https://docs.sentry.io/pricing.md" in guide
     assert "(https://docs.sentry.io/ai/agent-setup/get-started.md) with `curl -sS`" in guide
 
 
@@ -74,6 +75,7 @@ def test_create_project_claim_issues_reporting_code() -> None:
     assert "helping an existing Sentry user set up a new project" in guide
     assert "Your onboarding run code is `a1B2c3D4e5`" in guide
     assert "https://docs.sentry.io/index.md" not in guide
+    assert "fetch https://docs.sentry.io/pricing.md" in guide
     assert "(https://docs.sentry.io/ai/agent-setup/get-started.md) with `curl -sS`" in guide
 
 
@@ -154,6 +156,7 @@ def test_add_feature_claim_renders_product_and_project() -> None:
     assert "add tracing to a project" in guide
     assert "Project slug: checkout\\-web" in guide
     assert "https://docs.sentry.io/index.md" not in guide
+    assert "fetch https://docs.sentry.io/pricing.md" in guide
     assert "(https://docs.sentry.io/ai/agent-setup/instrument.md) with `curl -sS`" in guide
     assert "add only tracing" in guide
     assert "run code" not in guide
