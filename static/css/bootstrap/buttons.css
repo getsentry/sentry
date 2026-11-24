@@ -1,0 +1,419 @@
+/* stylelint-disable selector-no-qualifying-type */
+/* Buttons */
+/* -------------------------------------------------- */
+
+/* Nested rules under a selector list compile to :is(), which takes the
+   specificity of the strongest selector. Lists that mix in
+   `fieldset[disabled] &` are spelled out to keep their original specificity. */
+
+/* Base styles */
+/* -------------------------------------------------- */
+.btn {
+  display: inline-block;
+  margin-bottom: 0; /* For input.btn */
+  font-weight: normal;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  touch-action: manipulation;
+  cursor: pointer;
+  background-image: none; /* Reset unusual Firefox-on-Android default style; see https://github.com/necolas/normalize.css/issues/214 */
+  border: 1px solid transparent;
+  padding: 6px 12px;
+  font-size: 14px;
+  line-height: 1.42857143;
+  border-radius: 4px;
+  user-select: none;
+
+  &:focus,
+  &:active:focus,
+  &.active:focus,
+  &.focus,
+  &:active.focus,
+  &.active.focus {
+    outline: 5px auto -webkit-focus-ring-color;
+    outline-offset: -2px;
+  }
+
+  &:hover,
+  &:focus,
+  &.focus {
+    color: #333;
+    text-decoration: none;
+  }
+
+  &:active,
+  &.active {
+    background-image: none;
+    outline: 0;
+    box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+  }
+
+  &.disabled,
+  &[disabled],
+  fieldset[disabled] & {
+    cursor: not-allowed;
+    opacity: 0.65;
+    box-shadow: none;
+  }
+
+  a& {
+    &.disabled,
+    fieldset[disabled] & {
+      pointer-events: none; /* Future-proof disabling of clicks on `<a>` elements */
+    }
+  }
+}
+
+/* Alternate buttons */
+/* -------------------------------------------------- */
+.btn-default {
+  color: #333;
+  background-color: #fff;
+  border-color: #ccc;
+
+  &:focus,
+  &.focus {
+    color: #333;
+    background-color: #e6e6e6;
+    border-color: #8c8c8c;
+  }
+  &:hover {
+    color: #333;
+    background-color: #e6e6e6;
+    border-color: #adadad;
+  }
+  &:active,
+  &.active {
+    color: #333;
+    background-color: #e6e6e6;
+    background-image: none;
+    border-color: #adadad;
+
+    &:hover,
+    &:focus,
+    &.focus {
+      color: #333;
+      background-color: #d4d4d4;
+      border-color: #8c8c8c;
+    }
+  }
+  &.disabled:hover,
+  &[disabled]:hover,
+  fieldset[disabled] &:hover,
+  &.disabled:focus,
+  &[disabled]:focus,
+  fieldset[disabled] &:focus,
+  &.disabled.focus,
+  &[disabled].focus,
+  fieldset[disabled] &.focus {
+    background-color: #fff;
+    border-color: #ccc;
+  }
+}
+.btn-primary {
+  color: #fff;
+  background-color: #337ab7;
+  border-color: #2e6da4;
+
+  &:focus,
+  &.focus {
+    color: #fff;
+    background-color: #286090;
+    border-color: #122b40;
+  }
+  &:hover {
+    color: #fff;
+    background-color: #286090;
+    border-color: #204d74;
+  }
+  &:active,
+  &.active {
+    color: #fff;
+    background-color: #286090;
+    background-image: none;
+    border-color: #204d74;
+
+    &:hover,
+    &:focus,
+    &.focus {
+      color: #fff;
+      background-color: #204d74;
+      border-color: #122b40;
+    }
+  }
+  &.disabled:hover,
+  &[disabled]:hover,
+  fieldset[disabled] &:hover,
+  &.disabled:focus,
+  &[disabled]:focus,
+  fieldset[disabled] &:focus,
+  &.disabled.focus,
+  &[disabled].focus,
+  fieldset[disabled] &.focus {
+    background-color: #337ab7;
+    border-color: #2e6da4;
+  }
+}
+/* Success appears as green */
+.btn-success {
+  color: #fff;
+  background-color: #5cb85c;
+  border-color: #4cae4c;
+
+  &:focus,
+  &.focus {
+    color: #fff;
+    background-color: #449d44;
+    border-color: #255625;
+  }
+  &:hover {
+    color: #fff;
+    background-color: #449d44;
+    border-color: #398439;
+  }
+  &:active,
+  &.active {
+    color: #fff;
+    background-color: #449d44;
+    background-image: none;
+    border-color: #398439;
+
+    &:hover,
+    &:focus,
+    &.focus {
+      color: #fff;
+      background-color: #398439;
+      border-color: #255625;
+    }
+  }
+  &.disabled:hover,
+  &[disabled]:hover,
+  fieldset[disabled] &:hover,
+  &.disabled:focus,
+  &[disabled]:focus,
+  fieldset[disabled] &:focus,
+  &.disabled.focus,
+  &[disabled].focus,
+  fieldset[disabled] &.focus {
+    background-color: #5cb85c;
+    border-color: #4cae4c;
+  }
+}
+/* Info appears as blue-green */
+.btn-info {
+  color: #fff;
+  background-color: #5bc0de;
+  border-color: #46b8da;
+
+  &:focus,
+  &.focus {
+    color: #fff;
+    background-color: #31b0d5;
+    border-color: #1b6d85;
+  }
+  &:hover {
+    color: #fff;
+    background-color: #31b0d5;
+    border-color: #269abc;
+  }
+  &:active,
+  &.active {
+    color: #fff;
+    background-color: #31b0d5;
+    background-image: none;
+    border-color: #269abc;
+
+    &:hover,
+    &:focus,
+    &.focus {
+      color: #fff;
+      background-color: #269abc;
+      border-color: #1b6d85;
+    }
+  }
+  &.disabled:hover,
+  &[disabled]:hover,
+  fieldset[disabled] &:hover,
+  &.disabled:focus,
+  &[disabled]:focus,
+  fieldset[disabled] &:focus,
+  &.disabled.focus,
+  &[disabled].focus,
+  fieldset[disabled] &.focus {
+    background-color: #5bc0de;
+    border-color: #46b8da;
+  }
+}
+/* Warning appears as orange */
+.btn-warning {
+  color: #fff;
+  background-color: #f0ad4e;
+  border-color: #eea236;
+
+  &:focus,
+  &.focus {
+    color: #fff;
+    background-color: #ec971f;
+    border-color: #985f0d;
+  }
+  &:hover {
+    color: #fff;
+    background-color: #ec971f;
+    border-color: #d58512;
+  }
+  &:active,
+  &.active {
+    color: #fff;
+    background-color: #ec971f;
+    background-image: none;
+    border-color: #d58512;
+
+    &:hover,
+    &:focus,
+    &.focus {
+      color: #fff;
+      background-color: #d58512;
+      border-color: #985f0d;
+    }
+  }
+  &.disabled:hover,
+  &[disabled]:hover,
+  fieldset[disabled] &:hover,
+  &.disabled:focus,
+  &[disabled]:focus,
+  fieldset[disabled] &:focus,
+  &.disabled.focus,
+  &[disabled].focus,
+  fieldset[disabled] &.focus {
+    background-color: #f0ad4e;
+    border-color: #eea236;
+  }
+}
+/* Danger and error appear as red */
+.btn-danger {
+  color: #fff;
+  background-color: #d9534f;
+  border-color: #d43f3a;
+
+  &:focus,
+  &.focus {
+    color: #fff;
+    background-color: #c9302c;
+    border-color: #761c19;
+  }
+  &:hover {
+    color: #fff;
+    background-color: #c9302c;
+    border-color: #ac2925;
+  }
+  &:active,
+  &.active {
+    color: #fff;
+    background-color: #c9302c;
+    background-image: none;
+    border-color: #ac2925;
+
+    &:hover,
+    &:focus,
+    &.focus {
+      color: #fff;
+      background-color: #ac2925;
+      border-color: #761c19;
+    }
+  }
+  &.disabled:hover,
+  &[disabled]:hover,
+  fieldset[disabled] &:hover,
+  &.disabled:focus,
+  &[disabled]:focus,
+  fieldset[disabled] &:focus,
+  &.disabled.focus,
+  &[disabled].focus,
+  fieldset[disabled] &.focus {
+    background-color: #d9534f;
+    border-color: #d43f3a;
+  }
+}
+
+/* Link buttons */
+/* ------------------------- */
+
+/* Make a button look and behave like a link */
+.btn-link {
+  font-weight: 400;
+  color: #3b6ecc;
+  border-radius: 0;
+
+  &,
+  &:active,
+  &.active,
+  &[disabled],
+  fieldset[disabled] & {
+    background-color: transparent;
+    box-shadow: none;
+  }
+  &,
+  &:hover,
+  &:focus,
+  &:active {
+    border-color: transparent;
+  }
+  &:hover,
+  &:focus {
+    color: #274d94;
+    text-decoration: underline;
+    background-color: transparent;
+  }
+  &[disabled]:hover,
+  fieldset[disabled] &:hover,
+  &[disabled]:focus,
+  fieldset[disabled] &:focus {
+    color: #968ba0;
+    text-decoration: none;
+  }
+}
+
+/* Button Sizes */
+/* -------------------------------------------------- */
+.btn-lg {
+  /* line-height: ensure even-numbered height of button next to large input */
+  padding: 10px 16px;
+  font-size: 18px;
+  line-height: 1.3333333;
+  border-radius: 6px;
+}
+.btn-sm {
+  /* line-height: ensure proper height of button next to small input */
+  padding: 5px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  border-radius: 3px;
+}
+.btn-xs {
+  padding: 1px 5px;
+  font-size: 12px;
+  line-height: 1.5;
+  border-radius: 3px;
+}
+
+/* Block button */
+/* -------------------------------------------------- */
+.btn-block {
+  display: block;
+  width: 100%;
+}
+
+/* Vertically space out multiple block buttons */
+.btn-block + .btn-block {
+  margin-top: 5px;
+}
+
+/* Specificity overrides */
+input[type='submit'],
+input[type='reset'],
+input[type='button'] {
+  &.btn-block {
+    width: 100%;
+  }
+}

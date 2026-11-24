@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-from typing import Any, Literal, NamedTuple, TypedDict
+from typing import Annotated, Any, Literal, NamedTuple, TypedDict
 
 import sentry_sdk
 from packaging import version
 from sentry_sdk import traces
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.constants import DataCategory
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
@@ -39,11 +40,13 @@ class Annotation(TypedDict):
 class SuppressedDrop(TypedDict):
     """Drop volume withheld from the dropped annotations as a known misreport."""
 
-    cause: str
-    category: str
-    outcome: str
-    reason: str
-    count: int
+    cause: Annotated[
+        str, ApiDescription("Why the drop volume was withheld, such as `js_sdk_below_11`")
+    ]
+    category: Annotated[str, ApiDescription("Data category of the withheld events")]
+    outcome: Annotated[str, ApiDescription("Outcome of the withheld events")]
+    reason: Annotated[str, ApiDescription("Reason for the outcome of the withheld events")]
+    count: Annotated[int, ApiDescription("Number of withheld events")]
 
 
 @dataclasses.dataclass(frozen=True)

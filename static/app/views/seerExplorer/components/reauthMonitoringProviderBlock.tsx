@@ -50,9 +50,7 @@ export function ReauthMonitoringProviderBlock({
             },
           }
         ),
-        data: {
-          return_url: returnUrl ?? monitoringProvidersSettingsPath(organization),
-        },
+        data: {return_url: returnUrl ?? monitoringProvidersSettingsPath(organization)},
       }),
     onSuccess: responseData => {
       testableWindowLocation.assign(responseData.redirectUrl);

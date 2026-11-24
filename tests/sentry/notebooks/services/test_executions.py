@@ -25,15 +25,15 @@ from sentry.notebooks.services.executions import (
     mark_block_execution_dispatch_started,
     mark_block_execution_dispatched,
 )
-from sentry.notebooks.services.notebooks import InvestigationValidationError
+from sentry.notebooks.services.notebooks import NotebookValidationError
 from sentry.testutils.cases import TestCase
 
 
-class InvestigationExecutionServiceTest(TestCase):
+class NotebookExecutionServiceTest(TestCase):
     def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization, slug="alpha")
-        self.investigation = self.create_notebook(
+        self.notebook = self.create_notebook(
             organization=self.organization,
             created_by=self.user,
             title="Investigation",
@@ -43,7 +43,7 @@ class InvestigationExecutionServiceTest(TestCase):
         kwargs.setdefault("position", 0)
         kwargs.setdefault("kind", NotebookBlockKind.QUERY)
         kwargs.setdefault("prompt", "What happened?")
-        return self.create_notebook_block(notebook=self.investigation, **kwargs)
+        return self.create_notebook_block(notebook=self.notebook, **kwargs)
 
     def create_execution(self, block: NotebookBlock, **kwargs: Any) -> NotebookBlockExecution:
         kwargs.setdefault("executor", NotebookBlockExecutor.CODE_MODE)
@@ -71,7 +71,7 @@ class InvestigationExecutionServiceTest(TestCase):
     ) -> tuple[NotebookBlockExecution, bool]:
         return create_block_execution(
             block=block,
-            expected_investigation_version=self.investigation.version,
+            expected_notebook_version=self.notebook.version,
             expected_block_version=block.version,
             user_id=self.user.id,
             project_ids=[self.project.id] if project_ids is None else project_ids,
@@ -110,7 +110,7 @@ class InvestigationExecutionServiceTest(TestCase):
                 "analysisWindow": {"breachStart": "2026-08-01T00:00:00+00:00"},
             },
         }
-        self.investigation.update(
+        self.notebook.update(
             source=source,
             source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
             source_key="metric_open_period:1:2",
@@ -179,13 +179,13 @@ class InvestigationExecutionServiceTest(TestCase):
     def test_rejects_invalid_query_dataset_hint(self) -> None:
         block = self.create_block(config={"datasetHint": "invalid"})
 
-        with pytest.raises(InvestigationValidationError):
+        with pytest.raises(NotebookValidationError):
             self.run_block(block)
 
     def test_refinement_keeps_the_original_window_after_ten_days(self) -> None:
         original_end = timezone.now() - timedelta(days=10)
         original_start = original_end - timedelta(days=6)
-        self.investigation.update(filters={"statsPeriod": "6d"})
+        self.notebook.update(filters={"statsPeriod": "6d"})
         block = self.create_block(prompt="Show a bar chart instead")
         previous = self.create_execution(
             block,
@@ -234,7 +234,7 @@ class InvestigationExecutionServiceTest(TestCase):
         )
         refined.data_projects.add(self.project)
         block.update(result_execution=refined)
-        self.investigation.update(filters={"statsPeriod": "24h"})
+        self.notebook.update(filters={"statsPeriod": "24h"})
 
         next_snapshot, _ = build_block_execution_snapshot(
             block=block, projects=[self.project], accessible_project_ids={self.project.id}
@@ -255,7 +255,7 @@ class InvestigationExecutionServiceTest(TestCase):
         previous.update(result={**previous.result, "queryLinks": [link]})
         previous.data_projects.add(self.project)
         block.update(result_execution=previous)
-        self.investigation.update(source={"type": "manual", "prompt": "Changed source"})
+        self.notebook.update(source={"type": "manual", "prompt": "Changed source"})
 
         snapshot, _ = build_block_execution_snapshot(
             block=block, projects=[self.project], accessible_project_ids={self.project.id}
@@ -269,7 +269,7 @@ class InvestigationExecutionServiceTest(TestCase):
             "type": "manual",
             "timeRange": {"start": "2025-08-01T00:00:00Z", "end": "2025-08-07T00:00:00Z"},
         }
-        self.investigation.update(filters={"statsPeriod": "24h", "environment": ["staging"]})
+        self.notebook.update(filters={"statsPeriod": "24h", "environment": ["staging"]})
         block = self.create_block()
         previous = self.create_execution(
             block,
@@ -287,7 +287,7 @@ class InvestigationExecutionServiceTest(TestCase):
         assert snapshot["parameterChanges"] == {}
 
     def test_refinement_leaves_missing_historical_context_unknown(self) -> None:
-        self.investigation.update(
+        self.notebook.update(
             filters={"statsPeriod": "24h"},
             source={
                 "type": "manual",
@@ -306,7 +306,7 @@ class InvestigationExecutionServiceTest(TestCase):
         assert snapshot["context"][0]["result"]["queryLinks"] == []
 
     def test_relative_filters_keep_the_same_request_fingerprint(self) -> None:
-        self.investigation.update(filters={"statsPeriod": "6d"})
+        self.notebook.update(filters={"statsPeriod": "6d"})
         block = self.create_block()
         started_at = timezone.now() - timedelta(days=10)
         previous = self.create_execution(
@@ -339,7 +339,7 @@ class InvestigationExecutionServiceTest(TestCase):
 
     def test_rejects_duplicate_project_scope(self) -> None:
         block = self.create_block()
-        with pytest.raises(InvestigationValidationError):
+        with pytest.raises(NotebookValidationError):
             self.run_block(
                 block,
                 project_ids=[self.project.id, self.project.id],
@@ -348,7 +348,7 @@ class InvestigationExecutionServiceTest(TestCase):
 
     def test_rejects_inaccessible_project_scope(self) -> None:
         block = self.create_block()
-        with pytest.raises(InvestigationValidationError):
+        with pytest.raises(NotebookValidationError):
             self.run_block(block, accessible_project_ids=set())
 
     def test_rejects_foreign_organization_project_scope(self) -> None:
@@ -356,7 +356,7 @@ class InvestigationExecutionServiceTest(TestCase):
         foreign_project = self.create_project(organization=foreign_organization)
         block = self.create_block()
 
-        with pytest.raises(InvestigationValidationError):
+        with pytest.raises(NotebookValidationError):
             self.run_block(
                 block,
                 project_ids=[foreign_project.id],
@@ -378,7 +378,7 @@ class InvestigationExecutionServiceTest(TestCase):
         assert execution.input_snapshot["projectIds"] == [project.id for project in expected]
         assert execution.input_snapshot["projectSlugs"] == [project.slug for project in expected]
 
-    def test_snapshots_the_resolved_investigation_source(self) -> None:
+    def test_snapshots_the_resolved_notebook_source(self) -> None:
         source = {
             "type": "metric_open_period",
             "ref": {"groupId": "30", "openPeriodId": "85"},
@@ -396,7 +396,7 @@ class InvestigationExecutionServiceTest(TestCase):
                 },
             },
         }
-        self.investigation.update(source=source)
+        self.notebook.update(source=source)
         block = self.create_block()
 
         execution, created = self.run_block(block)
@@ -410,8 +410,8 @@ class InvestigationExecutionServiceTest(TestCase):
         request_id = uuid4()
         execution, created = self.run_block(block, request_id=request_id)
         assert created
-        self.investigation.version += 1
-        self.investigation.save(update_fields=["version"])
+        self.notebook.version += 1
+        self.notebook.save(update_fields=["version"])
         block.version += 1
         block.deleted_at = timezone.now()
         block.save(update_fields=["version", "deleted_at"])
@@ -427,7 +427,7 @@ class InvestigationExecutionServiceTest(TestCase):
         request_id = uuid4()
         self.run_block(first, request_id=request_id)
 
-        with pytest.raises(InvestigationValidationError):
+        with pytest.raises(NotebookValidationError):
             self.run_block(second, request_id=request_id)
 
     def test_does_not_reuse_execution_that_failed_while_snapshotting(self) -> None:
@@ -518,20 +518,20 @@ class InvestigationExecutionServiceTest(TestCase):
         assert many_query_count == one_query_count
 
     def _snapshot_query_count(self, context_block_count: int) -> int:
-        investigation = self.create_notebook(
+        notebook = self.create_notebook(
             organization=self.organization,
             created_by=self.user,
             title=f"Notebook {context_block_count}",
         )
         target = self.create_notebook_block(
-            notebook=investigation,
+            notebook=notebook,
             position=context_block_count,
             kind=NotebookBlockKind.TEXT,
             prompt="Summarize",
         )
         for position in range(context_block_count):
             context_block = self.create_notebook_block(
-                notebook=investigation,
+                notebook=notebook,
                 position=position,
                 kind=NotebookBlockKind.TEXT,
                 content=f"Context {position}",

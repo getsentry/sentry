@@ -10,6 +10,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
@@ -17,10 +18,7 @@ import {useUptimeRule} from 'sentry/views/insights/uptime/utils/useUptimeRule';
 
 import {UptimeAlertForm} from './uptimeAlertForm';
 
-type RouteParams = {
-  projectId: string;
-  ruleId: string;
-};
+type RouteParams = {projectId: string; ruleId: string};
 
 type Props = {
   onChangeTitle: (data: string) => void;
@@ -50,7 +48,7 @@ export function UptimeRulesEdit({params, onChangeTitle, organization}: Props) {
   }
 
   if (isError) {
-    if (error?.status === 404) {
+    if (error instanceof RequestError && error.status === 404) {
       return (
         <Alert.Container>
           <Alert variant="danger">{t('This alert rule could not be found.')}</Alert>

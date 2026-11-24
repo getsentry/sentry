@@ -42,6 +42,9 @@ if (
 }
 
 /**
+ * Most CI shards only have app tests, so run one workspace at a time and give
+ * each the cores rather than splitting them between workspaces.
+ *
  * @param {string} filter
  */
 function runWorkspaceTests(filter) {
@@ -49,7 +52,7 @@ function runWorkspaceTests(filter) {
     'pnpm',
     [
       '--recursive',
-      '--workspace-concurrency=2',
+      '--workspace-concurrency=1',
       '--aggregate-output',
       '--reporter=append-only',
       '--no-sort',
@@ -63,7 +66,7 @@ function runWorkspaceTests(filter) {
       '--ci',
       '--watch=false',
       '--passWithNoTests',
-      '--maxWorkers=2',
+      '--maxWorkers=75%',
       '--watchman=false',
       '--colors',
       ...args,

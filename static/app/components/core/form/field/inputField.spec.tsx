@@ -3,14 +3,10 @@ import {expectTypeOf} from 'expect-type';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-
-import type {InputFieldProps} from './inputField';
+import type {InputFieldProps} from '@sentry/scraps/form/field/inputField';
 
 function TestForm() {
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {amount: ''},
-  });
+  const form = useScrapsForm({...defaultFormOptions, defaultValues: {amount: ''}});
 
   return (
     <form.AppForm form={form}>
@@ -31,15 +27,9 @@ function TestForm() {
 
 describe('InputField', () => {
   it('requires onChange unless readOnly is true', () => {
-    expectTypeOf<{
-      readOnly: true;
-      value: string;
-    }>().toMatchTypeOf<InputFieldProps>();
+    expectTypeOf<{readOnly: true; value: string}>().toMatchTypeOf<InputFieldProps>();
     expectTypeOf<{value: string}>().not.toMatchTypeOf<InputFieldProps>();
-    expectTypeOf<{
-      readOnly: false;
-      value: string;
-    }>().not.toMatchTypeOf<InputFieldProps>();
+    expectTypeOf<{readOnly: false; value: string}>().not.toMatchTypeOf<InputFieldProps>();
     expectTypeOf<{
       readOnly: boolean;
       value: string;

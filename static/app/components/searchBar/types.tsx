@@ -62,10 +62,3 @@ export type SearchItem = {
    */
   value?: string | null;
 };
-
-export enum ShortcutType {
-  DELETE = 'delete',
-  NEGATE = 'negate',
-  NEXT = 'next',
-  PREVIOUS = 'previous',
-}

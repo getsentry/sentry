@@ -1,8 +1,10 @@
-from typing import Any, cast
+from datetime import timedelta
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
 from django.test import override_settings
+from django.utils import timezone
 
 from sentry.preprod.api.endpoints.project_preprod_artifact_update import find_or_create_release
 from sentry.preprod.models import (
@@ -102,7 +104,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
         # Reset for next test
         self.preprod_artifact.state = PreprodArtifact.ArtifactState.UPLOADING
-        self.preprod_artifact.error_code = cast("int", None)
+        self.preprod_artifact.error_code = None
         self.preprod_artifact.save()
 
         # Test that setting error_message sets state to FAILED
@@ -528,7 +530,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
             preprod_artifact=self.preprod_artifact
         )
         assert mobile_app_info.build_version == "3.0.0"
-        assert cast("object", mobile_app_info.build_number) is None
+        assert mobile_app_info.build_number is None
         assert mobile_app_info.app_name is None
         assert mobile_app_info.app_icon_id is None
 
@@ -566,6 +568,97 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
             "some_other_key": "keep-me",
             "build_number_raw": "1.2.3",
         }
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_preprocessing_starts_size_analysis_and_refreshes_retries(self) -> None:
+        metrics = self.create_preprod_artifact_size_metrics(self.preprod_artifact)
+        component = self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            identifier="com.example.watch",
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        )
+        for state in [
+            PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+            PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
+            PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
+        ]:
+            with self.subTest(state=state):
+                old_time = timezone.now() - timedelta(minutes=35)
+                PreprodArtifactSizeMetrics.objects.filter(id=metrics.id).update(
+                    state=state,
+                    date_updated=old_time,
+                    error_code=PreprodArtifactSizeMetrics.ErrorCode.TIMEOUT,
+                    error_message="Previous attempt timed out",
+                )
+
+                attempt_started = timezone.now()
+                response = self._make_request({"artifact_type": 1})
+
+                assert response.status_code == 200
+                assert "size_analysis" in response.json()["requestedFeatures"]
+                metrics.refresh_from_db()
+                assert metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING
+                assert metrics.date_updated >= attempt_started
+                assert metrics.error_code is None
+                assert metrics.error_message is None
+        component.refresh_from_db()
+        assert component.state == PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_preprocessing_preserves_finished_size_analysis(self) -> None:
+        metrics = self.create_preprod_artifact_size_metrics(self.preprod_artifact)
+        for state in [
+            PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+        ]:
+            with self.subTest(state=state):
+                old_time = timezone.now() - timedelta(minutes=35)
+                PreprodArtifactSizeMetrics.objects.filter(id=metrics.id).update(
+                    state=state, date_updated=old_time
+                )
+
+                response = self._make_request({"artifact_type": 1})
+
+                assert response.status_code == 200
+                metrics.refresh_from_db()
+                assert metrics.state == state
+                assert metrics.date_updated == old_time
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_artifact_error_reports_do_not_restart_size_analysis(self) -> None:
+        metrics = self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact, state=PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
+        )
+        original_updated = metrics.date_updated
+        for data in [
+            {"error_code": 1},
+            {"error_message": "Preprocessing failed"},
+        ]:
+            with self.subTest(data=data):
+                self.preprod_artifact.update(state=PreprodArtifact.ArtifactState.PROCESSED)
+                response = self._make_request(data)
+
+                assert response.status_code == 200
+                metrics.refresh_from_db()
+                assert metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
+                assert metrics.date_updated == original_updated
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_preprocessing_does_not_restart_analysis_for_failed_artifact(self) -> None:
+        self.preprod_artifact.update(state=PreprodArtifact.ArtifactState.FAILED)
+        metrics = self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact, state=PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
+        )
+        original_updated = metrics.date_updated
+
+        response = self._make_request({"artifact_type": 1})
+
+        assert response.status_code == 200
+        assert "size_analysis" in response.json()["requestedFeatures"]
+        metrics.refresh_from_db()
+        assert metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
+        assert metrics.date_updated == original_updated
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_returns_requested_features(self) -> None:
@@ -683,6 +776,9 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
     ) -> None:
         """Test that SIZE_ANALYSIS is filtered out when organization has no quota."""
         mock_has_size_quota.return_value = False
+        metrics = self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact, state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING
+        )
 
         data = {"artifact_type": 1}
         response = self._make_request(data)
@@ -692,6 +788,9 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert "requestedFeatures" in resp_data
         assert "size_analysis" not in resp_data["requestedFeatures"]
         assert "build_distribution" in resp_data["requestedFeatures"]
+        metrics.refresh_from_db()
+        assert metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN
+        assert metrics.error_code == PreprodArtifactSizeMetrics.ErrorCode.NO_QUOTA
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     @patch("sentry.preprod.quotas.has_installable_quota")
@@ -717,7 +816,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
         assert response.status_code == 200
         self.preprod_artifact.refresh_from_db()
-        assert cast("object", self.preprod_artifact.installable_app_error_code) is None
+        assert self.preprod_artifact.installable_app_error_code is None
         assert self.preprod_artifact.installable_app_error_message is None
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])

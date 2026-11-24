@@ -169,10 +169,7 @@ function FlamegraphZoomViewMinimap({
     positionIndicatorRenderer,
   ]);
 
-  useInteractionViewCheckPoint({
-    view: flamegraphMiniMapView,
-    lastInteraction,
-  });
+  useInteractionViewCheckPoint({view: flamegraphMiniMapView, lastInteraction});
 
   const onMouseDrag = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {

@@ -53,7 +53,7 @@ export function useAutoFetchWindow({
 
   const queryKeyHash = useMemo(() => {
     const {url, options} = parseQueryKey(queryKey);
-    return JSON.stringify([url, options?.query]);
+    return JSON.stringify([url, options.query]);
   }, [queryKey]);
 
   useEffect(() => {

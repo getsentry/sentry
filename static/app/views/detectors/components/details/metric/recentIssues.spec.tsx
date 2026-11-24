@@ -158,10 +158,7 @@ describe('MetricDetectorRecentIssues', () => {
     await userEvent.click(issueRow.getByRole('button', {name: 'Zoom'}));
 
     expect(router.location.query).toEqual(
-      expect.objectContaining({
-        start: '2017-10-10T09:50:00',
-        end: '2017-10-10T12:30:00',
-      })
+      expect.objectContaining({start: '2017-10-10T09:50:00', end: '2017-10-10T12:30:00'})
     );
   });
 

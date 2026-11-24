@@ -70,11 +70,7 @@ function setupMockApis() {
           'metric.type': 'counter',
           'count(metric.name)': 1,
         },
-        {
-          'metric.name': 'beta_metric',
-          'metric.type': 'counter',
-          'count(metric.name)': 1,
-        },
+        {'metric.name': 'beta_metric', 'metric.type': 'counter', 'count(metric.name)': 1},
       ],
     },
   });

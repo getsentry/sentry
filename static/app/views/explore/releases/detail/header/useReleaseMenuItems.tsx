@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {InfoText} from '@sentry/scraps/info';
 import {Grid} from '@sentry/scraps/layout';
@@ -7,7 +8,6 @@ import {Heading} from '@sentry/scraps/text';
 
 import {archiveRelease, restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
-import {openConfirmModal} from 'sentry/components/confirm';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -98,12 +98,7 @@ export function useReleaseMenuItems({
         projectSlug,
         releaseVersion: release.version,
       });
-      navigate(
-        makeReleasesPathname({
-          organization,
-          path: '/',
-        })
-      );
+      navigate(makeReleasesPathname({organization, path: '/'}));
     } catch {
       // do nothing, action creator is already displaying error message
     }

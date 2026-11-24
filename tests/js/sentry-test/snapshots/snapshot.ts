@@ -1,5 +1,5 @@
 /* eslint-disable import/no-nodejs-modules */
-import {existsSync, mkdirSync} from 'node:fs';
+import {existsSync, mkdirSync, readFileSync} from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -16,30 +16,18 @@ import type {
 } from 'sentry-test/snapshots/snapshot-image-metadata';
 
 const PROJECT_ROOT = path.resolve(__dirname, '../../../..');
-const FONTS_DIR = path.resolve(PROJECT_ROOT, 'static/fonts');
-
-function getFontFaceCSS(): string {
-  return `
-    @font-face {
-      font-family: 'Rubik';
-      font-style: normal;
-      font-weight: 400;
-      src: url('file://${FONTS_DIR}/rubik-regular.woff2') format('woff2');
-    }
-    @font-face {
-      font-family: 'Rubik';
-      font-style: normal;
-      font-weight: 500 600;
-      src: url('file://${FONTS_DIR}/rubik-medium.woff2') format('woff2');
-    }
-    @font-face {
-      font-family: 'Roboto Mono';
-      font-style: normal;
-      font-weight: 425 600;
-      src: url('file://${FONTS_DIR}/roboto-mono-variable.woff2') format('woff2');
-    }
-  `;
-}
+const FONT_CSS = ['static/packages/scraps/fonts.css', 'static/css/icon-font.css']
+  .map(filename => {
+    const stylesheet = path.join(PROJECT_ROOT, filename);
+    return readFileSync(stylesheet, 'utf8').replaceAll(
+      /url\('((?:\.\/|\.\.\/)fonts\/[\w-]+\.woff2)'\)/g,
+      (_match, url: string) => {
+        const font = readFileSync(path.resolve(path.dirname(stylesheet), url));
+        return `url('data:font/woff2;base64,${font.toString('base64')}')`;
+      }
+    );
+  })
+  .join('\n');
 
 function renderToHTML(
   element: ReactElement,
@@ -58,7 +46,7 @@ function renderToHTML(
 <html>
 <head>
   <meta charset="utf-8" />
-  <style>${getFontFaceCSS()}</style>
+  <style>${FONT_CSS}</style>
   ${styleTags}
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; animation: none !important; transition: none !important; }
@@ -84,9 +72,7 @@ let _browserPromise: Promise<Browser> | null = null;
 function getBrowser(): Promise<Browser> {
   if (!_browserPromise) {
     _browserPromise = chromium
-      .launch({
-        args: ['--font-render-hinting=none', '--disable-skia-runtime-opts'],
-      })
+      .launch({args: ['--font-render-hinting=none', '--disable-skia-runtime-opts']})
       .catch(err => {
         _browserPromise = null;
         throw err;
@@ -145,9 +131,7 @@ export async function takeSnapshot({
   const browser = await getBrowser();
   const context = await browser.newContext({
     deviceScaleFactor: 2,
-    ...(viewport && {
-      viewport: {width: viewport.width, height: viewport.height ?? 720},
-    }),
+    ...(viewport && {viewport: {width: viewport.width, height: viewport.height ?? 720}}),
   });
 
   try {

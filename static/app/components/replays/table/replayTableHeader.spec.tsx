@@ -45,12 +45,7 @@ function ExampleReplayTableHeader() {
     <SimpleTable>
       <ReplayTableHeader
         columns={[
-          {
-            Header: 'Test',
-            Component: () => null,
-            interactive: false,
-            sortKey: undefined,
-          },
+          {Header: 'Test', Component: () => null, interactive: false, sortKey: undefined},
         ]}
         replays={[]}
       />

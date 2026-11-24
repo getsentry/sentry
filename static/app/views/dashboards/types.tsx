@@ -1,5 +1,6 @@
 import type {Layout} from 'react-grid-layout';
 
+import type {QuerySpeed} from 'sentry/components/querySpeedMenu';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
@@ -124,14 +125,8 @@ export type WidgetQuery = {
 };
 
 type WidgetChangedReason = {
-  equations: Array<{
-    equation: string;
-    reason: string | string[];
-  }> | null;
-  orderby: Array<{
-    orderby: string;
-    reason: string | string[];
-  }> | null;
+  equations: Array<{equation: string; reason: string | string[]}> | null;
+  orderby: Array<{orderby: string; reason: string | string[]}> | null;
   selected_columns: string[];
 };
 
@@ -159,14 +154,9 @@ export type Widget = {
 };
 
 // We store an explicit set of keys in the backend now
-export type WidgetLayout = Pick<Layout, 'h' | 'w' | 'x' | 'y'> & {
-  minH: number;
-};
+export type WidgetLayout = Pick<Layout, 'h' | 'w' | 'x' | 'y'> & {minH: number};
 
-type WidgetPreview = {
-  displayType: DisplayType;
-  layout: WidgetLayout | null;
-};
+type WidgetPreview = {displayType: DisplayType; layout: WidgetLayout | null};
 
 export type DashboardPermissions = {
   isEditableByEveryone: boolean;
@@ -214,6 +204,11 @@ export type GlobalFilter = {
 };
 
 /**
+ * Saved on the dashboard. `normal` is the default when the field is unset.
+ */
+export type DashboardQueryPriority = QuerySpeed;
+
+/**
  * Saved dashboard with widgets
  */
 export type DashboardDetails = {
@@ -230,6 +225,7 @@ export type DashboardDetails = {
   period?: string;
   permissions?: DashboardPermissions;
   prebuiltId?: PrebuiltDashboardId;
+  queryPriority?: DashboardQueryPriority;
   start?: string;
   utc?: boolean;
 };

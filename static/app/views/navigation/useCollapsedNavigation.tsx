@@ -26,7 +26,7 @@ const IGNORE_ELEMENTS = [
  */
 export function useCollapsedNavigation() {
   const {setActiveGroup} = usePrimaryNavigation();
-  const {view, setView} = useSecondaryNavigation();
+  const {collapsible, view, setView} = useSecondaryNavigation();
 
   const isCollapsed = view !== 'expanded';
   // Keep a ref so event handlers can read the latest isCollapsed value during
@@ -57,10 +57,40 @@ export function useCollapsedNavigation() {
     }
   }, []);
 
+  // Tracked even while expanded: a page that forces the sidebar collapsed (e.g.
+  // the inbox) can be opened from the nav itself, and the pointer is then
+  // already inside, so no mouseenter fires to open the peek.
+  const isPointerInsideRef = useRef(false);
+
+  useEffect(() => {
+    const element = navigationParentRef.current;
+    if (!element) {
+      return () => {};
+    }
+
+    const handlePointerEnter = () => {
+      isPointerInsideRef.current = true;
+    };
+    const handlePointerLeave = () => {
+      isPointerInsideRef.current = false;
+    };
+
+    element.addEventListener('mouseenter', handlePointerEnter);
+    element.addEventListener('mouseleave', handlePointerLeave);
+
+    return () => {
+      element.removeEventListener('mouseenter', handlePointerEnter);
+      element.removeEventListener('mouseleave', handlePointerLeave);
+    };
+  }, []);
+
   const shouldNavigationStayOpen = useCallback(() => {
     const hasKeyboardFocus = navigationParentRef.current?.querySelector(':focus-visible');
+    // Only open popups should hold the nav open, not disclosures such as the
+    // collapsible section toggles. Menu and listbox triggers set aria-haspopup,
+    // while dialog overlays only set aria-controls while they are open.
     const hasOpenMenu = navigationParentRef.current?.querySelector(
-      '[aria-expanded="true"]'
+      '[aria-expanded="true"][aria-haspopup]:not([aria-haspopup="false"]), [aria-expanded="true"][aria-controls]'
     );
     const isDragging = navigationParentRef.current?.querySelector('[data-is-dragging]');
 
@@ -153,6 +183,12 @@ export function useCollapsedNavigation() {
     navigationParentEl.addEventListener('focusout', handleFocusOut);
     document.addEventListener('keydown', handleKeyDown);
 
+    // Only when the page forced the collapse: after the user collapses the
+    // sidebar themselves, the pointer is still over it and must not reopen it.
+    if (!collapsible && isPointerInsideRef.current) {
+      hoverIn();
+    }
+
     return () => {
       element.removeEventListener('mouseenter', handleMouseEnter);
       element.removeEventListener('mouseleave', handleMouseLeave);
@@ -164,6 +200,7 @@ export function useCollapsedNavigation() {
     };
   }, [
     closeNavigation,
+    collapsible,
     isCollapsed,
     navigationParentRef,
     setView,

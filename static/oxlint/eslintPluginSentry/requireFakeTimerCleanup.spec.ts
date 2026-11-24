@@ -7,6 +7,18 @@ const ruleTester = new RuleTester();
 ruleTester.run('require-fake-timer-cleanup', requireFakeTimerCleanup, {
   valid: [
     {
+      name: 'rendered components are unmounted before the flush',
+      code: `import {render} from 'sentry-test/reactTestingLibrary'; beforeEach(() => jest.useFakeTimers()); afterEach(async () => {try {cleanup(); await act(() => jest.runOnlyPendingTimersAsync());} finally {jest.useRealTimers();}});`,
+    },
+    {
+      name: 'rendered hooks are unmounted before a flush wrapped in act',
+      code: `import {renderHook} from 'sentry-test/reactTestingLibrary'; beforeEach(() => jest.useFakeTimers()); afterEach(() => {try {cleanup(); act(() => {jest.runOnlyPendingTimers();});} finally {jest.useRealTimers();}});`,
+    },
+    {
+      name: 'a spec that renders nothing does not need to unmount',
+      code: `import {act} from 'sentry-test/reactTestingLibrary'; beforeEach(() => jest.useFakeTimers()); afterEach(() => {try {jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}});`,
+    },
+    {
       name: 'await act returning async flush after local declaration',
       code: `beforeEach(() => jest.useFakeTimers()); afterEach(async () => {try {const value = 1; await act(() => jest.runOnlyPendingTimersAsync());} finally {jest.useRealTimers();}});`,
     },
@@ -168,8 +180,35 @@ ruleTester.run('require-fake-timer-cleanup', requireFakeTimerCleanup, {
         });
       `,
     },
+    {
+      name: 'function expression hooks',
+      code: `describe('test', function () {beforeEach(function () {jest.useFakeTimers();}); afterEach(function () {try {jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}});});`,
+    },
+    {
+      name: 'timer methods on another object',
+      code: `beforeEach(() => clock.useFakeTimers());`,
+    },
+    {
+      name: 'additional afterEach without timer restoration',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {try {jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}}); afterEach(() => {cleanup();});`,
+    },
   ],
   invalid: [
+    {
+      name: 'rendered components are still mounted during the flush',
+      code: `import {render} from 'sentry-test/reactTestingLibrary'; beforeEach(() => jest.useFakeTimers()); afterEach(async () => {try {await act(() => jest.runOnlyPendingTimersAsync());} finally {jest.useRealTimers();}});`,
+      errors: [{messageId: 'missingUnmount'}],
+    },
+    {
+      name: 'unmounting after the flush is too late',
+      code: `import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary'; beforeEach(() => jest.useFakeTimers()); afterEach(() => {try {jest.runOnlyPendingTimers(); cleanup();} finally {jest.useRealTimers();}});`,
+      errors: [{messageId: 'missingUnmount'}],
+    },
+    {
+      name: 'one teardown shared by several suites is reported once',
+      code: `import {render} from 'sentry-test/reactTestingLibrary'; afterEach(() => {try {jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}}); describe('a', () => {beforeEach(() => jest.useFakeTimers());}); describe('b', () => {beforeEach(() => jest.useFakeTimers());});`,
+      errors: [{messageId: 'missingUnmount'}],
+    },
     {
       name: 'try without finally cannot borrow a later restore',
       code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {try {cleanup();} catch (error) {} jest.runOnlyPendingTimers(); jest.useRealTimers();});`,
@@ -346,6 +385,31 @@ ruleTester.run('require-fake-timer-cleanup', requireFakeTimerCleanup, {
         });
       `,
       errors: [{messageId: 'missingCleanup'}],
+    },
+    {
+      name: 'nested function declaration in a test',
+      code: `it('case', () => {function setup() {jest.useFakeTimers();}}); afterEach(() => {try {jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}});`,
+      errors: [{messageId: 'useFakeTimersNotInHook'}],
+    },
+    {
+      name: 'afterEach inside a non-describe callback does not apply',
+      code: `beforeEach(() => jest.useFakeTimers()); helper(() => {afterEach(() => {try {jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}});});`,
+      errors: [{messageId: 'missingCleanup'}],
+    },
+    {
+      name: 'fake timers in a test require protected teardown',
+      code: `it('case', () => {jest.useFakeTimers();}); afterEach(() => {jest.runOnlyPendingTimers(); jest.useRealTimers();});`,
+      errors: [{messageId: 'missingFinally'}],
+    },
+    {
+      name: 'unprotected nested teardown alongside protected ancestor',
+      code: `afterEach(() => {try {jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}}); describe('inner', () => {beforeEach(() => jest.useFakeTimers()); afterEach(() => {jest.runOnlyPendingTimers(); jest.useRealTimers();});});`,
+      errors: [{messageId: 'missingFinally'}],
+    },
+    {
+      name: 'empty statement before straight-line teardown',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {; jest.runOnlyPendingTimers(); jest.useRealTimers();});`,
+      errors: [{messageId: 'missingFinally'}],
     },
   ],
 });

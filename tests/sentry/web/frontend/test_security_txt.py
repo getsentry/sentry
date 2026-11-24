@@ -10,7 +10,7 @@ from sentry.testutils.silo import all_silo_test
 class TestSecurityTxt(TestCase):
     def test_simple(self) -> None:
         with override_settings(SENTRY_MODE=SentryMode.SAAS):
-            response = self.client.get(reverse("sentry-security-txt"))
+            response = self.client.get(reverse("sentry-security-txt"), HTTP_ACCEPT="text/markdown")
             assert response.status_code == 200
             assert b"Contact: security@sentry.io" in response.content
             assert response["Content-Type"] == "text/plain"

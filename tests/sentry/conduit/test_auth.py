@@ -121,15 +121,33 @@ def test_generate_conduit_token_raises_when_missing() -> None:
         )
 
 
-def test_generate_conduit_token_raises_when_invalid_base64() -> None:
-    """Should raise an error if the private key isn't valid base64."""
+def test_generate_conduit_token_accepts_plain_pem() -> None:
+    """Should accept the private key as plain PEM text."""
     org_id = 123
     channel_id = "ad342057-d66b-4ed4-ab01-3415dd2cb1ce"
-    with pytest.raises(ValueError, match="CONDUIT_GATEWAY_PRIVATE_KEY is not valid base64"):
+
+    token = generate_conduit_token(
+        org_id,
+        channel_id,
+        issuer="sentry",
+        audience="conduit",
+        conduit_private_key=RS256_KEY,
+    )
+
+    claims = pyjwt.decode(token, RS256_PUB_KEY, algorithms=["RS256"], audience="conduit")
+    assert claims["channel_id"] == channel_id
+    assert claims["org_id"] == org_id
+
+
+def test_generate_conduit_token_raises_when_invalid_base64() -> None:
+    """Should raise an error if the private key is neither PEM nor valid base64."""
+    org_id = 123
+    channel_id = "ad342057-d66b-4ed4-ab01-3415dd2cb1ce"
+    with pytest.raises(ValueError, match="CONDUIT_GATEWAY_PRIVATE_KEY must be a PEM private key"):
         generate_conduit_token(
             org_id,
             channel_id,
-            conduit_private_key=RS256_KEY,
+            conduit_private_key="not-a-key",
         )
 
 
@@ -138,7 +156,7 @@ def test_generate_conduit_token_raises_when_invalid_utf8() -> None:
     org_id = 123
     channel_id = "ad342057-d66b-4ed4-ab01-3415dd2cb1ce"
     invalid_utf8_base64 = base64.b64encode(b"\xff\xfe\xfd").decode()
-    with pytest.raises(ValueError, match="CONDUIT_GATEWAY_PRIVATE_KEY is not valid base64"):
+    with pytest.raises(ValueError, match="CONDUIT_GATEWAY_PRIVATE_KEY must be a PEM private key"):
         generate_conduit_token(
             org_id,
             channel_id,

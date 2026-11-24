@@ -13,7 +13,7 @@ class WorkflowFireHistory(DefaultFieldsModel):
 
     detector = FlexibleForeignKey("workflow_engine.Detector", null=True, on_delete=models.SET_NULL)
     workflow = FlexibleForeignKey("workflow_engine.Workflow")
-    group = FlexibleForeignKey("sentry.Group", db_constraint=False)
+    group = FlexibleForeignKey("sentry.Group", db_constraint=False, null=True)
     event_id = CharField(max_length=32)
     notification_uuid = UUIDField(auto_add=True, unique=True)
 

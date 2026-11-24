@@ -19,7 +19,6 @@ import {FeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptio
 import {useHaveSelectedProjectsSetupFeedback} from 'sentry/components/feedback/useFeedbackOnboarding';
 import {useFeedbackSlug} from 'sentry/components/feedback/useFeedbackSlug';
 import {useRedirectToFeedbackFromEvent} from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -32,9 +31,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 
 const userFeedbackFeedbackOptions = {
   messagePlaceholder: t('How can we improve the User Feedback experience?'),
-  tags: {
-    'feedback.source': 'feedback-list',
-  },
+  tags: {'feedback.source': 'feedback-list'},
 };
 
 function PageContent({
@@ -55,10 +52,7 @@ function PageContent({
     icon: <IconSiren />,
     to: {
       pathname: makeAutomationCreatePathname(organization.slug),
-      query: {
-        referrer: 'feedback-list-page',
-        project: feedbackProjectId,
-      },
+      query: {referrer: 'feedback-list-page', project: feedbackProjectId},
     },
   };
 
@@ -186,10 +180,7 @@ export default function FeedbackListPage() {
     const estimatedItemHeight = 80;
     const scrollPosition = selectedItemIndex * estimatedItemHeight;
 
-    scrollContainer.scrollTo({
-      top: scrollPosition,
-      behavior: 'auto',
-    });
+    scrollContainer.scrollTo({top: scrollPosition, behavior: 'auto'});
   };
 
   const handleBackToList = () => {
@@ -255,16 +246,7 @@ export default function FeedbackListPage() {
               ),
             }}
           />
-          <TopBar.Slot name="feedback">
-            <FeedbackButton
-              size="sm"
-              feedbackOptions={userFeedbackFeedbackOptions}
-              aria-label={t('Give Feedback')}
-              tooltipProps={{title: t('Give Feedback')}}
-            >
-              {null}
-            </FeedbackButton>
-          </TopBar.Slot>
+          <TopBar.Slot name="feedback" feedbackOptions={userFeedbackFeedbackOptions} />
           <PageContent
             feedbackProjectSlug={feedbackProjectSlug}
             hasFeedbackContent={hasFeedbackContent}

@@ -1,11 +1,11 @@
 import {useCallback} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 import {useQuery} from '@tanstack/react-query';
-import {useQueryState} from 'nuqs';
+import {parseAsString, useQueryState, useQueryStates} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
-import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
@@ -15,10 +15,9 @@ import {WorkflowEngineListLayout as ListLayout} from 'sentry/components/workflow
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps, useGetPaginationCaption} from 'sentry/utils/pagination';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   LLM_CONTEXT_MAX_ROWS,
@@ -148,7 +147,7 @@ function AutomationsListInner() {
             />
           </VisuallyCompleteWithData>
           <Pagination
-            pageLinks={pageLinks}
+            {...getPaginationProps(pageLinks)}
             caption={paginationCaption}
             onCursor={newCursor => {
               setCursor(newCursor ?? null);
@@ -162,31 +161,23 @@ function AutomationsListInner() {
 
 export default registerLLMContext('alert-list', AutomationsListInner);
 
+const searchParsers = {query: parseAsString.withDefault(''), cursor: parseAsString};
+
 function TableHeader() {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
   const canCreateAlert = useCanCreateAutomation();
-  const initialQuery =
-    typeof location.query.query === 'string' ? location.query.query : '';
+  const [{query: initialQuery}, setSearchParams] = useQueryStates(searchParsers);
 
   const onSearch = useCallback(
     (query: string) => {
-      navigate({
-        pathname: location.pathname,
-        query: {...location.query, query, cursor: undefined},
-      });
+      setSearchParams({query, cursor: null}, {history: 'push'});
     },
-    [location.pathname, location.query, navigate]
+    [setSearchParams]
   );
 
   return (
     <Grid
-      columns={{
-        zero: '100%',
-        xl: '1fr auto',
-        '3xl': 'auto 1fr min-content',
-      }}
+      columns={{zero: '100%', xl: '1fr auto', '3xl': 'auto 1fr min-content'}}
       areas={{
         zero: `
           "project"

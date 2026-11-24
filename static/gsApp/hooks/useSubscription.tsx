@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
+import {useStore} from 'zustand';
 
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -11,9 +11,7 @@ export function useSubscription({
   organization: organizationOverride,
 }: {organization?: Organization} = {}): Subscription | null {
   const contextOrganization = useOrganization({allowNull: true});
-  const organization = organizationOverride ?? contextOrganization;
-  const subscriptions = useLegacyStore(SubscriptionStore);
-  const slug = organization?.slug;
+  const slug = (organizationOverride ?? contextOrganization)?.slug;
 
   useEffect(() => {
     if (slug && !SubscriptionStore.getState()[slug]) {
@@ -21,5 +19,5 @@ export function useSubscription({
     }
   }, [slug]);
 
-  return slug ? (subscriptions[slug] ?? null) : null;
+  return useStore(SubscriptionStore, state => (slug ? (state[slug] ?? null) : null));
 }

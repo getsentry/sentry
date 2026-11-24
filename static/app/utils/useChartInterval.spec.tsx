@@ -1,4 +1,4 @@
-import {act, render} from 'sentry-test/reactTestingLibrary';
+import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 
@@ -21,7 +21,6 @@ describe('useChartInterval', () => {
     let intervalOptions!: ReturnType<typeof useChartInterval>[2];
 
     function TestPage() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [chartInterval, setChartInterval, intervalOptions] = useChartInterval();
       return null;
     }
@@ -41,12 +40,7 @@ describe('useChartInterval', () => {
 
     // Update page filters to change interval options
     act(() =>
-      PageFiltersStore.updateDateTime({
-        period: '1h',
-        start: null,
-        end: null,
-        utc: true,
-      })
+      PageFiltersStore.updateDateTime({period: '1h', start: null, end: null, utc: true})
     );
 
     expect(intervalOptions).toEqual([
@@ -59,12 +53,34 @@ describe('useChartInterval', () => {
     expect(chartInterval).toBe('5m');
   });
 
+  it('pushes a history entry and keeps other params when the interval changes', async () => {
+    let setChartInterval!: ReturnType<typeof useChartInterval>[1];
+    const onNuqsUrlUpdate = jest.fn();
+
+    function TestPage() {
+      [, setChartInterval] = useChartInterval();
+      return null;
+    }
+
+    const {router} = render(<TestPage />, {
+      initialRouterConfig: {location: {pathname: '/explore/', query: {query: 'foo'}}},
+      onNuqsUrlUpdate,
+    });
+
+    act(() => setChartInterval('3h'));
+
+    await waitFor(() => expect(router.location.query.interval).toBe('3h'));
+    expect(router.location.query.query).toBe('foo');
+    expect(onNuqsUrlUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'push'})})
+    );
+  });
+
   it('defaults to the smallest interval with USE_SMALLEST strategy', () => {
     // Default 14d period produces ladder-derived options ['1h', '3h', '6h']
     let chartInterval!: ReturnType<typeof useChartInterval>[0];
 
     function TestPage() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [chartInterval] = useChartInterval({
         unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
       });
@@ -83,7 +99,6 @@ describe('useChartInterval', () => {
     let intervalOptions!: ReturnType<typeof useChartInterval>[2];
 
     function TestPage() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [chartInterval, , intervalOptions] = useChartInterval({
         unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_BIGGEST,
       });
@@ -102,7 +117,6 @@ describe('useChartInterval', () => {
     let chartInterval!: ReturnType<typeof useChartInterval>[0];
 
     function TestPage() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [chartInterval] = useChartInterval({
         unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SECOND_BIGGEST,
       });
@@ -121,15 +135,12 @@ describe('useChartInterval', () => {
     let intervalOptions!: ReturnType<typeof useChartInterval>[2];
 
     function TestPage() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [chartInterval, , intervalOptions] = useChartInterval();
       return null;
     }
 
     render(<TestPage />, {
-      initialRouterConfig: {
-        location: {pathname: '/', query: {interval: '12h'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {interval: '12h'}}},
     });
 
     expect(chartInterval).toBe('12h');
@@ -149,24 +160,16 @@ describe('useChartInterval', () => {
     let intervalOptions!: ReturnType<typeof useChartInterval>[2];
 
     function TestPage() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [chartInterval, , intervalOptions] = useChartInterval();
       return null;
     }
 
     render(<TestPage />, {
-      initialRouterConfig: {
-        location: {pathname: '/', query: {interval: '1d'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {interval: '1d'}}},
     });
 
     act(() =>
-      PageFiltersStore.updateDateTime({
-        period: '7d',
-        start: null,
-        end: null,
-        utc: true,
-      })
+      PageFiltersStore.updateDateTime({period: '7d', start: null, end: null, utc: true})
     );
 
     expect(chartInterval).toBe('1d');
@@ -180,15 +183,12 @@ describe('useChartInterval', () => {
     let intervalOptions!: ReturnType<typeof useChartInterval>[2];
 
     function TestPage() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [chartInterval, , intervalOptions] = useChartInterval();
       return null;
     }
 
     render(<TestPage />, {
-      initialRouterConfig: {
-        location: {pathname: '/', query: {interval: '5m'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {interval: '5m'}}},
     });
 
     expect(chartInterval).toBe('1h');
@@ -199,7 +199,6 @@ describe('useChartInterval', () => {
     let chartInterval!: ReturnType<typeof useChartInterval>[0];
 
     function TestPage() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [chartInterval] = useChartInterval();
       return null;
     }
@@ -219,7 +218,6 @@ describe('useChartInterval', () => {
     let chartInterval!: ReturnType<typeof useChartInterval>[0];
 
     function TestPage() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [chartInterval] = useChartInterval({
         unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SECOND_BIGGEST,
       });
@@ -229,12 +227,7 @@ describe('useChartInterval', () => {
     render(<TestPage />);
 
     act(() =>
-      PageFiltersStore.updateDateTime({
-        period: '1m',
-        start: null,
-        end: null,
-        utc: true,
-      })
+      PageFiltersStore.updateDateTime({period: '1m', start: null, end: null, utc: true})
     );
 
     expect(chartInterval).toBe('1m');

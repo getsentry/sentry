@@ -9,11 +9,7 @@ import {docs} from './index';
 describe('aspnetcore onboarding docs', () => {
   it('renders errors onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.dotnet.aspnetcore': {
-          version: '1.99.9',
-        },
-      },
+      releaseRegistry: {'sentry.dotnet.aspnetcore': {version: '1.99.9'}},
       selectedProducts: [
         ProductSolution.PERFORMANCE_MONITORING,
         ProductSolution.LOGS,
@@ -52,7 +48,7 @@ describe('aspnetcore onboarding docs', () => {
     });
 
     expect(
-      await screen.findByText(textWithMarkupMatcher(/builder\.WebHost\.UseSentry/))
+      await screen.findByText(textWithMarkupMatcher(/builder\.UseSentry\(o =>/))
     ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/app\.MapGet\("\/person\/\{id\}"/))
@@ -63,12 +59,55 @@ describe('aspnetcore onboarding docs', () => {
   });
 
   it('renders logs onboarding docs correctly', async () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.LOGS],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.LOGS]});
 
     expect(
       await screen.findByText(textWithMarkupMatcher(/o.EnableLogs/))
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/app\.Logger\.LogInformation/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders the logs onboarding for this platform', async () => {
+    renderWithOnboardingLayout(
+      {onboarding: docs.logsOnboarding!},
+      {
+        releaseRegistry: {'sentry.dotnet.aspnetcore': {version: '1.99.9'}},
+        selectedProducts: [ProductSolution.LOGS],
+      }
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(/Install-Package Sentry\.AspNetCore -Version 1\.99\.9/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/app\.Logger\.LogInformation/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/call builder\.WebHost\.UseSentry instead/))
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'logs documentation'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/dotnet/guides/aspnetcore/logs/'
+    );
+  });
+
+  it('renders the metrics onboarding for this platform', async () => {
+    renderWithOnboardingLayout(
+      {onboarding: docs.metricsOnboarding!},
+      {selectedProducts: [ProductSolution.METRICS]}
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(/Install-Package Sentry\.AspNetCore -Version/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/SentrySdk\.Init\(/))
+    ).not.toBeInTheDocument();
   });
 });

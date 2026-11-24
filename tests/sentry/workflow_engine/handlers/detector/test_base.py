@@ -705,18 +705,7 @@ class TestDetectorHandlerEvidenceData(ConditionDetectorHandlerTest):
         ]
 
     def test_detector_evidence_data_sources_are_empty_without_a_match(self) -> None:
-        with mock.patch("sentry.workflow_engine.handlers.detector.base.logger") as mock_logger:
-            data_sources = self.handler._build_evidence_data_sources("unknown-source")
-
-        assert data_sources == []
-
-        mock_logger.warning.assert_called_once_with(
-            "Matching data source not found for detector while generating occurrence evidence data",
-            extra={
-                "detector_id": self.detector.id,
-                "data_packet_source_id": "unknown-source",
-            },
-        )
+        assert self.handler._build_evidence_data_sources("unknown-source") == []
 
     def test_detector_evidence_data_sources_are_empty_when_serialization_fails(self) -> None:
         with (

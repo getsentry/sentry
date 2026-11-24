@@ -15,7 +15,12 @@ from sentry.backup.dependencies import merge_users_for_model_in_org
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
-from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import (
+    ControlOutbox,
+    OutboxDatabaseError,
+    OutboxFlushError,
+    outbox_context,
+)
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc import OptionValue, logger
 from sentry.incidents.models.alert_rule import AlertRule
@@ -47,6 +52,8 @@ from sentry.models.recentsearch import RecentSearch
 from sentry.models.rule import Rule
 from sentry.models.team import Team, TeamStatus
 from sentry.monitors.models import Monitor
+from sentry.onboarding.agentic_progress.model import OnboardingRunTerminal, RunStatus
+from sentry.onboarding.agentic_progress.service import RunNotFound, get_onboarding_progress_service
 from sentry.organizations.services.organization import (
     OrganizationCheckService,
     OrganizationService,
@@ -65,6 +72,7 @@ from sentry.organizations.services.organization import (
 from sentry.organizations.services.organization.model import (
     OrganizationMemberUpdateArgs,
     RpcAuditLogEntryActor,
+    RpcOnboardingReportingCode,
     RpcOrganizationAccessContext,
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
@@ -94,6 +102,23 @@ from sentry.utils.audit import create_org_delete_log
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
+    def has_active_onboarding_run(self, *, organization_id: int, user_id: int, run_id: str) -> bool:
+        run = get_onboarding_progress_service().get(
+            organization_id=organization_id, user_id=user_id, run_id=run_id
+        )
+        return run is not None and run.run_status is RunStatus.ACTIVE
+
+    def issue_onboarding_reporting_code(
+        self, *, organization_id: int, user_id: int, run_id: str
+    ) -> RpcOnboardingReportingCode | None:
+        try:
+            code = get_onboarding_progress_service().issue_reporting_code(
+                organization_id=organization_id, user_id=user_id, run_id=run_id
+            )
+        except (RunNotFound, OnboardingRunTerminal, ValueError):
+            return None
+        return RpcOnboardingReportingCode(code=code)
+
     def get_active_project_ids(self, *, organization_id: int, project_ids: list[int]) -> list[int]:
         return list(
             Project.objects.filter(
@@ -169,7 +194,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self, organization_id: int, user_id: int
     ) -> RpcOrganizationMember | None:
         try:
-            member = OrganizationMember.objects.get(
+            member = OrganizationMember.objects.select_related("organization").get(
                 user_id=user_id, organization_id=organization_id
             )
         except OrganizationMember.DoesNotExist:
@@ -186,7 +211,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return [summarize_member(m) for m in members]
 
     def serialize_organization(self, *, id: int, as_user: RpcUser | None = None) -> Any | None:
-        org = Organization.objects.filter(id=id).first()
+        org = Organization.objects.get_or_none(id=id)
         if org is None:
             return None
         return serialize(org, user=as_user)
@@ -271,7 +296,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self, organization_id: int, email: str
     ) -> RpcOrganizationMember | None:
         member = first_matching_email(
-            OrganizationMember.objects.filter(organization_id=organization_id), email
+            OrganizationMember.objects.select_related("organization").filter(
+                organization_id=organization_id
+            ),
+            email,
         )
         if member is None:
             return None
@@ -344,15 +372,15 @@ class DatabaseBackedOrganizationService(OrganizationService):
         if user_id is not None:
             member = OrganizationMember.objects.filter(
                 organization_id=org.id, user_id=user_id
-            ).first()
+            ).first()  # noqa: S035
         if member is None and email is not None:
             member = first_matching_email(
                 OrganizationMember.objects.filter(organization_id=org.id), email
             )
         if member is None and organization_member_id is not None:
-            member = OrganizationMember.objects.filter(
+            member = OrganizationMember.objects.get_or_none(
                 organization_id=org.id, id=organization_member_id
-            ).first()
+            )
 
         if member is None:
             return None
@@ -383,21 +411,42 @@ class DatabaseBackedOrganizationService(OrganizationService):
         organization_id: int,
         user_id: int,
     ) -> RpcOrganizationMember | None:
-        with transaction.atomic(router.db_for_write(OrganizationMember)):
-            try:
-                org_member = OrganizationMember.objects.get(
-                    user_id=user_id, organization_id=organization_id
-                )
-                return serialize_member(org_member)
-            except OrganizationMember.DoesNotExist:
+        org_member: OrganizationMember | None = None
+        try:
+            # This transaction is required to bind the member to a variable
+            # when replication fails. Control needs the accepted member right away.
+            with outbox_context(
+                transaction.atomic(router.db_for_write(OrganizationMember)), flush=True
+            ):
                 try:
-                    org_member = OrganizationMember.objects.select_for_update().get(
-                        id=organization_member_id, organization_id=organization_id
+                    org_member = OrganizationMember.objects.get(
+                        user_id=user_id, organization_id=organization_id
                     )
-                    org_member.set_user(user_id)
-                    org_member.save()
+                    return serialize_member(org_member)
                 except OrganizationMember.DoesNotExist:
-                    return None
+                    try:
+                        org_member = OrganizationMember.objects.select_for_update().get(
+                            id=organization_member_id, organization_id=organization_id
+                        )
+                        org_member.set_user(user_id)
+                        org_member.save()
+                    except OrganizationMember.DoesNotExist:
+                        return None
+        except (OutboxDatabaseError, OutboxFlushError):
+            if org_member is None:
+                raise
+
+            # Guard against replication fanout failures. The membership has been
+            # attached to the user, and its outbox has been committed alongside it,
+            # guaranteeing that it will eventually be valid in all regions.
+            logger.warning(
+                "organization_service.set_user_for_organization_member.outbox-flush-failure",
+                extra={
+                    "organization_id": organization_id,
+                    "organization_member_id": org_member.id,
+                },
+                exc_info=True,
+            )
         return serialize_member(org_member)
 
     def _query_organizations(
@@ -483,34 +532,60 @@ class DatabaseBackedOrganizationService(OrganizationService):
         if invite_status is None:
             invite_status = InviteStatus.APPROVED.value
 
-        with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
-            org_member: OrganizationMember | None = None
-            if user_id is not None:
-                org_member = OrganizationMember.objects.filter(
-                    organization_id=organization_id, user_id=user_id
-                ).first()
-            elif email is not None:
-                org_member = OrganizationMember.objects.filter(
-                    organization_id=organization_id, email=email
-                ).first()
+        org_member: OrganizationMember | None = None
+        try:
+            # This transaction is required to bind the member to a variable
+            # when replication fails. The outbox_context is just to flag
+            # that this is an outbox-producing operation.
+            with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
+                if user_id is not None:
+                    org_member = OrganizationMember.objects.filter(
+                        organization_id=organization_id, user_id=user_id
+                    ).first()  # noqa: S035
+                elif email is not None:
+                    org_member = OrganizationMember.objects.filter(
+                        organization_id=organization_id, email=email
+                    ).first()  # noqa: S035
 
+                if org_member is None:
+                    org_member = OrganizationMember.objects.create(
+                        organization_id=organization_id,
+                        user_id=user_id,
+                        email=email,
+                        flags=self._deserialize_member_flags(flags) if flags else 0,
+                        role=role or default_org_role,
+                        inviter_id=inviter_id,
+                        invite_status=invite_status,
+                    )
+        except (OutboxDatabaseError, OutboxFlushError):
             if org_member is None:
-                org_member = OrganizationMember.objects.create(
-                    organization_id=organization_id,
-                    user_id=user_id,
-                    email=email,
-                    flags=self._deserialize_member_flags(flags) if flags else 0,
-                    role=role or default_org_role,
-                    inviter_id=inviter_id,
-                    invite_status=invite_status,
-                )
+                raise
+
+            # Guard against replication fanout failures. The membership has been
+            # created, and its outbox has been committed alongside it,
+            # guaranteeing that it will eventually be valid in all regions.
+            logger.warning(
+                "organization_service.add_organization_member.outbox-flush-failure",
+                extra={
+                    "organization_id": organization_id,
+                    "organization_member_id": org_member.id,
+                },
+                exc_info=True,
+            )
         return serialize_member(org_member)
 
     def update_organization_member(
         self, *, organization_id: int, member_id: int, attrs: OrganizationMemberUpdateArgs
     ) -> RpcOrganizationMember | None:
         member = OrganizationMember.objects.get(id=member_id)
-        with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
+        # Control reads the owner role, so changes to or from owner replicate right away.
+        top_dog = roles.get_top_dog().id
+        new_role = attrs.get("role", member.role)
+        owner_change = new_role != member.role and top_dog in (member.role, new_role)
+        with outbox_context(
+            transaction.atomic(router.db_for_write(OrganizationMember)),
+            flush=True if owner_change else None,
+        ):
             if len(attrs):
                 for k, v in attrs.items():
                     setattr(member, k, v)
@@ -578,7 +653,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
         model = OrganizationMember.objects.get(id=organization_member.id)
         model.flags = self._deserialize_member_flags(organization_member.flags)  # type: ignore[assignment]  # TODO: make BitField a mypy plugin
-        model.save()
+        # Member flags aren't replicated to OrganizationMemberMapping, so there's
+        # no need to block on a synchronous flush.
+        with outbox_context(
+            transaction.atomic(router.db_for_write(OrganizationMember)), flush=False
+        ):
+            model.save()
 
     def update_default_role(self, *, organization_id: int, default_role: str) -> RpcOrganization:
         org = Organization.objects.get(id=organization_id)
@@ -587,7 +667,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return serialize_rpc_organization(org)
 
     def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember | None:
-        with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
+        # Control reads user_id from the member mapping right away.
+        with outbox_context(
+            transaction.atomic(router.db_for_write(OrganizationMember)), flush=True
+        ):
             try:
                 org_member = OrganizationMember.objects.get(
                     organization_id=organization_id, user_id=user_id
@@ -606,11 +689,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:
         to_member: OrganizationMember | None = OrganizationMember.objects.filter(
             organization_id=organization_id, user_id=to_user_id
-        ).first()
+        ).first()  # noqa: S035
 
         from_member: OrganizationMember | None = OrganizationMember.objects.filter(
             organization_id=organization_id, user_id=from_user_id
-        ).first()
+        ).first()  # noqa: S035
 
         if from_member is None:
             return
@@ -626,7 +709,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
         else:
             if roles.get(from_member.role).priority > roles.get(to_member.role).priority:
                 to_member.role = from_member.role
-            to_member.save()
+            # May promote to owner, which control reads straight away.
+            with outbox_context(
+                transaction.atomic(router.db_for_write(OrganizationMember)), flush=True
+            ):
+                to_member.save()
 
         assert to_member
 
@@ -651,9 +738,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 OrganizationMemberTeam.objects.filter(
                     organizationmember=from_member, team=team
                 ).delete()
-                to_member_team = OrganizationMemberTeam.objects.filter(
+                to_member_team = OrganizationMemberTeam.objects.get_or_none(
                     organizationmember=to_member, team=team
-                ).first()
+                )
                 if to_member_team is None:
                     OrganizationMemberTeam.objects.create(organizationmember=to_member, team=team)
 
@@ -893,7 +980,7 @@ class ControlOrganizationCheckService(OrganizationCheckService):
 
     def check_organization_by_id(self, *, id: int, only_visible: bool) -> bool:
         # See CellOrganizationCheckService below
-        org_mapping = OrganizationMapping.objects.filter(organization_id=id).first()
+        org_mapping = OrganizationMapping.objects.get_or_none(organization_id=id)
         if org_mapping is None:
             return False
         if only_visible and org_mapping.status != OrganizationStatus.ACTIVE:

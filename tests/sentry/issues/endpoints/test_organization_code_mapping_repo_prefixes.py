@@ -3,9 +3,13 @@ from __future__ import annotations
 from unittest import mock
 
 from sentry.constants import ObjectStatus
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 ENDPOINT_MODULE = "sentry.issues.endpoints.organization_code_mapping_repo_prefixes"
 REPO_TREES_MODULE = "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration"
@@ -58,6 +62,26 @@ class OrganizationCodeMappingRepoPrefixesGetTest(APITestCase):
             integration_id=self.integration.id,
         )
         self.get_error_response(self.organization.slug, repositoryId=other_repo.id, status_code=404)
+
+    def test_org_ci_scope_returns_403(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token_str = generate_token(self.organization.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=self.organization.id,
+                name="ci-token",
+                token_hashed=hash_token(token_str),
+                token_last_characters=token_str[-4:],
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+            self.client.logout()
+
+        self.get_error_response(
+            self.organization.slug,
+            repositoryId=self.repo.id,
+            status_code=403,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token_str}"},
+        )
 
     @mock.patch(f"{ENDPOINT_MODULE}._get_repo_prefixes")
     def test_empty_file_list_returns_empty_prefixes(self, mock_get: mock.MagicMock) -> None:

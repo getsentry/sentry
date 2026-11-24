@@ -11,9 +11,7 @@ const mockOrganization = OrganizationFixture({
   features: ['workflow-engine-metric-detector-limit'],
 });
 
-const mockOrganizationWithoutFeature = OrganizationFixture({
-  features: [],
-});
+const mockOrganizationWithoutFeature = OrganizationFixture({features: []});
 
 describe('useMetricDetectorLimit', () => {
   beforeEach(() => {
@@ -84,9 +82,7 @@ describe('useMetricDetectorLimit', () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
-        ...SubscriptionFixture({
-          organization: mockOrganization,
-        }).planDetails,
+        ...SubscriptionFixture({organization: mockOrganization}).planDetails,
         metricDetectorLimit: 4,
       },
     });
@@ -130,9 +126,7 @@ describe('useMetricDetectorLimit', () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
-        ...SubscriptionFixture({
-          organization: mockOrganization,
-        }).planDetails,
+        ...SubscriptionFixture({organization: mockOrganization}).planDetails,
         metricDetectorLimit: 3,
       },
     });
@@ -166,9 +160,7 @@ describe('useMetricDetectorLimit', () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
-        ...SubscriptionFixture({
-          organization: mockOrganization,
-        }).planDetails,
+        ...SubscriptionFixture({organization: mockOrganization}).planDetails,
         metricDetectorLimit: -1,
       },
     });
@@ -204,9 +196,7 @@ describe('useMetricDetectorLimit', () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
       planDetails: {
-        ...SubscriptionFixture({
-          organization: mockOrganization,
-        }).planDetails,
+        ...SubscriptionFixture({organization: mockOrganization}).planDetails,
         metricDetectorLimit: 20,
       },
     });

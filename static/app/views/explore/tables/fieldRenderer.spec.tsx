@@ -68,7 +68,6 @@ describe('FieldRenderer tests', () => {
   afterEach(() => {
     jest.restoreAllMocks();
     resetMockDate();
-    ProjectsStore.reset();
   });
 
   it('renders span.op', () => {
@@ -386,10 +385,7 @@ describe('FieldRenderer tests', () => {
         <Wrapper>
           <FieldRenderer
             column={eventView.getColumns()[columnIndex]}
-            data={{
-              ...mockedEventData,
-              [field]: wildcardUrl,
-            }}
+            data={{...mockedEventData, [field]: wildcardUrl}}
             meta={{}}
           />
         </Wrapper>,
@@ -421,10 +417,7 @@ describe('FieldRenderer tests', () => {
         <Wrapper>
           <FieldRenderer
             column={eventView.getColumns()[columnIndex]}
-            data={{
-              ...mockedEventData,
-              [field]: fullUrl,
-            }}
+            data={{...mockedEventData, [field]: fullUrl}}
             meta={{}}
           />
         </Wrapper>,

@@ -7,8 +7,10 @@ import {
   isPullRequestsArtifact,
   isPullRequestsSection,
   isRootCauseSection,
+  isSingleRunAutofix,
   isSolutionSection,
   type AutofixSection,
+  type ExplorerAutofixState,
 } from './useExplorerAutofix';
 
 export type AutofixNextStep =
@@ -20,6 +22,7 @@ export type AutofixNextStep =
 
 interface GetAutofixNextStepOptions {
   sections: AutofixSection[];
+  runState?: ExplorerAutofixState | null;
 }
 
 /**
@@ -31,10 +34,11 @@ interface GetAutofixNextStepOptions {
  */
 export function getAutofixNextStep({
   sections,
+  runState,
 }: GetAutofixNextStepOptions): AutofixNextStep | null {
   const section = sections.at(-1);
 
-  if (!defined(section)) {
+  if (!defined(section) || isSingleRunAutofix(runState ?? null)) {
     return null;
   }
 

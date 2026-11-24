@@ -1,11 +1,12 @@
 import html
 import re
 import shlex
+from collections.abc import Mapping
 
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
 # Markdown labels and shell blocks are escaped for their respective contexts below.
-_ENVIRONMENT = Environment(
+MARKDOWN_JINJA_ENV = Environment(
     loader=PackageLoader("sentry", "templates"),
     autoescape=False,
     undefined=StrictUndefined,
@@ -15,7 +16,7 @@ _ENVIRONMENT = Environment(
 _MARKDOWN_SPECIAL = re.compile(r"([\\`*_{}\[\]()#+.!|~>-])")
 
 
-def _escape_label(value: str) -> str:
+def escape_label(value: str) -> str:
     """Keep untrusted context on one line, outside Markdown instructions or HTML."""
     single_line = " ".join(value.split())
     printable = "".join(character for character in single_line if character.isprintable())
@@ -23,53 +24,37 @@ def _escape_label(value: str) -> str:
 
 
 def _code_block(value: str, language: str = "bash") -> str:
-    # Minted codes are opaque; keep even unexpected backticks inside their code block.
     fence = "`" * max(3, max((len(run) + 1 for run in re.findall(r"`+", value)), default=0))
     return f"{fence}{language}\n{value}\n{fence}"
 
 
-def render_agent_runbook(
-    *,
-    organization_slug: str,
-    organization_name: str,
-    user_email: str,
-    sentry_url: str,
-    client_id: str,
-    setup_code: str,
-) -> str:
-    """Render a private guide from already-authorized context and minted credentials."""
-    instance_environment = (
-        f"SENTRY_HOST={shlex.quote(sentry_url)} SENTRY_URL={shlex.quote(sentry_url)}"
-    )
-    setup_environment = (
-        f"{instance_environment} SENTRY_CLIENT_ID={shlex.quote(client_id)} "
-        f"SENTRY_SETUP_CODE={shlex.quote(setup_code)}"
-    )
-    auth_status = _code_block(f"{instance_environment} sentry auth status --fresh --json")
-    installer = _code_block(
-        "curl -fsSL https://cli.sentry.dev/install | " + setup_environment + " bash"
-    )
-    bootstrap = _code_block(
-        f"{setup_environment} sentry auth bootstrap --url {shlex.quote(sentry_url)}"
-    )
-
-    return _ENVIRONMENT.get_template("sentry/agent_handoff/runbook.md").render(
-        {
-            "sentry_url": _escape_label(sentry_url),
-            "user_email": _escape_label(user_email),
-            "organization_name": _escape_label(organization_name),
-            "organization_slug": _escape_label(organization_slug),
-            "auth_status": auth_status,
-            "installer": installer,
-            "bootstrap": bootstrap,
-        },
-    )
+def _quote_powershell(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
 
 
-def render_claim_runbook(*, claim_url: str) -> str:
-    command = (
-        f"curl -sS -X POST {shlex.quote(claim_url)} --data-urlencode 'handoff_code=HANDOFF_CODE'"
+def _powershell_command(command: str, environment: Mapping[str, str]) -> str:
+    lines = [
+        *(f"$env:{name} = {_quote_powershell(value)}" for name, value in environment.items()),
+        command,
+    ]
+    return _code_block("\n".join(lines), "powershell")
+
+
+def render_claim_runbook(*, sentry_url: str) -> str:
+    # The CLI claims against sentry.io unless told otherwise, so other instances must name
+    # themselves or their codes would be sent to the wrong host.
+    setup_variables = {
+        **({} if sentry_url.rstrip("/") == "https://sentry.io" else {"SENTRY_HOST": sentry_url}),
+        "SENTRY_HANDOFF": "HANDOFF_CODE",
+    }
+    setup_environment = " ".join(
+        f"{name}={shlex.quote(value)}" for name, value in setup_variables.items()
     )
-    return _ENVIRONMENT.get_template("sentry/agent_handoff/claim.md").render(
-        claim_command=_code_block(command),
+    return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/claim.md").render(
+        unix_installer=_code_block(
+            f"curl -fsSL https://cli.sentry.dev/install | {setup_environment} bash"
+        ),
+        windows_installer=_powershell_command(
+            "irm https://cli.sentry.dev/install.ps1 | iex", setup_variables
+        ),
     )

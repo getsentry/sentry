@@ -102,6 +102,16 @@ class FeedbackSourceBase(BaseModel):
         """
         return False
 
+    @property
+    def is_explicit_request(self) -> bool:
+        """Whether a person explicitly asked Seer to act on this feedback.
+
+        Separate from ``is_automated``: a human review that doesn't mention
+        ``@sentry`` is neither automated nor an explicit request. Defaults to
+        ``False`` so a new source has to opt in.
+        """
+        return False
+
     def log_fields(self, run_state: SeerRunState) -> dict[str, Any]:
         """The inputs this source's gates read, for the caller logging a decision.
 

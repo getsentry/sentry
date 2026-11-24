@@ -182,6 +182,25 @@ def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]) -> bool:
     return False
 
 
+def build_empty_timeseries(
+    params: SnubaParams, aggregates: list[ResolvedColumn], *, zerofill_timeseries: bool
+) -> SnubaData:
+    """Build the buckets for a timeseries query that returned no results."""
+    timeseries = zerofill(
+        [],
+        params.start_date,
+        params.end_date,
+        params.timeseries_granularity_secs,
+        ["time"],
+    )
+    if not zerofill_timeseries:
+        # Serializers default a missing value to 0, so mark each bucket as empty explicitly
+        for row in timeseries:
+            for aggregate in aggregates:
+                row[aggregate.public_alias] = None
+    return timeseries
+
+
 def apply_resolved_literals(timeseries: SnubaData, resolved_fields: list[ResolvedColumn]) -> None:
     """Copy constant equations onto each bucket. They are not sent to Snuba."""
     for resolved_field in resolved_fields:
@@ -834,9 +853,10 @@ class RPCBase:
 
         series_by_label = {series.label: series for series in timeseries_list}
         output_timestamps = [row["time"] for row in result.timeseries]
-        for axis_index, pipeline in transformations.items():
+        for axis_index, axis_transformations in transformations.items():
             has_fill = any(
-                isinstance(transformation, FillTransformation) for transformation in pipeline
+                isinstance(transformation, FillTransformation)
+                for transformation in axis_transformations
             )
             series = series_by_label.get(y_axes[axis_index])
             timestamps = (
@@ -857,7 +877,7 @@ class RPCBase:
             )
             filled = [False] * len(values)
             smoothed = [False] * len(values)
-            for transformation in pipeline:
+            for transformation in axis_transformations:
                 if isinstance(transformation, FillTransformation):
                     filled_timeseries = fill_timeseries(timestamps, values, config=transformation)
                     values = filled_timeseries.values
@@ -1059,14 +1079,10 @@ class RPCBase:
                 for attr in ["timeseries", "confidence", "sample_count", "sampling_rate"]:
                     for existing, new in zip(getattr(result, attr), getattr(processed, attr)):
                         existing.update(new)
-        if len(result.timeseries) == 0 and config.zerofill_timeseries:
-            # The rpc only zerofills for us when there are results, if there aren't any we have to do it ourselves
-            result.timeseries = zerofill(
-                [],
-                params.start_date,
-                params.end_date,
-                params.timeseries_granularity_secs,
-                ["time"],
+        if len(result.timeseries) == 0:
+            # The rpc only returns buckets when there are results, if there aren't any we have to build them ourselves
+            result.timeseries = build_empty_timeseries(
+                params, aggregates, zerofill_timeseries=config.zerofill_timeseries
             )
         apply_resolved_literals(result.timeseries, aggregates)
 
@@ -1128,6 +1144,11 @@ class RPCBase:
     def build_top_event_conditions(
         cls, resolver: SearchResolver, top_events: EAPResponse, groupby_columns: list[str]
     ) -> Any:
+        exact_resolver = resolver
+        if resolver.params.case_insensitive:
+            exact_params = resolver.params.copy()
+            exact_params.case_insensitive = False
+            exact_resolver = replace(resolver, params=exact_params)
         conditions = []
         other_conditions = []
         for event in top_events["data"]:
@@ -1143,7 +1164,7 @@ class RPCBase:
                         ]
                 else:
                     value = event[key]
-                resolved_term, context = resolver.resolve_term(
+                resolved_term, context = exact_resolver.resolve_term(
                     SearchFilter(
                         key=SearchKey(name=key),
                         operator="=",
@@ -1152,7 +1173,7 @@ class RPCBase:
                 )
                 if resolved_term is not None:
                     row_conditions.extend(resolved_term)
-                other_term, context = resolver.resolve_term(
+                other_term, context = exact_resolver.resolve_term(
                     SearchFilter(
                         key=SearchKey(name=key),
                         operator="!=",

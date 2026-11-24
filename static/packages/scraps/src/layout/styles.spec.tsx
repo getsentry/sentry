@@ -5,10 +5,11 @@ import {ThemeProvider, css} from '@emotion/react';
 import {act, render, renderHook, screen} from '@testing-library/react';
 
 import {Container} from '@sentry/scraps/layout';
-import {lightTheme as theme} from '@sentry/scraps/theme';
-import type {BreakpointSize} from '@sentry/scraps/theme';
+import {darkTheme, lightTheme, lightTheme as theme} from '@sentry/scraps/theme';
+import type {BackgroundToken, BorderToken, BreakpointSize} from '@sentry/scraps/theme';
 
 import {
+  getBackground,
   getBorder,
   rc,
   useActiveBreakpoint,
@@ -180,11 +181,51 @@ describe('rc', () => {
   });
 });
 
+describe('getBackground', () => {
+  it.each([lightTheme, darkTheme])('resolves every background token path', t => {
+    const paths: BackgroundToken[] = [];
+    const collect = (node: Record<string, unknown>, prefix: string) => {
+      for (const [key, value] of Object.entries(node)) {
+        const path = prefix ? `${prefix}.${key}` : key;
+        if (typeof value === 'string') {
+          paths.push(path as BackgroundToken);
+          expect(getBackground(path as BackgroundToken, undefined, t)).toBe(value);
+        } else {
+          collect(value as Record<string, unknown>, path);
+        }
+      }
+    };
+    collect(t.tokens.background, '');
+    expect(paths).toHaveLength(15);
+  });
+
+  it('returns undefined when omitted', () => {
+    expect(getBackground(undefined, undefined, theme)).toBeUndefined();
+  });
+});
+
 describe('getBorder', () => {
   it('resolves a border variant to a full declaration', () => {
     expect(getBorder('primary', undefined, theme)).toBe(
       `1px solid ${theme.tokens.border.primary}`
     );
+  });
+
+  it.each([lightTheme, darkTheme])('resolves every border token path', t => {
+    const paths: BorderToken[] = [];
+    const collect = (node: Record<string, unknown>, prefix: string) => {
+      for (const [key, value] of Object.entries(node)) {
+        const path = prefix ? `${prefix}.${key}` : key;
+        if (typeof value === 'string') {
+          paths.push(path as BorderToken);
+          expect(getBorder(path as BorderToken, undefined, t)).toBe(`1px solid ${value}`);
+        } else {
+          collect(value as Record<string, unknown>, path);
+        }
+      }
+    };
+    collect(t.tokens.border, '');
+    expect(paths).toHaveLength(40);
   });
 
   it('returns "none" so a border can be turned off responsively', () => {
@@ -257,12 +298,7 @@ describe('useResponsivePropValue', () => {
   });
 
   it('window matches breakpoint = breakpoint value', () => {
-    const cleanup = setupMediaQueries({
-      xs: true,
-      sm: true,
-      md: true,
-      lg: false,
-    });
+    const cleanup = setupMediaQueries({xs: true, sm: true, md: true, lg: false});
 
     const responsiveValue: Responsive<string> = {
       'screen:xs': 'extra-small',
@@ -279,10 +315,7 @@ describe('useResponsivePropValue', () => {
   });
 
   it('window > largest breakpoint = largest breakpoint value', () => {
-    const cleanup = setupMediaQueries({
-      lg: false,
-      xl: true,
-    });
+    const cleanup = setupMediaQueries({lg: false, xl: true});
 
     const responsiveValue: Responsive<string> = {
       'screen:xs': 'extra-small',
@@ -299,14 +332,9 @@ describe('useResponsivePropValue', () => {
   });
 
   it('window < smallest breakpoint = smallest breakpoint value', () => {
-    const cleanup = setupMediaQueries({
-      xs: true,
-      sm: false,
-    });
+    const cleanup = setupMediaQueries({xs: true, sm: false});
 
-    const responsiveValue: Responsive<string> = {
-      'screen:sm': 'small',
-    };
+    const responsiveValue: Responsive<string> = {'screen:sm': 'small'};
 
     const {result} = renderHook(() => useResponsivePropValue(responsiveValue), {
       wrapper: ThemeWrapper,
@@ -317,12 +345,7 @@ describe('useResponsivePropValue', () => {
   });
 
   it('window > smallest breakpoint and < largest breakpoint = smallest matching breakpoint value', () => {
-    const cleanup = setupMediaQueries({
-      xs: false,
-      sm: false,
-      md: true,
-      lg: false,
-    });
+    const cleanup = setupMediaQueries({xs: false, sm: false, md: true, lg: false});
 
     const responsiveValue: Responsive<string> = {
       'screen:sm': 'small',
@@ -338,10 +361,7 @@ describe('useResponsivePropValue', () => {
   });
 
   it('handles undefined values in breakpoint', () => {
-    const cleanup = setupMediaQueries({
-      xs: true,
-      md: true,
-    });
+    const cleanup = setupMediaQueries({xs: true, md: true});
 
     const responsiveValue: Responsive<string> = {
       'screen:xs': 'small',
@@ -418,13 +438,7 @@ describe('useActiveBreakpoint', () => {
   });
 
   it('uses correct breakpoint order (largest first)', () => {
-    const cleanup = setupMediaQueries({
-      xs: true,
-      sm: true,
-      md: true,
-      lg: true,
-      xl: true,
-    });
+    const cleanup = setupMediaQueries({xs: true, sm: true, md: true, lg: true, xl: true});
 
     const {result} = renderHook(() => useActiveBreakpoint(), {wrapper: ThemeWrapper});
 
@@ -499,10 +513,7 @@ describe('useActiveBreakpoint', () => {
 
     const abortController = {
       abort: jest.fn(),
-      signal: {
-        aborted: false,
-        onabort: jest.fn(),
-      },
+      signal: {aborted: false, onabort: jest.fn()},
     } as unknown as AbortController;
 
     const mockAbortController = jest.fn(() => abortController);

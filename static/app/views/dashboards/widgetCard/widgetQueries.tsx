@@ -46,9 +46,7 @@ function WidgetQueriesWithConfig({
   selection,
   config,
   widgetInterval,
-}: Props & {
-  config: any;
-}) {
+}: Props & {config: any}) {
   const props = useGenericWidgetQueries<SeriesResult, TableResult>({
     config,
     widget,

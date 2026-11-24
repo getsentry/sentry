@@ -27,9 +27,7 @@ const defaultProviderProps = {
   searchSource: 'test',
 };
 
-const feedbackIntegration = {
-  createForm: jest.fn(),
-} as unknown as FeedbackIntegration;
+const feedbackIntegration = {createForm: jest.fn()} as unknown as FeedbackIntegration;
 
 function FeedbackProvider({children}: {children: React.ReactNode}) {
   return (
@@ -50,10 +48,13 @@ function InstallFeedbackIntegration() {
   return null;
 }
 
-function renderPollingComboBox(withFeedback = true) {
-  const {organization} = initializeOrg({
-    organization: {hideAiFeatures: false},
-  });
+function renderPollingComboBox(
+  withFeedback = true,
+  fallbackMutationOptions?: React.ComponentProps<
+    typeof AskSeerPollingComboBox
+  >['fallbackMutationOptions']
+) {
+  const {organization} = initializeOrg({organization: {hideAiFeatures: false}});
 
   render(
     <SearchQueryBuilderProvider {...defaultProviderProps}>
@@ -62,6 +63,7 @@ function renderPollingComboBox(withFeedback = true) {
         projectIds={[]}
         strategy="Traces"
         applySeerSearchQuery={() => {}}
+        fallbackMutationOptions={fallbackMutationOptions}
       />
     </SearchQueryBuilderProvider>,
     withFeedback ? {organization, additionalWrapper: FeedbackProvider} : {organization}
@@ -125,18 +127,14 @@ describe('AskSeerPollingComboBox results', () => {
     const {organization} = renderPollingComboBox(false);
 
     await submitQuery();
-    const regenerateButton = await screen.findByRole('button', {
-      name: 'Generate again',
-    });
+    const regenerateButton = await screen.findByRole('button', {name: 'Generate again'});
     expect(regenerateButton).toBeEnabled();
     expect(screen.getByText('Filter')).toBeInTheDocument();
     expect(
       screen.queryByText('Do any of these look right to you?')
     ).not.toBeInTheDocument();
 
-    const input = screen.getByRole('combobox', {
-      name: 'Ask Seer with Natural Language',
-    });
+    const input = screen.getByRole('combobox', {name: 'Ask Seer with Natural Language'});
     await userEvent.clear(input);
     expect(regenerateButton).toBeEnabled();
 
@@ -175,9 +173,7 @@ describe('AskSeerPollingComboBox results', () => {
     await waitFor(() =>
       expect(startRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/search-agent/start/',
-        expect.objectContaining({
-          data: expect.objectContaining({referrer: 'search_bar'}),
-        })
+        expect.objectContaining({data: expect.objectContaining({referrer: 'search_bar'})})
       )
     );
   });
@@ -228,11 +224,7 @@ describe('AskSeerPollingComboBox results', () => {
         },
       },
     });
-    const {organization} = initializeOrg({
-      organization: {
-        hideAiFeatures: false,
-      },
-    });
+    const {organization} = initializeOrg({organization: {hideAiFeatures: false}});
 
     function TestComponent() {
       const [query, setQuery] = useState('');
@@ -291,13 +283,7 @@ describe('AskSeerPollingComboBox error state', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/search-agent/state/123/',
-      body: {
-        session: {
-          status: 'error',
-          current_step: null,
-          completed_steps: [],
-        },
-      },
+      body: {session: {status: 'error', current_step: null, completed_steps: []}},
     });
     renderPollingComboBox();
 
@@ -310,6 +296,81 @@ describe('AskSeerPollingComboBox error state', () => {
     expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Try again'}));
+
+    await waitFor(() => expect(startRequest).toHaveBeenCalledTimes(2));
+  });
+
+  it('shows why access was denied when the start request is forbidden', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      statusCode: 403,
+      body: {detail: 'AI features are disabled for this organization.'},
+    });
+    const fallbackMutationFn = jest.fn();
+    renderPollingComboBox(true, {mutationFn: fallbackMutationFn});
+
+    await submitQuery();
+
+    // Shown both in the toast and in the combobox error header
+    expect(
+      await screen.findAllByText('AI features are disabled for this organization.')
+    ).toHaveLength(2);
+    expect(screen.getByRole('img', {name: 'Error'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Try again'})).toBeInTheDocument();
+    expect(fallbackMutationFn).not.toHaveBeenCalled();
+  });
+
+  it('shows an error instead of loading forever when polling fails', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 123},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/123/',
+      statusCode: 500,
+      body: {detail: 'Failed to fetch run state'},
+    });
+    renderPollingComboBox();
+
+    await submitQuery();
+
+    expect(
+      await screen.findByText('Seer failed to process your search. Please try again.')
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+  });
+
+  it('explains when Seer returns no queries', async () => {
+    const startRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 123},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/123/',
+      body: {
+        session: {
+          status: 'completed',
+          current_step: null,
+          completed_steps: [],
+          final_response: null,
+        },
+      },
+    });
+    renderPollingComboBox();
+
+    await submitQuery();
+
+    expect(
+      await screen.findByText(
+        "Seer couldn't turn that into a search. Try rephrasing your question."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Generate again'}));
 
     await waitFor(() => expect(startRequest).toHaveBeenCalledTimes(2));
   });

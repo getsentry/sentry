@@ -7,9 +7,22 @@ description: Write and review React/TypeScript tests for Sentry's frontend using
 
 ## Testing Philosophy
 
-- **User-centric testing**: Write tests that resemble how users interact with the app.
-- **Avoid implementation details**: Focus on behavior, not internal component structure.
-- **Do not share state between tests**: Behavior should not be influenced by other tests in the test suite.
+- **Test user workflows**: Set up preconditions with fixtures, props, router state, and `MockApiClient`. Drive the behavior under test with `userEvent` clicks, typing, and keyboard navigation, then assert what the user sees or can do afterward, rather than component state, internal calls, or render counts.
+- **Make assertions specific**: Name tests after the behavior they protect. Assert the expected content, validation message, destination, or submitted value; avoid vague checks such as “renders correctly” or “an error exists.”
+- **Cover relevant failures**: Alongside successful behavior, cover validation failures, rejected requests, or permission restrictions when the changed behavior depends on them. Verify the specific feedback and recovery path where supported.
+- **Choose coverage by what can regress**: Use RTL for user behavior and accessibility; use visual snapshots for appearance. Apply the selection rules below before adding assertions.
+- **Keep tests independent**: Set up each test's fixtures, API responses, and store state explicitly. Clean up mutable state using the existing test helpers; never rely on test execution order. Prefer deterministic fixture overrides to random data unless uniqueness is part of the behavior under test.
+
+## Choose RTL or Visual Snapshots Before Writing Tests
+
+- Use RTL in `*.spec.tsx` for interactions, validation, submitted values, routing, network effects, and accessible names, roles, or states. Assert the observable outcome.
+- Use unit tests for pure calculations or data transformations.
+- Do not add RTL assertions using `toHaveStyle`, `toHaveStyleRule`, computed styles, CSS class names, or DOM structure solely to verify appearance. Do not mock a child component to inspect the styling props passed to it.
+- Cover colors, typography, spacing, alignment, dimensions, responsive layout, and visual variants in colocated `*.snapshots.tsx` files with the repository's `it.snapshot` / `it.snapshot.each` API, not Jest DOM snapshots (`toMatchSnapshot` / `toMatchInlineSnapshot`). Use the **`generate-snapshot-tests`** skill for themes, variants, and container widths.
+- Visual snapshots render with `renderToString`, so they have no `document`, effects, or API responses. If the styled element only appears after fetching data or running effects, snapshot the presentational component that renders it with props. If no such component exists, extract one or note in the PR that the change has no automated visual coverage. Do not fall back to appearance assertions in RTL.
+- Distinguish CSS constraints from behavior: `min-width` / `max-width` belong in visual snapshots; an input's numeric limits need RTL coverage of validation or clamping after user input.
+- For mixed changes, snapshot appearance and test behavior separately. For a disabled button, snapshot its appearance and use RTL to verify it cannot trigger an action. Do not duplicate its CSS in RTL.
+- Before finishing, review each new assertion: replace appearance-only RTL checks with visual cases. Do not add an RTL smoke test merely to accompany a styling change.
 
 ## Imports
 
@@ -53,6 +66,22 @@ import {
    ```
 
 ## Best Practices
+
+### Assert the outcome of the interaction
+
+Use the real component and its providers with `MockApiClient` responses. When a request payload is part of the behavior, assert it as well as the resulting UI; a request being called alone does not prove the workflow succeeded.
+
+```tsx
+// ❌ A generic error check does not establish which failure was handled
+expect(screen.getByRole('alert')).toBeInTheDocument();
+
+// ✅ After submitting invalid input, check the specific validation feedback
+await userEvent.clear(screen.getByRole('textbox', {name: 'Name'}));
+await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+expect(await screen.findByText('Name is required')).toBeInTheDocument();
+```
+
+For a successful save, assert the saved content or destination. For a rejected request, configure its error response with `MockApiClient` and assert the specific error feedback; if retry is supported, exercise it and verify success.
 
 ### Avoid mocking hooks, functions, or components
 
@@ -120,28 +149,36 @@ const project = ProjectFixture(partialProject)
 
 ```
 
-### Render a component, not a `renderFoo()` helper
+### Call `render()` directly, not a `renderFoo()` helper
 
-A local helper hides the JSX from every test that calls it, and `rerender` takes
-an element, so the call site can no longer control what renders.
+A local helper hides the JSX and `render()` options from every test that calls
+it, and `rerender` takes an element, so the call site can no longer control
+what renders. Repeating the JSX in each test is fine: the reader sees exactly
+what each test renders.
 
 ```tsx
 // ❌ Don't wrap render() in a helper
-function renderComponent(props: Props = {}) {
-  return render(<Widget {...props}>hello</Widget>);
+function renderWidget(project = ProjectFixture()) {
+  return render(<Widget organization={organization} project={project} />, {organization});
 }
+renderWidget(project);
 
-// ✅ Put the fixed parts in a component
-function ExampleWidget(props: Props) {
-  return <Widget {...props}>hello</Widget>;
-}
-render(<ExampleWidget isLoading />);
+// ✅ Call render() in each test
+render(<Widget organization={organization} project={project} />, {organization});
 ```
 
-Declare it at module scope so `rerender` keeps the same component type, and keep
-`render()` options at the call site. If the helper adds nothing over the
-component's own props, drop it and call `render(<Widget />)` directly. Helpers
-that only register mocks, or that take the element as a parameter, are fine.
+When the fixed JSX is large, such as many props, put the common props in an
+object and spread them in each `render()` call:
+
+```tsx
+const commonProps = {organization, project, isLast: true, onClickSetupLater: jest.fn()};
+
+render(<Widget {...commonProps} />, {organization});
+render(<Widget {...commonProps} isLoading />, {organization});
+```
+
+Helpers that only register mocks, or that take the element as a parameter, are
+fine.
 
 ### Use `screen` instead of destructuring
 
@@ -216,12 +253,7 @@ await userEvent.keyboard('text');
 
 ```tsx
 const {router} = render(<TestComponent />, {
-  initialRouterConfig: {
-    location: {
-      pathname: '/foo/',
-      query: {page: '1'},
-    },
-  },
+  initialRouterConfig: {location: {pathname: '/foo/', query: {page: '1'}}},
 });
 // Uses passes in config to set initial location
 expect(router.location.pathname).toBe('/foo');
@@ -243,12 +275,7 @@ function TestComponent() {
   return <div>{id}</div>;
 }
 const {router} = render(<TestComponent />, {
-  initialRouterConfig: {
-    location: {
-      pathname: '/foo/123/',
-    },
-    route: '/foo/:id/',
-  },
+  initialRouterConfig: {location: {pathname: '/foo/123/'}, route: '/foo/:id/'},
 });
 expect(screen.getByText('123')).toBeInTheDocument();
 ```
@@ -257,10 +284,7 @@ expect(screen.getByText('123')).toBeInTheDocument();
 
 ```tsx
 // Simple GET request
-MockApiClient.addMockResponse({
-  url: '/projects/',
-  body: [{id: 1, name: 'my project'}],
-});
+MockApiClient.addMockResponse({url: '/projects/', body: [{id: 1, name: 'my project'}]});
 
 // POST request
 MockApiClient.addMockResponse({
@@ -283,9 +307,7 @@ MockApiClient.addMockResponse({
 // Error responses
 MockApiClient.addMockResponse({
   url: '/projects/',
-  body: {
-    detail: 'Internal Error',
-  },
+  body: {detail: 'Internal Error'},
   statusCode: 500,
 });
 ```
@@ -309,10 +331,7 @@ When testing mutations that trigger data refetches, update mocks before the refe
 ```tsx
 it('adds item and updates list', async () => {
   // Initial empty state
-  MockApiClient.addMockResponse({
-    url: '/items/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/items/', body: []});
 
   const createRequest = MockApiClient.addMockResponse({
     url: '/items/',
@@ -325,10 +344,7 @@ it('adds item and updates list', async () => {
   await userEvent.click(screen.getByRole('button', {name: 'Add Item'}));
 
   // CRITICAL: Override mock before refetch happens
-  MockApiClient.addMockResponse({
-    url: '/items/',
-    body: [{id: 1, name: 'New Item'}],
-  });
+  MockApiClient.addMockResponse({url: '/items/', body: [{id: 1, name: 'New Item'}]});
 
   await waitFor(() => expect(createRequest).toHaveBeenCalled());
   expect(await screen.findByText('New Item')).toBeInTheDocument();

@@ -85,7 +85,8 @@ export function RoleSelectControl({
             <Container
               as="span"
               display="inline-block"
-              width="20rem"
+              // A capped menu sets the width, so let details wrap to fit it.
+              width={props.maxMenuWidth === undefined ? '20rem' : undefined}
               maxWidth={keepMenuInViewport ? '100%' : undefined}
             >
               {r.desc}

@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import TypedDict, cast
+from typing import Annotated, TypedDict, cast
 
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -13,6 +13,7 @@ from sentry.api.bases.organization import NoProjects
 from sentry.api.event_search import parse_search_query
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -29,7 +30,7 @@ from sentry.utils.cursors import Cursor, CursorResult
 
 
 class _ListReplaysResponse(TypedDict):
-    data: list[ReplayDetailsResponse]
+    data: Annotated[list[ReplayDetailsResponse], ApiDescription("Replays that match the query")]
 
 
 @cell_silo_endpoint

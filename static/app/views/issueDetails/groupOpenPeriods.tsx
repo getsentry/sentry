@@ -5,10 +5,10 @@ import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 import {parseAsString, useQueryState} from 'nuqs';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {t} from 'sentry/locale';
 import type {GroupOpenPeriodActivity} from 'sentry/types/group';
@@ -51,7 +51,6 @@ function getOpenPeriodActivityTypeLabel(activity: GroupOpenPeriodActivity): stri
   }
 }
 
-// TODO(snigdha): make this work for the old UI
 function IssueOpenPeriodsList() {
   const organization = useOrganization();
   const [cursor] = useQueryState('cursor', parseAsString);
@@ -72,10 +71,7 @@ function IssueOpenPeriodsList() {
   const openPeriods = response?.json ?? [];
   const investigationsEnabled = useInvestigationsEnabled();
   const candidateSources: MetricOpenPeriodInvestigationSource[] = openPeriods.map(
-    period => ({
-      type: 'metric_open_period',
-      ref: {groupId, openPeriodId: period.id},
-    })
+    period => ({type: 'metric_open_period', ref: {groupId, openPeriodId: period.id}})
   );
   const {data: candidates} = useQuery({
     ...investigationCandidatesQueryOptions({
@@ -132,13 +128,7 @@ function IssueOpenPeriodsList() {
     {key: 'start', width: COL_WIDTH_UNDEFINED, name: t('Start')},
     {key: 'end', width: COL_WIDTH_UNDEFINED, name: t('End')},
     ...(investigationsEnabled
-      ? [
-          {
-            key: 'investigation',
-            width: COL_WIDTH_UNDEFINED,
-            name: t('Investigation'),
-          },
-        ]
+      ? [{key: 'investigation', width: COL_WIDTH_UNDEFINED, name: t('Investigation')}]
       : []),
   ];
 
@@ -175,9 +165,7 @@ function IssueOpenPeriodsList() {
         data={data}
         error={error}
         columnOrder={columnOrder}
-        grid={{
-          renderBodyCell,
-        }}
+        grid={{renderBodyCell}}
       />
     </EventListTable>
   );

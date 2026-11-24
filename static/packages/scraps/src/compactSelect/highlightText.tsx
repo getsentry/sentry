@@ -2,10 +2,7 @@ import styled from '@emotion/styled';
 
 import {Text} from '@sentry/scraps/text';
 
-type HighlightTextProps = {
-  query: string;
-  text: string;
-};
+type HighlightTextProps = {query: string; text: string};
 
 export function HighlightText({query, text}: HighlightTextProps) {
   const trimmedQuery = query.trim();

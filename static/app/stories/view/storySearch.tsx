@@ -2,6 +2,7 @@ import type {Key} from 'react';
 import {useMemo, useRef, useState, useDeferredValue} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
 import {Item, Section} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
@@ -25,6 +26,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {StoryTreeNode} from './storyTree';
 import {
   COMPONENT_SUBCATEGORY_CONFIG,
+  isTreeSection,
   SECTION_CONFIG,
   SECTION_ORDER,
   useStoryHierarchy,
@@ -203,7 +205,7 @@ export function StorySearch() {
             options: searchItems(allCoreNodes, deferredInputValue),
           });
         }
-      } else if (section === 'product' && data.stories.length > 0) {
+      } else if (isTreeSection(section) && data.stories.length > 0) {
         const flattenedStories = data.stories.flatMap(tree => tree.flat());
         sections.push({
           key: section,
@@ -365,20 +367,15 @@ function SearchComboBox(props: SearchComboBoxProps) {
 
   const {inputProps, listBoxProps, labelProps} =
     useSearchTokenCombobox<SearchComboBoxItem>(
-      {
-        ...props,
-        inputRef,
-        listBoxRef,
-        popoverRef,
-      },
+      {...props, inputRef, listBoxRef, popoverRef},
       state
     );
 
   return (
     <StorySearchContainer>
-      <label {...labelProps} className="sr-only">
+      <VisuallyHidden elementType="label" {...labelProps}>
         {props.label}
-      </label>
+      </VisuallyHidden>
       <SearchInput ref={inputRef} placeholder={props.label} {...inputProps} />
       {state.isOpen && (
         <StyledOverlay placement="bottom-start" ref={popoverRef}>

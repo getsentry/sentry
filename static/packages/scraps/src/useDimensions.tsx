@@ -17,17 +17,11 @@ export function useDimensions({elementRef}: Props) {
 
   // Ensures that dimensions are set before the browser paints on first render
   useLayoutEffect(() => {
-    setDimensions({
-      height: element?.clientHeight || 0,
-      width: element?.clientWidth || 0,
-    });
+    setDimensions({height: element?.clientHeight || 0, width: element?.clientWidth || 0});
   }, [element]);
 
   const onResize = useCallback(() => {
-    setDimensions({
-      height: element?.clientHeight || 0,
-      width: element?.clientWidth || 0,
-    });
+    setDimensions({height: element?.clientHeight || 0, width: element?.clientWidth || 0});
   }, [element]);
 
   useResizeObserver({ref: elementRef, onResize});

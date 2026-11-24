@@ -1,8 +1,8 @@
 import {useEffect} from 'react';
+import {useStore} from 'zustand';
 
 import {DEFAULT_APP_ROUTE} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -18,7 +18,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
  * in which case we should load their list of organizations and make a decision
  */
 function AppRoot() {
-  const {lastOrganization} = useLegacyStore(ConfigStore);
+  const lastOrganization = useStore(ConfigStore, state => state.lastOrganization);
   const navigate = useNavigate();
 
   useEffect(() => {

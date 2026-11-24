@@ -19,7 +19,11 @@ import {getSampleChartSymbol} from 'sentry/views/insights/common/views/spanSumma
 import {crossIconPath} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/symbol';
 
 import {createBaselineMarkLine} from './baselineMarkline';
-import type {Plottable, PlottableTimeSeriesValueType} from './plottable';
+import type {
+  Plottable,
+  PlottableConfidence,
+  PlottableTimeSeriesValueType,
+} from './plottable';
 
 type ScatterPlotDatum = [timestamp: string, value: number, id: string];
 
@@ -97,20 +101,19 @@ export class Samples implements Plottable {
    * Dispatch an action on a data point to the chart instance, if possible. If not possible, log the error, but noop. In all current cases, failing to dispatch an action is harmless, and only happens if the chart is removed from the DOM, in which case there's nothing to dispatch to, anyway. Telemetry added in case this happens a lot and we want to track down what's dispatching actions to a removed chart.
    */
   #dispatchPointAction(action: string, dataIndex: number): void {
-    let chart: EChartsType | undefined = undefined;
+    let chart: EChartsType | undefined;
 
     try {
       chart = this.chartRef?.getEchartsInstance();
     } catch {
-      return undefined;
+      return;
     }
 
     if (!chart) {
-      return undefined;
+      return;
     }
 
     chart.dispatchAction({type: action, seriesName: this.name, dataIndex});
-    return undefined;
   }
 
   highlight(sample: TabularRow) {
@@ -131,6 +134,13 @@ export class Samples implements Plottable {
     return this.sampleTableData.data.every(
       sample => sample[this.config.attributeName] === null
     );
+  }
+
+  /**
+   * Samples are individual events, not aggregates, so they're never extrapolated.
+   */
+  get confidence(): PlottableConfidence {
+    return 'full';
   }
 
   get needsColor(): boolean {
@@ -261,9 +271,7 @@ export class Samples implements Plottable {
           })
         : undefined,
       animation: false,
-      emphasis: {
-        scale: 1.2,
-      },
+      emphasis: {scale: 1.2},
       symbolSize: 14,
       itemStyle: {
         color: callbackValue => {

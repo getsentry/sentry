@@ -11,6 +11,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AUTOFIX_USER_CONTEXT_MAX_LENGTH} from 'sentry/components/events/autofix/types';
 import {
+  isOutOfCreditsError,
   isPrIterationPaused,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -26,6 +27,11 @@ export const PR_ITERATION_PAUSED_TOOLTIP = t(
 interface PrIterationFeedbackFormProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   groupId: string;
+  /**
+   * Holds the form disabled, for example while the org can't afford another
+   * iteration.
+   */
+  disabled?: boolean;
   onClose?: () => void;
   referrer?: string;
   runId?: SeerExplorerRunId;
@@ -33,6 +39,7 @@ interface PrIterationFeedbackFormProps {
 
 export function PrIterationFeedbackForm({
   autofix,
+  disabled = false,
   groupId,
   runId,
   referrer,
@@ -52,7 +59,7 @@ export function PrIterationFeedbackForm({
 
   const handleSubmit = async () => {
     // Also guards the Enter hotkey, which clicks the button directly.
-    if (isPaused || !feedback.trim()) {
+    if (disabled || isPaused || !feedback.trim()) {
       return;
     }
     // Briefly show the loader while the request is in flight to guard against a
@@ -61,9 +68,15 @@ export function PrIterationFeedbackForm({
     setIsSubmitting(true);
     try {
       await startStep('pr_iteration', {runId, userContext: feedback});
-    } catch {
+    } catch (e) {
       // startStep already reports why the request failed.
       setIsSubmitting(false);
+      // Feedback refused for credits waits on the queue and runs later, so sending it
+      // again would queue it twice.
+      if (isOutOfCreditsError(e)) {
+        setFeedback('');
+        onClose?.();
+      }
       return;
     }
     trackAnalytics('autofix.pr_iteration.feedback', {
@@ -93,7 +106,7 @@ export function PrIterationFeedbackForm({
               'Give Seer additional context to improve your pull request and make changes to your code. Hit ENTER to submit.'
             )}
             value={feedback}
-            disabled={isSubmitting || isPaused}
+            disabled={disabled || isSubmitting || isPaused}
             onChange={event => setFeedback(event.target.value)}
             onKeyDown={event => {
               if (event.nativeEvent.isComposing) {
@@ -120,7 +133,7 @@ export function PrIterationFeedbackForm({
           <Button
             ref={submitButtonRef}
             icon={isSubmitting ? undefined : <IconArrow size="md" direction="right" />}
-            disabled={isSubmitting || isPaused || !feedback.trim()}
+            disabled={disabled || isSubmitting || isPaused || !feedback.trim()}
             onClick={handleSubmit}
           >
             {isSubmitting ? t('Submitting feedback') : t('Submit')}

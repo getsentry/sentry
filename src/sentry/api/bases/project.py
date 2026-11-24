@@ -77,6 +77,12 @@ class StrictProjectPermission(ProjectPermission):
 
 
 class ProjectReleasePermission(ProjectPermission):
+    """
+    Includes org:ci so CI org-auth-tokens (e.g. sentry-cli) can manage releases.
+    Use only for release endpoints. Do not reuse an org:ci permission for endpoints
+    exposing data a CI token should not read.
+    """
+
     scope_map = {
         "GET": ["project:read", "project:write", "project:admin", "project:releases", "org:ci"],
         "POST": ["project:write", "project:admin", "project:releases", "org:ci"],

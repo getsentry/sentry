@@ -3,7 +3,7 @@ import {AuditLogsApiEventNamesFixture} from 'sentry-fixture/auditLogsApiEventNam
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -14,10 +14,7 @@ describe('OrganizationAuditLog', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/audit-logs/',
       method: 'GET',
-      body: {
-        rows: AuditLogsFixture(),
-        options: AuditLogsApiEventNamesFixture(),
-      },
+      body: {rows: AuditLogsFixture(), options: AuditLogsApiEventNamesFixture()},
     });
 
     render(<OrganizationAuditLog />);
@@ -117,20 +114,14 @@ describe('OrganizationAuditLog', () => {
     const absoluteDateMockResponse = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/audit-logs/',
       method: 'GET',
-      body: {
-        rows: AuditLogsFixture(),
-        options: AuditLogsApiEventNamesFixture(),
-      },
+      body: {rows: AuditLogsFixture(), options: AuditLogsApiEventNamesFixture()},
     });
 
     render(<OrganizationAuditLog />, {
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/audit-log/',
-          query: {
-            start: '2018-02-01T00:00:00.000Z',
-            end: '2018-02-28T23:59:59.999Z',
-          },
+          query: {start: '2018-02-01T00:00:00.000Z', end: '2018-02-28T23:59:59.999Z'},
         },
         route: '/organizations/:orgId/audit-log/',
       },
@@ -160,5 +151,31 @@ describe('OrganizationAuditLog', () => {
         'edited the organization setting(s): accountRateLimit from 1000 to 0'
       )
     ).toBeInTheDocument();
+  });
+  it('clears the event type filter', async () => {
+    const auditLogsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/audit-logs/',
+      method: 'GET',
+      body: {rows: AuditLogsFixture(), options: AuditLogsApiEventNamesFixture()},
+    });
+
+    const {router} = render(<OrganizationAuditLog />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/audit-log/',
+          query: {event: 'org.edit'},
+        },
+        route: '/organizations/:orgId/audit-log/',
+      },
+    });
+
+    expect(await screen.findByText('project.edit')).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('Clear choices'));
+
+    await waitFor(() => expect(router.location.query.event).toBeUndefined());
+    expect(auditLogsMock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/audit-logs/',
+      expect.objectContaining({query: expect.not.objectContaining({event: 'org.edit'})})
+    );
   });
 });

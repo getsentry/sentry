@@ -98,11 +98,7 @@ describe('useVirtualStreaming', () => {
 
     const {result} = renderHookWithProviders(
       () => useVirtualStreaming({data: mockData}),
-      {
-        additionalWrapper,
-        organization,
-        initialRouterConfig: getRouterConfig('enabled'),
-      }
+      {additionalWrapper, organization, initialRouterConfig: getRouterConfig('enabled')}
     );
 
     await waitFor(() => {
@@ -127,11 +123,7 @@ describe('useVirtualStreaming', () => {
 
     const {result, router} = renderHookWithProviders(
       () => useVirtualStreaming({data: mockData}),
-      {
-        additionalWrapper,
-        organization,
-        initialRouterConfig: getRouterConfig('enabled'),
-      }
+      {additionalWrapper, organization, initialRouterConfig: getRouterConfig('enabled')}
     );
 
     await waitFor(() => {
@@ -181,11 +173,7 @@ describe('useVirtualStreaming', () => {
 
     const {router} = renderHookWithProviders(
       () => useVirtualStreaming({data: mockData}),
-      {
-        additionalWrapper,
-        organization,
-        initialRouterConfig: getRouterConfig('enabled'),
-      }
+      {additionalWrapper, organization, initialRouterConfig: getRouterConfig('enabled')}
     );
 
     await waitFor(() => {
@@ -294,18 +282,7 @@ describe('updateVirtualStreamingTimestamp', () => {
 
 function createMockData(logFixtures: OurLogsResponseItem[]) {
   const mockData: InfiniteData<ApiResponse<EventsLogsResult>> = {
-    pages: [
-      {
-        json: {
-          data: logFixtures,
-          meta: {
-            fields: {},
-            units: {},
-          },
-        },
-        headers: {},
-      },
-    ],
+    pages: [{json: {data: logFixtures, meta: {fields: {}, units: {}}}, headers: {}}],
     pageParams: [null],
   };
   return mockData;

@@ -13,6 +13,7 @@ from django.core.cache import cache
 from jsonschema import ValidationError
 
 from sentry import options
+from sentry.issues import json_schemas
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType, ProfileFileIOGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import (
@@ -96,8 +97,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     @django_db_all
     def test_occurrence_consumer_with_event(self) -> None:
         message = get_test_message(self.project.id)
-        with self.feature("organizations:profile-file-io-main-thread-ingest"):
-            result = _process_message(message)
+        result = _process_message(message)
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
@@ -119,8 +119,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         create_default_projects()
         event_data = load_data("generic-event-profiling")
         event_data["detection_time"] = datetime.datetime.now(tz=timezone.utc)
-        with self.feature("organizations:profile-file-io-main-thread-ingest"):
-            result = _process_message(event_data)
+        result = _process_message(event_data)
         assert result is not None
         project_id = event_data["event"]["project_id"]
         occurrence = result[0]
@@ -145,16 +144,14 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     def test_invalid_event_payload(self) -> None:
         message = get_test_message(self.project.id, event={"title": "no project id"})
         with pytest.raises(InvalidEventPayloadError):
-            with self.feature("organizations:profile-file-io-main-thread-ingest"):
-                _process_message(message)
+            _process_message(message)
 
     def test_invalid_occurrence_payload(self) -> None:
         message = get_test_message(self.project.id, type=300)
         with (
             mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics,
         ):
-            with self.feature("organizations:profile-file-io-main-thread-ingest"):
-                _process_message(message)
+            _process_message(message)
             metrics.incr.assert_called_once_with(
                 "occurrence_ingest.invalid_group_type",
                 tags={"occurrence_type": 300},
@@ -165,15 +162,13 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         message["event_id"] = "id1"
         message["event"]["event_id"] = "id2"
         with pytest.raises(InvalidEventPayloadError):
-            with self.feature("organizations:profile-file-io-main-thread-ingest"):
-                _process_message(message)
+            _process_message(message)
 
     @django_db_all
     def test_occurrence_consumer_without_payload_type(self) -> None:
         message = get_test_message(self.project.id)
         message.pop("payload_type")
-        with self.feature("organizations:profile-file-io-main-thread-ingest"):
-            result = _process_message(message)
+        result = _process_message(message)
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
@@ -193,8 +188,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     def test_issue_platform_default_priority(self) -> None:
         # test default priority of LOW
         message = get_test_message(self.project.id)
-        with self.feature("organizations:profile-file-io-main-thread-ingest"):
-            result = _process_message(message)
+        result = _process_message(message)
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
@@ -209,8 +203,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         # test explicitly set priority of HIGH
         message = get_test_message(self.project.id)
         message["priority"] = PriorityLevel.HIGH.value
-        with self.feature("organizations:profile-file-io-main-thread-ingest"):
-            result = _process_message(message)
+        result = _process_message(message)
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
@@ -219,7 +212,6 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert group.priority == PriorityLevel.HIGH
         assert "severity" not in group.data["metadata"]
 
-    @with_feature("organizations:profile-file-io-main-thread-ingest")
     def test_issue_platform_updates_priority(self) -> None:
         # test explicitly set priority of HIGH
         message = get_test_message(self.project.id)
@@ -242,8 +234,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
 
     def test_new_group_with_user_assignee(self) -> None:
         message = get_test_message(self.project.id, assignee=f"user:{self.user.id}")
-        with self.feature("organizations:profile-file-io-main-thread-ingest"):
-            result = _process_message(message)
+        result = _process_message(message)
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
@@ -253,8 +244,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
 
     def test_new_group_with_team_assignee(self) -> None:
         message = get_test_message(self.project.id, assignee=f"team:{self.team.id}")
-        with self.feature("organizations:profile-file-io-main-thread-ingest"):
-            result = _process_message(message)
+        result = _process_message(message)
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
@@ -265,8 +255,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     def test_new_group_with_invalid_user_assignee(self) -> None:
         other_user = self.create_user()
         message = get_test_message(self.project.id, assignee=f"user:{other_user.id}")
-        with self.feature("organizations:profile-file-io-main-thread-ingest"):
-            result = _process_message(message)
+        result = _process_message(message)
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
@@ -280,10 +269,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     )
     def test_rate_limit(self, is_limited: mock.MagicMock) -> None:
         message = get_test_message(self.project.id)
-        with (
-            self.feature("organizations:profile-file-io-main-thread-ingest"),
-            self.options({"issues.occurrence-consumer.rate-limit.enabled": True}),
-        ):
+        with self.options({"issues.occurrence-consumer.rate-limit.enabled": True}):
             result = _process_message(message)
         assert result is None
 
@@ -293,10 +279,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     )
     def test_rate_limit_granted(self, is_limited: mock.MagicMock) -> None:
         message = get_test_message(self.project.id)
-        with (
-            self.feature("organizations:profile-file-io-main-thread-ingest"),
-            self.options({"issues.occurrence-consumer.rate-limit.enabled": True}),
-        ):
+        with self.options({"issues.occurrence-consumer.rate-limit.enabled": True}):
             result = _process_message(message)
         assert result is not None
         occurrence = result[0]
@@ -313,8 +296,7 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
     def test_lookup_event_doesnt_exist(self) -> None:
         message = get_test_message(self.project.id, include_event=False)
         with pytest.raises(EventLookupError):
-            with self.feature("organizations:profile-file-io-main-thread-ingest"):
-                _process_message(message)
+            _process_message(message)
 
     @django_db_all
     def test_transaction_lookup(self) -> None:
@@ -336,8 +318,7 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
             event_id=event1.event_id,
             type=PerformanceSlowDBQueryGroupType.type_id,
         )
-        with self.feature("organizations:performance-slow-db-query-ingest"):
-            processed = _process_message(message)
+        processed = _process_message(message)
         assert processed is not None
         occurrence, _ = processed[0], processed[1]
         assert occurrence is not None
@@ -437,6 +418,52 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
             "Error validating event payload, falling back to legacy validation" in cm.records[0].msg
         )
         assert cm.records[0].exc_info is not None
+        # The event schema's error, as `jsonschema.validate` reports it.
+        error = cm.records[0].exc_info[1]
+        assert isinstance(error, ValidationError)
+        assert error.message == "nan is not of type 'string', 'null'"
+        assert list(error.absolute_path) == ["tags", "nan-tag"]
+
+    def test_valid_payload_emits_no_invalid_metrics(self) -> None:
+        with mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics:
+            self.run_test(get_test_message(self.project.id))
+            metrics.incr.assert_not_called()
+
+    def test_invalid_payload_raises_legacy_schema_error(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["event"].pop("timestamp")
+        with (
+            self.assertLogs("sentry.issues.occurrence_consumer", logging.ERROR) as cm,
+            pytest.raises(ValidationError) as excinfo,
+        ):
+            self.run_test(message)
+
+        # The consumer sets a missing timestamp to None. Logged: the event schema's error.
+        # Raised: the legacy schema's.
+        logged = cm.records[0].exc_info[1] if cm.records[0].exc_info else None
+        assert isinstance(logged, ValidationError)
+        assert logged.message == "None is not valid under any of the given schemas"
+        assert list(logged.absolute_path) == ["timestamp"]
+        assert excinfo.value.message == "None is not of type 'string'"
+        assert list(excinfo.value.absolute_path) == ["timestamp"]
+
+    def test_schemas_not_rechecked_per_message(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        # Invalid under the event schema and valid under the legacy one, so both are used.
+        message["event"]["tags"]["nan-tag"] = float("nan")
+        self.run_test(deepcopy(message))
+
+        event_validator_cls = type(json_schemas._event_payload_validator())
+        legacy_validator_cls = type(json_schemas._legacy_event_payload_validator())
+        with (
+            mock.patch.object(event_validator_cls, "check_schema") as check_event_schema,
+            mock.patch.object(legacy_validator_cls, "check_schema") as check_legacy_schema,
+        ):
+            for _ in range(3):
+                self.run_test(deepcopy(message))
+
+        check_event_schema.assert_not_called()
+        check_legacy_schema.assert_not_called()
 
     def test_invalid_payload_emits_both_metrics(self) -> None:
         with mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics:

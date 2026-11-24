@@ -1,4 +1,7 @@
+import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {
   render,
@@ -9,6 +12,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {TeamStore} from 'sentry/stores/teamStore';
 import InvestigationDetailView from 'sentry/views/investigations/detail';
 import {
   InvestigationCommentFixture,
@@ -23,9 +27,7 @@ const organization = OrganizationFixture({
 const detailUrl = '/organizations/org-slug/notebooks/investigation-1/';
 const commentsUrl = `${detailUrl}comments/`;
 const initialRouterConfig = {
-  location: {
-    pathname: '/organizations/org-slug/seer/investigations/investigation-1/',
-  },
+  location: {pathname: '/organizations/org-slug/seer/investigations/investigation-1/'},
   route: '/organizations/:orgId/seer/investigations/:investigationId/',
 };
 
@@ -382,23 +384,38 @@ describe('InvestigationActivity', () => {
     ).toBeInTheDocument();
   });
 
-  it('posts a comment with Enter', async () => {
+  it('posts user and team mentions with Enter', async () => {
+    TeamStore.loadInitialData([TeamFixture({id: '2', slug: 'frontend'})]);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [MemberFixture({user: UserFixture({id: '1', name: 'Alice Example'})})],
+    });
     MockApiClient.addMockResponse({url: commentsUrl, body: []});
     const request = MockApiClient.addMockResponse({
       url: commentsUrl,
       method: 'POST',
-      body: InvestigationCommentFixture({body: 'Looks like the deploy'}),
+      body: InvestigationCommentFixture(),
     });
     renderPage();
 
     const input = await findEditor('Add a comment');
-    await userEvent.type(input, '  Looks like the deploy  {Enter}');
+    await userEvent.type(input, '  Thanks @ali');
+    await userEvent.click(await screen.findByRole('option', {name: /Alice Example/}));
+    await userEvent.type(input, 'and #front');
+    await userEvent.keyboard('{Enter}');
+    expect(request).not.toHaveBeenCalled();
+    await userEvent.keyboard('{Enter}');
 
+    await waitFor(() => expect(input).toHaveTextContent(/^$/));
     expect(request).toHaveBeenCalledWith(
       commentsUrl,
-      expect.objectContaining({data: {body: 'Looks like the deploy'}})
+      expect.objectContaining({
+        data: {
+          body: 'Thanks **@Alice Example** and **#frontend**',
+          mentions: ['user:1', 'team:2'],
+        },
+      })
     );
-    await waitFor(() => expect(input).toHaveTextContent(/^$/));
   });
 
   it('hides the composer and comment actions on an archived investigation', async () => {

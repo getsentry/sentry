@@ -34,6 +34,7 @@ describe('DocIntegrationDetailedView', () => {
     ).toBeInTheDocument();
 
     expect(getMock).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
 
     const docLink = screen.getByRole('link', {name: 'Learn More'});
     expect(docLink).toBeInTheDocument();

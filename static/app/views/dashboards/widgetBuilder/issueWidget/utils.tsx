@@ -25,10 +25,7 @@ export function generateIssueWidgetFieldOptions(
       label: field,
       value: {
         kind: FieldValueKind.FIELD,
-        meta: {
-          name: field,
-          dataType: issueFields[field]!,
-        },
+        meta: {name: field, dataType: issueFields[field]!},
       },
     };
   });

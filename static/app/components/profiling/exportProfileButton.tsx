@@ -27,6 +27,9 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
     return p.slug === props.projectId;
   });
 
+  // Same-origin on purpose: browsers ignore `download` on cross-origin links, and
+  // this endpoint sends no Content-Disposition header to name the file.
+  // eslint-disable-next-line @sentry/no-relative-api-url
   const href = `${api.baseUrl}/projects/${props.orgId}/${props.projectId}/profiling/raw_profiles/${props.eventId}/`;
   const download = `${organization.slug}_${
     project?.slug ?? props.projectId ?? 'unknown_project'

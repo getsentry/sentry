@@ -4,23 +4,21 @@ import {useMutation} from '@tanstack/react-query';
 import {toast} from '@sentry/scraps/toast';
 
 import {t} from 'sentry/locale';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 
 import {InnerIntentForm} from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
-import type {IntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
+import type {SetupIntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
 import type {PaymentSetupCreateResponse, Subscription} from 'getsentry/types';
 
-export function SetupIntentForm(props: IntentFormProps) {
+export function SetupIntentForm(props: SetupIntentFormProps) {
   const {
     organization,
     location: ftcConsentLocation,
     onSuccess,
     onSuccessWithSubscription,
   } = props;
-  const {url: setupIntentUrl} = parseQueryKey(props.intentDataQueryKey);
   const {mutateAsync: savePaymentMethod, isPending} = useMutation({
     mutationFn: async ({
       stripe,
@@ -38,7 +36,9 @@ export function SetupIntentForm(props: IntentFormProps) {
       let intentData: PaymentSetupCreateResponse;
       try {
         intentData = await fetchMutation<PaymentSetupCreateResponse>({
-          url: setupIntentUrl,
+          url: getApiUrl('/organizations/$organizationIdOrSlug/payments/setup/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
           method: 'POST',
         });
       } catch (error) {
@@ -51,9 +51,7 @@ export function SetupIntentForm(props: IntentFormProps) {
         elements,
         clientSecret: intentData.clientSecret,
         redirect: 'if_required', // if the payment method requires redirects, we redirect to the return_url on completion
-        confirmParams: {
-          return_url: window.location.href,
-        },
+        confirmParams: {return_url: window.location.href},
       });
       if (result.error) {
         throw new Error(result.error.message ?? t('Setup failed.'));
@@ -64,10 +62,7 @@ export function SetupIntentForm(props: IntentFormProps) {
         url: getApiUrl('/customers/$organizationIdOrSlug/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        data: {
-          paymentMethod: result.setupIntent.payment_method,
-          ftcConsentLocation,
-        },
+        data: {paymentMethod: result.setupIntent.payment_method, ftcConsentLocation},
       });
     },
     onSuccess: (data: Subscription) => {

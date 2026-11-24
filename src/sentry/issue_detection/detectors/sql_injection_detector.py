@@ -142,7 +142,8 @@ class SQLInjectionDetector(PerformanceDetector):
         self.request_parameters = valid_parameters
 
     def visit_span(self, span: Span) -> None:
-        if not self._is_span_eligible(span) or not self.request_parameters:
+        # Check the event-level parameters first: free, unlike the span regexes.
+        if not self.request_parameters or not self._is_span_eligible(span):
             return
         description = get_span_description(span)
         op = span.get("op") or ""

@@ -49,7 +49,16 @@ from sentry.seer.agent.client_utils import (
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
+from sentry.seer.workflows.workflow import SEER_WORKFLOW_SERVICE_ACCOUNT_OWNER
 from sentry.sentry_apps.services.app.service import app_service
+from sentry.service_accounts.models import ServiceAccountOwnerKind
+from sentry.service_accounts.outbox import (
+    ServiceAccountCreatePayload,
+    ServiceAccountGrantUpdatePayload,
+    ServiceAccountOwner,
+    create_owned_service_account,
+    update_service_account_grant,
+)
 from sentry.service_accounts.services.service_account import service_account_service
 from sentry.types.cell import get_local_cell
 from sentry.utils.env import in_test_environment
@@ -241,6 +250,42 @@ def process_disable_auth_provider(
     # Deprecated
     auth_service.disable_provider(provider_id=object_identifier)
     AuthProviderReplica.objects.filter(auth_provider_id=object_identifier).delete()
+
+
+def _service_account_owner(kind: ServiceAccountOwnerKind) -> ServiceAccountOwner | None:
+    match kind:
+        case ServiceAccountOwnerKind.SEER_WORKFLOW_CONFIG:
+            return SEER_WORKFLOW_SERVICE_ACCOUNT_OWNER
+        case ServiceAccountOwnerKind.ORGANIZATION:
+            # `service_account_create_outbox` refuses this kind: there's no cell object to link.
+            return None
+        case _:
+            assert_never(kind)
+
+
+@receiver(process_cell_outbox, sender=OutboxCategory.SERVICE_ACCOUNT_CREATE)
+def handle_service_account_create(
+    shard_identifier: int, payload: ServiceAccountCreatePayload, **kwds: Any
+) -> None:
+    owner = _service_account_owner(ServiceAccountOwnerKind(payload["owner_kind"]))
+    if owner is None:
+        # Raising would retry forever and stall the org's shard.
+        logger.error(
+            "service_accounts.outbox_create.no_owner",
+            extra={"organization_id": shard_identifier, "owner_kind": payload["owner_kind"]},
+        )
+        return
+    create_owned_service_account(shard_identifier, payload, owner)
+
+
+@receiver(process_cell_outbox, sender=OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE)
+def handle_service_account_grant_update(
+    shard_identifier: int,
+    object_identifier: int,
+    payload: ServiceAccountGrantUpdatePayload,
+    **kwds: Any,
+) -> None:
+    update_service_account_grant(shard_identifier, object_identifier, payload)
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.SEER_RUN_CREATE)

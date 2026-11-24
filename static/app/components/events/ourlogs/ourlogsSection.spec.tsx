@@ -37,9 +37,7 @@ jest.mock('@tanstack/react-virtual', () => {
       ]),
       getTotalSize: jest.fn().mockReturnValue(150),
       scrollToIndex: jest.fn(),
-      options: {
-        scrollMargin: 0,
-      },
+      options: {scrollMargin: 0},
       scrollDirection: 'forward',
       scrollOffset: 0,
       isScrolling: false,
@@ -53,9 +51,7 @@ jest.mock('@tanstack/react-virtual', () => {
       getTotalSize: jest.fn().mockReturnValue(150),
       measure: jest.fn(),
       scrollToIndex: jest.fn(),
-      options: {
-        scrollMargin: 0,
-      },
+      options: {scrollMargin: 0},
       scrollDirection: 'forward',
       scrollOffset: 0,
       isScrolling: false,
@@ -63,9 +59,7 @@ jest.mock('@tanstack/react-virtual', () => {
   };
 });
 
-const organization = OrganizationFixture({
-  features: ['ourlogs-enabled'],
-});
+const organization = OrganizationFixture({features: ['ourlogs-enabled']});
 const project = ProjectFixture();
 const group = GroupFixture();
 const event = EventFixture({
@@ -131,18 +125,10 @@ describe('OurlogsSection', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [parseInt(project.id, 10)],
       environments: [],
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: null,
-      },
+      datetime: {period: '14d', start: null, end: null, utc: null},
     });
 
-    MockApiClient.addMockResponse({
-      url: '/projects/',
-      body: [project],
-    });
+    MockApiClient.addMockResponse({url: '/projects/', body: [project]});
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -194,14 +180,9 @@ describe('OurlogsSection', () => {
   it('renders empty', async () => {
     const mockRequestEmpty = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-logs/`,
-      body: {
-        data: [],
-        meta: {},
-      },
+      body: {data: [], meta: {}},
     });
-    render(<OurlogsSection event={event} project={project} group={group} />, {
-      organization,
-    });
+    render(<OurlogsSection event={event} group={group} />, {organization});
     await waitFor(() => {
       expect(mockRequestEmpty).toHaveBeenCalledTimes(1);
     });
@@ -224,14 +205,12 @@ describe('OurlogsSection', () => {
       },
     });
 
-    render(<OurlogsSection event={event} project={project} group={group} />, {
+    render(<OurlogsSection event={event} group={group} />, {
       organization,
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
-          query: {
-            project: project.id,
-          },
+          query: {project: project.id},
         },
       },
     });
@@ -290,27 +269,19 @@ describe('OurlogsSection', () => {
   }
 
   const replayEvent = EventFixture({
-    contexts: {
-      replay: {type: 'default', replay_id: REPLAY_ID},
-    },
+    contexts: {replay: {type: 'default', replay_id: REPLAY_ID}},
   });
 
   it('renders logs for a rage-click issue when there is no trace context', async () => {
     mockReplayRecord([REPLAY_TRACE_ID]);
 
-    render(
-      <OurlogsSection event={replayEvent} project={project} group={rageClickGroup} />,
-      {organization}
-    );
+    render(<OurlogsSection event={replayEvent} group={rageClickGroup} />, {organization});
 
     expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     expect(mockRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-logs/`,
       expect.objectContaining({
-        query: expect.objectContaining({
-          replayId: REPLAY_ID,
-          traceId: [REPLAY_TRACE_ID],
-        }),
+        query: expect.objectContaining({replayId: REPLAY_ID, traceId: [REPLAY_TRACE_ID]}),
       })
     );
   });
@@ -324,14 +295,9 @@ describe('OurlogsSection', () => {
       },
     });
 
-    render(
-      <OurlogsSection
-        event={replayAndTraceEvent}
-        project={project}
-        group={rageClickGroup}
-      />,
-      {organization}
-    );
+    render(<OurlogsSection event={replayAndTraceEvent} group={rageClickGroup} />, {
+      organization,
+    });
 
     expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     expect(mockRequest).toHaveBeenCalledWith(
@@ -358,14 +324,9 @@ describe('OurlogsSection', () => {
       },
     });
 
-    render(
-      <OurlogsSection
-        event={replayAndTraceEvent}
-        project={project}
-        group={rageClickGroup}
-      />,
-      {organization}
-    );
+    render(<OurlogsSection event={replayAndTraceEvent} group={rageClickGroup} />, {
+      organization,
+    });
 
     expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     const [, options] = mockRequest.mock.calls[0];
@@ -382,10 +343,7 @@ describe('OurlogsSection', () => {
       },
     });
 
-    render(
-      <OurlogsSection event={errorEventWithReplay} project={project} group={group} />,
-      {organization}
-    );
+    render(<OurlogsSection event={errorEventWithReplay} group={group} />, {organization});
 
     expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     expect(replayRecordRequest).not.toHaveBeenCalled();
@@ -397,10 +355,7 @@ describe('OurlogsSection', () => {
   it('omits an empty query param when freezing on replay + traces', async () => {
     mockReplayRecord([REPLAY_TRACE_ID]);
 
-    render(
-      <OurlogsSection event={replayEvent} project={project} group={rageClickGroup} />,
-      {organization}
-    );
+    render(<OurlogsSection event={replayEvent} group={rageClickGroup} />, {organization});
 
     expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     const [, options] = mockRequest.mock.calls[0];
@@ -410,9 +365,7 @@ describe('OurlogsSection', () => {
   it('renders nothing when the event has neither a trace id nor a replay id', async () => {
     const bareEvent = EventFixture({contexts: {}});
 
-    render(<OurlogsSection event={bareEvent} project={project} group={group} />, {
-      organization,
-    });
+    render(<OurlogsSection event={bareEvent} group={group} />, {organization});
 
     await waitFor(() => {
       expect(screen.queryByText(/Logs/)).not.toBeInTheDocument();
@@ -421,16 +374,14 @@ describe('OurlogsSection', () => {
   });
 
   it('renders Open in Explore button with correct URL when trace_id exists', async () => {
-    render(<OurlogsSection event={event} project={project} group={group} />, {
+    render(<OurlogsSection event={event} group={group} />, {
       organization: OrganizationFixture({
         features: ['ourlogs-enabled', 'visibility-explore-view'],
       }),
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
-          query: {
-            project: project.id,
-          },
+          query: {project: project.id},
         },
       },
     });

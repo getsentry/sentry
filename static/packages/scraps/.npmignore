@@ -1,0 +1,2 @@
+# Component docs are rendered by the Scraps docs site, not shipped in the package.
+*.mdx

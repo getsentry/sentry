@@ -1,5 +1,6 @@
 import {css} from '@emotion/react';
 import {IconFix} from '@sentry/icons/fix';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -7,7 +8,7 @@ import {useModal} from '@sentry/scraps/modal';
 
 import {
   prepareSourceMapDebuggerFrameInformation,
-  useSourceMapDebugQuery,
+  sourceMapDebugApiOptions,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {VALID_SOURCE_MAP_DEBUGGER_FILE_EXTENSIONS} from 'sentry/components/stackTrace/frame/actions/utils';
@@ -26,10 +27,30 @@ export function IssueSourceMapsDebuggerAction() {
   const {exceptionIndex, hideSourceMapDebugger, project} = useStackTraceContext();
   const organization = useOrganization({allowNull: true});
 
-  const {data: sourceMapDebuggerData} = useSourceMapDebugQuery(
-    project?.slug ?? '',
-    event.id,
-    event.sdk?.name ?? null
+  const frameHasValidFileEndingForSourceMapDebugger =
+    VALID_SOURCE_MAP_DEBUGGER_FILE_EXTENSIONS.some(
+      ending =>
+        (frame.absPath ?? '').endsWith(ending) || (frame.filename ?? '').endsWith(ending)
+    );
+  const frameCanShowSourceMapDebuggerButton =
+    !frame.context?.length &&
+    !hideSourceMapDebugger &&
+    frame.inApp &&
+    frameHasValidFileEndingForSourceMapDebugger;
+
+  // Each frame calls this hook, but they share one query key, so the
+  // request runs once per event and only if some frame could show the button.
+  const {data: sourceMapDebuggerData} = useQuery(
+    sourceMapDebugApiOptions(
+      frameCanShowSourceMapDebuggerButton
+        ? {
+            organizationSlug: organization?.slug,
+            projectSlug: project?.slug ?? '',
+            eventId: event.id,
+            sdkName: event.sdk?.name ?? null,
+          }
+        : skipToken
+    )
   );
   const debuggerFrame =
     exceptionIndex === undefined
@@ -45,16 +66,8 @@ export function IssueSourceMapsDebuggerAction() {
         )
       : undefined;
 
-  const frameHasValidFileEndingForSourceMapDebugger =
-    VALID_SOURCE_MAP_DEBUGGER_FILE_EXTENSIONS.some(
-      ending =>
-        (frame.absPath ?? '').endsWith(ending) || (frame.filename ?? '').endsWith(ending)
-    );
   const shouldShowSourceMapDebuggerButton =
-    !frame.context?.length &&
-    !hideSourceMapDebugger &&
-    frame.inApp &&
-    frameHasValidFileEndingForSourceMapDebugger &&
+    frameCanShowSourceMapDebuggerButton &&
     !!frameSourceResolutionResults &&
     !frameSourceResolutionResults.frameIsResolved;
 

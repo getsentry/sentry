@@ -4,16 +4,17 @@ import {useQuery} from '@tanstack/react-query';
 import {useQueryState} from 'nuqs';
 import {PlatformIcon} from 'platformicons';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps, useGetPaginationCaption} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {automationFireHistoryApiOptions} from 'sentry/views/automations/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
@@ -27,10 +28,7 @@ const HISTORY_COLUMNS: TableColumnConfig[] = [
 
 const DEFAULT_HISTORY_PER_PAGE = 10;
 
-type Props = {
-  automationId: string;
-  query?: Record<string, any>;
-};
+type Props = {automationId: string; query?: Record<string, any>};
 
 function Skeletons() {
   return (
@@ -107,7 +105,7 @@ export function AutomationHistoryList({automationId, query}: Props) {
         {fireHistory.map((row, index) => (
           <SimpleTable.Row key={index}>
             <SimpleTable.RowCell>
-              <DateTime date={row.lastTriggered} timeZone />
+              <DateTime date={row.lastTriggered} showTimezone />
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
               {row.detector ? (
@@ -145,7 +143,7 @@ export function AutomationHistoryList({automationId, query}: Props) {
         onCursor={newCursor => {
           setCursor(newCursor ?? null);
         }}
-        pageLinks={pageLinks}
+        {...getPaginationProps(pageLinks)}
         caption={paginationCaption}
       />
     </Fragment>

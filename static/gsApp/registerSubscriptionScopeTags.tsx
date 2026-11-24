@@ -11,28 +11,30 @@ function setSubscriptionScopeTags() {
   }
 
   const subscription = SubscriptionStore.getState()[organization.slug];
-  if (subscription?.plan === undefined) {
+  if (!subscription) {
+    Sentry.setTags({
+      plan: undefined,
+      'plan.name': undefined,
+      'plan.max_members': undefined,
+      'plan.total_members': undefined,
+    });
     return;
   }
 
   const {plan, totalMembers, planDetails} = subscription;
-  Sentry.setTag('plan', plan);
-  Sentry.setTag('plan.name', planDetails?.name);
-  Sentry.setTag('plan.max_members', `${planDetails?.maxMembers}`);
-  Sentry.setTag('plan.total_members', `${totalMembers}`);
+  Sentry.setTags({
+    plan,
+    'plan.name': planDetails?.name,
+    'plan.max_members': `${planDetails?.maxMembers}`,
+    'plan.total_members': `${totalMembers}`,
+  });
 }
 
 export function registerSubscriptionScopeTags() {
   setSubscriptionScopeTags();
 
-  const unsubscribeSubscription = SubscriptionStore.listen(
-    setSubscriptionScopeTags,
-    undefined
-  );
-  const unsubscribeOrganization = OrganizationStore.listen(
-    setSubscriptionScopeTags,
-    undefined
-  );
+  const unsubscribeSubscription = SubscriptionStore.subscribe(setSubscriptionScopeTags);
+  const unsubscribeOrganization = OrganizationStore.subscribe(setSubscriptionScopeTags);
 
   return () => {
     unsubscribeSubscription();

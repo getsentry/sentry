@@ -4,7 +4,7 @@ from unittest import mock
 import orjson
 import pytest
 from django.db import connection
-from django.test.utils import CaptureQueriesContext, override_settings
+from django.test.utils import CaptureQueriesContext
 
 from sentry.integrations.mixins.issues import where_should_sync
 from sentry.integrations.services.assignment_source import AssignmentSource
@@ -85,7 +85,6 @@ class TestSyncAssigneeInbound(TestCase):
     def test_assignment_replaces_cross_org_integration(self) -> None:
         self.assert_assignment_viewer_context(ActorType.INTEGRATION, False)
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def assert_assignment_viewer_context(
         self, actor_type: ActorType | None, same_organization: bool
     ) -> None:

@@ -33,10 +33,7 @@ function fetchFlamegraphs(
           },
         }
       ),
-      {
-        method: 'GET',
-        includeAllArgs: true,
-      }
+      {method: 'GET', includeAllArgs: true}
     )
     .then(([data]) => data);
 }
@@ -52,14 +49,7 @@ function fetchContinuousProfileFlamegraph(
       getApiUrl('/organizations/$organizationIdOrSlug/profiling/chunks/', {
         path: {organizationIdOrSlug: orgSlug},
       }),
-      {
-        method: 'GET',
-        query: {
-          ...query,
-          project: projectSlug,
-        },
-        includeAllArgs: true,
-      }
+      {method: 'GET', query: {...query, project: projectSlug}, includeAllArgs: true}
     )
     .then(([data]) => {
       // Temporary fix to ensure the profiler_id is set for continuous profiles

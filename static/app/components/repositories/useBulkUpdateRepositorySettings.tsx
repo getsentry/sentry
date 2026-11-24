@@ -1,21 +1,17 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import type {UseMutationOptions} from '@tanstack/react-query';
 
-import type {Repository, RepositoryWithSettings} from 'sentry/types/integrations';
+import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {getRepositoryWithSettingsQueryKey} from './useRepositoryWithSettings';
+import {repositoryWithSettingsApiOptions} from './repositoryWithSettingsApiOptions';
 
 type RepositorySettings =
-  | {
-      enabledCodeReview: boolean;
-      repositoryIds: string[];
-      codeReviewTriggers?: never;
-    }
+  | {enabledCodeReview: boolean; repositoryIds: string[]; codeReviewTriggers?: never}
   | {
       codeReviewTriggers: CodeReviewTrigger[];
       repositoryIds: string[];
@@ -48,28 +44,18 @@ export function useBulkUpdateRepositorySettings(
     },
     ...options,
     onSettled: (data, error, variables, onMutateResult, context) => {
-      queryClient.invalidateQueries({
-        queryKey: apiOptions.as<Repository[]>()(
-          '/organizations/$organizationIdOrSlug/repos/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-            staleTime: 0,
-          }
-        ).queryKey,
-      });
-      queryClient.invalidateQueries({
-        queryKey: apiOptions.asInfinite<Repository[]>()(
-          '/organizations/$organizationIdOrSlug/repos/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-            staleTime: 0,
-          }
-        ).queryKey,
-      });
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter('/organizations/$organizationIdOrSlug/repos/', {
+          path: {organizationIdOrSlug: organization.slug},
+        })
+      );
       (data ?? []).forEach(repo => {
-        const queryKey = getRepositoryWithSettingsQueryKey(organization, repo.id);
+        const queryKey = repositoryWithSettingsApiOptions(organization, repo.id).queryKey;
         queryClient.invalidateQueries({queryKey});
-        setApiQueryData<Repository>(queryClient, queryKey, repo);
+        queryClient.setQueryData(queryKey, previous => ({
+          json: repo,
+          headers: previous?.headers ?? {},
+        }));
       });
       options?.onSettled?.(data, error, variables, onMutateResult, context);
     },

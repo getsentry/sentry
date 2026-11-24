@@ -1,14 +1,12 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {ProjectSdkUpdates} from 'sentry/types/project';
 
-import {getApiUrl} from './api/getApiUrl';
+import {apiOptions} from './api/apiOptions';
 import {semverCompare} from './versions/semverCompare';
-import {useApiQuery} from './queryClient';
 import {useOrganization} from './useOrganization';
 
-type Opts = {
-  minVersion: string;
-  projectId: string[];
-};
+type Opts = {minVersion: string; projectId: string[]};
 
 export function useProjectSdkNeedsUpdate({
   minVersion,
@@ -19,17 +17,18 @@ export function useProjectSdkNeedsUpdate({
   | {data: ProjectSdkUpdates[]; isError: false; isFetching: false; needsUpdate: boolean} {
   const organization = useOrganization();
 
-  const {data, isError, isPending} = useApiQuery<ProjectSdkUpdates[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sdk-updates/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const {data, isError, isPending} = useQuery({
+    ...apiOptions.as<ProjectSdkUpdates[]>()(
+      '/organizations/$organizationIdOrSlug/sdk-updates/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {project: projectId},
-      },
-    ],
-    {staleTime: Infinity, refetchOnMount: true}
-  );
+        staleTime: Infinity,
+      }
+    ),
+
+    refetchOnMount: true,
+  });
 
   if (isPending) {
     return {isError: false, isFetching: true, needsUpdate: undefined, data: undefined};
@@ -48,10 +47,5 @@ export function useProjectSdkNeedsUpdate({
       sdkUpdate => semverCompare(sdkUpdate.sdkVersion || '', minVersion) === -1
     );
 
-  return {
-    isError: false,
-    isFetching: false,
-    needsUpdate,
-    data: selectedProjects,
-  };
+  return {isError: false, isFetching: false, needsUpdate, data: selectedProjects};
 }

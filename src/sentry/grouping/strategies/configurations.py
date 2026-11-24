@@ -56,10 +56,9 @@ def register_grouping_config(
     return strategy_class
 
 
-# This is the current default config
 register_grouping_config(
     id=WINTER_2023_GROUPING_CONFIG,
-    # There's no `base` argument here because this config is based on `BASE_STRATEGY`. To base a
+    # There's no `base` argument here because this config is based on `BASE_CONFIG_CLASS`. To base a
     # config on a previous config, include its `id` value as the value for `base` here.
     initial_context={
         # Shim to preserve hash values, since they're order-dependent
@@ -76,6 +75,7 @@ register_grouping_config(
     fingerprinting_bases=["javascript@2024-02-02"],
 )
 
+# This is the current default config (see `DEFAULT_GROUPING_CONFIG` in `sentry.conf.server`)
 register_grouping_config(
     id=FALL_2025_GROUPING_CONFIG,
     base=WINTER_2023_GROUPING_CONFIG,

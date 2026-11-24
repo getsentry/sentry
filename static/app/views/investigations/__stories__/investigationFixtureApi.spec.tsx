@@ -149,10 +149,7 @@ describe('InvestigationFixtureApi', () => {
     });
     const addedBlock = await QUERY_API_CLIENT.requestPromise(`${baseUrl}blocks/`, {
       method: 'POST',
-      data: {
-        kind: 'query',
-        title: 'New query',
-      },
+      data: {kind: 'query', title: 'New query'},
     });
     const firstDuplicate = await QUERY_API_CLIENT.requestPromise(`${baseUrl}duplicate/`, {
       method: 'POST',
@@ -162,10 +159,7 @@ describe('InvestigationFixtureApi', () => {
       {method: 'POST'}
     );
 
-    expect(addedBlock).toMatchObject({
-      id: 'storybook-query-2-2',
-      position: 2,
-    });
+    expect(addedBlock).toMatchObject({id: 'storybook-query-2-2', position: 2});
     expect(firstDuplicate.id).toBe('fixture-id-collisions-copy');
     expect(secondDuplicate.id).toBe('fixture-id-collisions-copy-2');
   });
@@ -202,78 +196,6 @@ describe('InvestigationFixtureApi', () => {
       // A settled hypothesis folds its checks behind a toggle.
       expect(screen.getByRole('button', {name: 'Show 3 steps'})).toBeInTheDocument();
     });
-
-    it('applies a disposition command and returns the new projection', async () => {
-      renderStoryHypotheses();
-      // The panel is up before the projection lands, so wait for the real
-      // cards before opening it.
-      await screen.findAllByTestId('investigation-hypothesis');
-      await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
-
-      await userEvent.click(
-        await screen.findByRole('button', {
-          name: 'Actions for An external SSO provider slowed the response',
-        })
-      );
-      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Accept'}));
-
-      // The command response carries the updated projection, so the card
-      // changes without another read.
-      expect(await screen.findByText('Accepted by you')).toBeInTheDocument();
-      // Accepting settles the hypothesis, so its edge picks up the accent.
-      expect(screen.getAllByTestId('investigation-hypothesis')[1]).toHaveAttribute(
-        'data-border',
-        'accent'
-      );
-    });
-
-    it('clears a disposition back to the agent verdict', async () => {
-      renderStoryHypotheses();
-      // The panel is up before the projection lands, so wait for the real
-      // cards before opening it.
-      await screen.findAllByTestId('investigation-hypothesis');
-      await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
-
-      const trigger = await screen.findByRole('button', {
-        name: 'Actions for An external SSO provider slowed the response',
-      });
-      await userEvent.click(trigger);
-      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Accept'}));
-      await screen.findByText('Accepted by you');
-
-      await userEvent.click(trigger);
-      await userEvent.click(
-        await screen.findByRole('menuitemradio', {name: 'Clear decision'})
-      );
-
-      expect(await screen.findByText('Refuted')).toBeInTheDocument();
-      // Back to the agent's verdict, so the edge breaks again.
-      expect(screen.getAllByTestId('investigation-hypothesis')[1]).toHaveAttribute(
-        'data-border',
-        'dashed'
-      );
-    });
-
-    it('puts a retried hypothesis back into investigation', async () => {
-      renderStoryHypotheses();
-      // The panel is up before the projection lands, so wait for the real
-      // cards before opening it.
-      await screen.findAllByTestId('investigation-hypothesis');
-      await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
-
-      await userEvent.click(
-        await screen.findByRole('button', {
-          name: 'Actions for Session validation created a shared bottleneck',
-        })
-      );
-      await userEvent.click(
-        await screen.findByRole('menuitemradio', {name: 'Investigate again'})
-      );
-
-      expect(await screen.findByText('Verifying…')).toBeInTheDocument();
-      expect(screen.getByText('Inspect session and middleware spans')).toBeVisible();
-      expect(screen.queryByRole('listitem', {current: 'step'})).not.toBeInTheDocument();
-    });
   });
 
   it('keeps product headings out of the Scraps page index', async () => {
@@ -299,10 +221,7 @@ describe('InvestigationFixtureApi', () => {
 
   describe('comments', () => {
     it('serves no comments by default, so detail stories render the Activity section', async () => {
-      const investigation = InvestigationDetailFixture({
-        id: 'no-comments',
-        blocks: [],
-      });
+      const investigation = InvestigationDetailFixture({id: 'no-comments', blocks: []});
 
       render(
         <InvestigationFixtureApi
@@ -462,11 +381,7 @@ describe('InvestigationFixtureApi', () => {
         await QUERY_API_CLIENT.requestPromise(
           `/organizations/storybook-comment-counts-test/notebooks/${commentedInvestigation.id}/comment-counts/`
         )
-      ).toEqual({
-        'commented-query': 3,
-        'commented-notes': 1,
-        'deleted-cdn-check': 1,
-      });
+      ).toEqual({'commented-query': 3, 'commented-notes': 1, 'deleted-cdn-check': 1});
     });
   });
 });

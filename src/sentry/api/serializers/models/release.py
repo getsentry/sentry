@@ -17,14 +17,17 @@ from sentry.api.serializers.release_details_types import (
     LastDeploy,
     NonMappableUser,
     VersionInfo,
+    VersionInfoVersion,
 )
 from sentry.api.serializers.release_details_types import Project as SerializedProject
 from sentry.api.serializers.types import (
     GroupEventReleaseSerializerResponse,
+    ReleaseCurrentProjectMetaResponse,
     ReleaseSerializerResponse,
 )
 from sentry.auth.principal import RequestPrincipal
 from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.types import EXTERNAL_PROVIDERS_REVERSE_VALUES
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
@@ -44,6 +47,7 @@ from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
+    from sentry.api.serializers.models.commit import CommitSerializerResponse
     from sentry.tagstore.types import TagValue
 
 
@@ -60,7 +64,7 @@ def expose_version_info(info: Mapping[str, object] | None) -> VersionInfo | None
     if info is None:
         return None
     version_parsed = cast("_ParsedVersion | None", info["version_parsed"])
-    version: dict[str, object] = {"raw": info["version_raw"]}
+    version: VersionInfoVersion = {"raw": cast(str, info["version_raw"])}
     if version_parsed:
         version.update(
             {
@@ -120,8 +124,10 @@ def _expose_project(project: _ProjectDict) -> SerializedProject:
     return rv
 
 
-def _expose_current_project_meta(current_project_meta: dict[str, object]) -> dict[str, object]:
-    rv: dict[str, object] = {}
+def _expose_current_project_meta(
+    current_project_meta: Mapping[str, Any],
+) -> ReleaseCurrentProjectMetaResponse:
+    rv: ReleaseCurrentProjectMetaResponse = {}
     if "sessions_lower_bound" in current_project_meta:
         rv["sessionsLowerBound"] = current_project_meta["sessions_lower_bound"]
     if "sessions_upper_bound" in current_project_meta:
@@ -264,25 +270,32 @@ def get_author_users_by_external_actors(
 ) -> tuple[dict[CommitAuthor, str], list[CommitAuthor]]:
     found: dict[CommitAuthor, str] = {}
 
-    usernames_to_authors: dict[str, CommitAuthor] = {}
+    # An ExternalActor's "@login" is only unique within its provider, and a CommitAuthor's
+    # external_id is "<provider>:<login>", so a mapping only counts for the same provider.
+    authors_by_mapping: dict[tuple[int, str], CommitAuthor] = {}
     for author in authors:
+        provider_slug = author.get_provider_from_external_id()
         username = author.get_username_from_external_id()
-        if username:
-            # ExternalActor.external_name includes @ prefix
-            # (e.g., "@username") for GitHub and GitLab
-            usernames_to_authors[f"@{username}"] = author
+        if provider_slug is None or not username:
+            continue
+        provider = EXTERNAL_PROVIDERS_REVERSE_VALUES.get(provider_slug)
+        if provider is not None:
+            authors_by_mapping[(provider.value, f"@{username}")] = author
 
-    if not usernames_to_authors:
+    if not authors_by_mapping:
         return found, authors
 
+    # Filtering providers and names independently can also return a mapping whose name
+    # belongs to another provider's author; the (provider, name) lookup below drops those.
     external_actors = (
         ExternalActor.objects.filter(
-            external_name__in=list(usernames_to_authors.keys()),
+            provider__in={provider for provider, _ in authors_by_mapping},
+            external_name__in={name for _, name in authors_by_mapping},
             organization_id=organization_id,
             user_id__isnull=False,  # excludes team mappings
         )
         .order_by("id")
-        .values_list("user_id", "external_name")
+        .values_list("user_id", "external_name", "provider")
     )
 
     if not external_actors:
@@ -290,9 +303,9 @@ def get_author_users_by_external_actors(
 
     missed: dict[int, CommitAuthor] = {a.id: a for a in authors}
 
-    for user_id, external_name in external_actors:
-        if external_name in usernames_to_authors:
-            found_author = usernames_to_authors[external_name]
+    for user_id, external_name, provider_value in external_actors:
+        found_author = authors_by_mapping.get((provider_value, external_name))
+        if found_author is not None:
             found[found_author] = str(user_id)
             missed.pop(found_author.id, None)
 
@@ -441,14 +454,14 @@ def get_users_for_authors(
 
 
 class _ReleaseAttrs(TypedDict):
-    owner: dict[str, object] | None
+    owner: UserSerializerResponse | None
     new_groups: int
     projects: list[_ProjectDict]
     first_seen: datetime.datetime | None
     last_seen: datetime.datetime | None
     adoption_stages: NotRequired[dict[str, AdoptionStage] | None]
     authors: NotRequired[list[Author]]
-    last_commit: NotRequired[dict[str, object] | None]
+    last_commit: NotRequired[CommitSerializerResponse | None]
     last_deploy: NotRequired[LastDeploy | None]
 
 
@@ -660,7 +673,7 @@ class ReleaseSerializer(Serializer):
                 issue_counts_by_release,
             ) = self.__get_release_data_with_environments(release_project_envs)
 
-        owners: dict[str, object] = {}
+        owners: dict[str, UserSerializerResponse] = {}
         owner_ids = [i.owner_id for i in item_list if i.owner_id]
         if owner_ids:
             owners = {
@@ -803,7 +816,7 @@ class ReleaseSerializer(Serializer):
             "firstEvent": typed_attrs["first_seen"],
             "lastEvent": typed_attrs["last_seen"],
             "currentProjectMeta": _expose_current_project_meta(
-                cast(dict[str, object], kwargs.get("current_project_meta", {}))
+                cast(Mapping[str, Any], kwargs.get("current_project_meta", {}))
             ),
             "userAgent": obj.user_agent,
         }
@@ -854,7 +867,7 @@ class GroupEventReleaseSerializer(Serializer):
             "dateReleased": obj.date_released,
             "deployCount": cast(int, obj.total_deploys),
             "ref": obj.ref,
-            "lastCommit": cast(dict[str, object] | None, attrs.get("last_commit")),
+            "lastCommit": cast("CommitSerializerResponse | None", attrs.get("last_commit")),
             "lastDeploy": cast(LastDeploy | None, attrs.get("last_deploy")),
             "status": ReleaseStatus.to_string(obj.status),
             "url": obj.url,

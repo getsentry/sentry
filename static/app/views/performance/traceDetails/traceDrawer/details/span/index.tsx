@@ -49,7 +49,10 @@ import {
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useSpansQueryWithoutPageFilters} from 'sentry/views/insights/common/queries/useSpansQuery';
-import {getIsAiGenerationNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getIsAiGenerationNode,
+  getIsExecuteToolNode,
+} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/traceDetails/traceApi/useTransaction';
 import {IssueList} from 'sentry/views/performance/traceDetails/traceDrawer/details/issues/issues';
@@ -71,7 +74,9 @@ import {Contexts} from './eapSections/contexts';
 import {SpanDescription as EAPSpanDescription} from './eapSections/description';
 import {MCPInputSection} from './eapSections/mcpInput';
 import {MCPOutputSection} from './eapSections/mcpOutput';
+import {ServerRenderingSection} from './eapSections/serverRendering';
 import {TraceSpanLinks} from './eapSections/traceSpanLinks';
+import {AISpanErrorCard} from './sections/aiSpanErrorCard';
 import {HttpErrorCard} from './sections/httpErrorCard';
 
 export function useAvgSpanDuration(
@@ -105,7 +110,6 @@ export function useAvgSpanDuration(
     eventView,
     initialData: [],
     referrer: 'api.explore.spans-aggregates-table', // TODO: replace with trace span details referrer
-    trackResponseAnalytics: false,
   });
 
   return result.data?.[0]?.['avg(span.duration)'];
@@ -151,7 +155,7 @@ export function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
     projectId: node.value.project_id.toString(),
     traceId: node.extra?.replayTraceSlug ?? traceId,
     traceItemType: TraceItemDataset.SPANS,
-    referrer: 'api.explore.log-item-details', // TODO: change to span details
+    referrer: 'api.trace-view.span-detail',
     timestamp: node.value.start_timestamp,
     enabled: true,
   });
@@ -400,7 +404,13 @@ function EAPSpanNodeDetailsContent({
         {issues.length > 0 ? (
           <IssueList organization={organization} issues={issues} node={node} />
         ) : null}
-        {node.hasHttpError && issues.length === 0 ? <HttpErrorCard node={node} /> : null}
+        {issues.length === 0 ? (
+          getIsExecuteToolNode(node) ? (
+            <AISpanErrorCard node={node} attributes={attributes} />
+          ) : (
+            <HttpErrorCard node={node} />
+          )
+        ) : null}
         <EAPSpanDescription
           node={node}
           project={project}
@@ -410,17 +420,24 @@ function EAPSpanNodeDetailsContent({
           avgSpanDuration={avgSpanDuration}
           hideNodeActions={hideNodeActions}
         />
-        {organization.features.includes('performance-trace-cache-lifecycle') ? (
-          <CacheLifecycleSection
-            node={node}
-            attributes={attributes}
-            links={links}
-            location={location}
-            organization={organization}
-            tree={tree}
-            onTabScrollToNode={onTabScrollToNode}
-          />
-        ) : null}
+        <CacheLifecycleSection
+          node={node}
+          attributes={attributes}
+          links={links}
+          location={location}
+          organization={organization}
+          tree={tree}
+          onTabScrollToNode={onTabScrollToNode}
+        />
+        <ServerRenderingSection
+          node={node}
+          attributes={attributes}
+          links={links}
+          location={location}
+          organization={organization}
+          tree={tree}
+          onTabScrollToNode={onTabScrollToNode}
+        />
         <AIIOAlert node={node} attributes={attributes} />
         <AIInputSection
           node={node}

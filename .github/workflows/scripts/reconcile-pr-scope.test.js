@@ -15,6 +15,7 @@ function pathFilterOutputs(overrides = {}) {
     backend_src_count: '0',
     api_url_codegen_count: '0',
     embed_widget_codegen_count: '0',
+    nav_snapshot_codegen_count: '0',
     test_utility_only_paths_count: '0',
     ...overrides,
   };
@@ -68,11 +69,7 @@ describe('reconcilePrScope', () => {
   });
 
   it('removes stale backend metadata from a frontend-only pull request', async () => {
-    const warning = {
-      id: 456,
-      user: {login: 'github-actions[bot]'},
-      body: COMMENT_MARKER,
-    };
+    const warning = {id: 456, user: {login: 'github-actions[bot]'}, body: COMMENT_MARKER};
     const {github, context, core, calls, logs} = setup({
       labels: [FRONTEND_LABEL, BACKEND_LABEL],
       comments: [warning],
@@ -145,11 +142,7 @@ describe('reconcilePrScope', () => {
   });
 
   it('does not warn when all matching files are warning exemptions', async () => {
-    const warning = {
-      id: 456,
-      user: {login: 'github-actions[bot]'},
-      body: COMMENT_MARKER,
-    };
+    const warning = {id: 456, user: {login: 'github-actions[bot]'}, body: COMMENT_MARKER};
     const {github, context, core, calls} = setup({comments: [warning]});
 
     await reconcilePrScope({
@@ -158,9 +151,10 @@ describe('reconcilePrScope', () => {
       core,
       pathFilterOutputs: pathFilterOutputs({
         frontend_all_count: '1',
-        backend_src_count: '2',
+        backend_src_count: '3',
         api_url_codegen_count: '1',
         embed_widget_codegen_count: '1',
+        nav_snapshot_codegen_count: '1',
         test_utility_only_paths_count: '1',
       }),
     });

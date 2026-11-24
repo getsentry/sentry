@@ -117,8 +117,6 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         Return the teams that have marked a transaction as key, limited to teams the
         requesting user is a member of.
         """
-        if not self.has_feature(organization, request):
-            return Response(status=404)
 
         transaction_name = request.GET.get("transaction")
         if transaction_name is None:
@@ -161,8 +159,6 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         the project, and a team can have at most 100 key transactions. Returns `204` if
         every team already has the transaction marked as key.
         """
-        if not self.has_feature(organization, request):
-            return Response(status=404)
 
         project = self.get_project(request, organization)
 
@@ -233,8 +229,6 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         """
         Remove a transaction from the key transactions of one or more teams.
         """
-        if not self.has_feature(organization, request):
-            return Response(status=404)
 
         project = self.get_project(request, organization)
 
@@ -312,8 +306,6 @@ class KeyTransactionListEndpoint(KeyTransactionBase):
         is the team's total number of key transactions across all projects, while `keyed`
         only lists the ones in the requested projects.
         """
-        if not self.has_feature(organization, request):
-            return Response(status=404)
 
         try:
             teams = get_teams(request, organization)

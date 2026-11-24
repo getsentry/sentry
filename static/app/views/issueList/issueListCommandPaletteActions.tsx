@@ -48,7 +48,7 @@ import {useUpdateGroupSearchView} from './mutations/useUpdateGroupSearchView';
 import {useIssueListFilterKeys} from './utils/useIssueListFilterKeys';
 import {IssueListMarkAllCommandPaletteAction} from './issueListBulkCommandPaletteActions';
 import type {IssueUpdateData} from './types';
-import {FOR_REVIEW_QUERIES, getSortLabel, IssueSortOptions} from './utils';
+import {getSortLabel, IssueSortOptions} from './utils';
 
 interface IssueListCommandPaletteActionsProps {
   groupIds: string[];
@@ -271,12 +271,10 @@ function FilterActions({
 
 function SortActions({
   sort,
-  query,
   onSortChange,
-}: Pick<IssueListCommandPaletteActionsProps, 'sort' | 'query' | 'onSortChange'>) {
+}: Pick<IssueListCommandPaletteActionsProps, 'sort' | 'onSortChange'>) {
   const sortKeys = [
     IssueSortOptions.RECOMMENDED,
-    ...(FOR_REVIEW_QUERIES.includes(query) ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
     IssueSortOptions.TRENDS,
@@ -286,10 +284,7 @@ function SortActions({
 
   return (
     <CMDKAction
-      display={{
-        label: t('Sort by: %s', getSortLabel(sort)),
-        icon: <IconSort />,
-      }}
+      display={{label: t('Sort by: %s', getSortLabel(sort)), icon: <IconSort />}}
       keywords={['order', 'arrange', 'last seen', 'age', 'events', 'users', 'trends']}
     >
       {sortKeys.map(key => (
@@ -400,7 +395,7 @@ export function IssueListCommandPaletteActions({
           sort={sort}
           onActionTaken={onActionTaken}
         />
-        <SortActions sort={sort} query={query} onSortChange={onSortChange} />
+        <SortActions sort={sort} onSortChange={onSortChange} />
         <SaveViewActions query={query} sort={sort} />
       </CMDKAction>
     </CommandPaletteSlot>
