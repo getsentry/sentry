@@ -15,6 +15,13 @@ interface LLMCostsProps {
   className?: string;
 }
 
+export function NoCostRecordedMessage() {
+  return tct(
+    'No cost recorded. Cost is calculated from token usage and model pricing on your AI spans. [link:Learn more].',
+    {link: <ExternalLink href={COST_DOCS_URL} />}
+  );
+}
+
 /**
  * Renders an LLM cost via `formatLLMCosts`. A missing (null) or exactly-zero
  * cost both mean "no cost recorded" and render as a `—` wrapped in a tooltip
@@ -25,14 +32,7 @@ interface LLMCostsProps {
 export function LLMCosts({cost, className}: LLMCostsProps) {
   if (cost === null || Number(cost) === 0) {
     return (
-      <InfoText
-        className={className}
-        variant="inherit"
-        title={tct(
-          'No cost recorded. Cost is calculated from token usage and model pricing on your AI spans. [link:Learn more].',
-          {link: <ExternalLink href={COST_DOCS_URL} />}
-        )}
-      >
+      <InfoText className={className} variant="inherit" title={<NoCostRecordedMessage />}>
         {'—'}
       </InfoText>
     );

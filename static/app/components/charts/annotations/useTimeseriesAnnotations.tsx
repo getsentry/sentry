@@ -36,7 +36,7 @@ export function useTimeseriesAnnotations({
 
   const result = useInfiniteQuery(
     apiOptions.asInfinite<TimeseriesAnnotation[]>()(
-      '/organizations/$organizationIdOrSlug/annotations/',
+      '/organizations/$organizationIdOrSlug/timeseries-annotations/',
       {
         path: enabled ? {organizationIdOrSlug: organization.slug} : skipToken,
         query: {

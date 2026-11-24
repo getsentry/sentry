@@ -38,6 +38,27 @@ describe('AnnotationsPanel', () => {
     ).toBeInTheDocument();
   });
 
+  it('lists severe items newest first with their type and severity', () => {
+    render(
+      <AnnotationsPanel
+        items={[
+          {...change('Delayed ingestion', 'high'), annotationType: 'sentry_outage'},
+          {...change('SDK rollout', 'high'), annotationType: 'sdk_update', start: 1000},
+        ]}
+        kinds={['timeseriesAnnotation']}
+      />
+    );
+
+    const [, newest, oldest] = within(
+      screen.getByRole('table', {name: 'Severe annotations'})
+    ).getAllByRole('row');
+    expect(within(newest!).getByText('SDK update')).toBeInTheDocument();
+    expect(within(newest!).getByText('SDK rollout')).toBeInTheDocument();
+    expect(within(newest!).getByText('High')).toBeInTheDocument();
+    expect(within(oldest!).getByText('Sentry outage')).toBeInTheDocument();
+    expect(within(oldest!).getByText('Delayed ingestion')).toBeInTheDocument();
+  });
+
   it('says when nothing is severe', async () => {
     render(<AnnotationsPanel items={[release]} kinds={['release']} />);
 

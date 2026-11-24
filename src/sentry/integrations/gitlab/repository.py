@@ -7,13 +7,14 @@ from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.services.repository.service import repository_service
+from sentry.integrations.source_code_management.repository_reconciliation import RepositoryConfig
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.plugins.providers.integration_repository import CommitPatchFile, RepositoryConfig
+from sentry.plugins.providers.integration_repository import CommitPatchFile
 from sentry.shared_integrations.exceptions import ApiError
 
 if TYPE_CHECKING:

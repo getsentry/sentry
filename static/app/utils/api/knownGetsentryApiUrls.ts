@@ -65,6 +65,7 @@ export type KnownGetsentryApiUrls =
   | '/customers/$organizationIdOrSlug/redeem-promo/'
   | '/customers/$organizationIdOrSlug/refund-vercel/'
   | '/customers/$organizationIdOrSlug/send-weekly-email/'
+  | '/customers/$organizationIdOrSlug/seer-usage-stats/'
   | '/customers/$organizationIdOrSlug/seer-wallet/'
   | '/customers/$organizationIdOrSlug/seer-wallet/auto-top-up/'
   | '/customers/$organizationIdOrSlug/spend-notifications/'

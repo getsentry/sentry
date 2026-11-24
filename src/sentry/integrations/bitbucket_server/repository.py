@@ -11,6 +11,7 @@ from django.core.cache import cache
 from sentry.integrations.bitbucket_server.webhook_config import build_webhook_data
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.services.repository.service import repository_service
+from sentry.integrations.source_code_management.repository_reconciliation import RepositoryConfig
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -18,7 +19,6 @@ from sentry.plugins.providers.integration_repository import (
     CommitData,
     CommitPatchFile,
     IntegrationRepositoryProvider,
-    RepositoryConfig,
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.hashlib import md5_text

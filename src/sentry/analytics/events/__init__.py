@@ -91,6 +91,7 @@ from .rule_disable_opt_out import *  # noqa: F401,F403
 from .rule_reenable import *  # noqa: F401,F403
 from .search_saved import *  # noqa: F401,F403
 from .second_platform_added import *  # noqa: F401,F403
+from .seer_scm_connect_events import *  # noqa: F401,F403
 from .sentry_app_created import *  # noqa: F401,F403
 from .sentry_app_deleted import *  # noqa: F401,F403
 from .sentry_app_installation_token_created import *  # noqa: F401,F403

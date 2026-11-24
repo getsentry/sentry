@@ -16,7 +16,6 @@ from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.rules import get_workflow_url
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.users.services.user import RpcUser
-from sentry.utils.http import absolute_uri
 
 
 class _SlackText(TypedDict):
@@ -183,9 +182,9 @@ def build_attachment_replay_link(
     has_replay = features.has("organizations:session-replay", group.organization)
     if has_replay and group.has_replays():
         referrer = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]
-        replay_url = f"{group.get_absolute_url()}replays/?referrer={referrer}"
+        replay_url = group.get_absolute_replays_url(params={"referrer": referrer})
 
-        return f"{url_format.format(text='View Replays', url=absolute_uri(replay_url))}"
+        return f"{url_format.format(text='View Replays', url=replay_url)}"
 
     return None
 

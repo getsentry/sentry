@@ -2251,6 +2251,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 repo_name="test-repo",
                 pr_creation_status="error",
                 pr_creation_error_code="out_of_credits",
+                credit_denial_reason="daily_cap_exceeded",
             )
         }
 
@@ -2269,6 +2270,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                     "sentry_run_id": str(seer_run.uuid),
                     "group_id": self.group.id,
                     "failure_reason": "out_of_credits",
+                    "denial_reason": "daily_cap_exceeded",
                 },
                 "organization_id": self.organization.id,
             }
@@ -2277,7 +2279,12 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
             resource_name="seer",
             event_name="errored",
             organization_id=self.organization.id,
-            payload=mock_process.call_args.kwargs["kwargs"]["event_payload"],
+            payload={
+                "run_id": 123,
+                "sentry_run_id": str(seer_run.uuid),
+                "group_id": self.group.id,
+                "failure_reason": "out_of_credits",
+            },
         )
 
     @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
@@ -3086,7 +3093,8 @@ class TestSingleRunRootCause(TestCase):
 
         assert single_run_root_cause_payload(state) == {
             "headline": "H",
-            "one_line_description": "C",
+            "cause": "C",
+            "one_line_description": "H",
             "five_whys": [],
             "reproduction_steps": [],
         }
@@ -3223,7 +3231,9 @@ class TestSingleRunCompletion(TestCase):
 
         assert self._events(mocks) == ["root_cause_completed"]
         payload = mocks["broadcast"].call_args.kwargs["payload"]
-        assert payload["root_cause"]["one_line_description"] == "C"
+        assert payload["root_cause"]["headline"] == "H"
+        assert payload["root_cause"]["cause"] == "C"
+        assert payload["root_cause"]["one_line_description"] == "H"
         assert Activity.objects.filter(
             group=self.group, type=ActivityType.SEER_RCA_COMPLETED.value
         ).exists()
@@ -3274,7 +3284,7 @@ class TestSingleRunCompletion(TestCase):
 
         assert self._events(mocks) == ["root_cause_completed"]
         payload = mocks["broadcast"].call_args.kwargs["payload"]
-        assert payload["root_cause"]["one_line_description"] == "C2"
+        assert payload["root_cause"]["cause"] == "C2"
 
     def test_root_cause_announced_before_hashing_is_not_announced_again(self) -> None:
         SeerRun.objects.filter(id=self.seer_run.id).update(

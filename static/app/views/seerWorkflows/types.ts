@@ -1,8 +1,8 @@
 export type WorkflowStrategy =
   | 'agentic_triage'
-  | 'agentic_triage_v2'
   | 'breached_metric_investigation'
-  | 'duplicate_monitors';
+  | 'duplicate_monitors'
+  | 'scheduled_investigation';
 
 type SeerWorkflowError = {code: string; message: string};
 
@@ -193,6 +193,10 @@ export type SeerWorkflowConfigCreateRequest = {
  */
 export type SeerWorkflowConfigUpdateRequest = {
   enabled?: boolean;
+  /**
+   * Empty means all environments
+   */
+  environments?: string[];
   monitorIds?: number[];
   name?: string;
   /**

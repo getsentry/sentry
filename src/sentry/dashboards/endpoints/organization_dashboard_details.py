@@ -23,6 +23,7 @@ from sentry.api.serializers.models.dashboard import (
     DashboardDetailsResponse,
 )
 from sentry.api.serializers.rest_framework import DashboardDetailsSerializer
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -87,11 +88,12 @@ class OrganizationDashboardBase(OrganizationEndpoint):
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
+        dashboard_id = to_valid_int_id("dashboard_id", dashboard_id, raise_404=True)
         try:
             kwargs["dashboard"] = Dashboard.objects.get(
                 id=dashboard_id, organization_id=kwargs["organization"].id
             )
-        except (Dashboard.DoesNotExist, ValueError):
+        except Dashboard.DoesNotExist:
             raise ResourceDoesNotExist
 
         return (args, kwargs)
@@ -254,12 +256,22 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         return self.respond(body, status=200)
 
 
+class OrganizationDashboardVisitPermission(OrganizationDashboardsPermission):
+    # Anyone who can read a dashboard can record a visit to it. A visit only updates
+    # metadata (visit count and last visited times), not the dashboard itself.
+    scope_map = {
+        **OrganizationDashboardsPermission.scope_map,
+        "POST": OrganizationDashboardsPermission.scope_map["GET"],
+    }
+
+
 @extend_schema(tags=["Dashboards"])
 @cell_silo_endpoint
 class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
+    permission_classes = (OrganizationDashboardVisitPermission,)
 
     @extend_schema(
         operation_id="visitOrganizationDashboard",

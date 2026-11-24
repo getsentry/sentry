@@ -490,14 +490,8 @@ describe('Discover > Homepage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows default homepage when discover deprecation is enabled with transaction dataset homepage query', async () => {
-    organization = OrganizationFixture({
-      features: [
-        'discover-basic',
-        'discover-query',
-        'discover-saved-queries-deprecation',
-      ],
-    });
+  it('shows default homepage when the homepage query uses the transaction dataset', async () => {
+    organization = OrganizationFixture({features: ['discover-basic', 'discover-query']});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
