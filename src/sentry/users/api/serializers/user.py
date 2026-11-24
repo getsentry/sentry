@@ -22,7 +22,13 @@ from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import RpcOrganizationSummary
-from sentry.users.api.parsers.display_preference import ThemeVariantDark, ThemeVariantLight
+from sentry.users.api.parsers.display_preference import (
+    DefaultIssueEvent,
+    Theme,
+    ThemeVariantDark,
+    ThemeVariantLight,
+    coerce_theme_variant_dark,
+)
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
@@ -87,18 +93,16 @@ class _SerializedStacktraceOrder(int, Enum):
 
 
 class _UserOptions(TypedDict):
-    theme: Annotated[  # TODO: enum/literal for theme options
-        str, ApiDescription('UI theme: "light", "dark" or "system". Defaults to "system"')
+    theme: Annotated[
+        Theme, ApiDescription('UI theme: "light", "dark" or "system". Defaults to "system"')
     ]
     themeVariantLight: Annotated[
         ThemeVariantLight,
-        ApiDescription('Palette used in light mode: "default". Defaults to "default"'),
+        ApiDescription("Palette used in light mode. Defaults to `default`"),
     ]
     themeVariantDark: Annotated[
         ThemeVariantDark,
-        ApiDescription(
-            'Palette used in dark mode: "default", "ash" or "midnight". Defaults to "default"'
-        ),
+        ApiDescription("Palette used in dark mode. Defaults to `default`"),
     ]
     language: Annotated[str, ApiDescription("UI language code, such as `en`")]
     stacktraceOrder: Annotated[
@@ -108,7 +112,7 @@ class _UserOptions(TypedDict):
         ),
     ]
     defaultIssueEvent: Annotated[
-        str,
+        DefaultIssueEvent,
         ApiDescription(
             'Event shown by default on issue details: "recommended", "latest" or "oldest"'
         ),
@@ -308,7 +312,7 @@ class UserSerializer(Serializer):
             d["options"] = {
                 "theme": options.get("theme") or "system",
                 "themeVariantLight": options.get("theme_variant_light") or "default",
-                "themeVariantDark": options.get("theme_variant_dark") or "default",
+                "themeVariantDark": coerce_theme_variant_dark(options.get("theme_variant_dark")),
                 "language": options.get("language") or settings.SENTRY_DEFAULT_LANGUAGE,
                 "stacktraceOrder": stacktrace_order,
                 "defaultIssueEvent": options.get("default_issue_event") or "recommended",

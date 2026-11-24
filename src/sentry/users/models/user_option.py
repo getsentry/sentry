@@ -187,9 +187,9 @@ class UserOption(Model):
      - theme
         - dark, light, or default
      - theme_variant_dark
-        - palette used in dark mode: default, ash, or midnight
+        - palette used in dark mode; see `THEME_VARIANT_DARK_CHOICES`
      - theme_variant_light
-        - palette used in light mode: default
+        - palette used in light mode; see `THEME_VARIANT_LIGHT_CHOICES`
      - twilio:alert
         - unused
      - workflow_notifications

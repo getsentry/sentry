@@ -52,6 +52,17 @@ THEME_VARIANT_DARK_CHOICES: "tuple[tuple[ThemeVariantDark, _StrPromise], ...]" =
     ("ash", _("Ash")),
     ("midnight", _("Midnight")),
 )
+
+
+def coerce_theme_variant_dark(raw: object) -> ThemeVariantDark:
+    """Return the stored dark palette, or "default" if it is unset or no longer a choice."""
+    # A palette can be renamed or retired while rows still hold its old name.
+    for value, _label in THEME_VARIANT_DARK_CHOICES:
+        if raw == value:
+            return value
+    return "default"
+
+
 DEFAULT_ISSUE_EVENT_CHOICES: "tuple[tuple[DefaultIssueEvent, _StrPromise], ...]" = (
     ("recommended", _("Recommended")),
     ("latest", _("Latest")),

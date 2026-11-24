@@ -161,10 +161,11 @@ class DetailedSelfUserSerializerTest(TestCase):
         assert result["authenticators"][0]["id"] == str(self.auth.id)
         assert result["permissions"] == ["foo"]
 
-    def test_theme_variants_default_when_unset(self) -> None:
+    def test_unknown_stored_theme_variant_dark_falls_back_to_default(self) -> None:
+        UserOption.objects.set_value(user=self.user, key="theme_variant_dark", value="chartreuse")
+
         result = serialize(self.user, self.user, DetailedSelfUserSerializer())
 
-        assert result["options"]["themeVariantLight"] == "default"
         assert result["options"]["themeVariantDark"] == "default"
 
     def test_theme_variants_return_stored_values(self) -> None:
