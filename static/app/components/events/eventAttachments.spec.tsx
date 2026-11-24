@@ -67,7 +67,17 @@ describe('EventAttachments', () => {
       ...organization,
       features: [...organization.features, 'attachments-quota-exceeded-notice'],
     };
-    const quotaExceededEvent = {...event, metadata: {attachments_quota_exceeded: true}};
+    const rateLimitedEvent = (reasonCode: string) => ({
+      ...event,
+      contexts: {
+        ...event.contexts,
+        attachments: {
+          type: 'attachments' as const,
+          rate_limited: [{type: 'event.minidump', reason_code: reasonCode}],
+        },
+      },
+    });
+    const quotaExceededEvent = rateLimitedEvent('attachment_usage_exceeded');
 
     it('explains that no attachments were stored', async () => {
       MockApiClient.addMockResponse({url: attachmentsUrl, body: []});
@@ -108,6 +118,19 @@ describe('EventAttachments', () => {
           {exact: false}
         )
       ).toBeInTheDocument();
+    });
+
+    it('ignores attachments dropped by other rate limits', async () => {
+      MockApiClient.addMockResponse({url: attachmentsUrl, body: []});
+
+      const {container} = render(
+        <EventAttachments {...props} event={rateLimitedEvent('smart_rate_limit')} />,
+        {organization: quotaOrganization}
+      );
+
+      await tick();
+
+      expect(container).toBeEmptyDOMElement();
     });
 
     it('does not render without the feature flag', async () => {
