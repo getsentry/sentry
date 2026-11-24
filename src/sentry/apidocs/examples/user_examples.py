@@ -60,7 +60,6 @@ class UserExamples:
                 "emails": [{"id": "1", "email": "jane@example.com", "is_verified": True}],
                 "options": {
                     "theme": "system",
-                    "themeVariantLight": "default",
                     "themeVariantDark": "default",
                     "language": "en",
                     "stacktraceOrder": -1,
@@ -114,7 +113,6 @@ class UserExamples:
                     "experiments": {},
                     "options": {
                         "theme": "system",
-                        "themeVariantLight": "default",
                         "themeVariantDark": "default",
                         "language": "en",
                         "stacktraceOrder": -1,

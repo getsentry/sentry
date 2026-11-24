@@ -25,7 +25,6 @@ class UserDisplayPreferencesGetTest(APITestCase):
 
         assert response.data == {
             "theme": "system",
-            "themeVariantLight": "default",
             "themeVariantDark": "default",
             "language": "en",
             "stacktraceOrder": -1,
@@ -79,7 +78,6 @@ class UserDisplayPreferencesPutTest(APITestCase):
         response = self.get_success_response(
             "me",
             theme="light",
-            themeVariantLight="default",
             themeVariantDark="midnight",
             language="es",
             stacktraceOrder="1",
@@ -91,7 +89,6 @@ class UserDisplayPreferencesPutTest(APITestCase):
 
         assert response.data == {
             "theme": "light",
-            "themeVariantLight": "default",
             "themeVariantDark": "midnight",
             "language": "es",
             "stacktraceOrder": 1,

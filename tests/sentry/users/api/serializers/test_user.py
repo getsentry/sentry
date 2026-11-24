@@ -168,10 +168,9 @@ class DetailedSelfUserSerializerTest(TestCase):
 
         assert result["options"]["themeVariantDark"] == "default"
 
-    def test_theme_variants_return_stored_values(self) -> None:
+    def test_theme_variant_dark_returns_stored_value(self) -> None:
         UserOption.objects.set_value(user=self.user, key="theme_variant_dark", value="midnight")
 
         result = serialize(self.user, self.user, DetailedSelfUserSerializer())
 
-        assert result["options"]["themeVariantLight"] == "default"
         assert result["options"]["themeVariantDark"] == "midnight"

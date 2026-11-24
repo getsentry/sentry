@@ -26,7 +26,6 @@ from sentry.users.api.parsers.display_preference import (
     DefaultIssueEvent,
     Theme,
     ThemeVariantDark,
-    ThemeVariantLight,
     coerce_theme_variant_dark,
 )
 from sentry.users.models.authenticator import Authenticator
@@ -95,10 +94,6 @@ class _SerializedStacktraceOrder(int, Enum):
 class _UserOptions(TypedDict):
     theme: Annotated[
         Theme, ApiDescription('UI theme: "light", "dark" or "system". Defaults to "system"')
-    ]
-    themeVariantLight: Annotated[
-        ThemeVariantLight,
-        ApiDescription("Palette used in light mode. Defaults to `default`"),
     ]
     themeVariantDark: Annotated[
         ThemeVariantDark,
@@ -311,7 +306,6 @@ class UserSerializer(Serializer):
 
             d["options"] = {
                 "theme": options.get("theme") or "system",
-                "themeVariantLight": options.get("theme_variant_light") or "default",
                 "themeVariantDark": coerce_theme_variant_dark(options.get("theme_variant_dark")),
                 "language": options.get("language") or settings.SENTRY_DEFAULT_LANGUAGE,
                 "stacktraceOrder": stacktrace_order,
