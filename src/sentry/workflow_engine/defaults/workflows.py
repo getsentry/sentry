@@ -37,13 +37,9 @@ INBOX_WORKFLOW_LABEL = "Add issue activity to Inbox"
 
 
 def ensure_inbox_workflow(org: Organization) -> Workflow:
-    """Return the organization's managed Inbox workflow, provisioning its graph on first use.
-
-    Raises Workflow.MultipleObjectsReturned if multiple Inbox workflows in the organization
-    carry the default marker and are not being deleted.
-    """
-    database = router.db_for_write(Workflow)
-    defaults = Workflow.objects.using(database).filter(
+    """Return the organization's managed Inbox workflow, provisioning its graph on first use."""
+    db = router.db_for_write(Workflow)
+    defaults = Workflow.objects.using(db).filter(
         organization=org,
         type=Workflow.Type.INBOX,
         config__default_key=Workflow.INBOX_DEFAULT_KEY,
@@ -51,9 +47,9 @@ def ensure_inbox_workflow(org: Organization) -> Workflow:
     if existing := defaults.get_or_none():
         return existing
 
-    with transaction.atomic(database):
+    with transaction.atomic(db):
         # Lock the parent because the default workflow may not exist yet.
-        Organization.objects.select_for_update(no_key=True).using(database).get(id=org.id)
+        Organization.objects.select_for_update(no_key=True).using(db).get(id=org.id)
         if existing := defaults.get_or_none():
             return existing
 
