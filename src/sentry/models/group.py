@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Any, ClassVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.core.cache import cache
 from django.db import models
@@ -953,7 +953,7 @@ class Group(Model):
         self.message = strip(self.message)
         if self.message:
             self.message = truncatechars(self.message.splitlines()[0], 255)
-        if cast("int | None", self.times_seen) is None:
+        if self.times_seen is None:
             self.times_seen = 1
         super().save(
             force_insert=force_insert,
@@ -988,6 +988,15 @@ class Group(Model):
             if params:
                 query = urlencode(params)
             return organization.absolute_url(path, query=query)
+
+    def get_absolute_replays_url(self, params: Mapping[str, str] | None = None) -> str:
+        # The feedback page shows the feedback's replay inline and has no replays tab.
+        if self.issue_category == GroupCategory.FEEDBACK:
+            return self.get_absolute_url(params=params)
+        organization = self.organization
+        path = f"/organizations/{organization.slug}/issues/{self.id}/replays/"
+        query = urlencode(params) if params else None
+        return organization.absolute_url(path, query=query)
 
     def get_absolute_api_url(self) -> str:
         path = f"/issues/{self.id}/"

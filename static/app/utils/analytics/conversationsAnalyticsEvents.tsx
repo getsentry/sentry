@@ -13,6 +13,7 @@ export type ConversationsEventParameters = {
   'conversations.detail.export-conversation': Record<string, unknown>;
   'conversations.detail.page-view': Record<string, unknown>;
   'conversations.detail.select-span': Record<string, unknown>;
+  'conversations.detail.span-limit-reached': Record<string, unknown>;
   'conversations.detail.tab-switch': {fromTab: string; toTab: string};
   'conversations.message.click': Record<string, unknown>;
   'conversations.message.click-evaluation': Record<string, unknown>;
@@ -65,6 +66,7 @@ export const conversationsEventMap: Record<keyof ConversationsEventParameters, s
   'conversations.detail.page-view': 'Conversations: Detail Page View',
   'conversations.detail.tab-switch': 'Conversations: Detail Tab Switch',
   'conversations.detail.select-span': 'Conversations: Detail Select Span',
+  'conversations.detail.span-limit-reached': 'Conversations: Detail Span Limit Reached',
   'conversations.detail.copy-conversation': 'Conversations: Detail Copy Conversation',
   'conversations.detail.copy-conversation-id':
     'Conversations: Detail Copy Conversation ID',

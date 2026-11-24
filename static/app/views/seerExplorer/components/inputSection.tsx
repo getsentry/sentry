@@ -49,6 +49,7 @@ interface InputSectionProps {
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
   isSingleRun?: boolean;
+  leadingToolbarItems?: React.ReactNode;
   /** Shown right above the composer, for example to say why sending is blocked. */
   notice?: React.ReactNode;
   questionActions?: QuestionActions;
@@ -79,6 +80,7 @@ export function InputSection({
   runId,
   isSingleRun,
   toolbarItems,
+  leadingToolbarItems,
 }: InputSectionProps) {
   const organization = useOrganization({allowNull: true});
   // Autofix single runs and ask-seer-create-pr runs open PRs, so show links to them.
@@ -275,7 +277,6 @@ export function InputSection({
       {prLinksBar}
       <Stack gap="lg" padding="lg xl">
         {notice}
-        {/* The editor and its toolbar read as one field, so the focus ring wraps both. */}
         <ComposerFrame border="primary" radius="lg">
           <StyledComposer
             isWarningPlaceholder={interruptState === 'completed'}
@@ -294,16 +295,25 @@ export function InputSection({
             minHeight={60}
             size="md"
             data-test-id="seer-explorer-input"
+            data-seer-composer-editor=""
           />
           <Flex
             justify="end"
             align="center"
-            gap="md"
+            gap="xs"
             padding="xs"
             borderTop="primary"
             background="primary"
             radius="0 0 lg lg"
+            data-test-id="seer-composer-toolbar"
+            onClick={event => {
+              if (event.target === event.currentTarget) {
+                onInputClick();
+              }
+            }}
           >
+            {leadingToolbarItems}
+            <Container flex="1" pointerEvents="none" />
             {toolbarItems}
             {interruptState === 'can-interrupt' || interruptState === 'requested' ? (
               <Button
@@ -325,7 +335,7 @@ export function InputSection({
                 icon={<IconArrow />}
                 onClick={onSend}
                 size="zero"
-                variant="secondary"
+                variant={canSendMessage ? 'primary' : 'secondary'}
                 disabled={!canSendMessage}
                 aria-label={t('Send message')}
               />
@@ -337,22 +347,17 @@ export function InputSection({
   );
 }
 
-const ComposerFrame = styled(Stack)`
-  transition: box-shadow ${p => p.theme.motion.smooth.fast};
-
-  &:focus-within {
-    ${p => p.theme.focusRing()};
-  }
-`;
-
 const StyledComposer = styled(Composer, {
   shouldForwardProp: prop => prop !== 'isWarningPlaceholder',
 })<{isWarningPlaceholder: boolean}>`
   max-height: 120px;
-  /* The frame draws the border and the focus ring around the editor and toolbar. */
-  border: none;
+  /* Overlap the frame's border so the editor keeps its native inset corners. */
+  margin: -1px -1px 0;
+  width: calc(100% + 2px);
+  border-bottom: 0;
   border-radius: ${p => p.theme.radius.lg} ${p => p.theme.radius.lg} 0 0;
 
+  /* ComposerFrame draws the focus ring around the editor and the toolbar together. */
   &:focus,
   &:focus-visible {
     box-shadow: 0 1px 0 0 ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk}
@@ -364,6 +369,14 @@ const StyledComposer = styled(Composer, {
       p.isWarningPlaceholder
         ? p.theme.tokens.content.warning
         : p.theme.tokens.content.secondary};
+  }
+`;
+
+// Keyed to the editor rather than `:focus-within`, so focusing a toolbar button
+// shows only that button's own ring.
+const ComposerFrame = styled(Stack)`
+  &:has([data-seer-composer-editor]:focus-visible) {
+    ${p => p.theme.focusRing()};
   }
 `;
 

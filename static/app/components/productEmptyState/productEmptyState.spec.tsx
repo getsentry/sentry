@@ -100,7 +100,7 @@ describe('ProductEmptyState', () => {
 
     render(<ProductEmptyState {...baseProps} />, {organization});
 
-    await userEvent.click(screen.getByRole('radio', {name: 'Set up manually'}));
+    await userEvent.click(screen.getByRole('radio', {name: 'Manually'}));
 
     expect(trackAnalytics).toHaveBeenCalledWith(
       'product_empty_state.agent_setup_mode_selected',
@@ -113,10 +113,10 @@ describe('ProductEmptyState', () => {
     );
   });
 
-  it('"Set up manually" shows the manual content', async () => {
+  it('"Manually" shows the manual content', async () => {
     render(<ProductEmptyState {...baseProps} />, {organization});
 
-    await userEvent.click(screen.getByRole('radio', {name: 'Set up manually'}));
+    await userEvent.click(screen.getByRole('radio', {name: 'Manually'}));
 
     expect(screen.getByTestId('manual-content')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Copy prompt'})).not.toBeInTheDocument();

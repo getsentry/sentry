@@ -186,6 +186,8 @@ class UserOption(Model):
         - user's timezone to display timestamps
      - theme
         - dark, light, or default
+     - theme_variant_dark
+        - palette used in dark mode; see `THEME_VARIANT_DARK_CHOICES`
      - twilio:alert
         - unused
      - workflow_notifications

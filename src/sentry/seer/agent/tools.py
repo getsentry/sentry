@@ -25,7 +25,7 @@ from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
-from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.formatting.formatter import Format
@@ -86,6 +86,7 @@ from sentry.seer.public_caller import (
     restrict_projects,
     scope_projects,
 )
+from sentry.seer.scm_connect import NO_SCM_INTEGRATION, get_seer_scm_integrations
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
     BaselineTagDistributionEntry,
@@ -1059,14 +1060,9 @@ def _repository_lookup_failure(
     organization_id: int, repo_full_name: str, supported_providers: list[str]
 ) -> RepositoryDefinitionFailure | None:
     """Why a lookup found nothing, when it's known."""
-    integrations = integration_service.get_integrations(
-        organization_id=organization_id,
-        providers=supported_providers,
-        status=ObjectStatus.ACTIVE,
-        org_integration_status=ObjectStatus.ACTIVE,
-    )
+    integrations = get_seer_scm_integrations(organization_id, supported_providers)
     if not integrations:
-        return RepositoryDefinitionFailure(failure_reason="no_scm_integration")
+        return RepositoryDefinitionFailure(failure_reason=NO_SCM_INTEGRATION)
 
     # A name with no owner can't be under any account, so there's nothing to say about it.
     if len(_loose_segments(repo_full_name)) < 2:

@@ -235,7 +235,11 @@ export function MetricSelectRow({
               ? getDisabledOptionReason
               : undefined
           }
-          fieldOption={state.displayType === DisplayType.TABLE ? fieldOption : undefined}
+          fieldOption={
+            state.displayType === DisplayType.TABLE && index >= 0
+              ? fieldOption
+              : undefined
+          }
           onChange={onMetricChange}
         />
       </MetricSelectorWrapper>

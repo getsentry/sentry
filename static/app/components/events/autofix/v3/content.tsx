@@ -72,6 +72,7 @@ export function SeerDrawerContent({
   const singleRunHasRootCause =
     defined(singleRunRootCause) &&
     defined(getAutofixArtifactFromSection(singleRunRootCause));
+  const handoffRunId = singleRunHasRootCause ? singleRunId : undefined;
 
   const isLoadingRun =
     autofix.isLoading || (autofix.isPolling && !autofix.runState?.blocks?.length);
@@ -117,28 +118,39 @@ export function SeerDrawerContent({
       {singleRun && (
         <NextStepWrap isSticky={stickyNextStep}>
           <Flex>
-            <ButtonBar>
-              <Button
-                variant="primary"
-                icon={<IconSeer />}
-                onClick={() =>
-                  singleRunId !== undefined && openSingleRunChat(singleRunId)
-                }
-                disabled={isSingleRunChatOpen}
-                tooltipProps={{
-                  title: isSingleRunChatOpen ? t('Chat is open') : undefined,
-                }}
-              >
-                {t('Open Autofix')}
-              </Button>
-              {singleRunHasRootCause && singleRunId !== undefined && (
-                <SingleRunHandoffDropdown
-                  autofix={autofix}
-                  group={group}
-                  runId={singleRunId}
-                />
-              )}
-            </ButtonBar>
+            {/* The chat already shows this run, so hand-off is the only action
+                left. A disabled half beside a live chevron reads as broken. */}
+            {isSingleRunChatOpen && handoffRunId !== undefined ? (
+              <SingleRunHandoffDropdown
+                autofix={autofix}
+                group={group}
+                runId={handoffRunId}
+                label={t('Hand off')}
+              />
+            ) : (
+              <ButtonBar>
+                <Button
+                  variant="primary"
+                  icon={<IconSeer />}
+                  onClick={() =>
+                    singleRunId !== undefined && openSingleRunChat(singleRunId)
+                  }
+                  disabled={isSingleRunChatOpen}
+                  tooltipProps={{
+                    title: isSingleRunChatOpen ? t('Chat is open') : undefined,
+                  }}
+                >
+                  {t('Open Autofix')}
+                </Button>
+                {handoffRunId !== undefined && (
+                  <SingleRunHandoffDropdown
+                    autofix={autofix}
+                    group={group}
+                    runId={handoffRunId}
+                  />
+                )}
+              </ButtonBar>
+            )}
           </Flex>
         </NextStepWrap>
       )}

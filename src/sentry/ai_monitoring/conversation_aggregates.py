@@ -13,7 +13,7 @@ class AIConversationAggregates(TypedDict):
         ),
     ]
     errors: Annotated[
-        int, ApiDescription("Number of spans whose status isn't ok, cancelled or unknown")
+        int, ApiDescription("Number of AI spans whose status isn't ok, cancelled or unknown")
     ]
     generationDuration: Annotated[
         float, ApiDescription("Total duration of the conversation's LLM calls in milliseconds")

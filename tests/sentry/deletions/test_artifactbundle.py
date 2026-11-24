@@ -1,23 +1,80 @@
+import os
+from unittest.mock import patch
 from uuid import uuid4
 
-from django.db import connection
+import pytest
+from django.db import connection, router, transaction
 from django.test.utils import CaptureQueriesContext
 
 from sentry import deletions
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.models.artifactbundle import (
     ArtifactBundle,
+    ArtifactBundleArchive,
     ArtifactBundleIndex,
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
 )
 from sentry.models.files.file import File
+from sentry.tasks.assemble import (
+    AssembleTask,
+    ChunkFileState,
+    get_assemble_status,
+    set_assemble_status,
+)
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.skips import requires_objectstore
 
 
 class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
+    @requires_objectstore
+    def test_rollback_keeps_objectstore_bundle(self) -> None:
+        bundle = self.create_artifact_bundle(org=self.organization, use_objectstore=True)
+        bundle_id = bundle.id
+        with (
+            pytest.raises(RuntimeError),
+            transaction.atomic(using=router.db_for_write(ArtifactBundle)),
+        ):
+            bundle.delete()
+            raise RuntimeError("Roll back deletion")
+        surviving_bundle = ArtifactBundle.objects.get(id=bundle_id)
+        with ArtifactBundleArchive(surviving_bundle.get_file()) as archive:
+            assert archive.get_files()
+
+    @requires_objectstore
+    def test_scheduled_deletion_removes_objectstore_blob(self) -> None:
+        bundle = self.create_artifact_bundle(org=self.organization, use_objectstore=True)
+        session = bundle.get_objectstore_session()
+        key = bundle.storage_path
+        checksum = bundle.get_checksum()
+        assert key is not None
+        assert checksum is not None
+        set_assemble_status(
+            AssembleTask.ARTIFACT_BUNDLE, self.organization.id, checksum, ChunkFileState.OK
+        )
+        self.ScheduledDeletion.schedule(instance=bundle, days=0)
+        with self.tasks():
+            run_scheduled_deletions()
+        assert not ArtifactBundle.objects.filter(id=bundle.id).exists()
+        assert session.get(key) is None
+        assert (
+            get_assemble_status(AssembleTask.ARTIFACT_BUNDLE, self.organization.id, checksum)[0]
+            is None
+        )
+
+    @requires_objectstore
+    def test_retention_cleanup_leaves_blob_to_expire(self) -> None:
+        bundle = self.create_artifact_bundle(org=self.organization, use_objectstore=True)
+        session = bundle.get_objectstore_session()
+        key = bundle.storage_path
+        assert key is not None
+        with patch.dict(os.environ, {"_SENTRY_CLEANUP": "1"}):
+            deletions.exec_sync(bundle)
+        assert not ArtifactBundle.objects.filter(id=bundle.id).exists()
+        assert session.head(key) is not None
+
     def test_simple(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -55,17 +112,11 @@ class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
         from sentry.models.artifactbundle import delete_file_for_artifact_bundle
         from sentry.models.files.file import File
 
-        # Simulate an ArtifactBundle instance whose File no longer exists in the DB,
-        # which is what Django raises when accessing a FK whose row has been deleted.
-        class _MissingFile:
-            organization_id = None
+        artifact_bundle = self.create_artifact_bundle(org=self.organization)
+        File.objects.filter(id=artifact_bundle.file_id).delete()
+        artifact_bundle._state.fields_cache.pop("file", None)
 
-            @property
-            def file(self) -> None:
-                raise File.DoesNotExist("File matching query does not exist.")
-
-        # Must not raise File.DoesNotExist.
-        delete_file_for_artifact_bundle(_MissingFile())  # type: ignore[arg-type]
+        delete_file_for_artifact_bundle(artifact_bundle)
 
     def test_indices_deleted_by_cascade(self) -> None:
         org = self.create_organization()

@@ -8,6 +8,10 @@ export const CLASSIFIER_DETAIL_DEFAULT_SELECTION = {
   datetime: {period: '24h', start: null, end: null, utc: null},
 } satisfies Partial<PageFilters>;
 
+export const CLASSIFIER_LIST_STATS_INTERVAL = '1h';
+
+export const CLASSIFIER_LIST_STATS_PERIOD = '24h';
+
 export const CLASSIFIER_PREVIEW_PER_PAGE = 10;
 
 export const ENRICHMENT_ATTRIBUTE_PREFIX = 'sentry.enrichment.';
@@ -16,4 +20,6 @@ export enum Referrer {
   DETAIL_CONVERSATIONS = 'api.classifiers.detail.conversations',
   DETAIL_CONVERSATION_COUNT = 'api.classifiers.detail.conversation-count',
   DETAIL_INSTANCES_CHART = 'api.classifiers.detail.instances-chart',
+  LIST_CLASSIFIED = 'api.classifiers.list.classified-chart',
+  LIST_MATCHES = 'api.classifiers.list.matches-chart',
 }

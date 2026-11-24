@@ -8,9 +8,15 @@ from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_se
     CheckSeerCreditsResponse,
 )
 
+from sentry.analytics.events.seer_scm_connect_events import (
+    SeerScmConnectResolvedEvent,
+    SeerScmConnectShownEvent,
+)
 from sentry.seer.agent.client_models import (
     MemoryBlock,
     Message,
+    PendingUserInput,
+    RepoPRState,
     SeerRunState,
     Usage,
     UsageAccumulator,
@@ -26,6 +32,7 @@ from sentry.service_accounts.tokens import generate_token as generate_service_ac
 from sentry.service_accounts.tokens import stored_token_fields
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.analytics import assert_analytics_events
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -161,6 +168,31 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data["session"]["failure_reason"] == "provider_unavailable"
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_get_includes_credit_denial_reason(self, mock_client_class: MagicMock) -> None:
+        mock_client_class.return_value.get_run.return_value = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="error",
+            updated_at="2024-01-01T00:00:00Z",
+            failure_reason="out_of_credits",
+            credit_denial_reason="daily_cap_exceeded",
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo", credit_denial_reason="not_enough_credits"
+                )
+            },
+        )
+
+        response = self.client.get(f"{self.url}123/")
+
+        assert response.status_code == 200
+        session = response.data["session"]
+        assert session["credit_denial_reason"] == "daily_cap_exceeded"
+        assert session["repo_pr_states"]["owner/repo"]["credit_denial_reason"] == (
+            "not_enough_credits"
+        )
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_excludes_private_fields(self, mock_client_class: MagicMock) -> None:
@@ -1343,6 +1375,59 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         # SeerAgentRun commits with SeerRun before the outbox drain runs, so
         # it persists even when the drain fails.
         assert SeerAgentRun.objects.filter(run=run).exists()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_scm_connect_popup_is_recorded_when_shown_and_when_a_message_closes_it(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=789, user_id=self.user.id
+        )
+        mock_client_class.return_value.get_run.return_value = SeerRunState(
+            run_id=789,
+            blocks=[],
+            status="awaiting_user_input",
+            updated_at="2024-01-01T00:00:00Z",
+            owner_user_id=self.user.id,
+            pending_user_input=PendingUserInput(
+                id="input-1",
+                input_type="connect_scm",
+                data={"repo_name": "acme-labs/app", "failure_reason": "no_scm_integration"},
+            ),
+        )
+
+        with assert_analytics_events(
+            [
+                SeerScmConnectShownEvent(
+                    organization_id=self.organization.id,
+                    user_id=self.user.id,
+                    run_id=789,
+                    input_id="input-1",
+                    failure_reason="no_scm_integration",
+                    can_install_integrations=True,
+                ),
+                SeerScmConnectResolvedEvent(
+                    organization_id=self.organization.id,
+                    user_id=self.user.id,
+                    run_id=789,
+                    input_id="input-1",
+                    failure_reason="no_scm_integration",
+                    resolution="new_message",
+                    repo_status="no_scm_integration",
+                    seconds_open=0,
+                ),
+            ],
+            exclude_fields=["seconds_open"],
+        ):
+            # The chat polls its state; only the first fetch counts as shown.
+            get_response = self.client.get(f"{self.url}789/")
+            self.client.get(f"{self.url}789/")
+            post_response = self.client.post(
+                f"{self.url}789/", {"query": "Skip the code"}, format="json"
+            )
+
+        assert get_response.status_code == 200
+        assert post_response.status_code == 200
 
 
 @with_feature("organizations:seer-explorer")

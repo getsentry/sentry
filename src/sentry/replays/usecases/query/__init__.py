@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -51,7 +51,7 @@ from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
 from sentry.replays.lib.new_query.fields import ColumnField, ExpressionField, FieldProtocol
 from sentry.replays.usecases.query.errors import RetryAggregated
-from sentry.replays.usecases.query.fields import ComputedField, TagField
+from sentry.replays.usecases.query.fields import ComputedField
 from sentry.utils.snuba import RateLimitExceeded, raw_snql_query
 
 VIEWED_BY_ME_KEY_ALIASES = ["viewed_by_me", "seen_by_me"]
@@ -204,7 +204,7 @@ def search_filter_to_condition(
         return field.apply(search_filter)
 
     if "*" in search_config:
-        field = cast(TagField, search_config["*"])
+        field = search_config["*"]
         return field.apply(search_filter)
 
     return None

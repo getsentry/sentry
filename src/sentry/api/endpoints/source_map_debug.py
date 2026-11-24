@@ -597,9 +597,8 @@ class ReleaseLookupData:
             self.source_file_lookup_result = "wrong-dist"
         for possible_release_artifact_bundle in possible_release_artifact_bundles:
             if possible_release_artifact_bundle.dist_name == (self.event.dist or ""):
-                assert possible_release_artifact_bundle.artifact_bundle.file is not None
                 with ArtifactBundleArchive(
-                    possible_release_artifact_bundle.artifact_bundle.file.getfile()
+                    possible_release_artifact_bundle.artifact_bundle.get_file()
                 ) as archive:
                     archive_urls = archive.get_all_urls()
                     for potential_source_file_name in self.matching_source_file_names:
@@ -607,26 +606,27 @@ class ReleaseLookupData:
                             matching_file, headers = archive.get_file_by_url(
                                 potential_source_file_name
                             )
-                            headers = ArtifactBundleArchive.normalize_headers(headers)
-                            self.source_file_lookup_result = "found"
-                            self.found_source_file_name = potential_source_file_name
-                            sourcemap_header = _sourcemap_header(headers)
-                            sourcemap_bytes = (
-                                force_bytes(sourcemap_header)
-                                if sourcemap_header is not None
-                                else None
-                            )
-                            try:
-                                source_map_reference = find_sourcemap(
-                                    sourcemap_bytes, matching_file.read()
-                                )
-                                self.source_map_reference = (
-                                    force_str(source_map_reference)
-                                    if source_map_reference is not None
+                            with matching_file:
+                                headers = ArtifactBundleArchive.normalize_headers(headers)
+                                self.source_file_lookup_result = "found"
+                                self.found_source_file_name = potential_source_file_name
+                                sourcemap_header = _sourcemap_header(headers)
+                                sourcemap_bytes = (
+                                    force_bytes(sourcemap_header)
+                                    if sourcemap_header is not None
                                     else None
                                 )
-                            except Exception:
-                                pass
+                                try:
+                                    source_map_reference = find_sourcemap(
+                                        sourcemap_bytes, matching_file.read()
+                                    )
+                                    self.source_map_reference = (
+                                        force_str(source_map_reference)
+                                        if source_map_reference is not None
+                                        else None
+                                    )
+                                except Exception:
+                                    pass
                             return
 
     def _find_source_map_in_basic_uploaded_files(self, matching_source_map_name: str) -> None:

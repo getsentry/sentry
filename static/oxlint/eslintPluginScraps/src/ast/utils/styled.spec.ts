@@ -14,7 +14,6 @@ const testRule = defineRule({
   create(context) {
     const importTracker = createImportTracker(context);
     return {
-      ...importTracker.visitors,
       TaggedTemplateExpression(node) {
         const info = getStyledCallInfo(node, importTracker);
         if (info) {
@@ -55,6 +54,34 @@ ruleTester.run('getStyledCallInfo', testRule, {
     },
     {
       code: "import * as emotion from '@emotion/react'; const css = 'other'; const x = emotion[css]`color: red`;",
+      filename: '/project/src/file.tsx',
+    },
+    {
+      code: "import styled from '@emotion/styled'; const Box = styled[tag]`color: red`;",
+      filename: '/project/src/file.tsx',
+    },
+    {
+      code: "import styled from '@emotion/styled'; const Box = styled['div']`color: red`;",
+      filename: '/project/src/file.tsx',
+    },
+    {
+      code: "import styled from '@emotion/styled'; const Box = styled()`color: red`;",
+      filename: '/project/src/file.tsx',
+    },
+    {
+      code: "import styled from '@emotion/styled'; const Box = styled(make())`color: red`;",
+      filename: '/project/src/file.tsx',
+    },
+    {
+      code: "import styled from '@emotion/styled'; const Box = styled(make().Button)`color: red`;",
+      filename: '/project/src/file.tsx',
+    },
+    {
+      code: "import styled from '@emotion/styled'; const Box = styled(Mod['Button'])`color: red`;",
+      filename: '/project/src/file.tsx',
+    },
+    {
+      code: "import styled from '@emotion/styled'; const Box = styled(Mod[key])`color: red`;",
       filename: '/project/src/file.tsx',
     },
   ],
@@ -99,6 +126,21 @@ ruleTester.run('getStyledCallInfo', testRule, {
       code: "import styled from '@emotion/styled'; const MyButton = styled(Mod.Button)`color: red`;",
       filename: '/project/src/file.tsx',
       errors: [{messageId: 'info', data: {kind: 'component', name: 'Mod.Button'}}],
+    },
+    {
+      code: "import styled from '@emotion/styled'; const MyButton = styled(mod.button)`color: red`;",
+      filename: '/project/src/file.tsx',
+      errors: [{messageId: 'info', data: {kind: 'component', name: 'mod.button'}}],
+    },
+    {
+      code: "import styled from '@emotion/styled'; const base = styled('table');",
+      filename: '/project/src/file.tsx',
+      errors: [{messageId: 'info', data: {kind: 'element', name: 'table'}}],
+    },
+    {
+      code: "import styled from '@emotion/styled'; const Base = styled(Button);",
+      filename: '/project/src/file.tsx',
+      errors: [{messageId: 'info', data: {kind: 'component', name: 'Button'}}],
     },
     // styled.div({...}) — object syntax call expression
     {

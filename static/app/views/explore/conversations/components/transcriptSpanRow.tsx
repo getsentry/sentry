@@ -58,6 +58,7 @@ export function TranscriptSpanRow({
       cursor="pointer"
       css={rowCss}
       data-selected={isSelected}
+      data-node-id={node?.id}
       style={
         isSelected
           ? {outline: `2px solid ${theme.tokens.focus.default}`, outlineOffset: '-2px'}
