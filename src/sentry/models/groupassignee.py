@@ -350,6 +350,13 @@ class GroupAssignee(Model):
         app_label = "sentry"
         db_table = "sentry_groupasignee"
         unique_together = [("project", "group")]
+        constraints = [
+            models.CheckConstraint(
+                condition=~models.Q(team__isnull=False, user_id__isnull=False)
+                & ~models.Q(team__isnull=True, user_id__isnull=True),
+                name="require_team_or_user_but_not_both",
+            )
+        ]
 
     __repr__ = sane_repr("group_id", "user_id", "team_id")
 
