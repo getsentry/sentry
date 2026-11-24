@@ -657,9 +657,7 @@ describe('SeerProjectTable', () => {
       await waitFor(() =>
         expect(bulkPut).toHaveBeenLastCalledWith(
           expect.anything(),
-          expect.objectContaining({
-            data: expect.objectContaining({openPrs: false}),
-          })
+          expect.objectContaining({data: expect.objectContaining({openPrs: false})})
         )
       );
     });

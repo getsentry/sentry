@@ -328,9 +328,7 @@ describe('AutofixAgent', () => {
     await waitFor(() =>
       expect(putMock).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${project.slug}/seer/settings/`,
-        expect.objectContaining({
-          data: {openPrs: true},
-        })
+        expect.objectContaining({data: {openPrs: true}})
       )
     );
     expect(screen.getByText('Automation Steps')).toBeInTheDocument();
