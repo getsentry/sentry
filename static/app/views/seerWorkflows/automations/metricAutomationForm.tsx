@@ -475,6 +475,9 @@ function ConnectedMonitors({
                 ariaLabel: t('Connect monitors'),
                 drawerKey: 'seer-automation-connect-monitors',
                 drawerWidth: '70%',
+                // The drawer's project filter writes to the URL
+                shouldCloseOnLocationChange: nextLocation =>
+                  nextLocation.pathname !== window.location.pathname,
               }
             )
           }

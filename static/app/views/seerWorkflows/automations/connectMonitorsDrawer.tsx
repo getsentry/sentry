@@ -58,7 +58,6 @@ function MetricMonitors({
 }) {
   const {selection} = usePageFilters();
   const [query, setQuery] = useState('');
-  const [cursor, setCursor] = useState<string | undefined>(undefined);
 
   return (
     <Stack gap="lg">
@@ -68,23 +67,45 @@ function MetricMonitors({
           <DetectorSearch
             initialQuery={query}
             excludeKeys={['type']}
-            onSearch={nextQuery => {
-              setQuery(nextQuery);
-              setCursor(undefined);
-            }}
+            onSearch={setQuery}
           />
         </Container>
       </Flex>
-      <ConnectedMonitorsList
-        connectedDetectorIds={new Set(connectedIds)}
+      {/* Keyed so pagination restarts when the filters change */}
+      <MonitorList
+        key={`${selection.projects.join(',')}|${query}`}
+        connectedIds={connectedIds}
         toggleConnected={toggleConnected}
-        emptyMessage={t('No metric monitors match your search')}
-        cursor={cursor}
-        onCursor={setCursor}
-        query={new MutableSearch(['type:metric_issue', query]).formatString()}
         projectIds={selection.projects}
-        openInNewTab
+        query={query}
       />
     </Stack>
+  );
+}
+
+function MonitorList({
+  connectedIds,
+  toggleConnected,
+  projectIds,
+  query,
+}: {
+  connectedIds: string[];
+  projectIds: number[];
+  query: string;
+  toggleConnected: (params: {detector: Detector}) => void;
+}) {
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+
+  return (
+    <ConnectedMonitorsList
+      connectedDetectorIds={new Set(connectedIds)}
+      toggleConnected={toggleConnected}
+      emptyMessage={t('No metric monitors match your search')}
+      cursor={cursor}
+      onCursor={setCursor}
+      query={new MutableSearch(['type:metric_issue', query]).formatString()}
+      projectIds={projectIds}
+      openInNewTab
+    />
   );
 }
