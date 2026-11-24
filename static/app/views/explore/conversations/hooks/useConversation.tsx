@@ -12,6 +12,10 @@ import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
+import {
+  getConversationUserIdentity,
+  type ConversationUserIdentity,
+} from 'sentry/views/explore/conversations/utils/conversationUser';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {markScrubbedValue} from 'sentry/views/insights/pages/agents/components/scrubbedText';
 import {buildAiSpanTree} from 'sentry/views/insights/pages/agents/utils/aiSpanTree';
@@ -157,6 +161,8 @@ interface UseConversationResult {
   nodes: AITraceSpanNode[];
   stats: ConversationStats | null;
   title: string | null;
+  /** Who the conversation was with, from the first span that says. */
+  user: ConversationUserIdentity | null;
 }
 
 /** Marks where PII scrubbing changed the span's values, see `markScrubbedValue`. */
@@ -487,6 +493,7 @@ export function useConversation(
     () => buildConversationNodes(allSpans, {organization, markScrubbed: true}),
     [allSpans, organization]
   );
+  const user = useMemo(() => getConversationUserIdentity(allSpans), [allSpans]);
 
   if (!conversation.conversationId) {
     return {
@@ -502,6 +509,7 @@ export function useConversation(
       isNextPageError: false,
       error: false,
       title: null,
+      user: null,
     };
   }
 
@@ -518,5 +526,6 @@ export function useConversation(
     isNextPageError: isFetchNextPageError,
     error: isLoadingError || (autoFetchAll && isFetchNextPageError),
     title,
+    user,
   };
 }
