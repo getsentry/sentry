@@ -19,6 +19,34 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 class FileBlobTest(TestCase):
+    def test_from_files_batches_checksum_lookups(self) -> None:
+        fresh = FileBlob.from_file(ContentFile(b"fresh"))
+        stale = FileBlob.from_file(ContentFile(b"stale"))
+        stale.update(timestamp=timezone.now() - timedelta(days=2))
+        fresh_timestamp = fresh.timestamp
+
+        with CaptureQueriesContext(connections[router.db_for_read(FileBlob)]) as queries:
+            FileBlob.from_files(
+                [
+                    ContentFile(b"fresh"),
+                    (ContentFile(b"stale"), stale.checksum),
+                    ContentFile(b"new"),
+                    ContentFile(b"new"),
+                ]
+            )
+
+        reads = [
+            query["sql"]
+            for query in queries.captured_queries
+            if query["sql"].startswith("SELECT") and 'FROM "sentry_fileblob"' in query["sql"]
+        ]
+        assert len(reads) == 1
+        assert FileBlob.objects.get(checksum=sha1(b"new").hexdigest()).size == 3
+        stale.refresh_from_db()
+        fresh.refresh_from_db()
+        assert stale.timestamp >= fresh_timestamp
+        assert fresh.timestamp == fresh_timestamp
+
     def test_from_file(self) -> None:
         fileobj = ContentFile(b"foo bar")
 

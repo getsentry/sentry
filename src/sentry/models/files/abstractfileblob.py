@@ -21,6 +21,7 @@ from sentry.models.files.utils import (
     get_size_and_checksum,
     get_storage,
     nooplogger,
+    refresh_blob_timestamp,
 )
 from sentry.utils import metrics
 
@@ -86,14 +87,15 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         """
         logger.debug("FileBlob.from_files.start")
 
-        files_with_checksums = []
+        chunks: dict[str, tuple[IO[bytes], int]] = {}
         for fileobj in files:
-            if isinstance(fileobj, tuple):
-                files_with_checksums.append(fileobj)
-            else:
-                files_with_checksums.append((fileobj, None))
+            chunk, reference_checksum = fileobj if isinstance(fileobj, tuple) else (fileobj, None)
+            size, checksum = get_size_and_checksum(chunk)
+            if reference_checksum is not None and checksum != reference_checksum:
+                raise OSError("Checksum mismatch")
+            chunks.setdefault(checksum, (chunk, size))
 
-        checksums_seen = set()
+        existing_blobs = cls.objects.in_bulk(chunks, field_name="checksum")
         blobs_to_save = []
         semaphore = Semaphore(value=MULTI_BLOB_UPLOAD_CONCURRENCY)
 
@@ -146,28 +148,12 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
                 semaphore.release()
 
         try:
-            for fileobj, reference_checksum in files_with_checksums:
-                logger.debug(
-                    "FileBlob.from_files.executor_start", extra={"checksum": reference_checksum}
-                )
+            for checksum, (chunk, size) in chunks.items():
+                logger.debug("FileBlob.from_files.executor_start", extra={"checksum": checksum})
                 _flush_blobs()
 
-                # Before we go and do something with the files we calculate
-                # the checksums and compare it against the reference.  This
-                # also deduplicates duplicates uploaded in the same request.
-                # This is necessary because we acquire multiple locks in one
-                # go which would let us deadlock otherwise.
-                size, checksum = get_size_and_checksum(fileobj)
-                if reference_checksum is not None and checksum != reference_checksum:
-                    raise OSError("Checksum mismatch")
-                if checksum in checksums_seen:
-                    continue
-                checksums_seen.add(checksum)
-
-                # Check if we need to upload the blob.  If we get a result back
-                # here it means the blob already exists.
-                existing = get_and_optionally_update_blob(cls, checksum)
-                if existing is not None:
+                existing = existing_blobs.get(checksum)
+                if existing is not None and refresh_blob_timestamp(existing):
                     existing._ensure_blob_owned(organization)
                     continue
 
@@ -178,8 +164,8 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
                 # `_flush_blobs` call will take all those uploaded
                 # blobs and associate them with the database.
                 semaphore.acquire()
-                _upload_and_pend_chunk(fileobj, size, checksum)
-                logger.debug("FileBlob.from_files.end", extra={"checksum": reference_checksum})
+                _upload_and_pend_chunk(chunk, size, checksum)
+                logger.debug("FileBlob.from_files.end", extra={"checksum": checksum})
 
             _flush_blobs()
         finally:

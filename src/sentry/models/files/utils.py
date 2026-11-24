@@ -59,15 +59,18 @@ def get_and_optionally_update_blob(
     """
     try:
         existing = file_blob_model.objects.get(checksum=checksum)
-
-        now = timezone.now()
-        threshold = now - HALF_DAY
-        if existing.timestamp <= threshold:
-            existing.update(timestamp=now)
     except file_blob_model.DoesNotExist:
-        existing = None
+        return None
 
-    return existing
+    return existing if refresh_blob_timestamp(existing) else None
+
+
+def refresh_blob_timestamp(blob: AbstractFileBlob[Any]) -> bool:
+    """Refresh an old blob, returning False if cleanup already removed it."""
+    now = timezone.now()
+    if blob.timestamp <= now - HALF_DAY:
+        return bool(blob.update(timestamp=now))
+    return True
 
 
 class AssembleChecksumMismatch(Exception):
