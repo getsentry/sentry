@@ -345,6 +345,12 @@ class RecentSearchesDeprecatedScopesTest(APITestCase):
             self.organization.slug, type=SearchType.ISSUE.value, status_code=403
         )
 
+    def test_org_write_and_admin_not_accepted(self) -> None:
+        self._use_token(["org:write", "org:admin"])
+        self.get_error_response(
+            self.organization.slug, type=SearchType.ISSUE.value, status_code=403
+        )
+
     def test_user_preference_token_has_access(self) -> None:
         self._use_token(["user_preference:read", "user_preference:write"])
         self.get_success_response(self.organization.slug, type=SearchType.ISSUE.value)
