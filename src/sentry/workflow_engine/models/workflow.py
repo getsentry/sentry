@@ -75,6 +75,8 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     name = models.CharField(max_length=256)
     organization = FlexibleForeignKey("sentry.Organization")
+    # Stable identity for a system-provisioned default within its organization.
+    default_key = models.CharField(max_length=256, null=True, editable=False)
 
     type = models.CharField(
         max_length=256,
@@ -122,6 +124,11 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         app_label = "workflow_engine"
         db_table = "workflow_engine_workflow"
         constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "default_key"],
+                condition=models.Q(default_key__isnull=False),
+                name="workflow_org_default_key_uniq",
+            ),
             models.UniqueConstraint(
                 fields=["when_condition_group_id"],
                 name="workflow_engine_workflow_when_condition_group_id_11d9ba05_uniq",
