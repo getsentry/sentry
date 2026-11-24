@@ -962,6 +962,7 @@ class Project(Model):
         except Exception:
             logger.warning("Failed to delete group hashes for project %s", self.id)
 
+        # None keeps the flag of an enclosing outbox_context, or drains on commit without one.
         flush: bool | None = None
         if options.get("hybridcloud.outbox.project_delete_async.enabled"):
             flush = False

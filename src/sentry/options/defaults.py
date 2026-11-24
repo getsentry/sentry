@@ -3014,7 +3014,7 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Tell control about deleted projects asynchronously.
+# Leave telling control about a deleted project to the scheduled outbox drain.
 register(
     "hybridcloud.outbox.project_delete_async.enabled",
     default=False,

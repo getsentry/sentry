@@ -1344,7 +1344,6 @@ class ProjectAsyncDeletionTest(TestCase):
         self.deleted_project_id = self.deleted_project.id
 
     def _pending(self) -> bool:
-        """Whether the project's outbox row is still waiting to drain."""
         return CellOutbox.objects.filter(
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
             shard_identifier=self.organization.id,
