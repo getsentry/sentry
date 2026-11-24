@@ -80,10 +80,10 @@ import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 const MotionContainer = motion.create(Container);
 const LEADING_SLOT_SIZE = '24px';
-/** With settings-v3, the inset from the panel edge to the link backgrounds, shared by the header and body. */
-const PANEL_GUTTER = 'xs';
-/** The inset from a link's background to its content, shared by link rows and the header title. */
-const ROW_INSET = 'md';
+/** With settings-v3, the padding from the panel edge to the link backgrounds, shared by the header and body. */
+const PANEL_PADDING_X = 'xs';
+/** The padding from a link's background to its content, shared by link rows and the header title. */
+const ITEM_PADDING_X = 'md';
 
 interface SecondarySidebarProps {
   children: ReactNode;
@@ -321,7 +321,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
       align="center"
       borderBottom="primary"
       height={`${PRIMARY_HEADER_HEIGHT}px`}
-      padding={isMobile ? 'md lg' : settingsV3 ? `0 ${PANEL_GUTTER}` : '0 sm'}
+      padding={isMobile ? 'md lg' : settingsV3 ? `0 ${PANEL_PADDING_X}` : '0 sm'}
     >
       {props.children}
       <SecondaryNavigationToggle />
@@ -335,15 +335,15 @@ function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
 
   // Without settings-v3, mobile links have no body padding, so the title drops
   // its own to stay aligned with them.
-  const inset = settingsV3 ? ROW_INSET : layout === 'mobile' ? undefined : 'lg';
+  const paddingX = settingsV3 ? ITEM_PADDING_X : layout === 'mobile' ? undefined : 'lg';
 
   return (
     <Flex
       align="center"
       height="32px"
       minWidth="0"
-      paddingLeft={inset}
-      paddingRight={inset}
+      paddingLeft={paddingX}
+      paddingRight={paddingX}
     >
       <Text size="md" bold ellipsis>
         {children}
@@ -400,7 +400,11 @@ function SecondaryNavigationBody(props: SecondaryNavigationBodyProps) {
       overflow="auto"
       overscrollBehavior="contain"
       padding={
-        settingsV3 ? `md ${PANEL_GUTTER}` : layout === 'mobile' ? '0 0 md 0' : undefined
+        settingsV3
+          ? `md ${PANEL_PADDING_X}`
+          : layout === 'mobile'
+            ? '0 0 md 0'
+            : undefined
       }
     >
       {props.children}
@@ -421,7 +425,7 @@ function SecondaryNavigationRow(props: ComponentProps<typeof Grid>) {
       align="center"
       position="relative"
       height="32px"
-      padding={`0 ${ROW_INSET}`}
+      padding={`0 ${ITEM_PADDING_X}`}
       radius="md"
       {...props}
       columns={`${LEADING_SLOT_SIZE} minmax(0, 1fr)`}
@@ -1059,7 +1063,7 @@ function GrabHandle() {
     return (
       <Flex
         align="center"
-        padding={`0 ${ROW_INSET}`}
+        padding={`0 ${ITEM_PADDING_X}`}
         position="absolute"
         inset="0"
         pointerEvents="none"
