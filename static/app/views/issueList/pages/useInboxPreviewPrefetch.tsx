@@ -9,7 +9,10 @@ import type {Group} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
+import {
+  groupApiOptions,
+  shouldExpandDerivedData,
+} from 'sentry/views/issueDetails/useGroup';
 
 const PREFETCH_DELAY_MS = 200;
 
@@ -28,7 +31,7 @@ export function useInboxPreviewPrefetch(group: Group) {
         groupApiOptions({
           ...issueParams,
           environments: [],
-          expandDerivedData: organization.features.includes('issue-inbox'),
+          expandDerivedData: shouldExpandDerivedData(organization),
         })
       );
       void queryClient.prefetchQuery({

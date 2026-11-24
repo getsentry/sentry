@@ -42,7 +42,10 @@ import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assi
 import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
-import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
+import {
+  groupApiOptions,
+  shouldExpandDerivedData,
+} from 'sentry/views/issueDetails/useGroup';
 import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
   getGroupReprocessingStatus,
@@ -105,7 +108,7 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
       groupId,
       // The inbox list spans all environments, regardless of URL filters.
       environments: [],
-      expandDerivedData: organization.features.includes('issue-inbox'),
+      expandDerivedData: shouldExpandDerivedData(organization),
     }),
     gcTime: 30_000,
     retry: false,
