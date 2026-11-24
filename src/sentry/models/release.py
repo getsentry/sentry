@@ -344,6 +344,12 @@ class Release(Model):
             models.Index(fields=("organization", "build_code")),
             models.Index(fields=("organization", "build_number")),
             models.Index(fields=("organization", "date_added")),
+            # Release lists and resolution checks sort by COALESCE(date_released, date_added).
+            IndexWithPostgresNameLimits(
+                "organization",
+                Coalesce("date_released", "date_added"),
+                name="sentry_release_organization_id_b3241759a1649e",
+            ),
             models.Index(fields=("organization", "status")),
             IndexWithPostgresNameLimits(
                 fields=["id", "organization"],
