@@ -549,6 +549,50 @@ class PushEventWebhookTest(APITestCase):
         assert commit.author.email == "baxterthehacker@example.com"
         assert commit.date_added == datetime(2015, 5, 5, 23, 40, 15, tzinfo=timezone.utc)
 
+    @patch(
+        "sentry.integrations.github_enterprise.integration.GitHubEnterpriseIntegration.get_client"
+    )
+    def test_does_not_build_client_for_locally_resolved_anonymous_author(
+        self,
+        mock_get_client: MagicMock,
+        mock_get_installation_metadata: MagicMock,
+        mock_get_jwt: MagicMock,
+    ) -> None:
+        mock_get_installation_metadata.return_value = self.metadata
+
+        self.create_integration(
+            external_id="35.232.149.196:12345",
+            organization=self.project.organization,
+            provider="github_enterprise",
+            name="octocat",
+            metadata={
+                "domain_name": "35.232.149.196/baxterthehacker",
+                "installation": {
+                    "id": "2",
+                    "private_key": "private_key",
+                    "verify_ssl": True,
+                },
+            },
+        )
+        author = self.create_commit_author(
+            organization_id=self.project.organization_id, email="baxterthehacker@example.com"
+        )
+        author.update(external_id="github_enterprise:baxterthehacker")
+
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+            HTTP_X_HUB_SIGNATURE="sha1=2a0586cc46490b17441834e1e143ec3d8c1fe032",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 204
+        assert Commit.objects.filter(organization_id=self.project.organization_id).count() == 2
+        mock_get_client.assert_not_called()
+
     @responses.activate
     def test_multiple_orgs(
         self, mock_get_installation_metadata: MagicMock, mock_get_jwt: MagicMock
