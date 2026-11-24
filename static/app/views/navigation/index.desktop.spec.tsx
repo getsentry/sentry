@@ -10,6 +10,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {
   act,
   cleanup,
+  fireEvent,
   render,
   type RouterConfig,
   screen,
@@ -1969,6 +1970,26 @@ describe('desktop navigation', () => {
         ).not.toBeInTheDocument();
       });
 
+      it('previews groups on hover', async () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({organization: universalInbox})
+        );
+
+        const secondaryNav = screen.getByRole('navigation', {
+          name: 'Secondary Navigation',
+        });
+        expect(
+          within(secondaryNav).getByRole('link', {name: 'Feed'})
+        ).toBeInTheDocument();
+
+        await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
+
+        expect(await screen.findByRole('link', {name: 'Traces'})).toBeInTheDocument();
+      });
+
       describe('hover', () => {
         beforeEach(() => {
           jest.useFakeTimers();
@@ -1983,7 +2004,13 @@ describe('desktop navigation', () => {
           }
         });
 
-        it('does not preview groups on hover', async () => {
+        async function hoverAndWait(name: string) {
+          await userEvent.hover(screen.getByRole('link', {name}), {delay: null});
+          // Advance past the longest hover activation delay.
+          act(() => jest.advanceTimersByTime(250));
+        }
+
+        it('does not preview anything when hovering Inbox', async () => {
           render(
             <PrimaryNavigationContextProvider>
               <Navigation />
@@ -1991,24 +2018,122 @@ describe('desktop navigation', () => {
             navigationContext({organization: universalInbox})
           );
 
+          await hoverAndWait('Inbox');
+
           const secondaryNav = screen.getByRole('navigation', {
             name: 'Secondary Navigation',
           });
           expect(
             within(secondaryNav).getByRole('link', {name: 'Feed'})
           ).toBeInTheDocument();
-
-          await userEvent.hover(screen.getByRole('link', {name: 'Explore'}), {
-            delay: null,
-          });
-          // Advance past the longest hover activation delay.
-          act(() => jest.advanceTimersByTime(250));
-
-          expect(
-            within(secondaryNav).getByRole('link', {name: 'Feed'})
-          ).toBeInTheDocument();
-          expect(screen.queryByRole('link', {name: 'Traces'})).not.toBeInTheDocument();
         });
+      });
+
+      it('previews hovered groups as an overlay right after opening the inbox', async () => {
+        const {router} = render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({organization: universalInbox})
+        );
+
+        // The pointer enters the nav while it is still expanded, opens the inbox
+        // from the rail, and moves on to another item without leaving the nav.
+        // fireEvent keeps the parent from receiving a second mouseenter, which
+        // is what happens in a browser.
+        const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+        fireEvent.mouseEnter(primaryNav.parentElement!);
+        fireEvent.click(screen.getByRole('link', {name: 'Inbox'}));
+        expect(router.location.pathname).toBe('/organizations/org-slug/inbox/');
+        fireEvent.mouseOver(screen.getByRole('link', {name: 'Explore'}));
+
+        await waitFor(() => {
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'true'
+          );
+        });
+        expect(await screen.findByRole('link', {name: 'Traces'})).toBeInTheDocument();
+      });
+
+      it('hides the inbox overlay when hovering an item without a secondary navigation', async () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: universalInbox,
+            initialRouterConfig: {location: {pathname: '/organizations/org-slug/inbox/'}},
+          })
+        );
+
+        await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
+        await waitFor(() => {
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'true'
+          );
+        });
+
+        await userEvent.hover(screen.getByRole('link', {name: 'Inbox'}));
+        await waitFor(() => {
+          expect(
+            screen.queryByTestId('collapsed-secondary-sidebar')
+          ).not.toBeInTheDocument();
+        });
+
+        // Moving on to an item with a secondary navigation shows it again.
+        await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
+        await waitFor(() => {
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'true'
+          );
+        });
+      });
+
+      it('previews hovered groups as an overlay on the inbox', async () => {
+        const {router} = render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: universalInbox,
+            initialRouterConfig: {location: {pathname: '/organizations/org-slug/inbox/'}},
+          })
+        );
+
+        const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+        await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
+        await waitFor(() => {
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'true'
+          );
+        });
+        expect(await screen.findByRole('link', {name: 'Traces'})).toBeInTheDocument();
+        // The inbox decides that the sidebar is collapsed, so it cannot be expanded.
+        expect(screen.queryByRole('button', {name: 'Expand'})).not.toBeInTheDocument();
+
+        await userEvent.unhover(primaryNav);
+        await waitFor(() => {
+          expect(
+            screen.queryByTestId('collapsed-secondary-sidebar')
+          ).not.toBeInTheDocument();
+        });
+
+        // The user's expanded preference is kept for the rest of the app.
+        await userEvent.click(screen.getByRole('link', {name: 'Issues'}));
+        expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+        expect(
+          screen.getByRole('navigation', {name: 'Secondary Navigation'})
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByTestId('collapsed-secondary-sidebar')
+        ).not.toBeInTheDocument();
+        expect(
+          localStorage.getItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY)
+        ).toBeNull();
       });
 
       it('shows the secondary navigation after navigating away from the inbox', async () => {

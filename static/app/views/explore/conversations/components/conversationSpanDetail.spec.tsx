@@ -16,7 +16,11 @@ import {ConversationSpanDetail} from './conversationSpanDetail';
 const organization = OrganizationFixture();
 const project = ProjectFixture({id: '1'});
 
-function makeNode(eventId: string, operationName: string) {
+function makeNode(
+  eventId: string,
+  operationName: string,
+  attributes: Record<string, string> = {}
+) {
   return new EapSpanNode(
     null,
     makeEAPSpan({
@@ -24,7 +28,7 @@ function makeNode(eventId: string, operationName: string) {
       project_id: 1,
       project_slug: project.slug,
       op: `gen_ai.${operationName}`,
-      additional_attributes: {'gen_ai.operation.name': operationName},
+      additional_attributes: {'gen_ai.operation.name': operationName, ...attributes},
     }),
     {organization}
   );
@@ -158,6 +162,64 @@ describe('ConversationSpanDetail', () => {
       expect(screen.getByText(value)).toAppearBefore(dashboardButton);
     }
   );
+
+  it.each([
+    [
+      'a failed tool call',
+      'tool',
+      [
+        {name: 'span.status', type: 'str', value: 'internal_error'},
+        {name: 'error.type', type: 'str', value: 'RateLimitError'},
+        {name: 'span.status.message', type: 'str', value: 'Rate limit exceeded'},
+      ],
+      ['RateLimitError', 'Rate limit exceeded'],
+    ],
+    [
+      'an MCP tool result flagged as an error',
+      'tool',
+      [
+        {name: 'span.status', type: 'str', value: 'ok'},
+        {name: 'mcp.tool.result.is_error', type: 'str', value: 'true'},
+        {name: 'mcp.tool.result.content', type: 'str', value: 'File not found'},
+      ],
+      ['Tool Error', 'File not found'],
+    ],
+    [
+      'a successful tool call',
+      'tool',
+      [{name: 'span.status', type: 'str', value: 'ok'}],
+      null,
+    ],
+    [
+      'a failed span that is not a tool call',
+      'ai_client',
+      [{name: 'span.status', type: 'str', value: 'internal_error'}],
+      null,
+    ],
+  ] as const)('shows the error of %s', async (_, operationType, attributes, expected) => {
+    mockAttributes('span', [...attributes]);
+    render(
+      <ConversationSpanDetail
+        node={makeNode('span', operationType, {'gen_ai.operation.type': operationType})}
+        traceId="trace-id"
+        activeTab="input"
+        onTabChange={jest.fn()}
+      />,
+      {organization}
+    );
+
+    await screen.findByRole('tab', {name: 'Input'});
+    if (expected) {
+      for (const text of expected) {
+        expect(await screen.findByText(text)).toBeInTheDocument();
+      }
+    } else {
+      expect(screen.queryByText('Tool Error')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('This tool call failed but has no associated issue.')
+      ).not.toBeInTheDocument();
+    }
+  });
 
   describe('scrubbed values', () => {
     const toolArguments = JSON.stringify({to: '[email]', subject: 'Hello'});

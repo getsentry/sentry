@@ -10,6 +10,7 @@ from urllib3.response import HTTPResponse
 
 from sentry.api.serializers import serialize
 from sentry.incidents.grouptype import MetricIssue
+from sentry.issues.action_log.types import ActionSource, GroupActionType
 from sentry.issues.endpoints.group_related import (
     ALL_TYPES_UNAVAILABLE_DETAIL,
     EVENT_NOT_FOUND_DETAIL,
@@ -20,6 +21,7 @@ from sentry.issues.related.contributing import (
     UNSUPPORTED_DATASET_DETAIL,
     UNSUPPORTED_QUERY_DETAIL,
 )
+from sentry.issues.related.investigations import NO_INVESTIGATION_ACCESS_DETAIL
 from sentry.issues.related.same_supergroup import (
     NON_ERROR_ISSUE_DETAIL,
     NOT_ENABLED_DETAIL,
@@ -37,6 +39,7 @@ from sentry.issues.related.similar_stacktrace import (
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupopenperiod import get_latest_open_period
+from sentry.notebooks.models import Notebook, NotebookStatus
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -104,6 +107,13 @@ SUPERGROUP_FEATURES = [
     "organizations:supergroups-lightweight-rca-clustering-write",
 ]
 SUPERGROUP_TITLE = "Postgres connection pool exhaustion in checkout workers"
+
+INVESTIGATION_FEATURES = [
+    "organizations:investigations",
+    "organizations:investigations-issue-links",
+]
+HYPOTHESIS = "Payment retries exhaust the connection pool"
+LINK_REASON = "Its timeouts start with the deploy."
 
 
 def supergroups_response(*supergroups: list[int]) -> HTTPResponse:
@@ -199,6 +209,7 @@ class GroupRelatedEndpointTest(
                     "relations": [{"type": "similar_stacktrace", "score": 0.95}],
                 },
             ],
+            "investigations": [],
             "meta": {
                 "types": [
                     {"type": "similar_stacktrace", "status": "ok", "eventId": self.event.event_id}
@@ -274,6 +285,7 @@ class GroupRelatedEndpointTest(
                     "relations": [{"type": "same_trace"}],
                 },
             ],
+            "investigations": [],
             "meta": {
                 "types": [
                     {
@@ -364,6 +376,7 @@ class GroupRelatedEndpointTest(
         # stack trace, ingest gave it a trace of its own, and no other issue has its title.
         assert response.data == {
             "data": [],
+            "investigations": [],
             "meta": {
                 "types": [
                     {
@@ -393,6 +406,11 @@ class GroupRelatedEndpointTest(
                         "type": "same_supergroup",
                         "status": "not_applicable",
                         "detail": NOT_ENABLED_DETAIL,
+                    },
+                    {
+                        "type": "investigations",
+                        "status": "not_applicable",
+                        "detail": NO_INVESTIGATION_ACCESS_DETAIL,
                     },
                 ]
             },
@@ -444,6 +462,11 @@ class GroupRelatedEndpointTest(
                     "type": "same_supergroup",
                     "status": "not_applicable",
                     "detail": NOT_ENABLED_DETAIL,
+                },
+                {
+                    "type": "investigations",
+                    "status": "not_applicable",
+                    "detail": NO_INVESTIGATION_ACCESS_DETAIL,
                 },
             ]
         }
@@ -567,6 +590,11 @@ class GroupRelatedEndpointTest(
                     "status": "not_applicable",
                     "detail": NOT_ENABLED_DETAIL,
                 },
+                {
+                    "type": "investigations",
+                    "status": "not_applicable",
+                    "detail": NO_INVESTIGATION_ACCESS_DETAIL,
+                },
             ]
         }
         mock_seer_request.assert_not_called()
@@ -626,6 +654,7 @@ class GroupRelatedEndpointTest(
         assert response.status_code == 200
         assert response.data == {
             "data": [],
+            "investigations": [],
             "meta": {
                 "types": [
                     {
@@ -655,6 +684,11 @@ class GroupRelatedEndpointTest(
                         "type": "same_supergroup",
                         "status": "not_applicable",
                         "detail": NOT_ENABLED_DETAIL,
+                    },
+                    {
+                        "type": "investigations",
+                        "status": "not_applicable",
+                        "detail": NO_INVESTIGATION_ACCESS_DETAIL,
                     },
                 ]
             },
@@ -695,6 +729,11 @@ class GroupRelatedEndpointTest(
                     "type": "same_supergroup",
                     "status": "not_applicable",
                     "detail": NOT_ENABLED_DETAIL,
+                },
+                {
+                    "type": "investigations",
+                    "status": "not_applicable",
+                    "detail": NO_INVESTIGATION_ACCESS_DETAIL,
                 },
             ]
         }
@@ -767,6 +806,7 @@ class GroupRelatedEndpointTest(
                     "relations": [{"type": "contributing"}],
                 },
             ],
+            "investigations": [],
             "meta": {
                 "types": [
                     {
@@ -874,6 +914,7 @@ class GroupRelatedEndpointTest(
                     "relations": [{"type": "same_title"}],
                 },
             ],
+            "investigations": [],
             "meta": {
                 "types": [
                     {
@@ -971,6 +1012,7 @@ class GroupRelatedEndpointTest(
                     "relations": [{"type": "same_supergroup"}],
                 },
             ],
+            "investigations": [],
             "meta": {
                 "types": [
                     {
@@ -1062,6 +1104,89 @@ class GroupRelatedEndpointTest(
                 "detail": SUPERGROUPS_UNAVAILABLE_DETAIL,
             },
         ]
+
+    def link_investigation(
+        self, notebook: Notebook, reason: str | None = LINK_REASON, **kwargs: Any
+    ) -> None:
+        """Record that the investigation linked setUp's issue, as a finished run does."""
+        self.create_group_action_log_entry(
+            type=GroupActionType.INVESTIGATION_LINKED,
+            source=ActionSource.SEER_INVESTIGATION,
+            data={
+                "notebook_id": notebook.id,
+                "hypothesis_id": "h-1",
+                "hypothesis_statement": HYPOTHESIS,
+                "reason": reason,
+            },
+            **kwargs,
+        )
+
+    def test_investigations(self) -> None:
+        older = self.create_notebook(organization=self.organization, title="Checkout latency")
+        newer = self.create_notebook(organization=self.organization, title="Payment timeouts")
+        deleted = self.create_notebook(
+            organization=self.organization, title="Cart errors", status=NotebookStatus.ARCHIVED
+        )
+        self.link_investigation(older, reason=None, date_added=before_now(minutes=10))
+        self.link_investigation(deleted, date_added=before_now(minutes=5))
+        self.link_investigation(newer, date_added=before_now(minutes=1))
+
+        with self.feature(INVESTIGATION_FEATURES):
+            response = self.client.get(self.path, {"type": "investigations"})
+
+        assert response.status_code == 200
+        # Most recently linked first, without the deleted investigation
+        assert response.data == {
+            "data": [],
+            "investigations": [
+                {
+                    "investigation": {"id": str(newer.id), "title": "Payment timeouts"},
+                    "hypothesisStatement": HYPOTHESIS,
+                    "reason": LINK_REASON,
+                },
+                {
+                    "investigation": {"id": str(older.id), "title": "Checkout latency"},
+                    "hypothesisStatement": HYPOTHESIS,
+                    "reason": None,
+                },
+            ],
+            "meta": {"types": [{"type": "investigations", "status": "ok"}]},
+        }
+
+    def test_investigations_not_applicable(self) -> None:
+        self.link_investigation(
+            self.create_notebook(organization=self.organization, title="Checkout latency")
+        )
+        not_applicable = {
+            "data": [],
+            "investigations": [],
+            "meta": {
+                "types": [
+                    {
+                        "type": "investigations",
+                        "status": "not_applicable",
+                        "detail": NO_INVESTIGATION_ACCESS_DETAIL,
+                    }
+                ]
+            },
+        }
+
+        # Without the issue links flag
+        with self.feature("organizations:investigations"):
+            response = self.client.get(self.path, {"type": "investigations"})
+
+        assert response.status_code == 200
+        assert response.data == not_applicable
+
+        # The endpoint needs only event:read, but investigations need an org scope
+        token = self.create_user_auth_token(user=self.user, scope_list=["event:read"])
+        with self.feature(INVESTIGATION_FEATURES):
+            response = self.client.get(
+                self.path, {"type": "investigations"}, HTTP_AUTHORIZATION=f"Bearer {token.token}"
+            )
+
+        assert response.status_code == 200
+        assert response.data == not_applicable
 
     @mock.patch(ISSUE_SEARCH_SNUBA_QUERY, side_effect=QueryExecutionError("timeout"))
     def test_issue_search_error(self, mock_snuba_query: mock.MagicMock) -> None:

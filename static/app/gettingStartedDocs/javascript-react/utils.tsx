@@ -9,10 +9,11 @@ import {getReplayConfigOptions} from 'sentry/components/onboarding/gettingStarte
 const getDynamicParts = (params: DocsParams): string[] => {
   const dynamicParts: string[] = [];
 
-  if (params.isPerformanceSelected) {
+  if (params.isPerformanceSelected || params.isProfilingSelected) {
     dynamicParts.push(`
       // Tracing
-      tracesSampleRate: 1.0, //  Capture 100% of the transactions
+      // Capture 100% of spans. Reduce this value in production.
+      tracesSampleRate: 1.0,
       // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
       tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
   }
@@ -20,15 +21,19 @@ const getDynamicParts = (params: DocsParams): string[] => {
   if (params.isReplaySelected) {
     dynamicParts.push(`
       // Session Replay
-      replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-      replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
+      // Capture 10% of all sessions, plus 100% of sessions with an error.
+      // You may want to capture 100% of sessions while in development.
+      replaysSessionSampleRate: 0.1,
+      replaysOnErrorSampleRate: 1.0`);
   }
 
   if (params.isProfilingSelected) {
     dynamicParts.push(`
-        // Set profileSessionSampleRate to 1.0 to profile during every session.
-        // The decision, whether to profile or not, is made once per session (when the SDK is initialized).
-        profileSessionSampleRate: 1.0`);
+      // Profiling
+      // Profile 100% of sessions while a trace is active.
+      // The decision to profile is made once per session, when the SDK is initialized.
+      profileSessionSampleRate: 1.0,
+      profileLifecycle: "trace"`);
   }
 
   return dynamicParts;
@@ -36,7 +41,7 @@ const getDynamicParts = (params: DocsParams): string[] => {
 
 const getIntegrations = (params: DocsParams): string[] => {
   const integrations = [];
-  if (params.isPerformanceSelected) {
+  if (params.isPerformanceSelected || params.isProfilingSelected) {
     integrations.push('Sentry.browserTracingIntegration()');
   }
 
@@ -55,12 +60,15 @@ const getIntegrations = (params: DocsParams): string[] => {
       Sentry.feedbackIntegration({
         colorScheme: "system",
         ${getFeedbackConfigOptions(params.feedbackOptions)}
-      }),`);
+      })`);
   }
 
   return integrations;
 };
 
+/**
+ * The contents of `instrument.js`, which the entry point imports first.
+ */
 export function getSdkSetupSnippet(params: DocsParams) {
   const config = buildSdkConfig({
     params,
@@ -69,18 +77,45 @@ export function getSdkSetupSnippet(params: DocsParams) {
     getDynamicParts,
   });
 
-  return `
-import * as Sentry from "@sentry/react";
+  return `import * as Sentry from "@sentry/react";
 
 Sentry.init({
   ${config}
 });
-
-const container = document.getElementById("app");
-const root = createRoot(container);
-root.render(<App />);
 `;
 }
+
+export const entryPointSnippet = `// Import Sentry before anything else, so it can capture errors during startup
+import "./instrument";
+import * as Sentry from "@sentry/react";
+import { createRoot } from "react-dom/client";
+import App from "./App";
+
+const container = document.getElementById("root");
+// React 19+ reports errors through these hooks
+const root = createRoot(container, {
+  // Called when an error is thrown and not caught by an ErrorBoundary
+  onUncaughtError: Sentry.reactErrorHandler((error, errorInfo) => {
+    console.warn("Uncaught error", error, errorInfo.componentStack);
+  }),
+  // Called when React catches an error in an ErrorBoundary
+  onCaughtError: Sentry.reactErrorHandler(),
+  // Called when React automatically recovers from errors
+  onRecoverableError: Sentry.reactErrorHandler(),
+});
+root.render(<App />);
+`;
+
+export const errorBoundarySnippet = `import * as Sentry from "@sentry/react";
+
+export default function App() {
+  return (
+    <Sentry.ErrorBoundary fallback={<p>An error has occurred</p>}>
+      <YourAppContent />
+    </Sentry.ErrorBoundary>
+  );
+}
+`;
 
 export const installSnippetBlock: ContentBlock = {
   type: 'code',

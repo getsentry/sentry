@@ -15,7 +15,7 @@ from google.cloud.bigtable.row import PartialRowData, Row
 from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
 from google.cloud.bigtable.row_set import RowSet
 from google.cloud.bigtable.table import DEFAULT_RETRY as DEFAULT_RETRY_MUTATE_ROWS
-from google.cloud.bigtable.table import Table
+from google.cloud.bigtable.table import Table, _BigtableRetryableError
 from sentry_sdk import traces
 
 from sentry.utils import metrics
@@ -30,6 +30,19 @@ DEFAULT_GET_TIMEOUT = 5.0
 # google-cloud-bigtable caps each mutation attempt at 5s (and rounds down to
 # whole seconds), whatever larger timeout is passed.
 _CLIENT_MAX_ATTEMPT_TIMEOUT = 5.0
+
+# The client only retries errors raised when a MutateRows call starts. Errors
+# raised while reading its response stream, such as an attempt running out of
+# time, fail the operation on the first attempt. Retry those as well. Rows
+# that already succeeded aren't sent again.
+_RETRY_MUTATE_ROWS = DEFAULT_RETRY_MUTATE_ROWS.with_predicate(
+    retry.if_exception_type(
+        _BigtableRetryableError,
+        exceptions.Aborted,
+        exceptions.DeadlineExceeded,
+        exceptions.ServiceUnavailable,
+    )
+)
 
 
 class BigtableError(Exception):
@@ -321,7 +334,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         return list(
             table.mutate_rows(
                 rows,
-                retry=DEFAULT_RETRY_MUTATE_ROWS.with_timeout(context_timeout),
+                retry=_RETRY_MUTATE_ROWS.with_timeout(context_timeout),
                 # Per-attempt limit. Without it, each attempt may wait up to
                 # the client default of 600s. At least 1s, since the client
                 # would round anything less down to 0.

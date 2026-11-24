@@ -454,6 +454,7 @@ export function Composer({
                 selectionMode="none"
                 shouldUseVirtualFocus
                 size="sm"
+                virtualized={suggestionCount > 10}
               />
             ) : (
               <Container minWidth="220px" maxWidth="360px">

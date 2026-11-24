@@ -13,7 +13,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Overlay} from '@sentry/scraps/overlay';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {AskSeerSetupLoading} from 'sentry/components/searchQueryBuilder/askSeer/askSeerSetupLoading';
 import {OpenAskSeerButton} from 'sentry/components/searchQueryBuilder/askSeer/openAskSeerButton';
 import {
