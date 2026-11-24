@@ -208,7 +208,7 @@ export const BACKEND_OVERVIEW_SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
 
 const TABLE_FIELDS = [
   SpanFields.IS_STARRED_TRANSACTION,
-  SpanFields.REQUEST_METHOD,
+  SpanFields.HTTP_REQUEST_METHOD,
   SpanFields.TRANSACTION,
   SpanFields.SPAN_OP,
   SpanFields.PROJECT,
@@ -241,7 +241,7 @@ const TRANSACTIONS_TABLE: PrebuiltWidget = {
       ],
       columns: [
         SpanFields.IS_STARRED_TRANSACTION,
-        SpanFields.REQUEST_METHOD,
+        SpanFields.HTTP_REQUEST_METHOD,
         SpanFields.TRANSACTION,
         SpanFields.SPAN_OP,
         SpanFields.PROJECT,
