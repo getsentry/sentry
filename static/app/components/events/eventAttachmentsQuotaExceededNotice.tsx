@@ -16,10 +16,17 @@ type Props = {
   variant: 'all' | 'some';
 };
 
+/**
+ * Reason codes of the quotas that limit attachment usage.
+ */
+const QUOTA_REASON_CODES = new Set([
+  'attachment_usage_exceeded',
+  'project_quota_attachment_usage_exceeded',
+  'usage_exceeded',
+]);
+
 function isQuotaReasonCode(reasonCode: string | null | undefined) {
-  return (
-    reasonCode === 'usage_exceeded' || reasonCode?.endsWith('_usage_exceeded') === true
-  );
+  return !!reasonCode && QUOTA_REASON_CODES.has(reasonCode);
 }
 
 /**
