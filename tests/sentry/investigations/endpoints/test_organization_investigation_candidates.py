@@ -229,7 +229,8 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
                 [],
                 {"notebookId": notebook_id, "projectIds": [self.project.id]},
             )
-            return Response({"id": run_id, "notebook": True})
+            # Seer committed the run, but its HTTP acknowledgement was lost.
+            return Response(status=502)
 
         with (
             self.feature("organizations:investigations-v2"),
@@ -240,6 +241,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         ):
             beta = self.client.post(url, payload, format="json")
             assert beta.status_code == 201, beta.data
+            assert "workflowLaunch" not in beta.data
             assert beta.data["id"] != legacy.data["id"]
             lookup = self.client.post(
                 self.candidates_url, {"sources": [payload["source"]]}, format="json"
@@ -279,11 +281,17 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             "ref": {"groupId": str(group.id), "openPeriodId": str(period.id)},
         }
         detector_id = group.detectorgroup_set.get().detector_id
-        for seed, reused in (
-            ({"metricIssueId": group.id, "openPeriodId": period.id}, False),
-            ({"sentrySource": {**source, "snapshot": {"groupTitle": "untrusted"}}}, True),
+        for seed in (
+            {"metricIssueId": group.id, "openPeriodId": period.id},
+            {"sentrySource": {**source, "snapshot": {"groupTitle": "untrusted"}}},
         ):
             run_id = str(uuid4())
+            previous = NotebookWorkflowRun.objects.filter(organization=self.organization).first()
+            destination: dict[str, Any] = {"projectIds": [self.project.id]}
+            if previous:
+                destination.update(
+                    notebookId=previous.notebook_id, previousRunId=str(previous.run_id)
+                )
             run, _ = create_run(
                 self.organization,
                 {
@@ -306,13 +314,13 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
                 },
                 {"name": "breached_metrics", "notebook": True},
                 [],
-                {"projectIds": [self.project.id]},
+                destination,
             )
             notebook = Notebook.objects.get(
                 source_key=f"v2:metric_open_period:{group.id}:{period.id}"
             )
             assert run.checkpoint["notebook_id"] == notebook.id
-            assert NotebookWorkflowRun.objects.get(run_id=run.uuid).preserve_title == reused
+            assert not NotebookWorkflowRun.objects.get(run_id=run.uuid).preserve_title
             assert notebook.source["snapshot"]["groupTitle"] == group.title
         with mock.patch(
             "sentry.investigations.endpoints.organization_investigation_start.forward_workflow_request"
@@ -337,13 +345,24 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         url = self.start_url + "?version=2"
         with mock.patch(
             "sentry.investigations.endpoints.organization_investigation_start.forward_workflow_request",
-            side_effect=[Response(status=502), Response(status=202)],
+            side_effect=[
+                Response(status=502),
+                Response({"detail": "Notebook access disabled."}, status=403),
+            ],
         ) as start:
-            assert self.client.post(url, payload, format="json").status_code == 502
-            # An accepted response without a persisted run cannot open a live notebook.
+            first_response = self.client.post(url, payload, format="json")
+            assert first_response.status_code == 201
+            assert first_response.data["workflowLaunch"]["status"] == "unconfirmed"
             retry = self.client.post(url, payload, format="json")
-            assert retry.status_code == 502
-            assert retry.data["detail"] == "The workflow did not open its notebook."
+            assert retry.status_code == 200
+            assert retry.data["id"] == first_response.data["id"]
+            detail = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/notebooks/{retry.data['id']}/"
+            )
+            assert detail.data["workflowLaunch"] == {
+                "status": "failed",
+                "detail": "Notebook access disabled.",
+            }
         first, second = (call.kwargs["data"] for call in start.call_args_list)
         assert first == second
         assert Notebook.objects.filter(organization=self.organization).count() == 1

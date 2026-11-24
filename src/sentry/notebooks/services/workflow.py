@@ -30,6 +30,7 @@ from sentry.notebooks.services.notebooks import (
     _validate_project_ids,
     create_manual_notebook,
     has_default_notebook_title,
+    latest_workflow_binding,
     require_workflow_writer,
     validate_evidence_scope,
 )
@@ -48,6 +49,7 @@ def open_workflow_notebook(
     title: str,
     project_ids: list[int],
     generate_placeholder_title: bool = False,
+    previous_run_id: UUID | None = None,
 ) -> Notebook:
     def destination_notebook() -> Notebook:
         return destination or create_manual_notebook(
@@ -61,6 +63,18 @@ def open_workflow_notebook(
     # get_or_create evaluates callable defaults inside its savepoint. A simultaneous
     # first open that loses the unique-key race also rolls back its blank notebook.
     with transaction.atomic(using=router.db_for_write(Notebook)):
+        latest = None
+        if destination is not None:
+            destination = Notebook.objects.select_for_update().get(
+                pk=destination.pk, organization=organization
+            )
+            latest = latest_workflow_binding(destination)
+            if (latest is None and previous_run_id is not None) or (
+                latest is not None and latest.run_id not in (run_id, previous_run_id)
+            ):
+                raise ConflictError("Another workflow owns this notebook.")
+        elif previous_run_id is not None:
+            raise serializers.ValidationError("A previous run requires a notebook destination.")
         binding, created = NotebookWorkflowRun.objects.get_or_create(
             organization=organization,
             run_id=run_id,
@@ -71,6 +85,12 @@ def open_workflow_notebook(
         notebook = Notebook.objects.select_for_update().get(
             pk=binding.notebook_id, organization=organization
         )
+        if not created and (latest or latest_workflow_binding(notebook)) != binding:
+            raise ConflictError("Another workflow owns this notebook.")
+        if created and latest is not None:
+            sync_snapshot_action_requests(notebook, [], workflow_run=latest)
+            if not latest.preserve_title:
+                binding.update(preserve_title=False)
         if notebook.status != "active":
             raise ConflictError("Archived notebooks are read-only.")
         # A monitor launch creates its draft before the workflow starts. Only that
@@ -119,9 +139,15 @@ def link_writer_run(
 ) -> UUID:
     """Mirror the Explorer child attested by Seer's worker after the actor opened the notebook."""
     with transaction.atomic(using=router.db_for_write(NotebookWorkflowRun)):
-        binding = NotebookWorkflowRun.objects.select_for_update().get(
+        notebook_id = NotebookWorkflowRun.objects.values_list("notebook_id", flat=True).get(
             organization=organization, run_id=run_id
         )
+        notebook = Notebook.objects.select_for_update().get(
+            pk=notebook_id, organization=organization
+        )
+        binding = latest_workflow_binding(notebook)
+        if binding is None or binding.run_id != run_id:
+            raise ConflictError("Another workflow owns this notebook.")
         writer, _ = SeerRun.objects.get_or_create(
             seer_run_state_id=seer_run_state_id,
             defaults={
@@ -245,7 +271,11 @@ def block_revision(versions: Iterable[tuple[int, int, int | None]]) -> str:
 
 
 def deliver_finalizer(
-    binding: NotebookWorkflowRun, revision: str, section: str, result: dict[str, Any]
+    binding: NotebookWorkflowRun,
+    writer_run_id: int,
+    revision: str,
+    section: str,
+    result: dict[str, Any],
 ) -> None:
     with transaction.atomic(using=router.db_for_write(Notebook)):
         # Notebook edits and orchestration events acquire the notebook lock first.
@@ -255,11 +285,11 @@ def deliver_finalizer(
             .filter(investigation_id=binding.notebook_id)
             .get_or_none()
         )
-        binding = NotebookWorkflowRun.objects.select_for_update().get(pk=binding.pk)
-        if binding.delivered.get(section) == revision:
-            return
+        binding = require_workflow_writer(notebook, binding.run_id, writer_run_id)
         if notebook.status != "active" or content_revision(notebook) != revision:
             raise ConflictError("Notebook contents changed after authoring.")
+        if binding.delivered.get(section) == revision:
+            return
         blocks = notebook.blocks.filter(deleted_at__isnull=True)
         if not blocks.exists():
             raise ConflictError("The notebook is empty.")

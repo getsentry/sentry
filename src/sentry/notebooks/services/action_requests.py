@@ -400,9 +400,13 @@ def complete_action_requests(
                 continue
             for row in action_requests.filter(notebook=notebook).select_for_update():
                 if shared_cannot_apply_reason(notebook, row) is None:
-                    run = producer.lock_run(
-                        notebook, lock=True, workflow_binding_id=row.workflow_run_id
-                    )
+                    try:
+                        run = producer.lock_run(
+                            notebook, lock=True, workflow_binding_id=row.workflow_run_id
+                        )
+                    except ApplyFailed:
+                        # An expired or superseded producer cannot act on this request.
+                        continue
                     _complete_action_request(run, row, applied_by=applied_by, details=details)
 
 

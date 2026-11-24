@@ -6,6 +6,7 @@ from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry.investigations.models import WorkflowNodeRun, WorkflowRun
+from sentry.investigations.services.workflow_report import notebook_report
 from sentry.investigations.services.workflow_runtime import metric_workflow_request_id
 from sentry.notebooks.models import Notebook, NotebookSourceType, NotebookWorkflowRun
 from sentry.notebooks.services.notebooks import default_notebook_title
@@ -57,7 +58,7 @@ class WorkflowStorageTest(APITestCase):
             "next_check_at": None,
             "item_index": None,
         }
-        self.payload = {
+        self.payload: dict[str, Any] = {
             "run": self.checkpoint,
             "nodes": [self.leaf],
             "definition": {
@@ -85,6 +86,7 @@ class WorkflowStorageTest(APITestCase):
             notebook=notebook, run_id=self.run_id
         ).preserve_title
 
+    @with_feature("organizations:investigations-v2")
     def test_atomic_creation_checkpoint_activity_and_notebook_projection(self) -> None:
         def create() -> Response:
             return self.client.post(self.url, self.payload, format="json", **self.system)
@@ -414,7 +416,12 @@ class WorkflowStorageTest(APITestCase):
         detail = self.client.get(
             f"/api/0/organizations/{self.organization.slug}/notebooks/{notebook}/"
         )
-        card = detail.data["workflowReport"]["hypotheses"][0]
+        saved_notebook = Notebook.objects.get(pk=notebook)
+        with self.assertNumQueries(4):
+            report = notebook_report(saved_notebook, viewer_id=self.user.id)
+        assert report is not None
+        assert report["hypotheses"] == detail.data["workflowReport"]["hypotheses"]
+        card = report["hypotheses"][0]
         assert detail.data["workflowReport"]["primaryHypothesisId"] == card["id"]
         assert card["agentVerdict"]["supportingEvidenceIds"] == [card["evidence"][0]["id"]]
         assert card["verificationSteps"][0]["evidence"][0]["url"] == evidence["url"]

@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from threading import Barrier
+from uuid import uuid4
+
 import pytest
 from django.db import IntegrityError, close_old_connections, router, transaction
 
+from sentry.api.exceptions import ConflictError
 from sentry.api.helpers.creator import CreatorReference
 from sentry.notebooks.models import Notebook, NotebookProject, NotebookSourceType, NotebookStatus
 from sentry.notebooks.services.notebooks import (
@@ -15,6 +19,7 @@ from sentry.notebooks.services.notebooks import (
     lock_notebook,
     update_notebook_row,
 )
+from sentry.notebooks.services.workflow import open_workflow_notebook
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
@@ -299,3 +304,31 @@ class ConcurrentSourceNotebookTest(TransactionTestCase):
         assert list(
             Notebook.objects.filter(source_key=self.source_key).values_list("title", flat=True)
         ) == ["Winner"]
+
+    def test_racing_workflows_cannot_both_claim_a_notebook(self) -> None:
+        notebook = self.create_revision(1, "Shared")
+        user_id = self.create_user().id
+        barrier = Barrier(2)
+
+        def open_destination() -> bool:
+            close_old_connections()
+            try:
+                barrier.wait(timeout=10)
+                open_workflow_notebook(
+                    self.org,
+                    uuid4(),
+                    destination=notebook,
+                    title="Shared",
+                    creator=user_creator(user_id),
+                    project_ids=[],
+                )
+                return True
+            except ConflictError:
+                return False
+            finally:
+                close_old_connections()
+
+        with ContextPropagatingThreadPoolExecutor(max_workers=2) as executor:
+            results = [executor.submit(open_destination) for _ in range(2)]
+            assert sorted(result.result(timeout=15) for result in results) == [False, True]
+        assert notebook.notebookworkflowrun_set.count() == 1

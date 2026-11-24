@@ -117,18 +117,29 @@ def validate_evidence_scope(project_ids: list[int], evidence_ids: list[int] | No
         )
 
 
-def require_workflow_writer(notebook: Notebook, run_id: UUID, writer_run_id: int) -> None:
-    """Fence a mutation against writer replacement while the caller holds the notebook lock."""
-    binding = (
+def latest_workflow_binding(notebook: Notebook) -> NotebookWorkflowRun | None:
+    """Read the current binding after acquiring the notebook lock."""
+    return (
         NotebookWorkflowRun.objects.select_for_update(of=("self",))
         .select_related("writer_run")
-        .filter(organization_id=notebook.organization_id, run_id=run_id, notebook=notebook)
-        .get_or_none()
+        .filter(organization_id=notebook.organization_id, notebook=notebook)
+        .order_by("-id")
+        .first()
     )
+
+
+def require_workflow_writer(
+    notebook: Notebook, run_id: UUID, writer_run_id: int
+) -> NotebookWorkflowRun:
+    """Fence a mutation against writer replacement while the caller holds the notebook lock."""
+    binding = latest_workflow_binding(notebook)
     if binding is None:
         raise serializers.ValidationError({"workflowRunId": "Open this notebook first."})
+    if binding.run_id != run_id:
+        raise ConflictError("Another workflow owns this notebook.")
     if not binding.writer_run or binding.writer_run.seer_run_state_id != writer_run_id:
         raise ConflictError("This writer is not the registered notebook writer.")
+    return binding
 
 
 def create_manual_notebook(

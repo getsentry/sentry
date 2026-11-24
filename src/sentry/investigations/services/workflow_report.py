@@ -2,7 +2,8 @@
 
 from typing import Any
 
-from django.db.models.functions import Coalesce
+from django.db.models import F, Q
+from django.db.models.functions import Coalesce, JSONObject
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
@@ -19,14 +20,13 @@ def work_status(status: str) -> str:
     }.get(status, status)
 
 
-def public_activity(row: WorkflowNodeRun) -> list[tuple[str, dict[str, str]]]:
+def public_activity(node_id: str, attempt: dict[str, Any]) -> list[tuple[str, dict[str, str]]]:
     """Only display the public messages and tool labels from the current Explorer attempt."""
-    attempt = row.activity.get(str(row.checkpoint.get("explorer_run_id")))
     entries: list[tuple[str, dict[str, str]]] = []
     if not attempt:
         return entries
     for index, block in enumerate(attempt["session"]["blocks"]):
-        prefix = f"{row.uuid}:{attempt['explorer_run_id']}:{block.get('id') or index}"
+        prefix = f"{node_id}:{attempt['explorer_run_id']}:{block.get('id') or index}"
         when = block.get("timestamp") or attempt["updatedAt"]
         msg = block["message"]
         if msg.get("role") == "assistant" and msg.get("content"):
@@ -69,21 +69,13 @@ def public_activity(row: WorkflowNodeRun) -> list[tuple[str, dict[str, str]]]:
     return entries
 
 
-def workflow_progress(run: WorkflowRun) -> dict[str, Any]:
-    # Pending nodes carry the schema inside their definition until a worker claims them.
-    nodes = list(
-        run.nodes.annotate(
-            schema=Coalesce(
-                "checkpoint__state__output_schema", "checkpoint__state__definition__output_schema"
-            )
-        ).values_list("checkpoint__node_id", "checkpoint__status", "schema")
-    )
+def workflow_progress(run_status: str, nodes: list[tuple[str, str, str | None]]) -> dict[str, Any]:
     statuses = {name: status for name, status, _ in nodes}
     scan = [status for _, status, schema in nodes if schema == "BroadScanArtifact"]
     live = {"ready", "running", "awaiting_input"}
     scan_pending = any(status in live or status == "pending" for status in scan)
-    if run.checkpoint["status"] in {"failed", "cancelled", "succeeded"}:
-        phase = "completed" if run.checkpoint["status"] == "succeeded" else run.checkpoint["status"]
+    if run_status in {"failed", "cancelled", "succeeded"}:
+        phase = "completed" if run_status == "succeeded" else run_status
     elif "notebook/metadata" in statuses or "notebook/next_steps" in statuses:
         phase = "metadata"
     elif statuses.get("notebook/write") in live:
@@ -99,69 +91,95 @@ def workflow_progress(run: WorkflowRun) -> dict[str, Any]:
     else:
         phase = "workflow"
 
-    activity = []
-    if run.checkpoint["status"] == "running":
-        for row in (
-            run.nodes.filter(checkpoint__status="running").exclude(activity={}).order_by("id")
-        ):
-            activity.extend(public_activity(row))
     next_step = statuses.get("notebook/next_steps")
-    if next_step in {"ready", "pending", "running"} and run.checkpoint["status"] in {
+    if next_step in {"ready", "pending", "running"} and run_status in {
         "failed",
         "cancelled",
     }:
-        next_step = run.checkpoint["status"]
+        next_step = run_status
     return {
         "phase": phase,
-        "awaitingHypotheses": scan_pending and run.checkpoint["status"] in {"pending", "running"},
+        "awaitingHypotheses": scan_pending and run_status in {"pending", "running"},
         "nextStepStatus": next_step,
-        "currentActivity": [entry for _, entry in sorted(activity, key=lambda pair: pair[0])[-40:]],
     }
 
 
 def notebook_report(notebook: Notebook, *, viewer_id: int | None = None) -> dict[str, Any] | None:
-    binding = (
-        NotebookWorkflowRun.objects.filter(notebook=notebook).order_by("-id").values("run_id")[:1]
-    )
-    run = WorkflowRun.objects.get_or_none(organization_id=notebook.organization_id, uuid=binding)
+    binding = NotebookWorkflowRun.objects.filter(notebook=notebook).order_by("-id")
+    run = WorkflowRun.objects.values(
+        "id",
+        "uuid",
+        "user_id",
+        "date_added",
+        preserve_title=binding.values("preserve_title")[:1],
+        status=F("checkpoint__status"),
+        created=F("checkpoint__created_at"),
+        started=F("checkpoint__started_at"),
+        finished=F("checkpoint__finished_at"),
+        active_clock=F("checkpoint__active_clock"),
+        steering=F("checkpoint__steering"),
+        report_ready=F("checkpoint__report_ready"),
+        error_message=F("checkpoint__error__message"),
+    ).get_or_none(organization_id=notebook.organization_id, uuid=binding.values("run_id")[:1])
     if run is None:
         return None
-    status = run.checkpoint["status"]
+    node_runs = WorkflowNodeRun.objects.filter(run_id=run["id"])
+    status = run["status"]
     active = status in ("pending", "running", "awaiting_input")
-    started = (
-        parse_datetime(run.checkpoint.get("created_at") or run.checkpoint.get("started_at") or "")
-        or run.date_added
-    )
-    ended = timezone.now() if active else parse_datetime(run.checkpoint.get("finished_at") or "")
-    queued = active and not run.checkpoint.get("started_at") and status in ("running", "pending")
-    clock = run.checkpoint.get("active_clock")
+    started = parse_datetime(run["created"] or run["started"] or "") or run["date_added"]
+    ended = timezone.now() if active else parse_datetime(run["finished"] or "")
+    queued = active and not run["started"] and status in ("running", "pending")
+    clock = run["active_clock"]
     since = parse_datetime((clock or {}).get("since") or "")
     active_seconds = (
         clock["seconds"] + (max(0, (timezone.now() - since).total_seconds()) if since else 0)
         if clock
         else None
     )
+    nodes = list(
+        node_runs.annotate(
+            schema=Coalesce(
+                "checkpoint__state__output_schema", "checkpoint__state__definition__output_schema"
+            )
+        ).values_list("checkpoint__node_id", "checkpoint__status", "schema")
+    )
+    # Read transcripts only for live progress, pending questions, and the public scan history.
+    transcript_filter = Q(checkpoint__state__output_schema="BroadScanArtifact")
+    if active:
+        transcript_filter |= Q(checkpoint__status__in=("running", "awaiting_input"))
+    transcripts = (
+        node_runs.filter(transcript_filter)
+        .exclude(activity={})
+        .values_list("uuid", "checkpoint__status", "checkpoint__explorer_run_id", "activity")
+    )
     prompts = []
-    for node in run.nodes.filter(checkpoint__status="awaiting_input").exclude(activity={}):
-        attempt = node.activity.get(str(node.checkpoint.get("explorer_run_id")), {})
-        pending = attempt.get("session", {}).get("pendingInput")
-        if pending:
-            prompts.append({"nodeId": str(node.uuid), **pending})
+    activity = []
+    history = {}
+    for node_id, node_status, explorer_id, attempts in transcripts:
+        history[node_id] = attempts
+        attempt = attempts.get(str(explorer_id), {})
+        if status == "running" and node_status == "running":
+            activity.extend(public_activity(str(node_id), attempt))
+        if node_status == "awaiting_input" and (
+            pending := attempt.get("session", {}).get("pendingInput")
+        ):
+            prompts.append({"nodeId": str(node_id), **pending})
     report: dict[str, Any] = {
         "pendingInputs": prompts,
         "canCommand": notebook.status == "active"
         and viewer_id is not None
-        and viewer_id == run.user_id,
+        and viewer_id == run["user_id"],
         "canSteer": active
-        and len(run.checkpoint.get("steering", {})) < 10
-        and run.nodes.filter(checkpoint__status="pending").exists(),
+        and len(run["steering"] or {}) < 10
+        and any(status == "pending" for _, status, _ in nodes),
         "activeSeconds": active_seconds,
         "clockRunning": bool(since),
-        "reportReady": bool(run.checkpoint.get("report_ready")),
+        "reportReady": bool(run["report_ready"]),
         "queued": queued,
-        **workflow_progress(run),
-        "runId": str(run.uuid),
-        "error": (run.checkpoint.get("error") or {}).get("message"),
+        **workflow_progress(status, nodes),
+        "currentActivity": [entry for _, entry in sorted(activity, key=lambda pair: pair[0])[-40:]],
+        "runId": str(run["uuid"]),
+        "error": run["error_message"],
         "status": status,
         "active": active,
         "elapsedSeconds": max(0, (ended - started).total_seconds()) if started and ended else None,
@@ -173,22 +191,49 @@ def notebook_report(notebook: Notebook, *, viewer_id: int | None = None) -> dict
     # Only these registered output schemas have investigation-specific presentation.
     # An unrelated workflow can publish its notebook with none of them.
     rows = list(
-        run.nodes.filter(
-            checkpoint__state__output_schema__in=[
-                "BroadScanArtifact",
-                "VerificationStepArtifact",
-                "HypothesisJudgmentArtifact",
-            ]
-        ).order_by("id")
+        node_runs.filter(
+            Q(
+                checkpoint__state__output_schema__in=[
+                    "BroadScanArtifact",
+                    "VerificationStepArtifact",
+                    "HypothesisJudgmentArtifact",
+                ]
+            )
+            | Q(checkpoint__node_id="notebook/metadata")
+        )
+        .order_by("id")
+        .values(
+            "uuid",
+            name=F("checkpoint__node_id"),
+            title_preview=F("checkpoint__state__title_preview"),
+            schema=F("checkpoint__state__output_schema"),
+            status=F("checkpoint__status"),
+            output=F("checkpoint__state__output"),
+            error=F("checkpoint__state__error"),
+            inputs=JSONObject(
+                hypothesis="checkpoint__state__input__hypothesis",
+                checks="checkpoint__state__input__checks",
+                skippedChecks=Coalesce(
+                    "checkpoint__state__input__skippedChecks",
+                    "checkpoint__state__input__skipped_checks",
+                ),
+                evidence="checkpoint__state__input__evidence",
+                verificationStep=Coalesce(
+                    "checkpoint__state__input__verificationStep",
+                    "checkpoint__state__input__verification_step",
+                ),
+            ),
+        )
     )
     cards: list[dict[str, Any]] = report["hypotheses"]
     for row in rows:
-        state = row.checkpoint["state"]
-        if state["output_schema"] != "BroadScanArtifact":
+        if row["schema"] != "BroadScanArtifact":
             continue
-        output = state.get("output") or {}
+        output = row["output"] or {}
         report["summary"] = output.get("summary")
-        for attempt in sorted(row.activity.values(), key=lambda entry: entry["explorer_run_id"]):
+        for attempt in sorted(
+            history.get(row["uuid"], {}).values(), key=lambda entry: entry["explorer_run_id"]
+        ):
             for block in attempt["session"]["blocks"]:
                 msg = block["message"]
                 if msg.get("role") == "assistant" and msg.get("content"):
@@ -207,7 +252,7 @@ def notebook_report(notebook: Notebook, *, viewer_id: int | None = None) -> dict
                     )
         for index, plan in enumerate(output.get("hypotheses", [])):
             planned_card = {
-                "id": f"{row.uuid}-{index}",
+                "id": f"{row['uuid']}-{index}",
                 "order": len(cards),
                 "statement": plan["statement"],
                 "rationale": plan["rationale"],
@@ -223,8 +268,7 @@ def notebook_report(notebook: Notebook, *, viewer_id: int | None = None) -> dict
             for check in plan.get("verificationSteps", []):
                 update_check(planned_card, check, "queued", None)
     for row in rows:
-        state = row.checkpoint["state"]
-        inputs = state.get("input")
+        inputs = row["inputs"]
         if not isinstance(inputs, dict) or not isinstance(inputs.get("hypothesis"), dict):
             continue
         plan = inputs["hypothesis"]
@@ -238,9 +282,9 @@ def notebook_report(notebook: Notebook, *, viewer_id: int | None = None) -> dict
         )
         if card is None:
             continue
-        output = state.get("output") or {}
-        status = work_status(row.checkpoint["status"])
-        if state["output_schema"] == "VerificationStepArtifact":
+        output = row["output"] or {}
+        status = work_status(row["status"])
+        if row["schema"] == "VerificationStepArtifact":
             check = inputs.get("verificationStep") or inputs.get("verification_step")
             if check:
                 update_check(
@@ -248,13 +292,13 @@ def notebook_report(notebook: Notebook, *, viewer_id: int | None = None) -> dict
                     check,
                     status,
                     output.get("finding"),
-                    error=state.get("error"),
+                    error=row["error"],
                     evidence=output.get("evidence"),
                 )
                 if card["decisionSource"] == "none":
                     card.update(status="running", effectiveStatus="investigating")
-        elif state["output_schema"] == "HypothesisJudgmentArtifact":
-            for checked in inputs.get("checks", []):
+        elif row["schema"] == "HypothesisJudgmentArtifact":
+            for checked in inputs.get("checks") or []:
                 update_check(
                     card,
                     checked["check"],
@@ -268,7 +312,7 @@ def notebook_report(notebook: Notebook, *, viewer_id: int | None = None) -> dict
             evidence = public_evidence(card["id"], inputs.get("evidence") or [])
             card["evidence"] = evidence
             if output:
-                card["notebookBlockKey"] = f"hypothesis-{row.uuid}"
+                card["notebookBlockKey"] = f"hypothesis-{row['uuid']}"
                 report["hypothesisBlockKeys"].append(card["notebookBlockKey"])
                 card.update(
                     status=status,
@@ -292,24 +336,15 @@ def notebook_report(notebook: Notebook, *, viewer_id: int | None = None) -> dict
                         ],
                     },
                 )
-    if run.checkpoint["status"] in ("failed", "cancelled"):
+    if run["status"] in ("failed", "cancelled"):
         for card in cards:
             if card["decisionSource"] == "none":
-                card.update(
-                    status=run.checkpoint["status"], effectiveStatus=run.checkpoint["status"]
-                )
-    metadata, preview = run.nodes.filter(checkpoint__node_id="notebook/metadata").values_list(
-        "checkpoint__state__output", "checkpoint__state__title_preview"
-    ).get_or_none() or ({}, None)
-    metadata = metadata or {}
+                card.update(status=run["status"], effectiveStatus=run["status"])
+    metadata_node = next((row for row in rows if row["name"] == "notebook/metadata"), None)
+    metadata = (metadata_node["output"] or {}) if metadata_node else {}
     report["titlePreview"] = (
-        preview
-        if preview
-        and active
-        and not report["reportReady"]
-        and not NotebookWorkflowRun.objects.filter(
-            notebook=notebook, run_id=run.uuid, preserve_title=True
-        ).exists()
+        metadata_node["title_preview"]
+        if metadata_node and active and not report["reportReady"] and not run["preserve_title"]
         else None
     )
     primary = metadata.get("primaryHypothesisKey")
