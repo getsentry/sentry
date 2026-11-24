@@ -64,6 +64,7 @@ export function SelectOption<TValue, TOption extends SelectValue<TValue>>({
     <ClassNames>
       {({css}) => (
         <ListItem
+          data-test-id={option?.value == null ? undefined : String(option.value)}
           {...option}
           {...mergeProps(optionProps, {
             onClick: (event: React.MouseEvent) => event.preventDefault(),
@@ -76,7 +77,6 @@ export function SelectOption<TValue, TOption extends SelectValue<TValue>>({
                 ? css(styleOption({}, {data: option, isDisabled, isSelected}))
                 : undefined,
           }}
-          data-test-id={option?.value == null ? undefined : String(option.value)}
           label={label}
           labelProps={labelProps}
           detailsProps={descriptionProps}
