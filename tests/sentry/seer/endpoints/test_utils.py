@@ -235,13 +235,40 @@ class AuthorizeSeerRunTest(TestCase):
             assert isinstance(result, Response)
             assert result.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_ownerless_non_issue_run_readable_not_writable(self) -> None:
+    def test_ownerless_automated_run_writable_with_run_scopes(self) -> None:
         self.create_seer_run(seer_run_state_id=555, user_id=None)
+        read_only = {"org:read", "project:read", "event:read"}
 
-        assert isinstance(self._authorize(self.teammate, write=False), ResolvedSeerRun)
-        result = self._authorize(self.teammate, write=True)
+        assert isinstance(self._authorize(self.teammate, write=True), ResolvedSeerRun)
+        assert isinstance(
+            self._authorize(self.teammate, write=False, scopes=read_only), ResolvedSeerRun
+        )
+        result = self._authorize(self.teammate, write=True, scopes=read_only)
         assert isinstance(result, Response)
         assert result.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_ownerless_project_run_needs_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        outsider = self.create_user()
+        self.create_member(organization=self.organization, user=outsider, teams=[])
+        run = self.create_seer_run(seer_run_state_id=555, user_id=None)
+        self.create_seer_agent_run(run=run, source="investigation", project=self.project)
+
+        assert isinstance(self._authorize(self.teammate, write=True), ResolvedSeerRun)
+        for write in (False, True):
+            result = self._authorize(outsider, write=write)
+            assert isinstance(result, Response)
+            assert result.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_owned_project_chat_stays_owner_only(self) -> None:
+        run = self.create_seer_run(seer_run_state_id=555, user_id=self.owner.id)
+        self.create_seer_agent_run(run=run, source="chat", project=self.project)
+
+        for write in (False, True):
+            result = self._authorize(self.teammate, write=write)
+            assert isinstance(result, Response)
+            assert result.status_code == status.HTTP_403_FORBIDDEN
 
     def test_legacy_numeric_id_without_row_readable_not_writable(self) -> None:
         assert self._authorize(self.owner, write=False) == ResolvedSeerRun(555, None)

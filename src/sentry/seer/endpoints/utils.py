@@ -19,6 +19,7 @@ from sentry.utils.numbers import validate_bigint
 if TYPE_CHECKING:
     from sentry.auth.access import Access
     from sentry.models.organization import Organization
+    from sentry.models.project import Project
 
 
 SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
@@ -158,6 +159,15 @@ def resolve_seer_run(
     return _resolve_uuid_run(run, for_continue=for_continue)
 
 
+def _has_run_scope(access: Access, project: Project | None, *, write: bool, publish: bool) -> bool:
+    scopes = PUBLISH_SCOPES if publish else AUTOFIX_RUN_SCOPES
+    if project is None:
+        return not write or any(access.has_scope(scope) for scope in scopes)
+    if not write:
+        return access.has_project_access(project)
+    return access.has_any_project_scope(project, scopes)
+
+
 def _can_access_run(
     run: SeerRun, access: Access, user_id: int | None, *, write: bool, publish: bool
 ) -> bool:
@@ -168,16 +178,16 @@ def _can_access_run(
         agent = None
 
     if agent is not None and agent.group_id is not None:
-        group = agent.group
-        if group is None:
+        if agent.group is None:
             return is_owner
-        if write:
-            scopes = PUBLISH_SCOPES if publish else AUTOFIX_RUN_SCOPES
-            return is_owner or access.has_any_project_scope(group.project, scopes)
-        return is_owner or access.has_project_access(group.project)
-    if write:
+        return is_owner or _has_run_scope(access, agent.group.project, write=write, publish=publish)
+    if run.user_id is not None:
         return is_owner
-    return run.user_id is None or is_owner
+    if agent is not None and agent.project_id is not None:
+        return agent.project is not None and _has_run_scope(
+            access, agent.project, write=write, publish=publish
+        )
+    return _has_run_scope(access, None, write=write, publish=publish)
 
 
 def authorize_seer_run(
@@ -196,7 +206,7 @@ def authorize_seer_run(
     lookup = {"seer_run_state_id": parsed} if isinstance(parsed, int) else {"uuid": parsed}
     run = (
         SeerRun.objects.filter(organization=organization, **lookup)
-        .select_related("agent__group__project")
+        .select_related("agent__group__project", "agent__project")
         .first()  # noqa: S035
     )
     if run is None:
