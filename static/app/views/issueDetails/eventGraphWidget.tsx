@@ -73,11 +73,7 @@ function EventGraphLoadedWidget({
   pageFilters: PageFilters | undefined;
   chartRef?: React.Ref<ReactEchartsRef>;
 }) {
-  const eventView = useIssueDetailsEventView({
-    group,
-    isSmallContainer: true,
-    pageFilters,
-  });
+  const eventView = useIssueDetailsEventView({group, pageFilters});
 
   return (
     <Widget
