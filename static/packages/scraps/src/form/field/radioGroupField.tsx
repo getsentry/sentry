@@ -13,11 +13,13 @@ import {useFieldContext} from '@sentry/scraps/form/formContext';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
+import {ToggleCard, type ToggleCardProps} from '@sentry/scraps/toggleCard';
 
 import {useAutoSaveIndicator} from './baseField';
 
 export interface RadioGroupProps<T extends string> {
   children: (components: {
+    Card: (props: RadioCardProps<NoInfer<T>>) => React.JSX.Element;
     Item: (props: RadioItemProps<NoInfer<T>>) => React.JSX.Element;
   }) => React.ReactNode;
   onChange: (value: NoInfer<T>) => void;
@@ -92,7 +94,30 @@ function RadioItem({children, value, description}: RadioItemProps<string>) {
   );
 }
 
-const radioGroupComponents = {Item: RadioItem};
+interface RadioCardProps<T extends string> {
+  children: React.ReactNode;
+  value: T;
+  padding?: ToggleCardProps['padding'];
+}
+
+function RadioCard({children, value, padding}: RadioCardProps<string>) {
+  const {checked, onChange, ...fieldProps} = useGroupItemContext(value);
+
+  return (
+    <ToggleCard
+      {...fieldProps}
+      variant="radio"
+      padding={padding}
+      value={value}
+      checked={checked}
+      onChange={() => onChange(value, true)}
+    >
+      {children}
+    </ToggleCard>
+  );
+}
+
+const radioGroupComponents = {Card: RadioCard, Item: RadioItem};
 
 // The callback ties the item values to the selected value's type. The runtime
 // components stay shared so that rendering the callback does not remount items.

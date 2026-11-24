@@ -388,3 +388,52 @@ describe('RadioGroupField a11y', () => {
     expect(radios[2]!).toBeChecked(); // high should be selected
   });
 });
+
+describe('RadioGroupField cards', () => {
+  function CardForm({disabled}: {disabled?: boolean}) {
+    const form = useScrapsForm({
+      ...defaultFormOptions,
+      defaultValues: {priority: 'low' as Priority},
+    });
+
+    return (
+      <form.AppForm form={form}>
+        <form.AppField name="priority">
+          {field => (
+            <field.RadioGroup
+              value={field.state.value}
+              onChange={field.handleChange}
+              disabled={disabled}
+            >
+              {({Card}) => (
+                <field.Layout.Stack label="Priority">
+                  <Card value="low">Low</Card>
+                  <Card value="high">High</Card>
+                </field.Layout.Stack>
+              )}
+            </field.RadioGroup>
+          )}
+        </form.AppField>
+      </form.AppForm>
+    );
+  }
+
+  it('renders cards as radios in the labelled group', async () => {
+    render(<CardForm />);
+
+    const group = screen.getByRole('radiogroup', {name: 'Priority'});
+    expect(group).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'Low'})).toBeChecked();
+
+    await userEvent.click(screen.getByText('High'));
+    expect(screen.getByRole('radio', {name: 'High'})).toBeChecked();
+    expect(screen.getByRole('radio', {name: 'Low'})).not.toBeChecked();
+  });
+
+  it('does not change value when disabled', async () => {
+    render(<CardForm disabled />);
+
+    await userEvent.click(screen.getByText('High'));
+    expect(screen.getByRole('radio', {name: 'Low'})).toBeChecked();
+  });
+});

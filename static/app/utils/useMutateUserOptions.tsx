@@ -1,4 +1,4 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
 import merge from 'lodash/merge';
 
 import {toast} from '@sentry/scraps/toast';
@@ -8,16 +8,19 @@ import type {User} from 'sentry/types/user';
 
 import {apiOptions} from './api/apiOptions';
 import {getApiUrl} from './api/getApiUrl';
-import type {RequestError} from './requestError/requestError';
 import {fetchMutation} from './queryClient';
 import {removeBodyTheme} from './removeBodyTheme';
 import {useUser} from './useUser';
 type UpdateUserOptionsVariables = Partial<User['options']>;
 
-export function useMutateUserOptions() {
+/**
+ * Mutation options for saving user options, for callers such as
+ * `AutoSaveForm` that create the mutation themselves.
+ */
+export function useUserOptionsMutationOptions() {
   const user = useUser();
   const queryClient = useQueryClient();
-  return useMutation<User, RequestError, UpdateUserOptionsVariables>({
+  return mutationOptions<User, Error, UpdateUserOptionsVariables, {user: User}>({
     mutationFn: (options: UpdateUserOptionsVariables) => {
       return fetchMutation<User>({
         url: getApiUrl('/users/$userId/', {path: {userId: 'me'}}),
@@ -35,6 +38,7 @@ export function useMutateUserOptions() {
         removeBodyTheme();
       }
       ConfigStore.set('user', merge({}, user, {options}));
+      return {user};
     },
     onSuccess: () => {
       // Pages that fetch the user, like account settings, would otherwise keep
@@ -43,8 +47,15 @@ export function useMutateUserOptions() {
         apiOptions.queryFilter('/users/$userId/', {path: {userId: 'me'}})
       );
     },
-    onError: () => {
+    onError: (_error, _options, context) => {
+      if (context) {
+        ConfigStore.set('user', context.user);
+      }
       toast.error('Failed to save user preference');
     },
   });
+}
+
+export function useMutateUserOptions() {
+  return useMutation(useUserOptionsMutationOptions());
 }

@@ -1,151 +1,113 @@
-import {useId, useState} from 'react';
+import type * as React from 'react';
 import styled from '@emotion/styled';
-import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
+import {AutoSaveForm} from '@sentry/scraps/form';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 import {themeVariables} from '@sentry/scraps/theme';
-import {toast} from '@sentry/scraps/toast';
-import {ToggleCard} from '@sentry/scraps/toggleCard';
 
-import {updateUser} from 'sentry/actionCreators/account';
 import {t} from 'sentry/locale';
-import type {User} from 'sentry/types/user';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {useUserOptionsMutationOptions} from 'sentry/utils/useMutateUserOptions';
 import {useUser} from 'sentry/utils/useUser';
 
 type ColorScheme = 'light' | 'dark';
 
-type ThemeVariantOption = 'themeVariantLight' | 'themeVariantDark';
-
-type ThemeVariant = {label: string; value: string};
-
-type ThemeVariantSection = {
-  option: ThemeVariantOption;
-  scheme: ColorScheme;
-  title: string;
-  variants: ThemeVariant[];
-};
-
 const DEFAULT_VARIANT = 'default';
 
-// Each section is one radio group. Adding a theme is a new entry in `variants`.
-const THEME_VARIANT_SECTIONS: ThemeVariantSection[] = [
-  {
-    option: 'themeVariantLight',
-    scheme: 'light',
-    title: t('Light'),
-    variants: [{value: DEFAULT_VARIANT, label: t('Default')}],
-  },
-  {
-    option: 'themeVariantDark',
-    scheme: 'dark',
-    title: t('Dark'),
-    variants: [
-      {value: DEFAULT_VARIANT, label: t('Default')},
-      {value: 'ash', label: t('Ash')},
-      {value: 'midnight', label: t('Midnight')},
-    ],
-  },
+const themeVariantSchema = z.object({
+  themeVariantLight: z.enum([DEFAULT_VARIANT]),
+  themeVariantDark: z.enum([DEFAULT_VARIANT, 'ash', 'midnight']),
+});
+
+type ThemeVariants = z.infer<typeof themeVariantSchema>;
+
+type ThemeVariant<Value extends string> = {label: string; value: Value};
+
+// Adding a theme is a new entry here and in the schema.
+const LIGHT_VARIANTS: Array<ThemeVariant<ThemeVariants['themeVariantLight']>> = [
+  {value: DEFAULT_VARIANT, label: t('Default')},
 ];
 
-type SelectedVariants = Record<ThemeVariantOption, string>;
-
-function savedVariants(user: User): SelectedVariants {
-  return {
-    themeVariantLight: user.options.themeVariantLight ?? DEFAULT_VARIANT,
-    themeVariantDark: user.options.themeVariantDark ?? DEFAULT_VARIANT,
-  };
-}
-
-/**
- * Reads each scheme's theme from the user's options and saves changes the
- * same way the Theme select does. The selection updates right away and goes
- * back to the saved value if the save fails.
- */
-function useThemeVariants() {
-  const user = useUser();
-  const [selected, setSelected] = useState(() => savedVariants(user));
-
-  const {mutate} = useMutation({
-    mutationFn: (options: Partial<SelectedVariants>) =>
-      fetchMutation<User>({
-        method: 'PUT',
-        url: getApiUrl('/users/$userId/', {path: {userId: 'me'}}),
-        data: {options},
-      }),
-    onSuccess: updateUser,
-    onError: () => {
-      setSelected(savedVariants(user));
-      toast.error(t('Unable to save your theme.'));
-    },
-  });
-
-  const selectVariant = (option: ThemeVariantOption, value: string) => {
-    setSelected(previous => ({...previous, [option]: value}));
-    mutate({[option]: value});
-  };
-
-  return {selected, selectVariant};
-}
+const DARK_VARIANTS: Array<ThemeVariant<ThemeVariants['themeVariantDark']>> = [
+  {value: DEFAULT_VARIANT, label: t('Default')},
+  {value: 'ash', label: t('Ash')},
+  {value: 'midnight', label: t('Midnight')},
+];
 
 export function ThemeVariantPicker() {
-  const {selected, selectVariant} = useThemeVariants();
+  const user = useUser();
+  const mutationOptions = useUserOptionsMutationOptions();
 
   return (
     <Stack gap="2xl" padding="xl">
-      {THEME_VARIANT_SECTIONS.map(section => (
-        <ThemeVariantGroup
-          key={section.scheme}
-          section={section}
-          value={selected[section.option]}
-          onChange={value => selectVariant(section.option, value)}
-        />
-      ))}
+      <AutoSaveForm
+        name="themeVariantLight"
+        schema={themeVariantSchema}
+        initialValue={user.options.themeVariantLight ?? DEFAULT_VARIANT}
+        mutationOptions={mutationOptions}
+      >
+        {field => (
+          <field.RadioGroup value={field.state.value} onChange={field.handleChange}>
+            {({Card}) => (
+              <field.Layout.Stack label={t('Light')}>
+                <ThemeVariantGrid>
+                  {LIGHT_VARIANTS.map(variant => (
+                    <Card key={variant.value} value={variant.value} padding="md">
+                      <ThemeVariantCardContent scheme="light" variant={variant} />
+                    </Card>
+                  ))}
+                </ThemeVariantGrid>
+              </field.Layout.Stack>
+            )}
+          </field.RadioGroup>
+        )}
+      </AutoSaveForm>
+      <AutoSaveForm
+        name="themeVariantDark"
+        schema={themeVariantSchema}
+        initialValue={user.options.themeVariantDark ?? DEFAULT_VARIANT}
+        mutationOptions={mutationOptions}
+      >
+        {field => (
+          <field.RadioGroup value={field.state.value} onChange={field.handleChange}>
+            {({Card}) => (
+              <field.Layout.Stack label={t('Dark')}>
+                <ThemeVariantGrid>
+                  {DARK_VARIANTS.map(variant => (
+                    <Card key={variant.value} value={variant.value} padding="md">
+                      <ThemeVariantCardContent scheme="dark" variant={variant} />
+                    </Card>
+                  ))}
+                </ThemeVariantGrid>
+              </field.Layout.Stack>
+            )}
+          </field.RadioGroup>
+        )}
+      </AutoSaveForm>
     </Stack>
   );
 }
 
-function ThemeVariantGroup({
-  section,
-  value,
-  onChange,
-}: {
-  onChange: (value: string) => void;
-  section: ThemeVariantSection;
-  value: string;
-}) {
-  const headingId = useId();
+function ThemeVariantGrid({children}: {children: React.ReactNode}) {
+  return (
+    <Grid columns="repeat(auto-fill, minmax(180px, 1fr))" gap="lg">
+      {children}
+    </Grid>
+  );
+}
 
+function ThemeVariantCardContent({
+  scheme,
+  variant,
+}: {
+  scheme: ColorScheme;
+  variant: ThemeVariant<string>;
+}) {
   return (
     <Stack gap="md">
-      <Heading as="h3" size="md" id={headingId}>
-        {section.title}
-      </Heading>
-      <Grid
-        role="radiogroup"
-        aria-labelledby={headingId}
-        columns="repeat(auto-fill, minmax(180px, 1fr))"
-        gap="lg"
-      >
-        {section.variants.map(variant => (
-          <ToggleCard
-            key={variant.value}
-            variant="radio"
-            padding="md"
-            name={`theme-variant-${section.scheme}`}
-            value={variant.value}
-            checked={value === variant.value}
-            onChange={event => onChange(event.currentTarget.value)}
-          >
-            <Stack gap="md">
-              <ThemePreview scheme={section.scheme} variant={variant.value} />
-              <Text>{variant.label}</Text>
-            </Stack>
-          </ToggleCard>
-        ))}
-      </Grid>
+      <ThemePreview scheme={scheme} variant={variant.value} />
+      <Text>{variant.label}</Text>
     </Stack>
   );
 }
