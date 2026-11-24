@@ -3,7 +3,12 @@ import styled from '@emotion/styled';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery} from '@tanstack/react-query';
 
-import {Select, type StylesConfig, type SelectValue} from '@sentry/scraps/select';
+import {
+  Select,
+  type BaseSelectProps,
+  type StylesConfig,
+  type SelectValue,
+} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
@@ -34,6 +39,7 @@ interface Props {
   value: SelectMemberValue;
   'aria-label'?: string;
   projectIds?: readonly string[];
+  size?: BaseSelectProps<string>['size'];
   styles?: StylesConfig;
 }
 
@@ -93,6 +99,7 @@ function SelectMembers({
   onChange,
   organization,
   projectIds,
+  size,
   styles,
   value,
 }: Props) {
@@ -155,6 +162,7 @@ function SelectMembers({
         options={[]}
         value={null}
         placeholder={t('Loading')}
+        size={size}
         styles={selectStyles}
       />
     );
@@ -170,6 +178,7 @@ function SelectMembers({
       onInputChange={setSearch}
       onChange={option => onChange(option)}
       value={selectedValue ?? null}
+      size={size}
       styles={selectStyles}
     />
   );

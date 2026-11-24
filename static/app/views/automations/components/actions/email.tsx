@@ -3,10 +3,7 @@ import type {SelectValue} from '@sentry/scraps/select';
 
 import SelectMembers from 'sentry/components/selectMembers';
 import {TeamSelector} from 'sentry/components/teamSelector';
-import {
-  AutomationBuilderSelect,
-  selectControlStyles,
-} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
+import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t, tct} from 'sentry/locale';
 import type {Action} from 'sentry/types/workflowEngine/actions';
@@ -123,7 +120,7 @@ function IdentifierField() {
             removeError(action.id);
           }}
           useId
-          styles={selectControlStyles}
+          size="sm"
         />
       </Container>
     );
@@ -148,7 +145,7 @@ function IdentifierField() {
             });
             removeError(action.id);
           }}
-          styles={selectControlStyles}
+          size="sm"
         />
       </Container>
     );

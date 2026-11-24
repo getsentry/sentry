@@ -664,11 +664,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     >
       <PanelProvider>
         <div css={menuStyle}>
-          <ul
-            {...listBoxProps}
-            ref={listRef}
-            css={styles?.menuList?.(menuListStyle, {}) ?? menuListStyle}
-          >
+          <ul {...listBoxProps} ref={listRef} css={menuListStyle}>
             <VirtualRows
               virtual={virtual}
               renderRow={row => (
@@ -687,13 +683,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
                 />
               )}
               renderSection={(section, children) => (
-                <SelectSection
-                  row={section}
-                  headingStyle={
-                    styles?.groupHeading?.(selectStyles.heading, {}) ??
-                    selectStyles.heading
-                  }
-                >
+                <SelectSection row={section} headingStyle={selectStyles.heading}>
                   {children}
                 </SelectSection>
               )}
