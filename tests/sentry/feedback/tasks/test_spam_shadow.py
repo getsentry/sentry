@@ -10,7 +10,13 @@ from sentry.feedback.lib import seer_api
 from sentry.feedback.tasks.spam_shadow import spam_shadow_score
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.viewer_context import get_viewer_context
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 from tests.sentry.feedback import MockSeerResponse
 
 
@@ -84,7 +90,7 @@ def test_posts_body_to_spam_score_path() -> None:
     # The request uses the pool's total timeout, which ends before the task deadline.
     assert mock_signed.call_args.kwargs["timeout"] is None
     assert pool.timeout.total == 15
-    assert mock_signed.call_args.kwargs["viewer_context"] == {"organization_id": 1}
+    assert "viewer_context" not in mock_signed.call_args.kwargs
 
 
 @django_db_all
@@ -101,7 +107,7 @@ def test_missing_url_is_swallowed(mock_metrics: MagicMock) -> None:
 
 
 @django_db_all
-def test_sets_viewer_context(mock_request: MagicMock) -> None:
+def test_uses_propagated_viewer_context(mock_request: MagicMock) -> None:
     captured = {}
 
     def capture(*args: object, **kwargs: object) -> MockSeerResponse:
@@ -109,12 +115,11 @@ def test_sets_viewer_context(mock_request: MagicMock) -> None:
         return MockSeerResponse(200, SCORED_RESPONSE)
 
     mock_request.side_effect = capture
-    spam_shadow_score(**TASK_KWARGS)
+    propagated = ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=1, project_id=2)
+    with viewer_context_scope(propagated):
+        spam_shadow_score(**TASK_KWARGS)
 
-    vc = captured["vc"]
-    assert vc is not None
-    assert vc.organization_id == 1
-    assert vc.project_id == 2
+    assert captured["vc"] is propagated
 
 
 @django_db_all

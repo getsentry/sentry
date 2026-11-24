@@ -160,7 +160,6 @@ def make_spam_shadow_score_request(
     body: SpamShadowScoreRequest,
     timeout: int | float | None = None,
     retries: int | None | Retry = None,
-    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         _get_seer_feedback_spam_connection_pool(),
@@ -168,5 +167,4 @@ def make_spam_shadow_score_request(
         body=orjson.dumps(body),
         timeout=timeout,
         retries=retries,
-        viewer_context=viewer_context,
     )

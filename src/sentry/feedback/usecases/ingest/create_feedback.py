@@ -443,13 +443,15 @@ def create_feedback_issue(
     if is_message_spam is not None and settings.SEER_FEEDBACK_SPAM_URL:
         try:
             if random.random() < options.get("feedback.spam-shadow.sample-rate"):
-                spam_shadow_score.delay(
-                    organization_id=project.organization_id,
-                    project_id=project.id,
-                    feedback_event_id=event["event_id"],
-                    feedback_message=feedback_message,
-                    llm_is_spam=is_message_spam,
-                )
+                # The taskworker propagates this viewer context to the task's Seer request.
+                with viewer_context_scope(_seer_vc):
+                    spam_shadow_score.delay(
+                        organization_id=project.organization_id,
+                        project_id=project.id,
+                        feedback_event_id=event["event_id"],
+                        feedback_message=feedback_message,
+                        llm_is_spam=is_message_spam,
+                    )
                 metrics.incr("feedback.spam_shadow.enqueued")
         except Exception as e:
             # A warning without the traceback: an error event would capture the message text.

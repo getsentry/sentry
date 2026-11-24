@@ -2,12 +2,10 @@ import logging
 
 from sentry import options
 from sentry.feedback.lib.seer_api import SpamShadowScoreRequest, make_spam_shadow_score_request
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
-from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -50,18 +48,8 @@ def spam_shadow_score(
             llm_is_spam=llm_is_spam,
             log_mismatch_message=log_mismatch_message,
         )
-        with viewer_context_scope(
-            ViewerContext(
-                actor=Actor(type=ActorType.SYSTEM),
-                organization_id=organization_id,
-                project_id=project_id,
-            )
-        ):
-            response = make_spam_shadow_score_request(
-                body,
-                retries=SEER_RETRIES,
-                viewer_context=SeerViewerContext(organization_id=organization_id),
-            )
+        # Uses the viewer context propagated from the dispatcher by the taskworker.
+        response = make_spam_shadow_score_request(body, retries=SEER_RETRIES)
     except Exception:
         metrics.incr("feedback.spam_shadow.error", tags={"reason": "request"})
         logger.warning(
