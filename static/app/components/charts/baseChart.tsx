@@ -879,6 +879,12 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     border-top-left-radius: inherit;
     border-top-right-radius: inherit;
   }
+  /* A tooltip flipped below the cursor points its arrow out of the header,
+     so the arrow has to take the header's background */
+  .tooltip-header ~ .tooltip-arrow.arrow-top {
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
+    border-bottom-color: ${p.theme.tokens.background.secondary};
+  }
   .tooltip-series {
     border-bottom: none;
     max-width: calc(100vw - 2 * ${CHART_TOOLTIP_VIEWPORT_OFFSET}px);
