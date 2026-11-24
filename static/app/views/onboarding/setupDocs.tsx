@@ -77,7 +77,7 @@ export function SetupDocs({recentCreatedProject: project, genBackButton}: StepPr
               pathname: `/organizations/${organization.slug}/issues/`,
               query: {project: project.id, referrer: 'onboarding-setup-docs'},
             }),
-            sidebarSource: 'targeted_onboarding_first_event_footer_skip',
+            sidebarSource: 'targeted_onboarding_setup_docs_setup_later',
           });
         }}
       />
