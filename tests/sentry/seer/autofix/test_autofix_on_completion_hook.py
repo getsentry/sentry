@@ -82,6 +82,7 @@ from sentry.seer.autofix.single_run import (
 )
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.credits import OUT_OF_CREDITS
 from sentry.seer.milestones import reconcile_milestones
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
 from sentry.seer.models.run import SeerRun, SeerRunMilestone, SeerRunMilestoneType
@@ -1581,7 +1582,8 @@ class TestPrIterationCompletionHook(TestCase):
         state = self._unsynced()
         repo_state = state.repo_pr_states["test-repo"]
         repo_state.pr_creation_status = "error"
-        repo_state.pr_creation_error_code = "out_of_credits"
+        # Seer reports every credit refusal as out_of_credits; the denial reason says which.
+        repo_state.pr_creation_error_code = OUT_OF_CREDITS
         repo_state.credit_denial_reason = "daily_cap_exceeded"
 
         continue_pr_iteration(
@@ -1741,7 +1743,8 @@ class TestFailedRunCompletionHook(TestCase):
         self.create_seer_run(
             organization=self.organization, seer_run_state_id=123, user_id=self.user.id
         )
-        state = self._errored([pr_iteration_memory_block()], failure_reason="out_of_credits")
+        # Seer reports every credit refusal as out_of_credits; the denial reason says which.
+        state = self._errored([pr_iteration_memory_block()], failure_reason=OUT_OF_CREDITS)
         state.credit_denial_reason = "daily_cap_exceeded"
         mock_fetch.return_value = state
 
