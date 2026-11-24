@@ -24,7 +24,7 @@ import {percent} from 'sentry/utils';
 import {defined} from 'sentry/utils/defined';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
-import {withApi} from 'sentry/utils/withApi';
+import {useApi} from 'sentry/utils/useApi';
 import {getCrashFreePercent} from 'sentry/views/explore/releases/utils';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
@@ -83,7 +83,7 @@ export function sessionDisplayToField(display: ReleasesDisplayOption) {
 
 export type ReleasesRequestRenderProps = {
   errored: boolean;
-  getHealthData: ReturnType<ReleasesRequest['getHealthData']>;
+  getHealthData: ReturnType<ReleasesRequestBase['getHealthData']>;
   isHealthLoading: boolean;
 };
 
@@ -109,7 +109,7 @@ type State = {
   totalCountByReleaseInPeriod: SessionApiResponse | null;
 };
 
-class ReleasesRequest extends Component<Props, State> {
+class ReleasesRequestBase extends Component<Props, State> {
   state: State = {
     loading: false,
     errored: false,
@@ -521,9 +521,8 @@ class ReleasesRequest extends Component<Props, State> {
   }
 }
 
-function ReleasesRequestWithPageFilterQuery(props: Omit<Props, 'pageFilterQuery'>) {
+export function ReleasesRequest(props: Omit<Props, 'api' | 'pageFilterQuery'>) {
+  const api = useApi();
   const [pageFilterQuery] = useQueryStates(pageFilterQueryParsers);
-  return <ReleasesRequest {...props} pageFilterQuery={pageFilterQuery} />;
+  return <ReleasesRequestBase {...props} api={api} pageFilterQuery={pageFilterQuery} />;
 }
-
-export default withApi(ReleasesRequestWithPageFilterQuery);
