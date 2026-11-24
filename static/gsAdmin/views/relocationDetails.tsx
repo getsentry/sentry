@@ -197,10 +197,7 @@ export function RelocationDetails() {
 
   const relocationData = {
     ...data,
-    region: localities.find(l => l.name === regionName) || {
-      name: regionName,
-      url: '',
-    },
+    region: localities.find(l => l.name === regionName) || {name: regionName, url: ''},
   };
 
   const handleDataUpdate = () => {

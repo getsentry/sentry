@@ -96,7 +96,7 @@ default_manager.add(
     )
 )
 default_manager.add(
-    AuditLogEvent(
+    events.ProjectAcceptTransferAuditLogEvent(
         event_id=36,
         name="PROJECT_ACCEPT_TRANSFER",
         api_name="project.accept-transfer",
@@ -325,7 +325,7 @@ default_manager.add(
 default_manager.add(events.InternalIntegrationAddAuditLogEvent())
 default_manager.add(events.InternalIntegrationDisabledAuditLogEvent())
 default_manager.add(
-    AuditLogEvent(
+    events.InternalIntegrationTokenAuditLogEvent(
         event_id=135,
         name="INTERNAL_INTEGRATION_ADD_TOKEN",
         api_name="internal-integration.add-token",
@@ -333,7 +333,7 @@ default_manager.add(
     )
 )
 default_manager.add(
-    AuditLogEvent(
+    events.InternalIntegrationTokenAuditLogEvent(
         event_id=136,
         name="INTERNAL_INTEGRATION_REMOVE_TOKEN",
         api_name="internal-integration.remove-token",
@@ -634,7 +634,7 @@ default_manager.add(
     )
 )
 default_manager.add(
-    AuditLogEvent(
+    events.DetectorWorkflowAuditLogEvent(
         event_id=216,
         name="DETECTOR_WORKFLOW_ADD",
         api_name="detector_workflow.add",
@@ -642,7 +642,7 @@ default_manager.add(
     )
 )
 default_manager.add(
-    AuditLogEvent(
+    events.DetectorWorkflowAuditLogEvent(
         event_id=217,
         name="DETECTOR_WORKFLOW_REMOVE",
         api_name="detector_workflow.remove",
@@ -710,7 +710,7 @@ default_manager.add(
 )
 default_manager.add(events.RepoSettingsEditAuditLogEvent())
 default_manager.add(
-    AuditLogEvent(
+    events.AutofixSettingsEditAuditLogEvent(
         event_id=1160,
         name="AUTOFIX_SETTINGS_EDIT",
         api_name="autofix-settings.edit",
@@ -790,5 +790,45 @@ default_manager.add(
         name="SERVICE_ACCOUNT_REMOVE",
         api_name="service-account.remove",
         template="removed service account {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=226,
+        name="SERVICE_ACCOUNT_TOKEN_ADD",
+        api_name="service-account-token.create",
+        template="added token {name} to service account {service_account_name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=227,
+        name="SERVICE_ACCOUNT_TOKEN_REMOVE",
+        api_name="service-account-token.remove",
+        template="revoked token {name} of service account {service_account_name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=228,
+        name="FORMULA_ADD",
+        api_name="formula.create",
+        template="created formula {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=229,
+        name="FORMULA_EDIT",
+        api_name="formula.edit",
+        template="edited formula {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=230,
+        name="FORMULA_REMOVE",
+        api_name="formula.remove",
+        template="removed formula {name}",
     )
 )

@@ -10,10 +10,7 @@ describe('AppSizeInsights', () => {
   const getDefaultProps = () => {
     const totalSize = 10240000;
     const insights = InsightResultsFixture();
-    return {
-      processedInsights: processInsights(insights, totalSize),
-      totalSize,
-    };
+    return {processedInsights: processInsights(insights, totalSize), totalSize};
   };
 
   it('renders the main insights container with correct header', () => {

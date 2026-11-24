@@ -73,7 +73,7 @@ export function HeaderCards({organization, subscription}: HeaderCardsProps) {
   const {view} = useSecondaryNavigation();
   const navIsCollapsed = view !== 'expanded';
   // The Seer card keeps the design's fixed width when the cards share a row, so
-  // its auto-load footer doesn't wrap; the other cards split what's left.
+  // its auto-reload footer doesn't wrap; the other cards split what's left.
   const singleRowColumns = cards
     .map(card => (card.key === SEER_WALLET_CARD_KEY ? '320px' : 'minmax(0, 1fr)'))
     .join(' ');

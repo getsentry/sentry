@@ -28,10 +28,7 @@ import {SolutionCard} from './solutionCard';
 
 jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => {
   const actual = jest.requireActual('sentry/views/seerExplorer/useSeerExplorerContext');
-  return {
-    ...actual,
-    useSeerExplorerContext: jest.fn(actual.useSeerExplorerContext),
-  };
+  return {...actual, useSeerExplorerContext: jest.fn(actual.useSeerExplorerContext)};
 });
 
 jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
@@ -92,6 +89,33 @@ function makePrIterationBlock(
   };
 }
 
+function makeToolUseBlock(
+  id: string,
+  content: string,
+  timestamp: string,
+  metadata?: Record<string, string>
+): AutofixSection['blocks'][number] {
+  return {
+    id,
+    timestamp,
+    message: {
+      role: 'tool_use',
+      content,
+      tool_calls: [{id: `${id}-call`, function: 'telemetry_live_search', args: '{}'}],
+      metadata,
+    },
+  };
+}
+
+function makeUserBlock(
+  id: string,
+  content: string,
+  timestamp: string,
+  metadata?: Record<string, string>
+): AutofixSection['blocks'][number] {
+  return {id, timestamp, message: {role: 'user', content, metadata}};
+}
+
 function makePatch(repoName: string, path: string): ExplorerFilePatch {
   return {
     repo_name: repoName,
@@ -150,19 +174,11 @@ const mockAutofixWithRunState: ReturnType<typeof useExplorerAutofix> = {
 };
 
 function makeRootCauseArtifact(data: RootCauseArtifact | null) {
-  return {
-    key: 'root-cause',
-    reason: 'Found root cause',
-    data,
-  };
+  return {key: 'root-cause', reason: 'Found root cause', data};
 }
 
 function makeSolutionArtifact(data: SolutionArtifact | null) {
-  return {
-    key: 'solution',
-    reason: 'Found solution',
-    data,
-  };
+  return {key: 'solution', reason: 'Found solution', data};
 }
 
 describe('ArtifactCard', () => {
@@ -187,10 +203,9 @@ describe('ArtifactCard', () => {
     );
 
     beforeEach(() => {
-      jest.mocked(useSeerExplorerContext).mockImplementation(() => ({
-        ...actualUseSeerExplorerContext(),
-        openChatPrompt,
-      }));
+      jest
+        .mocked(useSeerExplorerContext)
+        .mockImplementation(() => ({...actualUseSeerExplorerContext(), openChatPrompt}));
     });
 
     afterEach(() => {
@@ -314,6 +329,84 @@ describe('ArtifactCard', () => {
       expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
     });
 
+    it('shows the agent trace in a thinking block while running', () => {
+      render(
+        <RootCauseCard
+          autofix={mockAutofix}
+          groupId="1"
+          section={makeSection(
+            'root_cause',
+            'processing',
+            [],
+            [
+              {
+                ...makeAssistantBlock('Files are under python/. Let me read them.'),
+                id: 'block-1',
+              },
+              {...makeAssistantBlock('Thinking...'), id: 'block-2', loading: true},
+            ]
+          )}
+        />
+      );
+
+      expect(screen.getByRole('button', {name: /Thinking/})).toBeInTheDocument();
+      expect(
+        screen.getByText('Files are under python/. Let me read them.')
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Thinking...')).not.toBeInTheDocument();
+    });
+
+    it("ends a response at the user's message while a single run's root cause is still running", () => {
+      render(
+        <RootCauseCard
+          autofix={{
+            ...mockAutofix,
+            runState: {
+              run_id: 123,
+              blocks: [],
+              status: 'processing',
+              updated_at: '2026-01-01T00:00:00Z',
+              feature_id: 'autofix_single_run',
+            },
+          }}
+          groupId="1"
+          section={makeSection(
+            'root_cause',
+            'processing',
+            [],
+            [
+              makeToolUseBlock(
+                'block-1',
+                'Reading the cache module.',
+                '2026-01-01T00:00:00Z',
+                {step: 'single_run'}
+              ),
+              makeUserBlock(
+                'user-1',
+                'Also check the retry path.',
+                '2026-01-01T00:00:05Z',
+                {step: 'single_run'}
+              ),
+              {
+                ...makeToolUseBlock(
+                  'block-2',
+                  'Reading the retry module.',
+                  '2026-01-01T00:00:10Z'
+                ),
+                loading: true,
+              },
+            ]
+          )}
+        />
+      );
+
+      expect(screen.getByText('5.0s')).toBeInTheDocument();
+      // Only the replied-to response collapses to its summary.
+      expect(
+        screen.getAllByRole('button', {name: /See thinking and tool calls/})
+      ).toHaveLength(1);
+    });
+
     it('starts a new single run from Re-run', async () => {
       const startStepMock = jest.fn().mockResolvedValue({runId: 777, isSingleRun: true});
       render(
@@ -336,7 +429,48 @@ describe('ArtifactCard', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
 
-      expect(startStepMock).toHaveBeenCalledWith('root_cause');
+      expect(startStepMock).toHaveBeenCalledWith('root_cause', {userContext: undefined});
+    });
+
+    it('holds Re-run disabled when the org cannot afford a new single run', async () => {
+      const creditsOrganization = OrganizationFixture({
+        features: ['token-billed-seer-enabled'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
+        match: [MockApiClient.matchQuery({operation: 'autofix_root_cause'})],
+        body: {hasEnoughCredits: false},
+      });
+      const queryClient = makeTestQueryClient();
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <RootCauseCard
+            autofix={{
+              ...mockAutofix,
+              runState: {
+                run_id: 776,
+                feature_id: 'autofix_single_run',
+                status: 'completed',
+                updated_at: '2026-01-01T00:00:00Z',
+                blocks: [],
+              },
+            }}
+            groupId="1"
+            section={makeSection('root_cause', 'completed', [])}
+          />
+        </QueryClientProvider>,
+        {organization: creditsOrganization}
+      );
+
+      await waitFor(() =>
+        expect(
+          queryClient.getQueryState(
+            seerCreditCheckApiOptions(creditsOrganization, 'autofix_root_cause').queryKey
+          )?.status
+        ).toBe('success')
+      );
+      expect(screen.getByRole('button', {name: 'Re-run'})).toBeDisabled();
     });
 
     it('renders the cause under the headline', () => {
@@ -417,6 +551,24 @@ describe('ArtifactCard', () => {
       expect(screen.getByText('Reproduction Steps')).toBeInTheDocument();
       expect(screen.getByText('Open the page')).toBeInTheDocument();
       expect(screen.getByText('Click button')).toBeInTheDocument();
+    });
+
+    it('shows why a single run stopped instead of the failure text', () => {
+      const stop = {key: 'stop', reason: 'stop', data: {reason: 'R', suggestion: 'N'}};
+
+      render(
+        <RootCauseCard
+          autofix={mockAutofix}
+          groupId="1"
+          section={makeSection('root_cause', 'completed', [stop])}
+        />
+      );
+
+      expect(screen.getByText('R')).toBeInTheDocument();
+      expect(screen.getByText('N')).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Seer failed to generate a root cause/)
+      ).not.toBeInTheDocument();
     });
 
     it('renders card shell when artifact data is null', () => {
@@ -597,6 +749,72 @@ describe('ArtifactCard', () => {
   });
 
   describe('CodeChangesCard', () => {
+    it('starts a new single run from Re-run after a single run errored', async () => {
+      const startStepMock = jest.fn().mockResolvedValue({runId: 777, isSingleRun: true});
+      render(
+        <CodeChangesCard
+          autofix={{
+            ...mockAutofix,
+            startStep: startStepMock,
+            runState: {
+              run_id: 776,
+              feature_id: 'autofix_single_run',
+              status: 'error',
+              updated_at: '2026-01-01T00:00:00Z',
+              blocks: [],
+            },
+          }}
+          groupId="1"
+          section={makeSection('code_changes', 'error', [])}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
+
+      expect(startStepMock).toHaveBeenCalledWith('root_cause', {userContext: undefined});
+    });
+
+    it('holds Re-run disabled when the org cannot afford a new single run', async () => {
+      const creditsOrganization = OrganizationFixture({
+        features: ['token-billed-seer-enabled'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
+        match: [MockApiClient.matchQuery({operation: 'autofix_root_cause'})],
+        body: {hasEnoughCredits: false},
+      });
+      const queryClient = makeTestQueryClient();
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <CodeChangesCard
+            autofix={{
+              ...mockAutofix,
+              runState: {
+                run_id: 776,
+                feature_id: 'autofix_single_run',
+                status: 'error',
+                updated_at: '2026-01-01T00:00:00Z',
+                blocks: [],
+              },
+            }}
+            groupId="1"
+            section={makeSection('code_changes', 'error', [])}
+          />
+        </QueryClientProvider>,
+        {organization: creditsOrganization}
+      );
+
+      await waitFor(() =>
+        expect(
+          queryClient.getQueryState(
+            seerCreditCheckApiOptions(creditsOrganization, 'autofix_root_cause').queryKey
+          )?.status
+        ).toBe('success')
+      );
+      expect(screen.getByRole('button', {name: 'Re-run'})).toBeDisabled();
+    });
+
     it('renders single file in single repo', () => {
       render(
         <CodeChangesCard
@@ -856,35 +1074,12 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(screen.getByText('Implementing changes…')).toBeInTheDocument();
+      expect(screen.getByText('Implementing changes')).toBeInTheDocument();
       expect(
         screen.queryByText(
           'Seer failed to generate a code change. This one is on us. Try running it again.'
         )
       ).not.toBeInTheDocument();
-    });
-
-    it('hides an unclosed embed tag in a block that is still loading', () => {
-      render(
-        <CodeChangesCard
-          groupId="1"
-          autofix={mockAutofix}
-          section={makeSection(
-            'code_changes',
-            'processing',
-            [],
-            [
-              {
-                ...makeAssistantBlock('Looking at {% issue %}{"id":"1"'),
-                loading: true,
-              },
-            ]
-          )}
-        />
-      );
-
-      expect(screen.getByText(/Looking at/)).toBeInTheDocument();
-      expect(screen.queryByText(/\{%/)).not.toBeInTheDocument();
     });
 
     it('does not render file diff viewers in error state', () => {
@@ -1105,7 +1300,7 @@ describe('ArtifactCard', () => {
 
     it('holds the PR feedback form disabled when the org cannot afford another iteration', async () => {
       const creditsOrganization = OrganizationFixture({
-        features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+        features: ['token-billed-seer-enabled'],
       });
       const creditCheck = MockApiClient.addMockResponse({
         url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
@@ -1220,10 +1415,7 @@ describe('ArtifactCard', () => {
         />,
         {
           initialRouterConfig: {
-            location: {
-              pathname: '/',
-              query: {seerDrawerAction: 'retry_code_changes'},
-            },
+            location: {pathname: '/', query: {seerDrawerAction: 'retry_code_changes'}},
           },
         }
       );
@@ -1272,10 +1464,7 @@ describe('ArtifactCard', () => {
           metadata: {
             step: 'pr_iteration',
             iteration_index: '0',
-            feedback: JSON.stringify({
-              text: 'ignored',
-              source: {type: 'mystery'},
-            }),
+            feedback: JSON.stringify({text: 'ignored', source: {type: 'mystery'}}),
           },
         },
       };
@@ -1376,8 +1565,8 @@ describe('ArtifactCard', () => {
       );
 
       expect(screen.getByText('1 file changed in 1 repo')).toBeInTheDocument();
-      expect(screen.queryByText('Iterating on PR…')).not.toBeInTheDocument();
-      expect(screen.queryByText('Implementing changes…')).not.toBeInTheDocument();
+      expect(screen.queryByText('Iterating on PR')).not.toBeInTheDocument();
+      expect(screen.queryByText('Implementing changes')).not.toBeInTheDocument();
     });
 
     it('renders queued feedback as a feedback item', () => {
@@ -1882,8 +2071,8 @@ describe('ArtifactCard', () => {
       );
 
       expect(screen.getByText('1 file changed in 1 repo')).toBeInTheDocument();
-      expect(screen.queryByText('Implementing changes…')).not.toBeInTheDocument();
-      expect(screen.queryByText('Iterating on PR…')).not.toBeInTheDocument();
+      expect(screen.queryByText('Implementing changes')).not.toBeInTheDocument();
+      expect(screen.queryByText('Iterating on PR')).not.toBeInTheDocument();
     });
 
     it('renders a one-based version tag for the latest iteration', () => {
@@ -1935,8 +2124,8 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(screen.getByText('Iterating on PR…')).toBeInTheDocument();
-      expect(screen.queryByText('Implementing changes…')).not.toBeInTheDocument();
+      expect(screen.getByText('Iterating on PR')).toBeInTheDocument();
+      expect(screen.queryByText('Implementing changes')).not.toBeInTheDocument();
     });
 
     it('marks block feedback as processed when the section is not processing', () => {
@@ -2231,9 +2420,7 @@ describe('ArtifactCard', () => {
       );
 
       expect(screen.getByText('Pull Requests')).toBeInTheDocument();
-      const button = screen.getByRole('button', {
-        name: 'View org/repo#42',
-      });
+      const button = screen.getByRole('button', {name: 'View org/repo#42'});
       expect(button).toHaveAttribute('href', 'https://github.com/org/repo/pull/42');
     });
 
@@ -2243,16 +2430,8 @@ describe('ArtifactCard', () => {
           autofix={mockAutofixWithRunState}
           section={makeSection('pull_request', 'completed', [
             [
-              makePR({
-                repo_name: 'org/repo-a',
-                pr_number: 10,
-                pr_url: 'https://pr/10',
-              }),
-              makePR({
-                repo_name: 'org/repo-b',
-                pr_number: 20,
-                pr_url: 'https://pr/20',
-              }),
+              makePR({repo_name: 'org/repo-a', pr_number: 10, pr_url: 'https://pr/10'}),
+              makePR({repo_name: 'org/repo-b', pr_number: 20, pr_url: 'https://pr/20'}),
             ],
           ])}
         />
@@ -2274,11 +2453,7 @@ describe('ArtifactCard', () => {
             [
               makePR({repo_name: 'org/repo-a', pr_url: null}),
               makePR({repo_name: 'org/repo-b', pr_number: null}),
-              makePR({
-                repo_name: 'org/valid',
-                pr_number: 55,
-                pr_url: 'https://pr/55',
-              }),
+              makePR({repo_name: 'org/valid', pr_number: 55, pr_url: 'https://pr/55'}),
             ],
           ])}
         />
@@ -2390,11 +2565,7 @@ describe('ArtifactCard', () => {
         <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
-            [
-              makeCodingAgent({
-                provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-              }),
-            ],
+            [makeCodingAgent({provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT})],
           ])}
         />
       );
@@ -2407,11 +2578,7 @@ describe('ArtifactCard', () => {
         <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
-            [
-              makeCodingAgent({
-                provider: CodingAgentProvider.CLAUDE_CODE_AGENT,
-              }),
-            ],
+            [makeCodingAgent({provider: CodingAgentProvider.CLAUDE_CODE_AGENT})],
           ])}
         />
       );
@@ -2424,11 +2591,7 @@ describe('ArtifactCard', () => {
         <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
-            [
-              makeCodingAgent({
-                provider: CodingAgentProvider.GITHUB_COPILOT_AGENT,
-              }),
-            ],
+            [makeCodingAgent({provider: CodingAgentProvider.GITHUB_COPILOT_AGENT})],
           ])}
         />
       );
@@ -2467,11 +2630,7 @@ describe('ArtifactCard', () => {
         <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
-            [
-              makeCodingAgent({
-                agent_url: 'https://cursor.com/agent/1',
-              }),
-            ],
+            [makeCodingAgent({agent_url: 'https://cursor.com/agent/1'})],
           ])}
         />
       );
@@ -2512,16 +2671,8 @@ describe('ArtifactCard', () => {
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [
-              makeCodingAgent({
-                id: 'agent-1',
-                name: 'Agent One',
-                status: 'completed',
-              }),
-              makeCodingAgent({
-                id: 'agent-2',
-                name: 'Agent Two',
-                status: 'running',
-              }),
+              makeCodingAgent({id: 'agent-1', name: 'Agent One', status: 'completed'}),
+              makeCodingAgent({id: 'agent-2', name: 'Agent Two', status: 'running'}),
             ],
           ])}
         />
@@ -2538,11 +2689,7 @@ describe('ArtifactCard', () => {
         <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
-            [
-              makeCodingAgent({
-                agent_url: 'https://cursor.com/agent/1',
-              }),
-            ],
+            [makeCodingAgent({agent_url: 'https://cursor.com/agent/1'})],
           ])}
         />
       );
@@ -2566,6 +2713,629 @@ describe('ArtifactCard', () => {
         'aria-disabled',
         'true'
       );
+    });
+  });
+});
+
+describe('out of credits', () => {
+  const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
+  const retryTooltip = 'Your organization does not have enough Seer credits for this.';
+
+  function mockCreditCheck(operation: string, hasEnoughCredits: boolean) {
+    return MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/credit-check/`,
+      match: [MockApiClient.matchQuery({operation})],
+      body: {hasEnoughCredits},
+    });
+  }
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  // While the check is in flight the button is natively disabled. Once it
+  // settles it is only aria-disabled, so it stays focusable and its tooltip can
+  // say why.
+  async function expectDisabledForCredits(button: HTMLElement) {
+    await waitFor(() => expect(button).toBeEnabled());
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.hover(button);
+    expect(await screen.findByText(retryTooltip)).toBeInTheDocument();
+  }
+
+  function makeOutOfCreditsSection(
+    step: string,
+    blocks: AutofixSection['blocks'],
+    artifacts: AutofixArtifact[] = []
+  ): AutofixSection {
+    return {
+      ...makeSection(step, 'error', artifacts, blocks),
+      failureReason: 'out_of_credits',
+    };
+  }
+
+  function makeBlock(
+    id: string,
+    content: string,
+    metadata?: Record<string, string>
+  ): AutofixSection['blocks'][number] {
+    return {
+      id,
+      timestamp: '2026-01-01T00:00:00Z',
+      message: {role: 'assistant', content, metadata},
+    };
+  }
+
+  // Seer appends this when it stops a run for credits.
+  const seerErrorBlock = makeBlock(
+    'error-1',
+    "Your organization doesn't have enough Seer credits for this, so I stopped here."
+  );
+
+  const stoppedRunState = {
+    run_id: 123,
+    blocks: [],
+    status: 'error' as const,
+    failure_reason: 'out_of_credits' as const,
+    updated_at: '2026-01-01T00:00:00Z',
+  };
+
+  // Only single runs take replies inside a step.
+  const singleRunStoppedState = {...stoppedRunState, feature_id: 'autofix_single_run'};
+
+  const rootCauseSection = makeOutOfCreditsSection('root_cause', [
+    makeBlock('block-1', 'The cache key omits the org slug.', {step: 'root_cause'}),
+    seerErrorBlock,
+  ]);
+
+  const codeChangesSection = makeOutOfCreditsSection(
+    'code_changes',
+    [
+      makeBlock('block-1', 'Editing the cart service.', {step: 'code_changes'}),
+      seerErrorBlock,
+    ],
+    [[makePatch('org/repo', 'src/cart.py')]]
+  );
+
+  it('keeps what the root cause step wrote and disables Re-run while out of credits', async () => {
+    mockCreditCheck('autofix_root_cause', false);
+    render(
+      <RootCauseCard
+        autofix={{...mockAutofix, runState: stoppedRunState}}
+        groupId="1"
+        section={rootCauseSection}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('The cache key omits the org slug.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Seer stopped before finishing the root cause because your organization ran out of credits.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/This one is on us/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/so I stopped here/)).not.toBeInTheDocument();
+
+    await expectDisabledForCredits(screen.getByRole('button', {name: 'Re-run'}));
+    expect(screen.getByRole('button', {name: 'Re-run step'})).toBeDisabled();
+  });
+
+  it('re-runs a root cause that stopped for credits once the organization can afford it', async () => {
+    mockCreditCheck('autofix_root_cause', true);
+    const startStep = jest.fn();
+    render(
+      <RootCauseCard
+        autofix={{...mockAutofix, startStep, runState: stoppedRunState}}
+        groupId="1"
+        section={rootCauseSection}
+      />,
+      {organization}
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Re-run'})).toHaveAttribute(
+        'aria-disabled',
+        'false'
+      )
+    );
+    expect(screen.getByRole('button', {name: 'Re-run step'})).toBeEnabled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
+    expect(startStep).toHaveBeenCalledWith('root_cause', {
+      runId: 123,
+      userContext: undefined,
+      insertIndex: undefined,
+    });
+  });
+
+  describe("a stopped step's transcript", () => {
+    it("ends the timer at Seer's error block when a PR iteration stopped", () => {
+      mockCreditCheck('autofix_pr_iteration', false);
+      render(
+        <CodeChangesCard
+          autofix={{
+            ...mockAutofix,
+            runState: {...stoppedRunState, repo_pr_states: {'org/repo': makePR()}},
+          }}
+          groupId="1"
+          section={makeOutOfCreditsSection(
+            'code_changes',
+            [
+              makeBlock('block-1', 'Applied the fix.', {step: 'code_changes'}),
+              {
+                ...makePrIterationBlock(0, {text: 'Please add a test'}),
+                timestamp: '2026-01-01T00:00:05Z',
+              },
+              makeToolUseBlock('block-2', 'Adding the test.', '2026-01-01T00:00:10Z'),
+              {...seerErrorBlock, timestamp: '2026-01-01T00:00:15Z'},
+            ],
+            [[makePatch('org/repo', 'src/cart.py')]]
+          )}
+        />,
+        {organization}
+      );
+
+      expect(screen.getByText('5.0s')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: /See thinking and tool calls/})
+      ).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it("ends the timer at Seer's error block when the plan stopped", () => {
+      mockCreditCheck('autofix_solution', false);
+      render(
+        <SolutionCard
+          autofix={{...mockAutofix, runState: stoppedRunState}}
+          section={makeOutOfCreditsSection('solution', [
+            makeToolUseBlock(
+              'block-1',
+              'Reading the cache module.',
+              '2026-01-01T00:00:00Z',
+              {step: 'solution'}
+            ),
+            {...seerErrorBlock, timestamp: '2026-01-01T00:00:05Z'},
+          ])}
+        />,
+        {organization}
+      );
+
+      expect(screen.getByText('5.0s')).toBeInTheDocument();
+    });
+
+    it("ends the timer at the user's message when a single run's root cause stopped right after it", () => {
+      mockCreditCheck('autofix_root_cause', false);
+      render(
+        <RootCauseCard
+          autofix={{...mockAutofix, runState: singleRunStoppedState}}
+          groupId="1"
+          section={makeOutOfCreditsSection('root_cause', [
+            makeToolUseBlock(
+              'block-1',
+              'Reading the cache module.',
+              '2026-01-01T00:00:00Z',
+              {step: 'single_run'}
+            ),
+            makeUserBlock(
+              'user-1',
+              'Also check the retry path.',
+              '2026-01-01T00:00:05Z',
+              {step: 'single_run'}
+            ),
+            {...seerErrorBlock, timestamp: '2026-01-01T00:00:10Z'},
+          ])}
+        />,
+        {organization}
+      );
+
+      expect(screen.getByText('5.0s')).toBeInTheDocument();
+    });
+
+    it("ends each response at the block after it when a single run's root cause stopped", () => {
+      mockCreditCheck('autofix_root_cause', false);
+      render(
+        <RootCauseCard
+          autofix={{...mockAutofix, runState: singleRunStoppedState}}
+          groupId="1"
+          section={makeOutOfCreditsSection('root_cause', [
+            makeToolUseBlock(
+              'block-1',
+              'Reading the cache module.',
+              '2026-01-01T00:00:00Z',
+              {step: 'single_run'}
+            ),
+            makeUserBlock(
+              'user-1',
+              'Also check the retry path.',
+              '2026-01-01T00:00:05Z',
+              {step: 'single_run'}
+            ),
+            makeToolUseBlock(
+              'block-2',
+              'Searching for the cache key.',
+              '2026-01-01T00:00:10Z'
+            ),
+            makeToolUseBlock(
+              'block-3',
+              'Reading the retry module.',
+              '2026-01-01T00:00:15Z'
+            ),
+            {...seerErrorBlock, timestamp: '2026-01-01T00:00:20Z'},
+          ])}
+        />,
+        {organization}
+      );
+
+      // The earlier response ends at the user's message, the last one at Seer's error block.
+      expect(screen.getByText('5.0s')).toBeInTheDocument();
+      expect(screen.getByText('10.0s')).toBeInTheDocument();
+      for (const button of screen.getAllByRole('button', {
+        name: /See thinking and tool calls/,
+      })) {
+        expect(button).toHaveAttribute('aria-expanded', 'false');
+      }
+    });
+
+    it("ends a response at a hidden earlier error block when a single run's root cause stopped", () => {
+      mockCreditCheck('autofix_root_cause', false);
+      render(
+        <RootCauseCard
+          autofix={{...mockAutofix, runState: singleRunStoppedState}}
+          groupId="1"
+          section={makeOutOfCreditsSection('root_cause', [
+            makeToolUseBlock(
+              'block-1',
+              'Reading the cache module.',
+              '2026-01-01T00:00:00Z',
+              {step: 'single_run'}
+            ),
+            {
+              ...makeBlock('error-0', 'Sorry, I encountered an unexpected error.'),
+              timestamp: '2026-01-01T00:00:05Z',
+            },
+            makeUserBlock('user-1', 'Try again.', '2026-01-01T00:00:10Z', {
+              step: 'single_run',
+            }),
+            makeToolUseBlock(
+              'block-2',
+              'Searching for the cache key.',
+              '2026-01-01T00:00:15Z'
+            ),
+            makeToolUseBlock(
+              'block-3',
+              'Reading the retry module.',
+              '2026-01-01T00:00:20Z'
+            ),
+            {...seerErrorBlock, timestamp: '2026-01-01T00:00:25Z'},
+          ])}
+        />,
+        {organization}
+      );
+
+      expect(
+        screen.queryByText('Sorry, I encountered an unexpected error.')
+      ).not.toBeInTheDocument();
+      // The earlier response ends at its error, not at the user's message after it.
+      expect(screen.getByText('5.0s')).toBeInTheDocument();
+    });
+  });
+
+  it('keeps what the plan step wrote and disables Re-run while out of credits', async () => {
+    mockCreditCheck('autofix_solution', false);
+    render(
+      <SolutionCard
+        autofix={{...mockAutofix, runState: stoppedRunState}}
+        section={makeOutOfCreditsSection('solution', [
+          makeBlock('block-1', 'Seed the reduction with zero.', {step: 'solution'}),
+          seerErrorBlock,
+        ])}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('Seed the reduction with zero.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Seer stopped before finishing the plan because your organization ran out of credits.'
+      )
+    ).toBeInTheDocument();
+
+    await expectDisabledForCredits(screen.getByRole('button', {name: 'Re-run'}));
+  });
+
+  it('keeps the partial diff of code changes that stopped for credits and disables Re-run', async () => {
+    mockCreditCheck('autofix_code_changes', false);
+    render(
+      <CodeChangesCard
+        autofix={{...mockAutofix, runState: stoppedRunState}}
+        groupId="1"
+        section={codeChangesSection}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('Editing the cart service.')).toBeInTheDocument();
+    expect(screen.getByTestId('file-diff-viewer')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Seer stopped before finishing the code changes because your organization ran out of credits.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Seer proposed a fix but couldn't apply it automatically")
+    ).not.toBeInTheDocument();
+    // Partial changes are not the finished artifact.
+    expect(screen.getByRole('button', {name: 'Copy as Markdown'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+
+    await expectDisabledForCredits(screen.getByRole('button', {name: 'Re-run'}));
+    expect(screen.getByRole('button', {name: 'Re-run step'})).toBeDisabled();
+  });
+
+  it('re-runs code changes that stopped for credits once the organization can afford it', async () => {
+    mockCreditCheck('autofix_code_changes', true);
+    const startStep = jest.fn();
+    render(
+      <CodeChangesCard
+        autofix={{...mockAutofix, startStep, runState: stoppedRunState}}
+        groupId="1"
+        section={codeChangesSection}
+      />,
+      {organization}
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Re-run'})).toHaveAttribute(
+        'aria-disabled',
+        'false'
+      )
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
+    expect(startStep).toHaveBeenCalledWith('code_changes', {
+      runId: 123,
+      userContext: undefined,
+      insertIndex: undefined,
+    });
+  });
+
+  it.each([
+    ['RootCauseCard', RootCauseCard, rootCauseSection],
+    ['CodeChangesCard', CodeChangesCard, codeChangesSection],
+  ])(
+    '%s starts a new single run once the organization can afford it',
+    async (_name, Card, section) => {
+      mockCreditCheck('autofix_root_cause', true);
+      const startStep = jest.fn().mockResolvedValue({runId: 124, isSingleRun: true});
+      render(
+        <Card
+          autofix={{
+            ...mockAutofix,
+            startStep,
+            runState: {...stoppedRunState, feature_id: 'autofix_single_run'},
+          }}
+          groupId="1"
+          section={section}
+        />,
+        {organization}
+      );
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Re-run'})).toHaveAttribute(
+          'aria-disabled',
+          'false'
+        )
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
+      expect(startStep).toHaveBeenCalledWith('root_cause', {userContext: undefined});
+    }
+  );
+
+  it('leaves the retry to the backend without token-billed Seer', () => {
+    const creditCheck = mockCreditCheck('autofix_code_changes', false);
+    render(
+      <CodeChangesCard
+        autofix={{...mockAutofix, runState: stoppedRunState}}
+        groupId="1"
+        section={codeChangesSection}
+      />,
+      {organization: OrganizationFixture({features: []})}
+    );
+
+    expect(screen.getByRole('button', {name: 'Re-run'})).toHaveAttribute(
+      'aria-disabled',
+      'false'
+    );
+    expect(creditCheck).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [false, 'true'],
+    [true, 'false'],
+  ])(
+    'says a PR iteration stopped for credits and gates its retry (enough credits: %s)',
+    async (hasEnoughCredits, ariaDisabled) => {
+      const creditCheck = mockCreditCheck('autofix_pr_iteration', hasEnoughCredits);
+      render(
+        <CodeChangesCard
+          autofix={{
+            ...mockAutofix,
+            runState: {...stoppedRunState, repo_pr_states: {'org/repo': makePR()}},
+          }}
+          groupId="1"
+          section={makeOutOfCreditsSection(
+            'code_changes',
+            [
+              makeBlock('block-1', 'Applied the fix.', {step: 'code_changes'}),
+              makePrIterationBlock(0, {text: 'Please add a test'}),
+              seerErrorBlock,
+            ],
+            [[makePatch('org/repo', 'src/cart.py')]]
+          )}
+        />,
+        {organization}
+      );
+
+      expect(
+        screen.getByText(
+          'Seer stopped before updating the pull request because your organization ran out of credits.'
+        )
+      ).toBeInTheDocument();
+      // Only the iteration that stopped is replayed, not the original step.
+      expect(screen.queryByText('Applied the fix.')).not.toBeInTheDocument();
+
+      await waitFor(() => expect(creditCheck).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Add context & retry'})).toHaveAttribute(
+          'aria-disabled',
+          ariaDisabled
+        )
+      );
+    }
+  );
+
+  it('shows only the stop line when a stopped PR iteration has queued feedback too', () => {
+    mockCreditCheck('autofix_pr_iteration', false);
+    render(
+      <CodeChangesCard
+        autofix={{
+          ...mockAutofix,
+          runState: {
+            ...stoppedRunState,
+            repo_pr_states: {'org/repo': makePR()},
+            pr_iteration_out_of_credits: {
+              unfinished_action: 'agent_turn',
+              denial_reason: null,
+            },
+            queued_feedback: [{text: 'Also log it', source: {type: 'user-ui'}}],
+          },
+        }}
+        groupId="1"
+        section={makeOutOfCreditsSection('code_changes', [
+          makePrIterationBlock(0, {text: 'Please add a test'}),
+          seerErrorBlock,
+        ])}
+      />,
+      {organization}
+    );
+
+    expect(
+      screen.getByText(
+        'Seer stopped before updating the pull request because your organization ran out of credits.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Seer couldn't start on/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [
+      null,
+      "Seer couldn't start on 2 feedback items because your organization ran out of credits. Seer continues the next time it iterates on the pull request.",
+    ],
+    [
+      'daily_cap_exceeded' as const,
+      "Seer couldn't start on 2 feedback items because your organization hit its daily usage limit. Seer continues the next time it iterates on the pull request.",
+    ],
+  ])('says queued feedback is waiting when denied for %s', (denialReason, message) => {
+    render(
+      <CodeChangesCard
+        autofix={{
+          ...mockAutofix,
+          runState: {
+            run_id: 123,
+            blocks: [],
+            status: 'completed',
+            updated_at: '2026-01-01T00:00:00Z',
+            repo_pr_states: {'org/repo': makePR()},
+            pr_iteration_out_of_credits: {
+              unfinished_action: null,
+              denial_reason: denialReason,
+            },
+            queued_feedback: [
+              {text: 'Also log it', source: {type: 'user-ui'}},
+              {text: 'And rename it', source: {type: 'user-ui'}},
+            ],
+          },
+        }}
+        groupId="1"
+        section={makeSection(
+          'code_changes',
+          'completed',
+          [[makePatch('org/repo', 'src/cart.py')]],
+          [makePrIterationBlock(0, {text: 'Please add a test'})]
+        )}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText(message)).toBeInTheDocument();
+  });
+
+  describe('a PR that failed for credits', () => {
+    const section = makeSection('pull_request', 'completed', [
+      [
+        makePR({
+          repo_name: 'org/api',
+          pr_creation_status: 'error',
+          pr_creation_error: "Your organization doesn't have enough Seer credits.",
+          pr_creation_error_code: 'out_of_credits',
+          pr_number: null,
+          pr_url: null,
+        }),
+        makePR({
+          repo_name: 'org/web',
+          pr_creation_status: 'error',
+          pr_creation_error: 'Push rejected',
+          pr_number: null,
+          pr_url: null,
+        }),
+      ],
+    ]);
+
+    it('says why and disables its retry while out of credits', async () => {
+      mockCreditCheck('autofix_open_pr', false);
+      render(<PullRequestsCard autofix={mockAutofixWithRunState} section={section} />, {
+        organization,
+      });
+
+      expect(
+        screen.getByText(
+          "Seer couldn't open a pull request in org/api because your organization ran out of credits."
+        )
+      ).toBeInTheDocument();
+
+      await expectDisabledForCredits(
+        screen.getByRole('button', {name: 'Retry PR in org/api'})
+      );
+      // Other failures stay retryable.
+      expect(screen.getByRole('button', {name: 'Retry PR in org/web'})).toHaveAttribute(
+        'aria-disabled',
+        'false'
+      );
+    });
+
+    it('retries it once the organization can afford it', async () => {
+      mockCreditCheck('autofix_open_pr', true);
+      const createPR = jest.fn();
+      render(
+        <PullRequestsCard
+          autofix={{...mockAutofixWithRunState, createPR}}
+          section={section}
+        />,
+        {organization}
+      );
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Retry PR in org/api'})).toHaveAttribute(
+          'aria-disabled',
+          'false'
+        )
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Retry PR in org/api'}));
+      expect(createPR).toHaveBeenCalledWith(123, 'org/api');
     });
   });
 });

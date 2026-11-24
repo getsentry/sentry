@@ -1,20 +1,21 @@
-import type {ReactNode} from 'react';
-import {IconCheckmark} from '@sentry/icons/checkmark';
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
-import {Tag} from '@sentry/scraps/badge';
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import {AgentHandoffPrompt} from 'sentry/components/agentHandoff/agentHandoffPrompt';
-import {AgentHandoffFlow} from 'sentry/components/agentHandoff/useAgentHandoff';
-import {t, tct} from 'sentry/locale';
+import {AgentHandoffFlow} from 'sentry/components/agentHandoff/types';
+import {Benefit} from 'sentry/components/onboarding/benefit';
+import {t} from 'sentry/locale';
 
 import type {AgenticProgressRun} from './types';
 
 export type AgentSetupCopySource = 'prompt';
 
 interface AgentSetupCardProps {
-  onCopyCommand: (source: AgentSetupCopySource) => void;
+  flow: AgentHandoffFlow;
+  onCopyCommand: (source: AgentSetupCopySource, handoffId: string) => void;
   onSelectSnippet: (source: AgentSetupCopySource) => void;
   run: AgenticProgressRun | undefined;
   feedbackSource?: string;
@@ -22,56 +23,36 @@ interface AgentSetupCardProps {
 
 export function AgentSetupCard({
   feedbackSource = 'onboarding-agent-setup',
+  flow,
   onCopyCommand,
   onSelectSnippet,
   run,
 }: AgentSetupCardProps) {
   return (
-    <Stack gap="0" background="primary" border="primary" radius="xl" padding="xl">
-      <Stack gap="xs">
-        <Flex align="center" gap="sm" wrap="wrap">
-          <Heading as="h3" size="lg">
-            {t('Let your agent set up Sentry')}
-          </Heading>
-          <Tag variant="info">{t('Recommended')}</Tag>
-        </Flex>
-        <Text as="p" size="md" variant="secondary">
-          {t('Paste one prompt and your agent does the rest.')}
-        </Text>
+    <Fragment>
+      <Stack gap="xl" padding="xs 0 xl">
+        <CardHeading as="h3" size="xl">
+          {t('Set up Sentry using your coding agent')}
+        </CardHeading>
+
+        <Stack as="ul" role="list" gap="md" padding="0 0 sm" margin="0">
+          <Benefit size="lg">{t('Installs the Sentry CLI and signs you in')}</Benefit>
+          <Benefit size="lg">{t('Detects your stack and adds the right SDK')}</Benefit>
+          <Benefit size="lg">{t('Sends a test error so you can see it work')}</Benefit>
+        </Stack>
       </Stack>
 
-      <Stack as="ul" role="list" gap="md" padding="xl 0">
-        <Benefit>{tct('[emphasis:Detects your stack]', {emphasis: <strong />})}</Benefit>
-        <Benefit>
-          {tct('[emphasis:Installs and configures the SDKs] in your code', {
-            emphasis: <strong />,
-          })}
-        </Benefit>
-        <Benefit>
-          {tct('[emphasis:Sends a test error] and confirms it, so you know it works', {
-            emphasis: <strong />,
-          })}
-        </Benefit>
-      </Stack>
-
-      <Stack>
-        <AgentHandoffPrompt
-          context={run ? {runId: run.runId} : null}
-          feedbackSource={feedbackSource}
-          flow={AgentHandoffFlow.ONBOARDING}
-          onCopySuccess={() => onCopyCommand('prompt')}
-          onSelect={() => onSelectSnippet('prompt')}
-        />
-      </Stack>
-    </Stack>
+      <AgentHandoffPrompt
+        context={run ? {runId: run.runId} : null}
+        feedbackSource={feedbackSource}
+        flow={flow}
+        onCopySuccess={handoffId => onCopyCommand('prompt', handoffId)}
+        onSelect={() => onSelectSnippet('prompt')}
+      />
+    </Fragment>
   );
 }
 
-function Benefit({children}: {children: ReactNode}) {
-  return (
-    <Flex as="li" align="center" gap="sm">
-      <IconCheckmark size="sm" variant="success" />
-      <Text size="md">{children}</Text>
-    </Flex>
-  );
-}
+const CardHeading = styled(Heading)`
+  color: ${p => p.theme.tokens.content.headings};
+`;

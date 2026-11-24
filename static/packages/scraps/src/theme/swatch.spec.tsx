@@ -13,10 +13,7 @@ const TEST_PALETTE = {
   green: '#67C800',
 };
 
-const ON_VIBRANT = {
-  dark: '#000000',
-  light: '#FFFFFF',
-};
+const ON_VIBRANT = {dark: '#000000', light: '#FFFFFF'};
 
 describe('makeSwatch', () => {
   const swatch = makeSwatch(TEST_PALETTE, ON_VIBRANT);

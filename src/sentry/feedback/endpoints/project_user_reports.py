@@ -71,7 +71,8 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
     authentication_classes = ProjectEndpoint.authentication_classes + (DSNAuthentication,)
 
     @extend_schema(
-        operation_id="List a Project's User Feedback",
+        operation_id="listProjectUserFeedback",
+        summary="List a Project's User Feedback",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG, CursorQueryParam],
         responses={
             200: OpenApiResponse(
@@ -134,7 +135,8 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
         )
 
     @extend_schema(
-        operation_id="Submit User Feedback",
+        operation_id="createProjectUserFeedback",
+        summary="Submit User Feedback",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=UserReportSerializer,
         responses={

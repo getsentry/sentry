@@ -1,4 +1,5 @@
 import {IconAllProjects} from '@sentry/icons/allProjects';
+import {IconBot} from '@sentry/icons/bot';
 import {IconFlag} from '@sentry/icons/flag';
 import {IconGroup} from '@sentry/icons/group';
 import {IconLink} from '@sentry/icons/link';
@@ -9,8 +10,6 @@ import {IconSeer} from '@sentry/icons/seer';
 import {IconSubscribed} from '@sentry/icons/subscribed';
 import {IconTerminal} from '@sentry/icons/terminal';
 import {IconUser} from '@sentry/icons/user';
-
-import {FeatureBadge} from '@sentry/scraps/badge';
 
 import {t} from 'sentry/locale';
 import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
@@ -72,6 +71,14 @@ function getAccountNavigationConfiguration({
           description: t(
             'Change your account details and preferences (e.g. timezone/clock, avatar, language)'
           ),
+        },
+        {
+          id: 'account_appearance',
+          path: `${userSettingsPathPrefix}/appearance/`,
+          title: t('Appearance'),
+          keywords: [t('theme'), t('dark mode'), t('light mode')],
+          description: t('Choose how Sentry looks, like light or dark mode'),
+          show: ({organization}) => !!organization?.features.includes('theme-variants'),
         },
         {
           id: 'account_security',
@@ -179,6 +186,16 @@ function getOrganizationNavigationConfiguration({
           id: 'members',
         },
         {
+          path: `${organizationSettingsPathPrefix}/service-accounts/`,
+          icon: <IconBot />,
+          title: t('Service Accounts'),
+          keywords: [t('service account'), t('bot'), t('automation'), t('token')],
+          description: t('Manage non-human accounts for CI, scripts and agents'),
+          id: 'service-accounts',
+          show: ({organization}) =>
+            !!organization && organization.features.includes('service-accounts'),
+        },
+        {
           path: `${organizationSettingsPathPrefix}/security-and-privacy/`,
           icon: <IconLock />,
           title: t('Security & Privacy'),
@@ -231,7 +248,7 @@ function getOrganizationNavigationConfiguration({
           path: `${organizationSettingsPathPrefix}/early-features/`,
           title: t('Early Features'),
           description: t('Manage early access features'),
-          badge: () => <FeatureBadge type="new" />,
+          badge: () => 'new',
           show: ({isSelfHosted}) => isSelfHosted || false,
           id: 'early-features',
           recordAnalytics: true,
@@ -288,7 +305,7 @@ function getOrganizationNavigationConfiguration({
           title: t('Connectors'),
           description: t('Connect monitoring providers to Seer'),
           id: 'seer-connectors',
-          badge: () => <FeatureBadge type="beta" />,
+          badge: () => 'beta',
           show: ({organization}) =>
             !!organization &&
             showNewSeer(organization) &&
@@ -437,11 +454,5 @@ function getDeveloperNavigationConfiguration({
     });
   }
 
-  return [
-    {
-      id: 'settings-developer',
-      name: t('Developer Settings'),
-      items,
-    },
-  ];
+  return [{id: 'settings-developer', name: t('Developer Settings'), items}];
 }

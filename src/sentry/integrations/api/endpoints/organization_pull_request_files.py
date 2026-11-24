@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TypedDict
+from collections.abc import Mapping
+from typing import NamedTuple, TypedDict
 
 from rest_framework.exceptions import APIException, ParseError, PermissionDenied, Throttled
 from rest_framework.request import Request
@@ -9,7 +10,14 @@ from rest_framework.response import Response
 from scm import actions as scm_actions
 from scm.errors import ProviderNotFound, RateLimitExceeded, ResourceNotFound, SCMError
 from scm.helpers import iter_all_pages
-from scm.types import FileStatus, GetPullRequestFilesProtocol, PullRequestFile
+from scm.types import (
+    FileStatus,
+    GetPullRequestFilesProtocol,
+    GetPullRequestProtocol,
+    PaginatedActionResult,
+    PaginationParams,
+    PullRequestFile,
+)
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -23,6 +31,7 @@ from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
+from sentry.utils import metrics
 from sentry.utils.auth import is_user_from_viewer_context
 
 logger = logging.getLogger(__name__)
@@ -49,6 +58,16 @@ class RepositoryPullRequestFileResponse(PullRequestFileResponse):
 
 class RepositoryPullRequestFilesResponse(TypedDict):
     files: list[RepositoryPullRequestFileResponse]
+    # The PR's head commit while these files were read, or None if the provider doesn't say or
+    # a push landed mid-read. The provider can lag behind a push, so a caller that pushed
+    # compares this to its own commit to tell whether the files include that push, and
+    # refetches until it does.
+    headSha: str | None
+
+
+class _PullRequestFiles(NamedTuple):
+    files: list[PullRequestFile]
+    head_sha: str | None
 
 
 def _require_user_session(request: Request) -> None:
@@ -64,29 +83,101 @@ def _serialize_file(raw_file: PullRequestFile) -> PullRequestFileResponse:
     return {"path": raw_file["filename"], "patch": raw_file["patch"]}
 
 
+def _read_files(
+    scm: GetPullRequestFilesProtocol, pull_request_key: str
+) -> tuple[list[PullRequestFile], int]:
+    """The files, and how many provider calls reading them took."""
+    files: list[PullRequestFile] = []
+    calls = 0
+
+    def read_page(pagination: PaginationParams) -> PaginatedActionResult[list[PullRequestFile]]:
+        nonlocal calls
+        calls += 1
+        return scm_actions.get_pull_request_files(scm, pull_request_key, pagination=pagination)
+
+    for page in iter_all_pages(read_page):
+        files.extend(page["data"])
+    return files, calls
+
+
+def _record_head_sha_read(provider: str, outcome: str, provider_calls: int) -> None:
+    metrics.distribution(
+        "organization_pull_request_files.head_sha.provider_calls",
+        provider_calls,
+        tags={"provider": provider, "outcome": outcome},
+    )
+
+
+def _read_files_at_one_head(
+    scm: GetPullRequestFilesProtocol,
+    pull_request_key: str,
+    provider: str,
+    log_extra: Mapping[str, object],
+) -> _PullRequestFiles:
+    """
+    The files, with the PR's head commit read before and after them. If a push moves the head
+    while the pages are read, the pages may mix commits, so report no head commit and let the
+    caller refetch.
+    """
+    if not isinstance(scm, GetPullRequestProtocol):
+        files, provider_calls = _read_files(scm, pull_request_key)
+        _record_head_sha_read(provider, "no_pull_request_support", provider_calls)
+        return _PullRequestFiles(files, None)
+
+    head_sha = scm_actions.get_pull_request(scm, pull_request_key)["data"]["head"]["sha"]
+    files, page_calls = _read_files(scm, pull_request_key)
+    head_sha_after = scm_actions.get_pull_request(scm, pull_request_key)["data"]["head"]["sha"]
+    provider_calls = page_calls + 2
+    if head_sha_after == head_sha:
+        _record_head_sha_read(provider, "matched", provider_calls)
+        return _PullRequestFiles(files, head_sha)
+
+    logger.info(
+        "organization_pull_request_files.head_sha.moved",
+        extra={
+            **log_extra,
+            "provider": provider,
+            "head_sha_before": head_sha,
+            "head_sha_after": head_sha_after,
+        },
+    )
+    _record_head_sha_read(provider, "moved", provider_calls)
+    return _PullRequestFiles(files, None)
+
+
 def _fetch_files(
-    organization_id: int, repository_id: int, pull_request_key: str
-) -> list[PullRequestFile]:
-    """Every file the pull request changes, as its provider reports them."""
+    organization_id: int,
+    repository_id: int,
+    pull_request_key: str,
+    *,
+    head_sha_provider: str | None = None,
+) -> _PullRequestFiles:
+    """
+    Every file the pull request changes, as its provider reports them. With
+    `head_sha_provider` (the repository's provider, used to tag metrics), also the head commit
+    they were read at, which costs two extra provider calls.
+    """
     try:
         scm = make_scm(organization_id, repository_id, referrer="pull-request-files")
     except ProviderNotFound:
         # No integration installed, or a provider without SCM support (e.g. Bitbucket).
-        return []
+        return _PullRequestFiles([], None)
     except SCMError:
         raise ResourceDoesNotExist
 
     if not isinstance(scm, GetPullRequestFilesProtocol):
-        return []
+        return _PullRequestFiles([], None)
 
+    log_extra = {
+        "organization_id": organization_id,
+        "repository_id": repository_id,
+        "pull_request_key": pull_request_key,
+    }
     try:
-        files: list[PullRequestFile] = []
-        for page in iter_all_pages(
-            lambda pagination: scm_actions.get_pull_request_files(
-                scm, pull_request_key, pagination=pagination
-            )
-        ):
-            files.extend(page["data"])
+        if head_sha_provider is not None:
+            return _read_files_at_one_head(scm, pull_request_key, head_sha_provider, log_extra)
+        files, _ = _read_files(scm, pull_request_key)
+        return _PullRequestFiles(files, None)
     except ResourceNotFound:
         # The PR is gone on the provider.
         raise ResourceDoesNotExist
@@ -94,16 +185,9 @@ def _fetch_files(
         raise Throttled
     except SCMError:
         logger.warning(
-            "organization_pull_request_files.fetch_failed",
-            exc_info=True,
-            extra={
-                "organization_id": organization_id,
-                "repository_id": repository_id,
-                "pull_request_key": pull_request_key,
-            },
+            "organization_pull_request_files.fetch_failed", exc_info=True, extra=log_extra
         )
         raise PullRequestFilesUnavailable
-    return files
 
 
 @cell_silo_endpoint
@@ -128,8 +212,8 @@ class OrganizationPullRequestFilesEndpoint(OrganizationEndpoint):
         except PullRequest.DoesNotExist:
             raise ResourceDoesNotExist
 
-        files = _fetch_files(organization.id, pull_request.repository_id, pull_request.key)
-        return Response({"files": [_serialize_file(f) for f in files]})
+        fetched = _fetch_files(organization.id, pull_request.repository_id, pull_request.key)
+        return Response({"files": [_serialize_file(f) for f in fetched.files]})
 
 
 @cell_silo_endpoint
@@ -175,7 +259,12 @@ class OrganizationRepositoryPullRequestFilesEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
         repository = matches[0]
 
-        files = _fetch_files(organization.id, repository.id, number)
+        fetched = _fetch_files(
+            organization.id,
+            repository.id,
+            number,
+            head_sha_provider=repository.provider or "unknown",
+        )
         return Response(
             {
                 "files": [
@@ -184,7 +273,8 @@ class OrganizationRepositoryPullRequestFilesEndpoint(OrganizationEndpoint):
                         "status": f["status"],
                         "previousPath": f["previous_filename"],
                     }
-                    for f in files
-                ]
+                    for f in fetched.files
+                ],
+                "headSha": fetched.head_sha,
             }
         )

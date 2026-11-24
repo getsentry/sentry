@@ -1,6 +1,6 @@
 from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
-from typing import Any, NamedTuple, TypeIs, assert_never, cast, get_args
+from typing import Any, TypeIs, assert_never, cast, get_args
 
 import sentry_sdk
 from django.db.models import Q
@@ -139,15 +139,6 @@ SUPPORTED_DATASETS = [
 
 class ProxyResolvedAttribute(ResolvedAttribute):
     pass
-
-
-class StoredRef(NamedTuple):
-    name: str
-    proto_type: AttributeKey.Type.ValueType
-    is_proxy: bool
-
-
-StoredRefs = dict[str, list[StoredRef]]
 
 
 class TraceItemAttributesNamesPaginator:
@@ -718,12 +709,16 @@ def as_attribute_key(
         # convention whose name is already the same internally -- e.g.
         # `http.route` -- is missing from it and resolves as a `user` source
         # attribute. A Sentry-defined attribute that isn't a convention (e.g.
-        # `span.description`) instead carries its context on the definition.
-        # Custom attributes get an empty context here; see
-        # attach_custom_attribute_context.
+        # `span.description`) instead carries its context on the definition, which
+        # a user attribute merely shadowing its name doesn't share. Custom
+        # attributes get an empty context here; see attach_custom_attribute_context.
         context: TraceItemAttributeContext = (
             build_sentry_convention_context(public_name, name, attr_type)
-            or build_sentry_attribute_context(public_name, attr_type, item_type)
+            or (
+                build_sentry_attribute_context(public_name, attr_type, item_type)
+                if serialized_source["source_type"] == AttributeSourceType.SENTRY.value
+                else None
+            )
             or {}
         )
         unit = resolve_attribute_unit(name, public_name, attr_type, item_type)
@@ -824,6 +819,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             200: inline_sentry_response_serializer(
                 "ListTraceItemAttributesResponse", list[TraceItemAttributeKey]
             ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -982,7 +978,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         include_context: bool = False,
         debug: str | bool = False,
         include_internal_convention_attributes: bool = False,
-        stored_refs: StoredRefs | None = None,
     ) -> tuple[list[TraceItemAttributeKey], dict[str, Any] | None]:
         debug_info: dict[str, Any] | None = None
         value_substring_match = translate_escape_sequences(substring_match)
@@ -1091,7 +1086,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 all_aliased_attributes,
                 include_context,
                 include_internal_convention_attributes,
-                stored_refs,
             )
 
             sentry_sdk.set_context("api_response", {"attributes": attributes})
@@ -1111,14 +1105,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         exclude_attributes: list[ResolvedAttribute | ProxyResolvedAttribute],
         include_context: bool = False,
         include_internal_convention_attributes: bool = False,
-        stored_refs: StoredRefs | None = None,
     ) -> list[TraceItemAttributeKey]:
         attribute_keys = {}
-        refs: StoredRefs = {} if stored_refs is None else stored_refs
-        # The requested bucket's type, since a row's own type can be TYPE_UNSPECIFIED.
-        bucket_proto_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
-            attribute_type, AttributeKey.Type.TYPE_STRING
-        )
         present_names = {attribute.name for attribute in rpc_response.attributes if attribute.name}
         for attribute in rpc_response.attributes:
             if not attribute.name:
@@ -1152,9 +1140,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 and (substring_match in attr_key["name"] if substring_match else True)
             ):
                 attribute_keys[attr_key["key"]] = attr_key
-                refs.setdefault(attr_key["key"], []).append(
-                    StoredRef(attribute.name, bucket_proto_type, False)
-                )
         # We need to exclude any aliased attributes here since because of pagination they might have already been seen
         # earlier
         for aliased_attr in exclude_attributes:
@@ -1166,7 +1151,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             )
             if attr_key["name"] in attribute_keys:
                 del attribute_keys[attr_key["name"]]
-                refs.pop(attr_key["name"], None)
         for aliased_attr in aliased_attributes:
             if can_expose_attribute_to_api(
                 aliased_attr.public_alias,
@@ -1193,13 +1177,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     include_internal_convention_attributes=include_internal_convention_attributes,
                 ):
                     attribute_keys[attr_key["key"]] = attr_key
-                    refs.setdefault(attr_key["key"], []).append(
-                        StoredRef(
-                            aliased_attr.internal_name,
-                            aliased_attr.proto_type,
-                            isinstance(aliased_attr, ProxyResolvedAttribute),
-                        )
-                    )
         attributes = list(attribute_keys.values())
         sentry_sdk.set_context("api_response", {"attributes": attributes})
         sentry_sdk.set_attribute("api_response.attributes", str(attributes))

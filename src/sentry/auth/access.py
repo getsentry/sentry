@@ -259,6 +259,25 @@ class Access(abc.ABC):
         pass
 
 
+MEMBERSHIP_SCOPE_REPLACEMENTS = {
+    "member:read": "membership:read",
+    "member:write": "membership:write",
+    "member:invite": "membership:invite",
+    "member:admin": "membership:admin",
+}
+
+
+def has_member_scope(access: Access, member_scope: str) -> bool:
+    """Whether `access` holds `member_scope` or the membership scope that replaces it.
+
+    Use for in-code member scope checks, so a token holding only membership scopes gets the
+    same treatment as one holding the member scopes they replace.
+    """
+    return access.has_scope(member_scope) or access.has_scope(
+        MEMBERSHIP_SCOPE_REPLACEMENTS[member_scope]
+    )
+
+
 def _intersect_member_and_token_scopes(
     member_scopes: Collection[str], token_scopes: Iterable[str] | None
 ) -> frozenset[str]:
@@ -831,8 +850,8 @@ class ServiceAccountAccess(DbAccess):
     A service account's access to its organization. It has no membership, so its
     scopes are the account's own. With `all_projects` it reaches every active project
     in the org. Without it, it reaches only the active projects linked to the
-    account. It never reaches teams. Open membership is a setting for people, so
-    it doesn't apply.
+    account. It never reaches teams, and it can't create projects for now. Open
+    membership is a setting for people, so it doesn't apply.
 
     `has_global_access` stays False even with `all_projects`: callers read it as
     org-wide access, including team and member actions, not only projects.
@@ -1567,7 +1586,7 @@ def from_service_account_auth(auth: AuthenticatedToken, organization_id: int) ->
                 service_account_id=auth.entity_id, organization_id=organization_id, is_active=True
             )
             .values_list("all_projects", flat=True)
-            .first()
+            .get_or_none()
         )
     if all_projects is None:
         return DEFAULT

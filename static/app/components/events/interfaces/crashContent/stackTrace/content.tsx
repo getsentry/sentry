@@ -18,10 +18,7 @@ import type {StacktraceType} from 'sentry/types/stacktrace';
 
 import {OmittedFrames} from './omittedFrames';
 
-type DefaultProps = {
-  expandFirstFrame: boolean;
-  includeSystemFrames: boolean;
-};
+type DefaultProps = {expandFirstFrame: boolean; includeSystemFrames: boolean};
 
 type Props = {
   data: StacktraceType;
@@ -108,11 +105,7 @@ export function Content({
 
   const lastFrameIndex = getLastFrameIndex(frames);
   const frameCountMap = getInitialFrameCounts();
-  const hiddenFrameIndices = getHiddenFrameIndices({
-    data,
-    toggleFrameMap,
-    frameCountMap,
-  });
+  const hiddenFrameIndices = getHiddenFrameIndices({data, toggleFrameMap, frameCountMap});
 
   const mechanism =
     platform === 'java' && event.tags?.find(({key}) => key === 'mechanism')?.value;
@@ -127,7 +120,7 @@ export function Content({
       const isLastFrame = frameIndex === frames.length - 1;
 
       if (repeatedFrame) {
-        // oxlint-disable-next-line react/todo
+        // oxlint-disable-next-line react/immutability
         nRepeats++;
       }
 

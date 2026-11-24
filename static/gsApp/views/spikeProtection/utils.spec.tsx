@@ -18,10 +18,7 @@ describe('getSpikeDetailsFromSeries', () => {
 
   it('returns empty on error or no result', () => {
     expect(
-      getSpikeDetailsFromSeries({
-        dataCategory: DataCategoryExact.ERROR,
-        storedSpikes: [],
-      })
+      getSpikeDetailsFromSeries({dataCategory: DataCategoryExact.ERROR, storedSpikes: []})
     ).toHaveLength(0);
   });
 

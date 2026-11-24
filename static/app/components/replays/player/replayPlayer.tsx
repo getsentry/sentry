@@ -45,6 +45,7 @@ function useReplayerInstance() {
     const replayer = new Replayer(webFrames, {
       root,
       blockClass: 'sentry-block',
+      showWarning: false,
       mouseTail: {
         duration: 0.75 * 1000,
         lineCap: 'round',

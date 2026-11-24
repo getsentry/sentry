@@ -30,6 +30,7 @@ export const enum SectionKey {
   RESOURCES = 'resources', // Position controlled by flag
 
   EXCEPTION = 'exception',
+  GPU_CRASH_REPORT = 'gpu-crash-report',
   STACKTRACE = 'stacktrace',
   CHAINED_EXCEPTION = 'chained-exception',
   THREADS = 'threads',
@@ -195,10 +196,7 @@ type UpdateDetectorDetailsAction = {
   type: 'UPDATE_DETECTOR_DETAILS';
 };
 
-type RemoveEventSectionAction = {
-  key: FoldSectionKey;
-  type: 'REMOVE_EVENT_SECTION';
-};
+type RemoveEventSectionAction = {key: FoldSectionKey; type: 'REMOVE_EVENT_SECTION'};
 
 type IssueDetailsActions =
   | UpdateEventSectionAction

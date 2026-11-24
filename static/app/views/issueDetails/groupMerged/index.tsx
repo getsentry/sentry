@@ -18,10 +18,7 @@ import {
   useGroupMergedState,
 } from './useGroupMerged';
 
-type Props = {
-  groupId: Group['id'];
-  project: Project;
-};
+type Props = {groupId: Group['id']; project: Project};
 
 const MERGED_ISSUES_DOCS_LINK =
   'https://docs.sentry.io/product/issues/grouping-and-fingerprints/#merging-similar-issues';
@@ -40,10 +37,7 @@ interface GroupMergedContentProps {
 export function GroupMergedView({project, groupId}: Props) {
   const organization = useOrganization();
   const {dataUpdatedAt, error, fingerprints, loading, pageLinks, refetch} =
-    useGroupMergedHashes({
-      groupId,
-      organization,
-    });
+    useGroupMergedHashes({groupId, organization});
 
   return (
     <GroupMergedContent
@@ -111,9 +105,7 @@ function GroupMergedContent({
             // See https://github.com/getsentry/sentry/issues/56334.
             tct(
               'These fingerprints identify events that have been merged into this issue. Changes may take up to 24 hours to take effect. [learnMore:Learn more]',
-              {
-                learnMore: <ExternalLink href={MERGED_ISSUES_DOCS_LINK} />,
-              }
+              {learnMore: <ExternalLink href={MERGED_ISSUES_DOCS_LINK} />}
             )
           }
         </Text>

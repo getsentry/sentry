@@ -41,10 +41,7 @@ const MONITOR_TYPE_ICONS: Record<Detector['type'], ComponentType<SVGIconProps>> 
 function monitorDetailsApiOptions(organizationSlug: string, detectorId: string) {
   return apiOptions.as<Detector>()(
     '/organizations/$organizationIdOrSlug/detectors/$detectorId/',
-    {
-      path: {organizationIdOrSlug: organizationSlug, detectorId},
-      staleTime: 30_000,
-    }
+    {path: {organizationIdOrSlug: organizationSlug, detectorId}, staleTime: 30_000}
   );
 }
 
@@ -116,10 +113,7 @@ export default function MonitorBlock({id, name}: EmbedOutput<'monitor'>) {
     data: detector,
     isError,
     isPending,
-  } = useQuery({
-    ...monitorDetailsApiOptions(organization.slug, id),
-    retry: false,
-  });
+  } = useQuery({...monitorDetailsApiOptions(organization.slug, id), retry: false});
   const icon = detector ? (MONITOR_TYPE_ICONS[detector.type] ?? IconTimer) : IconTimer;
 
   return (

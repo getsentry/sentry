@@ -6,7 +6,6 @@ import random
 import uuid
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from typing import cast
 from uuid import UUID
 
 from redis.client import StrictRedis
@@ -180,7 +179,7 @@ def create_uptime_response_capture(
     capture = UptimeResponseCapture.objects.create(
         uptime_subscription=subscription,
         file_id=file.id,
-        scheduled_check_time_ms=cast(int, result["scheduled_check_time_ms"]),
+        scheduled_check_time_ms=result["scheduled_check_time_ms"],
     )
 
     metrics.incr("uptime.response_capture.created", sample_rate=1.0)

@@ -8,6 +8,7 @@ from django.urls import reverse
 from sentry import audit_log
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.core.endpoints.organization_member_details import ERR_INSUFFICIENT_SCOPE
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -18,6 +19,7 @@ from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -195,6 +197,72 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMixin):
     method = "put"
+
+    def test_invalid_team_roles(self) -> None:
+        member = self.create_member(
+            organization=self.organization,
+            user=self.create_user(),
+            role="member",
+            teams=[self.team],
+        )
+
+        invalid_team_roles: list[object] = [
+            None,
+            {},
+            "team-slug",
+            [None],
+            [True],
+            ["team-slug"],
+            [[]],
+            [{}],
+            [{"role": "admin"}],
+            [{"teamSlug": "team-slug"}],
+            [{"teamSlug": {}, "role": None}],
+            [{"teamSlug": [], "role": None}],
+            [{"teamSlug": "team-slug", "role": {}}],
+            [{"teamSlug": "team-slug", "role": []}],
+        ]
+        for team_roles in invalid_team_roles:
+            response = self.get_error_response(
+                self.organization.slug,
+                member.id,
+                orgRole="manager",
+                teamRoles=team_roles,
+                status_code=400,
+            )
+
+            assert "teamRoles" in response.data
+        member.refresh_from_db()
+        assert member.role == "member"
+        assert list(member.teams.all()) == [self.team]
+
+    def test_empty_team_roles_clears_teams(self) -> None:
+        member = self.create_member(
+            organization=self.organization,
+            user=self.create_user(),
+            role="member",
+            teams=[self.team],
+        )
+
+        self.get_success_response(self.organization.slug, member.id, teamRoles=[])
+        assert list(member.teams.all()) == []
+
+    def test_omitted_team_roles_preserves_assignments(self) -> None:
+        member = self.create_member(
+            organization=self.organization,
+            user=self.create_user(),
+            role="member",
+            teams=[self.team],
+        )
+        OrganizationMemberTeam.objects.filter(organizationmember=member).update(role="admin")
+
+        self.get_success_response(self.organization.slug, member.id, orgRole="member")
+
+        assert list(
+            OrganizationMemberTeam.objects.filter(organizationmember=member).values_list(
+                "team_id", "role"
+            )
+        ) == [(self.team.id, "admin")]
 
     def setUp(self) -> None:
         super().setUp()
@@ -1468,3 +1536,92 @@ class ResetOrganizationMember2faTest(APITestCase):
         )
         resp = self.client.put(path)
         assert resp.status_code == 403
+
+
+# What a member:admin token holds after translation.
+MEMBER_ADMIN_MEMBERSHIP_SCOPES = [
+    "membership:read",
+    "membership:invite",
+    "membership:write",
+    "membership:admin",
+]
+
+
+class OrganizationMemberDetailsMembershipScopeTest(OrganizationMemberTestBase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.other = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:read")
+    def test_membership_read_can_get_member(self) -> None:
+        self._use_token(["membership:read"])
+        response = self.get_success_response(self.organization.slug, self.other.id)
+        assert response.data["id"] == str(self.other.id)
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:read")
+    def test_membership_read_cannot_update_or_remove_member(self) -> None:
+        self._use_token(["membership:read"])
+        self.get_error_response(
+            self.organization.slug, self.other.id, method="put", role="admin", status_code=403
+        )
+        # DELETE accepts member:read, and so membership:read, so members can remove
+        # themselves. Removing someone else needs member:invite or member:admin.
+        response = self.get_error_response(
+            self.organization.slug, self.other.id, method="delete", status_code=400
+        )
+        assert response.data["detail"] == ERR_INSUFFICIENT_SCOPE
+        assert OrganizationMember.objects.filter(id=self.other.id).exists()
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:invite")
+    def test_membership_invite_can_only_reinvite_like_member_invite(self) -> None:
+        member_user = self.create_user()
+        self.create_member(organization=self.organization, user=member_user, role="member")
+        own_invite = self.create_member(
+            organization=self.organization,
+            email="own-invite@example.com",
+            role="member",
+            inviter_id=member_user.id,
+        )
+        team = self.create_team(organization=self.organization)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=member_user, scope_list=["membership:invite"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+        self.get_error_response(
+            self.organization.slug, own_invite.id, method="put", teams=[team.slug], status_code=403
+        )
+        assert not own_invite.teams.exists()
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting(*MEMBER_ADMIN_MEMBERSHIP_SCOPES)
+    def test_membership_admin_can_change_member_role(self) -> None:
+        # Updating a member needs membership:write; changing roles also needs membership:admin.
+        self._use_token(MEMBER_ADMIN_MEMBERSHIP_SCOPES)
+        self.get_success_response(
+            self.organization.slug, self.other.id, method="put", orgRole="manager"
+        )
+        self.other.refresh_from_db()
+        assert self.other.role == "manager"
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting(*MEMBER_ADMIN_MEMBERSHIP_SCOPES)
+    def test_membership_admin_can_remove_member(self) -> None:
+        # DELETE accepts membership:read so members can leave; removing others needs
+        # membership:admin.
+        self._use_token(MEMBER_ADMIN_MEMBERSHIP_SCOPES)
+        self.get_success_response(
+            self.organization.slug, self.other.id, method="delete", status_code=204
+        )
+        assert not OrganizationMember.objects.filter(id=self.other.id).exists()

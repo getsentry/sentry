@@ -17,10 +17,7 @@ import {Tab as TransactionSummaryTab} from 'sentry/views/performance/transaction
 import TransactionReplays from 'sentry/views/performance/transactionSummary/transactionReplays';
 
 type InitializeOrgProps = {
-  location?: {
-    pathname?: string;
-    query?: Record<string, string>;
-  };
+  location?: {pathname?: string; query?: Record<string, string>};
   organizationProps?: {
     features?: string[];
     hasGranularReplayPermissions?: boolean;
@@ -33,12 +30,10 @@ const mockReplaysUrl = '/organizations/org-slug/replays/';
 
 const renderComponent = ({
   location,
-  organizationProps = {features: ['performance-view', 'session-replay']},
+  organizationProps = {features: ['session-replay']},
 }: InitializeOrgProps = {}) => {
   const {organization, projects} = initializeOrg({
-    organization: {
-      ...organizationProps,
-    },
+    organization: {...organizationProps},
     projects: [ProjectFixture()],
   });
 
@@ -89,16 +84,12 @@ describe('TransactionReplays', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replay-count/',
-      body: {
-        data: [],
-      },
+      body: {data: []},
       statusCode: 200,
     });
     eventsMockApi = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-      },
+      body: {data: []},
       statusCode: 200,
     });
   });
@@ -147,9 +138,7 @@ describe('TransactionReplays', () => {
     const mockApi = MockApiClient.addMockResponse({
       url: mockEventsUrl,
       statusCode: 200,
-      body: {
-        data: [],
-      },
+      body: {data: []},
     });
 
     renderComponent();
@@ -264,11 +253,7 @@ describe('TransactionReplays', () => {
   });
 
   it("should show a message when the organization doesn't have access to the replay feature", async () => {
-    renderComponent({
-      organizationProps: {
-        features: ['performance-view'],
-      },
-    });
+    renderComponent({organizationProps: {}});
 
     await waitFor(() => {
       expect(
@@ -280,7 +265,7 @@ describe('TransactionReplays', () => {
   it('should hide replay content when user does not have granular replay permissions', async () => {
     renderComponent({
       organizationProps: {
-        features: ['performance-view', 'session-replay'],
+        features: ['session-replay'],
         hasGranularReplayPermissions: true,
         replayAccessMembers: [999], // User ID 1 is not in this list
       },

@@ -501,7 +501,10 @@ export function Control<Value extends SelectKey>({
 
   return (
     <ControlContext value={contextValue}>
-      <Container width="max-content" position="relative" {...wrapperProps}>
+      {/* A flex wrapper hugs the trigger. As a block, it would put the inline
+          trigger on a text line, and a trigger with no text (icons, avatars)
+          would sit on the baseline with extra space below it. */}
+      <Container display="flex" width="max-content" position="relative" {...wrapperProps}>
         {trigger ? (
           // TriggerProps constrains ref forwarding; the runtime element is a button.
           trigger(mergedTriggerProps as TriggerProps, overlayIsOpen)
@@ -535,14 +538,13 @@ export function Control<Value extends SelectKey>({
             >
               <FocusScope contain>
                 {hasHeader && (
-                  <Header borderBottom={searchEnabled ? 'none' : 'muted'}>
-                    <Flex
-                      align="center"
-                      justify="between"
-                      gap="xl"
-                      minHeight="24px"
-                      padding={searchEnabled ? 'xs lg 0 lg' : 'xs lg'}
-                    >
+                  <Header
+                    borderBottom={searchEnabled ? 'none' : 'secondary'}
+                    padding={searchEnabled ? 'xs lg 0 lg' : 'xs lg'}
+                  >
+                    {/* The clear button's height, so the header doesn't resize
+                        when it appears or disappears */}
+                    <Flex align="center" justify="between" gap="xl" minHeight="24px">
                       {menuTitle && <Title>{menuTitle}</Title>}
                       <Flex align="center" gap="xs" marginLeft="auto">
                         {loading && <StyledSpinner size={12} />}
@@ -567,7 +569,6 @@ export function Control<Value extends SelectKey>({
                 {searchEnabled && (
                   <Search
                     ref={searchRef}
-                    data-1p-ignore
                     placeholder={normalizedSearch?.placeholder ?? 'Search…'}
                     value={searchInputValue}
                     onFocus={onSearchFocus}
@@ -639,9 +640,7 @@ export const ClearButton = styled(Button)`
 
 const withUnits = (value: unknown) => (typeof value === 'string' ? value : `${value}px`);
 
-const StyledOverlay = styled(Overlay, {
-  shouldForwardProp: prop => isPropValid(prop),
-})<{
+const StyledOverlay = styled(Overlay, {shouldForwardProp: prop => isPropValid(prop)})<{
   maxHeightProp: string | number;
   height?: string | number;
   maxHeight?: string | number;

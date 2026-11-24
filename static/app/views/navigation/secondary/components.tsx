@@ -35,6 +35,7 @@ import {IconClose} from '@sentry/icons/close';
 import {IconGrabbable} from '@sentry/icons/grabbable';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
@@ -71,10 +72,15 @@ import {
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 const MotionContainer = motion.create(Container);
 const LEADING_SLOT_SIZE = '24px';
+/** With settings-v3, the padding from the panel edge to the link backgrounds, shared by the header and body. */
+const PANEL_PADDING_X = 'xs';
+/** The padding from a link's background to its content, shared by link rows and the header title. */
+const ITEM_PADDING_X = 'md';
 
 interface SecondarySidebarProps {
   children: ReactNode;
@@ -118,6 +124,7 @@ function SecondarySidebarPanel({
   const containerRef = useObjectRef(tourRef);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
   const {layout, activeGroup} = usePrimaryNavigation();
+  const isSettingsNavigation = useSettingsNavigation();
 
   const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
@@ -145,13 +152,17 @@ function SecondarySidebarPanel({
     <Container
       height="100%"
       right="0"
-      {...mergeProps(props, {
-        [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
-      })}
+      {...mergeProps(props, {[NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true})}
       width={isMobile ? '100%' : `${size}px`}
       ref={isMobile ? undefined : containerRef}
     >
-      <AnimatePresence mode="popLayout" initial={false}>
+      <AnimatePresence
+        // Settings swaps the whole navigation, so start a fresh presence instead
+        // of animating from the previous group.
+        key={isSettingsNavigation ? 'settings' : 'app'}
+        mode="popLayout"
+        initial={false}
+      >
         <MotionContainer
           width="100%"
           height="100%"
@@ -296,6 +307,7 @@ interface SecondaryNavigationHeaderProps {
 
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
+  const settingsV3 = useSettingsV3();
   const isMobile = layout === 'mobile';
 
   return (
@@ -304,7 +316,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
       align="center"
       borderBottom="primary"
       height={`${PRIMARY_HEADER_HEIGHT}px`}
-      padding={isMobile ? 'md lg' : '0 sm 0 sm'}
+      padding={isMobile ? 'md lg' : settingsV3 ? `0 ${PANEL_PADDING_X}` : '0 sm'}
     >
       {props.children}
       <SecondaryNavigationToggle />
@@ -316,23 +328,33 @@ function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
   const {layout} = usePrimaryNavigation();
   const settingsV3 = useSettingsV3();
 
+  // Without settings-v3, mobile links have no body padding, so the title drops
+  // its own to stay aligned with them.
+  const paddingX = settingsV3 ? ITEM_PADDING_X : layout === 'mobile' ? undefined : 'lg';
+
   return (
-    <Container
+    <Flex
+      align="center"
+      height="32px"
       minWidth="0"
-      padding={settingsV3 ? 'md xs' : undefined}
-      paddingLeft={!settingsV3 && layout !== 'mobile' ? 'lg' : undefined}
+      paddingLeft={paddingX}
+      paddingRight={paddingX}
     >
-      <Text size="md" bold>
+      <Text size="md" bold ellipsis>
         {children}
       </Text>
-    </Container>
+    </Flex>
   );
 }
 
 function SecondaryNavigationToggle() {
   const {layout} = usePrimaryNavigation();
-  const {view, setView} = useSecondaryNavigation();
+  const {collapsible, view, setView} = useSecondaryNavigation();
   const isCollapsed = view !== 'expanded';
+
+  if (!collapsible) {
+    return null;
+  }
 
   if (layout === 'mobile') {
     return (
@@ -372,7 +394,13 @@ function SecondaryNavigationBody(props: SecondaryNavigationBodyProps) {
     <Container
       overflow="auto"
       overscrollBehavior="contain"
-      padding={settingsV3 ? 'md xs' : layout === 'mobile' ? '0 0 md 0' : undefined}
+      padding={
+        settingsV3
+          ? `md ${PANEL_PADDING_X}`
+          : layout === 'mobile'
+            ? '0 0 md 0'
+            : undefined
+      }
     >
       {props.children}
     </Container>
@@ -392,7 +420,7 @@ function SecondaryNavigationRow(props: ComponentProps<typeof Grid>) {
       align="center"
       position="relative"
       height="32px"
-      padding="0 sm 0 md"
+      padding={`0 ${ITEM_PADDING_X}`}
       radius="md"
       {...props}
       columns={`${LEADING_SLOT_SIZE} minmax(0, 1fr)`}
@@ -642,7 +670,7 @@ function SecondaryNavigationSeparator() {
     return (
       <SecondaryNavigationRow height="auto" padding="md" radius="0">
         <Container column="2" minWidth="0">
-          <Separator orientation="horizontal" border="muted" />
+          <Separator orientation="horizontal" border="secondary" />
         </Container>
       </SecondaryNavigationRow>
     );
@@ -650,7 +678,7 @@ function SecondaryNavigationSeparator() {
 
   return (
     <Container padding="0 xl">
-      <Separator orientation="horizontal" border="muted" />
+      <Separator orientation="horizontal" border="secondary" />
     </Container>
   );
 }
@@ -702,10 +730,7 @@ function Collapsible(props: CollapsibleProps) {
           direction="column-reverse"
           key="collapsible-content"
           variants={{
-            collapsed: {
-              height: 0,
-              overflow: 'hidden',
-            },
+            collapsed: {height: 0, overflow: 'hidden'},
             expanded: {
               height: 'auto',
               // Let focus rings and other content extend beyond the expanded section.
@@ -855,12 +880,8 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
   props: SecondaryNavigationReorderableListProps<T>
 ) {
   const sensors = useSensors(
-    useSensor(NavigationPointerSensor, {
-      activationConstraint: {distance: 5},
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(NavigationPointerSensor, {activationConstraint: {distance: 5}}),
+    useSensor(KeyboardSensor, {coordinateGetter: sortableKeyboardCoordinates})
   );
 
   // We need to hold a copy of the local state because dnd-kit does not play well
@@ -1037,7 +1058,7 @@ function GrabHandle() {
     return (
       <Flex
         align="center"
-        padding="0 sm 0 md"
+        padding={`0 ${ITEM_PADDING_X}`}
         position="absolute"
         inset="0"
         pointerEvents="none"
@@ -1111,6 +1132,18 @@ const GrabHandleAnimation = styled('div')`
   }
 `;
 
+interface SecondaryNavigationFeatureBadgeProps {
+  type: FeatureBadgeProps['type'];
+}
+
+/**
+ * Feature badges can sit before the link label, so a tooltip on the right
+ * would cover the label of the hovered link.
+ */
+function SecondaryNavigationFeatureBadge({type}: SecondaryNavigationFeatureBadgeProps) {
+  return <FeatureBadge type={type} tooltipProps={{position: 'top'}} />;
+}
+
 interface SecondaryNavigationIndicatorProps {
   variant: 'accent' | 'danger' | 'warning';
   ref?: React.Ref<HTMLDivElement>;
@@ -1140,9 +1173,7 @@ const DotIndicator = styled('div')<{variant: 'accent' | 'danger' | 'warning'}>`
 
 const StyledReorderableLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'layout',
-})<{
-  layout: 'mobile' | 'sidebar';
-}>`
+})<{layout: 'mobile' | 'sidebar'}>`
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   border: 0;
   user-select: none;
@@ -1200,9 +1231,7 @@ const StyledReorderableLink = styled(Link, {
 
 const LegacyStyledReorderableLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'layout',
-})<{
-  layout: 'mobile' | 'sidebar';
-}>`
+})<{layout: 'mobile' | 'sidebar'}>`
   display: flex;
   gap: ${p => p.theme.space.sm};
   justify-content: center;
@@ -1351,4 +1380,5 @@ export const SecondaryNavigation = {
   ReorderableList: SecondaryNavigationReorderableList,
   ReorderableLink: SecondaryNavigationReorderableLink,
   Indicator: SecondaryNavigationIndicator,
+  FeatureBadge: SecondaryNavigationFeatureBadge,
 };

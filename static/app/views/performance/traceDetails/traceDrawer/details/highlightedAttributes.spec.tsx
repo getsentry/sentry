@@ -6,9 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {getHighlightedSpanAttributes} from './highlightedAttributes';
 
 // Mock Sentry
-jest.mock('@sentry/react', () => ({
-  captureMessage: jest.fn(),
-}));
+jest.mock('@sentry/react', () => ({captureMessage: jest.fn()}));
 
 describe('getHighlightedSpanAttributes', () => {
   beforeEach(() => {
@@ -26,10 +24,7 @@ describe('getHighlightedSpanAttributes', () => {
       // Missing: gen_ai.system, gen_ai.operation.name, gen_ai.agent.name
     };
 
-    getHighlightedSpanAttributes({
-      spanId: '123',
-      attributes,
-    });
+    getHighlightedSpanAttributes({spanId: '123', attributes});
 
     expect(Sentry.captureMessage).toHaveBeenCalledWith(
       'Gen AI span missing required attributes',
@@ -58,10 +53,7 @@ describe('getHighlightedSpanAttributes', () => {
       'gen_ai.operation.type': 'ai_client',
     };
 
-    getHighlightedSpanAttributes({
-      spanId: '123',
-      attributes,
-    });
+    getHighlightedSpanAttributes({spanId: '123', attributes});
 
     expect(Sentry.captureMessage).not.toHaveBeenCalled();
   });
@@ -72,10 +64,7 @@ describe('getHighlightedSpanAttributes', () => {
       // Missing required attributes
     };
 
-    getHighlightedSpanAttributes({
-      spanId: '123',
-      attributes,
-    });
+    getHighlightedSpanAttributes({spanId: '123', attributes});
 
     expect(Sentry.captureMessage).not.toHaveBeenCalled();
   });
@@ -85,10 +74,7 @@ describe('getHighlightedSpanAttributes', () => {
       // Missing required attributes and no origin
     };
 
-    getHighlightedSpanAttributes({
-      spanId: '123',
-      attributes,
-    });
+    getHighlightedSpanAttributes({spanId: '123', attributes});
 
     expect(Sentry.captureMessage).not.toHaveBeenCalled();
   });
@@ -100,10 +86,7 @@ describe('getHighlightedSpanAttributes', () => {
       // No sdk.name or sdk.version
     };
 
-    getHighlightedSpanAttributes({
-      spanId: '456',
-      attributes,
-    });
+    getHighlightedSpanAttributes({spanId: '456', attributes});
 
     expect(Sentry.captureMessage).toHaveBeenCalledWith(
       'Gen AI span missing required attributes',
@@ -130,23 +113,15 @@ describe('getHighlightedSpanAttributes', () => {
       'gen_ai.usage.total_tokens': '57600',
     };
 
-    const result = getHighlightedSpanAttributes({
-      spanId: '123',
-      attributes,
-    });
+    const result = getHighlightedSpanAttributes({spanId: '123', attributes});
 
     expect(result.find(attr => attr.name === 'Context Utilization')).toBeDefined();
   });
 
   it('should not include context utilization when attribute is absent', () => {
-    const attributes = {
-      'gen_ai.operation.type': 'ai_client',
-    };
+    const attributes = {'gen_ai.operation.type': 'ai_client'};
 
-    const result = getHighlightedSpanAttributes({
-      spanId: '123',
-      attributes,
-    });
+    const result = getHighlightedSpanAttributes({spanId: '123', attributes});
 
     expect(result.find(attr => attr.name === 'Context Utilization')).toBeUndefined();
   });
@@ -158,10 +133,7 @@ describe('getHighlightedSpanAttributes', () => {
       'gen_ai.context.window_size': '128000',
     };
 
-    const result = getHighlightedSpanAttributes({
-      spanId: '123',
-      attributes,
-    });
+    const result = getHighlightedSpanAttributes({spanId: '123', attributes});
 
     expect(result.find(attr => attr.name === 'Context Utilization')).toBeUndefined();
   });
@@ -172,10 +144,7 @@ describe('getHighlightedSpanAttributes', () => {
       'gen_ai.cost.total_tokens': '-0.05',
     };
 
-    const result = getHighlightedSpanAttributes({
-      spanId: '123',
-      attributes,
-    });
+    const result = getHighlightedSpanAttributes({spanId: '123', attributes});
 
     expect(result.find(attr => attr.name === 'Cost')).toBeDefined();
   });
@@ -186,10 +155,7 @@ describe('getHighlightedSpanAttributes', () => {
       'gen_ai.request.reasoning.level': 'high',
     };
 
-    const result = getHighlightedSpanAttributes({
-      spanId: '123',
-      attributes,
-    });
+    const result = getHighlightedSpanAttributes({spanId: '123', attributes});
 
     const reasoningLevel = result.find(attr => attr.name === 'Reasoning Level');
     expect(reasoningLevel).toBeDefined();
@@ -197,14 +163,9 @@ describe('getHighlightedSpanAttributes', () => {
   });
 
   it('should not include reasoning level when attribute is absent', () => {
-    const attributes = {
-      'gen_ai.operation.type': 'ai_client',
-    };
+    const attributes = {'gen_ai.operation.type': 'ai_client'};
 
-    const result = getHighlightedSpanAttributes({
-      spanId: '123',
-      attributes,
-    });
+    const result = getHighlightedSpanAttributes({spanId: '123', attributes});
 
     expect(result.find(attr => attr.name === 'Reasoning Level')).toBeUndefined();
   });
@@ -222,6 +183,37 @@ describe('getHighlightedSpanAttributes', () => {
     expect(result.find(attr => attr.name === 'Result Size')?.value).toBe('4.1 kB');
   });
 
+  it('uses the AI span details referrer for the tool result size baseline', async () => {
+    const baselineRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'avg(gen_ai.tool.call.result.size)': 2000}]},
+    });
+    const result = getHighlightedSpanAttributes({
+      spanId: '123',
+      projectId: 1,
+      attributes: {
+        'gen_ai.operation.type': 'tool',
+        'gen_ai.tool.name': 'search',
+        'gen_ai.tool.call.result.size': 4000,
+      },
+    });
+    const size = result.find(attr => attr.name === 'Result Size');
+    if (!isValidElement(size?.value)) {
+      throw new Error('Expected tool result size to be a React element');
+    }
+    render(size.value);
+
+    expect(await screen.findByText('100% larger than avg 2 kB')).toBeInTheDocument();
+    expect(baselineRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          referrer: 'api.insights.agent-monitoring.span-details',
+        }),
+      })
+    );
+  });
+
   it('should include tokens attribute when values are present', () => {
     const attributes = {
       'gen_ai.operation.type': 'ai_client',
@@ -233,16 +225,11 @@ describe('getHighlightedSpanAttributes', () => {
       'gen_ai.usage.total_tokens': '150',
     };
 
-    const result = getHighlightedSpanAttributes({
-      spanId: '123',
-      attributes,
-    });
+    const result = getHighlightedSpanAttributes({spanId: '123', attributes});
 
     const tokens = result.find(attr => attr.name === 'Tokens');
     expect(tokens?.value).toEqual(
-      expect.objectContaining({
-        props: expect.objectContaining({cacheWriteTokens: 15}),
-      })
+      expect.objectContaining({props: expect.objectContaining({cacheWriteTokens: 15})})
     );
   });
 
@@ -259,9 +246,7 @@ describe('getHighlightedSpanAttributes', () => {
 
     const tokens = result.find(attr => attr.name === 'Tokens');
     expect(tokens?.value).toEqual(
-      expect.objectContaining({
-        props: expect.objectContaining({reasoningTokens: 0}),
-      })
+      expect.objectContaining({props: expect.objectContaining({reasoningTokens: 0})})
     );
   });
 

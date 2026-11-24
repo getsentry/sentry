@@ -53,11 +53,7 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'python',
-          code: getTimeoutWarningSnippet(params),
-        },
+        {type: 'code', language: 'python', code: getTimeoutWarningSnippet(params)},
         {
           type: 'text',
           text: t(

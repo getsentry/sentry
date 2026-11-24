@@ -18,7 +18,7 @@ normalize it first.
 
 from collections.abc import MutableMapping, Sequence
 from datetime import date, datetime
-from typing import Any, NotRequired, Required, TypedDict, cast
+from typing import Any, NotRequired, Required, TypedDict
 from typing import Literal as TLiteral
 
 import urllib3
@@ -747,11 +747,11 @@ def literal(value: Any) -> AttributeValue:
                 raise ValueError("Heterogenous list specified", value)
 
             if isinstance(value[0], float):
-                return AttributeValue(val_double_array=DoubleArray(values=cast(list[float], value)))
+                return AttributeValue(val_double_array=DoubleArray(values=value))
             elif isinstance(value[0], int):
-                return AttributeValue(val_int_array=IntArray(values=cast(list[int], value)))
+                return AttributeValue(val_int_array=IntArray(values=value))
             else:
-                return AttributeValue(val_str_array=StrArray(values=cast(list[str], value)))
+                return AttributeValue(val_str_array=StrArray(values=value))
         case _:
             raise TypeError("Invalid literal specified", value)
 

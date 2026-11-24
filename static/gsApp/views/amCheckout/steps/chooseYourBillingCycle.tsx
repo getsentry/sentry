@@ -40,10 +40,7 @@ export function ChooseYourBillingCycle({
     <Stack gap="xl" id={`step${stepNumber}`}>
       <StepHeader title={t('Pay monthly or yearly, your choice')} />
       <Grid
-        columns={{
-          zero: '1fr',
-          '4xl': `repeat(${intervalOptions.length}, 1fr)`,
-        }}
+        columns={{zero: '1fr', '4xl': `repeat(${intervalOptions.length}, 1fr)`}}
         gap="lg"
         role="radiogroup"
         aria-label={t('Billing cycle')}
@@ -56,9 +53,7 @@ export function ChooseYourBillingCycle({
             reserved: formData.reserved,
             addOns: formData.addOns,
           });
-          const formattedPriceAfterDiscount = formatPrice({
-            cents: priceAfterDiscount,
-          });
+          const formattedPriceAfterDiscount = formatPrice({cents: priceAfterDiscount});
 
           const priceBeforeDiscount = isAnnual ? previousPlanPrice * 12 : 0;
           const formattedPriceBeforeDiscount = previousPlanPrice

@@ -30,9 +30,7 @@ export function useQueryBuilderGrid({
   selectionKeyHandlerRef: React.RefObject<HTMLInputElement | null>;
   state: ListState<ParseResultToken>;
   undo: () => void;
-}): {
-  gridProps: DOMAttributes<HTMLDivElement>;
-} {
+}): {gridProps: DOMAttributes<HTMLDivElement>} {
   // The default behavior uses vertical naviation, but we want horizontal navigation
   const delegate = useMemo(
     () =>
@@ -47,11 +45,7 @@ export function useQueryBuilderGrid({
   );
 
   const {gridProps: originalGridProps} = useGridList(
-    {
-      ...props,
-      shouldFocusWrap: false,
-      keyboardDelegate: delegate,
-    },
+    {...props, shouldFocusWrap: false, keyboardDelegate: delegate},
     state,
     ref
   );

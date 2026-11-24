@@ -4,11 +4,7 @@ import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 export type SettingsBreadcrumb =
   | {label: string; to: string; type: 'link'}
   | {to: string; type: 'project'}
-  | {
-      switchTo: string;
-      to: string;
-      type: 'team' | 'integration' | 'sentry-app';
-    };
+  | {switchTo: string; to: string; type: 'team' | 'integration' | 'sentry-app'};
 
 export type SettingsBreadcrumbItem = BreadcrumbListProps['items'][number];
 

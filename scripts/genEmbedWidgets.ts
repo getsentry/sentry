@@ -7,9 +7,9 @@
  * Usage:
  *   pnpm gen:embed-widgets
  */
-import {execFileSync} from 'node:child_process';
-import {writeFileSync} from 'node:fs';
+import {existsSync, readFileSync, writeFileSync} from 'node:fs';
 import * as path from 'node:path';
+import {isDeepStrictEqual} from 'node:util';
 
 import {seerEmbedsToJsonSchemas} from 'sentry/components/seer/markdown/embeds/schemas';
 
@@ -18,13 +18,51 @@ const OUT_PATH = path.resolve(
   'src/sentry/seer/agent/embed_widgets.generated.json'
 );
 
+const transformedQueryWidgets = new Set(['spansQuery', 'logsQuery', 'metricsQuery']);
+// The backend exposes these fields behind rollout flags before the frontend reader supports them.
+const transformedQueryProperties = {
+  transformations: {
+    description:
+      'Ordered transformations indexed by yAxes, including duplicate axes. Use [] for a raw axis. Steps use events-timeseries syntax, e.g. [[], ["fill(locf)", "smooth(sma,3)"]]. With no yAxes, transformations apply to the default aggregate.',
+    type: 'array',
+    items: {type: 'array', items: {type: 'string', minLength: 1}},
+  },
+  interval: {
+    description: 'Bucket interval shared by all axes, e.g. "5m" or "1h".',
+    type: 'string',
+    pattern: '^[1-9]\\d*[smhdw]$',
+  },
+};
 const widgets = seerEmbedsToJsonSchemas();
+for (const {name, body} of widgets) {
+  if (transformedQueryWidgets.has(name)) {
+    const {properties} = body;
+    if (!properties || typeof properties !== 'object') {
+      throw new Error(`Expected object properties for ${name}`);
+    }
+    body.properties = {...transformedQueryProperties, ...properties};
+  }
+}
+const output = JSON.stringify(widgets, null, 2);
 
-writeFileSync(OUT_PATH, JSON.stringify(widgets, null, 2) + '\n');
+function hasCurrentWidgets(): boolean {
+  if (!existsSync(OUT_PATH)) {
+    return false;
+  }
+  const existing = readFileSync(OUT_PATH, 'utf8');
+  try {
+    return isDeepStrictEqual(JSON.parse(existing), widgets);
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      return false;
+    }
+    throw error;
+  }
+}
 
-// Format the output with oxfmt so the committed file is byte-for-byte stable
-// regardless of JSON.stringify's spacing. This keeps the file in sync with the
-// repo formatter and lets CI verify freshness with a plain `git diff`.
-execFileSync('pnpm', ['oxfmt', OUT_PATH], {stdio: 'ignore'});
-
-console.log(`Wrote ${widgets.length} embed widget(s) to ${OUT_PATH}`);
+if (hasCurrentWidgets()) {
+  console.log(`Embed widgets are up to date in ${OUT_PATH}`);
+} else {
+  writeFileSync(OUT_PATH, output + '\n');
+  console.log(`Wrote ${widgets.length} embed widget(s) to ${OUT_PATH}`);
+}

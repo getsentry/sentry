@@ -47,36 +47,19 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
     globalFilter: [
       {
         dataset: WidgetType.SPANS,
-        tag: {
-          key: 'user.geo.subregion',
-          name: 'user.geo.subregion',
-          kind: FieldKind.TAG,
-        },
+        tag: {key: 'user.geo.subregion', name: 'user.geo.subregion', kind: FieldKind.TAG},
         value: '',
       },
       {
         dataset: WidgetType.SPANS,
-        tag: {
-          key: 'browser.name',
-          name: 'browser.name',
-          kind: FieldKind.TAG,
-        },
+        tag: {key: 'browser.name', name: 'browser.name', kind: FieldKind.TAG},
         value: '',
       },
       WEB_VITALS_NAVIGATION_TYPE_FILTER,
     ],
   },
   widgets: [
-    {
-      ...SCORE_BREAKDOWN_WHEEL_WIDGET,
-      layout: {
-        y: 0,
-        w: 2,
-        h: 2,
-        x: 0,
-        minH: 2,
-      },
-    },
+    {...SCORE_BREAKDOWN_WHEEL_WIDGET, layout: {y: 0, w: 2, h: 2, x: 0, minH: 2}},
     {
       id: 'score-breakdown-chart',
       title: t('Score Breakdown'),
@@ -108,13 +91,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
-      layout: {
-        y: 0,
-        w: 4,
-        h: 2,
-        x: 2,
-        minH: 2,
-      },
+      layout: {y: 0, w: 4, h: 2, x: 2, minH: 2},
     },
     {
       id: 'lcp-p75-meter',
@@ -136,20 +113,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           slideOutId: SlideoutId.LCP,
         },
       ],
-      thresholds: {
-        max_values: {
-          max1: 1200,
-          max2: 2400,
-        },
-        unit: null,
-      },
-      layout: {
-        y: 2,
-        w: 1,
-        h: 1,
-        x: 0,
-        minH: 1,
-      },
+      thresholds: {max_values: {max1: 1200, max2: 2400}, unit: null},
+      layout: {y: 2, w: 1, h: 1, x: 0, minH: 1},
     },
     {
       id: 'inp-p75-meter',
@@ -171,20 +136,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           slideOutId: SlideoutId.INP,
         },
       ],
-      thresholds: {
-        max_values: {
-          max1: 200,
-          max2: 500,
-        },
-        unit: null,
-      },
-      layout: {
-        y: 2,
-        w: 1,
-        h: 1,
-        x: 1,
-        minH: 1,
-      },
+      thresholds: {max_values: {max1: 200, max2: 500}, unit: null},
+      layout: {y: 2, w: 1, h: 1, x: 1, minH: 1},
     },
     {
       id: 'cls-p75-meter',
@@ -206,20 +159,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           slideOutId: SlideoutId.CLS,
         },
       ],
-      thresholds: {
-        max_values: {
-          max1: 0.1,
-          max2: 0.25,
-        },
-        unit: null,
-      },
-      layout: {
-        y: 3,
-        w: 1,
-        h: 1,
-        x: 0,
-        minH: 1,
-      },
+      thresholds: {max_values: {max1: 0.1, max2: 0.25}, unit: null},
+      layout: {y: 3, w: 1, h: 1, x: 0, minH: 1},
     },
     {
       id: 'ttfb-p75-meter',
@@ -241,20 +182,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           slideOutId: SlideoutId.TTFB,
         },
       ],
-      thresholds: {
-        max_values: {
-          max1: 200,
-          max2: 400,
-        },
-        unit: 'millisecond',
-      },
-      layout: {
-        y: 3,
-        w: 1,
-        h: 1,
-        x: 1,
-        minH: 1,
-      },
+      thresholds: {max_values: {max1: 200, max2: 400}, unit: 'millisecond'},
+      layout: {y: 3, w: 1, h: 1, x: 1, minH: 1},
     },
     {
       id: 'issues-table',
@@ -273,13 +202,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: 'date',
         },
       ],
-      layout: {
-        y: 2,
-        w: 4,
-        h: 2,
-        x: 2,
-        minH: 2,
-      },
+      layout: {y: 2, w: 4, h: 2, x: 2, minH: 2},
     },
     {
       id: 'pages-table',
@@ -340,13 +263,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           ],
         },
       ],
-      layout: {
-        y: 4,
-        w: 6,
-        h: 6,
-        x: 0,
-        minH: 2,
-      },
+      layout: {y: 4, w: 6, h: 6, x: 0, minH: 2},
     },
   ],
   onboarding: {type: 'module', moduleName: ModuleName.VITAL},

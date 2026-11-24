@@ -14,7 +14,6 @@ from sentry.monitors.consumers.incident_occurrences_consumer import (
 )
 from sentry.monitors.models import (
     CheckInStatus,
-    MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
     MonitorStatus,
@@ -55,7 +54,7 @@ class MonitorsIncidentOccurrenceConsumerTestCase(TestCase):
             environment_id=self.environment.id,
             status=MonitorStatus.ERROR,
         )
-        self.failed_checkin = MonitorCheckIn.objects.create(
+        self.failed_checkin = self.create_monitor_checkin(
             monitor_environment=self.monitor_environment,
             status=CheckInStatus.MISSED,
             date_added=timezone.now(),

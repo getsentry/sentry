@@ -21,9 +21,7 @@ import type {
 import ConfigureIntegration from './configureIntegration';
 
 describe('ConfigureIntegration settings tab', () => {
-  const org = OrganizationFixture({
-    access: ['org:integrations', 'org:write'],
-  });
+  const org = OrganizationFixture({access: ['org:integrations', 'org:write']});
   const integrationId = '1';
 
   function mockRequests(
@@ -34,9 +32,7 @@ describe('ConfigureIntegration settings tab', () => {
   ) {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/`,
-      body: {
-        providers: [provider],
-      },
+      body: {providers: [provider]},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/integrations/${integrationId}/`,
@@ -59,9 +55,7 @@ describe('ConfigureIntegration settings tab', () => {
 
   const githubProvider = OrganizationIntegrationsFixture().provider;
 
-  const codeownersProvider = GitHubIntegrationProviderFixture({
-    features: ['codeowners'],
-  });
+  const codeownersProvider = GitHubIntegrationProviderFixture({features: ['codeowners']});
   const codeownersOrg = OrganizationFixture({
     access: ['org:integrations', 'org:write'],
     features: ['integrations-codeowners'],
@@ -201,56 +195,75 @@ describe('ConfigureIntegration settings tab', () => {
     expect(screen.queryByRole('link', {name: 'Slack'})).not.toBeInTheDocument();
   });
 
-  it('reconnects Linear through app authorization instead of editing credentials', async () => {
-    const provider = IntegrationProviderFixture({
+  it.each([
+    {
       key: 'linear',
-      slug: 'linear',
-      name: 'Linear for Seer',
-      features: ['seer-context'],
-      canAdd: false,
-    });
-    mockRequests(
-      OrganizationIntegrationsFixture({
-        name: 'Linear (Example)',
-        domainName: null,
-        provider: {...provider, aspects: {}},
-        configOrganization: [],
-        configData: {},
-      }),
-      provider
-    );
-    const initialize = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/pipeline/integration_pipeline/`,
-      method: 'POST',
-      body: {
-        step: 'oauth_login',
-        stepIndex: 0,
-        totalSteps: 1,
-        provider: 'linear',
-        data: {oauthUrl: 'https://linear.app/oauth/authorize?actor=app'},
-      },
-    });
-    renderGlobalModal({organization: org});
-    render(<ConfigureIntegration />, {
-      organization: org,
-      initialRouterConfig: {
-        location: {
-          pathname: `/settings/${org.slug}/integrations/linear/${integrationId}/`,
+      name: 'Linear',
+      oauthUrl: 'https://linear.app/oauth/authorize?actor=app',
+    },
+    {
+      key: 'supabase',
+      name: 'Supabase',
+      oauthUrl: 'https://api.supabase.com/v1/oauth/authorize',
+    },
+  ])(
+    'reconnects a disabled $name integration through OAuth',
+    async ({key, name, oauthUrl}) => {
+      const provider = IntegrationProviderFixture({
+        key,
+        slug: key,
+        name: `${name} for Seer`,
+        features: ['seer-context'],
+        canAdd: false,
+      });
+      mockRequests(
+        OrganizationIntegrationsFixture({
+          name: `${name} (Example)`,
+          domainName: null,
+          status: 'disabled',
+          provider: {...provider, aspects: {}},
+          configOrganization: [],
+          configData: {},
+        }),
+        provider
+      );
+      const initialize = MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/pipeline/integration_pipeline/`,
+        method: 'POST',
+        body: {
+          step: 'oauth_login',
+          stepIndex: 0,
+          totalSteps: 1,
+          provider: key,
+          data: {oauthUrl},
         },
-        route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
-      },
-    });
+      });
+      renderGlobalModal({organization: org});
+      render(<ConfigureIntegration />, {
+        organization: org,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${org.slug}/integrations/${key}/${integrationId}/`,
+          },
+          route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+        },
+      });
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Reconnect Linear'}));
+      await userEvent.click(
+        await screen.findByRole('button', {name: `Reconnect ${name}`})
+      );
 
-    expect(await screen.findByRole('button', {name: 'Authorize Linear'})).toBeEnabled();
-    expect(initialize).toHaveBeenCalledWith(
-      `/organizations/${org.slug}/pipeline/integration_pipeline/`,
-      expect.objectContaining({data: {action: 'initialize', provider: 'linear'}})
-    );
-    expect(screen.queryByRole('textbox', {name: 'Client ID'})).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Client secret')).not.toBeInTheDocument();
-  });
+      expect(
+        await screen.findByRole('button', {name: `Authorize ${name}`})
+      ).toBeEnabled();
+      expect(initialize).toHaveBeenCalledWith(
+        `/organizations/${org.slug}/pipeline/integration_pipeline/`,
+        expect.objectContaining({data: {action: 'initialize', provider: key}})
+      );
+      expect(screen.queryByRole('textbox', {name: 'Client ID'})).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Client secret')).not.toBeInTheDocument();
+    }
+  );
 
   it('hides the Settings tab when there is no settings content', async () => {
     mockRequests(
@@ -282,13 +295,7 @@ describe('ConfigureIntegration settings tab', () => {
     mockRequests(
       OrganizationIntegrationsFixture({
         provider: {...githubProvider, key: 'github'},
-        configOrganization: [
-          {
-            name: 'toggle',
-            type: 'boolean',
-            label: 'Toggle',
-          },
-        ],
+        configOrganization: [{name: 'toggle', type: 'boolean', label: 'Toggle'}],
       }),
       codeownersProvider
     );
@@ -303,9 +310,7 @@ describe('ConfigureIntegration settings tab', () => {
 });
 
 describe('ConfigureIntegration Grafana settings', () => {
-  const organization = OrganizationFixture({
-    access: ['org:integrations', 'org:write'],
-  });
+  const organization = OrganizationFixture({access: ['org:integrations', 'org:write']});
   const grafanaUrl = 'https://example-stack.grafana.net';
   const newGrafanaUrl = 'https://other-stack.grafana.net';
   const integrationUrl = `/organizations/${organization.slug}/integrations/1/`;
@@ -473,10 +478,7 @@ describe('ConfigureIntegration mapping removals', () => {
         {value: '10001', label: 'Project B'},
       ],
     },
-    columnLabels: {
-      on_resolve: 'When Resolved',
-      on_unresolve: 'When Unresolved',
-    },
+    columnLabels: {on_resolve: 'When Resolved', on_unresolve: 'When Unresolved'},
     mappedColumnLabel: 'Project',
     mappedSelectors: {
       on_resolve: {
@@ -498,17 +500,9 @@ describe('ConfigureIntegration mapping removals', () => {
 
   function setup({
     providerKey = 'jira',
-    features = [],
     configData = {sync_status_forward: mappings},
-  }: {
-    configData?: Record<string, unknown>;
-    features?: string[];
-    providerKey?: string;
-  } = {}) {
-    const organization = OrganizationFixture({
-      access: ['org:integrations', 'org:write'],
-      features,
-    });
+  }: {configData?: Record<string, unknown>; providerKey?: string} = {}) {
+    const organization = OrganizationFixture({access: ['org:integrations', 'org:write']});
     const provider = GitHubIntegrationProviderFixture({
       key: providerKey,
       slug: providerKey,
@@ -561,7 +555,7 @@ describe('ConfigureIntegration mapping removals', () => {
     await userEvent.click(deleteButtons[1]!);
   }
 
-  it('uses the legacy full replacement payload when the feature is disabled', async () => {
+  it('appends a removal entry for a removed mapping', async () => {
     const postRequest = setup();
 
     await deleteSecondMapping();
@@ -570,37 +564,14 @@ describe('ConfigureIntegration mapping removals', () => {
       expect(postRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          data: {sync_status_forward: {'10000': mappings['10000']}},
-        })
-      )
-    );
-  });
-
-  it('appends a removal entry for a removed mapping', async () => {
-    const postRequest = setup({features: ['jira-explicit-mapping-removals']});
-
-    await deleteSecondMapping();
-
-    await waitFor(() =>
-      expect(postRequest).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: {
-            sync_status_forward: {
-              '10000': mappings['10000'],
-              '10001': null,
-            },
-          },
+          data: {sync_status_forward: {'10000': mappings['10000'], '10001': null}},
         })
       )
     );
   });
 
   it('does not have explicit removals for a non-Jira provider', async () => {
-    const postRequest = setup({
-      providerKey: 'github',
-      features: ['jira-explicit-mapping-removals'],
-    });
+    const postRequest = setup({providerKey: 'github'});
 
     await deleteSecondMapping();
 
@@ -615,7 +586,7 @@ describe('ConfigureIntegration mapping removals', () => {
   });
 
   it('sends all current mappings as objects when updating a mapping', async () => {
-    const postRequest = setup({features: ['jira-explicit-mapping-removals']});
+    const postRequest = setup();
 
     await selectEvent.select(await screen.findByText('Open'), 'To Do');
 
@@ -635,10 +606,7 @@ describe('ConfigureIntegration mapping removals', () => {
   });
 
   it('does not add removals when previous mapping data is missing', async () => {
-    const postRequest = setup({
-      features: ['jira-explicit-mapping-removals'],
-      configData: {},
-    });
+    const postRequest = setup({configData: {}});
 
     await userEvent.click(await screen.findByText('Add Project'));
     await userEvent.click(await screen.findByRole('option', {name: 'Project A'}));
@@ -653,11 +621,7 @@ describe('ConfigureIntegration mapping removals', () => {
       expect(postRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          data: {
-            sync_status_forward: {
-              '10000': {on_resolve: '1', on_unresolve: '2'},
-            },
-          },
+          data: {sync_status_forward: {'10000': {on_resolve: '1', on_unresolve: '2'}}},
         })
       )
     );
@@ -677,9 +641,7 @@ describe('ConfigureIntegration GCP re-verification', () => {
     providerKey?: string;
     verifyDelay?: number | Promise<void>;
   } = {}) {
-    const organization = OrganizationFixture({
-      access: ['org:integrations', 'org:write'],
-    });
+    const organization = OrganizationFixture({access: ['org:integrations', 'org:write']});
     const provider = GitHubIntegrationProviderFixture({
       key: providerKey,
       slug: providerKey,

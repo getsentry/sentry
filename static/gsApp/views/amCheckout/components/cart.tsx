@@ -212,9 +212,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                     buckets: activePlan.planCategories[category],
                   });
             const price = eventBucket ? eventBucket.price : 0;
-            const formattedPrice = displayPrice({
-              cents: price,
-            });
+            const formattedPrice = displayPrice({cents: price});
             const formattedReserved = formatReservedWithUnits(reserved, category);
             const hasPaygForCategory =
               formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.PER_CATEGORY
@@ -311,20 +309,14 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
               data-test-id={`summary-item-product-${apiName}`}
             >
               <ItemWithPrice
-                item={toTitleCase(productName, {
-                  allowInnerUpperCase: true,
-                })}
-                price={`${displayPrice({
-                  cents: price,
-                })}/${shortInterval}`}
+                item={toTitleCase(productName, {allowInnerUpperCase: true})}
+                price={`${displayPrice({cents: price})}/${shortInterval}`}
                 shouldBoldItem
               />
               {includedBudget && (
                 <div>
                   {tct('Includes [formattedIncludedBudget] monthly credits', {
-                    formattedIncludedBudget: displayPrice({
-                      cents: includedBudget,
-                    }),
+                    formattedIncludedBudget: displayPrice({cents: includedBudget}),
                   })}
                 </div>
               )}
@@ -385,9 +377,7 @@ function SubtotalSummary({
             <Stack gap="sm" align="end">
               <Text align="right" variant="muted">
                 {tct('up to [pricePerMonth]', {
-                  pricePerMonth: `${displayPrice({
-                    cents: formData.onDemandMaxSpend,
-                  })}/mo`,
+                  pricePerMonth: `${displayPrice({cents: formData.onDemandMaxSpend})}/mo`,
                 })}
               </Text>
               <AnimatePresence>
@@ -396,11 +386,7 @@ function SubtotalSummary({
                     initial={{opacity: 0, y: -10}}
                     animate={{opacity: 1, y: 0}}
                     exit={{opacity: 0, y: -10}}
-                    transition={{
-                      type: 'spring',
-                      duration: 0.4,
-                      bounce: 0.1,
-                    }}
+                    transition={{type: 'spring', duration: 0.4, bounce: 0.1}}
                   >
                     <Tag icon={<IconSentry size="xs" />} variant="info">
                       <Text size="xs">{t('Default Amount')}</Text>
@@ -430,9 +416,7 @@ function SubtotalSummary({
                     category: category as DataCategory,
                   })}
                   price={tct('up to [pricePerMonth]', {
-                    pricePerMonth: `${displayPrice({
-                      cents: budget,
-                    })}/mo`,
+                    pricePerMonth: `${displayPrice({cents: budget})}/mo`,
                   })}
                   isVariableCost
                   shouldBoldItem={false}
@@ -564,16 +548,12 @@ function TotalSummary({
             effectiveDateSubtext,
             longInterval,
             renewalDate: moment(renewalDate).format('MMM D, YYYY'),
-            onDemandMaxSpend: displayPrice({
-              cents: totalOnDemandBudget,
-            }),
+            onDemandMaxSpend: displayPrice({cents: totalOnDemandBudget}),
           }
         );
       }
     } else {
-      subtext = tct('Plan renews [longInterval].', {
-        longInterval,
-      });
+      subtext = tct('Plan renews [longInterval].', {longInterval});
     }
     return subtext;
   };
@@ -677,9 +657,7 @@ function TotalSummary({
           <Text bold size="lg">
             {isDueToday
               ? t('Due today')
-              : tct('Due on [date]', {
-                  date: moment(effectiveDate).format('MMM D, YYYY'),
-                })}
+              : tct('Due on [date]', {date: moment(effectiveDate).format('MMM D, YYYY')})}
           </Text>
           {previewDataLoading ? (
             <Placeholder height="16px" width={PRICE_PLACEHOLDER_WIDTH} />
@@ -689,22 +667,16 @@ function TotalSummary({
                 <Fragment>
                   {originalBilledTotal > billedTotal && (
                     <Text strikethrough variant="muted" size="xl">
-                      {displayPrice({
-                        cents: originalBilledTotal,
-                      })}{' '}
+                      {displayPrice({cents: originalBilledTotal})}{' '}
                     </Text>
                   )}
                   <Text size="xl" bold>
-                    {displayPrice({
-                      cents: billedTotal,
-                    })}
+                    {displayPrice({cents: billedTotal})}
                   </Text>
                 </Fragment>
               ) : (
                 <Text size="xl" bold>
-                  {displayPrice({
-                    cents: billedTotal,
-                  })}
+                  {displayPrice({cents: billedTotal})}
                 </Text>
               )}
               <Flex align="end" paddingBottom="2xs">
@@ -793,11 +765,7 @@ export function Cart({
         formDataForPreview,
         () => setPreviewState(prev => ({...prev, isLoading: true})),
         (data: PreviewData | null) => {
-          setPreviewState(prev => ({
-            ...prev,
-            previewData: data,
-            isLoading: false,
-          }));
+          setPreviewState(prev => ({...prev, previewData: data, isLoading: false}));
           setErrorMessage(null);
 
           if (data) {
@@ -961,9 +929,7 @@ export function Cart({
           subscription.isSuspended
             ? tct(
                 'Your account has been suspended. Please contact [mailto:support@sentry.io] if you have any questions or need assistance.',
-                {
-                  mailto: <a href="mailto:support@sentry.io" />,
-                }
+                {mailto: <a href="mailto:support@sentry.io" />}
               )
             : t(
                 'Please provide your billing information, including your business address and payment method.'

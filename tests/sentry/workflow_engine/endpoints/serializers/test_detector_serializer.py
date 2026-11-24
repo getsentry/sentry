@@ -2,7 +2,6 @@ from datetime import timedelta
 from unittest import mock
 
 from django.db import connections, router
-from django.db.models import QuerySet
 from django.test.utils import CaptureQueriesContext
 
 from sentry.api.serializers import serialize
@@ -222,37 +221,6 @@ class TestDetectorSerializer(TestCase):
         result = serialize(detector)
 
         assert result["latestGroup"]["id"] == str(group2.id)
-
-    def test_serialize_normalizes_migrated_detection_type(self) -> None:
-        detector = self.create_detector(
-            project_id=self.project.id,
-            name="Migrated Detector",
-            type=MetricIssue.slug,
-            config={
-                "detection_type": "percent",
-                "comparison_delta": 3600,
-            },
-        )
-        # Use Django's `update()` directly, since `Detector.objects` would reject the
-        # `detection_type`/`comparison_delta` mismatch
-        QuerySet.update(
-            Detector.objects.filter(id=detector.id),
-            config={"detection_type": "static", "comparison_delta": 3600},
-        )
-        detector.refresh_from_db()
-
-        result = serialize(detector)
-        assert result["config"]["detectionType"] == "percent"
-        assert result["config"]["comparisonDelta"] == 3600
-
-    def test_serialize_does_not_normalize_static_without_comparison_delta(self) -> None:
-        detector = self.create_detector(
-            project_id=self.project.id,
-            name="Static Detector",
-            type=MetricIssue.slug,
-        )
-        result = serialize(detector)
-        assert result["config"]["detectionType"] == "static"
 
     def test_serialize_error_detector_project_options(self) -> None:
         # Shift the detector ids so they can't match the project ids by accident.

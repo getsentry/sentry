@@ -57,6 +57,9 @@ def test_conversation_probe_fetches_only_span_id() -> None:
         exists = endpoint._conversation_exists(MagicMock(), "conversation-id")
 
     assert exists is True
+    assert run_query.call_args.kwargs["query_string"] == (
+        'gen_ai.conversation.id:"conversation-id" has:gen_ai.operation.type'
+    )
     assert run_query.call_args.kwargs["selected_columns"] == ["span_id"]
     assert run_query.call_args.kwargs["orderby"] == []
     assert run_query.call_args.kwargs["offset"] == 0
@@ -195,28 +198,29 @@ def test_parent_repair_skips_gen_ai_ancestors_from_other_conversations() -> None
         "trace": trace_id,
         "span_id": "root",
         "gen_ai.conversation.id": conversation_id,
-        "span.name": "gen_ai.invoke_agent",
+        "gen_ai.operation.type": "invoke_agent",
     }
     child = {
         "trace": trace_id,
         "span_id": "child",
         "parent_span": "bridge",
         "gen_ai.conversation.id": conversation_id,
-        "span.op": "gen_ai.chat",
+        "gen_ai.operation.type": "ai_client",
     }
     parent_rows = {
+        # Same conversation, but without an operation type it isn't a valid ancestor.
         (trace_id, "bridge"): {
             "trace": trace_id,
             "span_id": "bridge",
             "parent_span": "nested",
-            "span.op": "http.client",
+            "gen_ai.conversation.id": conversation_id,
         },
         (trace_id, "nested"): {
             "trace": trace_id,
             "span_id": "nested",
             "parent_span": "root",
             "gen_ai.conversation.id": "nested-conversation",
-            "span.name": "gen_ai.invoke_agent",
+            "gen_ai.operation.type": "invoke_agent",
         },
     }
 
@@ -772,6 +776,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
                 conversation_id=conversation_id,
                 timestamp=now - timedelta(seconds=i),
                 op="gen_ai.chat",
+                operation_type="ai_client",
                 trace_id=trace_id,
             )
 
@@ -819,6 +824,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
                 conversation_id=conversation_id,
                 timestamp=ts,
                 op="gen_ai.chat",
+                operation_type="ai_client",
                 trace_id=trace_id,
             )
 
@@ -828,9 +834,14 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             "end": (now + timedelta(hours=1)).isoformat(),
         }
 
-        response = self.do_request(conversation_id, query)
+        run_bulk_table_queries = Spans.run_bulk_table_queries
+        with patch.object(
+            Spans, "run_bulk_table_queries", side_effect=run_bulk_table_queries
+        ) as mock_run_bulk:
+            response = self.do_request(conversation_id, query)
         assert response.status_code == 200
         assert len(response.data["spans"]) == 3
+        assert mock_run_bulk.call_args.args[0][0].orderby == ["precise.start_ts", "span_id"]
 
         span_timestamps = [span["precise.start_ts"] for span in response.data["spans"]]
         assert span_timestamps == sorted(span_timestamps)
@@ -845,18 +856,28 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             conversation_id=conversation_id_1,
             timestamp=now - timedelta(seconds=2),
             op="gen_ai.chat",
+            operation_type="ai_client",
             trace_id=trace_id,
         )
         self.store_ai_span(
             conversation_id=conversation_id_1,
             timestamp=now - timedelta(seconds=1),
             op="gen_ai.chat",
+            operation_type="ai_client",
             trace_id=trace_id,
         )
         self.store_ai_span(
             conversation_id=conversation_id_2,
             timestamp=now,
             op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+        )
+        # Spans without an AI operation are not returned.
+        self.store_ai_span(
+            conversation_id=conversation_id_1,
+            timestamp=now - timedelta(seconds=3),
+            op="http.client",
             trace_id=trace_id,
         )
 
@@ -985,6 +1006,14 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             conversation_id=conversation_id,
             timestamp=timestamp_15d,
             op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+        )
+        # A newer span without an AI operation must not stop the widening.
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=before_now(days=1).replace(microsecond=0),
+            op="http.client",
             trace_id=trace_id,
         )
 
@@ -1007,6 +1036,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             conversation_id=conversation_id,
             timestamp=timestamp_1h,
             op="gen_ai.chat",
+            operation_type="ai_client",
             trace_id=trace_id,
         )
 
@@ -1028,6 +1058,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             conversation_id=conversation_id,
             timestamp=timestamp,
             op="gen_ai.chat",
+            operation_type="ai_client",
             trace_id=trace_id,
         )
 
@@ -1159,6 +1190,14 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             cache_read_cost=1.0,
             cache_write_cost=2.0,
             reasoning_cost=3.0,
+        )
+        # A failed span without an AI operation doesn't change the stats.
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=3),
+            op="http.client",
+            status="internal_error",
+            trace_id=trace_id,
         )
 
         query: dict[str, Any] = {
@@ -1678,6 +1717,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
                 conversation_id=conversation_id,
                 timestamp=now - timedelta(seconds=i),
                 op="gen_ai.chat",
+                operation_type="ai_client",
                 trace_id=trace_id,
             )
         self.create_ai_conversation_metadata(

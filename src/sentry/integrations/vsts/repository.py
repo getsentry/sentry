@@ -4,12 +4,12 @@ import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any
 
+from sentry.integrations.source_code_management.repository_reconciliation import RepositoryConfig
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.plugins.providers.integration_repository import RepositoryConfig
 
 if TYPE_CHECKING:
     from sentry.integrations.vsts.integration import VstsIntegration as VstsIntegrationType  # NOQA

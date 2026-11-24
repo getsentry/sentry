@@ -3,11 +3,7 @@ import {useRef} from 'react';
 import {SIMPLE_TABLE_HEADER_ROW_HEIGHT} from 'sentry/components/tables/simpleTable';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 
-type Opts = {
-  overscan: number;
-  rowCount: number;
-  rowHeight: number;
-};
+type Opts = {overscan: number; rowCount: number; rowHeight: number};
 
 export function useVirtualizedGrid({overscan, rowCount, rowHeight}: Opts) {
   const scrollContainerRef = useRef<HTMLTableElement | null>(null);
@@ -26,11 +22,5 @@ export function useVirtualizedGrid({overscan, rowCount, rowHeight}: Opts) {
     scrollPaddingEnd: SIMPLE_TABLE_HEADER_ROW_HEIGHT.compressed,
   });
 
-  return {
-    paddingBottom,
-    paddingTop,
-    scrollContainerRef,
-    virtualRows,
-    virtualizer,
-  };
+  return {paddingBottom, paddingTop, scrollContainerRef, virtualRows, virtualizer};
 }

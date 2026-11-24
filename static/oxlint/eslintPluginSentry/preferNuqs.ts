@@ -16,13 +16,9 @@ function propertyName(property: ESTree.ObjectProperty): string | undefined {
 export const preferNuqs = defineRule({
   meta: {
     type: 'suggestion',
-    docs: {
-      description: 'Use nuqs for query parameter updates on the current page.',
-    },
+    docs: {description: 'Use nuqs for query parameter updates on the current page.'},
     schema: [],
-    messages: {
-      preferNuqs: 'Use nuqs to update query parameters on the current page.',
-    },
+    messages: {preferNuqs: 'Use nuqs to update query parameters on the current page.'},
   },
   create(context) {
     return {

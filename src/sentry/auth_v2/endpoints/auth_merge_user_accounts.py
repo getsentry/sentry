@@ -60,9 +60,7 @@ class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
         result = validator.validated_data
 
         primary_user = User.objects.get(id=user.id)
-        verification_code = UserMergeVerificationCode.objects.filter(
-            user_id=primary_user.id
-        ).first()
+        verification_code = UserMergeVerificationCode.objects.get_or_none(user_id=primary_user.id)
 
         if (
             verification_code is None

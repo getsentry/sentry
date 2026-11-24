@@ -2,7 +2,6 @@ import copy
 import time
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, cast
 from unittest import mock
 
 import pytest
@@ -19,23 +18,20 @@ class SnubaTest(TestCase, SnubaTestCase):
         self, ts: datetime, hash: str = "a" * 32, group_id: int | None = None
     ) -> None:
         self.snuba_insert(
-            cast(
-                "dict[str, Any]",
-                (
-                    2,
-                    "insert",
-                    {
-                        "event_id": uuid.uuid4().hex,
-                        "primary_hash": hash,
-                        "group_id": group_id if group_id else int(hash[:16], 16),
-                        "project_id": self.project.id,
-                        "message": "message",
-                        "platform": "python",
-                        "datetime": ts.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                        "data": {"received": time.mktime(ts.timetuple())},
-                    },
-                    {},
-                ),
+            (
+                2,
+                "insert",
+                {
+                    "event_id": uuid.uuid4().hex,
+                    "primary_hash": hash,
+                    "group_id": group_id if group_id else int(hash[:16], 16),
+                    "project_id": self.project.id,
+                    "message": "message",
+                    "platform": "python",
+                    "datetime": ts.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                    "data": {"received": time.mktime(ts.timetuple())},
+                },
+                {},
             )
         )
 
@@ -45,35 +41,29 @@ class SnubaTest(TestCase, SnubaTestCase):
         now = datetime.now()
 
         self.snuba_insert(
-            cast(
-                "dict[str, Any]",
-                (
-                    2,
-                    "insert",
-                    {
-                        "event_id": "a" * 32,
-                        "primary_hash": "1" * 32,
-                        "group_id": 1,
-                        "project_id": self.project.id,
-                        "message": "message",
-                        "platform": "python",
-                        "datetime": now.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                        "data": {"received": time.mktime(now.timetuple())},
-                    },
-                    {},
-                ),
+            (
+                2,
+                "insert",
+                {
+                    "event_id": "a" * 32,
+                    "primary_hash": "1" * 32,
+                    "group_id": 1,
+                    "project_id": self.project.id,
+                    "message": "message",
+                    "platform": "python",
+                    "datetime": now.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                    "data": {"received": time.mktime(now.timetuple())},
+                },
+                {},
             )
         )
-        result = cast(
-            "dict[int, int]",
-            snuba.query(
-                start=now - timedelta(days=1),
-                end=now + timedelta(days=1),
-                groupby=["project_id"],
-                filter_keys={"project_id": [self.project.id]},
-                referrer="testing.test",
-                tenant_ids={"referrer": "testing.test", "organization_id": 1},
-            ),
+        result = snuba.query(
+            start=now - timedelta(days=1),
+            end=now + timedelta(days=1),
+            groupby=["project_id"],
+            filter_keys={"project_id": [self.project.id]},
+            referrer="testing.test",
+            tenant_ids={"referrer": "testing.test", "organization_id": 1},
         )
         assert result == {self.project.id: 1}
 

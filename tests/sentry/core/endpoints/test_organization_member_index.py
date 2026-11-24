@@ -11,14 +11,17 @@ from sentry import roles
 from sentry.api.endpoints.accept_organization_invite import get_invite_state
 from sentry.api.invite_helper import ApiInviteHelper
 from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
+from sentry.core.endpoints.organization_member_utils import TeamAssignment
 from sentry.models.apikey import ApiKey
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
@@ -52,6 +55,7 @@ class OrganizationMemberRequestSerializerTest(TestCase):
 
         serializer = OrganizationMemberRequestSerializer(context=context, data=data)
         assert serializer.is_valid()
+        assert serializer.validated_data["teamRoles"] == (TeamAssignment(self.team, None),)
 
     def test_valid_deprecated_fields(self) -> None:
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
@@ -70,7 +74,9 @@ class OrganizationMemberRequestSerializerTest(TestCase):
 
         serializer = OrganizationMemberRequestSerializer(context=context, data=data)
         assert serializer.is_valid()
-        assert serializer.validated_data["teamRoles"][0] == (self.team, "admin")
+        assert serializer.validated_data["teamRoles"] == (
+            TeamAssignment(self.team, roles.team_roles.get("admin")),
+        )
 
     def test_gets_team_objects_with_deprecated_field(self) -> None:
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
@@ -79,6 +85,28 @@ class OrganizationMemberRequestSerializerTest(TestCase):
         serializer = OrganizationMemberRequestSerializer(context=context, data=data)
         assert serializer.is_valid()
         assert serializer.validated_data["teams"][0] == self.team
+
+    def test_team_roles_reject_unavailable_teams(self) -> None:
+        foreign_team = self.create_team(
+            organization=self.create_organization(), slug="foreign-team"
+        )
+        inactive_team = self.create_team(
+            organization=self.organization, status=TeamStatus.PENDING_DELETION
+        )
+        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
+
+        for slugs in [[foreign_team.slug], [inactive_team.slug], [self.team.slug, self.team.slug]]:
+            serializer = OrganizationMemberRequestSerializer(
+                context=context,
+                data={
+                    "email": "invitee@example.com",
+                    "orgRole": "member",
+                    "teamRoles": [{"teamSlug": slug, "role": None} for slug in slugs],
+                },
+            )
+
+            assert not serializer.is_valid()
+            assert serializer.errors == {"teamRoles": ["Invalid teams"]}
 
     def test_invalid_email(self) -> None:
         org = self.create_organization()
@@ -162,7 +190,9 @@ class OrganizationMemberRequestSerializerTest(TestCase):
         serializer = OrganizationMemberRequestSerializer(context=context, data=data)
 
         assert not serializer.is_valid()
-        assert serializer.errors == {"teamRoles": ["Invalid team-role"]}
+        assert serializer.errors == {
+            "teamRoles": [{"role": ['"no-such-team-role" is not a valid choice.']}]
+        }
 
     @with_feature("organizations:invite-billing")
     def test_valid_invite_billing_member(self) -> None:
@@ -859,6 +889,58 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
 class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     method = "post"
 
+    @patch(
+        "sentry.core.endpoints.organization_member_index.resolve_active_teams",
+        side_effect=RuntimeError("resolver failed"),
+    )
+    def test_unexpected_resolver_failure_is_server_error(self, resolver: MagicMock) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            email="invitee@example.com",
+            orgRole="member",
+            teamRoles=[{"teamSlug": self.team.slug, "role": None}],
+            status_code=500,
+        )
+        assert not OrganizationMember.objects.filter(
+            organization=self.organization, email="invitee@example.com"
+        ).exists()
+
+    def test_invalid_team_roles(self) -> None:
+        invalid_team_roles: list[object] = [None, [None], [{}], [{"role": "admin"}]]
+        for team_roles in invalid_team_roles:
+            response = self.get_error_response(
+                self.organization.slug,
+                email="invitee@example.com",
+                orgRole="member",
+                teamRoles=team_roles,
+                status_code=400,
+            )
+
+            assert "teamRoles" in response.data
+        assert not OrganizationMember.objects.filter(
+            organization=self.organization, email="invitee@example.com"
+        ).exists()
+
+    def test_team_roles(self) -> None:
+        other_team = self.create_team(organization=self.organization)
+        response = self.get_success_response(
+            self.organization.slug,
+            email="invitee@example.com",
+            orgRole="member",
+            teamRoles=[
+                {"teamSlug": self.team.slug, "role": None, "extra": "ignored"},
+                {"teamSlug": other_team.slug, "role": "admin"},
+            ],
+            sendInvite=False,
+            status_code=201,
+        )
+
+        assert dict(
+            OrganizationMemberTeam.objects.filter(
+                organizationmember_id=response.data["id"]
+            ).values_list("team_id", "role")
+        ) == {self.team.id: None, other_team.id: None}
+
     def _service_account_context(self) -> str:
         service_account = self.create_service_account(
             organization=self.organization, scope_list=["member:admin", "org:read"]
@@ -1063,4 +1145,70 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloud
         assert (
             response.data["email"]
             == "The user with a 'member' role cannot have team-level permissions."
+        )
+
+
+class OrganizationMemberListMembershipScopeTest(OrganizationMemberListTestBase):
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:read")
+    def test_membership_read_can_list_members(self) -> None:
+        self._use_token(["membership:read"])
+        response = self.get_success_response(self.organization.slug)
+        assert {m["email"] for m in response.data} >= {self.user.email, self.user2.email}
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:read")
+    def test_membership_read_cannot_invite_members(self) -> None:
+        self._use_token(["membership:read"])
+        self.get_error_response(
+            self.organization.slug, method="post", email="new@example.com", status_code=403
+        )
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:invite")
+    def test_membership_invite_can_only_invite_to_own_teams(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.flags.disable_member_invite = False
+        self.organization.save()
+        member_user = self.create_user()
+        self.create_member(organization=self.organization, user=member_user, role="member")
+        team = self.create_team(organization=self.organization)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=member_user, scope_list=["membership:invite"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+        response = self.get_error_response(
+            self.organization.slug,
+            method="post",
+            email="new@example.com",
+            teams=[team.slug],
+            status_code=400,
+        )
+        assert (
+            response.data["detail"] == "You cannot assign members to teams you are not a member of."
+        )
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:invite", "membership:write")
+    def test_membership_write_can_invite_members(self) -> None:
+        # Inviting needs membership:invite, which member:write translates to alongside
+        # membership:write. membership:write alone can't invite.
+        self._use_token(["membership:write"])
+        self.get_error_response(
+            self.organization.slug, method="post", email="new@example.com", status_code=403
+        )
+        self._use_token(["membership:invite", "membership:write"])
+        self.get_success_response(
+            self.organization.slug,
+            method="post",
+            email="new@example.com",
+            orgRole="member",
+            status_code=201,
         )

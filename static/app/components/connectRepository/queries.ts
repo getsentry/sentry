@@ -67,10 +67,7 @@ export type RepoSelectOption = SelectValue<string> & {
   providerKey?: string;
 };
 
-type RepoGroup = {
-  label: string;
-  options: RepoSelectOption[];
-};
+type RepoGroup = {label: string; options: RepoSelectOption[]};
 
 const REPOS_STALE_TIME_MS = 60_000;
 
@@ -125,10 +122,7 @@ export function useEditRepoInfo({
   defaultBranchFromMappings?: string | null;
   externalId?: string | null;
   repoName?: string;
-}): {
-  defaultBranch: string | null;
-  isPending: boolean;
-} {
+}): {defaultBranch: string | null; isPending: boolean} {
   const mappingsLoaded = defaultBranchFromMappings !== undefined;
   const needsBranchLookup =
     mappingsLoaded &&
@@ -176,6 +170,7 @@ function buildRepoSelectOption(
   return {
     value: `${integration.id}:${repo.identifier}`,
     label: repo.name,
+    textValue: repo.name,
     leadingItems: getIntegrationIcon(integration.provider.key, 'sm'),
     defaultBranch: repo.defaultBranch,
     providerKey: integration.provider.key,
@@ -311,11 +306,7 @@ export function repoCodeMappingPrefixesOptions({
 export function orgCodeMappingsInfiniteOptions(orgSlug: string) {
   return apiOptions.asInfinite<RepositoryProjectPathConfig[]>()(
     '/organizations/$organizationIdOrSlug/code-mappings/',
-    {
-      path: {organizationIdOrSlug: orgSlug},
-      query: {per_page: 100},
-      staleTime: 10_000,
-    }
+    {path: {organizationIdOrSlug: orgSlug}, query: {per_page: 100}, staleTime: 10_000}
   );
 }
 

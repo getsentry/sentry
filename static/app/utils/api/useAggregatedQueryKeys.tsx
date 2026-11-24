@@ -5,7 +5,12 @@ import {uniq} from 'sentry/utils/array/uniq';
 import {defined} from 'sentry/utils/defined';
 
 import {type ApiResponse} from './apiFetch';
-import {type ApiQueryKey, parseQueryKey, safeParseQueryKey} from './apiQueryKey';
+import {
+  parseQueryKey,
+  safeParseQueryKey,
+  type ApiQueryKey,
+  type ParsedQueryKey,
+} from './apiQueryKey';
 
 const BUFFER_WAIT_MS = 20;
 
@@ -51,7 +56,7 @@ interface Props<AggregatableQueryKey, Data, ResponseData = Data> {
   onError?: (error: Error) => void;
 
   /** Restrict which query keys can contribute cached responses. */
-  queryFilter?: (queryKey: readonly unknown[]) => boolean;
+  queryFilter?: (parsedQueryKey: ParsedQueryKey) => boolean;
 }
 
 /**
@@ -111,9 +116,11 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data, ResponseData 
 
   const isApiQueryKeyForUrl = useCallback(
     (queryKey: readonly unknown[]): boolean => {
-      return (
-        safeParseQueryKey(queryKey)?.url === url && (queryFilter?.(queryKey) ?? true)
-      );
+      const parsedQueryKey = safeParseQueryKey(queryKey);
+      if (parsedQueryKey?.url !== url) {
+        return false;
+      }
+      return queryFilter?.(parsedQueryKey) ?? true;
     },
     [queryFilter, url]
   );

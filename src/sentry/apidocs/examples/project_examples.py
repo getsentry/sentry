@@ -135,7 +135,6 @@ DETAILED_PROJECT = {
         "mail:subject_prefix": "",
         "sentry:relay_pii_config": None,
         "sentry:scrub_data": False,
-        "sentry:token": "e84c8c0fb1c121e988558785885f9cde",
         "sentry:resolve_age": 168,
         "sentry:grouping_config": "newstyle:2012-12-31",
         "quotas:spike-protection-disabled": False,

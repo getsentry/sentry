@@ -72,9 +72,7 @@ describe('EAPSidebarCharts', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{'failure_rate()': 0.05}],
-      },
+      body: {data: [{'failure_rate()': 0.05}]},
       match: [
         (_url: string, options: Record<string, any>) =>
           Array.isArray(options.query?.field) &&

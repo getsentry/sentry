@@ -190,9 +190,7 @@ export function MonitorForm({monitor, apiEndpoint, apiMethod, onSubmitSuccess}: 
               project: monitor.project.slug,
               ...formDataFromConfig(monitor.config),
             }
-          : {
-              project: selectedProject ? selectedProject.slug : null,
-            }
+          : {project: selectedProject ? selectedProject.slug : null}
       }
       onSubmitSuccess={onSubmitSuccess}
       mapFormErrors={mapMonitorFormErrors}
