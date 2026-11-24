@@ -1,5 +1,6 @@
+import tempfile
 from typing import Any, Iterable, cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid4
 
 from django.db import IntegrityError
@@ -12,10 +13,12 @@ from sentry.data_export.tasks import (
     assemble_download,
     merge_export_blobs,
     recoverable_retry_countdown,
+    store_export_chunk_as_blob,
 )
 from sentry.data_export.writers import OutputMode
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.files.file import File
+from sentry.models.files.fileblob import FileBlob
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.testutils.cases import (
     OurLogTestCase,
@@ -1662,7 +1665,7 @@ class AssembleDownloadExploreTest(
 
         lines = content.split(b"\r\n")
         assert lines[0] == b""
-        # raising ExportDataFileTooBig returns 0
+        # a chunk that crosses MAX_FILE_SIZE is dropped
         assert len(lines) >= 1
 
         assert emailer.called
@@ -1802,6 +1805,21 @@ class AssembleDownloadExploreTest(
 
         error = emailer.call_args[1]["message"]
         assert error == "Invalid date range. Please try a more recent date range."
+
+
+class StoreExportChunkAsBlobTest(TestCase):
+    @patch("sentry.data_export.tasks.MAX_FILE_SIZE", 10)
+    def test_chunk_over_the_size_limit_is_not_uploaded(self) -> None:
+        with (
+            tempfile.TemporaryFile(mode="w+b") as tf,
+            patch.object(FileBlob, "from_file") as from_file,
+        ):
+            tf.write(b"0123456789")
+            tf.seek(0)
+
+            assert store_export_chunk_as_blob(Mock(spec=ExportedData), 0, tf) == 0
+
+        from_file.assert_not_called()
 
 
 class MergeExportBlobsTest(TestCase, SnubaTestCase):
