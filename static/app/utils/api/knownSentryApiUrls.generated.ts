@@ -553,7 +553,6 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/repo-path-parsing/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/repo/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/reprocessing/'
-  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/night-shift/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/preferences/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/repos/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/repos/$repoId/'
