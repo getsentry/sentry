@@ -470,9 +470,30 @@ export class TraceTree extends TraceTreeEventDispatcher {
       visit(traceNode, item);
     }
 
+    // Moves the pageload of a server rendered page above the server handler that rendered it.
+    traceNode.forEachChild(c => {
+      if (
+        c.parent &&
+        c.op === 'pageload' &&
+        c.parent.op === 'http.server' &&
+        c.parent.directVisibleChildren.filter(child => child.op === 'pageload').length ===
+          1
+      ) {
+        //   // The swap can occur at a later point when new transactions are fetched,
+        //   // which means we need to invalidate the tree and re-render the UI.
+        const parent = c.parent.parent;
+        TraceTree.Swap({parent: c.parent, child: c, reason: 'pageload server handler'});
+        parent!.invalidate();
+        parent!.forEachChild(child => {
+          child.invalidate();
+        });
+      }
+    });
+
     // Runs before we compute the trace space, so it does not stretch to where the misaligned
     // spans were recorded, and before missing instrumentation and autogrouping, as they derive
-    // their spaces from the spans.
+    // their spaces from the spans. Runs after the pageload swap, so it sees the same tree as
+    // when the correction is toggled later.
     if (options.preferences?.clock_drift_correction) {
       applyClockDriftCorrection(tree.root);
     }
@@ -505,23 +526,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
             tree.vital_types
           )
         );
-      }
-
-      if (
-        c.parent &&
-        c.op === 'pageload' &&
-        c.parent.op === 'http.server' &&
-        c.parent.directVisibleChildren.filter(child => child.op === 'pageload').length ===
-          1
-      ) {
-        //   // The swap can occur at a later point when new transactions are fetched,
-        //   // which means we need to invalidate the tree and re-render the UI.
-        const parent = c.parent.parent;
-        TraceTree.Swap({parent: c.parent, child: c, reason: 'pageload server handler'});
-        parent!.invalidate();
-        parent!.forEachChild(child => {
-          child.invalidate();
-        });
       }
     });
 

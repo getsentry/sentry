@@ -593,6 +593,42 @@ describe('clock drift correction', () => {
       expect(server.clockDriftOffsetMs).toBeCloseTo(-20_406.1);
     });
 
+    it('corrects a server rendered pageload the same way when toggled later', () => {
+      // The server handler renders the page whose pageload continues its trace. The pageload is
+      // swapped above the server handler, so it is not a client server pair anymore.
+      const trace = makeEAPTrace([
+        makeRequest({
+          id: '1',
+          clientStart: 0,
+          clientDuration: 300,
+          serverStartGap: -1000,
+          serverDuration: 200,
+          serverChildren: [
+            makeEAPSpan({
+              event_id: 'ssr-pageload',
+              op: 'pageload',
+              is_transaction: true,
+              project_id: 1,
+              sdk_name: 'sentry.javascript.react',
+              start_timestamp: T + ms(100),
+              end_timestamp: T + ms(250),
+            }),
+          ],
+        }),
+      ]);
+
+      const built = build(trace);
+      const toggled = build(trace, false);
+      applyClockDriftCorrection(toggled.root);
+
+      for (const tree of [built, toggled]) {
+        const pageload = findSpan(tree, 'ssr-pageload');
+        expect(pageload.parent).toBe(findSpan(tree, 'client-1'));
+        expect(pageload.clockDriftOffsetMs).toBe(0);
+        expect(findSpan(tree, 'server-1').clockDriftOffsetMs).toBe(0);
+      }
+    });
+
     it('does not stretch the trace space to where misaligned spans were recorded', () => {
       const trace = makePageload([
         makeRequest({
