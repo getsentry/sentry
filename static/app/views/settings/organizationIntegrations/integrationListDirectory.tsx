@@ -95,11 +95,7 @@ function useIntegrationPages<T>(
 
   const integrations = useMemo(() => data?.pages.flatMap(page => page.json), [data]);
 
-  return {
-    data: integrations,
-    isError,
-    isPending: isPending || (!isError && hasNextPage),
-  };
+  return {data: integrations, isError, isPending: isPending || (!isError && hasNextPage)};
 }
 
 function useIntegrationList() {

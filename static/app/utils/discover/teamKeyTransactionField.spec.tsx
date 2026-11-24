@@ -109,11 +109,7 @@ describe('TeamKeyTransactionField', () => {
     const getTeamKeyTransactionsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/key-transactions-list/`,
-      body: teams.map(({id}) => ({
-        team: id,
-        count: 0,
-        keyed: [],
-      })),
+      body: teams.map(({id}) => ({team: id, count: 0, keyed: []})),
     });
 
     render(
@@ -148,11 +144,7 @@ describe('TeamKeyTransactionField', () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/key-transactions-list/`,
-      body: teams.map(({id}) => ({
-        team: id,
-        count: 0,
-        keyed: [],
-      })),
+      body: teams.map(({id}) => ({team: id, count: 0, keyed: []})),
     });
 
     const postTeamKeyTransactionsMock = MockApiClient.addMockResponse({
@@ -256,11 +248,7 @@ describe('TeamKeyTransactionField', () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/key-transactions-list/`,
-      body: teams.map(({id}) => ({
-        team: id,
-        count: 0,
-        keyed: [],
-      })),
+      body: teams.map(({id}) => ({team: id, count: 0, keyed: []})),
     });
 
     const postTeamKeyTransactionsMock = MockApiClient.addMockResponse({

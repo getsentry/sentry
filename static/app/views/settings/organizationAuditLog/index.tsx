@@ -16,10 +16,7 @@ import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/or
 
 import {AuditLogList} from './auditLogList';
 
-type AuditLogResponse = {
-  options: string[];
-  rows: AuditLog[];
-};
+type AuditLogResponse = {options: string[]; rows: AuditLog[]};
 
 function OrganizationAuditLog() {
   const organization = useOrganization();
@@ -68,7 +65,7 @@ function OrganizationAuditLog() {
     setQueryParams({cursor: resultsCursor ?? null});
   };
 
-  const handleEventSelect = (value: string) => {
+  const handleEventSelect = (value: string | null) => {
     setQueryParams({event: value, cursor: null});
   };
 

@@ -20,9 +20,7 @@ describe('utils/tokenizeSearch', () => {
       {
         name: 'should convert a basic query string to a query object',
         string: 'is:unresolved',
-        object: {
-          tokens: [{type: TokenType.FILTER, key: 'is', value: 'unresolved'}],
-        },
+        object: {tokens: [{type: TokenType.FILTER, key: 'is', value: 'unresolved'}]},
       },
       {
         name: 'should convert quoted strings',
@@ -179,9 +177,7 @@ describe('utils/tokenizeSearch', () => {
       {
         name: 'correctly preserves leading/trailing escaped quotes',
         string: 'a:"\\"a\\""',
-        object: {
-          tokens: [{type: TokenType.FILTER, key: 'a', value: '\\"a\\"'}],
-        },
+        object: {tokens: [{type: TokenType.FILTER, key: 'a', value: '\\"a\\"'}]},
       },
       {
         name: 'correctly tokenizes escaped quotes',

@@ -19,10 +19,7 @@ export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry/rrweb';
 export {NodeType} from '@sentry/rrweb-snapshot';
 export {EventType, IncrementalSource} from '@sentry/rrweb';
 
-export type Dimensions = {
-  height: number;
-  width: number;
-};
+export type Dimensions = {height: number; width: number};
 
 // Extracting WebVitalFrame types from TRawSpanFrame so we can document/support
 // the deprecated `nodeId` data field Moving forward, `nodeIds` is the accepted
@@ -38,9 +35,7 @@ type ReplayWebVitalFrameSdk = Extract<TRawSpanFrame, {op: ReplayWebVitalFrameOps
  * aware of to maintain backwards compatibility, i.e. for
  * replay recordings for SDK version < 8.22.0
  */
-type DeprecatedReplayWebVitalFrameData = {
-  nodeId?: number;
-};
+type DeprecatedReplayWebVitalFrameData = {nodeId?: number};
 interface CompatibleReplayWebVitalFrame extends ReplayWebVitalFrameSdk {
   data: ReplayWebVitalFrameSdk['data'] & DeprecatedReplayWebVitalFrameData;
 }
@@ -53,9 +48,7 @@ export type RawHydrationErrorFrame = {
   category: 'replay.hydrate-error';
   timestamp: number;
   type: string;
-  data?: {
-    url?: string;
-  };
+  data?: {url?: string};
   message?: string;
 };
 
@@ -65,27 +58,9 @@ type StubBreadcrumbTypes = RawHydrationErrorFrame;
 
 // TODO: more types get added here
 type MobileBreadcrumbTypes =
-  | {
-      category: 'ui.tap';
-      data: any;
-      message: string;
-      timestamp: number;
-      type: string;
-    }
-  | {
-      category: 'ui.swipe';
-      data: any;
-      timestamp: number;
-      type: string;
-      message?: string;
-    }
-  | {
-      category: 'ui.scroll';
-      data: any;
-      timestamp: number;
-      type: string;
-      message?: string;
-    }
+  | {category: 'ui.tap'; data: any; message: string; timestamp: number; type: string}
+  | {category: 'ui.swipe'; data: any; timestamp: number; type: string; message?: string}
+  | {category: 'ui.scroll'; data: any; timestamp: number; type: string; message?: string}
   | {
       category: 'device.battery';
       data: {charging: boolean; level: number};
@@ -119,10 +94,7 @@ type ExtraBreadcrumbTypes =
   | MobileBreadcrumbTypes
   | {
       category: 'navigation';
-      data: {
-        to: string;
-        from?: string;
-      };
+      data: {to: string; from?: string};
       message: string;
       timestamp: number;
       type: string; // For compatibility reasons
@@ -259,6 +231,20 @@ export function isWebVitalFrame(frame: ReplayFrame): frame is WebVitalFrame {
 
 export function isCLSFrame(frame: WebVitalFrame): frame is WebVitalFrame {
   return frame.description === 'cumulative-layout-shift';
+}
+
+/**
+ * Memory spans can arrive with `data.memory` missing or without a numeric heap
+ * size, even though the SDK types require them.
+ */
+export function isMemoryFrame(frame: SpanFrame): frame is MemoryFrame {
+  return (
+    frame.op === 'memory' &&
+    typeof frame.data === 'object' &&
+    frame.data !== null &&
+    'memory' in frame.data &&
+    Number.isFinite(frame.data.memory?.usedJSHeapSize)
+  );
 }
 
 export function isPaintFrame(frame: SpanFrame): frame is PaintFrame {
@@ -401,12 +387,7 @@ export type MultiClickFrame = HydratedBreadcrumb<'ui.multiClick'>;
 export type MutationFrame = HydratedBreadcrumb<'replay.mutations'>;
 export type HydrationErrorFrame = Overwrite<
   HydratedBreadcrumb<'replay.hydrate-error'>,
-  {
-    data: {
-      description: string;
-      url?: string;
-    };
-  }
+  {data: {description: string; url?: string}}
 >;
 export type NavFrame = HydratedBreadcrumb<'navigation'>;
 export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
@@ -451,7 +432,11 @@ export type WebVitalFrame = HydratedSpan<
   | 'first-input-delay'
   | 'interaction-to-next-paint'
 >;
-export type MemoryFrame = HydratedSpan<'memory'>;
+// Narrowed by `isMemoryFrame`, which only accepts frames with a usable heap size.
+export type MemoryFrame = Overwrite<
+  HydratedSpan<'memory'>,
+  {data: NonNullable<HydratedSpan<'memory'>['data']>}
+>;
 export type NavigationFrame = HydratedSpan<
   'navigation.navigate' | 'navigation.reload' | 'navigation.back_forward'
 >;
@@ -527,10 +512,7 @@ interface VideoFrame {
 }
 
 interface VideoFrameEvent {
-  data: {
-    payload: VideoFrame;
-    tag: 'video';
-  };
+  data: {payload: VideoFrame; tag: 'video'};
   timestamp: number;
   type: EventType.Custom;
 }

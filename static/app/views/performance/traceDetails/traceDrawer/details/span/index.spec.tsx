@@ -24,10 +24,7 @@ import {EAPSpanNodeDetails} from './index';
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
-): TraceTreeNodeExtra => ({
-  organization: OrganizationFixture(),
-  ...overrides,
-});
+): TraceTreeNodeExtra => ({organization: OrganizationFixture(), ...overrides});
 
 describe('SpanNodeDetails', () => {
   beforeEach(() => {
@@ -111,6 +108,53 @@ describe('SpanNodeDetails', () => {
       expect(screen.getByText(/SELECT \* FROM users/)).toBeInTheDocument();
     }
   );
+
+  it('shows only the tool error on a failed tool span', async () => {
+    const organization = OrganizationFixture();
+    const project = ProjectFixture({id: '1', slug: 'project_slug'});
+    act(() => ProjectsStore.loadInitialData([project]));
+
+    // `internal_error` also counts as an HTTP error status.
+    const spanValue = makeEAPSpan({
+      event_id: 'tool-span-id',
+      op: 'gen_ai.execute_tool',
+      project_id: 1,
+      project_slug: 'project_slug',
+      additional_attributes: {
+        'gen_ai.operation.type': 'tool',
+        'span.status': 'internal_error',
+      },
+    });
+    const node = new EapSpanNode(null, spanValue, createMockExtra({organization}));
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/${spanValue.event_id}/`,
+      body: {
+        itemId: spanValue.event_id,
+        timestamp: new Date().toISOString(),
+        attributes: [
+          {name: 'gen_ai.operation.type', type: 'str', value: 'tool'},
+          {name: 'span.status', type: 'str', value: 'internal_error'},
+        ],
+        meta: {},
+      },
+    });
+
+    render(
+      <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
+        <EAPSpanNodeDetails
+          node={node}
+          organization={organization}
+          onTabScrollToNode={jest.fn()}
+          traceId="test-trace-id"
+          tree={null as any}
+        />
+      </TraceStateProvider>
+    );
+
+    expect(await screen.findByText('Tool Error')).toBeInTheDocument();
+    expect(screen.queryByText('Internal Error')).not.toBeInTheDocument();
+  });
 
   it.each(['evented', 'sampled'] as const)(
     'uses the transaction origin and release commit for a timestamp-less %s profile',

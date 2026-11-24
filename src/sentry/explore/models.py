@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import ClassVar, Literal
+from typing import Any, ClassVar, Literal
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models, router, transaction
@@ -582,6 +582,40 @@ class ExploreSavedFormula(DefaultFieldsModel):
                 name="explore_exploresavedformula_single_creator",
             ),
         ]
+
+    def get_audit_log_data(self) -> dict[str, Any]:
+        variables = list(self.variables.all())
+        params = [
+            {
+                "name": variable.name,
+                "type": ParamItemTypes.get_type_name(variable.param_type)
+                if variable.param_type is not None
+                else None,
+                "order": variable.order,
+                "value": variable.value,
+            }
+            for variable in sorted(
+                (variable for variable in variables if variable.kind == KindItemTypes.PARAM),
+                key=lambda variable: variable.order if variable.order is not None else 0,
+            )
+        ]
+        references = [
+            {"name": variable.name, "value": variable.value}
+            for variable in sorted(
+                (variable for variable in variables if variable.kind == KindItemTypes.REFERENCE),
+                key=lambda variable: variable.name,
+            )
+        ]
+        return {
+            "id": self.id,
+            "name": self.name,
+            "dataset": ExploreSavedQueryDataset.get_type_name(self.dataset),
+            "prebuilt_id": self.prebuilt_id,
+            "formula": self.formula,
+            "unit": self.unit,
+            "params": params,
+            "references": references,
+        }
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags

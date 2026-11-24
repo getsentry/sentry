@@ -5,7 +5,7 @@ import type {Query} from 'history';
 import {Alert} from '@sentry/scraps/alert';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -19,10 +19,7 @@ import type {ReplayTableColumn} from './replayTableColumns';
 import {ReplayTableHeader} from './replayTableHeader';
 
 type SortProps =
-  | {
-      onSortClick: (key: string) => void;
-      sort: Sort;
-    }
+  | {onSortClick: (key: string) => void; sort: Sort}
   | {onSortClick?: never; sort?: never};
 
 type Props = SortProps & {
@@ -163,10 +160,9 @@ function RowWithScrollIntoView({
   children,
   scrollIntoView,
   ...props
-}: {
-  children: React.ReactNode;
-  scrollIntoView: boolean;
-} & React.ComponentProps<typeof SimpleTable.Row>) {
+}: {children: React.ReactNode; scrollIntoView: boolean} & React.ComponentProps<
+  typeof SimpleTable.Row
+>) {
   const rowRef = useRef<HTMLTableRowElement>(null);
   useEffect(() => {
     if (scrollIntoView) {

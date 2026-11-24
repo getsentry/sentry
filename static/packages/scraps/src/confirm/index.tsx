@@ -45,9 +45,7 @@ type ConfirmButtonsRenderProps = {
   defaultOnClick: () => void;
 };
 
-type ChildrenRenderProps = {
-  open: () => void;
-};
+type ChildrenRenderProps = {open: () => void};
 
 export type OpenConfirmOptions = {
   /**
@@ -170,13 +168,7 @@ export const openConfirmModal = ({
     return;
   }
 
-  const modalProps = {
-    ...rest,
-    priority,
-    confirmText,
-    cancelText,
-    disableConfirmButton,
-  };
+  const modalProps = {...rest, priority, confirmText, cancelText, disableConfirmButton};
 
   onConfirming?.();
   openModal(renderProps => <ConfirmModal {...renderProps} {...modalProps} />, {onClose});
@@ -329,10 +321,7 @@ function ConfirmModal({
       <Footer>
         <Grid flow="column" align="center" gap="xl">
           {renderCancelButton ? (
-            renderCancelButton({
-              closeModal,
-              defaultOnClick: handleClose,
-            })
+            renderCancelButton({closeModal, defaultOnClick: handleClose})
           ) : (
             <Button
               onClick={handleClose}
@@ -344,10 +333,7 @@ function ConfirmModal({
           )}
           {renderConfirmButton ? (
             // oxlint-disable-next-line react/refs
-            renderConfirmButton({
-              closeModal,
-              defaultOnClick: handleConfirm,
-            })
+            renderConfirmButton({closeModal, defaultOnClick: handleConfirm})
           ) : (
             <Button
               data-test-id="confirm-button"

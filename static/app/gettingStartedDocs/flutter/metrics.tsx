@@ -28,9 +28,7 @@ export const metrics: OnboardingConfig = {
           type: 'text',
           text: tct(
             'To start using metrics, make sure your Sentry Flutter SDK version is [version:9.11.0] or higher.',
-            {
-              version: <code />,
-            }
+            {version: <code />}
           ),
         },
       ],
@@ -45,16 +43,10 @@ export const metrics: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Metrics are automatically enabled in your Sentry SDK configuration. You can emit metrics using the [code:Sentry.metrics] API.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'dart',
-          code: getMetricsCode(),
-        },
+        {type: 'code', language: 'dart', code: getMetricsCode()},
         {
           type: 'text',
           text: tct(

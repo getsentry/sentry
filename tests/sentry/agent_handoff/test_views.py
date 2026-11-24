@@ -22,6 +22,7 @@ from sentry.analytics.events.oauth_setup_code import OAuthSetupCodeIssuedEvent
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apisetupcode import ApiSetupCode
+from sentry.models.organization import OrganizationStatus
 from sentry.onboarding.agentic_progress.model import ProgressUpdate, Stage, StageStatus
 from sentry.onboarding.agentic_progress.service import get_onboarding_progress_service
 from sentry.projects.services.project.model import RpcProject
@@ -60,7 +61,7 @@ class AgentHandoffViewTest(TestCase):
         self,
         context: ProjectSetupContext | None = None,
         *,
-        ip_address: str = "127.0.0.1",
+        ip_address: str | None = "127.0.0.1",
         disable_ip_pinning: bool = False,
     ) -> str:
         issued = issue_handoff(
@@ -76,7 +77,7 @@ class AgentHandoffViewTest(TestCase):
         self.handoff_id = issued.handoff_id
         return issued.code
 
-    def claim_api(self, code: str, ip_address: str = "127.0.0.1") -> HttpResponse:
+    def claim_api(self, code: str, ip_address: str | None = "127.0.0.1") -> HttpResponse:
         return self.client.post(
             "/api/0/agent-handoff/",
             {"handoff_code": code},
@@ -151,8 +152,7 @@ class AgentHandoffViewTest(TestCase):
             organization_id=self.organization.id,
             client_run_id="browser",
         )
-        response = self.claim_api(self.issue(ProjectSetupContext(run_id=run.run_id)))
-        assert response.status_code == 410
+        self.assert_setup_unavailable(self.issue(ProjectSetupContext(run_id=run.run_id)))
         assert not ApiSetupCode.objects.exists()
         assert not ApiAuthorization.objects.exists()
         assert_not_analytics_event(mock_record, OAuthSetupCodeIssuedEvent)
@@ -187,23 +187,51 @@ class AgentHandoffViewTest(TestCase):
 
     def test_expired_handoff_is_unavailable(self) -> None:
         code = self.issue()
+        with freeze_time(timezone.now() + HANDOFF_LIFETIME):
+            response = self.claim_api(code)
+
+        assert response.status_code == 410
+        assert json.loads(response.content) == {
+            "detail": {
+                "code": "agent-handoff-expired",
+                "message": (
+                    "The handoff code expired. Codes must be used within 5 minutes; ask the "
+                    "user to copy a new handoff prompt from Sentry."
+                ),
+                "extra": {},
+            }
+        }
+        assert not ApiSetupCode.objects.filter(user_id=self.user.id).exists()
+
+    def test_handoff_past_retention_is_unavailable(self) -> None:
+        code = self.issue()
         _get_redis_client().expire(_handoff_key(code), 0)
-        assert self.claim_api(code).status_code == 410
+        self.assert_unavailable(code)
+
+    def assert_claim_fails(self, code: str, error_code: str) -> None:
+        response = self.claim_api(code)
+        assert response.status_code == 410
+        assert json.loads(response.content)["detail"]["code"] == error_code
         assert not ApiSetupCode.objects.filter(user_id=self.user.id).exists()
 
     def assert_unavailable(self, code: str) -> None:
-        assert self.claim_api(code).status_code == 410
-        assert not ApiSetupCode.objects.filter(user_id=self.user.id).exists()
+        self.assert_claim_fails(code, "agent-handoff-unavailable")
+
+    def assert_access_changed(self, code: str) -> None:
+        self.assert_claim_fails(code, "agent-handoff-access-changed")
+
+    def assert_setup_unavailable(self, code: str) -> None:
+        self.assert_claim_fails(code, "agent-handoff-setup-unavailable")
 
     def test_inactive_user_prevents_claim(self) -> None:
         code = self.issue()
         self.user.update(is_active=False)
-        self.assert_unavailable(code)
+        self.assert_access_changed(code)
 
     def test_suspended_user_prevents_claim(self) -> None:
         code = self.issue()
         self.user.update(is_suspended=True)
-        self.assert_unavailable(code)
+        self.assert_access_changed(code)
 
     def test_inactive_application_prevents_claim(self) -> None:
         code = self.issue()
@@ -245,8 +273,13 @@ class AgentHandoffViewTest(TestCase):
         code = self.issue()
         with assume_test_silo_mode(SiloMode.CELL):
             self.organization.member_set.filter(user_id=self.user.id).delete()
-        assert self.claim_api(code).status_code == 410
-        assert not ApiSetupCode.objects.filter(user_id=self.user.id).exists()
+        self.assert_access_changed(code)
+
+    def test_inactive_organization_prevents_claim(self) -> None:
+        code = self.issue()
+        with assume_test_silo_mode(SiloMode.CELL):
+            self.organization.update(status=OrganizationStatus.PENDING_DELETION)
+        self.assert_access_changed(code)
 
     def test_public_guide_installs_the_cli_and_preserves_the_code(self) -> None:
         code = self.issue()
@@ -264,7 +297,7 @@ class AgentHandoffViewTest(TestCase):
         assert "$env:SENTRY_HOST = 'http://testserver'" in body
         assert "$env:SENTRY_HANDOFF = 'HANDOFF_CODE'" in body
         assert "irm https://cli.sentry.dev/install.ps1 | iex" in body
-        assert consume_handoff(code, ip_address="127.0.0.1") is not None
+        assert consume_handoff(code) is not None
 
     def test_missing_code_is_rejected(self) -> None:
         assert self.claim_api("").status_code == 400
@@ -279,8 +312,11 @@ class AgentHandoffViewTest(TestCase):
         assert response["Content-Type"] == "application/json"
         assert json.loads(response.content) == {
             "detail": {
-                "code": "agent-handoff-unavailable",
-                "message": "Handoff code unavailable.",
+                "code": "agent-handoff-malformed",
+                "message": (
+                    "The handoff code is malformed. Check that the full code was copied, or ask "
+                    "the user to copy a new handoff prompt from Sentry."
+                ),
                 "extra": {},
             }
         }
@@ -293,13 +329,7 @@ class AgentHandoffViewTest(TestCase):
         )
 
         assert response.status_code == 400
-        assert json.loads(response.content) == {
-            "detail": {
-                "code": "agent-handoff-unavailable",
-                "message": "Handoff code unavailable.",
-                "extra": {},
-            }
-        }
+        assert json.loads(response.content)["detail"]["code"] == "agent-handoff-malformed"
 
     def test_api_claim_accepts_json_charset(self) -> None:
         response = self.client.post(
@@ -328,7 +358,7 @@ class AgentHandoffViewTest(TestCase):
                 "extra": {},
             }
         }
-        assert consume_handoff(code, ip_address="127.0.0.1") is not None
+        assert consume_handoff(code) is not None
 
     def test_api_claim_is_available_only_once(self) -> None:
         code = self.issue()
@@ -340,28 +370,42 @@ class AgentHandoffViewTest(TestCase):
         assert json.loads(response.content) == {
             "detail": {
                 "code": "agent-handoff-unavailable",
-                "message": "Handoff code unavailable.",
-                "extra": {},
-            }
-        }
-
-    def test_api_claim_reports_ip_mismatch_as_json(self) -> None:
-        code = self.issue(ip_address="192.0.2.1")
-
-        response = self.claim_api(code, ip_address="192.0.2.2")
-
-        assert response.status_code == 403
-        assert json.loads(response.content) == {
-            "detail": {
-                "code": "agent-handoff-ip-mismatch",
                 "message": (
-                    "The handoff code is pinned to a different IP address. Ask the user to turn "
-                    'off "Use IP pinning" and copy a new handoff prompt.'
+                    "The handoff code was already used or is no longer valid. Ask the user to "
+                    "copy a new handoff prompt from Sentry."
                 ),
                 "extra": {},
             }
         }
-        assert consume_handoff(code, ip_address="192.0.2.1") is not None
+
+    def test_api_claim_requires_device_auth_when_ips_differ(self) -> None:
+        code = self.issue(ip_address="192.0.2.1")
+        response = self.claim_api(code, ip_address="192.0.2.2")
+
+        assert response.status_code == 200
+        data = json.loads(response.content)
+        assert "setupCode" not in data
+        assert data["clientId"] == self.application.client_id
+        assert data["userEmail"] == self.user.email
+        assert data["organizationSlug"] == self.organization.slug
+        assert data["flowInstructions"]
+        assert not ApiSetupCode.objects.filter(user_id=self.user.id).exists()
+        assert not ApiAuthorization.objects.filter(user_id=self.user.id).exists()
+        assert self.claim_api(code, ip_address="192.0.2.1").status_code == 410
+
+    def test_api_claim_requires_two_known_ips_for_setup_code(self) -> None:
+        for issued_ip, claim_ip in [("192.0.2.1", None), (None, "192.0.2.1"), (None, None)]:
+            response = self.claim_api(self.issue(ip_address=issued_ip), ip_address=claim_ip)
+
+            assert response.status_code == 200
+            assert "setupCode" not in json.loads(response.content)
+
+    def test_api_claim_accepts_equivalent_ipv6_addresses_for_setup_code(self) -> None:
+        code = self.issue(ip_address="2001:db8:0:0:0:0:0:1")
+        response = self.claim_api(code, ip_address="2001:db8::1")
+
+        assert response.status_code == 200
+        assert json.loads(response.content)["setupCode"]
 
     def test_api_claim_rate_limit_preserves_the_code(self) -> None:
         code = self.issue()
@@ -380,14 +424,17 @@ class AgentHandoffViewTest(TestCase):
                 "extra": {},
             }
         }
-        assert consume_handoff(code, ip_address="127.0.0.1") is not None
+        assert consume_handoff(code) is not None
 
     def test_oversized_code_is_rejected(self) -> None:
         assert self.claim_api("sntryh_" + "a" * 2000).status_code == 400
 
-    def test_unpinned_handoff_accepts_remote_agent(self) -> None:
+    def test_legacy_opt_out_still_requires_device_auth(self) -> None:
         code = self.issue(disable_ip_pinning=True)
-        assert self.claim_api(code, ip_address="192.0.2.2").status_code == 200
+        response = self.claim_api(code, ip_address="192.0.2.2")
+
+        assert response.status_code == 200
+        assert "setupCode" not in json.loads(response.content)
 
     def issue_add_feature(self, project_id: int) -> str:
         issued = issue_handoff(
@@ -420,9 +467,7 @@ class AgentHandoffViewTest(TestCase):
             "sentry.agent_handoff.flows.add_feature.get_accessible_project",
             return_value=None,
         ):
-            response = self.claim_api(code)
-        assert response.status_code == 410
-        assert not ApiSetupCode.objects.filter(user_id=self.user.id).exists()
+            self.assert_setup_unavailable(code)
 
     def test_add_feature_access_revoked_prevents_claim(self) -> None:
         code = self.issue_add_feature(project_id=1)
@@ -430,9 +475,7 @@ class AgentHandoffViewTest(TestCase):
             "sentry.agent_handoff.flows.add_feature.get_accessible_project",
             return_value=None,
         ):
-            response = self.claim_api(code)
-        assert response.status_code == 410
-        assert not ApiSetupCode.objects.filter(user_id=self.user.id).exists()
+            self.assert_setup_unavailable(code)
 
     def assert_claim_recorded(
         self, record: MagicMock, outcome: ClaimOutcome, *, attributed: bool = True
@@ -462,10 +505,10 @@ class AgentHandoffViewTest(TestCase):
         self.assert_claim_recorded(record, ClaimOutcome.EXPIRED)
 
     @patch("sentry.analytics.record")
-    def test_records_ip_mismatch_claim(self, record: MagicMock) -> None:
+    def test_records_device_auth_claim(self, record: MagicMock) -> None:
         code = self.issue(ip_address="192.0.2.1")
-        assert self.claim_api(code, ip_address="192.0.2.2").status_code == 403
-        self.assert_claim_recorded(record, ClaimOutcome.IP_MISMATCH)
+        assert self.claim_api(code, ip_address="192.0.2.2").status_code == 200
+        self.assert_claim_recorded(record, ClaimOutcome.DEVICE_AUTH_REQUIRED)
 
     @patch("sentry.analytics.record")
     def test_records_claim_that_fails_revalidation_as_invalid(self, record: MagicMock) -> None:

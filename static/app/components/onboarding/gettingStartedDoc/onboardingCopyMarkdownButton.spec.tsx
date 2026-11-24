@@ -8,16 +8,11 @@ import {StepType} from './types';
 
 describe('OnboardingCopyMarkdownButton', () => {
   const steps: OnboardingStep[] = [
-    {
-      type: StepType.INSTALL,
-      content: [{type: 'text', text: 'Install the SDK'}],
-    },
+    {type: StepType.INSTALL, content: [{type: 'text', text: 'Install the SDK'}]},
   ];
 
   beforeEach(() => {
-    Object.assign(navigator, {
-      clipboard: {writeText: jest.fn().mockResolvedValue('')},
-    });
+    Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
   });
 
   it('copies steps markdown without postamble', async () => {

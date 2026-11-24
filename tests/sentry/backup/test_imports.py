@@ -813,8 +813,10 @@ class ScopingTests(ImportTestCase):
             lambda mr: len(mr.get_possible_relocation_scopes() & scope.value) > 0
         )
         excluded_models = get_matching_exportable_models(
-            lambda mr: mr.get_possible_relocation_scopes() != {RelocationScope.Excluded}
-            and not (mr.get_possible_relocation_scopes() & scope.value)
+            lambda mr: (
+                mr.get_possible_relocation_scopes() != {RelocationScope.Excluded}
+                and not (mr.get_possible_relocation_scopes() & scope.value)
+            )
         )
 
         for model in included_models:
@@ -2536,7 +2538,7 @@ class SeerWorkflowServiceAccountTests(ImportTestCase):
         assert ServiceAccountReplica.objects.get(service_account_id=account.id).id != account.id
         config = Factories.create_seer_workflow_config(
             org,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             service_account_id=account.id,
             enabled=True,
             filters={"environments": ["production"]},
@@ -2546,10 +2548,12 @@ class SeerWorkflowServiceAccountTests(ImportTestCase):
         Factories.create_seer_workflow_config_project(config, project)
         Factories.create_seer_workflow_config(
             org,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             service_account_id=inactive.id,
         )
-        Factories.create_seer_workflow_config(org, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
+        Factories.create_seer_workflow_config(
+            org, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
+        )
         return config
 
     def test_account_identity_remapped_before_replication(self) -> None:

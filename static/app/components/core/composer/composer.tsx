@@ -185,11 +185,7 @@ export function Composer({
     listBoxScrollRef,
     listState,
     queryStatus,
-  } = useComposerSuggestions({
-    activeTrigger,
-    activeSources,
-    inputRef,
-  });
+  } = useComposerSuggestions({activeTrigger, activeSources, inputRef});
   const hasSuggestions = suggestionCount > 0;
   const popupLabel = [...new Set(activeSources.map(source => source.label))].join(', ');
 
@@ -458,6 +454,7 @@ export function Composer({
                 selectionMode="none"
                 shouldUseVirtualFocus
                 size="sm"
+                virtualized={suggestionCount > 10}
               />
             ) : (
               <Container minWidth="220px" maxWidth="360px">

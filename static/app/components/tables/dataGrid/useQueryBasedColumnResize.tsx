@@ -58,8 +58,5 @@ export function useQueryBasedColumnResize<Col extends GridColumnOrder<unknown>>(
     [columnsWidthWidths, location, navigate]
   );
 
-  return {
-    columns: columnsWidthWidths,
-    handleResizeColumn,
-  };
+  return {columns: columnsWidthWidths, handleResizeColumn};
 }

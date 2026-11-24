@@ -20,10 +20,7 @@ export function useRequestTeamAccess({organization, team}: UseRequestTeamAccessO
 
   return useMutation({
     mutationFn: () => {
-      return joinTeamPromise(api, {
-        orgId: organization.slug,
-        teamId: team.slug,
-      });
+      return joinTeamPromise(api, {orgId: organization.slug, teamId: team.slug});
     },
     onSuccess: () => {
       toast.success(t('You have requested access to %s', `#${team.slug}`));

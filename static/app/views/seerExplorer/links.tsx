@@ -281,9 +281,7 @@ export const LINK_RULES: LinkRule[] = [
 
       return {
         label: title ?? t('View replay'),
-        url: {
-          pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
-        },
+        url: {pathname: makeReplaysPathname({path: `/${replayId}/`, organization})},
       };
     },
   },
@@ -716,10 +714,7 @@ export const LINK_RULES: LinkRule[] = [
         return null;
       }
       // Short ids resolve on the issue route the same way numeric ids do.
-      return {
-        label: title ?? t('View issue'),
-        url: {pathname: `/issues/${issueId}/`},
-      };
+      return {label: title ?? t('View issue'), url: {pathname: `/issues/${issueId}/`}};
     },
   },
 ];
@@ -1227,10 +1222,7 @@ function getTraceMetricFromParams(params: Record<string, any>): TraceMetric | nu
     return null;
   }
 
-  const traceMetric: TraceMetric = {
-    name: rawTraceMetric.name,
-    type: rawTraceMetric.type,
-  };
+  const traceMetric: TraceMetric = {name: rawTraceMetric.name, type: rawTraceMetric.type};
   if (typeof rawTraceMetric.unit === 'string') {
     traceMetric.unit = rawTraceMetric.unit;
   }

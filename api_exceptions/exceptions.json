@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generated": "2026-11-19",
-  "commit": "a9bffb42dc92e92ac1b5bd9e36517381e38d725c",
+  "generated": "2026-11-24",
+  "commit": "7b7515ea91fed96a9bfe1abefab01d38f31ca940",
   "entries": [
     {
       "rule": "S026",
@@ -1366,6 +1366,17 @@
       "status": "debt-breaking",
       "reason": "legacy: predates S026",
       "first_seen": "2026-11-19"
+    },
+    {
+      "rule": "S026",
+      "path": "src/sentry/dashboards/endpoints/organization_dashboards.py",
+      "scope": "OrganizationDashboardsEndpoint.get",
+      "key": "query:formula",
+      "count": 1,
+      "owner": "dashboards",
+      "status": "debt-breaking",
+      "reason": "new since the baseline",
+      "first_seen": "2026-11-24"
     },
     {
       "rule": "S026",

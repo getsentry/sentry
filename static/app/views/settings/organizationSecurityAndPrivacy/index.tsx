@@ -236,10 +236,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
                   onChange={field.handleChange}
                   disabled={!hasOrgWrite}
                   options={getStoreCrashReportsValues(SettingScope.ORGANIZATION).map(
-                    v => ({
-                      value: v!,
-                      label: formatStoreCrashReports(v),
-                    })
+                    v => ({value: v!, label: formatStoreCrashReports(v)})
                   )}
                 />
               </field.Layout.Row>

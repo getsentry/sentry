@@ -18,10 +18,7 @@ const BASE_SUPPORTED_PROVIDERS = [
  * Feature-gated providers. Each entry maps a feature flag to the provider IDs
  * it unlocks. Add new providers here as they become supported.
  */
-const FEATURE_GATED_PROVIDERS: Array<{
-  flag: string;
-  providerIds: string[];
-}> = [
+const FEATURE_GATED_PROVIDERS: Array<{flag: string; providerIds: string[]}> = [
   {
     flag: 'seer-cursor-origin-support',
     providerIds: ['cursor_origin', 'integrations:cursor_origin'],

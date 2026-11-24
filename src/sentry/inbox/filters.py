@@ -21,42 +21,41 @@ class InboxFilters(TypedDict, total=False):
 
 class InboxFilterSerializer(serializers.Serializer[InboxFilters]):
     subject_type = serializers.ListField(
-        child=serializers.CharField(trim_whitespace=False),
+        child=serializers.ChoiceField(choices=tuple(inbox_item_type_registry.registrations)),
         required=False,
-        help_text="Match any of these registered subject types.",
+        help_text="Filter by subject type. Investigations use `notebook`.",
     )
     subject_id = serializers.CharField(
         required=False,
         allow_blank=True,
         trim_whitespace=False,
-        help_text="Subject ID; requires exactly one subject_type.",
+        help_text="Filter by subject ID. Requires exactly one `subject_type`.",
     )
     event_type = serializers.ListField(
-        child=serializers.CharField(trim_whitespace=False),
+        child=serializers.ChoiceField(choices=tuple(inbox_item_event_type_registry.registrations)),
         required=False,
-        help_text="Match items containing any of these event types.",
+        help_text="Filter by event type.",
     )
     id = serializers.ListField(
         child=serializers.IntegerField(),
         required=False,
-        help_text="Select personal inbox item IDs.",
+        help_text="Filter by inbox item IDs.",
     )
     recipient = serializers.ListField(
         child=serializers.ChoiceField(choices=("team", "user")),
         required=False,
-        help_text="Match items containing events addressed to a team or directly to you.",
+        help_text=(
+            "Filter by events addressed to a team (`team`) or the authenticated user (`user`). "
+            "When combined with `event_type`, both filters must match the same event."
+        ),
     )
     is_read = serializers.ChoiceField(
         choices=("true", "false"),
         required=False,
-        help_text="Filter by read state. Omit for both.",
+        help_text="Filter by whether inbox items have been read.",
     )
 
     def validate(self, attrs: InboxFilters) -> InboxFilters:
-        if set(attrs.get("subject_type", [])) - inbox_item_type_registry.registrations.keys():
-            raise serializers.ValidationError("Unknown subject type.")
-        if set(attrs.get("event_type", [])) - inbox_item_event_type_registry.registrations.keys():
-            raise serializers.ValidationError("Unknown event type.")
         if "subject_id" in attrs and len(attrs.get("subject_type", [])) != 1:
             raise serializers.ValidationError("subject_id requires exactly one subject_type.")
         return attrs

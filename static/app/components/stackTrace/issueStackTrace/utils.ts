@@ -1,7 +1,11 @@
 import {displayRawContent as rawStacktraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
+import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import type {StackTraceView} from 'sentry/components/stackTrace/types';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 
 interface IndexedExceptionValue extends ExceptionValue {
   exceptionIndex: number;
@@ -65,6 +69,23 @@ export function getExceptionEntryMeta(event: Event, isStandalone: boolean) {
 }
 
 /**
+ * Picks the platform a stack trace renders with. Frame platforms only take
+ * over with the native stack trace, which renders native frames found in
+ * non-native events. Without it, the event platform wins.
+ */
+export function getIssueStackTracePlatform(
+  organization: Organization,
+  event: Event,
+  stacktrace: StacktraceType | null | undefined
+): PlatformKey {
+  const stacktracePlatform = getStacktracePlatform(event, stacktrace);
+  if (organization.features.includes('issue-details-native-stack-trace')) {
+    return stacktracePlatform;
+  }
+  return event.platform ?? stacktracePlatform;
+}
+
+/**
  * Shared between the raw view and the copy-as-text output.
  */
 export function formatExceptionsAsText({
@@ -79,13 +100,15 @@ export function formatExceptionsAsText({
   platform: Event['platform'];
 }): string {
   return exceptions
-    .map(exc =>
-      rawStacktraceContent({
-        data: isMinified ? (exc.rawStacktrace ?? exc.stacktrace) : exc.stacktrace,
-        platform,
+    .map(exc => {
+      const data = isMinified ? (exc.rawStacktrace ?? exc.stacktrace) : exc.stacktrace;
+      return rawStacktraceContent({
+        data,
+        // Mixed events (e.g. JavaScript threads in a native event) format by frame platform.
+        platform: data?.frames?.[0]?.platform ?? platform,
         exception: isStandalone ? undefined : exc,
         isMinified,
-      })
-    )
+      });
+    })
     .join('\n\n');
 }

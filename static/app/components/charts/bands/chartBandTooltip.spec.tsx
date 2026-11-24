@@ -2,10 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ChartBandTooltip, ChartBandTooltipHeading} from './chartBandTooltip';
 
-const bucket = {
-  start: Date.UTC(2024, 0, 12, 15, 0),
-  end: Date.UTC(2024, 0, 12, 15, 5),
-};
+const bucket = {start: Date.UTC(2024, 0, 12, 15, 0), end: Date.UTC(2024, 0, 12, 15, 5)};
 
 describe('ChartBandTooltip', () => {
   it('shows the bucket range', () => {

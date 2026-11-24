@@ -9,10 +9,7 @@ import type {Translation} from '@sentry/scraps/translation';
 import {toArray} from './utils/array/toArray';
 import {localStorageWrapper} from './utils/localStorage';
 
-const markerStyles = {
-  background: '#ff801790',
-  outline: '2px solid #ff801790',
-};
+const markerStyles = {background: '#ff801790', outline: '2px solid #ff801790'};
 
 const LOCALE_DEBUG = localStorageWrapper.getItem('localeDebug') === '1';
 
@@ -23,11 +20,7 @@ export function toggleLocaleDebug() {
 }
 
 export const DEFAULT_LOCALE_DATA = {
-  '': {
-    domain: 'sentry',
-    lang: 'en',
-    plural_forms: 'nplurals=2; plural=(n != 1);',
-  },
+  '': {domain: 'sentry', lang: 'en', plural_forms: 'nplurals=2; plural=(n != 1);'},
 };
 
 /**
@@ -62,9 +55,7 @@ export function setLocale(translations: any): Jed {
   const client = new Jed({
     domain: 'sentry',
     missing_key_callback: () => {},
-    locale_data: {
-      sentry: translations,
-    },
+    locale_data: {sentry: translations},
   });
   i18n = client;
   localeSnapshot = createLocaleSnapshot(
@@ -318,10 +309,7 @@ function mark<T extends React.ReactNode>(node: T): T {
     type: Symbol.for('react.fragment'),
     key: null,
     ref: null,
-    props: {
-      style: markerStyles,
-      children: toArray(node),
-    },
+    props: {style: markerStyles, children: toArray(node)},
     _owner: null,
     _store: {},
   };
@@ -438,11 +426,7 @@ function gettextComponentTemplate(
   components: ComponentMap
 ): React.JSX.Element {
   const parsedTemplate = parseComponentTemplate(i18n.gettext(template));
-  return mark(
-    renderTemplate(parsedTemplate, {
-      ...components,
-    })
-  );
+  return mark(renderTemplate(parsedTemplate, {...components}));
 }
 
 /**

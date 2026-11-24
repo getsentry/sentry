@@ -73,10 +73,5 @@ export function useOrganizationFlagLogInfinite({
     [infiniteData]
   );
 
-  return {
-    data,
-    isPending,
-    isError,
-    error,
-  };
+  return {data, isPending, isError, error};
 }

@@ -25,21 +25,14 @@ describe('useFocusedToolSpan', () => {
 
     const {rerender} = renderHook(
       ({focusedTool}) =>
-        useFocusedToolSpan({
-          nodes,
-          focusedTool,
-          isLoading: false,
-          onSpanFound,
-        }),
-      {
-        initialProps: {focusedTool: 'first-tool' as string | null},
-      }
+        useFocusedToolSpan({nodes, focusedTool, isLoading: false, onSpanFound}),
+      {initialProps: {focusedTool: 'first-tool' as string | null}}
     );
 
     expect(onSpanFound).toHaveBeenNthCalledWith(1, 'span-a');
     expect(onSpanFound).toHaveBeenCalledTimes(1);
 
-    // Matches how the drawer clears focusedTool after selecting the span.
+    // Matches how the conversation detail page clears focusedTool after selecting the span.
     rerender({focusedTool: null});
     expect(onSpanFound).toHaveBeenCalledTimes(1);
 

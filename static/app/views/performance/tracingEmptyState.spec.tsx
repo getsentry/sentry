@@ -18,10 +18,7 @@ describe('TracingEmptyState', () => {
       body: [ProjectKeysFixture()[0]],
     });
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/sdks/',
-      method: 'GET',
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/sdks/', method: 'GET'});
 
     PageFiltersStore.init();
   });
@@ -43,7 +40,7 @@ describe('TracingEmptyState', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows the "Set up manually" tab with doc steps', async () => {
+  it('shows the "Manually" tab with doc steps', async () => {
     const project = ProjectFixture({platform: 'javascript-react'});
 
     MockApiClient.addMockResponse({
@@ -56,7 +53,7 @@ describe('TracingEmptyState', () => {
 
     await screen.findByText('Tracing in Sentry');
 
-    await userEvent.click(screen.getByRole('radio', {name: 'Set up manually'}));
+    await userEvent.click(screen.getByRole('radio', {name: 'Manually'}));
 
     expect(await screen.findByText('Install Sentry')).toBeInTheDocument();
   });
@@ -74,9 +71,7 @@ describe('TracingEmptyState', () => {
 
     const docsLink = await screen.findByRole('button', {name: 'Go to Documentation'});
     expect(docsLink).toHaveAttribute('href', 'https://docs.sentry.io/platforms/');
-    expect(
-      screen.queryByRole('radio', {name: 'Set up manually'})
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', {name: 'Manually'})).not.toBeInTheDocument();
   });
 
   it('shows the waiting indicator while no trace has arrived', async () => {

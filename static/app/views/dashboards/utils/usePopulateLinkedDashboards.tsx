@@ -166,10 +166,7 @@ function dashboardsByPrebuiltIdOptions(
     '/organizations/$organizationIdOrSlug/dashboards/',
     {
       path: {organizationIdOrSlug: orgSlug},
-      query: {
-        prebuiltId: prebuiltIds.sort(),
-        filter: DashboardFilter.SHOW_HIDDEN,
-      },
+      query: {prebuiltId: prebuiltIds.sort(), filter: DashboardFilter.SHOW_HIDDEN},
       staleTime: Infinity,
     }
   );

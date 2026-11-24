@@ -33,8 +33,6 @@ interface AgenticSetupProps {
   onSetupInBrowser: () => void;
   run: AgenticProgressRun | undefined;
   handoffFlow?: AgentHandoffFlow;
-  /** Tilts the setup card and adds the stacked brand border and shadows. */
-  layered?: boolean;
   /** Rendered at the end of the row under the progress list. */
   metaAction?: React.ReactNode;
 }
@@ -53,7 +51,6 @@ export function AgenticSetup({
   onRefresh,
   run,
   handoffFlow = AgentHandoffFlow.ONBOARDING,
-  layered = false,
   metaAction,
 }: AgenticSetupProps) {
   const showsProgress =
@@ -124,7 +121,7 @@ export function AgenticSetup({
               exit={{opacity: 0}}
               transition={CARD_MORPH_TRANSITION}
             >
-              <SetupCardFrame layered={layered}>
+              <SetupCardFrame>
                 <AgentSetupCard
                   feedbackSource={feedbackSource}
                   flow={handoffFlow}

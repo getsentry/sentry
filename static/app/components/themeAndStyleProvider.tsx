@@ -20,9 +20,7 @@ const SentryComponentInspector =
       )
     : null;
 
-type Props = {
-  children: React.ReactNode;
-};
+type Props = {children: React.ReactNode};
 
 // XXX(epurkhiser): We create our own emotion cache object to disable the
 // stylis prefixer plugin. This plugin does NOT use browserlist to determine

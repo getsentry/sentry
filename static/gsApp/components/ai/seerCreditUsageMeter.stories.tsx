@@ -68,7 +68,7 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
           <SeerCreditUsageMeterView
             percentUsed={0.75}
             remaining={250}
-            total={1000}
+            countsDailyLimit={false}
             autoReloadEnabled={false}
             hasEnoughCredits
             configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
@@ -91,7 +91,7 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
           <SeerCreditUsageMeterView
             percentUsed={0.75}
             remaining={250}
-            total={1000}
+            countsDailyLimit={false}
             autoReloadEnabled
             hasEnoughCredits
             configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
@@ -116,7 +116,7 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
           <SeerCreditUsageMeterView
             percentUsed={0.95}
             remaining={50}
-            total={1000}
+            countsDailyLimit={false}
             autoReloadEnabled
             hasEnoughCredits={false}
             configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
@@ -140,9 +140,33 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
           <SeerCreditUsageMeterView
             percentUsed={0.95}
             remaining={50}
-            total={1000}
+            countsDailyLimit={false}
             autoReloadEnabled={false}
             hasEnoughCredits={false}
+            configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
+            forceTooltipVisible
+          />
+        </NextToSendButton>
+      </Fragment>
+    );
+  });
+
+  story('Daily usage limit', () => {
+    const organization = useOrganization();
+    return (
+      <Fragment>
+        <Text as="p">
+          With a daily usage limit, the meter counts down what's left of it today once it
+          would run out before the wallet. With auto-reload on, reloads refill the wallet
+          until the limit stops them, so the meter always counts the limit.
+        </Text>
+        <NextToSendButton>
+          <SeerCreditUsageMeterView
+            percentUsed={0.72}
+            remaining={700}
+            countsDailyLimit
+            autoReloadEnabled
+            hasEnoughCredits
             configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
             forceTooltipVisible
           />
@@ -173,7 +197,7 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
                 <SeerCreditUsageMeterView
                   percentUsed={percentUsed}
                   remaining={Math.round((1 - percentUsed) * 1000)}
-                  total={1000}
+                  countsDailyLimit={false}
                   autoReloadEnabled={false}
                   hasEnoughCredits={hasEnoughCredits}
                   configureAutoReloadTo={configureAutoReloadTo}

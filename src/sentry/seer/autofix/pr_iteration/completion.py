@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from enum import Enum
 from typing import TYPE_CHECKING, Any, assert_never
 from uuid import uuid4
@@ -31,6 +31,7 @@ from sentry.seer.autofix.pr_iteration.emit import (
 from sentry.seer.autofix.pr_iteration.feedback import latest_iteration_feedback_kind
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource, Decision
 from sentry.seer.autofix.pr_iteration.iterations import (
+    Iteration,
     get_iterations,
     get_latest_iteration_index,
     iteration_repos,
@@ -52,6 +53,7 @@ from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import format_pull_requests_payload
 from sentry.seer.autofix.single_run import is_single_run
 from sentry.seer.autofix.steps import AutofixStep
+from sentry.seer.credits import OUT_OF_CREDITS, get_pr_denial_reason, get_run_denial_reason
 from sentry.tasks.seer.pr_iteration import consume_queued_autofix_feedback
 from sentry.utils import metrics
 
@@ -112,7 +114,11 @@ def fail_pr_iteration(
 
     # Don't pause a run that ran out of credits, since the next feedback after a top-up resumes it.
     if state.failure_reason == "out_of_credits":
-        mark_out_of_credits(run_id=run_id, organization_id=organization.id)
+        mark_out_of_credits(
+            run_id=run_id,
+            organization_id=organization.id,
+            denial_reason=get_run_denial_reason(state),
+        )
         paused = False
     else:
         paused = pause_pr_iteration(
@@ -126,11 +132,13 @@ def fail_pr_iteration(
         paused=paused,
         failure_reason=state.failure_reason,
     )
+    outcome = outcome_for_failed_run(state)
+    _log_branch_moved_result(log_ctx, organization, state, outcome)
     complete_pr_iteration_details(
         log_ctx=log_ctx,
         run_state=state,
         organization_id=organization.id,
-        outcome=outcome_for_failed_run(state),
+        outcome=outcome,
     )
 
 
@@ -315,17 +323,20 @@ def continue_pr_iteration(
         return isinstance(outcome, Retrying)
 
     if outcome == PrIterationOutcome.PR_CREATION_ERRORED:
-        errored_codes = {
-            state.repo_pr_states[repo].pr_creation_error_code
-            for repo in iteration_terminal_errored_repos(state)
-        }
-        if "out_of_credits" in errored_codes:
+        errored_prs = [
+            state.repo_pr_states[repo] for repo in iteration_terminal_errored_repos(state)
+        ]
+        errored_codes = {pr.pr_creation_error_code for pr in errored_prs}
+        if OUT_OF_CREDITS in errored_codes:
             # Mark the run stopped on credits, with the push for the next drain to redo.
             mark_out_of_credits(
                 run_id=run_id,
                 organization_id=organization.id,
                 # A single run's agent pushes on its next turn, so it has no push to redo.
                 stranded_action=None if is_single_run(state) else StrandedAction.PUSH,
+                denial_reason=get_pr_denial_reason(
+                    pr for pr in errored_prs if pr.pr_creation_error_code == OUT_OF_CREDITS
+                ),
             )
         elif (
             state.status == "completed"
@@ -358,6 +369,7 @@ def continue_pr_iteration(
     ):
         consume_queued_feedback(log_ctx, organization, run_id)
 
+    _log_branch_moved_result(log_ctx, organization, state, outcome.value)
     complete_pr_iteration_details(
         log_ctx=log_ctx,
         run_state=state,
@@ -596,9 +608,10 @@ def redo_stranded_action(
 
     Its completion hook drains the queue, as it would have the first time.
     """
+    outcome: PrIterationOutcome | Retrying | None
     match action:
         case StrandedAction.PUSH:
-            _push_iteration_changes(
+            outcome = _push_iteration_changes(
                 log_ctx, group, run_id, state, author=_iteration_commit_author(state)
             )
         case StrandedAction.BRANCH_MOVED_RETRY:
@@ -612,6 +625,11 @@ def redo_stranded_action(
         case _:
             assert_never(action)
 
+    # A redo that fails ends the iteration here, with no completion to log it. One refused for
+    # credits again is stranded again, so the skip in the log holds it for the next redo.
+    if isinstance(outcome, PrIterationOutcome):
+        _log_branch_moved_result(log_ctx, group.organization, state, outcome.value)
+
 
 def _push_failed_on_moved_branch(
     group: Group, state: SeerRunState, errored_repos: list[str]
@@ -624,23 +642,82 @@ def _push_failed_on_moved_branch(
     )
 
 
+def _branch_moved_retries(iterations: Sequence[Iteration]) -> int:
+    """The branch-moved retries the latest iteration has run so far.
+
+    Each retry is a turn with its own PR_ITERATION block under the same iteration index, so the
+    blocks sharing that index count the turns so far.
+    """
+    if not iterations:
+        return 0
+    latest_index = iterations[-1].index
+    return sum(1 for iteration in iterations if iteration.index == latest_index) - 1
+
+
 def _branch_moved_retry_decision(state: SeerRunState) -> Decision:
     """Whether the latest iteration may run another turn after the branch moved under its push.
 
     A retry is not a new iteration: it finishes the one it retries on the PR's latest commit, so
     the iteration gates (the project toggle, the automated caps) don't apply. Only
-    ``MAX_BRANCH_MOVED_RETRIES`` bounds it. Each retry is a turn with its own PR_ITERATION block
-    under the same iteration index, so the blocks sharing that index count the turns so far.
+    ``MAX_BRANCH_MOVED_RETRIES`` bounds it.
     """
     iterations = get_iterations(state)
     if not iterations:
         return Decision(ok=False, reason="no_iteration")
 
-    latest_index = iterations[-1].index
-    retries = sum(1 for iteration in iterations if iteration.index == latest_index) - 1
-    if retries >= MAX_BRANCH_MOVED_RETRIES:
+    if _branch_moved_retries(iterations) >= MAX_BRANCH_MOVED_RETRIES:
         return Decision(ok=False, reason="retry_cap_reached")
     return Decision(ok=True, reason="under_retry_cap")
+
+
+def _log_branch_moved_result(
+    log_ctx: PrIterationLogContext,
+    organization: Organization,
+    state: SeerRunState,
+    outcome: str,
+) -> None:
+    """Log whether an iteration whose push was refused because the branch moved got its changes
+    onto the PR in the end.
+
+    Logs once, when the iteration ends, so each line is one iteration. ``landed`` is the
+    answer and ``retries`` counts the retry turns it took. A refused push the iteration never
+    retried shows up as ``retries=0`` with the repos still in ``branch_moved_repos``.
+
+    A push or retry that a credits refusal stranded doesn't end the iteration: the drain redoes
+    it after a top-up, and the redo logs the result if it fails, or its completion does.
+    """
+    try:
+        iterations = get_iterations(state)
+    except Exception:
+        log_ctx.error("autofix.pr_iteration.get_iterations_failed")
+        return
+
+    retries = _branch_moved_retries(iterations)
+    branch_moved_repos = [
+        repo
+        for repo in iteration_terminal_errored_repos(state)
+        if state.repo_pr_states[repo].pr_creation_error_code == "branch_moved"
+    ]
+    if not retries and not branch_moved_repos:
+        return
+
+    landed = outcome == PrIterationOutcome.ALREADY_PUSHED.value
+    if not landed:
+        out_of_credits = get_out_of_credits(run_id=state.run_id, organization_id=organization.id)
+        if out_of_credits is not None and out_of_credits.stranded_action is not None:
+            return
+
+    log_ctx.info(
+        "autofix.pr_iteration.branch_moved.result",
+        landed=landed,
+        outcome=outcome,
+        retries=retries,
+        branch_moved_repos=branch_moved_repos,
+        pin_to_pr_head=features.has(
+            "organizations:autofix-pr-iteration-pin-to-pr-head", organization
+        ),
+        single_run=is_single_run(state),
+    )
 
 
 @traces.trace

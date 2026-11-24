@@ -40,6 +40,13 @@ class ApiScopes(Sequence[str]):
 
     dashboard = (("dashboard:read"), ("dashboard:write"))
 
+    membership = (
+        ("membership:read"),
+        ("membership:write"),
+        ("membership:admin"),
+        ("membership:invite"),
+    )
+
     saved_query = (("saved_query:read"), ("saved_query:write"))
 
     seer = (("seer:read"), ("seer:write"))
@@ -55,6 +62,7 @@ class ApiScopes(Sequence[str]):
             + self.__class__.member
             + self.__class__.alerts
             + self.__class__.dashboard
+            + self.__class__.membership
             + self.__class__.saved_query
             + self.__class__.seer
             + self.__class__.user_preference

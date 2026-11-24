@@ -17,10 +17,7 @@ interface Ratio {
 }
 
 function formatCountRatio(value: number, total: number): Ratio {
-  return {
-    value: formatAbbreviatedNumber(value),
-    total: formatAbbreviatedNumber(total),
-  };
+  return {value: formatAbbreviatedNumber(value), total: formatAbbreviatedNumber(total)};
 }
 
 function totalEventCount(bucket: DroppedDataBucket): number {

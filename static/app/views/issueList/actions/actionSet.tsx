@@ -19,11 +19,9 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
-import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 
 import {CopyActions} from './copyActions';
 import {ResolveActionsContainer as ResolveActions} from './resolveActions';
-import {ReviewAction} from './reviewAction';
 import {ConfirmAction, getConfirm, getLabel} from './utils';
 
 type Props = {
@@ -103,12 +101,7 @@ export function ActionSet({
     [area, onUpdate, organization]
   );
   const numIssues = issues.size;
-  const confirm = getConfirm({
-    numIssues,
-    allInQuerySelected,
-    query,
-    queryCount,
-  });
+  const confirm = getConfirm({numIssues, allInQuerySelected, query, queryCount});
 
   const label = getLabel(numIssues, allInQuerySelected);
 
@@ -130,9 +123,6 @@ export function ActionSet({
   const mergeDisabled =
     !multiSelected || multipleIssueProjectsSelected || !mergeSupported;
   const ignoreDisabled = !anySelected;
-
-  const canMarkReviewed =
-    anySelected && (allInQuerySelected || selectedIssues.some(issue => !!issue?.inbox));
 
   // determine which ... dropdown options to show based on issue(s) selected
   const canAddBookmark =
@@ -157,8 +147,6 @@ export function ActionSet({
     return '';
   };
 
-  const nestReview = !FOR_REVIEW_QUERIES.includes(query);
-
   const handleMergeClick = () => {
     openConfirmModal({
       bypass: !onShouldConfirm(ConfirmAction.MERGE),
@@ -169,13 +157,6 @@ export function ActionSet({
   };
 
   const menuItems: MenuItemProps[] = [
-    {
-      key: 'mark-reviewed',
-      label: t('Mark Reviewed'),
-      hidden: !nestReview,
-      disabled: !canMarkReviewed,
-      onAction: () => handleUpdate({inbox: false}),
-    },
     {
       key: 'bookmark',
       label: t('Add to Bookmarks'),
@@ -298,9 +279,6 @@ export function ActionSet({
           },
         })}
       />
-      {!nestReview && (
-        <ReviewAction disabled={!canMarkReviewed} onUpdate={handleUpdate} />
-      )}
       <CopyActions
         allInQuerySelected={allInQuerySelected}
         anySelected={anySelected}

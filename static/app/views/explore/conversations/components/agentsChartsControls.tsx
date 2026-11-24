@@ -35,11 +35,7 @@ export function useAgentsChartsState() {
     Referrer.CHART
   );
   const llmData = useSpans(
-    {
-      search: getAiClientSpansFilter(),
-      fields: ['id'],
-      limit: 1,
-    },
+    {search: getAiClientSpansFilter(), fields: ['id'], limit: 1},
     Referrer.CHART
   );
   const hasNoAgentOrToolData =

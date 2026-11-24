@@ -1,4 +1,5 @@
 import {IconAllProjects} from '@sentry/icons/allProjects';
+import {IconBot} from '@sentry/icons/bot';
 import {IconFlag} from '@sentry/icons/flag';
 import {IconGroup} from '@sentry/icons/group';
 import {IconLink} from '@sentry/icons/link';
@@ -70,6 +71,14 @@ function getAccountNavigationConfiguration({
           description: t(
             'Change your account details and preferences (e.g. timezone/clock, avatar, language)'
           ),
+        },
+        {
+          id: 'account_appearance',
+          path: `${userSettingsPathPrefix}/appearance/`,
+          title: t('Appearance'),
+          keywords: [t('theme'), t('dark mode'), t('light mode')],
+          description: t('Choose how Sentry looks, like light or dark mode'),
+          show: ({organization}) => !!organization?.features.includes('theme-variants'),
         },
         {
           id: 'account_security',
@@ -175,6 +184,16 @@ function getOrganizationNavigationConfiguration({
           title: t('Members'),
           description: t('Manage user membership for an organization'),
           id: 'members',
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/service-accounts/`,
+          icon: <IconBot />,
+          title: t('Service Accounts'),
+          keywords: [t('service account'), t('bot'), t('automation'), t('token')],
+          description: t('Manage non-human accounts for CI, scripts and agents'),
+          id: 'service-accounts',
+          show: ({organization}) =>
+            !!organization && organization.features.includes('service-accounts'),
         },
         {
           path: `${organizationSettingsPathPrefix}/security-and-privacy/`,
@@ -435,11 +454,5 @@ function getDeveloperNavigationConfiguration({
     });
   }
 
-  return [
-    {
-      id: 'settings-developer',
-      name: t('Developer Settings'),
-      items,
-    },
-  ];
+  return [{id: 'settings-developer', name: t('Developer Settings'), items}];
 }

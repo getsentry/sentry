@@ -437,11 +437,12 @@ class MonitorValidator(CamelSnakeSerializer[Monitor]):
             detector = ensure_cron_detector(monitor)
             assert detector
 
-            # Attempt to assign a seat for this monitor
-            seat_outcome = quotas.backend.assign_seat(seat_object=monitor)
-            if seat_outcome != Outcome.ACCEPTED:
-                detector.update(enabled=False)
-                monitor.update(status=ObjectStatus.DISABLED)
+            # A monitor created disabled gets its seat when it is enabled.
+            if monitor.status == ObjectStatus.ACTIVE:
+                seat_outcome = quotas.backend.assign_seat(seat_object=monitor)
+                if seat_outcome != Outcome.ACCEPTED:
+                    detector.update(enabled=False)
+                    monitor.update(status=ObjectStatus.DISABLED)
 
         request = self.context["request"]
         signal_monitor_created(cast("Project", project), request.user, False, monitor, request)
@@ -712,9 +713,7 @@ class MonitorDataSourceValidator(BaseDataSourceValidator[Monitor]):
     def update(self, instance: Monitor, validated_data: dict[str, Any]) -> Monitor:
         monitor_validator = validated_data.pop("_monitor_validator")
         with in_test_hide_transaction_boundary():
-            return cast(
-                "Monitor", monitor_validator.update(instance, monitor_validator.validated_data)
-            )
+            return monitor_validator.update(instance, monitor_validator.validated_data)
 
 
 class MonitorDataSourceListField(serializers.ListField):
@@ -768,10 +767,11 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
         with in_test_hide_transaction_boundary():
             monitor = get_cron_monitor(detector)
 
-        # Try to assign a seat for the monitor
-        seat_outcome = quotas.backend.assign_seat(seat_object=monitor)
-        if seat_outcome != Outcome.ACCEPTED:
-            monitor.update(status=ObjectStatus.DISABLED)
+        # A monitor created disabled gets its seat when it is enabled.
+        if monitor.status == ObjectStatus.ACTIVE:
+            seat_outcome = quotas.backend.assign_seat(seat_object=monitor)
+            if seat_outcome != Outcome.ACCEPTED:
+                monitor.update(status=ObjectStatus.DISABLED)
         if monitor.status != ObjectStatus.ACTIVE:
             detector.update(enabled=False)
 

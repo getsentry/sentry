@@ -8,11 +8,13 @@ from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
 
 from sentry import audit_log
+from sentry.auth.access import RpcBackedAccess
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.seer.agent_token import AGENT_TOKEN_KIND
 from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
 from sentry.service_accounts.endpoints.organization_service_account_tokens import (
+    HIDDEN_PROJECTS_ERROR,
     DisallowAgentTokenWrites,
     OrganizationServiceAccountTokenIndexEndpoint,
 )
@@ -337,6 +339,64 @@ class OrganizationServiceAccountTokenIndexTest(ServiceAccountTokenTestCase):
                 status_code=201,
             )
 
+    def test_limited_caller_cannot_create_for_account_with_hidden_projects(self) -> None:
+        team = self.create_team(organization=self.organization)
+        with assume_test_silo_mode(SiloMode.CELL):
+            visible = self.create_project(organization=self.organization, teams=[team])
+            hidden = self.create_project(organization=self.organization, teams=[])
+        hidden_account = self.create_service_account(
+            organization=self.organization,
+            name="hidden",
+            scope_list=["project:read"],
+            project_ids=[visible.id, hidden.id],
+        )
+        all_projects_account = self.create_service_account(
+            organization=self.organization,
+            name="all",
+            scope_list=["project:read"],
+            all_projects=True,
+        )
+        visible_account = self.create_service_account(
+            organization=self.organization,
+            name="visible",
+            scope_list=["project:read"],
+            project_ids=[visible.id],
+        )
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, role="manager", teams=[team])
+        self.login_as(user)
+
+        # No shipped role has `service_account:write` without global access.
+        with (
+            self.feature(FEATURE_FLAG),
+            mock.patch.object(
+                RpcBackedAccess,
+                "has_global_access",
+                new_callable=mock.PropertyMock,
+                return_value=False,
+            ),
+        ):
+            for service_account in (hidden_account, all_projects_account):
+                response = self.get_error_response(
+                    self.organization.slug,
+                    service_account.id,
+                    method="post",
+                    name="deploys",
+                    scopes=["project:read"],
+                    status_code=403,
+                )
+                assert response.data["detail"] == HIDDEN_PROJECTS_ERROR
+            assert not ServiceAccountToken.objects.exists()
+
+            self.get_success_response(
+                self.organization.slug,
+                visible_account.id,
+                method="post",
+                name="deploys",
+                scopes=["project:read"],
+                status_code=201,
+            )
+
     def test_service_account_caller_cannot_list(self) -> None:
         url = reverse(self.endpoint, args=[self.organization.slug, self.service_account.id])
 
@@ -405,6 +465,42 @@ class OrganizationServiceAccountTokenIndexTest(ServiceAccountTokenTestCase):
             self.get_error_response(
                 self.organization.slug, self.service_account.id, status_code=404
             )
+
+    def test_create_after_concurrent_delete_returns_404(self) -> None:
+        convert_args = OrganizationServiceAccountTokenIndexEndpoint.convert_args
+        service_account_id = self.service_account.id
+
+        def convert_args_then_delete(
+            endpoint: OrganizationServiceAccountTokenIndexEndpoint,
+            request: Request,
+            *args: Any,
+            **kwargs: Any,
+        ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+            args, kwargs = convert_args(endpoint, request, *args, **kwargs)
+            ServiceAccount.objects.get(id=service_account_id).deactivate()
+            return args, kwargs
+
+        with (
+            mock.patch.object(
+                OrganizationServiceAccountTokenIndexEndpoint,
+                "convert_args",
+                autospec=True,
+                side_effect=convert_args_then_delete,
+            ),
+            self.feature(FEATURE_FLAG),
+        ):
+            self.get_error_response(
+                self.organization.slug,
+                service_account_id,
+                method="post",
+                name="deploys",
+                scopes=["org:read"],
+                status_code=404,
+            )
+
+        assert not ServiceAccountToken.objects.filter(
+            service_account_id=service_account_id
+        ).exists()
 
 
 @control_silo_test

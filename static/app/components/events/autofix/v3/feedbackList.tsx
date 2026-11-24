@@ -28,6 +28,7 @@ import {
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {getStoppedFeedbackMessage} from 'sentry/components/seer/outOfCredits/messages';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {AvatarUser, User} from 'sentry/types/user';
@@ -115,6 +116,8 @@ type ParsedFeedback =
   | OtherFeedback;
 
 type FeedbackListItem = ParsedFeedback & {
+  /** Why billing refused credit, when `errorCode` is `out_of_credits`. */
+  creditDenialReason?: string | null;
   errorCode?: string | null;
   queued?: boolean;
   status?: FeedbackStatus;
@@ -144,11 +147,7 @@ function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
       if (!commentUrl) {
         return null;
       }
-      const comment = {
-        ...base,
-        githubUsername: source.comment?.user?.login,
-        commentUrl,
-      };
+      const comment = {...base, githubUsername: source.comment?.user?.login, commentUrl};
       return source.type === 'github-pr-review-comment'
         ? {...comment, sourceType: source.type, reviewId: source.review_id}
         : {...comment, sourceType: source.type};
@@ -173,11 +172,7 @@ function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
       };
     }
     default:
-      return {
-        ...base,
-        sourceType: 'other',
-        source: parsed.source?.type ?? 'unknown',
-      };
+      return {...base, sourceType: 'other', source: parsed.source?.type ?? 'unknown'};
   }
 }
 
@@ -214,11 +209,15 @@ export function usePrIterationFeedback(
     const repoStates = Object.values(autofix.runState?.repo_pr_states ?? {});
     const pushErrors = repoStates.filter(repo => repo.pr_creation_status === 'error');
     // Running out of credits stops either the iteration itself or its push.
+    const outOfCreditsPush = pushErrors.find(isOutOfCreditsPRState);
     const errorCode =
-      isOutOfCreditsSection(section) || pushErrors.some(isOutOfCreditsPRState)
+      isOutOfCreditsSection(section) || outOfCreditsPush
         ? 'out_of_credits'
         : pushErrors.find(repo => repo.pr_creation_error_code === 'branch_moved')
             ?.pr_creation_error_code;
+    const creditDenialReason = isOutOfCreditsSection(section)
+      ? section.creditDenialReason
+      : outOfCreditsPush?.credit_denial_reason;
     const inProgress =
       section.status === 'processing' ||
       autofix.runState?.status === 'processing' ||
@@ -271,6 +270,7 @@ export function usePrIterationFeedback(
         iterationIndex: Number(iterationIndex),
         status,
         errorCode: status === 'error' ? errorCode : undefined,
+        creditDenialReason: status === 'error' ? creditDenialReason : undefined,
       }));
     });
   }, [section, autofix.runState, currentStepStart]);
@@ -510,7 +510,11 @@ function FeedbackItem({item}: {item: FeedbackListItem}) {
       </Cell>
       {/* Status icon sits at the far right, after the timestamp. */}
       <Cell>
-        <FeedbackStatusIcon status={item.status} errorCode={item.errorCode} />
+        <FeedbackStatusIcon
+          status={item.status}
+          errorCode={item.errorCode}
+          creditDenialReason={item.creditDenialReason}
+        />
       </Cell>
     </Grid>
   );
@@ -827,16 +831,17 @@ function PrimaryIconAvatar({Icon, tooltip}: {Icon: typeof IconSeer; tooltip: str
   );
 }
 
-function getFeedbackErrorMessage(errorCode: string | null | undefined): string {
+function getFeedbackErrorMessage(
+  errorCode: string | null | undefined,
+  creditDenialReason: string | null | undefined
+): string {
   switch (errorCode) {
     case 'branch_moved':
       return t(
         'Seer did not push these changes because it would have had to force-push over newer commits on the PR branch.'
       );
     case 'out_of_credits':
-      return t(
-        "This feedback couldn't finish because your organization is out of credits"
-      );
+      return getStoppedFeedbackMessage(creditDenialReason);
     default:
       return t('Changes from this feedback could not be pushed');
   }
@@ -846,14 +851,19 @@ function getFeedbackErrorMessage(errorCode: string | null | undefined): string {
 function FeedbackStatusIcon({
   status,
   errorCode,
+  creditDenialReason,
 }: {
+  creditDenialReason?: string | null;
   errorCode?: string | null;
   status?: FeedbackStatus;
 }) {
   switch (status) {
     case 'error':
       return (
-        <Tooltip title={getFeedbackErrorMessage(errorCode)} skipWrapper>
+        <Tooltip
+          title={getFeedbackErrorMessage(errorCode, creditDenialReason)}
+          skipWrapper
+        >
           <Flex
             align="center"
             justify="center"

@@ -3,18 +3,10 @@ import type {ESTree} from '@oxlint/plugins';
 export type RenderFunction = ESTree.ArrowFunctionExpression | ESTree.Function;
 
 function getRenderFunction(expression: ESTree.JSXExpression): RenderFunction | null {
-  if (
-    expression.type === 'ArrowFunctionExpression' ||
+  return expression.type === 'ArrowFunctionExpression' ||
     expression.type === 'FunctionExpression'
-  ) {
-    return expression;
-  }
-
-  if (expression.type === 'ParenthesizedExpression') {
-    return getRenderFunction(expression.expression);
-  }
-
-  return null;
+    ? expression
+    : null;
 }
 
 export function getChildrenRenderFunction(

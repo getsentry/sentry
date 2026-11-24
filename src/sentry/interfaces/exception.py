@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
-from typing import Any, Self, cast
+from typing import Any, Self
 
 from sentry.interfaces.base import Interface
 from sentry.interfaces.stacktrace import Stacktrace
@@ -475,15 +475,12 @@ class Exception(Interface):
     ) -> str:
         exc = self.values[-1]
         if exc.stacktrace:
-            return cast(
-                "str",
-                exc.stacktrace.get_stacktrace(
-                    event,
-                    system_frames=system_frames,
-                    newest_first=newest_first,
-                    max_frames=max_frames,
-                    header=header,
-                ),
+            return exc.stacktrace.get_stacktrace(
+                event,
+                system_frames=system_frames,
+                newest_first=newest_first,
+                max_frames=max_frames,
+                header=header,
             )
         return ""
 

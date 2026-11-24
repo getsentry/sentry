@@ -30,16 +30,8 @@ describe('StreamGroup', () => {
   beforeEach(() => {
     group1 = GroupFixture({
       id: '1337',
-      project: ProjectFixture({
-        id: '13',
-        slug: 'foo-project',
-      }),
+      project: ProjectFixture({id: '13', slug: 'foo-project'}),
       type: EventOrGroupType.ERROR,
-      inbox: {
-        date_added: '2020-11-24T13:17:42.248751Z',
-        reason: 0,
-        reason_details: null,
-      },
       lifetime: {
         firstSeen: '2017-10-10T02:41:20.000Z',
         lastSeen: '2017-10-16T02:41:20.000Z',
@@ -52,10 +44,7 @@ describe('StreamGroup', () => {
       url: '/organizations/org-slug/projects/',
       body: [ProjectFixture({slug: 'foo-project'})],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
   });
 
   afterEach(() => {
@@ -67,20 +56,6 @@ describe('StreamGroup', () => {
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
     expect(GuideStore.getState().anchors).toEqual(new Set(['issue_stream']));
-  });
-
-  it('shows not reviewed when group has inbox reason', async () => {
-    render(
-      <StreamGroupInTable
-        group={group1}
-        query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-      />
-    );
-
-    expect(await screen.findByTestId('group')).toHaveAttribute(
-      'data-test-reviewed',
-      'false'
-    );
   });
 
   it('can change priority', async () => {
@@ -102,21 +77,12 @@ describe('StreamGroup', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
     expect(mockModifyGroup).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/',
-      expect.objectContaining({
-        data: expect.objectContaining({
-          priority: 'high',
-        }),
-      })
+      expect.objectContaining({data: expect.objectContaining({priority: 'high'})})
     );
   });
 
   it('tracks clicks from issues stream', async () => {
-    render(
-      <StreamGroupInTable
-        group={group1}
-        query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-      />
-    );
+    render(<StreamGroupInTable group={group1} query="is:unresolved" />);
 
     // skipHover - Prevent stacktrace preview from being rendered
     await userEvent.click(screen.getByText('RequestError'), {skipHover: true});
@@ -142,7 +108,7 @@ describe('StreamGroup', () => {
     render(
       <StreamGroupInTable
         group={group1}
-        query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
+        query="is:unresolved"
         withColumns={['firstSeen', 'lastSeen']}
       />
     );
@@ -152,12 +118,7 @@ describe('StreamGroup', () => {
   });
 
   it('navigates to issue with correct params when clicked', async () => {
-    const {router} = render(
-      <StreamGroupInTable
-        group={group1}
-        query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-      />
-    );
+    const {router} = render(<StreamGroupInTable group={group1} query="is:unresolved" />);
 
     await userEvent.click(screen.getByTestId('group'));
 
@@ -165,7 +126,7 @@ describe('StreamGroup', () => {
     expect(router.location.query).toEqual({
       _allp: '1',
       project: '13',
-      query: 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
+      query: 'is:unresolved',
       referrer: 'issue-stream',
     });
   });

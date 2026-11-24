@@ -37,9 +37,7 @@ function TaggedSticky({
     relativeTo === 'topBar' ? Number.parseInt(pageContentTop, 10) || 0 : 0;
   const stickyTopOffset = baseTopOffset + topOffset;
 
-  const isStuck = useIsStuck(elementRef, {
-    offset: stickyTopOffset,
-  });
+  const isStuck = useIsStuck(elementRef, {offset: stickyTopOffset});
 
   const stuckProps = isStuck ? {'data-stuck': ''} : {};
 

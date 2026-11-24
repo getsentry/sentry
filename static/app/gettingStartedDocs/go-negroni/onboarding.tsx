@@ -140,9 +140,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install our Go Negroni SDK using [code:go get]:', {
-            code: <code />,
-          }),
+          text: tct('Install our Go Negroni SDK using [code:go get]:', {code: <code />}),
         },
         {
           type: 'code',
@@ -162,15 +160,8 @@ export const onboarding: OnboardingConfig = {
             "Import and initialize the Sentry SDK early in your application's setup:"
           ),
         },
-        {
-          type: 'code',
-          language: 'go',
-          code: getConfigureSnippet(params),
-        },
-        {
-          type: 'subheader',
-          text: t('Options'),
-        },
+        {type: 'code', language: 'go', code: getConfigureSnippet(params)},
+        {type: 'subheader', text: t('Options')},
         {
           type: 'text',
           text: [
@@ -181,11 +172,7 @@ export const onboarding: OnboardingConfig = {
             t('Currently it respects 3 options:'),
           ],
         },
-        {
-          type: 'code',
-          language: 'go',
-          code: getOptionsSnippet(),
-        },
+        {type: 'code', language: 'go', code: getOptionsSnippet()},
       ],
     },
     {
@@ -212,22 +199,14 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'go',
-          code: getUsageSnippet(),
-        },
+        {type: 'code', language: 'go', code: getUsageSnippet()},
         {
           type: 'subheader',
           text: tct('Accessing Request in [beforeSendCode:BeforeSend] callback', {
             beforeSendCode: <code />,
           }),
         },
-        {
-          type: 'code',
-          language: 'go',
-          code: getBeforeSendSnippet(params),
-        },
+        {type: 'code', language: 'go', code: getBeforeSendSnippet(params)},
       ],
     },
     {
@@ -237,45 +216,30 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             "Negroni provides an option called [code:PanicHandlerFunc], which lets you 'plug-in' to its default [code:Recovery] middleware.",
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
           type: 'text',
           text: tct(
             "[sentrynegroniCode:sentrynegroni] exports a very barebones implementation, which utilizes it, so if you don't need anything else than just reporting panics to Sentry, you can use it instead, as it's just one line of code!",
-            {
-              sentrynegroniCode: <code />,
-            }
+            {sentrynegroniCode: <code />}
           ),
         },
         {
           type: 'text',
           text: tct(
             'You can still use [beforeSendCode:BeforeSend] and event processors to modify data before delivering it to Sentry, using this method as well.',
-            {
-              beforeSendCode: <code />,
-            }
+            {beforeSendCode: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'go',
-          code: getPanicHandlerSnippet(),
-        },
+        {type: 'code', language: 'go', code: getPanicHandlerSnippet()},
       ],
     },
   ],
   verify: (params: DocsParams) =>
     params.isMetricsSelected
-      ? [
-          {
-            type: StepType.VERIFY,
-            content: [metricsVerify(params)],
-          },
-        ]
+      ? [{type: StepType.VERIFY, content: [metricsVerify(params)]}]
       : [],
   nextSteps: (params: DocsParams) => {
     const steps = [];

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from functools import cached_property
 from unittest.mock import MagicMock, patch
 
@@ -8,11 +9,148 @@ from django.db import IntegrityError
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.integrations.services.repository import repository_service
+from sentry.integrations.source_code_management.repository_reconciliation import (
+    RepositoryConfig,
+    RepositoryReconciliationPolicy,
+    index_repository_configs,
+    index_repository_snapshots,
+    plan_repository_reconciliation,
+    select_adoptable_repositories,
+)
 from sentry.models.repository import REPOSITORY_NAME_LENGTH, REPOSITORY_URL_LENGTH, Repository
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.providers.integration_repository import RepoExistsError
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
+
+
+@dataclass
+class RepositorySnapshotFixture:
+    id: int
+    external_id: str | None
+    integration_id: int | None
+    provider: str | None
+    status: int = ObjectStatus.ACTIVE
+
+
+def repository_config(external_id: str, integration_id: int = 1) -> RepositoryConfig:
+    return {
+        "name": f"org/{external_id}",
+        "external_id": external_id,
+        "url": f"https://example.com/org/{external_id}",
+        "config": {},
+        "integration_id": integration_id,
+    }
+
+
+class TestRepositoryReconciliationPlanner:
+    policy = RepositoryReconciliationPolicy(
+        canonical_provider="integrations:github",
+        adoptable_providers=frozenset({"github"}),
+        can_transfer=True,
+    )
+
+    def test_duplicate_configs_use_the_last_value(self) -> None:
+        first = repository_config("duplicate", integration_id=1)
+        last = repository_config("duplicate", integration_id=2)
+
+        configs = index_repository_configs([first, last])
+
+        assert configs == {"duplicate": last}
+
+    def test_selects_only_adoptable_provider_rows(self) -> None:
+        canonical = RepositorySnapshotFixture(1, "taken", 1, "integrations:github")
+        legacy_taken = RepositorySnapshotFixture(2, "taken", None, "github")
+        legacy = RepositorySnapshotFixture(3, "legacy", None, "github")
+        providerless = RepositorySnapshotFixture(4, "providerless", None, None)
+        cross_provider = RepositorySnapshotFixture(5, "cross-provider", None, "gitlab")
+
+        selected = select_adoptable_repositories(
+            [canonical, legacy_taken, legacy, providerless, cross_provider],
+            taken_external_ids={"taken"},
+            policy=self.policy,
+        )
+
+        assert selected == [canonical, legacy, providerless]
+
+    def test_indexes_first_usable_snapshot(self) -> None:
+        canonical = RepositorySnapshotFixture(1, "same-id", 1, "integrations:github")
+        duplicate = RepositorySnapshotFixture(2, "same-id", None, "github")
+        pending = RepositorySnapshotFixture(
+            3, "pending", 1, "integrations:github", ObjectStatus.PENDING_DELETION
+        )
+        active_after_pending = RepositorySnapshotFixture(4, "pending", 1, "integrations:github")
+        deleting = RepositorySnapshotFixture(
+            5, "deleting", 1, "integrations:github", ObjectStatus.DELETION_IN_PROGRESS
+        )
+
+        indexed = index_repository_snapshots(
+            [canonical, duplicate, pending, active_after_pending, deleting],
+            {"same-id", "pending", "deleting"},
+        )
+
+        assert indexed == {"same-id": canonical, "pending": active_after_pending}
+
+    def test_plans_create_refresh_reactivation_adoption_and_transfer(self) -> None:
+        configs = index_repository_configs(
+            [
+                repository_config("create"),
+                repository_config("active"),
+                repository_config("disabled"),
+                repository_config("hidden"),
+                repository_config("unlinked"),
+                repository_config("transfer"),
+            ]
+        )
+        active = RepositorySnapshotFixture(1, "active", 1, "integrations:github")
+        disabled = RepositorySnapshotFixture(
+            2, "disabled", 1, "integrations:github", ObjectStatus.DISABLED
+        )
+        hidden = RepositorySnapshotFixture(
+            3, "hidden", 1, "integrations:github", ObjectStatus.HIDDEN
+        )
+        unlinked = RepositorySnapshotFixture(4, "unlinked", None, None)
+        transfer = RepositorySnapshotFixture(5, "transfer", 2, "integrations:github")
+
+        plan = plan_repository_reconciliation(
+            configs,
+            {
+                "active": active,
+                "disabled": disabled,
+                "hidden": hidden,
+                "unlinked": unlinked,
+                "transfer": transfer,
+            },
+            policy=self.policy,
+        )
+
+        assert plan.to_create == (configs["create"],)
+        assert plan.to_update == (
+            (active, configs["active"]),
+            (disabled, configs["disabled"]),
+            (hidden, configs["hidden"]),
+            (unlinked, configs["unlinked"]),
+        )
+        assert plan.to_transfer == ((transfer, configs["transfer"]),)
+        assert plan.conflicts == ()
+        assert plan.already_active_repository_ids == frozenset({active.id})
+        assert plan.already_active_configs == (configs["active"],)
+
+    def test_plans_untransferable_repository_as_conflict(self) -> None:
+        config = repository_config("conflict")
+        existing = RepositorySnapshotFixture(1, "conflict", 2, "integrations:github")
+        policy = RepositoryReconciliationPolicy(
+            canonical_provider="integrations:github",
+            adoptable_providers=frozenset({"github"}),
+            can_transfer=False,
+        )
+
+        plan = plan_repository_reconciliation(
+            {"conflict": config}, {"conflict": existing}, policy=policy
+        )
+
+        assert plan.to_transfer == ()
+        assert plan.conflicts == ((existing, config),)
 
 
 @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
