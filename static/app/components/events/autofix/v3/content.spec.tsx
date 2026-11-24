@@ -175,9 +175,7 @@ describe('SeerDrawerContent', () => {
         />
       );
 
-      expect(
-        await screen.findByRole('button', {name: 'Send to coding agent'})
-      ).toBeEnabled();
+      expect(await screen.findByRole('button', {name: 'Hand off'})).toBeEnabled();
       expect(
         screen.queryByRole('button', {name: 'Open Autofix'})
       ).not.toBeInTheDocument();

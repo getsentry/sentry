@@ -125,7 +125,7 @@ export function SeerDrawerContent({
                 autofix={autofix}
                 group={group}
                 runId={handoffRunId}
-                label={t('Send to coding agent')}
+                label={t('Hand off')}
               />
             ) : (
               <ButtonBar>
