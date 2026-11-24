@@ -179,4 +179,62 @@ describe('Seer table selection', () => {
       }),
     ]);
   });
+
+  it('keeps counting selected rows the current page no longer shows', async () => {
+    let snapshot: LLMContextSnapshot | undefined;
+
+    function Table({
+      rows,
+      allInQuerySelected,
+    }: {
+      allInQuerySelected: boolean;
+      rows: Array<{id: string}>;
+    }) {
+      useSeerTableSelection(
+        {itemType: 'alert', rows, toSummary: row => ({id: row.id}), total: 40},
+        new Set(['1', '2']),
+        allInQuerySelected
+      );
+      return null;
+    }
+    function Capture() {
+      const addSelection = useAddSeerSelectionToSnapshot();
+      return (
+        <button onClick={() => (snapshot = addSelection(EMPTY_SNAPSHOT))}>capture</button>
+      );
+    }
+
+    const secondPage = [{id: '3'}, {id: '4'}];
+    const {rerender} = render(
+      <SeerSelectionProvider>
+        <Table rows={secondPage} allInQuerySelected={false} />
+        <Capture />
+        <SeerSelectionToggle />
+      </SeerSelectionProvider>
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Include 2 alerts in context'})
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'capture'}));
+    expect(snapshot?.nodes[0]?.data).toEqual(
+      expect.objectContaining({selectedCount: 2, selectedItems: []})
+    );
+
+    rerender(
+      <SeerSelectionProvider>
+        <Table rows={secondPage} allInQuerySelected />
+        <Capture />
+        <SeerSelectionToggle />
+      </SeerSelectionProvider>
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Include 40 alerts in context'})
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'capture'}));
+    expect(snapshot?.nodes[0]?.data).toEqual(
+      expect.objectContaining({selectedCount: 40, selectedItems: secondPage})
+    );
+  });
 });

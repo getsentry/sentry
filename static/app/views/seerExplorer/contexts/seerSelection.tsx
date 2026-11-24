@@ -172,7 +172,7 @@ export interface SeerTableSelectionConfig<T extends {id: string}> {
 
 /**
  * Reports a table's selected rows to Seer, from the ids its selection state holds.
- * `'all'` means every loaded row; `allSelected` means every row matching the query.
+ * `'all'` means every loaded row; `allInQuerySelected` means every row matching the query.
  */
 export function useSeerTableSelection<T extends {id: string}>(
   config: SeerTableSelectionConfig<T> | undefined,
@@ -190,16 +190,24 @@ export function useSeerTableSelection<T extends {id: string}>(
       return null;
     }
     const selectedRows =
-      selectedIds === 'all' ? rows : rows.filter(row => selectedIds.has(row.id));
-    if (selectedRows.length === 0) {
+      selectedIds === 'all' || allSelected
+        ? rows
+        : rows.filter(row => selectedIds.has(row.id));
+    // Some tables keep their selection across pages, so it can hold rows the
+    // page no longer shows. Those still count, though Seer can't see their details.
+    const selectedCount =
+      selectedIds === 'all'
+        ? selectedRows.length
+        : Math.max(selectedIds.size, selectedRows.length);
+    if (selectedCount === 0) {
       return null;
     }
     return {
       itemType,
       count:
         allSelected && total !== undefined
-          ? Math.max(total, selectedRows.length)
-          : selectedRows.length,
+          ? Math.max(total, selectedCount)
+          : selectedCount,
       allSelected,
       items: selectedRows.slice(0, LLM_CONTEXT_MAX_ROWS).map(toSummary),
     };
