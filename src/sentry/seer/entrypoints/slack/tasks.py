@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from typing import Any, NamedTuple
 
 from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
@@ -33,7 +33,10 @@ from sentry.seer.entrypoints.slack.analytics import (
     SlackSeerAgentConversation,
     SlackSeerAgentResponded,
 )
-from sentry.seer.entrypoints.slack.cache import SlackSeerAgentMessageCache
+from sentry.seer.entrypoints.slack.cache import (
+    SlackSeerAgentMessageCache,
+    SlackSeerAgentReplyCache,
+)
 from sentry.seer.entrypoints.slack.entrypoint import (
     EntrypointSetupError,
     SlackAgentEntrypoint,
@@ -218,18 +221,28 @@ def process_mention_for_slack(
             issue_ids=extract_alert_issue_ids(messages, bot_user_id=bot_user_id),
         )
 
-        def _join_context(*, include_own_replies: bool) -> str | None:
+        seer_reply_ts = _find_seer_reply_ts(
+            integration_id=integration_id,
+            channel_id=channel_id,
+            messages=messages,
+            bot_user_id=bot_user_id,
+        )
+
+        def _join_context(*, omit_ts: Collection[str] = ()) -> str | None:
             thread_context = build_thread_context(
-                messages, bot_user_id=bot_user_id, include_own_replies=include_own_replies
+                messages, bot_user_id=bot_user_id, seer_reply_ts=seer_reply_ts, omit_ts=omit_ts
             )
             if thread_context:
                 thread_context = f"Messages in this Slack thread, oldest first:\n{thread_context}"
             parts = [p for p in (referenced_issues, linked_result.block, thread_context) if p]
             return "\n\n".join(parts) if parts else None
 
-        on_page_context = _join_context(include_own_replies=True)
-        # A continued run already holds Seer's earlier replies in its history.
-        continue_on_page_context = _join_context(include_own_replies=False)
+        def _continue_context(run_id: int) -> str | None:
+            # The run's history already holds the replies it posted.
+            replies = SlackSeerAgentReplyCache.get(run_id=run_id)
+            return _join_context(omit_ts={reply["message_ts"] for reply in replies.values()})
+
+        on_page_context = _join_context()
 
         if linked_result.unresolved_channel_ids or linked_result.private_channel_ids:
             _send_inaccessible_links_prompt(
@@ -245,7 +258,7 @@ def process_mention_for_slack(
             user=user,
             prompt=prompt,
             on_page_context=on_page_context,
-            continue_on_page_context=continue_on_page_context,
+            continue_on_page_context=_continue_context,
             category_key="slack_thread",
             category_value=f"{channel_id}:{entrypoint.thread_ts}",
         )
@@ -328,6 +341,25 @@ def _resolve_user(
         return None
 
     return user_service.get_user(identity.user_id)
+
+
+def _find_seer_reply_ts(
+    *,
+    integration_id: int,
+    channel_id: str,
+    messages: Sequence[Mapping[str, Any]],
+    bot_user_id: str,
+) -> set[str]:
+    """Timestamps of the thread's messages that Seer posted, per the cache it keeps of them."""
+    return {
+        ts
+        for msg in messages
+        if msg.get("user") == bot_user_id
+        and isinstance(ts := msg.get("ts"), str)
+        and SlackSeerAgentMessageCache.get(
+            integration_id=integration_id, channel_id=channel_id, message_ts=ts
+        )
+    }
 
 
 def _count_linked_users(

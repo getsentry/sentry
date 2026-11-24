@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import html
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
@@ -369,13 +369,6 @@ def _alert_issue_ids(msg: Mapping[str, Any]) -> list[int]:
     return issue_ids
 
 
-def _is_seer_reply(msg: Mapping[str, Any]) -> bool:
-    # Seer's Slack replies are rendered with a leading MarkdownBlock; alerts and
-    # other notifications use section blocks or attachments.
-    blocks = msg.get("blocks") or []
-    return bool(blocks) and isinstance(blocks[0], dict) and blocks[0].get("type") == "markdown"
-
-
 def _is_own_message(msg: Mapping[str, Any], bot_user_id: str | None) -> bool:
     return bot_user_id is not None and msg.get("user") == bot_user_id
 
@@ -439,30 +432,31 @@ def build_thread_context(
     messages: Sequence[Mapping[str, Any]],
     *,
     bot_user_id: str | None = None,
-    include_own_replies: bool = True,
+    seer_reply_ts: Collection[str] = (),
+    omit_ts: Collection[str] = (),
 ) -> str:
     """Build a context string from thread history for Seer Agent.
 
     Messages posted by our Slack app (``bot_user_id``) are Sentry issue alerts,
-    recognized by their alert metadata, Seer's own earlier replies, which start
-    with a ``markdown`` block, or other Sentry notifications such as metric
-    alerts. ``include_own_replies=False`` drops Seer's replies, for runs whose
-    history already holds them.
+    recognized by their alert metadata, Seer's own earlier replies, whose
+    timestamps are in ``seer_reply_ts``, or other Sentry notifications such as
+    metric alerts. Messages whose timestamps are in ``omit_ts`` are left out,
+    such as replies a continued run already holds in its history.
     """
     if not messages:
         return ""
 
     parts: list[str] = []
     for msg in messages:
+        if msg.get("ts") in omit_ts:
+            continue
         if _is_own_message(msg, bot_user_id):
             if _alert_issue_ids(msg):
                 author = "Sentry alert"
-            elif not _is_seer_reply(msg):
-                author = "Sentry notification"
-            elif include_own_replies:
+            elif msg.get("ts") in seer_reply_ts:
                 author = "Sentry (you), earlier reply"
             else:
-                continue
+                author = "Sentry notification"
         else:
             author = f"User <@{msg.get('user', 'unknown')}>"
 

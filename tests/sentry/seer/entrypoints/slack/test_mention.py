@@ -458,50 +458,41 @@ def _alert_message(issue_id: int, *, user: str = BOT_USER_ID) -> dict[str, Any]:
     }
 
 
-def _seer_reply(text: str) -> dict[str, Any]:
-    return {"user": BOT_USER_ID, "blocks": [MarkdownBlock(text=text).to_dict()], "ts": "3"}
+def _bot_message(text: str, *, ts: str) -> dict[str, Any]:
+    return {"user": BOT_USER_ID, "blocks": [SectionBlock(text=text).to_dict()], "ts": ts}
 
 
 class BuildThreadContextRolesTest(TestCase):
-    def test_labels_alerts_own_replies_and_users(self) -> None:
+    def test_labels_alerts_own_replies_notifications_and_users(self) -> None:
         messages = [
             _alert_message(123),
             {"user": "U123", "text": f"<@{BOT_USER_ID}> what is this?", "ts": "2"},
-            _seer_reply("It looks like a timeout."),
+            _bot_message("It looks like a timeout.", ts="3"),
+            _bot_message("CPU above 90%", ts="4"),
         ]
-        result = build_thread_context(messages, bot_user_id=BOT_USER_ID)
+        result = build_thread_context(messages, bot_user_id=BOT_USER_ID, seer_reply_ts={"3"})
         assert result.splitlines() == [
             "Sentry alert: *New Issue*",
             "Short ID: PROJ-1",
             "User <@U123>: @Sentry what is this?",
             "Sentry (you), earlier reply: It looks like a timeout.",
+            "Sentry notification: CPU above 90%",
         ]
 
-    def test_drops_own_replies_but_keeps_alerts(self) -> None:
+    def test_omits_messages_by_ts(self) -> None:
         messages = [
             _alert_message(123),
-            _seer_reply("It looks like a timeout."),
+            _bot_message("It looks like a timeout.", ts="3"),
+            _bot_message("Earlier run's answer", ts="5"),
             {"user": "U123", "text": "are you sure?", "ts": "4"},
         ]
-        result = build_thread_context(messages, bot_user_id=BOT_USER_ID, include_own_replies=False)
+        result = build_thread_context(
+            messages, bot_user_id=BOT_USER_ID, seer_reply_ts={"3", "5"}, omit_ts={"3"}
+        )
         assert "Sentry alert:" in result
         assert "User <@U123>: are you sure?" in result
+        assert "Sentry (you), earlier reply: Earlier run's answer" in result
         assert "timeout" not in result
-
-    def test_keeps_other_sentry_notifications(self) -> None:
-        metric_alert = {
-            "user": BOT_USER_ID,
-            "attachments": [{"blocks": [SectionBlock(text="CPU above 90%").to_dict()]}],
-            "ts": "1",
-        }
-        for include_own_replies in (True, False):
-            result = build_thread_context(
-                [metric_alert, _seer_reply("It looks like a timeout.")],
-                bot_user_id=BOT_USER_ID,
-                include_own_replies=include_own_replies,
-            )
-            assert result.startswith("Sentry notification: CPU above 90%")
-            assert ("It looks like a timeout." in result) is include_own_replies
 
     def test_other_users_with_alert_block_id_are_users(self) -> None:
         result = build_thread_context([_alert_message(123, user="U999")], bot_user_id=BOT_USER_ID)

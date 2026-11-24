@@ -24,6 +24,10 @@ from sentry.seer.entrypoints.slack.analytics import (
     SlackSeerAgentFeedback,
     SlackSeerAgentResponded,
 )
+from sentry.seer.entrypoints.slack.cache import (
+    SlackSeerAgentMessageCache,
+    SlackSeerAgentReplyCache,
+)
 from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError
 from sentry.seer.entrypoints.slack.metrics import (
     ProcessMentionFailureReason,
@@ -260,9 +264,9 @@ class ProcessMentionForSlackTest(TestCase):
         mock_entrypoint.thread_ts = "1234567890.000001"
         mock_entrypoint.install.get_thread_history.return_value = [
             {"user": "U111", "text": "help me debug this"},
-            {"user": "U0BOT", "blocks": [{"type": "markdown", "text": "let me take a look"}]},
+            {"user": "U0BOT", "text": "let me take a look", "ts": "1234567890.000002"},
             {"user": "U222", "text": "sure, what's the error?"},
-            {"user": "U0BOT", "blocks": [{"type": "markdown", "text": "I'm on it"}]},
+            {"user": "U0BOT", "text": "I'm on it", "ts": "1234567890.000003"},
             {"user": "U1234567890", "text": "<@U0BOT> What is causing this issue?"},
         ]
         mock_agent_cls.return_value = mock_entrypoint
@@ -272,6 +276,18 @@ class ProcessMentionForSlackTest(TestCase):
         mock_operator_cls.return_value = mock_operator
 
         mock_count_linked.return_value = 1
+
+        # Both replies came from Seer; only the second belongs to the run being continued.
+        for ts, run_id in (("1234567890.000002", 6), ("1234567890.000003", 7)):
+            SlackSeerAgentMessageCache.set(
+                integration_id=123,
+                channel_id="C1234567890",
+                message_ts=ts,
+                payload={"thread_ts": "1234567890.000001", "run_id": run_id},
+            )
+        SlackSeerAgentReplyCache.set(
+            run_id=7, key="answer", reply={"message_ts": "1234567890.000003"}
+        )
 
         self._run_task(
             thread_ts="1234567890.000001",
@@ -288,11 +304,12 @@ class ProcessMentionForSlackTest(TestCase):
         assert "User <@U111>: help me debug this" in on_page_context
         assert "User <@U222>: sure, what's the error?" in on_page_context
         assert "Sentry (you), earlier reply: let me take a look" in on_page_context
+        assert "Sentry (you), earlier reply: I'm on it" in on_page_context
         assert "User <@U1234567890>: @Sentry What is causing this issue?" in on_page_context
 
-        continue_on_page_context = call_kwargs["continue_on_page_context"]
+        continue_on_page_context = call_kwargs["continue_on_page_context"](7)
         assert "User <@U111>: help me debug this" in continue_on_page_context
-        assert "let me take a look" not in continue_on_page_context
+        assert "Sentry (you), earlier reply: let me take a look" in continue_on_page_context
         assert "I'm on it" not in continue_on_page_context
 
         mock_count_linked.assert_called_once()
@@ -361,7 +378,7 @@ class ProcessMentionForSlackTest(TestCase):
         self._run_task()
 
         call_kwargs = mock_operator.trigger_agent.call_args[1]
-        for context in (call_kwargs["on_page_context"], call_kwargs["continue_on_page_context"]):
+        for context in (call_kwargs["on_page_context"], call_kwargs["continue_on_page_context"](1)):
             assert context.startswith("Sentry issues referenced by alerts in this Slack thread.")
             assert f"issue_id: {group.id}, short_id: {group.qualified_short_id}" in context
             assert f"issue_id: {other_org_group.id}" not in context

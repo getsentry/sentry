@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Callable
 from typing import Any, NotRequired, TypedDict
 
 from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
@@ -580,15 +581,15 @@ class SeerAgentOperator[CachePayloadT]:
         user: User | RpcUser | None,
         prompt: str,
         on_page_context: str | None = None,
-        continue_on_page_context: str | None = None,
+        continue_on_page_context: Callable[[int], str | None] | None = None,
         category_key: str,
         category_value: str,
     ) -> int | None:
         """
         Start or continue a Seer Agent run and return the run_id.
         If a run exists for this category (e.g. slack thread), continues it; otherwise starts new.
-        ``continue_on_page_context`` replaces ``on_page_context`` when continuing, so callers
-        can leave out what the run's history already holds. When None, ``on_page_context`` is used.
+        When continuing, ``continue_on_page_context`` is called with the run id and its result
+        replaces ``on_page_context``, so callers can leave out what the run's history already holds.
         Uses the entrypoint's Agent callbacks for success/error handling.
         """
         event_lifecycle = SeerOperatorEventLifecycleMetric(
@@ -654,7 +655,7 @@ class SeerAgentOperator[CachePayloadT]:
                         run_id=existing_run.run.seer_run_state_id,
                         prompt=prompt,
                         on_page_context=(
-                            continue_on_page_context
+                            continue_on_page_context(existing_run.run.seer_run_state_id)
                             if continue_on_page_context is not None
                             else on_page_context
                         ),

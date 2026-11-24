@@ -1622,12 +1622,14 @@ class TestSeerAgentOperatorCodeMode(TestCase):
             user=self.user,
             prompt="hi",
             on_page_context="full",
-            continue_on_page_context="without replies",
+            continue_on_page_context=lambda run_id: f"without replies of {run_id}",
             category_key="slack_thread",
             category_value="thread-123",
         )
 
-        assert mock_client.continue_run.call_args.kwargs["on_page_context"] == "without replies"
+        assert (
+            mock_client.continue_run.call_args.kwargs["on_page_context"] == "without replies of 5"
+        )
         mock_client.start_run.assert_not_called()
 
     @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
@@ -1642,7 +1644,7 @@ class TestSeerAgentOperatorCodeMode(TestCase):
             user=self.user,
             prompt="hi",
             on_page_context="full",
-            continue_on_page_context="without replies",
+            continue_on_page_context=lambda run_id: "without replies",
             category_key="slack_thread",
             category_value="thread-123",
         )
