@@ -61,7 +61,7 @@ export function AutofixAgent({canWrite, project}: Props) {
     seerAgentIntegrationsSelectQueryOptions({organization})
   );
   const stoppingPointOptions = useStoppingPointSelectOptions();
-  const showAutomationSteps = !useShowOpenPrs();
+  const showOpenPrsToggle = useShowOpenPrs();
 
   // Only GitHub repos can hand off to an external coding agent, so the agent
   // dropdown is disabled when this project has any non-GitHub repo attached.
@@ -215,7 +215,15 @@ export function AutofixAgent({canWrite, project}: Props) {
           })}
         >
           {field =>
-            showAutomationSteps ? (
+            showOpenPrsToggle ? (
+              <field.Layout.Row label={t('Open PRs')} hintText={OPEN_PRS_TOOLTIP}>
+                <field.Switch
+                  checked={field.state.value === 'open_pr'}
+                  disabled={!canWrite}
+                  onChange={on => field.handleChange(openPrsStoppingPoint(on))}
+                />
+              </field.Layout.Row>
+            ) : (
               <field.Layout.Row
                 label={t('Automation Steps')}
                 hintText={tct(
@@ -232,14 +240,6 @@ export function AutofixAgent({canWrite, project}: Props) {
                   value={field.state.value}
                   onChange={field.handleChange}
                   options={stoppingPointOptions}
-                />
-              </field.Layout.Row>
-            ) : (
-              <field.Layout.Row label={t('Open PRs')} hintText={OPEN_PRS_TOOLTIP}>
-                <field.Switch
-                  checked={field.state.value === 'open_pr'}
-                  disabled={!canWrite}
-                  onChange={on => field.handleChange(openPrsStoppingPoint(on))}
                 />
               </field.Layout.Row>
             )
