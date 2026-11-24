@@ -27,14 +27,7 @@ def test_translate_org_read_adds_granular_scopes() -> None:
 
 
 def test_translate_member_read_adds_granular_scopes() -> None:
-    assert (
-        translate_deprecated_scopes(["member:read"])
-        == {
-            "member:read",
-            "membership:read",
-        }
-        | USER_PREFERENCE_SCOPES
-    )
+    assert translate_deprecated_scopes(["member:read"]) == {"member:read", "membership:read"}
 
 
 @pytest.mark.parametrize(
@@ -58,9 +51,10 @@ def test_translate_member_scope_adds_membership_scopes(
     assert {scope for scope in translated if scope.startswith("membership:")} == membership_scopes
 
 
-def test_translate_member_write_keeps_user_preference_access() -> None:
-    # Starring and starred order accept member:write, like member:read.
-    assert USER_PREFERENCE_SCOPES <= translate_deprecated_scopes(["member:write"])
+@pytest.mark.parametrize("deprecated_scope", sorted(settings.DEPRECATED_SCOPE_TRANSLATIONS))
+def test_no_deprecated_scope_translates_to_user_preference(deprecated_scope: str) -> None:
+    # Roles grant user_preference directly, and its endpoints don't accept deprecated scopes.
+    assert not USER_PREFERENCE_SCOPES & translate_deprecated_scopes([deprecated_scope])
 
 
 def test_translate_org_read_keeps_org_read() -> None:

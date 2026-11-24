@@ -45,10 +45,9 @@ class StarQuerySerializer(serializers.Serializer[object, StarQueryData]):
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "POST": ["member:read", "member:write", "user_preference:write"],
+        "POST": ["user_preference:write"],
     }
 
-    # user_preference:write replaces member:read in orgs with granular scopes.
     rejects_deprecated_scopes = True
 
 

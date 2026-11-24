@@ -14,7 +14,7 @@ from sentry.testutils.cases import TestCase
 
 SERVICE_ACCOUNT_SCOPES = {"service_account:read", "service_account:write"}
 # Resources whose scopes are explicit, so write does not imply read.
-EXPLICIT_SCOPE_RESOURCES = {"service_account"}
+EXPLICIT_SCOPE_RESOURCES = {"service_account", "user_preference"}
 
 # Scopes are `<resource>:<action>`, see src/AGENTS.md. Adding a verb here should be a
 # deliberate choice made in review, not a way to name a resource.

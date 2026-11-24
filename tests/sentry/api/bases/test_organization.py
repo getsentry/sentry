@@ -612,6 +612,7 @@ OPTED_IN_PERMISSIONS: list[type[OrganizationPermission]] = [
     starred_segments.MemberPermission,
     organization_group_search_view_details_starred.MemberPermission,
     organization_group_search_view_starred_order.MemberPermission,
+    organization_dashboard_details.OrganizationDashboardFavoritePermission,
     organization_dashboard_details.OrganizationDashboardVisitPermission,
     discover_saved_query_detail.DiscoverSavedQueryVisitPermission,
     explore_saved_query_detail.ExploreSavedQueryVisitPermission,
@@ -647,6 +648,22 @@ def test_granular_roles_keep_access(permission_cls: type[OrganizationPermission]
         for method, scopes in permission_cls.scope_map.items()
         for role in settings.SENTRY_GRANULAR_ROLES
         if not set(role["scopes"]) & (set(scopes) - settings.DEPRECATED_SCOPES)
+    }
+    assert without_access == set()
+
+
+@pytest.mark.parametrize("permission_cls", OPTED_IN_PERMISSIONS)
+def test_roles_keep_access_without_deprecated_scopes(
+    permission_cls: type[OrganizationPermission],
+) -> None:
+    """A method that accepts no deprecated scopes is reached through granular scopes alone,
+    even in orgs without granular scopes, so every role must grant one of them."""
+    without_access = {
+        (method, role["id"])
+        for method, scopes in permission_cls.scope_map.items()
+        if not set(scopes) & settings.DEPRECATED_SCOPES
+        for role in settings.SENTRY_ROLES
+        if not set(role["scopes"]) & set(scopes)
     }
     assert without_access == set()
 
