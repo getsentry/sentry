@@ -85,7 +85,7 @@ def get_seer_run(seer_run_state_id: int, organization: Organization) -> SeerRun 
 _NO_ACCESS_DETAIL = "You do not have access to this run."
 
 
-def _owner_mismatch_response() -> Response:
+def _no_access_response() -> Response:
     return Response(
         {"detail": _NO_ACCESS_DETAIL},
         status=status.HTTP_403_FORBIDDEN,
@@ -117,7 +117,7 @@ def resolve_seer_run(
             return Response({"detail": "Invalid run_id"}, status=status.HTTP_400_BAD_REQUEST)
         run = get_seer_run(seer_run_state_id, organization)
         if user_id is not None and (run is None or run.user_id != user_id):
-            return _owner_mismatch_response()
+            return _no_access_response()
         return ResolvedSeerRun(seer_run_state_id, str(run.uuid) if run else None)
 
     try:
@@ -129,7 +129,7 @@ def resolve_seer_run(
     if run is None:
         return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
     if user_id is not None and run.user_id != user_id:
-        return _owner_mismatch_response()
+        return _no_access_response()
     if run.mirror_status == SeerRunMirrorStatus.FAILED:
         if for_continue:
             return Response(
@@ -153,12 +153,9 @@ def authorize_seer_run(
     access: Access,
     user_id: int | None,
     *,
-    for_continue: bool,
     write: bool,
 ) -> ResolvedSeerRun | Response:
-    """Resolve a run the caller may read, or act on when ``write``. Issue runs are open to
-    anyone with project access (plus Autofix run scopes to act); other runs are the owner's."""
-    resolved = resolve_seer_run(run_id, organization, for_continue=for_continue)
+    resolved = resolve_seer_run(run_id, organization, for_continue=write)
     if isinstance(resolved, Response):
         return resolved
 
@@ -170,7 +167,7 @@ def authorize_seer_run(
         .first()  # noqa: S035
     )
     if run is None:
-        return _owner_mismatch_response() if write else resolved
+        return _no_access_response() if write else resolved
 
     is_owner = user_id is not None and run.user_id == user_id
     try:
@@ -191,7 +188,7 @@ def authorize_seer_run(
     else:
         allowed = run.user_id is None or is_owner
 
-    return resolved if allowed else _owner_mismatch_response()
+    return resolved if allowed else _no_access_response()
 
 
 _RpcReturn = TypeVar("_RpcReturn")

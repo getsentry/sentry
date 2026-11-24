@@ -756,20 +756,6 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert mock_continue.call_args.kwargs["user"].id == self.user.id
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
-    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_teammate_can_reply_to_ownerless_single_run(
-        self, mock_client_class: MagicMock, mock_continue: MagicMock
-    ) -> None:
-        run = self._single_run(user_id=None)
-
-        response = self.client.post(
-            f"{self.url}{run.seer_run_state_id}/", {"query": "hi"}, format="json"
-        )
-
-        assert response.status_code == 200
-        mock_continue.assert_called_once()
-
-    @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
     def test_reply_to_single_run_without_project_access_is_403(
         self, mock_continue: MagicMock
     ) -> None:

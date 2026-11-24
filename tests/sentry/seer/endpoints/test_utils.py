@@ -189,7 +189,6 @@ class AuthorizeSeerRunTest(TestCase):
             self.organization,
             from_user(user, self.organization, scopes=scopes),
             user.id,
-            for_continue=write,
             write=write,
         )
 
