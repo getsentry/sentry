@@ -311,15 +311,17 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const settingsV3 = useSettingsV3();
   const isMobile = layout === 'mobile';
 
-  // With settings-v3, the header shares the body's horizontal padding, so
-  // its title and toggle line up with the links below.
+  // With settings-v3, the title lines up with the links' leading graphic
+  // (xs body + md link padding = 12px) and the toggle icon with their
+  // trailing items (xs body + sm link padding = 10px; the sm toggle button
+  // centers its 16px icon in 32px, so 2xs + 8px).
   return (
     <Grid
       columns="minmax(0, 1fr) auto"
       align="center"
       borderBottom="primary"
       height={`${PRIMARY_HEADER_HEIGHT}px`}
-      padding={isMobile ? 'md lg' : settingsV3 ? '0 xs' : '0 sm'}
+      padding={isMobile ? 'md lg' : settingsV3 ? '0 2xs 0 xs' : '0 sm'}
     >
       {props.children}
       <SecondaryNavigationToggle />
@@ -417,7 +419,7 @@ function SecondaryNavigationRow(props: ComponentProps<typeof Grid>) {
       align="center"
       position="relative"
       height="32px"
-      padding="0 md"
+      padding="0 sm 0 md"
       radius="md"
       {...props}
       columns={`${LEADING_SLOT_SIZE} minmax(0, 1fr)`}
@@ -665,7 +667,7 @@ function SecondaryNavigationSeparator() {
 
   if (settingsV3) {
     return (
-      <SecondaryNavigationRow height="auto" padding="md" radius="0">
+      <SecondaryNavigationRow height="auto" padding="md sm md md" radius="0">
         <Container column="2" minWidth="0">
           <Separator orientation="horizontal" border="secondary" />
         </Container>
@@ -1055,7 +1057,7 @@ function GrabHandle() {
     return (
       <Flex
         align="center"
-        padding="0 md"
+        padding="0 sm 0 md"
         position="absolute"
         inset="0"
         pointerEvents="none"
