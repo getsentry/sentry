@@ -118,6 +118,11 @@ from sentry.seer.autofix.pr_iteration.out_of_credits import (
     mark_out_of_credits,
     take_out_of_credits,
 )
+from sentry.seer.autofix.pr_iteration.out_of_credits_comment import (
+    clear_out_of_credits_comment,
+    post_out_of_credits_comment,
+    queue_out_of_credits_comment,
+)
 from sentry.seer.autofix.pr_iteration.pause import (
     PauseReason,
     get_pause_reason,
@@ -467,6 +472,36 @@ def nudge_not_requested_feedback(
         repository_id=repository_id,
         pr_number=pr_number,
         kind=NudgeKind(kind),
+    )
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.comment_on_out_of_credits",
+    namespace=seer_tasks,
+    processing_deadline_duration=60,
+)
+def comment_on_out_of_credits(
+    run_id: int,
+    organization_id: int,
+    pr_numbers_by_repo: dict[str, int],
+    denial_reason: str | None,
+    *args: Any,
+    **kwargs: Any,
+) -> None:
+    """Post the comment saying PR iteration stopped for Seer credits, once per credit stop.
+
+    Split out of the refusal so the GitHub call never runs inside a webhook task's
+    deadline or the completion hook. See ``pr_iteration.out_of_credits_comment``.
+    """
+    organization = _organization_for_gate(run_id, organization_id)
+    if organization is None:
+        return
+
+    post_out_of_credits_comment(
+        organization=organization,
+        run_id=run_id,
+        pr_numbers_by_repo=pr_numbers_by_repo,
+        denial_reason=denial_reason,
     )
 
 
@@ -1017,6 +1052,8 @@ def _drain_queued_autofix_feedback(
         _record_drain_outcome("failed", trigger_source)
         raise
 
+    # The iteration is running again, so the next credit stop gets its own comment.
+    clear_out_of_credits_comment(run_id=run_id, organization_id=organization_id)
     log_ctx.info(
         "autofix.pr_iteration.consume_feedback.trigger_agent",
         outcome="started",
@@ -1053,6 +1090,9 @@ def _hold_for_credits(
         reason=PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value,
     )
     mark_out_of_credits(run_id=run_id, organization_id=organization_id, denial_reason=denial_reason)
+    queue_out_of_credits_comment(
+        run_id=run_id, organization_id=organization_id, state=state, denial_reason=denial_reason
+    )
 
 
 def _stop_after_drain_failure(

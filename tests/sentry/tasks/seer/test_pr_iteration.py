@@ -57,6 +57,7 @@ from sentry.seer.autofix.pr_iteration.out_of_credits import (
     get_out_of_credits,
     mark_out_of_credits,
 )
+from sentry.seer.autofix.pr_iteration.out_of_credits_comment import OUT_OF_CREDITS_COMMENT_EXTRA
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -1749,6 +1750,84 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         (row,) = open_iterations(seer_run)
         assert row.triggered is False
         assert row.data[FAILURE_REASON_DATA_KEY] == PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value
+
+    def _state_with_pr_number(self) -> SeerRunState:
+        state = self._state()
+        state.repo_pr_states = {"owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7)}
+        return state
+
+    @patch(f"{TASK_PATH}.comment_on_out_of_credits.delay")
+    @patch(
+        f"{TASK_PATH}.trigger_autofix_agent",
+        side_effect=SeerOutOfCreditsException("daily_cap_exceeded"),
+    )
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_trigger_refused_for_credits_comments_on_the_pr(
+        self,
+        mock_fetch: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_comment: MagicMock,
+    ) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mock_fetch.return_value = self._state_with_pr_number()
+        self._open_iteration_row()
+        self._enqueue_ui_feedback("fix it")
+
+        self._call()
+
+        mock_comment.assert_called_once_with(
+            run_id=67890,
+            organization_id=self.organization.id,
+            pr_numbers_by_repo={"owner/repo": 7},
+            denial_reason="daily_cap_exceeded",
+        )
+
+    @patch(f"{TASK_PATH}.comment_on_out_of_credits.delay")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent", side_effect=SeerOutOfCreditsException())
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_trigger_refused_again_for_credits_does_not_comment_again(
+        self,
+        mock_fetch: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_comment: MagicMock,
+    ) -> None:
+        # The credit stop's comment is already on the PR.
+        self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=67890,
+            extras={OUT_OF_CREDITS_COMMENT_EXTRA: {"denial_reason": None}},
+        )
+        mark_out_of_credits(run_id=67890, organization_id=self.organization.id)
+        mock_fetch.return_value = self._state_with_pr_number()
+        self._open_iteration_row()
+        self._enqueue_ui_feedback("fix it")
+
+        self._call()
+
+        mock_comment.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_started_iteration_clears_the_out_of_credits_comment(
+        self,
+        mock_fetch: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        # So the next credit stop comments again.
+        seer_run = self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=67890,
+            extras={OUT_OF_CREDITS_COMMENT_EXTRA: {"denial_reason": None}},
+        )
+        mark_out_of_credits(run_id=67890, organization_id=self.organization.id)
+        mock_fetch.return_value = self._state_with_pr_number()
+        self._enqueue_ui_feedback("fix it")
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        seer_run.refresh_from_db()
+        assert OUT_OF_CREDITS_COMMENT_EXTRA not in seer_run.extras
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.fetch_run_status")

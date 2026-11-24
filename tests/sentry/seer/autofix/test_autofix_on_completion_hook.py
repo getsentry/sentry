@@ -788,6 +788,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
 HOOK_PATH = "sentry.seer.autofix.on_completion_hook"
 COMPLETION_PATH = "sentry.seer.autofix.pr_iteration.completion"
 PR_STATE_PATH = "sentry.seer.autofix.pr_iteration.pr_state"
+COMMENT_TASK_DELAY = "sentry.tasks.seer.pr_iteration.comment_on_out_of_credits.delay"
 
 
 class TestPrIterationCompletionHook(TestCase):
@@ -1404,6 +1405,24 @@ class TestPrIterationCompletionHook(TestCase):
             run_id=123, organization_id=self.organization.id
         ) == OutOfCreditsMarker(stranded_action=StrandedAction.BRANCH_MOVED_RETRY)
 
+    @patch(COMMENT_TASK_DELAY)
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+    )
+    def test_a_branch_moved_retry_refused_for_credits_comments_on_the_pr(
+        self, mock_check_seer_credits: MagicMock, mock_comment: MagicMock
+    ) -> None:
+        with self.feature("organizations:token-billed-seer-enabled"):
+            self._branch_moved_push(self._branch_moved())
+
+        mock_comment.assert_called_once_with(
+            run_id=123,
+            organization_id=self.organization.id,
+            pr_numbers_by_repo={"test-repo": 7},
+            denial_reason=None,
+        )
+
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
     @patch(f"{COMPLETION_PATH}.logger")
@@ -1518,6 +1537,28 @@ class TestPrIterationCompletionHook(TestCase):
         )
         mock_consume.assert_not_called()
 
+    @patch(COMMENT_TASK_DELAY)
+    @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
+    @patch(
+        f"{COMPLETION_PATH}.trigger_push_changes",
+        side_effect=SeerOutOfCreditsException("daily_cap_exceeded"),
+    )
+    def test_a_push_refused_for_credits_comments_on_the_pr(
+        self, mock_push: MagicMock, mock_consume: MagicMock, mock_comment: MagicMock
+    ) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+
+        continue_pr_iteration(
+            self.organization, self.group, 123, self._unsynced(), AutofixReferrer.ON_COMPLETION_HOOK
+        )
+
+        mock_comment.assert_called_once_with(
+            run_id=123,
+            organization_id=self.organization.id,
+            pr_numbers_by_repo={"test-repo": 7},
+            denial_reason="daily_cap_exceeded",
+        )
+
     @patch(f"{COMPLETION_PATH}.trigger_push_changes", side_effect=SeerOutOfCreditsException())
     def test_a_redone_push_refused_for_credits_marks_the_run_again(
         self, mock_push: MagicMock
@@ -1572,6 +1613,29 @@ class TestPrIterationCompletionHook(TestCase):
             run_id=123, organization_id=self.organization.id
         ) == OutOfCreditsMarker(stranded_action=StrandedAction.PUSH)
         mock_push.assert_not_called()
+
+    @patch(COMMENT_TASK_DELAY)
+    @patch(f"{COMPLETION_PATH}.trigger_push_changes")
+    def test_a_seer_push_that_ran_out_of_credits_comments_on_the_pr(
+        self, mock_push: MagicMock, mock_comment: MagicMock
+    ) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        state = self._unsynced()
+        repo_state = state.repo_pr_states["test-repo"]
+        repo_state.pr_creation_status = "error"
+        repo_state.pr_creation_error_code = "out_of_credits"
+        repo_state.credit_denial_reason = "daily_cap_exceeded"
+
+        continue_pr_iteration(
+            self.organization, self.group, 123, state, AutofixReferrer.ON_COMPLETION_HOOK
+        )
+
+        mock_comment.assert_called_once_with(
+            run_id=123,
+            organization_id=self.organization.id,
+            pr_numbers_by_repo={"test-repo": 7},
+            denial_reason="daily_cap_exceeded",
+        )
 
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
@@ -1712,6 +1776,27 @@ class TestFailedRunCompletionHook(TestCase):
         assert get_out_of_credits(
             run_id=123, organization_id=self.organization.id
         ) == OutOfCreditsMarker(stranded_action=None)
+
+    @patch(COMMENT_TASK_DELAY)
+    @patch(f"{HOOK_PATH}.fetch_run_status")
+    def test_a_seer_iteration_that_ran_out_of_credits_comments_on_the_pr(
+        self, mock_fetch: MagicMock, mock_comment: MagicMock
+    ) -> None:
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123, user_id=self.user.id
+        )
+        state = self._errored([pr_iteration_memory_block()], failure_reason="out_of_credits")
+        state.credit_denial_reason = "not_enough_credits"
+        mock_fetch.return_value = state
+
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        mock_comment.assert_called_once_with(
+            run_id=123,
+            organization_id=self.organization.id,
+            pr_numbers_by_repo={"test-repo": 7},
+            denial_reason="not_enough_credits",
+        )
 
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
