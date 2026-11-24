@@ -99,7 +99,7 @@ class EventAttachmentBase(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    # NOTE: `event_id`, `type` and `date_added` are indexed on `EventAttachment` but not
+    # NOTE: `event_id` and `date_added` are indexed on `EventAttachment` but not
     # on `PendingEventAttachment`, so they are declared on the concrete models instead.
     # Django does not allow overriding a field inherited from an abstract base, so
     # `db_index` cannot be varied per subclass.
@@ -204,7 +204,7 @@ class EventAttachment(EventAttachmentBase):
 
     group_id = BoundedBigIntegerField(null=True, db_index=True)
     event_id = models.CharField(max_length=32, db_index=True)
-    type = models.CharField(max_length=64, db_index=True)
+    type = models.CharField(max_length=64)
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta(EventAttachmentBase.Meta):
