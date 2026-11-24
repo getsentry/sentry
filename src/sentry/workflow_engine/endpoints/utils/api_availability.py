@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
 from sentry import features
-from sentry.workflow_engine.types import WorkflowEngineAPIAvailability, WorkflowEngineAPIOperation
+from sentry.workflow_engine.types import BaseWorkflowEngineSettings, WorkflowEngineAPIOperation
 
 if TYPE_CHECKING:
     from sentry.auth.principal import RequestPrincipal
@@ -19,14 +19,14 @@ _API_OPERATIONS_BY_NAME["HEAD"] = WorkflowEngineAPIOperation.GET
 
 
 def is_api_operation_available(
-    settings: type[WorkflowEngineAPIAvailability],
+    settings: type[BaseWorkflowEngineSettings],
     operation: WorkflowEngineAPIOperation,
     organization: Organization,
     *,
     actor: RequestPrincipal | None = None,
 ) -> bool:
     gate = settings.api_availability.get(
-        operation, WorkflowEngineAPIAvailability.DEFAULT_API_AVAILABILITY[operation]
+        operation, BaseWorkflowEngineSettings.DEFAULT_API_AVAILABILITY[operation]
     )
 
     if isinstance(gate, bool):
@@ -40,7 +40,7 @@ def is_api_operation_available(
 
 
 def get_excluded_types(
-    settings_by_type: Mapping[str, type[WorkflowEngineAPIAvailability]],
+    settings_by_type: Mapping[str, type[BaseWorkflowEngineSettings]],
     operation: WorkflowEngineAPIOperation | str | None,
     organization: Organization,
     *,

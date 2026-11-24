@@ -8,8 +8,8 @@ from sentry.workflow_engine.endpoints.utils.api_availability import (
 )
 from sentry.workflow_engine.types import (
     APIGate,
+    BaseWorkflowEngineSettings,
     FeatureGate,
-    WorkflowEngineAPIAvailability,
     WorkflowEngineAPIOperation,
 )
 from tests.sentry.workflow_engine.endpoints.test_helpers import GATE_FEATURE
@@ -21,8 +21,8 @@ _CLOSED_AVAILABILITY = {operation: False for operation in WorkflowEngineAPIOpera
 
 def _create_settings(
     availability: Mapping[WorkflowEngineAPIOperation, APIGate],
-) -> type[WorkflowEngineAPIAvailability]:
-    class Settings(WorkflowEngineAPIAvailability):
+) -> type[BaseWorkflowEngineSettings]:
+    class Settings(BaseWorkflowEngineSettings):
         api_availability = availability
 
     return Settings
