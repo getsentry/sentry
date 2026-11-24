@@ -9,7 +9,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {FullWidthButton} from 'sentry/components/group/externalIssuesList/issueTrackerActions';
+import {IssueSidebarButton} from 'sentry/components/group/issueSidebarButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t, tct} from 'sentry/locale';
 import type {Group, ImpactAssessment, ImpactLevel} from 'sentry/types/group';
@@ -143,12 +143,7 @@ export function useAssessImpact(group: Group) {
     onMutate: () => {
       toast.loading(t('Starting impact assessment\u2026'));
     },
-    onSuccess: () => {
-      toast.dismiss();
-      toast.success(t('Impact assessment started'));
-    },
     onError: () => {
-      toast.dismiss();
       toast.error(t('Unable to start impact assessment'));
     },
   });
@@ -158,7 +153,7 @@ export function AssessImpactButton({group}: {group: Group}) {
   const {mutate: assessImpact, isPending} = useAssessImpact(group);
 
   return (
-    <FullWidthButton
+    <IssueSidebarButton
       busy={isPending}
       icon={<IconAdd />}
       onClick={() => assessImpact()}
@@ -166,6 +161,6 @@ export function AssessImpactButton({group}: {group: Group}) {
       variant="transparent"
     >
       {t('Assess impact')}
-    </FullWidthButton>
+    </IssueSidebarButton>
   );
 }

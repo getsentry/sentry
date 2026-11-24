@@ -162,8 +162,8 @@ describe('InboxIssuePreview', () => {
     const sidebar = await screen.findByRole('complementary', {name: 'Issue overview'});
     await userEvent.click(within(sidebar).getByRole('button', {name: 'Assess impact'}));
 
+    expect(await screen.findByText('Starting impact assessment…')).toBeInTheDocument();
     expect(assessRequest).toHaveBeenCalled();
-    expect(await screen.findByText('Impact assessment started')).toBeInTheDocument();
   });
 
   it('hides impact assessments without the impact assessment feature', async () => {
