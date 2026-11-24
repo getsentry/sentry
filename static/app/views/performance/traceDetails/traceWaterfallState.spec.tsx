@@ -154,7 +154,8 @@ describe('TraceWaterfallState', () => {
 
       render(<TraceWaterfallState.Empty />);
 
-      expect(screen.getByText(/unable to find any spans/i)).toBeInTheDocument();
+      expect(screen.getByText(/may not have been sampled/i)).toBeInTheDocument();
+      expect(screen.queryByText(/Logs or Application Metrics/i)).not.toBeInTheDocument();
     });
 
     it('shows no-spans message when there is no timestamp', () => {
@@ -164,7 +165,17 @@ describe('TraceWaterfallState', () => {
 
       render(<TraceWaterfallState.Empty />);
 
-      expect(screen.getByText(/unable to find any spans/i)).toBeInTheDocument();
+      expect(screen.getByText(/may not have been sampled/i)).toBeInTheDocument();
+    });
+
+    it('explains Logs and Application Metrics sampling on the trace page', () => {
+      mockUseTraceQueryParamsMock.mockReturnValue(
+        createTraceQuery({timestamp: undefined})
+      );
+
+      render(<TraceWaterfallState.Empty showCrossEventHelp />);
+
+      expect(screen.getByText(/Logs or Application Metrics/i)).toBeInTheDocument();
     });
   });
 });
