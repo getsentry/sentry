@@ -162,8 +162,8 @@ interface UseConversationResult {
   isNextPageError: boolean;
   loadNextPage: () => void;
   /**
-   * Loads every page left, up to the page limit, and adds them to the conversation
-   * in a single update. Resolves with the number of pages then loaded.
+   * Fetches the remaining pages up to `MAX_PAGES` and adds them in one cache update.
+   * Resolves with the number of loaded pages.
    */
   loadRemainingPages: (signal: AbortSignal) => Promise<number>;
   loadedPageCount: number;
@@ -418,9 +418,9 @@ export function getConversationQueryOptions(
 }
 
 /**
- * Rendering rebuilds the whole conversation, so adding pages one at a time takes far
- * longer than fetching them. This fetches them under a separate key, then adds them
- * to the conversation at once.
+ * Each cache update re-renders the whole conversation. To render once, this function
+ * fetches the remaining pages under a separate query key, then writes them to the
+ * conversation's key in one update.
  */
 async function fetchRemainingPages(
   queryClient: QueryClient,
@@ -461,7 +461,7 @@ async function fetchRemainingPages(
     observer.destroy();
   }
 
-  // A page that infinite scroll is still fetching would overwrite this update.
+  // An infinite scroll fetch that is still running would overwrite this update.
   await queryClient.cancelQueries({queryKey, exact: true});
   const loadedPages = getLoadedData()?.pages.length ?? 0;
   const fetchedPages = result.data?.pages.length ?? 0;

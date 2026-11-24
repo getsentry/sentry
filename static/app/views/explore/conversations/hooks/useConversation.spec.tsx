@@ -134,7 +134,15 @@ describe('useConversation', () => {
     expect(result.current.title).toBeNull();
   });
 
-  it('stops loading after reaching the pagination cap', async () => {
+  it.each([
+    {name: 'fetching automatically', autoFetchAll: true, load: async () => {}},
+    {
+      name: 'loading the remaining pages',
+      autoFetchAll: false,
+      load: (loadRemainingPages: (signal: AbortSignal) => Promise<number>) =>
+        act(() => loadRemainingPages(new AbortController().signal)),
+    },
+  ])('stops at the pagination cap when $name', async ({autoFetchAll, load}) => {
     const url = `/organizations/${organization.slug}/agents/conversations/conv-123/`;
     const requests = Array.from({length: 100}, (_, index) =>
       MockApiClient.addMockResponse({
@@ -150,9 +158,12 @@ describe('useConversation', () => {
     );
 
     const {result} = renderHookWithProviders(
-      () => useConversation({conversationId: 'conv-123'}),
+      () => useConversation({conversationId: 'conv-123', autoFetchAll}),
       {organization}
     );
+
+    await waitFor(() => expect(result.current.loadedPageCount).toBeGreaterThan(0));
+    await load(result.current.loadRemainingPages);
 
     await waitFor(() => {
       expect(requests.map(request => request.mock.calls.length)).toEqual(

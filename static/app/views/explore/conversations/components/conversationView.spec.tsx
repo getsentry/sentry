@@ -19,35 +19,19 @@ jest.mock('sentry/utils/analytics');
 
 const CONVERSATION_ID = 'conv-1';
 const originalIntersectionObserver = window.IntersectionObserver;
-const activeIntersectionObservers = new Set<MockIntersectionObserver>();
-
-function triggerIntersection(isIntersecting: boolean) {
-  for (const observer of activeIntersectionObservers) {
-    observer.trigger(isIntersecting);
-  }
-}
+let triggerIntersection: ((isIntersecting: boolean) => void) | undefined;
 
 class MockIntersectionObserver {
-  private readonly callback: IntersectionObserverCallback;
-
   constructor(callback: IntersectionObserverCallback) {
-    this.callback = callback;
+    triggerIntersection = isIntersecting =>
+      callback(
+        [{isIntersecting} as IntersectionObserverEntry],
+        this as unknown as IntersectionObserver
+      );
   }
 
-  trigger(isIntersecting: boolean) {
-    this.callback(
-      [{isIntersecting} as IntersectionObserverEntry],
-      this as unknown as IntersectionObserver
-    );
-  }
-
-  observe() {
-    activeIntersectionObservers.add(this);
-  }
-
-  disconnect() {
-    activeIntersectionObservers.delete(this);
-  }
+  observe() {}
+  disconnect() {}
 }
 
 function spanFixture(overrides: Record<string, unknown>) {
@@ -89,12 +73,17 @@ const CONVERSATION_BODY = [
 
 function mockConversation(
   spans = CONVERSATION_BODY,
-  {cursor, nextCursor}: {cursor?: string; nextCursor?: string} = {}
+  {
+    asyncDelay,
+    cursor,
+    nextCursor,
+  }: {asyncDelay?: number; cursor?: string; nextCursor?: string} = {}
 ) {
   const url = `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`;
   const request = MockApiClient.addMockResponse({
     url,
     match: [MockApiClient.matchQuery({cursor})],
+    asyncDelay,
     body: {conversationId: CONVERSATION_ID, title: null, spans},
     headers: nextCursor
       ? {
@@ -133,7 +122,7 @@ describe('ConversationViewContent', () => {
   beforeEach(() => {
     window.IntersectionObserver =
       MockIntersectionObserver as unknown as typeof IntersectionObserver;
-    activeIntersectionObservers.clear();
+    triggerIntersection = undefined;
     // jsdom implements neither scroll API the view relies on: the detail pane
     // calls scrollTo, and switching tabs reveals a selected span via scrollIntoView.
     Element.prototype.scrollTo = jest.fn();
@@ -220,7 +209,7 @@ describe('ConversationViewContent', () => {
     expect(
       scrollContainer.querySelector('[data-test-id="loading-indicator"]')
     ).toBeInTheDocument();
-    act(() => triggerIntersection(true));
+    act(() => triggerIntersection?.(true));
 
     await waitFor(() => expect(nextRequest).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('second turn')).toBeInTheDocument();
@@ -229,27 +218,45 @@ describe('ConversationViewContent', () => {
     ).toBeInTheDocument();
   });
 
-  it('keeps loaded spans visible and offers retry when pagination fails', async () => {
-    MockApiClient.clearMockResponses();
-    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
-    const nextRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
-      match: [MockApiClient.matchQuery({cursor: 'next'})],
-      statusCode: 500,
-    });
+  it.each([
+    {
+      name: 'scrolling',
+      failedRequests: 1,
+      load: () => Promise.resolve(act(() => triggerIntersection?.(true))),
+    },
+    {
+      name: 'jumping to the end',
+      failedRequests: 2,
+      load: async () => {
+        await userEvent.click(screen.getByRole('button', {name: 'Jump to end'}));
+        await waitFor(() => expect(Element.prototype.scrollTo).toHaveBeenCalled());
+        act(() => triggerIntersection?.(true));
+      },
+    },
+  ])(
+    'keeps loaded spans and offers retry when $name fails',
+    async ({failedRequests, load}) => {
+      MockApiClient.clearMockResponses();
+      mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+      const nextRequest = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+        match: [MockApiClient.matchQuery({cursor: 'next'})],
+        statusCode: 500,
+      });
 
-    renderView();
-    expect(await screen.findByText('First answer')).toBeInTheDocument();
+      renderView();
+      expect(await screen.findByText('First answer')).toBeInTheDocument();
 
-    act(() => triggerIntersection(true));
+      await load();
 
-    const retry = await screen.findByRole('button', {name: 'Retry'});
-    expect(screen.getByText('First answer')).toBeInTheDocument();
-    expect(nextRequest).toHaveBeenCalledTimes(1);
+      const retry = await screen.findByRole('button', {name: 'Retry'});
+      expect(screen.getByText('First answer')).toBeInTheDocument();
+      await waitFor(() => expect(nextRequest).toHaveBeenCalledTimes(failedRequests));
 
-    await userEvent.click(retry);
-    await waitFor(() => expect(nextRequest).toHaveBeenCalledTimes(2));
-  });
+      await userEvent.click(retry);
+      await waitFor(() => expect(nextRequest).toHaveBeenCalledTimes(failedRequests + 1));
+    }
+  );
 
   it('opens the first span by default on the timeline', async () => {
     renderView({activeTab: 'timeline'});
@@ -371,34 +378,20 @@ describe('ConversationViewContent', () => {
       jest.restoreAllMocks();
     });
 
-    it('loads every remaining page, then scrolls to the end', async () => {
+    it('adds the remaining pages in one update, then scrolls to the end', async () => {
       jest.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(5000);
       MockApiClient.clearMockResponses();
       mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'page-2'});
-      const secondPage = mockConversation(
-        [
-          spanFixture({
-            span_id: 'span-c',
-            'span.name': 'middle turn',
-            'precise.start_ts': 1500,
-            'precise.finish_ts': 1500.5,
-            'gen_ai.input.messages': JSON.stringify([{role: 'user', content: 'Middle?'}]),
-            'gen_ai.output.messages': JSON.stringify([
-              {role: 'assistant', content: 'Middle answer'},
-            ]),
-          }),
-        ],
-        {cursor: 'page-2', nextCursor: 'page-3'}
-      );
-      const thirdPage = mockConversation([CONVERSATION_BODY[1]!], {cursor: 'page-3'});
+      mockConversation([CONVERSATION_BODY[1]!], {cursor: 'page-2', nextCursor: 'page-3'});
+      const lastPage = mockConversation([], {cursor: 'page-3', asyncDelay: 50});
       renderView();
       await screen.findByText('First answer');
 
       await userEvent.click(screen.getByRole('button', {name: 'Jump to end'}));
 
+      await waitFor(() => expect(lastPage).toHaveBeenCalledTimes(1));
+      expect(screen.queryByText('Second answer')).not.toBeInTheDocument();
       expect(await screen.findByText('Second answer')).toBeInTheDocument();
-      expect(secondPage).toHaveBeenCalledTimes(1);
-      expect(thirdPage).toHaveBeenCalledTimes(1);
       await waitFor(() =>
         expect(Element.prototype.scrollTo).toHaveBeenCalledWith({top: 5000})
       );
@@ -411,50 +404,23 @@ describe('ConversationViewContent', () => {
     it('stops loading pages when the user scrolls', async () => {
       MockApiClient.clearMockResponses();
       mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'page-2'});
-      const secondPage = MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
-        match: [MockApiClient.matchQuery({cursor: 'page-2'})],
+      const secondPage = mockConversation([], {
+        cursor: 'page-2',
+        nextCursor: 'page-3',
         asyncDelay: 10,
-        body: {conversationId: CONVERSATION_ID, title: null, spans: []},
-        headers: {
-          Link: `</x/?cursor=page-3>; rel="next"; results="true"; cursor="page-3"`,
-        },
       });
       const thirdPage = mockConversation([CONVERSATION_BODY[1]!], {cursor: 'page-3'});
       renderView();
       await screen.findByText('First answer');
 
       await userEvent.click(screen.getByRole('button', {name: 'Jump to end'}));
-      const stop = await screen.findByRole('button', {name: 'Stop loading'});
-      fireEvent.wheel(stop);
+      fireEvent.wheel(await screen.findByRole('button', {name: 'Stop loading'}));
 
       expect(
         await screen.findByRole('button', {name: 'Jump to end'})
       ).toBeInTheDocument();
-      await waitFor(() => expect(secondPage).toHaveBeenCalledTimes(1));
+      expect(secondPage).toHaveBeenCalledTimes(1);
       expect(thirdPage).not.toHaveBeenCalled();
-    });
-
-    it('keeps the pages loaded before a failure and scrolls to them', async () => {
-      jest.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(5000);
-      MockApiClient.clearMockResponses();
-      mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'page-2'});
-      mockConversation([CONVERSATION_BODY[1]!], {cursor: 'page-2', nextCursor: 'page-3'});
-      const failedPage = MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
-        match: [MockApiClient.matchQuery({cursor: 'page-3'})],
-        statusCode: 500,
-      });
-      renderView();
-      await screen.findByText('First answer');
-
-      await userEvent.click(screen.getByRole('button', {name: 'Jump to end'}));
-
-      expect(await screen.findByText('Second answer')).toBeInTheDocument();
-      expect(failedPage).toHaveBeenCalledTimes(1);
-      await waitFor(() =>
-        expect(Element.prototype.scrollTo).toHaveBeenCalledWith({top: 5000})
-      );
     });
 
     it('is hidden at the end of a fully loaded conversation', async () => {
@@ -462,7 +428,7 @@ describe('ConversationViewContent', () => {
       await screen.findByText('First answer');
       expect(screen.getByRole('button', {name: 'Jump to end'})).toBeInTheDocument();
 
-      act(() => triggerIntersection(true));
+      act(() => triggerIntersection?.(true));
 
       expect(screen.queryByRole('button', {name: 'Jump to end'})).not.toBeInTheDocument();
     });

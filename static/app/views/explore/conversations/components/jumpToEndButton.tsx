@@ -10,11 +10,11 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-// How close to the end of the content counts as already being there.
+// The button hides when the end of the content is within this many pixels.
 const AT_END_MARGIN_PX = 64;
 
 interface JumpToEndButtonProps {
-  /** Whether another page can be loaded without user action. */
+  /** False when no page is left, a page failed to load, or the page limit is reached. */
   canLoadMore: boolean;
   loadRemainingPages: (signal: AbortSignal) => Promise<number>;
   loadedPageCount: number;
@@ -22,15 +22,13 @@ interface JumpToEndButtonProps {
 }
 
 /**
- * Floats at the bottom of the conversation's scroll container and scrolls to the
- * end of the conversation.
+ * Loads the conversation's remaining pages and scrolls to the end.
  *
- * The API pages spans oldest-first with no total, and the transcript and timeline
- * are both built from every span before it, so the end can only be shown once the
- * pages before it are loaded. The button loads them, then scrolls.
+ * The API returns spans oldest-first with no total, and the transcript and timeline
+ * need every earlier span, so the view can't open the last page alone.
  *
- * Render it as the last child of the scroll container, keyed by what it scrolls,
- * so that a jump in progress doesn't carry over to another conversation or tab.
+ * Render this as the last child of the scroll container. Key it by conversation and
+ * tab, because remounting cancels a running jump.
  */
 export function JumpToEndButton({
   canLoadMore,
@@ -42,7 +40,7 @@ export function JumpToEndButton({
   const endRef = useRef<HTMLDivElement>(null);
   const [isAtEnd, setIsAtEnd] = useState(false);
   const [isJumping, setIsJumping] = useState(false);
-  // The page count to wait for, as the loaded pages render after the load resolves.
+  // Pages render after the load resolves, so the scroll waits for this page count.
   const [scrollAtPageCount, setScrollAtPageCount] = useState<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -63,14 +61,14 @@ export function JumpToEndButton({
     if (scrollAtPageCount === null || loadedPageCount < scrollAtPageCount) {
       return;
     }
-    // After a failed page, this reveals the Retry button at the end.
+    // If a page failed to load, this scroll shows its Retry button.
     const container = scrollContainerRef.current;
     container?.scrollTo({top: container.scrollHeight});
     // oxlint-disable-next-line react/set-state-in-effect
     setScrollAtPageCount(null);
   }, [loadedPageCount, scrollAtPageCount, scrollContainerRef]);
 
-  // Scrolling while pages load means the user wants to read where they are.
+  // Cancel the jump when the user scrolls, so the view keeps their position.
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!isJumping || !container) {
@@ -111,7 +109,7 @@ export function JumpToEndButton({
   const isVisible = isJumping || scrollAtPageCount !== null || canLoadMore || !isAtEnd;
 
   return (
-    // A fragment, as a wrapper would confine the sticky button to its own height.
+    // A wrapper element would limit the sticky button to the wrapper's height.
     <Fragment>
       <Container ref={endRef} height="1px" />
       {isVisible ? (
