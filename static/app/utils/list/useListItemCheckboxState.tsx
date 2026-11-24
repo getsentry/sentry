@@ -11,6 +11,10 @@ import {
 
 import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {toArray} from 'sentry/utils/array/toArray';
+import {
+  type SeerTableSelectionConfig,
+  useSeerTableSelection,
+} from 'sentry/views/seerExplorer/contexts/seerSelection';
 
 export type ListCheckboxQueryKeyRef = RefObject<undefined | QueryKeyEndpointOptions>;
 
@@ -128,13 +132,22 @@ const ListItemCheckboxContext = createContext<MergedProps>({
   state: {ids: new Set()},
 });
 
-export function ListItemCheckboxProvider({
+export function ListItemCheckboxProvider<T extends {id: string}>({
   children,
   hits,
   knownIds,
   endpointOptions,
-}: {children: React.ReactNode} & PublicProps) {
+  seerContext,
+}: {
+  children: React.ReactNode;
+  /**
+   * Lets the user ask Seer about the selected rows. Without it, Seer never sees
+   * this list's selection.
+   */
+  seerContext?: SeerTableSelectionConfig<T>;
+} & PublicProps) {
   const [state, setState] = useState<State>({ids: new Set()});
+  useSeerTableSelection(seerContext, 'all' in state ? 'all' : state.ids);
   const endpointOptionsRef = useRef(endpointOptions);
 
   const serializedEndpointOptions = JSON.stringify(endpointOptions);

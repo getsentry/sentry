@@ -68,7 +68,6 @@ import {IssueListCommandPaletteActions} from './issueListCommandPaletteActions';
 import {IssueListTable} from './issueListTable';
 import {IssuesDataConsentBanner} from './issuesDataConsentBanner';
 import {IssueSelectionProvider} from './issueSelectionContext';
-import {IssueSelectionSeerContext} from './issueSelectionSeerContext';
 import {IssueViewsHeader} from './issueViewsHeader';
 import type {IssueUpdateData} from './types';
 import {
@@ -86,6 +85,15 @@ const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
 // when no explicit period is chosen, follow the global time range selector
 const DEFAULT_GRAPH_STATS_PERIOD = 'auto';
 const MAX_ISSUES_COUNT = 100;
+
+function issueToSeerSummary(group: BaseGroup) {
+  return {
+    shortId: group.shortId,
+    title: group.title,
+    issueType: group.issueType,
+    project: group.project.slug,
+  };
+}
 
 interface Props {
   headerActions?: ReactNode;
@@ -917,8 +925,15 @@ function IssueListOverviewInner({
   });
 
   return (
-    <IssueSelectionProvider visibleGroupIds={groupIds}>
-      <IssueSelectionSeerContext groups={groups} queryCount={modifiedQueryCount} />
+    <IssueSelectionProvider
+      visibleGroupIds={groupIds}
+      seerContext={{
+        itemType: 'issue',
+        rows: groups,
+        toSummary: issueToSeerSummary,
+        total: modifiedQueryCount,
+      }}
+    >
       <Stack flex={1}>
         <IssueListCommandPaletteActions
           groupIds={groupIds}

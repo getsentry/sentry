@@ -25,6 +25,8 @@ const TWO_REPLAYS: SeerSelection = {
   count: 2,
   items: [{id: 'r1'}, {id: 'r2'}],
 };
+const ONE_MONITOR: SeerSelection = {itemType: 'monitor', count: 1, items: [{id: 'm1'}]};
+const FOUR_ALERTS: SeerSelection = {itemType: 'alert', count: 4, items: [{id: 'a1'}]};
 
 describe('SeerSelectionToggle', () => {
   it('renders nothing without a selection', () => {
@@ -43,6 +45,8 @@ describe('SeerSelectionToggle', () => {
     [THREE_ISSUES, '3 issues'],
     [ONE_REPLAY, '1 replay'],
     [TWO_REPLAYS, '2 replays'],
+    [ONE_MONITOR, '1 monitor'],
+    [FOUR_ALERTS, '4 alerts'],
   ])('labels the selection with its count and type', async (selection, label) => {
     render(
       <SeerSelectionProvider>

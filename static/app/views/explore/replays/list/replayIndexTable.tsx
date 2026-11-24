@@ -26,7 +26,6 @@ import {
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 import {BulkDeleteAlert} from './bulkDeleteAlert';
-import {ReplaySelectionSeerContext} from './replaySelectionSeerContext';
 import {useReplayIndexTableColumns} from './useReplayIndexTableColumns';
 
 interface Props {
@@ -95,8 +94,8 @@ export function ReplayIndexTable({
         hits={hasMoreResults ? replays.length + 1 : replays.length}
         knownIds={replays.map(replay => replay.id)}
         endpointOptions={endpointOptions}
+        seerContext={{itemType: 'replay', rows: replays, toSummary: replayToSeerSummary}}
       >
-        <ReplaySelectionSeerContext replays={replays} />
         {needsSDKUpdateForClickSearch ? (
           <Fragment>
             {t('Unindexed search field')}
@@ -123,6 +122,16 @@ export function ReplayIndexTable({
       </ListItemCheckboxProvider>
     </Fragment>
   );
+}
+
+function replayToSeerSummary(replay: ReplayListRecord) {
+  return {
+    id: replay.id,
+    projectId: replay.project_id,
+    startedAt: replay.started_at?.toISOString() ?? null,
+    durationSeconds: replay.duration?.asSeconds() ?? null,
+    errors: replay.count_errors,
+  };
 }
 
 function useNeedsSDKUpdateForClickSearch({search}: {search: undefined | string}) {

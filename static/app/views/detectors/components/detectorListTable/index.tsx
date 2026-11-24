@@ -38,6 +38,7 @@ import {
 } from 'sentry/views/detectors/monitorViewContext';
 import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {useCanEditDetectors} from 'sentry/views/detectors/utils/useCanEditDetector';
+import {useSeerTableSelection} from 'sentry/views/seerExplorer/contexts/seerSelection';
 
 import {DetectorsTableActions, DetectorsTableActionsBanner} from './actions';
 import {DetectorListRow, DetectorListRowSkeleton} from './detectorListRow';
@@ -97,6 +98,17 @@ export function DetectorListTable({
 }: DetectorListTableProps) {
   const [selected, setSelectedIds] = useState(new Set<string>());
   const [allInQuerySelected, setAllInQuerySelected] = useState(false);
+  useSeerTableSelection(
+    {
+      itemType: 'monitor',
+      rows: detectors,
+      toSummary: detectorToSeerSummary,
+      // queryCount reads like "1234", or "100+" once capped, which makes 100 a floor.
+      total: Number.parseInt(queryCount, 10) || undefined,
+    },
+    selected,
+    allInQuerySelected
+  );
   const [isVisualizationExpanded, setIsVisualizationExpanded] = useState(false);
 
   // Selecting every match only holds while something is selected, so emptying the
@@ -405,3 +417,13 @@ const VisualizationExpandButtonCell = styled(Table.HeadCell)`
   justify-content: center;
   z-index: 4;
 `;
+
+function detectorToSeerSummary(detector: Detector) {
+  return {
+    id: detector.id,
+    name: detector.name,
+    type: detector.type,
+    enabled: detector.enabled,
+    projectId: detector.projectId,
+  };
+}

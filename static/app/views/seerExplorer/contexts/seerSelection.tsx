@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useMemo,
   useState,
   useSyncExternalStore,
 } from 'react';
@@ -15,7 +16,14 @@ import {tn} from 'sentry/locale';
 import {LLM_CONTEXT_MAX_ROWS} from './llmContext';
 import type {LLMContextNodeSnapshot, LLMContextSnapshot} from './llmContextTypes';
 
-type SeerSelectionItemType = 'issue' | 'replay';
+const SELECTION_LABELS = {
+  issue: (count: number) => tn('%s issue', '%s issues', count),
+  replay: (count: number) => tn('%s replay', '%s replays', count),
+  monitor: (count: number) => tn('%s monitor', '%s monitors', count),
+  alert: (count: number) => tn('%s alert', '%s alerts', count),
+} satisfies Record<string, (count: number) => string>;
+
+type SeerSelectionItemType = keyof typeof SELECTION_LABELS;
 
 /**
  * Rows the user selected in a table, as a table reports them to Seer.
@@ -145,15 +153,59 @@ export function useAddSeerSelectionToSnapshot() {
 }
 
 export function getSeerSelectionLabel({count, itemType}: SeerSelection): string {
-  switch (itemType) {
-    case 'issue':
-      return tn('%s issue', '%s issues', count);
-    case 'replay':
-      return tn('%s replay', '%s replays', count);
-    default:
-      itemType satisfies never;
-      throw new TypeError(`Unsupported selection item type: ${itemType}`);
-  }
+  return SELECTION_LABELS[itemType](count);
+}
+
+/**
+ * How a selectable table describes its rows to Seer. Tables opt in by passing this
+ * to their selection provider; tables without it never share their selection.
+ */
+export interface SeerTableSelectionConfig<T extends {id: string}> {
+  itemType: SeerSelectionItemType;
+  /** The rows the page has loaded. */
+  rows: readonly T[];
+  /** The fields Seer gets for a selected row. Keep it a stable function. */
+  toSummary: (row: T) => Record<string, unknown>;
+  /** How many rows match the query, when the table knows it, for "select all N matching". */
+  total?: number;
+}
+
+/**
+ * Reports a table's selected rows to Seer, from the ids its selection state holds.
+ * `'all'` means every loaded row; `allSelected` means every row matching the query.
+ */
+export function useSeerTableSelection<T extends {id: string}>(
+  config: SeerTableSelectionConfig<T> | undefined,
+  selectedIds: 'all' | ReadonlySet<string>,
+  allInQuerySelected?: boolean
+) {
+  const allSelected = allInQuerySelected ?? selectedIds === 'all';
+  const rows = config?.rows;
+  const toSummary = config?.toSummary;
+  const itemType = config?.itemType;
+  const total = config?.total;
+
+  const selection = useMemo((): SeerSelection | null => {
+    if (!rows || !toSummary || !itemType) {
+      return null;
+    }
+    const selectedRows =
+      selectedIds === 'all' ? rows : rows.filter(row => selectedIds.has(row.id));
+    if (selectedRows.length === 0) {
+      return null;
+    }
+    return {
+      itemType,
+      count:
+        allSelected && total !== undefined
+          ? Math.max(total, selectedRows.length)
+          : selectedRows.length,
+      allSelected,
+      items: selectedRows.slice(0, LLM_CONTEXT_MAX_ROWS).map(toSummary),
+    };
+  }, [allSelected, itemType, rows, selectedIds, toSummary, total]);
+
+  usePublishSeerSelection(selection);
 }
 
 function toSelectionNode(
