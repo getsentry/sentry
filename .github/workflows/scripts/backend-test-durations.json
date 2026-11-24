@@ -1833,7 +1833,6 @@
     "tests/sentry/seer/endpoints/test_organization_seer_setup_check.py": 1.7,
     "tests/sentry/seer/endpoints/test_organization_seer_workflow_configs.py": 36.0,
     "tests/sentry/seer/endpoints/test_organization_seer_workflow_runs.py": 16.8,
-    "tests/sentry/seer/endpoints/test_project_seer_agentic_triage.py": 0.8,
     "tests/sentry/seer/endpoints/test_project_seer_preferences.py": 11.6,
     "tests/sentry/seer/endpoints/test_project_seer_repos.py": 46.5,
     "tests/sentry/seer/endpoints/test_project_seer_settings.py": 57.0,

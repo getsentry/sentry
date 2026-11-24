@@ -186,8 +186,9 @@ class ServiceAccount(ReplicatedControlModel):
     def deactivate(self) -> bool:
         """
         Delete the account: keep the row, so references to it stay set, but turn it off for
-        good and remove its project links. The outbox replicates both to the cell. Returns
-        False when the account was already deleted. Callers must write the audit log.
+        good, remove its project links and deactivate its active tokens. The outboxes
+        replicate all of it to the cell. Returns False when the account was already deleted.
+        Callers must write the audit log for the account and for each token.
         """
         with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
             account = (
@@ -197,11 +198,24 @@ class ServiceAccount(ReplicatedControlModel):
             )
             if account is None:
                 return False
+            now = timezone.now()
+            # Save one at a time: a queryset update wouldn't write the tokens' outboxes.
+            for token in account.lock_active_tokens():
+                token.date_deactivated = now
+                token.save()
             account.replace_projects([])
             account.all_projects = False
             account.is_active = False
             account.save()
         return True
+
+    def lock_active_tokens(self) -> list[ServiceAccountToken]:
+        """Locks the account's active tokens. Call it inside a transaction."""
+        return list(
+            ServiceAccountToken.objects.select_for_update().filter(
+                service_account=self, date_deactivated__isnull=True
+            )
+        )
 
     def replace_projects(self, project_ids: Iterable[int]) -> None:
         project_ids = set(project_ids)

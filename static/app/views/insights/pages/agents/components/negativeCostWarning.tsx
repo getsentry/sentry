@@ -11,19 +11,20 @@ interface NegativeCostInfoProps {
   cost: number | string;
 }
 
+export function NegativeCostMessage() {
+  return tct(
+    'Negative costs indicate an error in token count reporting. [link:Follow this guide] to troubleshoot.',
+    {link: <ExternalLink href={TOKEN_TROUBLESHOOTING_URL} />}
+  );
+}
+
 /**
  * Warning indicator for negative LLM costs. Shows the cost value with
  * a warning-styled InfoText tooltip linking to troubleshooting docs.
  */
 export function NegativeCostInfo({cost}: NegativeCostInfoProps) {
   return (
-    <InfoText
-      variant="warning"
-      title={tct(
-        'Negative costs indicate an error in token count reporting. [link:Follow this guide] to troubleshoot.',
-        {link: <ExternalLink href={TOKEN_TROUBLESHOOTING_URL} />}
-      )}
-    >
+    <InfoText variant="warning" title={<NegativeCostMessage />}>
       {formatLLMCosts(cost)}
     </InfoText>
   );

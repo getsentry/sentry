@@ -7,7 +7,6 @@ import type {Node, Selection} from '@react-types/shared';
 
 import {useTranslation} from '@sentry/scraps/translation';
 
-// oxlint-disable-next-line import/no-relative-parent-imports -- Keep the shared search helper private to Scraps.
 import {getSearchScore} from '../fzf';
 
 import type {SelectProps} from './compactSelect';

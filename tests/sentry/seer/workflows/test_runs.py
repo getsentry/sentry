@@ -15,6 +15,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
+    SeerWorkflowRunSource,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
     WorkflowRunError,
@@ -192,7 +193,7 @@ class WorkflowRunTest(TestCase):
 def admit(workflow: SeerWorkflow, *, trigger_key: str, inputs: BaseModel) -> AdmittedRun:
     with lock_config(workflow.organization_id, workflow.config_id) as config:
         return get_definition(config.strategy).admit_run(
-            config, trigger_key=trigger_key, inputs=inputs
+            config, trigger_key=trigger_key, source=SeerWorkflowRunSource.MANUAL, inputs=inputs
         )
 
 

@@ -131,7 +131,7 @@ export function getConversationTimeSpan(
   return conversation.timeSpan || conversation.generationDuration;
 }
 
-export function normalizeUserField(value: string | null | undefined): string | null {
+function normalizeUserField(value: string | null | undefined): string | null {
   if (!value || value.toLowerCase() === 'none') {
     return null;
   }
@@ -148,7 +148,7 @@ export function getUserDisplayName(user: ConversationUser): string | null {
   );
 }
 
-export function UserNotInstrumentedTooltip() {
+function UserNotInstrumentedTooltip() {
   return (
     <Text>
       {tct(

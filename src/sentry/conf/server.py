@@ -1074,11 +1074,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "cadence-tick": {
-        "task": "issues:sentry.cadence.tasks.cadence_tick",
+        "task": "cadence:sentry.cadence.tasks.cadence_tick",
         "schedule": timedelta(seconds=10),
     },
     "cadence-sweep": {
-        "task": "issues:sentry.cadence.tasks.cadence_sweep",
+        "task": "cadence:sentry.cadence.tasks.cadence_sweep",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "flush-buffers": {
@@ -3164,6 +3164,17 @@ SENTRY_BUILTIN_SOURCES = {
         "layout": {"type": "symstore"},
         "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://proton-archive.steamos.cloud/",
+        "is_public": True,
+    },
+    # Valve's debuginfod server for SteamOS and all public Steam Linux Runtime versions.
+    # See: https://gitlab.steamos.cloud/steamrt/steam-runtime-tools/-/blob/main/docs/slr-for-game-developers.md#debuginfod
+    "steamos": {
+        "type": "http",
+        "id": "sentry:steamos",
+        "name": "SteamOS / Steam Runtime",
+        "layout": {"type": "debuginfod"},
+        "url": "https://debuginfod.steamos.cloud/buildid/",
+        "filters": {"filetypes": ["elf_code", "elf_debug"]},
         "is_public": True,
     },
 }

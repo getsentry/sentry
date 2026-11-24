@@ -58,10 +58,8 @@ function ConversationDetailPage() {
     () => ({conversationId, startTimestamp, endTimestamp}),
     [conversationId, startTimestamp, endTimestamp]
   );
-  const {stats, nodes, nodeTraceMap, isLoading, hasNextPage, title} = useConversation({
-    ...conversation,
-    autoFetchAll: false,
-  });
+  const {stats, nodes, nodeTraceMap, isLoading, hasNextPage, title, user} =
+    useConversation({...conversation, autoFetchAll: false});
   const [expandAll, setExpandAll] = useState<CollapsibleExpandAll | null>(null);
   // The page stays mounted when moving to another conversation.
   const [expandAllConversationId, setExpandAllConversationId] = useState(conversationId);
@@ -146,18 +144,17 @@ function ConversationDetailPage() {
   return (
     <ViewportConstrainedPage background="secondary">
       <ConversationsBreadcrumbs conversationId={conversationId} />
-      <Container flexShrink={0} background="primary" borderBottom="primary" padding="xl">
-        <ConversationSummary
-          stats={stats}
-          nodes={nodes}
-          nodeTraceMap={nodeTraceMap}
-          conversationId={conversationId}
-          title={title}
-          project={project}
-          hasMoreSpans={hasNextPage}
-          isLoading={isInitialLoading}
-        />
-      </Container>
+      <ConversationSummary
+        stats={stats}
+        nodes={nodes}
+        nodeTraceMap={nodeTraceMap}
+        conversationId={conversationId}
+        title={title}
+        user={user}
+        project={project}
+        hasMoreSpans={hasNextPage}
+        isLoading={isInitialLoading}
+      />
       <Stack flex={1} minHeight="0" overflow="hidden" padding="xl" gap="xl">
         <Flex flexShrink={0} align="center" justify="between" gap="md">
           {isDefaultTabPending ? (

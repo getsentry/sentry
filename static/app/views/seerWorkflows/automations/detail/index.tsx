@@ -34,13 +34,13 @@ import {
   getNextUpdate,
   type AutomationConfig,
 } from 'sentry/views/seerWorkflows/automations';
+import type {AutomationFormHandle} from 'sentry/views/seerWorkflows/automations/baseForm';
 import {
   useDeleteConfig,
   useFetchConfigs,
   useIsUpdatingConfig,
   useUpdateConfig,
 } from 'sentry/views/seerWorkflows/automations/hooks/configs';
-import type {MetricAutomationFormHandle} from 'sentry/views/seerWorkflows/automations/metricAutomationForm';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {WorkflowStrategy} from 'sentry/views/seerWorkflows/types';
 import {
@@ -83,7 +83,7 @@ export default function AutomationDetail() {
   const [draftName, setDraftName] = useState('');
   const [formHasChanges, setFormHasChanges] = useState(false);
   const [monitorsPending, setMonitorsPending] = useState(false);
-  const formRef = useRef<MetricAutomationFormHandle>(null);
+  const formRef = useRef<AutomationFormHandle>(null);
   const formId = `automation-config-${automationId}`;
   // Leaving the configuration tab unmounts the form, discarding any unsaved changes
   const [prevActiveTab, setPrevActiveTab] = useState(activeTab);

@@ -174,7 +174,7 @@ describe('useChartLayers', () => {
         body: {data: flags},
       });
       annotationsRequest = MockApiClient.addMockResponse({
-        url: `/organizations/${annotationsOrganization.slug}/annotations/`,
+        url: `/organizations/${annotationsOrganization.slug}/timeseries-annotations/`,
         body: changes,
       });
 
@@ -215,7 +215,7 @@ describe('useChartLayers', () => {
         expect.objectContaining({value: 'changes', label: 'Changes', selected: true})
       );
       expect(annotationsRequest).toHaveBeenCalledWith(
-        `/organizations/${annotationsOrganization.slug}/annotations/`,
+        `/organizations/${annotationsOrganization.slug}/timeseries-annotations/`,
         expect.objectContaining({
           query: expect.objectContaining({scope: ['spans', 'global']}),
         })

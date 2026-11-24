@@ -9,6 +9,10 @@ from sentry.lang.javascript.processing import (
 )
 
 
+def test_merge_frame_zero_column() -> None:
+    assert _merge_frame({"colno": 123}, {"colno": 0})["colno"] == 0
+
+
 class JavaScriptProcessingTest(TestCase):
     def test_is_in_app_with_webpack_paths(self) -> None:
         # Test webpack paths with node_modules
