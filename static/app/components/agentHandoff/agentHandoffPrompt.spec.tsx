@@ -58,10 +58,6 @@ describe('AgentHandoffPrompt', () => {
       {organization}
     );
 
-    expect(screen.getByRole('link', {name: 'See the full instructions'})).toHaveAttribute(
-      'href',
-      'https://sentry.io/agent-handoff.md'
-    );
     expect(screen.getByText(/Read and follow/)).toHaveTextContent(
       'Read and follow https://sentry-jest-tests.example.com/agent-handoff.md verbatim. Your handoff code is sntryh_****.'
     );
@@ -70,7 +66,7 @@ describe('AgentHandoffPrompt', () => {
         name: 'https://sentry-jest-tests.example.com/agent-handoff.md',
       })
     ).toHaveAttribute('href', 'https://sentry-jest-tests.example.com/agent-handoff.md');
-    await userEvent.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Copy prompt'}));
 
     await waitFor(() => expect(onCopySuccess).toHaveBeenCalledTimes(1));
     expect(onCopySuccess).toHaveBeenCalledWith(handoffId);
@@ -101,13 +97,15 @@ describe('AgentHandoffPrompt', () => {
       {organization}
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Advanced options'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: /Use IP pinning/}));
+    const ipPinning = screen.getByRole('checkbox', {name: /Only allow this network/});
+    expect(ipPinning).toBeChecked();
+    await userEvent.click(ipPinning);
+    expect(ipPinning).not.toBeChecked();
 
     expect(
       screen.getByText(/anyone with this prompt can use its handoff code/)
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Copy prompt'}));
 
     await waitFor(() =>
       expect(mint).toHaveBeenCalledWith(
@@ -186,7 +184,7 @@ describe('AgentHandoffPrompt', () => {
       {organization}
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Copy prompt'}));
 
     expect(
       await screen.findByText('Unable to create your agent prompt. Try again.')

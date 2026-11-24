@@ -157,7 +157,7 @@ function ToolResultSize({
           project: [projectId],
           statsPeriod: '24h',
           query: search.formatString(),
-          referrer: 'api.explore.spans-aggregates-table',
+          referrer: Referrer.SPAN_DETAILS,
         },
         staleTime: 60_000,
       }
@@ -486,7 +486,7 @@ function HighlightedTools({
       fields: [SpanFields.GEN_AI_TOOL_NAME],
       enabled: hasToolNames,
     },
-    Referrer.TRACE_DRAWER_TOOL_USAGE
+    Referrer.SPAN_DETAILS_TOOL_USAGE
   );
 
   const usedTools = new Map<string, number>();

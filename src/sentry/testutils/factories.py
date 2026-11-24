@@ -32,6 +32,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry import features
 from sentry.ai_monitoring.conversation_titles import (
     clamp_conversation_id_for_storage,
     conversation_id_hash,
@@ -1149,24 +1150,37 @@ class Factories:
         date_uploaded: datetime | None = None,
         date_last_modified: datetime | None = None,
         indexing_state: int | None = None,
+        use_objectstore: bool | None = None,
+        payload: bytes | None = None,
     ) -> ArtifactBundle:
         if date_uploaded is None:
             date_uploaded = timezone.now()
 
-        bundle = cls.create_artifact_bundle_zip(org.slug, fixture_path=fixture_path)
-        file_ = File.objects.create(name="artifact-bundle.zip")
-        file_.putfile(ContentFile(bundle))
-        # The 'artifact_count' should correspond to the 'bundle' contents but for the purpose of tests we can also
-        # mock it with an arbitrary value.
-        artifact_bundle = ArtifactBundle.objects.create(
+        if payload is None:
+            payload = cls.create_artifact_bundle_zip(org.slug, fixture_path=fixture_path)
+        if use_objectstore is None:
+            use_objectstore = features.has(
+                "organizations:objectstore-artifact-bundles-exclusive-write", org
+            )
+        artifact_bundle = ArtifactBundle(
             organization_id=org.id,
             bundle_id=bundle_id or uuid4(),
-            file=file_,
             artifact_count=artifact_count,
             date_uploaded=date_uploaded,
             date_last_modified=date_last_modified,
             indexing_state=indexing_state,
         )
+        if use_objectstore:
+            artifact_bundle.checksum = sha1(payload).hexdigest()
+            artifact_bundle.file_size = len(payload)
+            artifact_bundle.storage_path = artifact_bundle.get_objectstore_session().put(
+                payload, content_type="application/octet-stream"
+            )
+        else:
+            file = File.objects.create(name="artifact-bundle.zip")
+            file.putfile(ContentFile(payload))
+            artifact_bundle.file = file
+        artifact_bundle.save()
         return artifact_bundle
 
     @staticmethod

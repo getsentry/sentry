@@ -2,9 +2,9 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
 from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.source_code_management.repository_reconciliation import RepositoryConfig
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.plugins.providers.integration_repository import RepositoryConfig
 
 
 class ExampleRepositoryProvider(IntegrationRepositoryProvider):

@@ -23,7 +23,7 @@ export function groupApiOptions({
     path: {organizationIdOrSlug: organizationSlug, issueId: groupId},
     query: {
       ...(environments.length > 0 ? {environment: environments} : {}),
-      expand: ['inbox', 'owners', ...(expandDerivedData ? ['derivedData'] : [])],
+      expand: ['owners', ...(expandDerivedData ? ['derivedData'] : [])],
       collapse: ['release', 'tags', 'stats'],
     },
     staleTime: 30_000,

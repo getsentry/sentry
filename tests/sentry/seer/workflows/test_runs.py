@@ -15,6 +15,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
+    SeerWorkflowRunSource,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
     WorkflowRunError,
@@ -192,7 +193,7 @@ class WorkflowRunTest(TestCase):
 def admit(workflow: SeerWorkflow, *, trigger_key: str, inputs: BaseModel) -> AdmittedRun:
     with lock_config(workflow.organization_id, workflow.config_id) as config:
         return get_definition(config.strategy).admit_run(
-            config, trigger_key=trigger_key, inputs=inputs
+            config, trigger_key=trigger_key, source=SeerWorkflowRunSource.MANUAL, inputs=inputs
         )
 
 
@@ -201,7 +202,7 @@ class SeerWorkflowRunLifecycleTest(TestCase):
         super().setUp()
         config = Factories.create_seer_workflow_config(
             self.organization,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             filters={"all_projects": True},
         )
         self.workflow = SeerWorkflow(config_id=config.id, organization_id=self.organization.id)
@@ -246,7 +247,7 @@ class SeerWorkflowRunLifecycleTest(TestCase):
 
     def test_request_identity_and_history_are_scoped_to_config_and_organization(self) -> None:
         other_config = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
         )
         other_workflow = SeerWorkflow(
             config_id=other_config.id, organization_id=self.organization.id

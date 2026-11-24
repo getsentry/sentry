@@ -98,8 +98,6 @@ PARENT_SPAN_ATTRIBUTES = [
     "span_id",
     "trace",
     "parent_span",
-    "span.op",
-    "span.name",
     "gen_ai.operation.type",
     "gen_ai.conversation.id",
 ]
@@ -194,6 +192,11 @@ def _get_meta_columns() -> dict[str, str]:
 
 
 META_COLUMNS = _get_meta_columns()
+
+
+def _build_conversation_query(conversation_id: str) -> str:
+    conversation_filter = build_escaped_term_filter("gen_ai.conversation.id", [conversation_id])
+    return f"{conversation_filter} has:gen_ai.operation.type"
 
 
 def _move_meta_columns(spans: Sequence[SpanRow]) -> None:
@@ -399,7 +402,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         """Return spans recorded for one AI conversation in start-time order.
 
         Message, tool, and response attributes contain their recorded string values.
-        `stats.errors` counts spans whose status is not `ok`, `cancelled`, or `unknown`.
+        `stats.errors` counts AI spans whose status is not `ok`, `cancelled`, or `unknown`.
         `stats.errorToolNames` lists tools used by those spans.
         `stats.inputTokens` includes cache-read and cache-write tokens. In `stats.usageByModel`,
         `inputCost` includes cache-read and cache-write costs, and `outputCost` includes
@@ -591,12 +594,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 span["occurrences"] = bucket["occurrences"]
 
     def _is_gen_ai_span(self, span: Mapping[str, Any]) -> bool:
-        if span.get("gen_ai.operation.type"):
-            return True
-        return any(
-            isinstance(value := span.get(field), str) and value.startswith("gen_ai.")
-            for field in ("span.op", "span.name")
-        )
+        return bool(span.get("gen_ai.operation.type"))
 
     def _span_key(self, span: Mapping[str, Any], id_field: str = "span_id") -> SpanKey | None:
         trace_id = span.get("trace")
@@ -725,7 +723,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         offset: int,
         limit: int,
     ) -> AIConversationQueryResult:
-        query_string = build_escaped_term_filter("gen_ai.conversation.id", [conversation_id])
+        query_string = _build_conversation_query(conversation_id)
         resolver = Spans.get_resolver(
             snuba_params,
             SearchResolverConfig(
@@ -781,7 +779,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
     def _conversation_exists(self, snuba_params: SnubaParams, conversation_id: str) -> bool:
         result = Spans.run_table_query(
             params=snuba_params,
-            query_string=build_escaped_term_filter("gen_ai.conversation.id", [conversation_id]),
+            query_string=_build_conversation_query(conversation_id),
             selected_columns=["span_id"],
             orderby=[],
             offset=0,

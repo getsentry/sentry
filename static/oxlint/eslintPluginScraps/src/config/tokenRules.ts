@@ -156,7 +156,9 @@ function buildPropertyToRule(rules: TokenRule[]) {
   const result = new Map<string, string>();
   for (const rule of rules) {
     for (const property of rule.allowedProperties) {
-      result.set(property, rule.name);
+      if (!result.has(property)) {
+        result.set(property, rule.name);
+      }
     }
   }
   return result;

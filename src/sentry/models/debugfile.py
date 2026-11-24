@@ -17,7 +17,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    BinaryIO,
     ClassVar,
     cast,
     overload,
@@ -1034,7 +1033,7 @@ def create_debug_file_from_dif(
 
 
 def create_files_from_dif_zip(
-    fileobj: BinaryIO | zipfile.ZipFile, project: Project, accept_unknown: bool = False
+    fileobj: IO[bytes] | zipfile.ZipFile, project: Project, accept_unknown: bool = False
 ) -> list[ProjectDebugFile]:
     """Creates all missing debug files from the given zip file.  This
     returns a list of all files created.

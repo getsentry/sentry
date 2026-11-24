@@ -4,21 +4,27 @@ import {useMutation} from '@tanstack/react-query';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {decodeScalar, encodeSort} from 'sentry/utils/queryString';
+import {encodeSort} from 'sentry/utils/queryString';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MAX_QUERIES_ALLOWED} from 'sentry/views/explore/multiQueryMode/constants';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import {
+  loadQueryParamsFromLocation,
+  parseAsScalar,
+} from 'sentry/views/explore/queryParams/parsers';
 
 import {useInvalidateSavedQueries, useInvalidateSavedQuery} from './useGetSavedQueries';
 
 const TRACE_EXPLORER_DATASET = 'spans';
+const SAVED_QUERY_PARSERS = {id: parseAsScalar, title: parseAsScalar};
 
 export function useSaveMultiQuery() {
   const location = useLocation();
-  const id = decodeScalar(location.query.id);
-  const title = decodeScalar(location.query.title);
+  const savedQueryParams = loadQueryParamsFromLocation(SAVED_QUERY_PARSERS, location);
+  const id = savedQueryParams.id ?? undefined;
+  const title = savedQueryParams.title ?? undefined;
 
   const queries = useReadQueriesFromLocation().slice(0, MAX_QUERIES_ALLOWED);
 

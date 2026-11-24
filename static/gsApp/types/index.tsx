@@ -453,6 +453,11 @@ export type Charge = {
   stripeID: string | null;
 };
 
+/**
+ * What a receipt paid for.
+ */
+export type ReceiptType = 'subscription' | 'payg' | 'seer_token' | 'credit_grant';
+
 export type InvoiceBase = StructuredAddress & {
   amount: number;
   amountBilled: number | null;
@@ -472,6 +477,11 @@ export type InvoiceBase = StructuredAddress & {
   sentryTaxIds: SentryTaxIds | null;
   taxNumber: string | null;
   type: string | null;
+  /**
+   * Only the receipts list returns this. Null when the API can't tell what the
+   * receipt paid for.
+   */
+  receiptType?: ReceiptType | null;
   /**
    * Usage exports for the period (billing history or platform contract) the receipt bills usage for.
    */
@@ -666,6 +676,16 @@ export enum InvoiceStatus {
   AWAITING_PAYMENT = 'awaiting payment',
 }
 
+/**
+ * Tags on the billing platform line item behind a category.
+ */
+export enum LineItemTag {
+  /**
+   * The line item bills Seer usage by LLM tokens (Seer credits).
+   */
+  GEN_AI_USAGE = 'gen_ai_usage',
+}
+
 export type BillingMetricHistory = {
   /**
    * Category name (e.g. "errors")
@@ -689,6 +709,10 @@ export type BillingMetricHistory = {
   usageExceeded: boolean;
   isDisabled?: boolean;
   retention?: {downsampled: number | null; standard: number | null};
+  /**
+   * Tags on the billing platform line item. Empty on legacy plans.
+   */
+  tags?: string[];
 };
 
 export type BillingHistory = {
