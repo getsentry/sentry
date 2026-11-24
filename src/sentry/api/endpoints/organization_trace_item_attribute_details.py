@@ -76,8 +76,8 @@ class TraceItemAttributeConventionDetails(TypedDict):
             list[TraceItemAttributeChangelogEntry],
             ApiDescription(
                 "Changes to the attribute's Sentry convention, newest first. Omitted when the "
-                "attribute matches no convention or the convention's changelog is only a bare "
-                "0.0.0 entry"
+                "attribute matches no convention, or the convention has no changelog or only a "
+                "bare 0.0.0 entry"
             ),
         ]
     ]
