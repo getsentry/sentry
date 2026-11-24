@@ -17,6 +17,7 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker import namespaces
+from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.exceptions import quiet_redis_noise, quiet_retriable_timeouts
 from sentry.utils.locking import UnableToAcquireLock
@@ -77,9 +78,10 @@ def process_workflow_activity(
     activity = event_data.event
     assert isinstance(activity, Activity)
     organization = event_data.get_organization()
-    if detector is None:
+    if detector is None or activity.type in (ActivityType.ASSIGNED.value, ActivityType.NOTE.value):
         if not is_activity_workflow_enabled(organization):
             return
+    if detector is None:
         try:
             detector = get_detector_for_group(event_data.require_group())
         except Detector.DoesNotExist:

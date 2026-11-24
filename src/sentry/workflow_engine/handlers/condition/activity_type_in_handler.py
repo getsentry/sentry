@@ -14,11 +14,7 @@ class WorkflowActivityKind(StrEnum):
     ISSUE_MENTIONED = "issue.mentioned"
 
 
-def _get_activity_kind(event_data: WorkflowEventData) -> WorkflowActivityKind | None:
-    event = event_data.event
-    if not isinstance(event, Activity):
-        return None
-
+def get_issue_activity_kind(event: Activity) -> WorkflowActivityKind | None:
     if event.type == ActivityType.ASSIGNED.value:
         return WorkflowActivityKind.ISSUE_ASSIGNED
 
@@ -50,5 +46,7 @@ class ActivityTypeInHandler(WorkflowTriggerDataConditionHandler):
         ):
             return False
 
-        kind = _get_activity_kind(event_data)
+        if not isinstance(event_data.event, Activity):
+            return False
+        kind = get_issue_activity_kind(event_data.event)
         return kind is not None and kind in comparison

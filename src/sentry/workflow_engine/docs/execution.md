@@ -196,6 +196,11 @@ is enabled, the worker can resolve an omitted detector from the issue. If no iss
 detector is available, it selects organization workflows and obtains an internal
 organization activity detector for execution only when a candidate exists.
 
+Assignments and notes containing mentions enqueue one activity task after commit
+when the organization's activity workflow gate is enabled. Resolution and Seer
+stage handlers continue to schedule detector-linked workflows independently of
+that gate. The managed Inbox workflow matches assignments and mentions.
+
 Event and activity paths use `WorkflowEventData`, which contains:
 
 - A `GroupEvent` or `Activity`
