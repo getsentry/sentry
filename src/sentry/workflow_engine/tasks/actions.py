@@ -163,15 +163,16 @@ def trigger_action(
         )
         raise ValueError("Exactly one of event_id or activity_id must be provided")
 
-    if detector_id is None:
-        detector = get_preferred_detector(event_data)
-    else:
+    if detector_id is not None:
         detector = Detector.objects.get_or_none(id=detector_id)
         if detector is None:
             logger.info(
                 "workflow_engine.action.detector_deleted", extra={"detector_id": detector_id}
             )
             return
+
+    else:
+        detector = get_preferred_detector(event_data)
 
     metrics.incr(
         "workflow_engine.tasks.trigger_action_task_started",
