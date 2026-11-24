@@ -1383,6 +1383,9 @@
   "views/detectors/components/details/common/openPeriodIssues.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 1}
   },
+  "views/detectors/components/detectorLink.tsx": {
+    "@sentry/scraps/no-dom-coupling": {"count": 1}
+  },
   "views/detectors/components/detectorListConnectedAutomations.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 1},
     "@sentry/scraps/prefer-primitives": {"count": 1}
