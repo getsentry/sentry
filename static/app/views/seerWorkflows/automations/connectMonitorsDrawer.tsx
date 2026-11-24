@@ -13,7 +13,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tn} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getPaginationProps, useGetPaginationCaption} from 'sentry/utils/pagination';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {canConnectAutomationToDetector} from 'sentry/views/automations/utils/permissions';
@@ -112,7 +111,7 @@ function MonitorList({
 
   const {data, isPending, isError} = useQuery({
     ...detectorListApiOptions(organization, {
-      query: new MutableSearch(['type:metric_issue', query]).formatString(),
+      query: query ? `type:metric_issue ${query}` : 'type:metric_issue',
       projects: projectIds,
       limit: MONITORS_PER_PAGE,
       sortBy: '-latestGroup',
