@@ -14,6 +14,7 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
+from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
 from sentry.utils import metrics
@@ -55,6 +56,14 @@ class Environment(Model):
         app_label = "sentry"
         db_table = "sentry_environment"
         unique_together = (("organization_id", "name"),)
+        indexes = (
+            # Lookups by id that skip the "No Environment" row, which has an empty name.
+            IndexWithPostgresNameLimits(
+                fields=("id",),
+                condition=~models.Q(name=""),
+                name="sentry_environment_id_name_not_empty",
+            ),
+        )
 
     __repr__ = sane_repr("organization_id", "name")
 
