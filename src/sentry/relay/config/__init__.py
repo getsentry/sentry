@@ -68,6 +68,7 @@ EXPOSABLE_FEATURES = [
     "organizations:browser-report-ingestion",
     "projects:span-v2-attachment-processing",
     "projects:trace-attachment-processing",
+    "projects:relay-client-asn-lookup",
     "projects:relay-minidump-uploads",
     "projects:relay-playstation-uploads",
     "projects:relay-unreal-crash-context-stacktrace",
