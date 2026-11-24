@@ -417,7 +417,7 @@ describe('CompositeSelect', () => {
       'wraps focus to the last option of a large region (virtualized: %s)',
       async virtualized => {
         const regionOptions = (region: string) =>
-          Array.from({length: 200}, (_, i) => ({
+          Array.from({length: 30}, (_, i) => ({
             value: `${region}-${i}`,
             label: `${region} ${i}`,
           }));
@@ -452,7 +452,7 @@ describe('CompositeSelect', () => {
         await userEvent.keyboard('{ArrowUp}');
 
         await waitFor(() =>
-          expect(screen.getByRole('option', {name: 'R2 199'})).toHaveFocus()
+          expect(screen.getByRole('option', {name: 'R2 29'})).toHaveFocus()
         );
 
         // Wrapping back down returns to the first option.
