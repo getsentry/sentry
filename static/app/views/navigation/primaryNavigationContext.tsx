@@ -10,21 +10,37 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SecondaryNavigationContextProvider} from './secondaryNavigationContext';
 
+interface NavigationGroupConfig {
+  /** First path segments (after the organization) that belong to this group */
+  paths: readonly string[];
+  /**
+   * Whether the group renders a secondary navigation. When false, the
+   * secondary sidebar is not rendered while the group is active, so the page
+   * takes up the space instead.
+   */
+  secondaryNavigation: boolean;
+}
+
 const PRIMARY_NAVIGATION_GROUP_CONFIG = {
-  inbox: ['inbox'],
-  issues: ['issues'],
-  explore: ['explore', 'preprod'],
-  seer: ['seer'],
-  dashboards: ['dashboards', 'dashboard'],
-  insights: ['insights'],
-  projects: ['projects'], // No primary nav button — accessed via logo nav. Needed for secondary nav routing.
-  monitors: ['monitors'],
-  settings: ['settings'],
-  prevent: ['prevent'],
-  admin: ['manage'],
-} as const;
+  inbox: {paths: ['inbox'], secondaryNavigation: false},
+  issues: {paths: ['issues'], secondaryNavigation: true},
+  explore: {paths: ['explore', 'preprod'], secondaryNavigation: true},
+  seer: {paths: ['seer'], secondaryNavigation: true},
+  dashboards: {paths: ['dashboards', 'dashboard'], secondaryNavigation: true},
+  insights: {paths: ['insights'], secondaryNavigation: true},
+  // No primary nav button — accessed via logo nav. Needed for secondary nav routing.
+  projects: {paths: ['projects'], secondaryNavigation: true},
+  monitors: {paths: ['monitors'], secondaryNavigation: true},
+  settings: {paths: ['settings'], secondaryNavigation: true},
+  prevent: {paths: ['prevent'], secondaryNavigation: false},
+  admin: {paths: ['manage'], secondaryNavigation: true},
+} as const satisfies Record<string, NavigationGroupConfig>;
 
 type NavigationGroup = keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
+
+export function hasSecondaryNavigation(group: NavigationGroup): boolean {
+  return PRIMARY_NAVIGATION_GROUP_CONFIG[group].secondaryNavigation;
+}
 
 const PRIMARY_NAVIGATION_ROUTE_OVERRIDES: Array<{
   group: NavigationGroup;
@@ -115,7 +131,11 @@ export function PrimaryNavigationContextProvider(
   );
 
   return (
-    <SecondaryNavigationContextProvider>
+    // Pages without a secondary navigation keep the sidebar collapsed, so hovering
+    // a primary item previews its group over the page instead of pushing it aside.
+    <SecondaryNavigationContextProvider
+      forceCollapsed={!hasSecondaryNavigation(activeRouteGroup)}
+    >
       <PrimaryNavigationContext.Provider value={value}>
         {props.children}
       </PrimaryNavigationContext.Provider>
@@ -156,11 +176,9 @@ function useActiveNavigationGroup(): NavigationGroup {
   }
 
   for (const key in PRIMARY_NAVIGATION_GROUP_CONFIG) {
-    if (
-      (
-        PRIMARY_NAVIGATION_GROUP_CONFIG[key as NavigationGroup] as readonly string[]
-      ).includes(primaryPath)
-    ) {
+    const {paths}: NavigationGroupConfig =
+      PRIMARY_NAVIGATION_GROUP_CONFIG[key as NavigationGroup];
+    if (paths.includes(primaryPath)) {
       return key as NavigationGroup;
     }
   }

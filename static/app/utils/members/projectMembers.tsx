@@ -29,8 +29,5 @@ function projectMembersQueryOptions({orgSlug, projectIds}: ProjectMembersQueryOp
 
 export function useProjectMembersQueryOptions(projectIds?: readonly ProjectId[] | null) {
   const organization = useOrganization();
-  return projectMembersQueryOptions({
-    orgSlug: organization.slug,
-    projectIds,
-  });
+  return projectMembersQueryOptions({orgSlug: organization.slug, projectIds});
 }

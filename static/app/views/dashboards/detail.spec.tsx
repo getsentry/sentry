@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -90,9 +91,7 @@ async function openPermissionsModal() {
 }
 
 describe('Dashboards > Detail', () => {
-  const organization = OrganizationFixture({
-    features: ['discover-query'],
-  });
+  const organization = OrganizationFixture({features: ['discover-query']});
   const projects = [ProjectFixture()];
   const DASHBOARD_ROUTE = '/organizations/:orgId/dashboard/:dashboardId/';
   const DASHBOARD_WIDGET_ROUTE =
@@ -118,11 +117,7 @@ describe('Dashboards > Detail', () => {
   }) {
     return {
       initialRouterConfig: {
-        location: {
-          pathname,
-          query,
-          ...(state ? {state} : {}),
-        },
+        location: {pathname, query, ...(state ? {state} : {})},
         ...(route ? {route} : {routes}),
       },
     };
@@ -140,17 +135,11 @@ describe('Dashboards > Detail', () => {
 
     beforeEach(() => {
       jest.spyOn(toast, 'loading').mockClear();
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/members/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
       act(() => ProjectsStore.loadInitialData(projects));
       initialData = initializeOrg({organization});
 
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/tags/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [ProjectFixture()],
@@ -164,10 +153,7 @@ describe('Dashboards > Detail', () => {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/default-overview/',
-        body: DashboardFixture([], {
-          id: 'default-overview',
-          title: 'Default',
-        }),
+        body: DashboardFixture([], {id: 'default-overview', title: 'Default'}),
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/visit/',
@@ -202,10 +188,7 @@ describe('Dashboards > Detail', () => {
         url: '/organizations/org-slug/issues/',
         body: [],
       });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/releases/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/releases/', body: []});
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/stats/',
         body: [],
@@ -268,9 +251,7 @@ describe('Dashboards > Detail', () => {
         ),
       });
       initialData = initializeOrg({
-        organization: OrganizationFixture({
-          features: ['discover-query'],
-        }),
+        organization: OrganizationFixture({features: ['discover-query']}),
       });
 
       render(
@@ -312,20 +293,9 @@ describe('Dashboards > Detail', () => {
           }
       );
       window.confirm = jest.fn();
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/teams/',
-        body: [],
-      });
-      initialData = initializeOrg({
-        organization,
-        router: {
-          location: LocationFixture(),
-        },
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/members/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/teams/', body: []});
+      initialData = initializeOrg({organization, router: {location: LocationFixture()}});
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
       PageFiltersStore.init();
       PageFiltersStore.onInitializeUrlState({
         projects: [],
@@ -387,10 +357,7 @@ describe('Dashboards > Detail', () => {
         body: [],
         statusCode: 200,
       });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/tags/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [ProjectFixture()],
@@ -399,17 +366,11 @@ describe('Dashboards > Detail', () => {
         url: '/organizations/org-slug/dashboards/',
         body: [
           {
-            ...DashboardFixture([], {
-              id: 'default-overview',
-              title: 'Default',
-            }),
+            ...DashboardFixture([], {id: 'default-overview', title: 'Default'}),
             widgetDisplay: ['area'],
           },
           {
-            ...DashboardFixture([], {
-              id: '1',
-              title: 'Custom Errors',
-            }),
+            ...DashboardFixture([], {id: '1', title: 'Custom Errors'}),
             widgetDisplay: ['area'],
           },
         ],
@@ -461,10 +422,7 @@ describe('Dashboards > Detail', () => {
         method: 'GET',
         body: [],
       });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/releases/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/releases/', body: []});
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/stats/',
         body: [],
@@ -499,10 +457,7 @@ describe('Dashboards > Detail', () => {
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
-        body: DashboardFixture([widgets[0]!], {
-          id: '1',
-          title: 'Custom Errors',
-        }),
+        body: DashboardFixture([widgets[0]!], {id: '1', title: 'Custom Errors'}),
       });
       render(
         <OrganizationContext value={initialData.organization}>
@@ -596,10 +551,7 @@ describe('Dashboards > Detail', () => {
       // Renaming never enters an edit session, so it must not carry widgets.
       expect(renameMock).toHaveBeenCalledWith(
         '/organizations/org-slug/dashboards/1/',
-        expect.objectContaining({
-          method: 'PUT',
-          data: {title: 'Renamed Dashboard'},
-        })
+        expect.objectContaining({method: 'PUT', data: {title: 'Renamed Dashboard'}})
       );
 
       // `onRename` feeds the new title back through `onDashboardUpdate`, so the
@@ -672,9 +624,7 @@ describe('Dashboards > Detail', () => {
       });
 
       initialData = initializeOrg({
-        organization: OrganizationFixture({
-          features: ['discover-query'],
-        }),
+        organization: OrganizationFixture({features: ['discover-query']}),
       });
 
       render(
@@ -705,16 +655,11 @@ describe('Dashboards > Detail', () => {
           <TopBar />
           <DashboardDetail
             initialState={DashboardState.VIEW}
-            dashboard={DashboardFixture([], {
-              id: '1',
-              title: 'Custom Errors',
-            })}
+            dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
             onDashboardUpdate={jest.fn()}
           />
         </TopBar.Slot.Provider>,
-        {
-          organization: pageFrameOrganization,
-        }
+        {organization: pageFrameOrganization}
       );
 
       const breadcrumbs = await screen.findByRole('list');
@@ -750,9 +695,7 @@ describe('Dashboards > Detail', () => {
     });
 
     it('keeps supported breadcrumb actions on prebuilt dashboards', async () => {
-      const pageFrameOrganization = OrganizationFixture({
-        slug: 'org-slug',
-      });
+      const pageFrameOrganization = OrganizationFixture({slug: 'org-slug'});
 
       render(
         <TopBar.Slot.Provider>
@@ -767,9 +710,7 @@ describe('Dashboards > Detail', () => {
             onDashboardUpdate={jest.fn()}
           />
         </TopBar.Slot.Provider>,
-        {
-          organization: pageFrameOrganization,
-        }
+        {organization: pageFrameOrganization}
       );
 
       expect(await screen.findByRole('button', {name: 'Star'})).toBeVisible();
@@ -802,9 +743,7 @@ describe('Dashboards > Detail', () => {
               : children;
           }
       );
-      const pageFrameOrganization = OrganizationFixture({
-        slug: 'org-slug',
-      });
+      const pageFrameOrganization = OrganizationFixture({slug: 'org-slug'});
 
       render(
         <TopBar.Slot.Provider>
@@ -848,10 +787,7 @@ describe('Dashboards > Detail', () => {
             dashboard={DashboardFixture([], {
               id: '1',
               createdBy: UserFixture({id: 'another-user'}),
-              permissions: {
-                isEditableByEveryone: false,
-                teamsWithEditAccess: [],
-              },
+              permissions: {isEditableByEveryone: false, teamsWithEditAccess: []},
               title: 'Restricted Dashboard',
             })}
             onDashboardUpdate={jest.fn()}
@@ -868,9 +804,7 @@ describe('Dashboards > Detail', () => {
     });
 
     it('disables the edit action with unsaved filters', async () => {
-      const pageFrameOrganization = OrganizationFixture({
-        slug: 'org-slug',
-      });
+      const pageFrameOrganization = OrganizationFixture({slug: 'org-slug'});
 
       render(
         <TopBar.Slot.Provider>
@@ -903,19 +837,14 @@ describe('Dashboards > Detail', () => {
     });
 
     it('does not show breadcrumb actions in dashboard preview', async () => {
-      const pageFrameOrganization = OrganizationFixture({
-        slug: 'org-slug',
-      });
+      const pageFrameOrganization = OrganizationFixture({slug: 'org-slug'});
 
       render(
         <TopBar.Slot.Provider>
           <TopBar />
           <DashboardDetail
             initialState={DashboardState.PREVIEW}
-            dashboard={DashboardFixture([], {
-              id: '1',
-              title: 'Preview Dashboard',
-            })}
+            dashboard={DashboardFixture([], {id: '1', title: 'Preview Dashboard'})}
             onDashboardUpdate={jest.fn()}
           />
         </TopBar.Slot.Provider>,
@@ -933,25 +862,18 @@ describe('Dashboards > Detail', () => {
     });
 
     it('renders the dashboard breadcrumb in the top bar', async () => {
-      const pageFrameOrganization = OrganizationFixture({
-        slug: 'org-slug',
-      });
+      const pageFrameOrganization = OrganizationFixture({slug: 'org-slug'});
 
       render(
         <TopBar.Slot.Provider>
           <TopBar />
           <DashboardDetail
             initialState={DashboardState.VIEW}
-            dashboard={DashboardFixture([], {
-              id: '1',
-              title: 'Custom Errors',
-            })}
+            dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
             onDashboardUpdate={jest.fn()}
           />
         </TopBar.Slot.Provider>,
-        {
-          organization: pageFrameOrganization,
-        }
+        {organization: pageFrameOrganization}
       );
 
       // The Dashboards link and view-only title are both present.
@@ -1244,11 +1166,7 @@ describe('Dashboards > Detail', () => {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboards/new/',
           route: DASHBOARD_NEW_ROUTE,
-          query: {
-            statsPeriod: '7d',
-            project: ['2'],
-            environment: ['alpha', 'beta'],
-          },
+          query: {statsPeriod: '7d', project: ['2'], environment: ['alpha', 'beta']},
         }),
         organization: initialData.organization,
       });
@@ -1264,6 +1182,67 @@ describe('Dashboards > Detail', () => {
           }),
         })
       );
+    });
+
+    it('records the seer run id from the URL when a generated dashboard is saved', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        method: 'POST',
+        body: DashboardFixture([], {id: '5', title: 'Generated'}),
+      });
+      render(<CreateDashboard />, {
+        ...makeDashboardRouterConfig({
+          pathname: '/organizations/org-slug/dashboards/new/',
+          route: DASHBOARD_NEW_ROUTE,
+          query: {seerRunId: '123'},
+        }),
+        organization: initialData.organization,
+      });
+
+      await userEvent.click(await screen.findByText('Save and Finish'));
+
+      await waitFor(() => {
+        expect(Sentry.metrics.count).toHaveBeenCalledWith(
+          'dashboards.seer.create.save',
+          1,
+          {
+            attributes: {
+              organization_slug: 'org-slug',
+              dashboard_id: '5',
+              seer_run_id: 123,
+            },
+          }
+        );
+      });
+    });
+
+    it('tags the save failure with the seer run id from the URL when a generated dashboard fails to save', async () => {
+      const setTagSpy = jest.spyOn(Sentry.Scope.prototype, 'setTag');
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        method: 'POST',
+        statusCode: 400,
+        body: {detail: 'Invalid dashboard'},
+      });
+      render(<CreateDashboard />, {
+        ...makeDashboardRouterConfig({
+          pathname: '/organizations/org-slug/dashboards/new/',
+          route: DASHBOARD_NEW_ROUTE,
+          query: {seerRunId: '123'},
+        }),
+        organization: initialData.organization,
+      });
+
+      await userEvent.click(await screen.findByText('Save and Finish'));
+
+      await waitFor(() => {
+        expect(Sentry.captureMessage).toHaveBeenCalledWith(
+          'Generated dashboard failed to save',
+          expect.anything()
+        );
+      });
+      expect(setTagSpy).toHaveBeenCalledWith('seer.run_id', '123');
+      setTagSpy.mockRestore();
     });
 
     it('opens the widget viewer with saved dashboard filters', async () => {
@@ -1306,9 +1285,7 @@ describe('Dashboards > Detail', () => {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/widget/1/',
           route: DASHBOARD_WIDGET_ROUTE,
-          query: {
-            release: ['unsaved-release-filter@1.2.0'],
-          },
+          query: {release: ['unsaved-release-filter@1.2.0']},
         }),
         organization: initialData.organization,
       });
@@ -1360,16 +1337,11 @@ describe('Dashboards > Detail', () => {
         ],
       });
       const testData = initializeOrg({
-        organization: OrganizationFixture({
-          features: ['discover-query'],
-        }),
+        organization: OrganizationFixture({features: ['discover-query']}),
         router: {
           location: {
             ...LocationFixture(),
-            query: {
-              statsPeriod: '7d',
-              release: ['sentry-android-shop@1.2.0'],
-            },
+            query: {statsPeriod: '7d', release: ['sentry-android-shop@1.2.0']},
           },
         },
       });
@@ -1377,10 +1349,7 @@ describe('Dashboards > Detail', () => {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: {
-            statsPeriod: '7d',
-            release: ['sentry-android-shop@1.2.0'],
-          },
+          query: {statsPeriod: '7d', release: ['sentry-android-shop@1.2.0']},
         }),
         organization: testData.organization,
       });
@@ -1418,25 +1387,14 @@ describe('Dashboards > Detail', () => {
         ],
       });
       const testData = initializeOrg({
-        organization: OrganizationFixture({
-          features: ['discover-query'],
-        }),
-        router: {
-          location: {
-            ...LocationFixture(),
-            query: {
-              statsPeriod: '7d',
-            },
-          },
-        },
+        organization: OrganizationFixture({features: ['discover-query']}),
+        router: {location: {...LocationFixture(), query: {statsPeriod: '7d'}}},
       });
       const {router} = render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: {
-            statsPeriod: '7d',
-          },
+          query: {statsPeriod: '7d'},
         }),
         organization: testData.organization,
       });
@@ -1448,19 +1406,55 @@ describe('Dashboards > Detail', () => {
 
       await waitFor(() => {
         expect(router.location.query).toEqual(
-          expect.objectContaining({
-            release: '',
-            globalFilter: '',
-          })
+          expect.objectContaining({release: '', globalFilter: ''})
         );
+      });
+    });
+
+    it('writes blank filter params while keeping other params when saved filters are cleared', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: DashboardFixture(widgets, {
+          id: '1',
+          title: 'Custom Errors',
+          filters: {release: ['sentry-android-shop@1.2.0']},
+        }),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [
+          ReleaseFixture({
+            shortVersion: 'sentry-android-shop@1.2.0',
+            version: 'sentry-android-shop@1.2.0',
+          }),
+        ],
+      });
+      const {router} = render(<ViewEditDashboard />, {
+        ...makeDashboardRouterConfig({
+          pathname: '/organizations/org-slug/dashboard/1/',
+          route: DASHBOARD_ROUTE,
+          query: {statsPeriod: '7d', environment: ['alpha', 'beta']},
+        }),
+        organization: initialData.organization,
+      });
+
+      await userEvent.click(await screen.findByText('sentry-android-shop@1.2.0'));
+      await userEvent.click(screen.getAllByText('Clear')[0]!);
+      await userEvent.click(document.body);
+
+      await waitFor(() => {
+        expect(router.location.query).toEqual({
+          statsPeriod: '7d',
+          environment: ['alpha', 'beta'],
+          release: '',
+          globalFilter: '',
+        });
       });
     });
 
     it('can save absolute time range in existing dashboard', async () => {
       const testData = initializeOrg({
-        organization: OrganizationFixture({
-          features: ['discover-query'],
-        }),
+        organization: OrganizationFixture({features: ['discover-query']}),
         router: {
           location: {
             ...LocationFixture(),
@@ -1476,11 +1470,7 @@ describe('Dashboards > Detail', () => {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: {
-            start: '2022-07-14T07:00:00',
-            end: '2022-07-19T23:59:59',
-            utc: 'true',
-          },
+          query: {start: '2022-07-14T07:00:00', end: '2022-07-19T23:59:59', utc: 'true'},
         }),
         organization: testData.organization,
       });
@@ -1510,16 +1500,11 @@ describe('Dashboards > Detail', () => {
         ],
       });
       const testData = initializeOrg({
-        organization: OrganizationFixture({
-          features: ['discover-query'],
-        }),
+        organization: OrganizationFixture({features: ['discover-query']}),
         router: {
           location: {
             ...LocationFixture(),
-            query: {
-              statsPeriod: '7d',
-              environment: ['alpha', 'beta'],
-            },
+            query: {statsPeriod: '7d', environment: ['alpha', 'beta']},
           },
         },
       });
@@ -1527,10 +1512,7 @@ describe('Dashboards > Detail', () => {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: {
-            statsPeriod: '7d',
-            environment: ['alpha', 'beta'],
-          },
+          query: {statsPeriod: '7d', environment: ['alpha', 'beta']},
         }),
         organization: testData.organization,
       });
@@ -1541,9 +1523,7 @@ describe('Dashboards > Detail', () => {
 
       await waitFor(() => {
         expect(router.location.query).toEqual(
-          expect.objectContaining({
-            release: 'sentry-android-shop@1.2.0',
-          })
+          expect.objectContaining({release: 'sentry-android-shop@1.2.0'})
         );
       });
 
@@ -1569,10 +1549,7 @@ describe('Dashboards > Detail', () => {
         router: {
           location: {
             ...LocationFixture(),
-            query: {
-              statsPeriod: '7d',
-              environment: ['alpha', 'beta'],
-            },
+            query: {statsPeriod: '7d', environment: ['alpha', 'beta']},
           },
         },
       });
@@ -1580,10 +1557,7 @@ describe('Dashboards > Detail', () => {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: {
-            statsPeriod: '7d',
-            environment: ['alpha', 'beta'],
-          },
+          query: {statsPeriod: '7d', environment: ['alpha', 'beta']},
         }),
         organization: testData.organization,
       });
@@ -1598,16 +1572,8 @@ describe('Dashboards > Detail', () => {
 
     it('ignores the order of selection of page filters to render unsaved filters', async () => {
       const testProjects = [
-        ProjectFixture({
-          id: '1',
-          name: 'first',
-          environments: ['alpha', 'beta'],
-        }),
-        ProjectFixture({
-          id: '2',
-          name: 'second',
-          environments: ['alpha', 'beta'],
-        }),
+        ProjectFixture({id: '1', name: 'first', environments: ['alpha', 'beta']}),
+        ProjectFixture({id: '2', name: 'second', environments: ['alpha', 'beta']}),
       ];
 
       act(() => ProjectsStore.loadInitialData(testProjects));
@@ -1626,9 +1592,7 @@ describe('Dashboards > Detail', () => {
       });
 
       const testData = initializeOrg({
-        organization: OrganizationFixture({
-          features: ['discover-query'],
-        }),
+        organization: OrganizationFixture({features: ['discover-query']}),
         router: {
           location: {
             ...LocationFixture(),
@@ -1642,9 +1606,7 @@ describe('Dashboards > Detail', () => {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: {
-            environment: ['beta', 'alpha'],
-          },
+          query: {environment: ['beta', 'alpha']},
         }),
         organization: testData.organization,
       });
@@ -1666,17 +1628,8 @@ describe('Dashboards > Detail', () => {
 
     it('uses releases from the URL query params', async () => {
       const testData = initializeOrg({
-        organization: OrganizationFixture({
-          features: ['discover-query'],
-        }),
-        router: {
-          location: {
-            ...LocationFixture(),
-            query: {
-              release: ['not-selected-1'],
-            },
-          },
-        },
+        organization: OrganizationFixture({features: ['discover-query']}),
+        router: {location: {...LocationFixture(), query: {release: ['not-selected-1']}}},
       });
       render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
@@ -1698,23 +1651,12 @@ describe('Dashboards > Detail', () => {
         body: DashboardFixture(widgets, {
           id: '1',
           title: 'Custom Errors',
-          filters: {
-            release: ['abc'],
-          },
+          filters: {release: ['abc']},
         }),
       });
       const testData = initializeOrg({
-        organization: OrganizationFixture({
-          features: ['discover-query'],
-        }),
-        router: {
-          location: {
-            ...LocationFixture(),
-            query: {
-              release: ['not-selected-1'],
-            },
-          },
-        },
+        organization: OrganizationFixture({features: ['discover-query']}),
+        router: {location: {...LocationFixture(), query: {release: ['not-selected-1']}}},
       });
       render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
@@ -1741,12 +1683,8 @@ describe('Dashboards > Detail', () => {
         ],
       });
       const testData = initializeOrg({
-        organization: OrganizationFixture({
-          features: ['discover-query'],
-        }),
-        router: {
-          location: LocationFixture(),
-        },
+        organization: OrganizationFixture({features: ['discover-query']}),
+        router: {location: LocationFixture()},
       });
       const {router} = render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
@@ -1763,9 +1701,7 @@ describe('Dashboards > Detail', () => {
 
       await waitFor(() => {
         expect(router.location.query).toEqual(
-          expect.objectContaining({
-            release: 'sentry-android-shop@1.2.0',
-          })
+          expect.objectContaining({release: 'sentry-android-shop@1.2.0'})
         );
       });
     });
@@ -1814,9 +1750,7 @@ describe('Dashboards > Detail', () => {
         organization: OrganizationFixture({
           features: ['discover-basic', 'discover-query'],
         }),
-        router: {
-          location: LocationFixture(),
-        },
+        router: {location: LocationFixture()},
       });
       render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
@@ -1891,10 +1825,7 @@ describe('Dashboards > Detail', () => {
         '/organizations/org-slug/dashboards/1/',
         expect.objectContaining({
           data: expect.objectContaining({
-            permissions: {
-              isEditableByEveryone: false,
-              teamsWithEditAccess: [],
-            },
+            permissions: {isEditableByEveryone: false, teamsWithEditAccess: []},
           }),
         })
       );
@@ -1944,10 +1875,7 @@ describe('Dashboards > Detail', () => {
         '/organizations/org-slug/dashboards/1/',
         expect.objectContaining({
           data: expect.objectContaining({
-            permissions: {
-              isEditableByEveryone: true,
-              teamsWithEditAccess: [],
-            },
+            permissions: {isEditableByEveryone: true, teamsWithEditAccess: []},
           }),
         })
       );
@@ -1973,29 +1901,14 @@ describe('Dashboards > Detail', () => {
       ConfigStore.set('user', currentUser);
 
       const teamData = [
-        {
-          id: '1',
-          slug: 'team1',
-          name: 'Team 1',
-        },
-        {
-          id: '2',
-          slug: 'team2',
-          name: 'Team 2',
-        },
-        {
-          id: '3',
-          slug: 'team3',
-          name: 'Team 3',
-        },
+        {id: '1', slug: 'team1', name: 'Team 1'},
+        {id: '2', slug: 'team2', name: 'Team 2'},
+        {id: '3', slug: 'team3', name: 'Team 3'},
       ];
       const teams = teamData.map(data => TeamFixture(data));
 
       TeamStore.loadInitialData(teams);
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/teams/',
-        body: teams,
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/teams/', body: teams});
 
       render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
@@ -2020,10 +1933,7 @@ describe('Dashboards > Detail', () => {
         '/organizations/org-slug/dashboards/1/',
         expect.objectContaining({
           data: expect.objectContaining({
-            permissions: {
-              isEditableByEveryone: false,
-              teamsWithEditAccess: [1, 2],
-            },
+            permissions: {isEditableByEveryone: false, teamsWithEditAccess: [1, 2]},
           }),
         })
       );
@@ -2060,10 +1970,7 @@ describe('Dashboards > Detail', () => {
           route: DASHBOARD_ROUTE,
           query: {},
         }),
-        organization: {
-          features: initialData.organization.features,
-          access: ['org:read'],
-        },
+        organization: {features: initialData.organization.features, access: ['org:read']},
       });
 
       expect(
@@ -2118,10 +2025,7 @@ describe('Dashboards > Detail', () => {
           route: DASHBOARD_ROUTE,
           query: {},
         }),
-        organization: {
-          features: initialData.organization.features,
-          access: ['org:read'],
-        },
+        organization: {features: initialData.organization.features, access: ['org:read']},
       });
 
       expect(
@@ -2149,11 +2053,7 @@ describe('Dashboards > Detail', () => {
     it('renders favorite button in unstarred state', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: DashboardFixture([], {
-          id: '1',
-          title: 'Custom Errors',
-          isFavorited: false,
-        }),
+        body: DashboardFixture([], {id: '1', title: 'Custom Errors', isFavorited: false}),
       });
       render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
@@ -2161,9 +2061,7 @@ describe('Dashboards > Detail', () => {
           route: DASHBOARD_ROUTE,
           query: {},
         }),
-        organization: {
-          features: initialData.organization.features,
-        },
+        organization: {features: initialData.organization.features},
       });
 
       expect(await screen.findByRole('button', {name: 'Star'})).toBeVisible();
@@ -2172,11 +2070,7 @@ describe('Dashboards > Detail', () => {
     it('renders favorite button in favorited state', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: DashboardFixture([], {
-          id: '1',
-          title: 'Custom Errors',
-          isFavorited: true,
-        }),
+        body: DashboardFixture([], {id: '1', title: 'Custom Errors', isFavorited: true}),
       });
       render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
@@ -2184,9 +2078,7 @@ describe('Dashboards > Detail', () => {
           route: DASHBOARD_ROUTE,
           query: {},
         }),
-        organization: {
-          features: initialData.organization.features,
-        },
+        organization: {features: initialData.organization.features},
       });
 
       expect(await screen.findByRole('button', {name: 'Unstar'})).toBeVisible();
@@ -2195,11 +2087,7 @@ describe('Dashboards > Detail', () => {
     it('toggles favorite button', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: DashboardFixture([], {
-          id: '1',
-          title: 'Custom Errors',
-          isFavorited: true,
-        }),
+        body: DashboardFixture([], {id: '1', title: 'Custom Errors', isFavorited: true}),
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/favorite/',
@@ -2212,9 +2100,7 @@ describe('Dashboards > Detail', () => {
           route: DASHBOARD_ROUTE,
           query: {},
         }),
-        organization: {
-          features: initialData.organization.features,
-        },
+        organization: {features: initialData.organization.features},
       });
 
       await userEvent.click(await screen.findByRole('button', {name: 'Unstar'}));
@@ -2225,11 +2111,7 @@ describe('Dashboards > Detail', () => {
     it('keeps the starred state after entering and leaving edit mode', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: DashboardFixture([], {
-          id: '1',
-          title: 'Custom Errors',
-          isFavorited: false,
-        }),
+        body: DashboardFixture([], {id: '1', title: 'Custom Errors', isFavorited: false}),
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/favorite/',
@@ -2242,9 +2124,7 @@ describe('Dashboards > Detail', () => {
           route: DASHBOARD_ROUTE,
           query: {},
         }),
-        organization: {
-          features: initialData.organization.features,
-        },
+        organization: {features: initialData.organization.features},
       });
 
       await userEvent.click(await screen.findByRole('button', {name: 'Star'}));
@@ -2292,9 +2172,7 @@ describe('Dashboards > Detail', () => {
       beforeEach(() => {
         jest.spyOn(toast, 'loading').mockClear();
         initialData = initializeOrg({
-          organization: OrganizationFixture({
-            features: ['discover-query'],
-          }),
+          organization: OrganizationFixture({features: ['discover-query']}),
         });
 
         // Mock just the updateDashboard function
@@ -2304,10 +2182,9 @@ describe('Dashboards > Detail', () => {
             ...DashboardFixture([WidgetFixture({id: '1', title: 'Custom Widget'})]),
           });
 
-        jest.mocked(useWidgetBuilderState).mockReturnValue({
-          dispatch: jest.fn(),
-          state: {},
-        });
+        jest
+          .mocked(useWidgetBuilderState)
+          .mockReturnValue({dispatch: jest.fn(), state: {}});
       });
 
       afterEach(() => {
@@ -2321,15 +2198,11 @@ describe('Dashboards > Detail', () => {
             dashboard={DashboardFixture([])}
             onDashboardUpdate={jest.fn()}
           />,
-          {
-            organization: initialData.organization,
-          }
+          {organization: initialData.organization}
         );
         await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
         await userEvent.click(
-          await screen.findByRole('menuitemradio', {
-            name: 'Create Custom Widget',
-          })
+          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
         );
         expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
       });
@@ -2341,16 +2214,58 @@ describe('Dashboards > Detail', () => {
             dashboard={DashboardFixture([])}
             onDashboardUpdate={jest.fn()}
           />,
-          {
-            organization: initialData.organization,
-          }
+          {organization: initialData.organization}
         );
         await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
         await userEvent.click(
-          await screen.findByRole('menuitemradio', {
-            name: 'From Widget Library',
-          })
+          await screen.findByRole('menuitemradio', {name: 'From Widget Library'})
         );
+        expect(await screen.findByText('Widget Library')).toBeInTheDocument();
+      });
+
+      it('opens the widget library when the widget builder URL sets openWidgetTemplates', async () => {
+        render(
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {id: '1'})}
+            onDashboardUpdate={jest.fn()}
+          />,
+          {
+            organization: initialData.organization,
+            ...makeDashboardRouterConfig({
+              pathname: '/organizations/org-slug/dashboard/1/widget-builder/widget/new/',
+              route: DASHBOARD_NEW_WIDGET_BUILDER_ROUTE,
+              query: {openWidgetTemplates: 'true'},
+            }),
+          }
+        );
+
+        expect(await screen.findByText('Widget Library')).toBeInTheDocument();
+      });
+
+      it('opens the widget library when navigating to a widget builder URL that sets openWidgetTemplates', async () => {
+        const {router} = render(
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {id: '1'})}
+            onDashboardUpdate={jest.fn()}
+          />,
+          {
+            organization: initialData.organization,
+            ...makeDashboardRouterConfig({
+              pathname: '/organizations/org-slug/dashboard/1/',
+              routes: [DASHBOARD_ROUTE, DASHBOARD_NEW_WIDGET_BUILDER_ROUTE],
+            }),
+          }
+        );
+        await screen.findByRole('button', {name: 'Add Widget'});
+
+        act(() =>
+          router.navigate(
+            '/organizations/org-slug/dashboard/1/widget-builder/widget/new/?openWidgetTemplates=true'
+          )
+        );
+
         expect(await screen.findByText('Widget Library')).toBeInTheDocument();
       });
 
@@ -2361,15 +2276,11 @@ describe('Dashboards > Detail', () => {
             dashboard={DashboardFixture([])}
             onDashboardUpdate={jest.fn()}
           />,
-          {
-            organization: initialData.organization,
-          }
+          {organization: initialData.organization}
         );
         await userEvent.click(await screen.findByLabelText('Add Widget'));
         await userEvent.click(
-          await screen.findByRole('menuitemradio', {
-            name: 'Create Custom Widget',
-          })
+          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
         );
         expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
       });
@@ -2381,15 +2292,11 @@ describe('Dashboards > Detail', () => {
             dashboard={DashboardFixture([])}
             onDashboardUpdate={jest.fn()}
           />,
-          {
-            organization: initialData.organization,
-          }
+          {organization: initialData.organization}
         );
         await userEvent.click(await screen.findByLabelText('Add Widget'));
         await userEvent.click(
-          await screen.findByRole('menuitemradio', {
-            name: 'From Widget Library',
-          })
+          await screen.findByRole('menuitemradio', {name: 'From Widget Library'})
         );
         expect(await screen.findByText('Widget Library')).toBeInTheDocument();
       });
@@ -2400,12 +2307,9 @@ describe('Dashboards > Detail', () => {
           id: '1',
           title: 'Custom Errors',
         });
-        jest.mocked(useWidgetBuilderState).mockReturnValue({
-          dispatch: jest.fn(),
-          state: {
-            title: 'Updated Widget',
-          },
-        });
+        jest
+          .mocked(useWidgetBuilderState)
+          .mockReturnValue({dispatch: jest.fn(), state: {title: 'Updated Widget'}});
         render(
           <DashboardDetail
             initialState={DashboardState.EDIT}
@@ -2443,16 +2347,10 @@ describe('Dashboards > Detail', () => {
       });
 
       it('allows for creating a widget in edit mode', async () => {
-        const mockDashboard = DashboardFixture([], {
-          id: '1',
-          title: 'Custom Errors',
-        });
-        jest.mocked(useWidgetBuilderState).mockReturnValue({
-          dispatch: jest.fn(),
-          state: {
-            title: 'Totally new widget',
-          },
-        });
+        const mockDashboard = DashboardFixture([], {id: '1', title: 'Custom Errors'});
+        jest
+          .mocked(useWidgetBuilderState)
+          .mockReturnValue({dispatch: jest.fn(), state: {title: 'Totally new widget'}});
         render(
           <DashboardDetail
             initialState={DashboardState.EDIT}
@@ -2475,9 +2373,7 @@ describe('Dashboards > Detail', () => {
 
         await userEvent.click(await screen.findByLabelText('Add Widget'));
         await userEvent.click(
-          await screen.findByRole('menuitemradio', {
-            name: 'Create Custom Widget',
-          })
+          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
         );
 
         expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
@@ -2502,12 +2398,9 @@ describe('Dashboards > Detail', () => {
           id: '1',
           title: 'Custom Errors',
         });
-        jest.mocked(useWidgetBuilderState).mockReturnValue({
-          dispatch: jest.fn(),
-          state: {
-            title: 'Updated Widget Title',
-          },
-        });
+        jest
+          .mocked(useWidgetBuilderState)
+          .mockReturnValue({dispatch: jest.fn(), state: {title: 'Updated Widget Title'}});
         render(
           <DashboardDetail
             initialState={DashboardState.VIEW}
@@ -2555,16 +2448,10 @@ describe('Dashboards > Detail', () => {
       });
 
       it('allows for creating a widget in view mode', async () => {
-        const mockDashboard = DashboardFixture([], {
-          id: '1',
-          title: 'Custom Errors',
-        });
-        jest.mocked(useWidgetBuilderState).mockReturnValue({
-          dispatch: jest.fn(),
-          state: {
-            title: 'Totally new widget',
-          },
-        });
+        const mockDashboard = DashboardFixture([], {id: '1', title: 'Custom Errors'});
+        jest
+          .mocked(useWidgetBuilderState)
+          .mockReturnValue({dispatch: jest.fn(), state: {title: 'Totally new widget'}});
         render(
           <DashboardDetail
             initialState={DashboardState.VIEW}
@@ -2587,9 +2474,7 @@ describe('Dashboards > Detail', () => {
 
         await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
         await userEvent.click(
-          await screen.findByRole('menuitemradio', {
-            name: 'Create Custom Widget',
-          })
+          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
         );
 
         expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();

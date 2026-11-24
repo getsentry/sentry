@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import Any
 
 from sentry.integrations.mixins.issues import IssueSyncIntegration, ResolveSyncAction
 from sentry.integrations.models.external_actor import ExternalActor
@@ -86,7 +86,7 @@ class GitHubIssueSyncSpec(IssueSyncIntegration):
                 user_id=user.id,
                 integration_id=external_issue.integration_id,
                 organization=external_issue.organization,
-            ).first()
+            ).first()  # noqa: S035
             if not external_actor:
                 logger.info(
                     "assignee-outbound.external-actor-not-found",
@@ -218,11 +218,8 @@ class GitHubIssueSyncSpec(IssueSyncIntegration):
 
         repo, issue_number = issue_id.rsplit("#", 1)
 
-        return cast(
-            "dict[str, object]",
-            self.get_client().update_comment(
-                repo, issue_number, group_note.data["external_id"], {"body": quoted_comment}
-            ),
+        return self.get_client().update_comment(
+            repo, issue_number, group_note.data["external_id"], {"body": quoted_comment}
         )
 
     def create_comment(
@@ -234,7 +231,4 @@ class GitHubIssueSyncSpec(IssueSyncIntegration):
 
         repo, issue_number = issue_id.rsplit("#", 1)
 
-        return cast(
-            "dict[str, object]",
-            self.get_client().create_comment(repo, issue_number, {"body": quoted_comment}),
-        )
+        return self.get_client().create_comment(repo, issue_number, {"body": quoted_comment})

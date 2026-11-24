@@ -10,9 +10,8 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -61,28 +60,21 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     isPending: isDashboardsPending,
     isError: isDashboardsError,
     error: dashboardsError,
-  } = useQuery({
-    ...dashboardsApiOptions(organization),
-    retry: false,
-  });
+  } = useQuery({...dashboardsApiOptions(organization), retry: false});
 
   const {
     data: fetchedSelectedDashboard,
     isLoading: isSelectedDashboardLoading,
     isError: isSelectedDashboardError,
     error: selectedDashboardError,
-  } = useApiQuery<DashboardDetails>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
-        path: {organizationIdOrSlug: organization.slug, dashboardId},
-      }),
-    ],
-    {
-      staleTime: 0,
-      enabled: !!dashboardId,
-      retry: false,
-    }
-  );
+  } = useQuery({
+    ...apiOptions.as<DashboardDetails>()(
+      '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/',
+      {path: {organizationIdOrSlug: organization.slug, dashboardId}, staleTime: 0}
+    ),
+    enabled: !!dashboardId,
+    retry: false,
+  });
 
   let selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
 
@@ -158,13 +150,12 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     // Clean up the query cache when the dashboard unmounts to prevent
     // a flicker from stale data on refetch
     return () => {
-      queryClient.removeQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
-            path: {organizationIdOrSlug: organization.slug, dashboardId},
-          }),
-        ],
-      });
+      queryClient.removeQueries(
+        apiOptions.queryFilter(
+          '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/',
+          {path: {organizationIdOrSlug: organization.slug, dashboardId}}
+        )
+      );
     };
   }, [dashboardId, organization.slug, queryClient]);
 
@@ -172,10 +163,7 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     () => ({
       error: Boolean(dashboardsError || selectedDashboardError),
       dashboard: selectedDashboard
-        ? {
-            ...selectedDashboard,
-            widgets: selectedDashboard.widgets.map(assignTempId),
-          }
+        ? {...selectedDashboard, widgets: selectedDashboard.widgets.map(assignTempId)}
         : null,
       dashboards: Array.isArray(dashboards) ? dashboards : [],
       onDashboardUpdate: setSelectedDashboardState,
@@ -210,7 +198,8 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
   if (isDashboardsError || isSelectedDashboardError) {
     const notFound =
       (dashboardsError instanceof RequestError && dashboardsError.status === 404) ||
-      selectedDashboardError?.status === 404;
+      (selectedDashboardError instanceof RequestError &&
+        selectedDashboardError.status === 404);
 
     if (notFound) {
       return <NotFound />;

@@ -144,8 +144,14 @@ export function parseAggregateExpression(
       continue;
     }
     const label = getFunctionLabel(labelByAggregateString.size);
+    const metricQuery = makeMetricQuery(token, label);
+    // Formulas such as `performance_score()` name no metric, so there is no
+    // metric row to make for them. They stay inline in the equation.
+    if (!metricQuery.metric.name) {
+      continue;
+    }
     labelByAggregateString.set(token.text, label);
-    metricQueries.push(makeMetricQuery(token, label));
+    metricQueries.push(metricQuery);
   }
 
   const compactExpression = tokens

@@ -2,7 +2,8 @@
   "get": {
     "tags": ["Integration"],
     "description": "Return a list of integration platform installations for a given organization.",
-    "operationId": "List an Organization's Integration Platform Installations",
+    "operationId": "listOrganizationSentryAppInstallations",
+    "summary": "List an Organization's Integration Platform Installations",
     "parameters": [
       {
         "name": "organization_id_or_slug",

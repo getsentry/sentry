@@ -6,6 +6,7 @@ import {
   segmentTimeSeriesByDisplayStyle,
   type TimeSeriesDisplayStyle,
 } from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
+import {LOW_CONFIDENCE_OPACITY} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
 import {
   ContinuousTimeSeries,
@@ -28,9 +29,7 @@ export class Line extends ContinuousTimeSeries implements Plottable {
       yAxisIndex: plottingOptions.yAxisPosition === 'left' ? 0 : 1,
     };
 
-    const segments = segmentTimeSeriesByDisplayStyle(this.timeSeries, {
-      segmentBy,
-    });
+    const segments = segmentTimeSeriesByDisplayStyle(this.timeSeries, {segmentBy});
 
     return segments.map(([timeSeries, style]) =>
       createLineSeries({
@@ -46,6 +45,6 @@ export class Line extends ContinuousTimeSeries implements Plottable {
 
 const STYLE_OPTIONS: Record<TimeSeriesDisplayStyle, Partial<LineSeriesOption>> = {
   normal: {},
-  lowConfidence: {lineStyle: {type: 'dashed', opacity: 0.6}},
+  lowConfidence: {lineStyle: {opacity: LOW_CONFIDENCE_OPACITY}},
   incomplete: {lineStyle: {type: 'dotted'}, silent: true},
 };

@@ -4,9 +4,7 @@ import {parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
 import {Alert} from '@sentry/scraps/alert';
 import {Link} from '@sentry/scraps/link';
 
-import {Feature} from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {NoAccess} from 'sentry/components/noAccess';
 import {
   DatePageFilter,
   type DatePageFilterProps,
@@ -203,10 +201,7 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
   }
 
   const sorts: [ValidSort, ValidSort] = [
-    {
-      field: 'is_starred_transaction' satisfies SpanProperty,
-      kind: 'desc',
-    },
+    {field: 'is_starred_transaction' satisfies SpanProperty, kind: 'desc'},
     decodeSorts(sort).find(isAValidSort) ?? DEFAULT_SORT,
   ];
 
@@ -238,66 +233,55 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
   );
 
   return (
-    <Feature
-      features="performance-view"
-      organization={organization}
-      renderDisabled={NoAccess}
-    >
-      <Layout.Body>
-        <Layout.Main width="full">
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <ToolRibbon>
-                <PageFilterBar condensed>
-                  <InsightsProjectSelector />
-                  <InsightsEnvironmentSelector />
-                  <DatePageFilter {...datePageFilterProps} />
-                </PageFilterBar>
-                {!showOnboarding && (
-                  <StyledTransactionNameSearchBar
-                    organization={organization}
-                    projectIds={searchBarProjectsIds}
-                    onSearch={(query: string) => {
-                      handleSearch(query);
-                    }}
-                    query={getFreeTextFromQuery(searchBarQuery) ?? ''}
-                  />
-                )}
-              </ToolRibbon>
-            </ModuleLayout.Full>
-            <PageAlert />
-            <MobileVitalsBanner />
-            <ModuleLayout.Full>
-              {showOnboarding ? (
-                <LegacyOnboarding
-                  project={onboardingProject}
+    <Layout.Body>
+      <Layout.Main width="full">
+        <ModuleLayout.Layout>
+          <ModuleLayout.Full>
+            <ToolRibbon>
+              <PageFilterBar condensed>
+                <InsightsProjectSelector />
+                <InsightsEnvironmentSelector />
+                <DatePageFilter {...datePageFilterProps} />
+              </PageFilterBar>
+              {!showOnboarding && (
+                <StyledTransactionNameSearchBar
                   organization={organization}
+                  projectIds={searchBarProjectsIds}
+                  onSearch={(query: string) => {
+                    handleSearch(query);
+                  }}
+                  query={getFreeTextFromQuery(searchBarQuery) ?? ''}
                 />
-              ) : (
-                <PerformanceDisplayContext
-                  value={{performanceType: ProjectPerformanceType.MOBILE}}
-                >
-                  <DoubleChartRow
-                    allowedCharts={doubleChartRowCharts}
-                    {...sharedProps}
-                    eventView={doubleChartRowEventView}
-                  />
-                  <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
-                  <MobileOverviewTable response={response} sort={sorts[1]} />
-                </PerformanceDisplayContext>
               )}
-            </ModuleLayout.Full>
-          </ModuleLayout.Layout>
-        </Layout.Main>
-      </Layout.Body>
-    </Feature>
+            </ToolRibbon>
+          </ModuleLayout.Full>
+          <PageAlert />
+          <MobileVitalsBanner />
+          <ModuleLayout.Full>
+            {showOnboarding ? (
+              <LegacyOnboarding project={onboardingProject} organization={organization} />
+            ) : (
+              <PerformanceDisplayContext
+                value={{performanceType: ProjectPerformanceType.MOBILE}}
+              >
+                <DoubleChartRow
+                  allowedCharts={doubleChartRowCharts}
+                  {...sharedProps}
+                  eventView={doubleChartRowEventView}
+                />
+                <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
+                <MobileOverviewTable response={response} sort={sorts[1]} />
+              </PerformanceDisplayContext>
+            )}
+          </ModuleLayout.Full>
+        </ModuleLayout.Layout>
+      </Layout.Main>
+    </Layout.Body>
   );
 }
 
 function MobileOverviewPageWithProviders() {
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.SPANS],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.SPANS]});
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
   const useEap = useInsightsEap();
   return (

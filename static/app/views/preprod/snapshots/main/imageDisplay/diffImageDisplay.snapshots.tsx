@@ -49,19 +49,12 @@ jest.mock('./useD3Zoom', () => {
     zoomOut: noop,
   });
 
-  return {
-    useD3Zoom: createZoom,
-    useSyncedD3Zoom: () => [createZoom(), createZoom()],
-  };
+  return {useD3Zoom: createZoom, useSyncedD3Zoom: () => [createZoom(), createZoom()]};
 });
 
 const imageBaseUrl = '/visual-snapshots/images/';
 const diffImageBaseUrl = '/visual-snapshots/diffs/';
-const displayHeights = {
-  onion: 240,
-  split: 300,
-  wipe: 260,
-};
+const displayHeights = {onion: 240, split: 300, wipe: 260};
 
 function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
   return {
@@ -76,14 +69,10 @@ function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
 }
 
 const pair: SnapshotDiffPair = {
-  base_image: image({
-    key: 'base-button-light',
-  }),
+  base_image: image({key: 'base-button-light'}),
   diff: 0.042,
   diff_image_key: 'diff-button-light',
-  head_image: image({
-    key: 'head-button-light',
-  }),
+  head_image: image({key: 'head-button-light'}),
 };
 
 describe('DiffImageDisplay', () => {

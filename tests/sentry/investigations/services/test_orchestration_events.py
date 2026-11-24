@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Any, cast
+from typing import Any
 from unittest.mock import Mock, patch
 from uuid import UUID, uuid4
 
@@ -20,8 +20,6 @@ from sentry.investigations.models import (
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
 )
-from sentry.investigations.services.action_kinds import ACTION_KINDS
-from sentry.investigations.services.action_requests import STALE
 from sentry.investigations.services.orchestration import (
     accept_orchestration_command,
     archive_investigation_with_orchestration,
@@ -38,7 +36,7 @@ from sentry.investigations.services.orchestration_events import (
     synchronize_orchestration_projection,
 )
 from sentry.models.organizationmember import OrganizationMember
-from sentry.notebooks.endpoints.serializers import InvestigationBlockSerializer
+from sentry.notebooks.endpoints.serializers import NotebookBlockSerializer
 from sentry.notebooks.endpoints.validators.block import BlockUpdateValidator
 from sentry.notebooks.models import (
     NotebookActionRequest,
@@ -49,11 +47,13 @@ from sentry.notebooks.models import (
     NotebookBlockExecutor,
     NotebookStatus,
 )
+from sentry.notebooks.services.action_kinds import ACTION_KINDS
+from sentry.notebooks.services.action_requests import STALE
 from sentry.notebooks.services.notebooks import (
-    InvestigationConflictError,
-    archive_investigation,
+    NotebookConflictError,
+    archive_notebook_row,
     update_block,
-    update_investigation,
+    update_notebook_row,
 )
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
@@ -68,14 +68,11 @@ class SeerRunMirrorMixin:
     def seer_run_mirror(self, seer_run_state_id: int) -> SeerRun:
         """A SeerRun mirror standing in for a run Seer already accepted."""
 
-        return cast(
-            "SeerRun",
-            self.create_seer_run(  # type: ignore[attr-defined]
-                organization=self.organization,  # type: ignore[attr-defined]
-                type=SeerRunType.INVESTIGATION,
-                seer_run_state_id=seer_run_state_id,
-                mirror_status=SeerRunMirrorStatus.LIVE,
-            ),
+        return self.create_seer_run(  # type: ignore[attr-defined]
+            organization=self.organization,  # type: ignore[attr-defined]
+            type=SeerRunType.INVESTIGATION,
+            seer_run_state_id=seer_run_state_id,
+            mirror_status=SeerRunMirrorStatus.LIVE,
         )
 
 
@@ -357,8 +354,8 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         block = NotebookBlock.objects.get(notebook=self.investigation, producer_key="summary")
         self.investigation.refresh_from_db()
         self.orchestration_run.refresh_from_db()
-        archived = archive_investigation(
-            investigation=self.investigation, expected_version=self.investigation.version
+        archived = archive_notebook_row(
+            notebook=self.investigation, expected_version=self.investigation.version
         )
         version = archived.version
         notebook_revision = self.orchestration_run.notebook_revision
@@ -415,8 +412,8 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
 
     def test_scope_fallback_keeps_output_permissions_after_project_selection_changes(self) -> None:
         other_project = self.create_project(organization=self.organization)
-        update_investigation(
-            investigation=self.investigation,
+        update_notebook_row(
+            notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
             project_ids=[self.project.id, other_project.id],
@@ -431,8 +428,8 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         payload = self.report_block(projectIds=[], useInvestigationProjectScope=True)
         self.deliver(self.make_event(1, "report_block_started", payload))
         self.investigation.refresh_from_db()
-        update_investigation(
-            investigation=self.investigation,
+        update_notebook_row(
+            notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
             project_ids=[other_project.id],
@@ -539,15 +536,15 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
                 serialize(
                     block,
                     self.user,
-                    InvestigationBlockSerializer(),
+                    NotebookBlockSerializer(),
                 )["content"]
                 == "Original report"
             )
 
     def test_identical_replacement_result_keeps_the_started_project_scope(self) -> None:
         replacement_project = self.create_project(organization=self.organization)
-        update_investigation(
-            investigation=self.investigation,
+        update_notebook_row(
+            notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
             project_ids=[self.project.id],
@@ -558,8 +555,8 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         payload = self.report_block(projectIds=[], useInvestigationProjectScope=True)
         self.deliver(self.make_event(1, "report_block_upserted", payload))
         self.investigation.refresh_from_db()
-        update_investigation(
-            investigation=self.investigation,
+        update_notebook_row(
+            notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
             project_ids=[replacement_project.id],
@@ -584,7 +581,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
             serialize(
                 block,
                 self.user,
-                InvestigationBlockSerializer(),
+                NotebookBlockSerializer(),
             )["content"]
             == payload["content"]
         )
@@ -673,7 +670,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
             self.investigation.refresh_from_db()
             validator = BlockUpdateValidator(
                 data={
-                    "investigationVersion": self.investigation.version,
+                    "notebookVersion": self.investigation.version,
                     "version": block.version,
                     "display": {**block.display, "queryCollapsed": False},
                 },
@@ -746,8 +743,8 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
 
     def test_failed_kind_replacement_snapshot_restores_original_output(self) -> None:
         replacement_project = self.create_project(organization=self.organization)
-        update_investigation(
-            investigation=self.investigation,
+        update_notebook_row(
+            notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
             project_ids=[self.project.id],
@@ -761,8 +758,8 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         original_execution = block.current_execution
         assert original_execution is not None
         self.investigation.refresh_from_db()
-        update_investigation(
-            investigation=self.investigation,
+        update_notebook_row(
+            notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
             project_ids=[replacement_project.id],
@@ -829,7 +826,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
             serialize(
                 block,
                 self.user,
-                InvestigationBlockSerializer(),
+                NotebookBlockSerializer(),
             )["content"]
             == "Original report"
         )
@@ -1209,10 +1206,10 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         archive_investigation_with_orchestration(
             investigation=self.investigation,
             expected_version=original_version,
-            actor_id=self.user.id,
+            actor=ActorId(ActorType.USER, self.user.id),
         )
 
-        with pytest.raises(InvestigationConflictError):
+        with pytest.raises(NotebookConflictError):
             update_investigation_with_orchestration(
                 investigation=self.investigation,
                 expected_version=original_version,
@@ -1236,7 +1233,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         archived = archive_investigation_with_orchestration(
             investigation=self.investigation,
             expected_version=self.investigation.version,
-            actor_id=self.user.id,
+            actor=ActorId(ActorType.USER, self.user.id),
         )
         assert archived.status == NotebookStatus.ARCHIVED
         delayed_projection = self.projection(
@@ -1385,7 +1382,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         shared = serialize(
             block,
             viewer,
-            InvestigationBlockSerializer(),
+            NotebookBlockSerializer(),
         )
         assert shared["content"] == "fresh"
         assert shared["generatedContent"] == "fresh"
@@ -1424,7 +1421,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
             serialize(
                 in_flight,
                 self.user,
-                InvestigationBlockSerializer(),
+                NotebookBlockSerializer(),
             )["outputStatus"]
             == NotebookBlockExecutionStatus.RUNNING
         )
@@ -2458,7 +2455,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         self.investigation.refresh_from_db()
         edited = update_block(
             block=edited,
-            expected_investigation_version=self.investigation.version,
+            expected_notebook_version=self.investigation.version,
             expected_block_version=edited.version,
             user_id=self.user.id,
             values={"content": "my notes"},
@@ -3093,7 +3090,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
             state=NotebookActionRequestState.APPLIED,
         )
 
-        with patch("sentry.investigations.services.action_requests.logger") as logger:
+        with patch("sentry.notebooks.services.action_requests.logger") as logger:
             self.deliver_request(3, self.action_request("applied", primary=True))
 
         logger.warning.assert_called_once()
@@ -3133,7 +3130,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         archive_investigation_with_orchestration(
             investigation=self.investigation,
             expected_version=self.investigation.version,
-            actor_id=self.user.id,
+            actor=ActorId(ActorType.USER, self.user.id),
         )
 
         requested = self.deliver_request(1, self.action_request("late", reportRevision=0))
@@ -3661,8 +3658,8 @@ class InvestigationCompletedInboxTest(InvestigationOrchestrationEventTestBase):
         assert event.actor_type == InboxActorType.SYSTEM
         assert event.actor_id is None
         assert event.data == {
-            "summary": "Investigation completed",
             "seer_run_id": self.seer_run_id,
+            "generation": 1,
         }
 
     def test_replay_and_reconciliation_do_not_duplicate_pruned_events(self) -> None:
@@ -3845,6 +3842,113 @@ class InvestigationCompletedInboxTest(InvestigationOrchestrationEventTestBase):
         self.complete()
 
         assert not InboxItem.objects.exists()
+
+
+@with_feature(
+    {
+        "organizations:investigations": True,
+        "organizations:investigations-issue-links": True,
+    }
+)
+@patch("sentry.tasks.seer.investigation.publish_investigation_issue_links.delay")
+class InvestigationIssueLinksScheduleTest(InvestigationOrchestrationEventTestBase):
+    LINKED_ISSUES = [
+        {
+            "groupId": 1,
+            "hypothesisId": "h-1",
+            "hypothesisStatement": "Payment retries exhaust the pool",
+        }
+    ]
+
+    def completed(
+        self, *, workflow_version: int, generation: int = 1, linked: bool = True
+    ) -> dict[str, Any]:
+        projection = self.projection(
+            workflow_version=workflow_version,
+            generation=generation,
+            phase="completed",
+            status="completed",
+        )
+        if linked:
+            projection["linkedIssues"] = self.LINKED_ISSUES
+        return projection
+
+    def complete(self, *, sequence: int = 1, generation: int = 1) -> None:
+        self.deliver(
+            self.make_event(
+                sequence,
+                "workflow_updated",
+                {
+                    "projection": self.completed(
+                        workflow_version=sequence + 1, generation=generation
+                    )
+                },
+                generation=generation,
+            )
+        )
+
+    def test_completion_schedules_links_once_per_generation(self, mock_delay: Mock) -> None:
+        self.complete()
+        self.complete(sequence=2)
+        reconcile_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.completed(workflow_version=4),
+            expected_last_event_sequence=2,
+            expected_workflow_version=3,
+        )
+
+        mock_delay.assert_called_once_with(
+            investigation_id=self.investigation.id, linked_issues=self.LINKED_ISSUES
+        )
+
+    def test_new_generation_schedules_again(self, mock_delay: Mock) -> None:
+        self.complete()
+        synchronize_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.projection(workflow_version=3, generation=2),
+        )
+        self.complete(sequence=2, generation=2)
+
+        assert mock_delay.call_count == 2
+
+    def test_bad_linked_issues_are_dropped_without_failing_the_run(self, mock_delay: Mock) -> None:
+        projection = self.completed(workflow_version=2)
+        projection["linkedIssues"] = [*self.LINKED_ISSUES, {"groupId": "not-an-id"}]
+
+        self.deliver(self.make_event(1, "workflow_updated", {"projection": projection}))
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.status == "completed"
+        mock_delay.assert_called_once_with(
+            investigation_id=self.investigation.id, linked_issues=self.LINKED_ISSUES
+        )
+
+    def test_unfinished_run_schedules_nothing(self, mock_delay: Mock) -> None:
+        projection = self.projection(workflow_version=2)
+        projection["linkedIssues"] = self.LINKED_ISSUES
+        self.deliver(self.make_event(1, "workflow_updated", {"projection": projection}))
+
+        mock_delay.assert_not_called()
+
+    def test_completion_without_links_schedules_nothing(self, mock_delay: Mock) -> None:
+        self.deliver(
+            self.make_event(
+                1,
+                "workflow_updated",
+                {"projection": self.completed(workflow_version=2, linked=False)},
+            )
+        )
+
+        mock_delay.assert_not_called()
+
+    def test_flag_off_does_not_backfill_on_replay(self, mock_delay: Mock) -> None:
+        with self.feature({"organizations:investigations-issue-links": False}):
+            self.complete()
+        self.complete(sequence=2)
+
+        mock_delay.assert_not_called()
 
 
 @with_feature("organizations:investigations")

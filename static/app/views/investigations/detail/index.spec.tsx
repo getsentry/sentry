@@ -1,7 +1,8 @@
-import {useEffect, useState, type ReactNode} from 'react';
+import {useState, type ReactNode} from 'react';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {dragHandle} from 'sentry-test/dragMove';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   act,
@@ -18,13 +19,7 @@ import {
 import {Button} from '@sentry/scraps/button';
 import {toast} from '@sentry/scraps/toast';
 
-import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import {
-  AsyncSDKIntegrationContextProvider,
-  useAsyncSDKIntegrationStore,
-} from 'sentry/views/app/asyncSDKIntegrationProvider';
 import {
   getInvestigationDetailQueryOptions,
   investigationExecutionDetailQueryOptions,
@@ -68,36 +63,6 @@ const titleGenerationUrl =
 const orchestrationUrl =
   '/organizations/org-slug/investigations/investigation-1/orchestration/';
 
-const feedbackForm = {
-  appendToDom: jest.fn(),
-  open: jest.fn(),
-  close: jest.fn(),
-  removeFromDom: jest.fn(),
-};
-const createFeedbackForm = jest.fn().mockResolvedValue(feedbackForm);
-const feedbackIntegration = {
-  createForm: createFeedbackForm,
-} as unknown as FeedbackIntegration;
-
-function FeedbackProvider({children}: {children: ReactNode}) {
-  return (
-    <AsyncSDKIntegrationContextProvider>
-      <InstallFeedbackIntegration />
-      <GlobalFeedbackForm>{children}</GlobalFeedbackForm>
-    </AsyncSDKIntegrationContextProvider>
-  );
-}
-
-function InstallFeedbackIntegration() {
-  const {setState} = useAsyncSDKIntegrationStore();
-
-  useEffect(() => {
-    setState({Feedback: feedbackIntegration});
-  }, [setState]);
-
-  return null;
-}
-
 /** Stands in for Seer Agent, which is what takes an "Ask Seer" question. */
 function ChatPromptProvider({
   children,
@@ -117,24 +82,18 @@ function ChatPromptProvider({
 function renderView(
   renderOrganization = organization,
   queryClient = makeTestQueryClient(),
-  withFeedback = false,
   openChatPrompt?: SeerExplorerContextValue['openChatPrompt']
 ) {
   const result = render(<InvestigationDetailView />, {
     additionalWrapper: ({children}) => {
-      const content = withFeedback ? (
-        <FeedbackProvider>{children}</FeedbackProvider>
-      ) : (
-        children
-      );
       return (
         <QueryClientProvider client={queryClient}>
           {openChatPrompt ? (
             <ChatPromptProvider openChatPrompt={openChatPrompt}>
-              {content}
+              {children}
             </ChatPromptProvider>
           ) : (
-            content
+            children
           )}
         </QueryClientProvider>
       );
@@ -200,7 +159,6 @@ describe('Investigation detail', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({url: `${detailUrl}comment-counts/`, body: {}});
     jest.spyOn(toast, 'success').mockImplementation();
-    createFeedbackForm.mockClear();
     ConfigStore.set('customerDomain', null);
     MockApiClient.addMockResponse({
       url: `${detailUrl}presence/`,
@@ -260,34 +218,6 @@ describe('Investigation detail', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('opens feedback scoped to the investigation', async () => {
-    MockApiClient.addMockResponse({
-      url: detailUrl,
-      body: InvestigationDetailFixture({
-        sourceType: 'metric_open_period',
-      }),
-    });
-
-    renderView(organization, makeTestQueryClient(), true);
-
-    await userEvent.click(await screen.findByRole('button', {name: 'Give feedback'}));
-
-    await waitFor(() => {
-      expect(createFeedbackForm).toHaveBeenCalledWith(
-        expect.objectContaining({
-          formTitle: 'Give feedback on this investigation',
-          messagePlaceholder: 'What was useful, incorrect, or missing?',
-          tags: {
-            'feedback.source': 'investigation',
-            'feedback.owner': 'ml-ai',
-            'investigation.id': 'investigation-1',
-            'investigation.source_type': 'metric_open_period',
-          },
-        })
-      );
-    });
-  });
-
   it('links a breached metric investigation to its issue by monitor name', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
@@ -326,10 +256,7 @@ describe('Investigation detail', () => {
   });
 
   it('labels a manual investigation without a source link', async () => {
-    MockApiClient.addMockResponse({
-      url: detailUrl,
-      body: InvestigationDetailFixture(),
-    });
+    MockApiClient.addMockResponse({url: detailUrl, body: InvestigationDetailFixture()});
 
     renderView();
 
@@ -386,9 +313,7 @@ describe('Investigation detail', () => {
 
     renderView();
 
-    const nextStep = await screen.findByRole('region', {
-      name: 'Recommended action',
-    });
+    const nextStep = await screen.findByRole('region', {name: 'Recommended action'});
     expect(
       screen.getByTestId('investigation-summary').compareDocumentPosition(nextStep)
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
@@ -1460,6 +1385,9 @@ describe('Investigation detail', () => {
 
       afterEach(async () => {
         try {
+          // Unmount first: the page polls a pending re-check every 2s, and flushing
+          // the query cache's timers with it mounted re-renders it for minutes.
+          cleanup();
           await act(() => jest.runOnlyPendingTimersAsync());
         } finally {
           jest.useRealTimers();
@@ -1506,10 +1434,7 @@ describe('Investigation detail', () => {
   });
 
   it('leaves out the investigation details heading without a summary', async () => {
-    MockApiClient.addMockResponse({
-      url: detailUrl,
-      body: InvestigationDetailFixture(),
-    });
+    MockApiClient.addMockResponse({url: detailUrl, body: InvestigationDetailFixture()});
 
     renderView();
 
@@ -2137,9 +2062,7 @@ describe('Investigation detail', () => {
 
     renderView();
 
-    const titleInput = await screen.findByRole('textbox', {
-      name: 'Investigation title',
-    });
+    const titleInput = await screen.findByRole('textbox', {name: 'Investigation title'});
     await waitFor(() => expect(titleInput).toHaveValue('Checkout error rate spike'));
     await userEvent.clear(titleInput);
     fireEvent.blur(titleInput);
@@ -2176,6 +2099,7 @@ describe('Investigation detail', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
@@ -2229,13 +2153,8 @@ describe('Investigation detail', () => {
 
   it('invalidates the investigations list when metadata generation settles', async () => {
     const queryClient = makeTestQueryClient();
-    const listOptions = investigationListQueryOptions({
-      organizationSlug: 'org-slug',
-    });
-    queryClient.setQueryData(listOptions.queryKey, {
-      headers: {},
-      json: [],
-    });
+    const listOptions = investigationListQueryOptions({organizationSlug: 'org-slug'});
+    queryClient.setQueryData(listOptions.queryKey, {headers: {}, json: []});
     MockApiClient.addMockResponse({
       url: detailUrl,
       body: InvestigationDetailFixture({
@@ -2329,6 +2248,7 @@ describe('Investigation detail', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
@@ -2483,7 +2403,7 @@ describe('Investigation detail', () => {
     MockApiClient.addMockResponse({url: detailUrl, body: investigation});
     const openChatPrompt = jest.fn();
 
-    renderView(askSeerOrganization, makeTestQueryClient(), false, openChatPrompt);
+    renderView(askSeerOrganization, makeTestQueryClient(), openChatPrompt);
     await chooseBlockAction('Latency query', 'Ask Seer');
 
     expect(openChatPrompt).toHaveBeenCalledTimes(1);
@@ -2520,7 +2440,7 @@ describe('Investigation detail', () => {
     MockApiClient.addMockResponse({url: detailUrl, body: investigation});
     const openChatPrompt = jest.fn();
 
-    renderView(askSeerOrganization, makeTestQueryClient(), false, openChatPrompt);
+    renderView(askSeerOrganization, makeTestQueryClient(), openChatPrompt);
     await chooseBlockAction('Latency query', 'Ask Seer');
 
     const {block} = openChatPrompt.mock.calls[0][0].context;
@@ -2533,7 +2453,7 @@ describe('Investigation detail', () => {
     MockApiClient.addMockResponse({url: detailUrl, body: investigationWithQueryResult()});
     const openChatPrompt = jest.fn();
 
-    renderView(askSeerOrganization, makeTestQueryClient(), false, openChatPrompt);
+    renderView(askSeerOrganization, makeTestQueryClient(), openChatPrompt);
     await chooseBlockAction('Summary', 'Ask Seer');
 
     expect(openChatPrompt).toHaveBeenCalledWith({
@@ -2637,6 +2557,76 @@ describe('Investigation detail', () => {
     expect(screen.getByText('820ms')).toBeVisible();
   });
 
+  it('sizes the leading table column to its content and lets every column resize', async () => {
+    const investigation = investigationWithQueryResult();
+    investigation.blocks = [
+      {
+        ...investigation.blocks[1]!,
+        title: 'Database latency',
+        output: {
+          schemaVersion: 1,
+          preferredView: 'table',
+          tableMarkdown:
+            '| issue | endpoint | count |\n| --- | --- | --- |\n| ISSUE-1 | /api/0/projects/ | 12 |',
+          chart: null,
+          chartUnavailableReason: null,
+          isEmpty: false,
+          queryLinks: [],
+        },
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView();
+
+    expect(await screen.findByText('ISSUE-1')).toBeInTheDocument();
+
+    const table = within(screen.getByTestId('query-block')).getByRole('table');
+    expect(table).toHaveStyle({
+      gridTemplateColumns: 'fit-content(40%) minmax(0, 1fr) minmax(0, 1fr)',
+    });
+
+    // One handle per column but the last, which has nothing to its right to give
+    // width back to. Columns measure 0 in jsdom, so the width is the drag distance.
+    const resizers = within(table).getAllByRole('separator');
+    expect(resizers).toHaveLength(2);
+
+    dragHandle(resizers[1]!, {from: 100, to: 340});
+
+    await waitFor(() =>
+      expect(table).toHaveStyle({
+        gridTemplateColumns: 'fit-content(40%) 240px minmax(0, 1fr)',
+      })
+    );
+  });
+
+  it('gives a single-column table the full width', async () => {
+    const investigation = investigationWithQueryResult();
+    investigation.blocks = [
+      {
+        ...investigation.blocks[1]!,
+        title: 'Database latency',
+        output: {
+          schemaVersion: 1,
+          preferredView: 'table',
+          tableMarkdown: '| p95 |\n| --- |\n| 820ms |',
+          chart: null,
+          chartUnavailableReason: null,
+          isEmpty: false,
+          queryLinks: [],
+        },
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView();
+
+    expect(await screen.findByText('820ms')).toBeInTheDocument();
+    expect(within(screen.getByTestId('query-block')).getByRole('table')).toHaveStyle({
+      gridTemplateColumns: 'minmax(0, 1fr)',
+    });
+  });
+
   it('shows generated query evidence expanded when ready', async () => {
     const investigation = investigationWithQueryResult();
     investigation.blocks = [
@@ -2694,10 +2684,7 @@ describe('Investigation detail', () => {
   });
 
   it('renders the outer query title as non-editable text', async () => {
-    MockApiClient.addMockResponse({
-      url: detailUrl,
-      body: investigationWithQueryResult(),
-    });
+    MockApiClient.addMockResponse({url: detailUrl, body: investigationWithQueryResult()});
     renderView();
     expect(
       await screen.findByRole('heading', {level: 3, name: 'Latency query'})
@@ -2805,9 +2792,7 @@ describe('Investigation detail', () => {
     renderView();
     const chartHeader = await screen.findByTestId('query-block-header');
     expect(
-      within(chartHeader).getByRole('heading', {
-        name: 'Top Issues in spike window',
-      })
+      within(chartHeader).getByRole('heading', {name: 'Top Issues in spike window'})
     ).toBeInTheDocument();
     expect(
       within(chartHeader).getByText(/3:57pm–4:12pm PST\s+\|\s+363 Total Events/)
@@ -2842,10 +2827,7 @@ describe('Investigation detail', () => {
     act(() => {
       queryClient.setQueryData(options.queryKey, current =>
         current
-          ? {
-              ...current,
-              json: {...current.json, blocks: undefined, version: 2},
-            }
+          ? {...current, json: {...current.json, blocks: undefined, version: 2}}
           : current
       );
     });
@@ -2854,9 +2836,7 @@ describe('Investigation detail', () => {
     await waitFor(() =>
       expect(deleteRequest).toHaveBeenCalledWith(
         `${detailUrl}blocks/${block.id}/`,
-        expect.objectContaining({
-          data: {investigationVersion: 1, version: 1},
-        })
+        expect.objectContaining({data: {notebookVersion: 1, version: 1}})
       )
     );
     expect(screen.queryByDisplayValue('Latency query')).not.toBeInTheDocument();
@@ -2880,9 +2860,7 @@ describe('Investigation detail', () => {
     await waitFor(() =>
       expect(deleteRequest).toHaveBeenCalledWith(
         `${detailUrl}blocks/${block.id}/`,
-        expect.objectContaining({
-          data: {investigationVersion: 1, version: 1},
-        })
+        expect.objectContaining({data: {notebookVersion: 1, version: 1}})
       )
     );
     expect(
@@ -2925,7 +2903,7 @@ describe('Investigation detail', () => {
     });
     const openChatPrompt = jest.fn();
 
-    renderView(askSeerOrganization, queryClient, false, openChatPrompt);
+    renderView(askSeerOrganization, queryClient, openChatPrompt);
     expect(await screen.findByText('Previous successful result')).toBeInTheDocument();
     expect(await screen.findByText('Working on this analysis…')).toBeInTheDocument();
 
@@ -3305,10 +3283,7 @@ describe('Investigation detail', () => {
       expect(resumeRequest).toHaveBeenCalledWith(
         executionUrl,
         expect.objectContaining({
-          data: {
-            input_id: 'input-1',
-            response_data: {answers: ['Production']},
-          },
+          data: {input_id: 'input-1', response_data: {answers: ['Production']}},
         })
       )
     );
@@ -3337,6 +3312,7 @@ describe('Investigation detail', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
@@ -3352,10 +3328,7 @@ describe('Investigation detail', () => {
       const renameRequest = MockApiClient.addMockResponse({
         url: detailUrl,
         method: 'PUT',
-        body: InvestigationDetailFixture({
-          title: 'Renamed',
-          version: 2,
-        }),
+        body: InvestigationDetailFixture({title: 'Renamed', version: 2}),
       });
 
       renderView();
@@ -3372,12 +3345,7 @@ describe('Investigation detail', () => {
       await waitFor(() =>
         expect(renameRequest).toHaveBeenCalledWith(
           detailUrl,
-          expect.objectContaining({
-            data: {
-              title: 'Renamed',
-              investigationVersion: 1,
-            },
-          })
+          expect.objectContaining({data: {title: 'Renamed', notebookVersion: 1}})
         )
       );
     });
@@ -3430,10 +3398,7 @@ describe('Investigation detail', () => {
               }
             : current
         );
-        return InvestigationDetailFixture({
-          title: 'Renamed investigation',
-          version: 2,
-        });
+        return InvestigationDetailFixture({title: 'Renamed investigation', version: 2});
       },
     });
 
@@ -3452,10 +3417,7 @@ describe('Investigation detail', () => {
   });
 
   it('flushes a pending title change when the page unmounts', async () => {
-    MockApiClient.addMockResponse({
-      url: detailUrl,
-      body: investigationWithQueryResult(),
-    });
+    MockApiClient.addMockResponse({url: detailUrl, body: investigationWithQueryResult()});
     const renameRequest = MockApiClient.addMockResponse({
       url: detailUrl,
       method: 'PUT',
@@ -3474,7 +3436,7 @@ describe('Investigation detail', () => {
       expect(renameRequest).toHaveBeenCalledWith(
         detailUrl,
         expect.objectContaining({
-          data: {title: 'Saved before leaving', investigationVersion: 1},
+          data: {title: 'Saved before leaving', notebookVersion: 1},
         })
       )
     );
@@ -3487,6 +3449,7 @@ describe('Investigation detail', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
@@ -3530,10 +3493,7 @@ describe('Investigation detail', () => {
   });
 
   it('duplicates and opens the duplicate from the title menu', async () => {
-    MockApiClient.addMockResponse({
-      url: detailUrl,
-      body: investigationWithQueryResult(),
-    });
+    MockApiClient.addMockResponse({url: detailUrl, body: investigationWithQueryResult()});
     MockApiClient.addMockResponse({
       url: `${detailUrl}duplicate/`,
       method: 'POST',
@@ -3579,10 +3539,7 @@ describe('Investigation detail', () => {
       value: {writeText},
       writable: true,
     });
-    MockApiClient.addMockResponse({
-      url: detailUrl,
-      body: investigationWithQueryResult(),
-    });
+    MockApiClient.addMockResponse({url: detailUrl, body: investigationWithQueryResult()});
 
     renderView();
     await userEvent.click(await screen.findByLabelText('Investigation actions'));
@@ -3596,10 +3553,7 @@ describe('Investigation detail', () => {
   });
 
   it('shows a capped comment count when more comments exist', async () => {
-    MockApiClient.addMockResponse({
-      url: detailUrl,
-      body: investigationWithQueryResult(),
-    });
+    MockApiClient.addMockResponse({url: detailUrl, body: investigationWithQueryResult()});
     MockApiClient.addMockResponse({
       url: `${detailUrl}comments/`,
       body: [InvestigationCommentFixture()],
@@ -3620,6 +3574,7 @@ describe('Investigation detail', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
@@ -3661,7 +3616,7 @@ describe('Investigation detail', () => {
       await waitFor(() =>
         expect(deleteRequest).toHaveBeenCalledWith(
           detailUrl,
-          expect.objectContaining({data: {investigationVersion: 1}})
+          expect.objectContaining({data: {notebookVersion: 1}})
         )
       );
       await act(() => jest.advanceTimersByTimeAsync(600));
@@ -3696,10 +3651,7 @@ describe('Investigation detail', () => {
       headers: {},
       json: investigationWithQueryResult(),
     });
-    const request = MockApiClient.addMockResponse({
-      url: detailUrl,
-      statusCode: 500,
-    });
+    const request = MockApiClient.addMockResponse({url: detailUrl, statusCode: 500});
 
     renderView(organization, queryClient);
     expect(screen.getByText('Investigate database latency')).toBeInTheDocument();
@@ -3731,10 +3683,7 @@ describe('Investigation detail', () => {
     });
 
     renderView(
-      OrganizationFixture({
-        features: ['investigations'],
-        openMembership: false,
-      })
+      OrganizationFixture({features: ['investigations'], openMembership: false})
     );
 
     expect(
@@ -3821,7 +3770,7 @@ describe('Investigation detail', () => {
     });
     const openChatPrompt = jest.fn();
 
-    renderView(askSeerOrganization, makeTestQueryClient(), false, openChatPrompt);
+    renderView(askSeerOrganization, makeTestQueryClient(), openChatPrompt);
     expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
     await userEvent.click(screen.getByLabelText('Investigation actions'));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Ask Seer'}));
@@ -3886,7 +3835,7 @@ describe('Investigation detail', () => {
     });
     const openChatPrompt = jest.fn();
 
-    renderView(askSeerOrganization, makeTestQueryClient(), false, openChatPrompt);
+    renderView(askSeerOrganization, makeTestQueryClient(), openChatPrompt);
     await userEvent.click(await screen.findByLabelText('Investigation actions'));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Ask Seer'}));
 
@@ -3909,7 +3858,7 @@ describe('Investigation detail', () => {
     });
     const openChatPrompt = jest.fn();
 
-    renderView(askSeerOrganization, makeTestQueryClient(), false, openChatPrompt);
+    renderView(askSeerOrganization, makeTestQueryClient(), openChatPrompt);
     await screen.findAllByTestId('investigation-hypothesis');
     // A run past verification opens with its hypotheses folded away.
     await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
@@ -3962,7 +3911,7 @@ describe('Investigation detail', () => {
     });
     const openChatPrompt = jest.fn();
 
-    renderView(askSeerOrganization, makeTestQueryClient(), false, openChatPrompt);
+    renderView(askSeerOrganization, makeTestQueryClient(), openChatPrompt);
     await screen.findAllByTestId('investigation-hypothesis');
     await userEvent.click(screen.getByRole('button', {name: 'Actions for hypotheses'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Ask Seer'}));
@@ -3988,10 +3937,7 @@ describe('Investigation detail', () => {
   });
 
   it('does not reach for orchestration on a manual investigation', async () => {
-    MockApiClient.addMockResponse({
-      url: detailUrl,
-      body: investigationWithQueryResult(),
-    });
+    MockApiClient.addMockResponse({url: detailUrl, body: investigationWithQueryResult()});
     const orchestrationRequest = MockApiClient.addMockResponse({
       url: orchestrationUrl,
       body: InvestigationOrchestrationFixture(),

@@ -37,23 +37,14 @@ import {
 const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
     minimized: true,
-    sizes: {
-      'drawer left': 0.33,
-      'drawer right': 0.33,
-      'drawer bottom': 0.4,
-    },
+    sizes: {'drawer left': 0.33, 'drawer right': 0.33, 'drawer bottom': 0.4},
     layoutOptions: [],
   },
   missing_instrumentation: true,
-  autogroup: {
-    parent: true,
-    sibling: true,
-  },
+  autogroup: {parent: true, sibling: true},
   compressed_timeline: false,
   layout: 'drawer bottom',
-  list: {
-    width: 0.5,
-  },
+  list: {width: 0.5},
 };
 
 type TracePreviewSource = 'feedback' | 'issues';
@@ -62,6 +53,10 @@ interface TracePreviewProps {
   event: Event;
   organization: Organization;
   source: TracePreviewSource;
+  /**
+   * Set to false when the caller shows the trace's other issues itself.
+   */
+  showLinkedIssues?: boolean;
 }
 
 interface TracePreviewWaterfallProps extends TracePreviewProps {
@@ -100,12 +95,7 @@ function TracePreviewWaterfall({
     tree,
   });
 
-  const rootEventResults = useTraceRootEvent({
-    tree,
-    logs: undefined,
-    timestamp,
-    traceId,
-  });
+  const rootEventResults = useTraceRootEvent({tree, logs: undefined, timestamp, traceId});
   const traceEventView = useTraceEventView(traceId, params);
 
   return (
@@ -125,7 +115,12 @@ function TracePreviewWaterfall({
   );
 }
 
-export function TracePreview({event, organization, source}: TracePreviewProps) {
+export function TracePreview({
+  event,
+  organization,
+  source,
+  showLinkedIssues = true,
+}: TracePreviewProps) {
   const traceId = event.contexts.trace?.trace_id;
   const preferences = useMemo(
     () =>
@@ -143,14 +138,16 @@ export function TracePreview({event, organization, source}: TracePreviewProps) {
 
   return (
     <Fragment>
-      <TraceLinkedIssues
-        event={event}
-        source={
-          source === 'feedback'
-            ? 'feedback-details-trace-preview'
-            : 'issue-details-trace-preview'
-        }
-      />
+      {showLinkedIssues && (
+        <TraceLinkedIssues
+          event={event}
+          source={
+            source === 'feedback'
+              ? 'feedback-details-trace-preview'
+              : 'issue-details-trace-preview'
+          }
+        />
+      )}
       <LazyRender observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}>
         {organization.features.includes('profiling') && (
           <TraceStateProvider
@@ -179,13 +176,7 @@ export function TracePreviewFullTraceButton({
   const traceTarget = getTraceTargetFromEvent(
     event,
     organization,
-    {
-      ...location,
-      query: {
-        groupId: event.groupID,
-        referrer: location.query.referrer,
-      },
-    },
+    {...location, query: {groupId: event.groupID, referrer: location.query.referrer}},
     source === 'feedback'
       ? TraceViewSources.FEEDBACK_DETAILS
       : TraceViewSources.ISSUE_DETAILS

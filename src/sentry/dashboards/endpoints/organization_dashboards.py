@@ -5,7 +5,20 @@ from typing import Required, TypedDict
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
-from django.db.models import Case, Exists, F, IntegerField, OrderBy, OuterRef, Subquery, Value, When
+from django.db.models import (
+    Case,
+    Exists,
+    F,
+    Func,
+    IntegerField,
+    OrderBy,
+    OuterRef,
+    Q,
+    Subquery,
+    TextField,
+    Value,
+    When,
+)
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -17,6 +30,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.endpoints.organization_explore_formulas import saved_formula_regex
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import (
@@ -31,6 +45,7 @@ from sentry.apidocs.constants import (
     RESPONSE_CONFLICT,
     RESPONSE_FORBIDDEN,
     RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import (
@@ -50,6 +65,7 @@ from sentry.models.dashboard import (
     DashboardFavoriteUser,
     DashboardLastVisited,
 )
+from sentry.models.dashboard_widget import DashboardWidgetQuery
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
@@ -443,6 +459,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 "DashboardListResponse", list[DashboardListResponse]
             ),
             400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
@@ -544,6 +561,30 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         if query:
             dashboards = dashboards.filter(title__icontains=query)
+
+        formula = request.query_params.get("formula")
+        if formula is not None and features.has(
+            "organizations:explore-saved-formulas", organization, actor=request.user
+        ):
+            regex = saved_formula_regex(formula)
+            matching_widget_queries = (
+                DashboardWidgetQuery.objects.filter(widget__dashboard_id=OuterRef("pk"))
+                .annotate(
+                    aggregates_text=Func(
+                        F("aggregates"),
+                        Value(" ", output_field=TextField()),
+                        function="array_to_string",
+                        output_field=TextField(),
+                    )
+                )
+                .filter(
+                    Q(conditions__regex=regex)
+                    | Q(orderby__regex=regex)
+                    | Q(aggregates_text__regex=regex)
+                )
+            )
+            dashboards = dashboards.filter(Exists(matching_widget_queries))
+
         if should_filter_by_prebuilt_ids:
             dashboards = dashboards.filter(prebuilt_id__in=prebuilt_ids)
 
@@ -699,6 +740,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         responses={
             201: DashboardDetailsModelSerializer,
             400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
             409: RESPONSE_CONFLICT,

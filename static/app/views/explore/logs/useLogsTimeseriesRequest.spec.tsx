@@ -32,10 +32,6 @@ describe('useLogsTimeseriesRequest', () => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it.each([false, true])(
     'deduplicates transformations and adds a raw count with the feature enabled=%s',
     enabled => {

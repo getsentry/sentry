@@ -33,12 +33,12 @@ export function SlackDetails({
       logo: ActionMetadata[ActionType.SLACK]?.icon,
       workspace: integrationName,
       channel: action.config.targetDisplay || action.config.targetIdentifier,
-      tagsAndNotes: SlackTagsAndNotes(action),
+      tagsAndNotes: <SlackTagsAndNotes action={action} />,
     }
   );
 }
 
-function SlackTagsAndNotes(action: Action) {
+function SlackTagsAndNotes({action}: {action: Action}) {
   const notes = action.data.notes;
   const tags = action.data.tags;
 
@@ -97,9 +97,7 @@ function NotesField() {
       placeholder={t('e.g. @jane, @on-call-team')}
       value={action.data.notes ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-        onUpdate({
-          data: {...action.data, notes: e.target.value},
-        });
+        onUpdate({data: {...action.data, notes: e.target.value}});
       }}
     />
   );

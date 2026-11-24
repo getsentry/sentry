@@ -6,15 +6,20 @@ from parsimonious.exceptions import ParseError
 from rest_framework import serializers
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
-from sentry import features, quotas
-from sentry.constants import ObjectStatus
+from sentry.auth.principal import has_user
 from sentry.incidents.logic import (
     DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
     enable_disable_subscriptions,
     get_alert_resolution,
 )
+from sentry.incidents.metric_detector_quota import (
+    can_enable_metric_detectors,
+    get_metric_detector_quota,
+    metric_detector_quota_message,
+)
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.seer.anomaly_detection.delete_rule import delete_data_in_seer_for_detector
@@ -41,6 +46,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
 from sentry.workflow_engine.endpoints.validators.base.data_condition import (
     BaseDataConditionValidator,
 )
+from sentry.workflow_engine.endpoints.validators.utils import log_alerting_quota_hit
 from sentry.workflow_engine.models import DataCondition, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import detector_settings_registry
@@ -53,12 +59,16 @@ from sentry.workflow_engine.types import (
 
 def fetch_snuba_query(detector: Detector) -> SnubaQuery | None:
     try:
-        source_instance = DataSource.objects.get(detector=detector)
+        source_instance = DataSource.objects.get(
+            detector=detector, type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        )
     except DataSource.DoesNotExist:
         return None
     if source_instance:
         try:
-            query_subscription = QuerySubscription.objects.get(id=source_instance.source_id)
+            query_subscription = QuerySubscription.objects.get(
+                id=source_instance.source_id, project_id=detector.linked_project.id
+            )
         except QuerySubscription.DoesNotExist:
             return None
     if query_subscription:
@@ -156,9 +166,9 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
     conditions = serializers.ListField(required=True)
 
     def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        MetricIssueComparisonConditionValidator(data=value, many=True).is_valid(
-            raise_exception=True
-        )
+        MetricIssueComparisonConditionValidator(
+            data=value, many=True, context=self.context
+        ).is_valid(raise_exception=True)
         condition_types = {condition["type"] for condition in value}
         has_anomaly_detection = Condition.ANOMALY_DETECTION in condition_types
         if has_anomaly_detection and condition_types != {Condition.ANOMALY_DETECTION}:
@@ -266,15 +276,10 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 )
 
     def _validate_transaction_dataset_deprecation(self, dataset: Dataset) -> None:
-        organization = self.context.get("organization")
-        if organization is None:
-            raise serializers.ValidationError("Missing organization context")
-
-        if features.has("organizations:discover-saved-queries-deprecation", organization):
-            if dataset in [Dataset.PerformanceMetrics, Dataset.Transactions]:
-                raise serializers.ValidationError(
-                    "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
-                )
+        if dataset in [Dataset.PerformanceMetrics, Dataset.Transactions]:
+            raise serializers.ValidationError(
+                "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
+            )
 
     def _validate_extrapolation_mode(self, extrapolation_mode: ExtrapolationMode) -> None:
         if extrapolation_mode in [ExtrapolationMode.SERVER_WEIGHTED, ExtrapolationMode.NONE]:
@@ -354,46 +359,35 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         request = self.context.get("request")
         if organization is None or request is None:
             raise serializers.ValidationError("Missing organization/request context")
+        return get_metric_detector_quota(organization, actor=request.user)
 
-        detector_limit = quotas.backend.get_metric_detector_limit(organization.id)
-        if (
-            not features.has(
-                "organizations:workflow-engine-metric-detector-limit",
-                organization,
-                actor=request.user,
-            )
-            or detector_limit == -1
-        ):
-            return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
+    def get_quota_message(self, quota: DetectorQuota) -> str:
+        return metric_detector_quota_message(quota)
 
-        detector_count = Detector.objects.filter(
-            project__organization=organization,
-            type="metric_issue",  # Avoided circular import. TODO: move magic strings to constant file
-            status=ObjectStatus.ACTIVE,
-        ).count()
-        has_exceeded = detector_count >= detector_limit
-
-        return DetectorQuota(has_exceeded=has_exceeded, limit=detector_limit, count=detector_count)
+    def _enforce_enabled_detector_quota(self) -> None:
+        quota = self.get_quota()
+        if can_enable_metric_detectors(quota, 1):
+            return
+        request = self.context["request"]
+        log_alerting_quota_hit(
+            object_type=f"detector:{DetectorType.METRIC_ISSUE}",
+            organization=self.context["organization"],
+            actor=request.user if has_user(request.user) else None,
+        )
+        raise serializers.ValidationError(metric_detector_quota_message(quota))
 
     def is_editing_transaction_dataset(
         self, snuba_query: SnubaQuery, data_source: SnubaQueryDataSourceType
     ) -> bool:
-        organization = self.context.get("organization")
         current_dataset = Dataset(snuba_query.dataset)
         new_dataset = data_source.get("dataset", current_dataset)
 
-        if (
-            features.has("organizations:discover-saved-queries-deprecation", organization)
-            and new_dataset in [Dataset.PerformanceMetrics, Dataset.Transactions]
-            and (
-                new_dataset != current_dataset
-                or data_source.get("query", snuba_query.query) != snuba_query.query
-                or data_source.get("aggregate", snuba_query.aggregate) != snuba_query.aggregate
-                or data_source.get("time_window", snuba_query.time_window)
-                != snuba_query.time_window
-                or data_source.get("event_types", snuba_query.event_types)
-                != snuba_query.event_types
-            )
+        if new_dataset in [Dataset.PerformanceMetrics, Dataset.Transactions] and (
+            new_dataset != current_dataset
+            or data_source.get("query", snuba_query.query) != snuba_query.query
+            or data_source.get("aggregate", snuba_query.aggregate) != snuba_query.aggregate
+            or data_source.get("time_window", snuba_query.time_window) != snuba_query.time_window
+            or data_source.get("event_types", snuba_query.event_types) != snuba_query.event_types
         ):
             return True
         return False
@@ -405,12 +399,16 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         seer_updated: bool = False,
     ) -> None:
         try:
-            source_instance = DataSource.objects.get(detector=instance)
+            source_instance = DataSource.objects.get(
+                detector=instance, type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+            )
         except DataSource.DoesNotExist:
             return
         if source_instance:
             try:
-                query_subscription = QuerySubscription.objects.get(id=source_instance.source_id)
+                query_subscription = QuerySubscription.objects.get(
+                    id=source_instance.source_id, project_id=instance.linked_project.id
+                )
             except QuerySubscription.DoesNotExist:
                 raise serializers.ValidationError("QuerySubscription not found, can't update")
         if query_subscription:
@@ -519,6 +517,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         return seer_updated
 
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
+        if validated_data.get("enabled") is True and not instance.enabled:
+            self._enforce_enabled_detector_quota()
+
         if "config" in validated_data:
             self._clean_config(validated_data["config"])
 
@@ -533,7 +534,13 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             assert isinstance(enabled, bool)
 
             query_subscriptions = QuerySubscription.objects.filter(
-                id__in=[data_source.source_id for data_source in instance.data_sources.all()]
+                id__in=[
+                    data_source.source_id
+                    for data_source in instance.data_sources.filter(
+                        type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+                    )
+                ],
+                project_id=instance.linked_project.id,
             )
             if query_subscriptions:
                 enable_disable_subscriptions(query_subscriptions, enabled)

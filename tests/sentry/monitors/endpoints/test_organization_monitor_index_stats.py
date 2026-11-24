@@ -7,7 +7,6 @@ from sentry.monitors.endpoints.organization_monitor_index_stats import MAX_STATS
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
-    MonitorCheckIn,
     MonitorEnvironment,
 )
 from sentry.testutils.cases import MonitorTestCase
@@ -30,7 +29,7 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
         if env is None:
             env = self.env_prod
 
-        MonitorCheckIn.objects.create(
+        self.create_monitor_checkin(
             monitor_environment=env,
             date_added=self.monitor1.date_added + timedelta(**offset),
             status=status,

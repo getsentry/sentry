@@ -3,25 +3,18 @@ import {useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {Panel} from 'sentry/components/panels/panel';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type SearchSuggestion = {
-  label: string;
-  query: string;
-};
+type SearchSuggestion = {label: string; query: string};
 
 const RECOMMENDED_SEARCHES: SearchSuggestion[] = [
   {label: t('Prioritized'), query: 'is:unresolved issue.priority:[high, medium]'},
   {label: t('Assigned to Me'), query: 'is:unresolved assigned_or_suggested:me'},
-  {
-    label: t('For Review'),
-    query: 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
-  },
   {label: t('Request Errors'), query: 'is:unresolved http.status_code:5*'},
   {label: t('High Volume Issues'), query: 'is:unresolved timesSeen:>100'},
   {label: t('Recent Errors'), query: 'is:unresolved issue.category:error firstSeen:-24h'},

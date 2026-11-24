@@ -230,7 +230,7 @@ function FailureChip({label}: {label: ReactNode}) {
     // whose descender room (unused by digits) reads as extra bottom padding.
     <Flex
       align="center"
-      border="danger"
+      border="danger.vibrant"
       radius="sm"
       padding="2xs sm"
       background="primary"

@@ -135,7 +135,7 @@ class TagStorage(Service):
     def get_tag_keys_for_projects(
         self,
         projects: Sequence[int],
-        environments: Sequence[str] | None,
+        environment_ids: Sequence[int] | None,
         start: datetime,
         end: datetime,
         dataset: Dataset = Dataset.Events,

@@ -4,10 +4,10 @@ import {IconDelete} from '@sentry/icons/delete';
 import invariant from 'invariant';
 
 import {ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import * as events from 'sentry/utils/events';
@@ -107,7 +107,7 @@ export function ReplayBadge({replay}: Props) {
             <IconCalendar variant="muted" size="xs" />
             <Text size="sm" variant="muted" wrap="normal">
               {timestampType === 'absolute' ? (
-                <DateTime year timeZone date={replay.started_at} />
+                <DateTime date={replay.started_at} year="always" showTimezone />
               ) : (
                 <TimeSince date={replay.started_at} />
               )}

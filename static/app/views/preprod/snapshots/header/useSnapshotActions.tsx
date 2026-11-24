@@ -18,6 +18,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -48,11 +49,7 @@ export interface SnapshotActions {
    */
   buildMenuItems: (openDeleteModal: () => void) => MenuItemProps[];
   canApprove: boolean;
-  confirmDeleteProps: {
-    confirmInput: string;
-    message: string;
-    onConfirm: () => void;
-  };
+  confirmDeleteProps: {confirmInput: string; message: string; onConfirm: () => void};
   isApproving: boolean;
   onApprove: () => void;
 }
@@ -245,7 +242,7 @@ export function useSnapshotActions({
       if (json.ready) {
         downloadFromHref(
           `snapshot_images_${data.head_artifact_id}.zip`,
-          `/api/0${archiveUrl}?download=true`
+          resolveHostname(`/api/0${archiveUrl}?download=true`)
         );
         return;
       }

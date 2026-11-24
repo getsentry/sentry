@@ -1,15 +1,13 @@
 import styled from '@emotion/styled';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {RelayActivity} from 'sentry/types/relay';
 
-type Props = {
-  activities: RelayActivity[];
-};
+type Props = {activities: RelayActivity[]};
 
 export function ActivityList({activities}: Props) {
   return (

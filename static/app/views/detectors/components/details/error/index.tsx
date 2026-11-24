@@ -2,7 +2,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -27,10 +27,7 @@ import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeCon
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-type ErrorDetectorDetailsProps = {
-  detector: Detector;
-  project: Project;
-};
+type ErrorDetectorDetailsProps = {detector: Detector; project: Project};
 
 const formatResolveAge = (resolveAge: number) => {
   if (!resolveAge) {
@@ -88,7 +85,9 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
           type: 'page-title',
           label: project.slug,
           leadingGraphic: (
-            <ProjectBadge disableLink hideName project={project} avatarSize={16} />
+            <ProjectsBadge
+              projectPlatforms={project.platform ? [project.platform] : ['default']}
+            />
           ),
         }}
         items={[

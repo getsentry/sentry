@@ -26,8 +26,6 @@ function defaultProps(overrides = {}) {
     onCopyLinkClick: jest.fn(),
     overrideBashModeEnabled: false,
     onOverrideBashModeToggle: jest.fn(),
-    showThinking: false,
-    onShowThinkingToggle: jest.fn(),
     isPipSupported: false,
     isPoppedOut: false,
     onTogglePictureInPicture: jest.fn(),
@@ -51,6 +49,20 @@ describe('SeerExplorerHeader', () => {
   // New Chat buttons) are always in the DOM here. These tests assert presence and
   // behavior; which variant is actually visible at a given width is a CSS concern
   // verified visually.
+  function mockChatHistory() {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/seer/runs/`,
+      method: 'GET',
+      body: [{id: 1, title: 'Flaky deploy', lastTriggeredAt: '2026-11-11T00:00:00Z'}],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/seer/runs/`,
+      method: 'GET',
+      body: [],
+      match: [MockApiClient.matchQuery({query: 'nothing'})],
+    });
+  }
+
   async function renderHeader(props = {}, org = orgWith()) {
     const result = render(
       <SeerExplorerSessionsProvider>
@@ -67,9 +79,7 @@ describe('SeerExplorerHeader', () => {
     beforeEach(() => {
       ConfigStore.set(
         'user',
-        UserFixture({
-          emails: [{email: 'employee@sentry.io', is_verified: true, id: '1'}],
-        })
+        UserFixture({emails: [{email: 'employee@sentry.io', is_verified: true, id: '1'}]})
       );
     });
 
@@ -88,30 +98,6 @@ describe('SeerExplorerHeader', () => {
       await renderHeader();
 
       expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
-    });
-
-    it('renders the thinking toggle behind its flag', async () => {
-      await renderHeader({}, orgWith('seer-explorer-thinking-blocks'));
-
-      await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
-
-      expect(screen.getByRole('option', {name: /Show thinking/})).toBeInTheDocument();
-      expect(
-        screen.getByRole('option', {name: /Force bash mode on/})
-      ).toBeInTheDocument();
-    });
-
-    it('hides the thinking toggle when code mode tools is enabled', async () => {
-      await renderHeader(
-        {},
-        orgWith('seer-explorer-thinking-blocks', 'seer-explorer-code-mode-tools')
-      );
-
-      await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
-
-      expect(
-        screen.queryByRole('option', {name: /Show thinking/})
-      ).not.toBeInTheDocument();
     });
 
     it('toggles force bash mode', async () => {
@@ -239,6 +225,7 @@ describe('SeerExplorerHeader', () => {
     });
 
     it('opens a searchable chat history dropdown', async () => {
+      mockChatHistory();
       await renderHeader();
 
       // Both the inline and overflow variants mount a chat history trigger.
@@ -247,6 +234,28 @@ describe('SeerExplorerHeader', () => {
       expect(
         await screen.findByPlaceholderText('Search chats\u2026')
       ).toBeInTheDocument();
+    });
+
+    it('shows an empty state when there is no chat history', async () => {
+      await renderHeader();
+
+      const [chatHistory] = screen.getAllByRole('button', {name: 'Chat history'});
+      await userEvent.click(chatHistory!);
+      expect(await screen.findByText('No chats yet')).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('Search chats\u2026')).not.toBeInTheDocument();
+    });
+
+    it('shows a no-results state when a search matches nothing', async () => {
+      mockChatHistory();
+      await renderHeader();
+
+      const [chatHistory] = screen.getAllByRole('button', {name: 'Chat history'});
+      await userEvent.click(chatHistory!);
+      await userEvent.type(
+        await screen.findByPlaceholderText('Search chats\u2026'),
+        'nothing'
+      );
+      expect(await screen.findByText('No chats match your search.')).toBeInTheDocument();
     });
   });
 });

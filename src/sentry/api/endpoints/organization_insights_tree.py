@@ -60,9 +60,6 @@ class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
         if not request.GET.get("noPagination", False):
             return Response(status=404)
 

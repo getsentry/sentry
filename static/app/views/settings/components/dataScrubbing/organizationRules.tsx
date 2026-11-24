@@ -14,9 +14,7 @@ import type {Organization} from 'sentry/types/organization';
 import {convertRelayPiiConfig} from './convertRelayPiiConfig';
 import {Rules} from './rules';
 
-type Props = {
-  organization: Organization;
-};
+type Props = {organization: Organization};
 
 export function OrganizationRules({organization}: Props) {
   const [isCollapsed, toggleIsCollapsed] = useReducer(prev => !prev, true);

@@ -35,17 +35,11 @@ function Wrapper({children}: {children?: React.ReactNode}) {
 }
 
 const defaultRouterConfig: RouterConfig = {
-  location: {
-    pathname: '/',
-    query: {[LOGS_AUTO_REFRESH_KEY]: 'enabled'},
-  },
+  location: {pathname: '/', query: {[LOGS_AUTO_REFRESH_KEY]: 'enabled'}},
 };
 
 const idleRouterConfig: RouterConfig = {
-  location: {
-    pathname: '/',
-    query: {[LOGS_AUTO_REFRESH_KEY]: 'idle'},
-  },
+  location: {pathname: '/', query: {[LOGS_AUTO_REFRESH_KEY]: 'idle'}},
 };
 
 const severityGroupByRouterConfig: RouterConfig = {
@@ -80,10 +74,7 @@ describe('useStreamingTimeseriesResult', () => {
       isFetching: false,
       isPending: false,
       data: logFixtures,
-      meta: {
-        fields: {},
-        units: {},
-      },
+      meta: {fields: {}, units: {}},
       isEmpty: logFixtures.length === 0,
       fetchNextPage: jest.fn(),
       fetchPreviousPage: jest.fn(),
@@ -118,11 +109,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 70},
               {timestamp: 8000, value: 80},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
         ],
       },
@@ -150,11 +137,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 70},
               {timestamp: 8000, value: 80},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
         ],
         'avg(payload_size)': [
@@ -170,11 +153,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 7000},
               {timestamp: 8000, value: 8000},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
         ],
       },
@@ -203,11 +182,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 7},
               {timestamp: 8000, value: 8},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
           {
             yAxis: 'warn',
@@ -222,11 +197,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 70},
               {timestamp: 8000, value: 80},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
           {
             yAxis: 'info',
@@ -241,11 +212,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 700},
               {timestamp: 8000, value: 800},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
         ],
       },
@@ -274,11 +241,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 7},
               {timestamp: 8000, value: 8},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
           {
             yAxis: 'warn',
@@ -293,11 +256,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 70},
               {timestamp: 8000, value: 80},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
           {
             yAxis: 'info',
@@ -312,11 +271,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 700},
               {timestamp: 8000, value: 800},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
         ],
         'avg(payload_size)': [
@@ -333,11 +288,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 700},
               {timestamp: 8000, value: 800},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
           {
             yAxis: 'warn',
@@ -352,11 +303,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 7000},
               {timestamp: 8000, value: 8000},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
           {
             yAxis: 'info',
@@ -371,11 +318,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 70000},
               {timestamp: 8000, value: 80000},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
         ],
       },
@@ -407,11 +350,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 7},
               {timestamp: 8000, value: 8},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
           {
             yAxis: 'warn,backend',
@@ -429,11 +368,7 @@ describe('useStreamingTimeseriesResult', () => {
               {timestamp: 7000, value: 70},
               {timestamp: 8000, value: 80},
             ],
-            meta: {
-              valueType: 'integer' as const,
-              valueUnit: null,
-              interval: 1000,
-            },
+            meta: {valueType: 'integer' as const, valueUnit: null, interval: 1000},
           },
         ],
       },
@@ -451,11 +386,7 @@ describe('useStreamingTimeseriesResult', () => {
 
     const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
-      {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: defaultRouterConfig,
-        organization,
-      }
+      {additionalWrapper: Wrapper, initialRouterConfig: defaultRouterConfig, organization}
     );
 
     expect(result.current.data).toEqual(mockTimeseriesData.data);
@@ -467,11 +398,7 @@ describe('useStreamingTimeseriesResult', () => {
 
     const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
-      {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: idleRouterConfig,
-        organization,
-      }
+      {additionalWrapper: Wrapper, initialRouterConfig: idleRouterConfig, organization}
     );
 
     expect(result.current.data).toEqual(mockTimeseriesData.data);
@@ -483,11 +410,7 @@ describe('useStreamingTimeseriesResult', () => {
 
     const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
-      {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: idleRouterConfig,
-        organization,
-      }
+      {additionalWrapper: Wrapper, initialRouterConfig: idleRouterConfig, organization}
     );
 
     expect(result.current.data).toEqual(mockTimeseriesData.data);
@@ -499,11 +422,7 @@ describe('useStreamingTimeseriesResult', () => {
 
     const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
-      {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: idleRouterConfig,
-        organization,
-      }
+      {additionalWrapper: Wrapper, initialRouterConfig: idleRouterConfig, organization}
     );
 
     expect(result.current.data).toEqual(mockTimeseriesData.data);
@@ -515,11 +434,7 @@ describe('useStreamingTimeseriesResult', () => {
 
     const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
-      {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: idleRouterConfig,
-        organization,
-      }
+      {additionalWrapper: Wrapper, initialRouterConfig: idleRouterConfig, organization}
     );
 
     expect(result.current.data).toEqual(mockTimeseriesData.data);

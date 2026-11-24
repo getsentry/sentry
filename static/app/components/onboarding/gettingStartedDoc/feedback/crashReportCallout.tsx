@@ -9,9 +9,7 @@ export function crashReportCallout({link}: {link: string}) {
       <Alert variant="info">
         {tct(
           'Interested in receiving feedback only when an error happens? [link:Read the docs] to learn how to set up our crash-report modal.',
-          {
-            link: <ExternalLink href={link} />,
-          }
+          {link: <ExternalLink href={link} />}
         )}
       </Alert>
     </Alert.Container>

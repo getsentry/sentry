@@ -332,11 +332,7 @@ export function useIssueAlertNotificationOptions({
     setup_message_integration_button_shown: shouldRenderSetupButton,
   });
 
-  return {
-    querySuccess,
-    shouldRenderNotificationConfigs,
-    shouldRenderSetupButton,
-  };
+  return {querySuccess, shouldRenderNotificationConfigs, shouldRenderSetupButton};
 }
 
 export function IssueAlertNotificationOptions(

@@ -2,19 +2,20 @@ import {Fragment, useState} from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 import {PlatformIcon} from 'platformicons';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {AlertPreviewResponse} from 'sentry/types/workflowEngine/automations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps, useGetPaginationCaption} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
@@ -101,11 +102,7 @@ export function AutomationAlertPreviewTable({
       '/organizations/$organizationIdOrSlug/issues/',
       {
         path: groupIds.length ? {organizationIdOrSlug: organization.slug} : skipToken,
-        query: {
-          group: groupIds,
-          project: projectIds,
-          collapse: ['stats', 'unhandled'],
-        },
+        query: {group: groupIds, project: projectIds, collapse: ['stats', 'unhandled']},
         staleTime: 30_000,
       }
     )
@@ -138,7 +135,7 @@ export function AutomationAlertPreviewTable({
             return (
               <SimpleTable.Row key={row.groupId}>
                 <SimpleTable.RowCell>
-                  <DateTime date={row.lastTriggered} timeZone />
+                  <DateTime date={row.lastTriggered} showTimezone />
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell>
                   <Link
@@ -167,18 +164,20 @@ export function AutomationAlertPreviewTable({
       {rows.length > PREVIEW_PAGE_SIZE && (
         <Pagination
           disabled={isLoading || isGroupsError}
-          pageLinks={getPaginationPageLink({
-            numRows: rows.length,
-            pageSize: PREVIEW_PAGE_SIZE,
-            offset,
-          })}
+          {...getPaginationProps(
+            getPaginationPageLink({
+              numRows: rows.length,
+              pageSize: PREVIEW_PAGE_SIZE,
+              offset,
+            })
+          )}
           caption={getPaginationCaption({
             cursor: `0:${page}:0`,
             limit: PREVIEW_PAGE_SIZE,
             pageLength: pageRows.length,
             total: rows.length,
           })}
-          onCursor={(_cursor, _path, _query, delta) => setPage(page + delta)}
+          onCursor={(_cursor, delta) => setPage(page + delta)}
         />
       )}
     </Fragment>

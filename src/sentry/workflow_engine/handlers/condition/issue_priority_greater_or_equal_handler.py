@@ -48,5 +48,5 @@ class IssuePriorityGreaterOrEqualConditionHandler(
             if comparison is None:
                 return False
 
-        group = event_data.group
+        group = event_data.require_group()
         return group.priority >= comparison

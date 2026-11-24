@@ -4,7 +4,7 @@ import dataclasses
 import logging
 import time
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
@@ -16,7 +16,7 @@ import sentry_sdk
 from django.conf import settings
 from requests.exceptions import RequestException
 
-from sentry import features, options
+from sentry import features
 from sentry.attachments.base import CachedAttachment
 from sentry.lang.native.sources import (
     get_internal_artifact_lookup_source,
@@ -138,15 +138,24 @@ class Symbolicator:
         base_url = (
             URLS.get(pool.value)
             or URLS.get(SymbolicatorPools.default.value)
-            or options.get("symbolicator.options")["url"]
+            or settings.SENTRY_SYMBOLICATOR_OPTIONS["url"]
         )
         base_url = base_url.rstrip("/")
         assert base_url
 
         self.base_url = base_url
+        self.task_kind = task_kind
         self.on_request = on_request
         self.project = project
         self.event_id = event_id
+
+    def with_function(self, function: SymbolicatorFunction) -> Symbolicator:
+        return Symbolicator(
+            task_kind=self.task_kind.with_function(function),
+            on_request=self.on_request,
+            project=self.project,
+            event_id=self.event_id,
+        )
 
     def _process(
         self,
@@ -324,8 +333,8 @@ class Symbolicator:
     def process_payload(
         self,
         platform: str | None,
-        stacktraces: list[dict[str, Any]],
-        modules: list[dict[str, Any]],
+        stacktraces: Sequence[Mapping[str, object]],
+        modules: Sequence[Mapping[str, object]],
         frame_order: FrameOrder,
         signal: int | None = None,
         apply_source_context: bool = True,
@@ -368,8 +377,8 @@ class Symbolicator:
     def process_js(
         self,
         platform: str | None,
-        stacktraces: list[dict[str, Any]],
-        modules: list[dict[str, Any]],
+        stacktraces: Sequence[Mapping[str, object]],
+        modules: Sequence[Mapping[str, object]],
         release: str | None,
         dist: str | None,
         frame_order: FrameOrder,

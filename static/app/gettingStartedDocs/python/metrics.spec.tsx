@@ -2,11 +2,7 @@
 const {metrics} = jest.requireActual('sentry/gettingStartedDocs/python/metrics');
 
 describe('metrics', () => {
-  const mockParams = {
-    dsn: {
-      public: 'https://test@example.com/123',
-    },
-  };
+  const mockParams = {dsn: {public: 'https://test@example.com/123'}};
 
   it('generates metrics onboarding config with default parameters', () => {
     const result = metrics();

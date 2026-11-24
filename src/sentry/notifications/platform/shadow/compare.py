@@ -192,7 +192,7 @@ def _at_single_event(invocation: ActionInvocation) -> bool:
     when it reads it, and one render can show the event and user counts while the other leaves
     them out.
     """
-    group = invocation.event_data.group
+    group = invocation.event_data.require_group()
     try:
         cached = Group.objects.get_from_cache(id=group.id)
     except Group.DoesNotExist:
@@ -221,7 +221,7 @@ def _group_changed(invocation: ActionInvocation) -> bool:
     Whether the group state the issue renderers read has changed since the invocation loaded the
     group. Issue renderers re-read the group from cache, so a change would show up as a diff.
     """
-    group = invocation.event_data.group
+    group = invocation.event_data.require_group()
     try:
         current = Group.objects.get_from_cache(id=group.id)
     except Group.DoesNotExist:
@@ -290,7 +290,7 @@ def _compare_with_platform(
 def _invocation_log_extra(invocation: ActionInvocation) -> dict[str, Any]:
     return {
         "organization_id": invocation.detector.linked_project.organization_id,
-        "group_id": invocation.event_data.group.id,
+        "group_id": invocation.event_data.require_group().id,
         "detector_id": invocation.detector.id,
     }
 

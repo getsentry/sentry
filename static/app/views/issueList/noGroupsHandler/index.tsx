@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {DEFAULT_QUERY, FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
+import {DEFAULT_QUERY} from 'sentry/views/issueList/utils';
 
 import {NoIssuesMatched} from './noIssuesMatched';
 import {NoUnresolvedIssues} from './noUnresolvedIssues';
@@ -58,6 +58,7 @@ const UPDATED_EMPTY_STATE_PLATFORMS = new Set([
   'python-fastapi',
   'python-flask',
   'react-native',
+  'expo',
   'ruby',
   'ruby-rails',
   'unity',
@@ -143,7 +144,7 @@ interface AwaitingEventsProps {
 
 function AwaitingEvents({groupIds, organization, projects}: AwaitingEventsProps) {
   const project = projects?.[0];
-  const sampleIssueId = groupIds.length > 0 ? groupIds[0] : undefined;
+  const sampleIssueId = groupIds[0];
 
   const hasUpdatedEmptyState =
     project?.platform && UPDATED_EMPTY_STATE_PLATFORMS.has(project.platform);
@@ -168,17 +169,6 @@ function EmptyResult({emptyMessage, query}: EmptyResultProps) {
       <NoUnresolvedIssues
         title={t("We couldn't find any issues that matched your filters.")}
         subtitle={t('Get out there and write some broken code!')}
-      />
-    );
-  }
-
-  if (FOR_REVIEW_QUERIES.includes(query || '')) {
-    return (
-      <NoUnresolvedIssues
-        title={t('Well, would you look at that.')}
-        subtitle={t(
-          'No more issues to review. Better get back out there and write some broken code.'
-        )}
       />
     );
   }

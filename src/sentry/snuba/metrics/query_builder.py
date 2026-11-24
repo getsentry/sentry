@@ -1157,7 +1157,7 @@ class SnubaQueryBuilder:
                 having=having,
                 groupby=groupby,  # Empty group by is set to None.
                 orderby=orderby,  # Empty order by is set to None.
-                limit=cast(Limit, self._metrics_query.limit),
+                limit=self._metrics_query.limit,
                 offset=self._metrics_query.offset,  # No offset is set to None.
                 rollup=self._metrics_query.granularity,
                 intervals_len=get_num_intervals(

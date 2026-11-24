@@ -17,7 +17,7 @@ from sentry.api.serializers.models.auth import (
 )
 from sentry.auth import access
 from sentry.auth.exceptions import ProviderNotRegistered
-from sentry.auth.principal import acting_user_id, require_user
+from sentry.auth.principal import acting_user_id, has_user, require_user
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org
 from sentry.models.authprovider import AuthProvider
@@ -59,8 +59,8 @@ class AuthOrganizationConfigEndpoint(Endpoint):
             raise NotFound()
 
         organization = organization_context.organization
-        auth_provider = AuthProvider.objects.filter(organization_id=organization.id).first()
-        avatar = OrganizationAvatarReplica.objects.filter(organization_id=organization.id).first()
+        auth_provider = AuthProvider.objects.get_or_none(organization_id=organization.id)
+        avatar = OrganizationAvatarReplica.objects.get_or_none(organization_id=organization.id)
         is_demo_organization = is_demo_mode_enabled() and is_demo_org(organization)
 
         provider = None
@@ -98,7 +98,7 @@ class AuthOrganizationConfigEndpoint(Endpoint):
 
         warnings = []
         if (
-            request.user.is_authenticated
+            has_user(request.user)
             and organization_context.member is None
             and not organization_access.has_global_access
             and not is_demo_organization

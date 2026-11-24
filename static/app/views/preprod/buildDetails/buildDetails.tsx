@@ -42,10 +42,7 @@ export default function BuildDetails() {
     ...apiOptions.as<BuildDetailsApiResponse>()(
       '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          headArtifactId: artifactId,
-        },
+        path: {organizationIdOrSlug: organization.slug, headArtifactId: artifactId},
         staleTime: 0,
       }
     ),
@@ -63,10 +60,7 @@ export default function BuildDetails() {
     ...apiOptions.as<AppSizeApiResponse>()(
       '/organizations/$organizationIdOrSlug/files/preprodartifacts/$headArtifactId/size-analysis/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          headArtifactId: artifactId,
-        },
+        path: {organizationIdOrSlug: organization.slug, headArtifactId: artifactId},
         staleTime: 0,
       }
     ),
@@ -122,7 +116,7 @@ export default function BuildDetails() {
   const projectSlug = buildDetails?.project_slug;
   const version = buildDetails?.app_info?.version;
   const buildNumber = getBuildNumber(buildDetails?.app_info);
-  const project = ProjectsStore.getBySlug(projectSlug);
+  const project = projectSlug ? ProjectsStore.getBySlug(projectSlug) : undefined;
   const projectType = project?.platform ?? null;
 
   const {handleDownloadAction, handleRerunAction} = useBuildDetailsActions({

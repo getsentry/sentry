@@ -88,10 +88,7 @@ export function ExplorerAutofixStateFixture(
 export function ExplorerAutofixResponseFixture(
   params: Partial<ExplorerAutofixResponse> = {}
 ): ExplorerAutofixResponse {
-  return {
-    autofix: ExplorerAutofixStateFixture(),
-    ...params,
-  };
+  return {autofix: ExplorerAutofixStateFixture(), ...params};
 }
 
 export function AutofixRepoPRStateFixture(

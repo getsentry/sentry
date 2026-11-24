@@ -15,11 +15,15 @@ const CONTEXT_HINT =
 
 interface DroppedDataLLMContextProps {
   dataset: DiscoverDatasets;
+  interval?: string;
 }
 
-function DroppedDataLLMContextInner({dataset}: DroppedDataLLMContextProps) {
-  const [interval] = useChartInterval();
-  const {droppedEvents, acceptedEvents, isPending} = useDroppedData({dataset, interval});
+function DroppedDataLLMContextInner({dataset, interval}: DroppedDataLLMContextProps) {
+  const [chartInterval] = useChartInterval();
+  const {droppedEvents, acceptedEvents, isPending} = useDroppedData({
+    dataset,
+    interval: interval ?? chartInterval,
+  });
   useLLMContext(
     {
       contextHint: CONTEXT_HINT,

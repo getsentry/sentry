@@ -9,6 +9,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {uptimeChecksApiOptions} from 'sentry/views/insights/uptime/utils/uptimeChecksApiOptions';
@@ -61,7 +62,7 @@ export function UptimeChecksTable({
       ) : (
         <UptimeChecksGrid traceSampling={traceSampling} uptimeChecks={data?.json ?? []} />
       )}
-      <Pagination pageLinks={data?.headers.Link} />
+      <Pagination {...getPaginationProps(data?.headers.Link)} />
     </Fragment>
   );
 }

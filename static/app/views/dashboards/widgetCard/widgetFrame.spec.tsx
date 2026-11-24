@@ -82,13 +82,7 @@ describe('WidgetFrame', () => {
         <WidgetFrame
           title="EPS"
           description="Number of events per second"
-          actions={[
-            {
-              key: 'hello',
-              label: 'Make Go',
-              onAction,
-            },
-          ]}
+          actions={[{key: 'hello', label: 'Make Go', onAction}]}
         />
       );
 
@@ -108,13 +102,7 @@ describe('WidgetFrame', () => {
           description="Number of events per second"
           actionsDisabled
           actionsMessage="Actions are not supported"
-          actions={[
-            {
-              key: 'hello',
-              label: 'Make Go',
-              onAction,
-            },
-          ]}
+          actions={[{key: 'hello', label: 'Make Go', onAction}]}
         />
       );
 
@@ -138,16 +126,8 @@ describe('WidgetFrame', () => {
           title="EPS"
           description="Number of events per second"
           actions={[
-            {
-              key: 'one',
-              label: 'One',
-              onAction: onAction1,
-            },
-            {
-              key: 'two',
-              label: 'Two',
-              onAction: onAction2,
-            },
+            {key: 'one', label: 'One', onAction: onAction1},
+            {key: 'two', label: 'Two', onAction: onAction2},
           ]}
         />
       );
@@ -173,14 +153,8 @@ describe('WidgetFrame', () => {
           actionsDisabled
           actionsMessage="Actions are not supported"
           actions={[
-            {
-              key: 'one',
-              label: 'One',
-            },
-            {
-              key: 'two',
-              label: 'Two',
-            },
+            {key: 'one', label: 'One'},
+            {key: 'two', label: 'Two'},
           ]}
         />
       );
@@ -204,13 +178,7 @@ describe('WidgetFrame', () => {
           title="EPS"
           description="Number of events per second"
           error={error}
-          actions={[
-            {
-              key: 'hello',
-              label: 'Make Go',
-              onAction,
-            },
-          ]}
+          actions={[{key: 'hello', label: 'Make Go', onAction}]}
         />
       );
 
@@ -228,6 +196,40 @@ describe('WidgetFrame', () => {
       render(<WidgetFrame title="EPS" error={error} onRetry={onRetry} />);
 
       expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+    });
+  });
+
+  describe('Header Actions', () => {
+    it('Renders the header actions between the widget actions and the copy URL button', () => {
+      render(
+        <WidgetFrame
+          title="count()"
+          actions={[
+            {key: 'one', label: 'One'},
+            {key: 'two', label: 'Two'},
+          ]}
+          onCopyUrlClick={jest.fn()}
+          headerActions={<button>Layers</button>}
+        />
+      );
+
+      expect(
+        screen
+          .getAllByRole('button')
+          .map(button => button.getAttribute('aria-label') ?? button.textContent)
+      ).toEqual(['Widget actions', 'Layers', 'Copy Widget URL']);
+    });
+
+    it('Hides the header actions if the widget has an error', () => {
+      render(
+        <WidgetFrame
+          title="count()"
+          headerActions={<button>Layers</button>}
+          error={new Error('Something went wrong')}
+        />
+      );
+
+      expect(screen.queryByRole('button', {name: 'Layers'})).not.toBeInTheDocument();
     });
   });
 

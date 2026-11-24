@@ -5,7 +5,7 @@ import time
 import zlib
 from collections.abc import Generator, Iterable
 from contextlib import contextmanager
-from typing import Any, cast
+from typing import Any
 
 from redis.client import StrictRedis
 from redis.exceptions import ResponseError
@@ -19,7 +19,6 @@ from sentry.utils.locking.manager import LockManager
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     load_redis_script,
-    redis_clusters,
     validate_dynamic_cluster,
 )
 
@@ -92,11 +91,10 @@ class RedisBackend(Backend):
 
     def __init__(self, **options: Any) -> None:
         cluster_name = options.get("cluster", "default")
-        self.is_redis_cluster, _, options = get_dynamic_cluster_from_options(
-            "SENTRY_DIGESTS_OPTIONS", options
+        self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
+            "SENTRY_DIGESTS_OPTIONS", options, decode_responses=False
         )
         options.pop("cluster", None)
-        self.cluster = redis_clusters.get_binary(cluster_name)
         self.locks = LockManager(RedisClusterLockBackend(cluster_name))
 
         self.namespace = options.pop("namespace", "d")
@@ -209,13 +207,10 @@ class RedisBackend(Backend):
         deadline: float,
         timestamp: float,
     ) -> Iterable[tuple[bytes, float]]:
-        return cast(
-            "Iterable[tuple[bytes, float]]",
-            script(
-                [f"{namespace}:s:w"],
-                ["SCHEDULE", namespace, self.ttl, timestamp, deadline],
-                self.cluster,
-            ),
+        return script(
+            [f"{namespace}:s:w"],
+            ["SCHEDULE", namespace, self.ttl, timestamp, deadline],
+            self.cluster,
         )
 
     def schedule(self, deadline: float, timestamp: float | None = None) -> Iterable[ScheduleEntry]:

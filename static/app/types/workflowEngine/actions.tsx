@@ -71,10 +71,7 @@ export interface ActionHandler {
 interface Integration {
   id: string;
   name: string;
-  services?: Array<{
-    id: string;
-    name: string;
-  }>;
+  services?: Array<{id: string; name: string}>;
 }
 
 interface SentryAppContext {

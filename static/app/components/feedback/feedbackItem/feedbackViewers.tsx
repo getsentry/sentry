@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {AvatarList} from '@sentry/scraps/avatar';
+import {DateTime} from '@sentry/scraps/dateTime';
 
-import {DateTime} from 'sentry/components/dateTime';
 import type {AvatarUser} from 'sentry/types/user';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {userDisplayName} from 'sentry/utils/formatters';
@@ -20,13 +20,16 @@ export function FeedbackViewers({feedbackItem}: Props) {
       avatarSize={28}
       maxVisibleAvatars={5}
       tooltipOptions={{position: 'top'}}
-      renderTooltip={user => (
-        <Fragment>
-          {userDisplayName(user)}
-          <br />
-          <DateTime date={(user as AvatarUser).lastSeen} />
-        </Fragment>
-      )}
+      renderTooltip={user => {
+        const lastSeen = (user as AvatarUser).lastSeen;
+        return (
+          <Fragment>
+            {userDisplayName(user)}
+            <br />
+            {lastSeen && <DateTime date={lastSeen} />}
+          </Fragment>
+        );
+      }}
     />
   );
 }

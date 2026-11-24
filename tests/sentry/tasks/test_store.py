@@ -17,6 +17,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.tasks.store import (
+    SAVE_EVENT_NODESTORE_TIMEOUT_SECONDS,
     is_process_disabled,
     preprocess_event,
     process_event,
@@ -31,6 +32,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.event_tracker import TransactionStageStatus
+from sentry.utils.kvstore.bigtable import _bigtable_operation_timeout
 from sentry.viewer_context import (
     ActorType,
     ViewerContext,
@@ -426,7 +428,10 @@ def test_save_event_start_is_persisted_before_grouping(
     persisted = nodestore.backend.get(saved_events[0].data.id)
     assert persisted is not None
     assert persisted["save_event_start"] == save_started
-    assert persisted["nodestore_insert"] == save_started + 5
+    # nodestore_insert comes from datetime.now(), which has microsecond precision, while
+    # time() returns the float of the frozen nanoseconds. About 7% of start times round
+    # differently, so compare to the microsecond.
+    assert persisted["nodestore_insert"] == pytest.approx(save_started + 5, abs=1e-6)
 
 
 @django_db_all
@@ -453,6 +458,41 @@ def test_save_event_sets_viewer_context(default_project: Project) -> None:
     assert captured_vc.organization_id == default_project.organization_id
     assert captured_vc.project_id == default_project.id
     assert captured_vc.actor.type == ActorType.SYSTEM
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    ("disabled", "expected_timeout"), [(False, SAVE_EVENT_NODESTORE_TIMEOUT_SECONDS), (True, None)]
+)
+def test_save_event_bigtable_operation_timeout(
+    default_project: Project, disabled: bool, expected_timeout: float | None
+) -> None:
+    data = {
+        "project": default_project.id,
+        "platform": "python",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+    }
+
+    captured_timeout = None
+
+    def capture_timeout(*args: Any, **kwargs: Any) -> None:
+        nonlocal captured_timeout
+        captured_timeout = _bigtable_operation_timeout.get()
+        raise HashDiscarded("stop after capturing")
+
+    with (
+        override_options({"store.save-event.bigtable-operation-timeout.disabled": disabled}),
+        mock.patch.object(EventManager, "save", side_effect=capture_timeout),
+    ):
+        save_event(data=data, start_time=time())
+
+    assert captured_timeout == expected_timeout
+
+
+@django_db_all
+def test_save_event_bigtable_operation_timeout_is_on_by_default() -> None:
+    assert options.get("store.save-event.bigtable-operation-timeout.disabled") is False
 
 
 @django_db_all

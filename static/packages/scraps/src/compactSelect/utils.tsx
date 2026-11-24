@@ -7,8 +7,10 @@ import type {Node, Selection} from '@react-types/shared';
 
 import {useTranslation} from '@sentry/scraps/translation';
 
+// oxlint-disable-next-line import/no-relative-parent-imports -- Keep the shared search helper private to Scraps.
+import {getSearchScore} from '../fzf';
+
 import type {SelectProps} from './compactSelect';
-import {fzf} from './fzf';
 import {SectionToggleButton} from './styles';
 import type {
   SearchConfig,
@@ -151,15 +153,7 @@ function defaultSearchMatcher<Value extends SelectKey>(
   if (!text) {
     return {score: 0};
   }
-  const result = fzf(text, search.toLowerCase(), false);
-  // fzf returns end=-1 when no subsequence match exists (score is also 0).
-  // For valid matches fzf may return negative scores due to gap penalties, so we
-  // cannot rely on score > 0 to detect a match. Use end !== -1 instead and clamp
-  // the score so getHiddenOptions always sees score > 0 for any real match.
-  if (result.end === -1) {
-    return {score: 0};
-  }
-  return {score: Math.max(1, result.score)};
+  return {score: getSearchScore(text, search)};
 }
 
 /**

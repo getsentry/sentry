@@ -7,9 +7,7 @@ type DebugMetaSearchContextValue = {
 
 const DebugMetaSearchContext = createContext<DebugMetaSearchContextValue | null>(null);
 
-type DebugMetaSearchProviderProps = {
-  children: ReactNode;
-};
+type DebugMetaSearchProviderProps = {children: ReactNode};
 
 /**
  * Shares the Images Loaded search term with native stack frames.

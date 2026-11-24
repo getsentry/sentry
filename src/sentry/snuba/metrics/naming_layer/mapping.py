@@ -7,7 +7,6 @@ __all__ = (
 )
 
 from enum import Enum
-from typing import cast
 
 from sentry.exceptions import InvalidParams
 from sentry.snuba.metrics.naming_layer.mri import (
@@ -52,7 +51,7 @@ def get_mri(external_name: Enum | str) -> str:
 
     try:
         assert isinstance(external_name, str)
-        return cast(str, NAME_TO_MRI[external_name].value)
+        return NAME_TO_MRI[external_name].value
     except KeyError:
         raise InvalidParams(
             f"Failed to parse '{external_name}'. The metric name must belong to a public metric."

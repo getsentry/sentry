@@ -2,7 +2,9 @@ import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+import {hasAnnotations} from '@sentry/scraps/markdown/annotation';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
@@ -14,7 +16,11 @@ import {ConversationSpanDetail} from './conversationSpanDetail';
 const organization = OrganizationFixture();
 const project = ProjectFixture({id: '1'});
 
-function makeNode(eventId: string, operationName: string) {
+function makeNode(
+  eventId: string,
+  operationName: string,
+  attributes: Record<string, string> = {}
+) {
   return new EapSpanNode(
     null,
     makeEAPSpan({
@@ -22,7 +28,7 @@ function makeNode(eventId: string, operationName: string) {
       project_id: 1,
       project_slug: project.slug,
       op: `gen_ai.${operationName}`,
-      additional_attributes: {'gen_ai.operation.name': operationName},
+      additional_attributes: {'gen_ai.operation.name': operationName, ...attributes},
     }),
     {organization}
   );
@@ -156,6 +162,134 @@ describe('ConversationSpanDetail', () => {
       expect(screen.getByText(value)).toAppearBefore(dashboardButton);
     }
   );
+
+  it.each([
+    [
+      'a failed tool call',
+      'tool',
+      [
+        {name: 'span.status', type: 'str', value: 'internal_error'},
+        {name: 'error.type', type: 'str', value: 'RateLimitError'},
+        {name: 'span.status.message', type: 'str', value: 'Rate limit exceeded'},
+      ],
+      ['RateLimitError', 'Rate limit exceeded'],
+    ],
+    [
+      'an MCP tool result flagged as an error',
+      'tool',
+      [
+        {name: 'span.status', type: 'str', value: 'ok'},
+        {name: 'mcp.tool.result.is_error', type: 'str', value: 'true'},
+        {name: 'mcp.tool.result.content', type: 'str', value: 'File not found'},
+      ],
+      ['Tool Error', 'File not found'],
+    ],
+    [
+      'a successful tool call',
+      'tool',
+      [{name: 'span.status', type: 'str', value: 'ok'}],
+      null,
+    ],
+    [
+      'a failed span that is not a tool call',
+      'ai_client',
+      [{name: 'span.status', type: 'str', value: 'internal_error'}],
+      null,
+    ],
+  ] as const)('shows the error of %s', async (_, operationType, attributes, expected) => {
+    mockAttributes('span', [...attributes]);
+    render(
+      <ConversationSpanDetail
+        node={makeNode('span', operationType, {'gen_ai.operation.type': operationType})}
+        traceId="trace-id"
+        activeTab="input"
+        onTabChange={jest.fn()}
+      />,
+      {organization}
+    );
+
+    await screen.findByRole('tab', {name: 'Input'});
+    if (expected) {
+      for (const text of expected) {
+        expect(await screen.findByText(text)).toBeInTheDocument();
+      }
+    } else {
+      expect(screen.queryByText('Tool Error')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('This tool call failed but has no associated issue.')
+      ).not.toBeInTheDocument();
+    }
+  });
+
+  describe('scrubbed values', () => {
+    const toolArguments = JSON.stringify({to: '[email]', subject: 'Hello'});
+    const toolResult = 'Sent to [email]';
+
+    function remark(value: string) {
+      const start = value.indexOf('[email]');
+      return {
+        meta: {
+          value: {
+            '': {rem: [['@email:replace', 's', start, start + '[email]'.length]], len: 0},
+          },
+        },
+      };
+    }
+
+    function renderToolSpan(activeTab: 'input' | 'output') {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/tool-span/`,
+        body: {
+          itemId: 'tool-span',
+          timestamp: '2020-01-01T00:00:00Z',
+          attributes: [
+            {name: 'gen_ai.operation.type', type: 'str', value: 'tool'},
+            {name: 'gen_ai.tool.call.arguments', type: 'str', value: toolArguments},
+            {name: 'gen_ai.tool.call.result', type: 'str', value: toolResult},
+          ],
+          meta: {
+            'gen_ai.tool.call.arguments': remark(toolArguments),
+            'gen_ai.tool.call.result': remark(toolResult),
+          },
+        },
+      });
+      return render(
+        <ConversationSpanDetail
+          node={makeNode('tool-span', 'execute_tool')}
+          traceId="trace-id"
+          activeTab={activeTab}
+          onTabChange={jest.fn()}
+        />,
+        {organization}
+      );
+    }
+
+    it('marks the scrubbed values of the input', async () => {
+      const {container} = renderToolSpan('input');
+
+      expect(await screen.findByText('[email]')).toBeInTheDocument();
+      expect(container).toHaveTextContent('subject: "Hello"');
+      expect(hasAnnotations(container.textContent ?? '')).toBe(false);
+    });
+
+    it('explains the scrubbed values of the output', async () => {
+      const {container} = renderToolSpan('output');
+
+      await userEvent.hover(await screen.findByText('[email]'));
+
+      expect(await screen.findByText(/Replaced because of/)).toBeInTheDocument();
+      expect(hasAnnotations(container.textContent ?? '')).toBe(false);
+    });
+
+    it('copies the tool output without marks', async () => {
+      Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
+      renderToolSpan('output');
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Copy output'}));
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(toolResult);
+    });
+  });
 
   it('shows a Decision tab in place of Input and Output on decision spans', async () => {
     mockDecisionAttributes();

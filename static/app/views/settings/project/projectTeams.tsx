@@ -18,6 +18,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -108,7 +109,7 @@ export default function ProjectTeams() {
           onRemoveTeam={handleRemoveTeamFromProject}
           onCreateTeam={handleAddTeamToProject}
         />
-        <Pagination pageLinks={data?.headers.Link} onCursor={handleCursor} />
+        <Pagination {...getPaginationProps(data?.headers.Link)} onCursor={handleCursor} />
       </div>
     </SentryDocumentTitle>
   );

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Sequence
-from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar, overload
 
 from sentry.grouping.component import (
     BaseGroupingComponent,
@@ -323,7 +323,7 @@ def produces_variants(
         # discard app variant if system variant produces the same hash, or if
         # the function returned None when invoked with `context['variant'] ==
         # 'system'`. The actual logic for discarding is within
-        # `Component.get_grouping_component_variants`, so hashes are compared
+        # `Strategy.get_grouping_components`, so hashes are compared
         # at the outermost level of the tree.
         #
         # Return value is a dictionary of `{"!system": ..., "app": ...}`,
@@ -436,9 +436,7 @@ def get_single_grouping_component(
     )
 
     assert len(components_by_variant) == 1
-    return cast(
-        "FrameGroupingComponent | ExceptionGroupingComponent", components_by_variant[variant_name]
-    )
+    return components_by_variant[variant_name]
 
 
 def get_grouping_components_by_variant(

@@ -1,8 +1,10 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconBot} from '@sentry/icons/bot';
 import {IconCopy} from '@sentry/icons/copy';
 import {IconUser} from '@sentry/icons/user';
+import {parseAsInteger, useQueryState} from 'nuqs';
 import {useStore} from 'zustand';
 import {useShallow} from 'zustand/react/shallow';
 
@@ -13,7 +15,7 @@ import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Heading, Prose, Text} from '@sentry/scraps/text';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
@@ -48,11 +50,8 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeInteger} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   CopyLLMPromptButton,
@@ -213,9 +212,7 @@ function AgentSetupInstructions({
         analyticsEventName="Conversations: Onboarding Interaction"
         analyticsParams={{action: 'copy_agent_prompt'}}
         onClick={() => {
-          copy(prompt, {
-            successMessage: t('Copied setup prompt to clipboard'),
-          });
+          copy(prompt, {successMessage: t('Copied setup prompt to clipboard')});
         }}
       >
         {t('Copy prompt')}
@@ -296,7 +293,7 @@ function ConversationOnboardingPanel({
                     key={defaultTab}
                     defaultValue={defaultTab}
                     aria-label={t('Setup instructions')}
-                    onChange={tab => {
+                    onChange={(tab: typeof defaultTab) => {
                       trackAnalytics('conversations.onboarding.interaction', {
                         organization,
                         action: 'switch_tab',
@@ -304,56 +301,60 @@ function ConversationOnboardingPanel({
                       });
                     }}
                   >
-                    <TabList variant="floating">
-                      <TabList.Item
-                        key="agent"
-                        textValue={t('For your agent')}
-                        disabled={!prompt}
-                        tooltip={
-                          prompt
-                            ? undefined
-                            : {
-                                title: t(
-                                  'A project DSN is required to copy a setup prompt.'
-                                ),
-                              }
-                        }
-                      >
-                        <IconBot />
-                        {t('For your agent')}
-                      </TabList.Item>
-                      <TabList.Item
-                        key="human"
-                        textValue={t('For you')}
-                        disabled={isHumanTabDisabled}
-                        tooltip={
-                          isHumanTabDisabled
-                            ? {
-                                title: t(
-                                  "Step-by-step instructions aren't available for this platform."
-                                ),
-                              }
-                            : undefined
-                        }
-                      >
-                        <IconUser />
-                        {t('For you')}
-                      </TabList.Item>
-                    </TabList>
-                    <TabPanels>
-                      <TabPanels.Item key="agent">
-                        {prompt && (
-                          <AgentSetupInstructions
-                            project={project}
-                            prompt={prompt}
-                            onDismiss={onDismiss}
-                          />
-                        )}
-                      </TabPanels.Item>
-                      <TabPanels.Item key="human">
-                        <Container paddingTop="md">{children}</Container>
-                      </TabPanels.Item>
-                    </TabPanels>
+                    {({TabList, TabPanels}) => (
+                      <Fragment>
+                        <TabList variant="floating">
+                          <TabList.Item
+                            key="agent"
+                            textValue={t('For your agent')}
+                            disabled={!prompt}
+                            tooltip={
+                              prompt
+                                ? undefined
+                                : {
+                                    title: t(
+                                      'A project DSN is required to copy a setup prompt.'
+                                    ),
+                                  }
+                            }
+                          >
+                            <IconBot />
+                            {t('For your agent')}
+                          </TabList.Item>
+                          <TabList.Item
+                            key="human"
+                            textValue={t('For you')}
+                            disabled={isHumanTabDisabled}
+                            tooltip={
+                              isHumanTabDisabled
+                                ? {
+                                    title: t(
+                                      "Step-by-step instructions aren't available for this platform."
+                                    ),
+                                  }
+                                : undefined
+                            }
+                          >
+                            <IconUser />
+                            {t('For you')}
+                          </TabList.Item>
+                        </TabList>
+                        <TabPanels>
+                          <TabPanels.Item key="agent">
+                            {prompt && (
+                              <AgentSetupInstructions
+                                project={project}
+                                prompt={prompt}
+                                onDismiss={onDismiss}
+                              />
+                            )}
+                          </TabPanels.Item>
+                          <TabPanels.Item key="human">
+                            <Container paddingTop="md">{children}</Container>
+                          </TabPanels.Item>
+                        </TabPanels>
+                      </Fragment>
+                    )}
                   </Tabs>
                 </Setup>
                 <Container padding="xl" paddingTop="3xl">
@@ -457,10 +458,7 @@ Sentry.setConversationId("my-conversation-123");`,
       : []),
   ];
 
-  return {
-    title: t('Set Conversation ID'),
-    content,
-  };
+  return {title: t('Set Conversation ID'), content};
 }
 
 function getSetUserStep(
@@ -493,10 +491,7 @@ Sentry.setUser({ id: "user_123", email: "jane@example.com", username: "jane" });
         },
   ];
 
-  return {
-    title: t('Identify Users (optional)'),
-    content,
-  };
+  return {title: t('Identify Users (optional)'), content};
 }
 
 function getPhpConversationVerifyStep(): OnboardingStep {
@@ -540,8 +535,10 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   );
   const project = useOnboardingProject();
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [guidedStep, setGuidedStep] = useQueryState(
+    'guidedStep',
+    parseAsInteger.withOptions({history: 'push'})
+  );
 
   const currentPlatform = project?.platform
     ? platforms.find(p => p.id === project.platform)
@@ -608,10 +605,7 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
     isPerformanceSelected: true,
     isProfilingSelected: false,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: {...selectedPlatformOptions, deploymentTarget},
     docsLocation: DocsPageLocation.PROFILING_PAGE,
     urlPrefix,
@@ -683,16 +677,8 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
           // Remount when the integration or runtime changes so the stepper doesn't
           // carry over stale per-step state from the previous selection.
           key={`${selectedIntegration}-${deploymentTarget}`}
-          initialStep={decodeInteger(location.query.guidedStep)}
-          onStepChange={step => {
-            navigate({
-              pathname: location.pathname,
-              query: {
-                ...location.query,
-                guidedStep: step,
-              },
-            });
-          }}
+          initialStep={guidedStep ?? undefined}
+          onStepChange={step => void setGuidedStep(step)}
         >
           {steps.map((step, index) => (
             <ConversationStepRenderer
@@ -741,9 +727,7 @@ function UnsupportedPlatformOnboarding({
         <Text as="p">
           {tct(
             "Auto instrumentation isn't available for [platform], but you can still get conversations working.",
-            {
-              platform: platformName,
-            }
+            {platform: platformName}
           )}
         </Text>
         <Text as="p">
@@ -797,9 +781,7 @@ function NoDocsOnboarding({
         <Text as="p">
           {tct(
             'Follow our [link:documentation] to get started, or let an AI coding agent handle the setup for you.',
-            {
-              link: <ExternalLink href={AI_AGENTS_GETTING_STARTED_DOCS_LINK} />,
-            }
+            {link: <ExternalLink href={AI_AGENTS_GETTING_STARTED_DOCS_LINK} />}
           )}
         </Text>
         <CopyLLMPromptButton

@@ -168,7 +168,8 @@ def _record_lost_head(
 def _set_webhook_delivery_sentry_context(mailbox_name: str | None, provider: str) -> None:
     """Set Sentry context at the delivery entrypoint for easier debugging."""
     sentry_sdk.set_tag("mailbox_name", mailbox_name)
-    sentry_sdk.set_attribute("mailbox_name", mailbox_name)
+    if mailbox_name is not None:
+        sentry_sdk.set_attribute("mailbox_name", mailbox_name)
     context: dict[str, Any] = {"mailbox_name": mailbox_name, "provider": provider}
     sentry_sdk.set_context("webhook_delivery", context)
     sentry_sdk.set_attribute("webhook_delivery.provider", provider)
@@ -522,6 +523,20 @@ def _delivery_tags(dispatcher: str | None, provider: str) -> dict[str, str]:
     carries no provider.
     """
     return {"dispatcher": dispatcher or "unknown", "provider": provider}
+
+
+def _payload_delivery_tags(
+    delivery_tags: Mapping[str, str], payload: WebhookPayload
+) -> dict[str, str | None]:
+    """
+    The delivery tags plus the cell this payload is sent to, for metrics that
+    concern one payload. Without it a single cell that stops accepting deliveries
+    can't be told apart from loss spread across every cell.
+
+    Outcomes recorded for a whole claim (race, released, delivery_deadline) have
+    no one payload to read the cell from and go without it.
+    """
+    return {**delivery_tags, "destination_region": payload.cell_name}
 
 
 def _record_dispatch(*, dispatcher: Dispatcher, mailbox_name: str, claimed: int) -> None:
@@ -1172,7 +1187,10 @@ class _DeliveryPool:
             # Unsampled: rare, and each one is a request the cell never answered.
             metrics.incr(
                 "hybridcloud.deliver_webhooks.delivery",
-                tags={**self._delivery_tags, "outcome": "abandoned"},
+                tags={
+                    **_payload_delivery_tags(self._delivery_tags, record),
+                    "outcome": "abandoned",
+                },
                 sample_rate=1.0,
             )
             logger.warning("deliver_webhook.abandoned", extra=record.as_dict())
@@ -1216,7 +1234,7 @@ def _discard_if_stale(
     # wants an exact total rather than an estimated rate.
     metrics.incr(
         "hybridcloud.deliver_webhooks.delivery",
-        tags={**delivery_tags, "outcome": "max_age"},
+        tags={**_payload_delivery_tags(delivery_tags, payload), "outcome": "max_age"},
         sample_rate=1.0,
     )
     logger.warning("deliver_webhook.max_age_discard", extra={**payload_data})
@@ -1238,7 +1256,7 @@ def _discard_if_exhausted(
     # wants an exact total rather than an estimated rate.
     metrics.incr(
         "hybridcloud.deliver_webhooks.delivery",
-        tags={**delivery_tags, "outcome": "attempts_exceed"},
+        tags={**_payload_delivery_tags(delivery_tags, payload), "outcome": "attempts_exceed"},
         sample_rate=1.0,
     )
     logger.warning("deliver_webhook.discard", extra={**payload.as_dict()})
@@ -1258,7 +1276,10 @@ def _record_delivery_time_metrics(
     duration = timezone.now() - payload.date_added
     provider = _provider_from_mailbox(payload.mailbox_name)
     tags = {
-        **delivery_tags,
+        **_payload_delivery_tags(delivery_tags, payload),
+        # Deprecated duplicate of destination_region, kept until the dashboards
+        # and monitors that read it have moved over. The two values are always
+        # equal, so carrying both adds no series.
         "region_sent_to": payload.cell_name,
         # The unit delivery queues by, and bounded to one value per mailbox shape.
         "event_type": event_type_from_mailbox(provider, payload.mailbox_name),
@@ -1282,7 +1303,7 @@ def _finish_delivered(
     _record_delivery_time_metrics(payload, delivery_tags=delivery_tags)
     metrics.incr(
         "hybridcloud.deliver_webhooks.delivery",
-        tags={**delivery_tags, "outcome": "ok"},
+        tags={**_payload_delivery_tags(delivery_tags, payload), "outcome": "ok"},
     )
     if timezone.now() - date_added >= SLOW_DELIVERY_THRESHOLD:
         logger.warning("deliver_webhook.slow_delivery", extra=payload_data)
@@ -1311,7 +1332,7 @@ def _handle_delivery_result(
         deleter.delete(payload_record)
         metrics.incr(
             "hybridcloud.deliver_webhooks.delivery",
-            tags={**delivery_tags, "outcome": err.outcome},
+            tags={**_payload_delivery_tags(delivery_tags, payload_record), "outcome": err.outcome},
         )
         return False
     if err:
@@ -1319,7 +1340,7 @@ def _handle_delivery_result(
         # always has a retry left; the reschedule spends it.
         metrics.incr(
             "hybridcloud.deliver_webhooks.delivery",
-            tags={**delivery_tags, "outcome": "retry"},
+            tags={**_payload_delivery_tags(delivery_tags, payload_record), "outcome": "retry"},
         )
         if not attempt_spent:
             payload_record.schedule_next_attempt()
