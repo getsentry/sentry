@@ -66,11 +66,15 @@ interface TraceStateProviderProps {
 
 export function TraceStateProvider(props: TraceStateProviderProps): React.ReactNode {
   const organization = useOrganization({allowNull: true});
+  const hasClockDriftCorrection = hasClockDriftCorrectionFeature(organization);
   // Every trace tree reads its preferences from here, so turning the correction off here keeps it
   // off everywhere, also if it was stored while the organization had the feature.
-  const initialPreferences = hasClockDriftCorrectionFeature(organization)
+  const initialPreferences = hasClockDriftCorrection
     ? props.initialPreferences
     : {...props.initialPreferences, clock_drift_correction: false};
+  // The stored preference is shared with organizations that have the feature, so keep it as it
+  // was instead of storing the forced value. It can't be toggled without the feature.
+  const storedClockDriftCorrection = props.initialPreferences.clock_drift_correction;
 
   // We only want to decode on load, hence the lazy initializer.
   const [initialQuery] = useState((): string | undefined => {
@@ -101,9 +105,22 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
 
   useLayoutEffect(() => {
     if (props.preferencesStorageKey) {
-      storeTraceViewPreferences(props.preferencesStorageKey, traceState.preferences);
+      storeTraceViewPreferences(
+        props.preferencesStorageKey,
+        hasClockDriftCorrection
+          ? traceState.preferences
+          : {
+              ...traceState.preferences,
+              clock_drift_correction: storedClockDriftCorrection,
+            }
+      );
     }
-  }, [traceState.preferences, props.preferencesStorageKey]);
+  }, [
+    traceState.preferences,
+    props.preferencesStorageKey,
+    hasClockDriftCorrection,
+    storedClockDriftCorrection,
+  ]);
 
   return (
     <TraceStateContext value={traceState}>
