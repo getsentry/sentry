@@ -2,6 +2,7 @@ import type {SeriesOption} from 'echarts';
 
 import {mergeTimeRanges, type TimeRange} from 'sentry/utils/timeSeries/mergeTimeRanges';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
+import type {TimeSeriesSegmentField} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
 import {
   isExtrapolatedTimeSeriesItem,
   isLowConfidenceTimeSeriesItem,
@@ -39,6 +40,7 @@ export type ContinuousTimeSeriesConfig = {
 
 export type ContinuousTimeSeriesDataPoint = {
   value: ReturnType<typeof timeSeriesItemToEChartsDataPoint>;
+  completeness?: 'complete' | 'incomplete';
   confidence?: TimeSeriesItem['confidence'];
 };
 
@@ -55,6 +57,10 @@ export type ContinuousTimeSeriesPlottingOptions = {
    * If the chart has multiple Y axes (e.g., plotting durations and rates on the same chart), whether this value should be plotted on the left or right axis.
    */
   yAxisPosition: 'left' | 'right';
+  /**
+   * Which item properties get their own visual treatment (e.g., incomplete or low-confidence buckets). Defaults to `['completeness']`
+   */
+  segmentBy?: readonly TimeSeriesSegmentField[];
 };
 
 /**
@@ -97,7 +103,7 @@ export abstract class ContinuousTimeSeries<
   get confidence(): PlottableConfidence {
     const values = this.timeSeries.values.filter(datum => datum.value !== null);
     // Incomplete buckets are partial, so they often have few samples. Charts draw
-    // them in the incomplete style instead, so they don't count
+    // them in the incomplete style, which hides low confidence, so they don't count
     const completeValues = values.filter(datum => !datum.incomplete);
     const lowCount = completeValues.filter(isLowConfidenceTimeSeriesItem).length;
 
@@ -170,12 +176,18 @@ export abstract class ContinuousTimeSeries<
   }
 
   /**
-   * Converts an item to an ECharts data point. Confidence rides along on the point, so the tooltip can read it for whichever point is hovered
+   * Converts an item to an ECharts data point. Confidence, and any fields the plottable segments by, ride along on the point, so the tooltip can read them for whichever point is hovered
    */
-  protected toDataPoint(item: TimeSeriesItem): ContinuousTimeSeriesDataPoint {
+  protected toDataPoint(
+    item: TimeSeriesItem,
+    segmentBy: readonly TimeSeriesSegmentField[]
+  ): ContinuousTimeSeriesDataPoint {
     return {
       value: timeSeriesItemToEChartsDataPoint(item),
       confidence: getConfidence(item),
+      completeness: segmentBy.includes('completeness')
+        ? getCompleteness(item)
+        : undefined,
     };
   }
 
@@ -186,6 +198,8 @@ export abstract class ContinuousTimeSeries<
   abstract toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions): SeriesOption[];
 }
 
+export const DEFAULT_SEGMENT_BY: readonly TimeSeriesSegmentField[] = ['completeness'];
+
 export function isLowConfidenceDataPoint(data: unknown): boolean {
   return (
     typeof data === 'object' &&
@@ -193,6 +207,16 @@ export function isLowConfidenceDataPoint(data: unknown): boolean {
     'confidence' in data &&
     data.confidence === 'low'
   );
+}
+
+function getCompleteness(
+  item: TimeSeriesItem
+): ContinuousTimeSeriesDataPoint['completeness'] {
+  if (item.incomplete === undefined) {
+    return undefined;
+  }
+
+  return item.incomplete ? 'incomplete' : 'complete';
 }
 
 function getConfidence(

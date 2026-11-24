@@ -22,3 +22,4 @@ export const FALLBACK_UNIT_FOR_FIELD_TYPE = {
 } satisfies Record<AggregationOutputType, DataUnit>;
 
 export const INCOMPLETE_BAR_OPACITY = 0.5;
+export const LOW_CONFIDENCE_OPACITY = 0.45;
