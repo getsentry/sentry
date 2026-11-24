@@ -72,6 +72,86 @@ describe('useAgentHandoff', () => {
     expect(mint).toHaveBeenCalledTimes(2);
   });
 
+  it('reuses a copied code until the page is hidden', async () => {
+    let mintCount = 0;
+    const mint = MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      body: () => {
+        mintCount++;
+        return {
+          code: `sntryh_code${mintCount}`,
+          handoffId: String(mintCount).repeat(32),
+          expiresAt: new Date(Date.now() + 300_000).toISOString(),
+        };
+      },
+    });
+    const hidden = jest.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+    const {result} = renderHookWithProviders(
+      () => useAgentHandoff(AgentHandoffFlow.ONBOARDING, context),
+      {organization}
+    );
+
+    await act(async () => {
+      await expect(result.current.copyPrompt(options)).resolves.toBe('1'.repeat(32));
+    });
+    await act(async () => {
+      await expect(result.current.copyPrompt(options)).resolves.toBe('1'.repeat(32));
+    });
+    expect(mint).toHaveBeenCalledTimes(1);
+
+    hidden.mockReturnValue(true);
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    hidden.mockReturnValue(false);
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    await act(async () => {
+      await expect(result.current.copyPrompt(options)).resolves.toBe('2'.repeat(32));
+    });
+    expect(mint).toHaveBeenCalledTimes(2);
+    const copied = await Promise.all(
+      write.mock.calls.map(([[item]]) =>
+        (item as {data: Record<string, Promise<Blob>>}).data['text/plain']!.then(blob =>
+          blob.text()
+        )
+      )
+    );
+    expect(copied[1]).toContain('`sntryh_code1`');
+    expect(copied[2]).toContain('`sntryh_code2`');
+  });
+
+  it('keeps a code that never reached the clipboard when the page is hidden', async () => {
+    const mint = MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+    });
+    write.mockRejectedValueOnce(new Error('Clipboard unavailable'));
+    const hidden = jest.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+    const {result} = renderHookWithProviders(
+      () => useAgentHandoff(AgentHandoffFlow.ONBOARDING, context),
+      {organization}
+    );
+
+    await act(async () => {
+      await expect(result.current.copyPrompt(options)).rejects.toThrow('Unable to copy');
+    });
+    hidden.mockReturnValue(true);
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    hidden.mockReturnValue(false);
+
+    await act(async () => {
+      await expect(result.current.copyPrompt(options)).resolves.toBe(handoffId);
+    });
+    expect(mint).toHaveBeenCalledTimes(1);
+  });
+
   it('reports a safe error when minting fails', async () => {
     MockApiClient.addMockResponse({
       url,

@@ -20,6 +20,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowFilters,
     SeerWorkflowRun,
     SeerWorkflowRunExtras,
+    SeerWorkflowRunSource,
     SeerWorkflowStrategy,
     WorkflowRunError,
     WorkflowRunSnapshot,
@@ -256,7 +257,14 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
         # TODO(telkins): Enforce automation quota before accepting a new run.
         return True
 
-    def admit_run(self, config: LockedConfig, *, trigger_key: str, inputs: Inputs) -> AdmittedRun:
+    def admit_run(
+        self,
+        config: LockedConfig,
+        *,
+        trigger_key: str,
+        source: SeerWorkflowRunSource,
+        inputs: Inputs,
+    ) -> AdmittedRun:
         """Record one admission decision per trigger key, leaving an accepted run queued.
 
         Retries return the original run with its configuration, inputs and decision.
@@ -301,7 +309,9 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
             ),
             admission=admission,
         )
-        lifecycle = SeerWorkflowRunLifecycle.create(config, trigger_key=trigger_key, extras=extras)
+        lifecycle = SeerWorkflowRunLifecycle.create(
+            config, trigger_key=trigger_key, source=source, extras=extras
+        )
         # TODO(telkins): Decide whether an automation that stays over quota should keep
         # recording a rejected run for every trigger.
         if admission.status == "rejected":

@@ -73,9 +73,14 @@ interface BaseInboxSubject {
   title: string;
 }
 
+export interface InboxIssueMetadata {
+  project: {id: string; slug: string};
+  shortId: string;
+}
+
 type InboxSubject = BaseInboxSubject &
   (
-    | {metadata: {project: {id: string; slug: string}; shortId: string}; type: 'issue'}
+    | {metadata: InboxIssueMetadata; type: 'issue'}
     | {metadata: Record<string, never>; type: 'notebook'}
   );
 

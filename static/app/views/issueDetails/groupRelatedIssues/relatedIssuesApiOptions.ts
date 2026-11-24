@@ -38,12 +38,15 @@ type SameSupergroupMeta = RelationTypeMetaBase & {
   supergroup?: {id: string; title: string};
 };
 
+type InvestigationsMeta = RelationTypeMetaBase & {type: 'investigations'};
+
 type RelationTypeMeta =
   | SimilarStacktraceMeta
   | SameTraceMeta
   | ContributingMeta
   | SameTitleMeta
-  | SameSupergroupMeta;
+  | SameSupergroupMeta
+  | InvestigationsMeta;
 
 type RelationType = RelationTypeMeta['type'];
 
@@ -59,8 +62,27 @@ export interface RelatedIssue {
   relations: RelatedIssueRelation[];
 }
 
+/**
+ * A Seer investigation that linked the issue.
+ */
+interface RelatedInvestigation {
+  /**
+   * The investigation's hypothesis whose evidence named the issue.
+   */
+  hypothesisStatement: string;
+  investigation: {id: string; title: string};
+  /**
+   * Why Seer found the issue relevant.
+   */
+  reason: string | null;
+}
+
 interface RelatedIssuesResponse {
   data: RelatedIssue[];
+  /**
+   * Most recently linked first. Empty unless the investigations type ran.
+   */
+  investigations: RelatedInvestigation[];
   meta: {types: RelationTypeMeta[]};
 }
 
@@ -70,7 +92,7 @@ interface RelatedIssuesApiOptionsParams {
   enabled?: boolean;
   limit?: number;
   /**
-   * The types of related issues to return. Returns every type when left out.
+   * The types of related issues or investigations to return. Returns every type when left out.
    */
   types?: RelationType[];
 }

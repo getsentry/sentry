@@ -1046,6 +1046,39 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         assert response.data["triggers"]["conditions"][0]["conditionResult"] is True
         assert response.data["actionFilters"][0]["conditions"][0]["conditionResult"] is True
 
+    def test_create_workflow__rejects_object_condition_result_in_triggers(self) -> None:
+        self.valid_workflow["triggers"] = {
+            "logicType": "any-short",
+            "conditions": [
+                {"type": Condition.EVERY_EVENT.value, "comparison": True, "conditionResult": {}}
+            ],
+        }
+        counts_before = self._workflow_creation_model_counts()
+
+        response = self.get_error_response(
+            self.organization.slug, raw_data=self.valid_workflow, status_code=400
+        )
+
+        assert "must be a boolean" in str(response.data)
+        assert self._workflow_creation_model_counts() == counts_before
+
+    def test_create_workflow__rejects_object_condition_result_in_action_filters(self) -> None:
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [{**self.basic_condition[0], "conditionResult": {}}],
+                "actions": [],
+            }
+        ]
+        counts_before = self._workflow_creation_model_counts()
+
+        response = self.get_error_response(
+            self.organization.slug, raw_data=self.valid_workflow, status_code=400
+        )
+
+        assert "must be a boolean" in str(response.data)
+        assert self._workflow_creation_model_counts() == counts_before
+
     def test_create_workflow__with_triggers_invalid_logic_type(self) -> None:
         self.valid_workflow["triggers"] = {
             "logicType": "all",

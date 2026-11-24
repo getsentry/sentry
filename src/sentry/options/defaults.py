@@ -3000,6 +3000,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Replicate OrganizationMember writes to control asynchronously, except where control
+# needs the change right away.
+register(
+    "hybridcloud.outbox.organization_member_async_replication.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Break glass controls
 register(
     "hybrid_cloud.rpc.disabled-service-methods",
@@ -3094,16 +3101,6 @@ register(
 register(
     "crons.system_incidents.collect_metrics",
     default=False,
-    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Temporary killswitch for the system incident dual-write to
-# SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER (INFRENG-1051). Turn off to stop the
-# secondary writes at once. Has no effect when the setting is unset.
-# To be removed as part of INFRENG-1053
-register(
-    "crons.system_incidents.secondary_redis_writes",
-    default=True,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

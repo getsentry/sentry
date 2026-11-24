@@ -22,6 +22,7 @@ from sentry.seer.agent.client_utils import (
     agent_connection_pool,
     has_seer_agent_access_with_detail,
 )
+from sentry.seer.agent.scm_connect_analytics import record_scm_connect_answered
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES
 from sentry.seer.endpoints.utils import resolve_seer_run
@@ -127,5 +128,8 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
+
+        if payload_type == "user_input_response":
+            record_scm_connect_answered(organization, user_id, resolved.seer_run_state_id, payload)
 
         return Response(status=202, data=response.json())

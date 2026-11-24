@@ -5,7 +5,7 @@ import type {Query} from 'history';
 import {Alert} from '@sentry/scraps/alert';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';

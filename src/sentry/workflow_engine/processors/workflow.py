@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Collection, Iterable, Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import StrEnum
@@ -11,10 +11,14 @@ from sentry import features, options
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.organization import Organization
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
 from sentry.workflow_engine.caches.action_filters import get_action_filters_by_workflows
-from sentry.workflow_engine.caches.workflow import get_workflows_by_detectors
+from sentry.workflow_engine.caches.workflow import (
+    get_activity_workflows_by_organization,
+    get_workflows_by_detectors,
+)
 from sentry.workflow_engine.models import DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
@@ -529,6 +533,37 @@ def _build_process_workflows_result(
     )
 
 
+def is_activity_workflow_enabled(organization: Organization) -> bool:
+    """Shared routing decision for activity processing, producers, and Inbox cutover."""
+    return bool(features.has("organizations:workflow-engine-activity-workflows", organization))
+
+
+def get_activity_workflows(
+    event_data: WorkflowEventData, environment: Environment | None
+) -> set[Workflow]:
+    """Gated organization candidates, also usable by future group-less event sources."""
+    organization = event_data.get_organization()
+    if not is_activity_workflow_enabled(organization):
+        return set()
+    return get_activity_workflows_by_organization(organization.id, environment)
+
+
+def select_workflows(
+    event_data: WorkflowEventData,
+    detectors: Collection[Detector],
+    environment: Environment | None,
+) -> set[Workflow]:
+    """Select by source; workflow conditions decide which activity kinds match."""
+    if isinstance(event_data.event, GroupEvent):
+        return get_workflows_by_detectors(detectors, environment)
+    if isinstance(event_data.event, Activity):
+        return get_workflows_by_detectors(detectors, environment) | get_activity_workflows(
+            event_data, environment
+        )
+    # ISWF-3708 will route the concrete InvestigationEvent through get_activity_workflows.
+    return set()
+
+
 @log_context.root()
 @isolated_workflow_event_context()
 def process_workflows(
@@ -597,7 +632,7 @@ def process_workflows(
     if features.has("organizations:workflow-engine-process-workflows-logs", organization):
         log_context.set_verbose(True)
 
-    workflows = get_workflows_by_detectors(event_detectors.detectors, environment)
+    workflows = select_workflows(event_data, event_detectors.detectors, environment)
     debug_workflow_ids = options.get("workflow_engine.process_workflows_debug_workflow_ids")
     if any(workflow.id in debug_workflow_ids for workflow in workflows):
         log_context.set_verbose(True)

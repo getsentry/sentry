@@ -1,11 +1,17 @@
 from unittest import mock
 
 import pytest
-from google.api_core.exceptions import BadGateway, InternalServerError, ServiceUnavailable
+from google.api_core.exceptions import (
+    BadGateway,
+    Forbidden,
+    InternalServerError,
+    ServiceUnavailable,
+)
 
 _ServiceUnavailable = ServiceUnavailable
 _InternalServerError = InternalServerError
 _BadGateway = BadGateway
+_Forbidden = Forbidden
 
 from sentry.services.filestore.gcs import (
     GCS_RETRIES,
@@ -63,9 +69,17 @@ def test_try_repeated_does_not_retry_bad_gateway() -> None:
     assert sleep.call_count == 0
 
 
-@pytest.mark.parametrize("error", [_InternalServerError("500"), _BadGateway("502")])
+@pytest.mark.parametrize(
+    "error",
+    [
+        _InternalServerError("500"),
+        _BadGateway("502"),
+        _Forbidden(
+            'POST https://storage.googleapis.com/upload/storage/v1/b/bucket/o?uploadType=multipart: {"error": {"code": 403, "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential."}}'
+        ),
+    ],
+)
 def test_replay_upload_policy_retries_transient_server_errors(error: Exception) -> None:
-    # The first upload attempt fails with a 500/502 and the second succeeds.
     func = mock.Mock(side_effect=[error, None])
 
     with mock.patch("sentry.utils.retries.time.sleep") as sleep:
@@ -73,3 +87,14 @@ def test_replay_upload_policy_retries_transient_server_errors(error: Exception) 
 
     assert func.call_count == 2
     assert sleep.call_count == 1
+
+
+def test_replay_upload_policy_does_not_retry_permission_denied() -> None:
+    func = mock.Mock(side_effect=_Forbidden("does not have storage.objects.create access"))
+
+    with mock.patch("sentry.utils.retries.time.sleep") as sleep:
+        with pytest.raises(Forbidden):
+            GoogleCloudStorageWithReplayUploadPolicy().try_set(func)
+
+    assert func.call_count == 1
+    assert sleep.call_count == 0

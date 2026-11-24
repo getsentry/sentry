@@ -582,7 +582,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                     created_by_id=acting_user_id(request.user),
                     service_account_grant=grant,
                 )
-            elif strategy is SeerWorkflowStrategy.AGENTIC_TRIAGE_V2:
+            elif strategy is SeerWorkflowStrategy.SCHEDULED_INVESTIGATION:
                 workflow = SeerWorkflow.create(
                     organization_id=organization.id,
                     strategy=strategy,
@@ -707,8 +707,8 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
           requires access to every project the config covers.
         - Enabling or pausing requires access to every project the config covers.
         - ``environments`` replaces the environments the automation covers; ``[]``
-          selects all environments. Like enabling, it requires access to every project
-          the config covers.
+          selects all environments. Like enabling, changing them requires access to
+          every project the config covers; sending the current value is a no-op.
         - ``serviceAccount`` replaces the scopes and projects of the automation's service
           account. Like ``projectIds``, the account's projects the caller can't access are
           kept, and scopes can't be added while any are.
@@ -761,11 +761,14 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         try:
             with workflow.update_config() as update:
                 all_projects = project_ids == [ALL_ACCESS_PROJECT_ID]
-                config_all_projects = SeerWorkflowFilters.parse_obj(
-                    update.config.filters
-                ).all_projects
+                config_filters = SeerWorkflowFilters.parse_obj(update.config.filters)
+                config_all_projects = config_filters.all_projects
+                # Clients may resend the stored environments on every save; that is not a change.
+                environments_changed = (
+                    environments is not None and environments != config_filters.environments
+                )
 
-                if enabled is not None or environments is not None or channel_supplied:
+                if enabled is not None or environments_changed or channel_supplied:
                     denied = _check_project_access(
                         (
                             [ALL_ACCESS_PROJECT_ID]
