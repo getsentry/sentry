@@ -53,8 +53,8 @@ from sentry.seer.endpoints.group_ai_autofix import RUN_IN_FLIGHT_CODE
 from sentry.seer.endpoints.utils import (
     SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL,
     ResolvedSeerRun,
+    authorize_seer_run,
     refuse_service_account_token,
-    resolve_seer_run,
     seer_out_of_credits_response,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
@@ -355,7 +355,14 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         if not has_access and not has_seer_access:
             raise PermissionDenied(error)
 
-        resolved = resolve_seer_run(run_id, organization)
+        resolved = authorize_seer_run(
+            run_id,
+            organization,
+            request.access,
+            acting_user_id(request.user),
+            for_continue=False,
+            write=False,
+        )
         if isinstance(resolved, Response):
             return resolved
 
@@ -466,7 +473,9 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             user_id = acting_user_id(request.user)
             if user_id is None:
                 raise PermissionDenied("A user account is required to continue a conversation.")
-            result = resolve_seer_run(run_id, organization, for_continue=True, user_id=user_id)
+            result = authorize_seer_run(
+                run_id, organization, request.access, user_id, for_continue=True, write=True
+            )
             if isinstance(result, Response):
                 return result
             resolved = result

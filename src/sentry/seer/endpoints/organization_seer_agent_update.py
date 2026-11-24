@@ -25,7 +25,7 @@ from sentry.seer.agent.client_utils import (
 from sentry.seer.agent.scm_connect_analytics import record_scm_connect_answered
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES
-from sentry.seer.endpoints.utils import resolve_seer_run
+from sentry.seer.endpoints.utils import authorize_seer_run
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
@@ -92,7 +92,9 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
                     data={"detail": "Code generation is disabled for this organization"},
                 )
 
-        resolved = resolve_seer_run(run_id, organization, for_continue=True, user_id=user_id)
+        resolved = authorize_seer_run(
+            run_id, organization, request.access, user_id, for_continue=True, write=True
+        )
         if isinstance(resolved, Response):
             return resolved
 

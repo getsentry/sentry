@@ -11,11 +11,13 @@ from rest_framework.response import Response
 from sentry.api.authentication import ServiceAccountTokenAuthentication
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import UserRequired
+from sentry.seer.autofix.constants import AUTOFIX_RUN_SCOPES
 from sentry.seer.credits import SeerCreditDenialReason
-from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
+from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus
 from sentry.utils.numbers import validate_bigint
 
 if TYPE_CHECKING:
+    from sentry.auth.access import Access
     from sentry.models.organization import Organization
 
 
@@ -143,6 +145,50 @@ def resolve_seer_run(
             )
         return Response({"session": {"status": "processing"}})
     return ResolvedSeerRun(run.seer_run_state_id, str(run.uuid))
+
+
+def authorize_seer_run(
+    run_id: str | int,
+    organization: Organization,
+    access: Access,
+    user_id: int | None,
+    *,
+    for_continue: bool,
+    write: bool,
+) -> ResolvedSeerRun | Response:
+    """Resolve a run the caller may read, or act on when ``write``. Issue runs are open to
+    anyone with project access (plus Autofix run scopes to act); other runs are the owner's."""
+    resolved = resolve_seer_run(run_id, organization, for_continue=for_continue)
+    if isinstance(resolved, Response):
+        return resolved
+
+    run = (
+        SeerRun.objects.filter(
+            organization=organization, seer_run_state_id=resolved.seer_run_state_id
+        )
+        .select_related("agent__group__project")
+        .first()  # noqa: S035
+    )
+    if run is None:
+        return _owner_mismatch_response() if write else resolved
+
+    try:
+        group = run.agent.group
+    except SeerAgentRun.DoesNotExist:
+        group = None
+
+    if group is not None:
+        allowed = (
+            access.has_any_project_scope(group.project, AUTOFIX_RUN_SCOPES)
+            if write
+            else access.has_project_access(group.project)
+        )
+    elif write:
+        allowed = user_id is not None and run.user_id == user_id
+    else:
+        allowed = run.user_id is None or run.user_id == user_id
+
+    return resolved if allowed else _owner_mismatch_response()
 
 
 _RpcReturn = TypeVar("_RpcReturn")

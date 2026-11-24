@@ -635,7 +635,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             request=ANY,
         )
 
-    def _single_run(self, *, user_id: int, project: Any = None) -> SeerRun:
+    def _single_run(self, *, user_id: int | None, project: Any = None) -> SeerRun:
         project = project or self.project
         group = self.create_group(project=project)
         run = self.create_seer_run(
@@ -742,15 +742,32 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         mock_continue.assert_not_called()
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
-    def test_reply_to_single_run_by_non_owner_is_403(self, mock_continue: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_teammate_can_reply_to_single_run(
+        self, mock_client_class: MagicMock, mock_continue: MagicMock
+    ) -> None:
         run = self._single_run(user_id=self.create_user().id)
 
         response = self.client.post(
             f"{self.url}{run.seer_run_state_id}/", {"query": "hi"}, format="json"
         )
 
-        assert response.status_code == 403
-        mock_continue.assert_not_called()
+        assert response.status_code == 200
+        assert mock_continue.call_args.kwargs["user"].id == self.user.id
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_teammate_can_reply_to_ownerless_single_run(
+        self, mock_client_class: MagicMock, mock_continue: MagicMock
+    ) -> None:
+        run = self._single_run(user_id=None)
+
+        response = self.client.post(
+            f"{self.url}{run.seer_run_state_id}/", {"query": "hi"}, format="json"
+        )
+
+        assert response.status_code == 200
+        mock_continue.assert_called_once()
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
     def test_reply_to_single_run_without_project_access_is_403(
@@ -794,7 +811,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         mock_client.get_run.assert_called_once_with(run_id=555)
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_get_allows_reading_another_users_conversation(
+    def test_get_denies_reading_another_users_personal_chat(
         self, mock_client_class: MagicMock
     ) -> None:
         run = self.create_seer_run(
@@ -803,19 +820,30 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         member = self.create_user()
         self.create_member(user=member, organization=self.organization, role="member")
         self.login_as(user=member)
-        mock_client = MagicMock()
-        mock_client.get_run.return_value = SeerRunState(
-            run_id=555,
+
+        response = self.client.get(f"{self.url}{run.uuid}/")
+
+        assert response.status_code == 403
+        assert response.data == {"detail": "You do not have access to this run."}
+        mock_client_class.return_value.get_run.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_get_allows_teammate_to_read_issue_run(self, mock_client_class: MagicMock) -> None:
+        run = self._single_run(user_id=self.user.id)
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.login_as(user=member)
+        mock_client_class.return_value.get_run.return_value = SeerRunState(
+            run_id=901,
             blocks=[],
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
         )
-        mock_client_class.return_value = mock_client
 
         response = self.client.get(f"{self.url}{run.uuid}/")
 
         assert response.status_code == 200
-        mock_client.get_run.assert_called_once_with(run_id=555)
+        mock_client_class.return_value.get_run.assert_called_once_with(run_id=901)
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_with_unknown_uuid_returns_null_session(self, mock_client_class: MagicMock) -> None:
