@@ -391,7 +391,7 @@ function InboxIssueRelatedRow({
   message?: string;
 }) {
   return (
-    <Flex gap="sm" align="center" minWidth={0}>
+    <Flex gap="sm" align="center" alignSelf="start" minWidth={0} maxWidth="100%">
       {linkProps => (
         <Tooltip
           skipWrapper
