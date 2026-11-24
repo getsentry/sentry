@@ -69,3 +69,31 @@ class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
         assert response.status_code == 200
 
         assert response.data["sentFirstEvent"]
+
+    def test_all_projects_closed_membership_excludes_non_member_projects(self) -> None:
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+        self.create_project(teams=[self.team], first_event=datetime.now(UTC))
+        self.create_member(organization=self.org, user=self.foo)
+
+        self.login_as(user=self.foo)
+
+        response = self.client.get(f"{self.url}?project=-1")
+        assert response.status_code == 200
+
+        assert not response.data["sentFirstEvent"]
+
+    def test_all_projects_closed_membership_includes_member_projects(self) -> None:
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+        other_team = self.create_team(organization=self.org)
+        self.create_project(teams=[self.team])
+        self.create_project(teams=[other_team], first_event=datetime.now(UTC))
+        self.create_member(organization=self.org, user=self.foo, teams=[other_team])
+
+        self.login_as(user=self.foo)
+
+        response = self.client.get(f"{self.url}?project=-1")
+        assert response.status_code == 200
+
+        assert response.data["sentFirstEvent"]
