@@ -6,7 +6,6 @@ from parsimonious.exceptions import ParseError
 from rest_framework import serializers
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
-from sentry import features
 from sentry.auth.principal import has_user
 from sentry.incidents.logic import (
     DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
