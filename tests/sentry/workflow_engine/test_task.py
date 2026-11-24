@@ -57,6 +57,17 @@ class TestProcessWorkflowActivity(TestCase):
         self.activity.save()
         self.detector = self.create_detector(type=MetricIssue.slug)
 
+    @mock.patch("sentry.workflow_engine.processors.workflow.process_workflows")
+    def test_mismatched_group_is_not_processed(self, process: mock.MagicMock) -> None:
+        other_group = self.create_group(project=self.project)
+        process_workflow_activity(self.activity.id, other_group.id, self.detector.id)
+        process.assert_not_called()
+
+    @mock.patch("sentry.workflow_engine.processors.workflow.process_workflows")
+    def test_optional_detector_message_honors_gate(self, process: mock.MagicMock) -> None:
+        process_workflow_activity(self.activity.id, self.group.id, detector_id=None)
+        process.assert_not_called()
+
     @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
     @mock.patch("sentry.workflow_engine.processors.evaluations.logging.logger")
     def test_process_workflow_activity__no_workflows(self, mock_logger: mock.MagicMock) -> None:

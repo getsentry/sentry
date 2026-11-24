@@ -190,9 +190,11 @@ supported issue activities instead.
 
 Issue activities invoke handlers through
 [`invoke_workflow_activity_handlers`](../handlers/registry/invoke_activities.py).
-Registered handlers receive an optional detector ID. A handler that schedules
-[`process_workflow_activity`](../tasks/workflows.py) must first resolve a concrete
-detector and pass its required detector ID with the activity and group.
+Registered handlers pass the persisted activity and group IDs to
+[`process_workflow_activity`](../tasks/workflows.py). When activity workflow routing
+is enabled, the worker can resolve an omitted detector from the issue. If no issue
+detector is available, it selects organization workflows and obtains an internal
+organization activity detector for execution only when a candidate exists.
 
 Event and activity paths use `WorkflowEventData`, which contains:
 
