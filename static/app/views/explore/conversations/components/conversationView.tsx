@@ -246,7 +246,7 @@ export function ConversationViewContent({
             )}
             {!isLoading && (
               <JumpToEndButton
-                key={`${conversation.conversationId}:${activeTab}`}
+                key={`jump-to-end:${conversation.conversationId}`}
                 canLoadMore={canAutoFetchNextPage}
                 loadedPageCount={loadedPageCount}
                 loadRemainingPages={loadRemainingPages}

@@ -377,20 +377,26 @@ describe('ConversationViewContent', () => {
       jest.restoreAllMocks();
     });
 
-    it('adds the remaining pages in one update, then scrolls to the end', async () => {
+    it('adds the remaining pages in one update and scrolls, across a tab switch', async () => {
       jest.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(5000);
       MockApiClient.clearMockResponses();
       mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'page-2'});
       mockConversation([CONVERSATION_BODY[1]!], {cursor: 'page-2', nextCursor: 'page-3'});
       const lastPage = mockConversation([], {cursor: 'page-3', asyncDelay: 50});
-      renderView();
+      const {rerender} = renderView();
       await screen.findByText('First answer');
 
       await userEvent.click(screen.getByRole('button', {name: 'Jump to end'}));
 
       await waitFor(() => expect(lastPage).toHaveBeenCalledTimes(1));
       expect(screen.queryByText('Second answer')).not.toBeInTheDocument();
-      expect(await screen.findByText('Second answer')).toBeInTheDocument();
+      rerender(
+        <ConversationViewContent
+          conversation={{conversationId: CONVERSATION_ID}}
+          activeTab="timeline"
+        />
+      );
+      expect(await screen.findByText('second turn')).toBeInTheDocument();
       await waitFor(() =>
         expect(Element.prototype.scrollTo).toHaveBeenCalledWith({top: 5000})
       );
@@ -398,6 +404,32 @@ describe('ConversationViewContent', () => {
         'conversations.detail.jump-to-end',
         expect.anything()
       );
+    });
+
+    it('retries a failed page before scrolling to the end', async () => {
+      const scrolledToSecondAnswer = jest.fn();
+      jest
+        .mocked(Element.prototype.scrollTo)
+        .mockImplementation(() =>
+          scrolledToSecondAnswer(screen.queryByText('Second answer') !== null)
+        );
+      MockApiClient.clearMockResponses();
+      mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'page-2'});
+      mockConversation([CONVERSATION_BODY[1]!], {cursor: 'page-2', asyncDelay: 50});
+      let failures = 0;
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+        match: [MockApiClient.matchQuery({cursor: 'page-2'}), () => failures++ === 0],
+        statusCode: 500,
+      });
+      renderView();
+      await screen.findByText('First answer');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Jump to end'}));
+
+      await waitFor(() => expect(scrolledToSecondAnswer).toHaveBeenCalled());
+      expect(scrolledToSecondAnswer.mock.calls).toEqual([[true]]);
+      expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
     });
 
     it('stops loading pages when the user scrolls', async () => {

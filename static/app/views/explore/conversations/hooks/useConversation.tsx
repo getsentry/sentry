@@ -484,16 +484,16 @@ export function useConversation(
   }, [fetchNextPage, hasNextPage, isFetching]);
 
   const loadRemainingPages = async (signal: AbortSignal) => {
-    const {hasFailedPage, pageCount: loadedPages} = await fetchRemainingPages(
-      queryClient,
-      queryOptions,
-      signal
-    );
-    if (hasFailedPage) {
-      // Only a failure on the live query shows the Retry button.
-      void fetchNextPage({cancelRefetch: false});
+    let result = await fetchRemainingPages(queryClient, queryOptions, signal);
+    while (result.hasFailedPage && !signal.aborted) {
+      // Retries on the live query, so a second failure shows its Retry button.
+      const retry = await fetchNextPage({cancelRefetch: false});
+      if (retry.isFetchNextPageError || !retry.hasNextPage) {
+        return retry.data?.pages.length ?? result.pageCount;
+      }
+      result = await fetchRemainingPages(queryClient, queryOptions, signal);
     }
-    return loadedPages;
+    return result.pageCount;
   };
 
   const autoFetchAll = conversation.autoFetchAll ?? true;
