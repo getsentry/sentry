@@ -619,12 +619,6 @@ export function ProductSelection({
   onChange,
   onLoad,
 }: ProductSelectionProps) {
-  const [params, setParams] = useOnboardingQueryParams();
-  const urlProducts = useMemo(
-    () => (params.product ?? []) as ProductSolution[],
-    [params.product]
-  );
-
   const products = platform ? platformProductAvailability[platform] : undefined;
 
   const disabledProducts = useMemo(
@@ -632,17 +626,9 @@ export function ProductSelection({
     [organization, disabledProductsProp]
   );
 
-  // A disabled product in the URL must not be selected or reach the setup snippet.
-  const selectedProducts = useMemo(
-    () => urlProducts.filter(product => !disabledProducts[product]),
-    [urlProducts, disabledProducts]
-  );
-
-  useEffect(() => {
-    if (selectedProducts.length !== urlProducts.length) {
-      setParams({product: selectedProducts});
-    }
-  }, [selectedProducts, urlProducts, setParams]);
+  const [{product: selectedProducts}, setParams] = useOnboardingQueryParams({
+    disabledProducts,
+  });
 
   // Use useEffectEvent to pass selectedProducts without adding it as a dependency
   const initializeProducts = useEffectEvent(() => {
