@@ -80,7 +80,7 @@ describe('HatchAreas', () => {
         }),
         expect.objectContaining({
           style: expect.objectContaining({
-            opacity: 0.6,
+            opacity: 0.4,
             decal: expect.objectContaining({color: '#ffffff', dashArrayY: [0, 2, 2, 0]}),
           }),
         }),

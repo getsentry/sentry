@@ -142,7 +142,7 @@ export class HatchAreas implements Plottable {
     this.renderStripes(params, api, {
       color: this.config.color,
       dashArrayY: [2, 2],
-      opacity: 1,
+      opacity: BACKGROUND_STRIPE_OPACITY,
     });
 
   // A translucent wash dims the data so its colors don't clash with the
@@ -152,7 +152,7 @@ export class HatchAreas implements Plottable {
       color: this.config.fadeColor,
       // Starting with an empty dash shifts these stripes into the background's gaps
       dashArrayY: [0, 2, 2, 0],
-      opacity: STRIPE_OPACITY,
+      opacity: FOREGROUND_STRIPE_OPACITY,
     });
     if (!stripes) {
       return null;
@@ -209,5 +209,6 @@ export class HatchAreas implements Plottable {
   }
 }
 
+const BACKGROUND_STRIPE_OPACITY = 0.6;
 const WASH_OPACITY = 0.5;
-const STRIPE_OPACITY = 0.6;
+const FOREGROUND_STRIPE_OPACITY = 0.4;
