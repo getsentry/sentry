@@ -126,11 +126,15 @@ def _halt_broken_integration(
     )
 
 
+# Large orgs list thousands of repos one page at a time, which takes minutes.
+SYNC_DEADLINE_SECONDS = 10 * 60
+
+
 @instrumented_task(
     name="sentry.integrations.source_code_management.sync_repos.sync_repos_for_org",
     namespace=integrations_control_tasks,
     retry=Retry(times=3, delay=120, on=(Exception,)),
-    processing_deadline_duration=120,
+    processing_deadline_duration=SYNC_DEADLINE_SECONDS,
     silo_mode=SiloMode.CONTROL,
 )
 def sync_repos_for_org(organization_integration_id: int) -> None:
@@ -142,7 +146,7 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
     """
     lock = locks.get(
         f"repo-sync:{organization_integration_id}",
-        duration=300,
+        duration=SYNC_DEADLINE_SECONDS + 5 * 60,
         name="sync_repos_for_org",
     )
     try:

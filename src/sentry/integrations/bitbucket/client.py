@@ -164,8 +164,10 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
     def get_repos(
         self, username: str, page_number_limit: int | None = None
     ) -> list[dict[str, Any]]:
+        # Full repo objects make each page take seconds; these fields take well under one.
         return self._get_all_from_paginated(
             BitbucketAPIPath.repositories.format(username=username),
+            params={"fields": "next,values.uuid,values.full_name"},
             page_number_limit=page_number_limit,
         )
 
