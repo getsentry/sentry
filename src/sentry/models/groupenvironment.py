@@ -16,14 +16,15 @@ from sentry.utils.cache import cache
 class GroupEnvironment(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    group = FlexibleForeignKey("sentry.Group", db_constraint=False)
+    # The (group, environment) unique index covers lookups by group.
+    group = FlexibleForeignKey("sentry.Group", db_constraint=False, db_index=False)
     environment = FlexibleForeignKey("sentry.Environment", db_constraint=False)
     first_release = FlexibleForeignKey(
         "sentry.Release",
         null=True,
         db_constraint=False,
-        # We have no index here, so we don't want to use the ORM's cascade
-        # delete functionality
+        # The (first_release, group) index covers lookups by release.
+        db_index=False,
         on_delete=DO_NOTHING,
     )
     first_seen = DateTimeField(default=timezone.now, db_index=True, null=True)
@@ -33,6 +34,14 @@ class GroupEnvironment(Model):
         db_table = "sentry_groupenvironment"
         indexes = [
             Index(fields=("environment", "first_release", "first_seen")),
+            # Issue search filters groups by environment and by first seen in an environment.
+            Index(fields=("environment", "group"), name="sentry_groupenv_env_group"),
+            Index(
+                fields=("environment", "group", "-first_seen"),
+                name="sentry_groupenv_env_group_seen",
+            ),
+            # Release cleanup checks whether a release is the first release of any group.
+            Index(fields=("first_release", "group"), name="sentry_groupenv_release_group"),
         ]
         unique_together = [("group", "environment")]
 
