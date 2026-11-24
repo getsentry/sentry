@@ -29,10 +29,7 @@ export interface Attribute extends Pick<
 > {
   datasets: AttributeDataset[];
   context?: {
-    applyScrubbing?: {
-      mode: 'auto' | 'manual' | 'never';
-      reason?: string;
-    };
+    applyScrubbing?: {mode: 'auto' | 'manual' | 'never'; reason?: string};
     brief?: string;
     details?: string[];
     examples?: Array<string | number | boolean>;
