@@ -5,7 +5,7 @@ from sentry.backup.helpers import DatetimeSafeDjangoJSONEncoder
 from sentry.backup.sanitize import sanitize
 from sentry.constants import SentryAppStatus
 from sentry.hybridcloud.models.outbox import ControlOutbox
-from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.apiapplication import ApiApplication
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.testutils.cases import TestCase
@@ -97,6 +97,19 @@ class SentryAppTest(TestCase):
         assert len(outboxes) == 2
         assert outboxes[0].shard_identifier == self.sentry_app.id
         assert outboxes[0].cell_name
+
+    def test_delete_does_not_drain_outboxes_inline(self) -> None:
+        ControlOutbox.objects.filter(shard_identifier=self.sentry_app.id).delete()
+
+        self.sentry_app.delete()
+
+        outboxes = ControlOutbox.objects.filter(
+            shard_scope=OutboxScope.APP_SCOPE, shard_identifier=self.sentry_app.id
+        )
+        assert {o.category for o in outboxes} == {
+            OutboxCategory.SENTRY_APP_UPDATE,
+            OutboxCategory.SENTRY_APP_DELETE,
+        }
 
     def test_cells_with_installations(self) -> None:
         self.us_org = self.create_organization(name="us test name", cell="us")

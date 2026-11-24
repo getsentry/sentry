@@ -284,7 +284,8 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     ) -> tuple[int, dict[str, int]]:
         from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 
-        with outbox_context(transaction.atomic(using=router.db_for_write(SentryApp))):
+        # Runs in the deletion task and nothing after it reads cell state, so drain async.
+        with outbox_context(transaction.atomic(using=router.db_for_write(SentryApp)), flush=False):
             for outbox in self.outboxes_for_update():
                 outbox.save()
 
