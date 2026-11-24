@@ -18,6 +18,7 @@ export const CheckWrap = styled('div')<{isMultiple: boolean; isSelected: boolean
           background: ${p.theme.tokens.background.primary};
           border-radius: 2px;
           height: 1em;
+          margin-top: 2px;
           ${
             p.isSelected &&
             css`
