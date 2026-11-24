@@ -413,7 +413,46 @@ describe('CompositeSelect', () => {
   describe('virtualization', () => {
     stubScrollLayout();
 
-    it('virtualizes a large region in the element the regions scroll in', async () => {
+    it('wraps focus to the last option of a large region', async () => {
+      const regionOptions = (region: string) =>
+        Array.from({length: 200}, (_, i) => ({
+          value: `${region}-${i}`,
+          label: `${region} ${i}`,
+        }));
+      render(
+        <CompositeSelect
+          trigger={props => (
+            <OverlayTrigger.Button {...props}>Open menu</OverlayTrigger.Button>
+          )}
+        >
+          <CompositeSelect.Region
+            label="First"
+            value={undefined}
+            onChange={() => {}}
+            options={regionOptions('R1')}
+          />
+          <CompositeSelect.Region
+            label="Second"
+            value={undefined}
+            onChange={() => {}}
+            options={regionOptions('R2')}
+          />
+        </CompositeSelect>,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open menu'}));
+      await waitFor(() =>
+        expect(screen.getByRole('option', {name: 'R1 0'})).toHaveFocus()
+      );
+      await userEvent.keyboard('{ArrowUp}');
+
+      await waitFor(() =>
+        expect(screen.getByRole('option', {name: 'R2 199'})).toHaveFocus()
+      );
+    });
+
+    it('virtualizes a region in the element the regions scroll in', async () => {
       render(
         <CompositeSelect
           trigger={props => (
@@ -430,6 +469,7 @@ describe('CompositeSelect', () => {
             label="Large"
             value={undefined}
             onChange={() => {}}
+            virtualized
             options={Array.from({length: 500}, (_, i) => ({
               value: `${i}`,
               label: `Option ${i}`,

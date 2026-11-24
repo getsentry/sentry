@@ -2274,6 +2274,90 @@ describe('CompactSelect', () => {
         )
       );
     });
+
+    it.each([
+      ['list box', undefined, 'option'],
+      ['grid', 'grid', 'row'],
+    ] as const)(
+      'focuses the selected option when a %s opens',
+      async (_, mode, optionRole) => {
+        render(
+          <CompactSelect
+            mode={mode}
+            menuWidth={300}
+            options={sections}
+            value="B-199"
+            onChange={jest.fn()}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button'));
+
+        await waitFor(() =>
+          expect(screen.getByRole(optionRole, {name: 'B 199'})).toHaveFocus()
+        );
+      }
+    );
+
+    it.each([
+      ['list box', undefined, 'option'],
+      ['grid', 'grid', 'row'],
+    ] as const)(
+      'moves focus from the search to the first option of a scrolled %s',
+      async (_, mode, optionRole) => {
+        render(
+          <CompactSelect
+            mode={mode}
+            search
+            menuWidth={300}
+            options={sections}
+            value={undefined}
+            onChange={jest.fn()}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button'));
+        const search = screen.getByPlaceholderText('Search…');
+        await waitFor(() => expect(search).toHaveFocus());
+        await userEvent.keyboard('{ArrowDown}');
+        await waitFor(() =>
+          expect(screen.getByRole(optionRole, {name: 'A 0'})).toHaveFocus()
+        );
+        await userEvent.keyboard('{End}');
+        await waitFor(() =>
+          expect(screen.getByRole(optionRole, {name: 'B 249'})).toHaveFocus()
+        );
+
+        await userEvent.tab({shift: true});
+        expect(search).toHaveFocus();
+        await userEvent.keyboard('{ArrowDown}');
+
+        await waitFor(() =>
+          expect(screen.getByRole(optionRole, {name: 'A 0'})).toHaveFocus()
+        );
+      }
+    );
+
+    it('wraps focus from the first row of a grid with sections to its last', async () => {
+      render(
+        <CompactSelect
+          mode="grid"
+          menuWidth={300}
+          options={sections}
+          value={undefined}
+          onChange={jest.fn()}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await waitFor(() => expect(screen.getByRole('row', {name: 'A 0'})).toHaveFocus());
+      await userEvent.keyboard('{ArrowUp}');
+
+      await waitFor(() => expect(screen.getByRole('row', {name: 'B 249'})).toHaveFocus());
+    });
   });
 });
 
