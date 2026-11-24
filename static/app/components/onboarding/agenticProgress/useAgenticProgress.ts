@@ -1,5 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {agenticProgressRunOptions} from './api';
@@ -18,10 +19,15 @@ export function useAgenticProgress({runId, enabled = true}: UseAgenticProgressOp
       runId: queryEnabled ? runId : null,
     }),
     enabled: queryEnabled,
-    // The backend sets continueUpdates to false once the run reaches a terminal state,
-    // after which the run can no longer change.
-    refetchInterval: query =>
-      query.state.data?.json.continueUpdates === false ? false : POLL_INTERVAL_MS,
+    // Neither a finished run (continueUpdates is false) nor an expired run (404) can change
+    // again. A failed request keeps the last good data, so the 404 is checked separately.
+    refetchInterval: query => {
+      const {data, error} = query.state;
+      if (error instanceof RequestError && error.status === 404) {
+        return false;
+      }
+      return data?.json.continueUpdates === false ? false : POLL_INTERVAL_MS;
+    },
     refetchOnWindowFocus: true,
   });
 }

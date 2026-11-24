@@ -76,5 +76,28 @@ describe('useAgenticProgress', () => {
       await act(() => jest.advanceTimersByTimeAsync(15000));
       expect(request).toHaveBeenCalledTimes(1);
     });
+
+    it('stops polling once the run has expired', async () => {
+      const activeRequest = MockApiClient.addMockResponse({url: endpoint, body: run});
+
+      renderHookWithProviders(() => useAgenticProgress({runId: run.runId}), {
+        organization: {slug: 'org-slug'},
+      });
+
+      await waitFor(() => expect(activeRequest).toHaveBeenCalledTimes(1));
+
+      MockApiClient.clearMockResponses();
+      const expiredRequest = MockApiClient.addMockResponse({
+        url: endpoint,
+        statusCode: 404,
+        body: {detail: 'Onboarding run not found'},
+      });
+
+      await act(() => jest.advanceTimersByTimeAsync(5000));
+      expect(expiredRequest).toHaveBeenCalledTimes(1);
+
+      await act(() => jest.advanceTimersByTimeAsync(15000));
+      expect(expiredRequest).toHaveBeenCalledTimes(1);
+    });
   });
 });
