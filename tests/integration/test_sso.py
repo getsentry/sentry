@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import OrganizationMember
@@ -45,3 +47,44 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # now that SSO is marked as complete, we should be able to access dash
         resp = self.client.get(path)
         assert resp.status_code == 200
+
+    def test_sso_session_duration(self) -> None:
+        user = self.create_user("foo@example.com", is_superuser=False)
+        organization = self.create_organization(name="foo")
+        self.create_member(
+            user=user, organization=organization, flags=OrganizationMember.flags["sso:linked"]
+        )
+        auth_provider = self.create_auth_provider(
+            organization_id=organization.id,
+            provider="dummy",
+            flags=0,
+            sso_session_duration=int(timedelta(days=14).total_seconds()),
+        )
+        self.create_auth_identity(auth_provider=auth_provider, user=user)
+        self.login_as(user)
+
+        path = f"/{organization.slug}/"
+        redirect_uri = f"/auth/login/{organization.slug}/?next=%2Ffoo%2F"
+
+        # Older than the default duration, but not than the organization's
+        sso_session = SsoSession(
+            organization.id, datetime.now(tz=timezone.utc) - timedelta(days=10)
+        )
+        self.session[sso_session.session_key] = sso_session.to_dict()
+        self.save_session()
+
+        resp = self.client.get(path)
+        assert resp.status_code == 200
+
+        auth_provider.update(sso_session_duration=int(timedelta(days=1).total_seconds()))
+
+        resp = self.client.get(path)
+        self.assertRedirects(resp, redirect_uri)
+
+        # Newer than the default duration, but not than the organization's
+        sso_session = SsoSession(organization.id, datetime.now(tz=timezone.utc) - timedelta(days=2))
+        self.session[sso_session.session_key] = sso_session.to_dict()
+        self.save_session()
+
+        resp = self.client.get(path)
+        self.assertRedirects(resp, redirect_uri)
