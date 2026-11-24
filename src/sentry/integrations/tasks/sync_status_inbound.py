@@ -230,7 +230,7 @@ def group_was_recently_resolved(group: Group) -> bool:
 class _InboundStatusSyncLifecycle:
     def __init__(
         self,
-        event: ProjectManagementEvent | None,
+        event: ProjectManagementEvent,
         *,
         integration_id: int,
         organization_id: int,
@@ -245,22 +245,20 @@ class _InboundStatusSyncLifecycle:
         }
 
     def record_halt(self, reason: InboundStatusSyncHaltReason) -> None:
-        if self.event is not None:
-            self.event.record_outcome(
-                EventLifecycleOutcome.HALTED,
-                outcome_reason=reason,
-                extra=self.log_context,
-            )
+        self.event.record_outcome(
+            EventLifecycleOutcome.HALTED,
+            outcome_reason=reason,
+            extra=self.log_context,
+        )
 
     def record_success(self) -> None:
-        if self.event is not None:
-            self.event.record_outcome(
-                EventLifecycleOutcome.SUCCESS,
-                extra=self.log_context,
-            )
+        self.event.record_outcome(
+            EventLifecycleOutcome.SUCCESS,
+            extra=self.log_context,
+        )
 
     def record_final_failure(self, error: BaseException) -> None:
-        if self.event is not None and _is_final_attempt():
+        if _is_final_attempt():
             self.event.record_outcome(
                 EventLifecycleOutcome.FAILURE,
                 outcome_reason=self.failure_reason,
@@ -282,9 +280,6 @@ def _sync_status_inbound(
         using_replica=options.get("integration_service.get_integration.using_replica"),
     )
     if integration is None:
-        if lifecycle.event is None:
-            # Preserve behavior for tasks queued before provider context was added.
-            raise Integration.DoesNotExist
         lifecycle.record_halt(InboundStatusSyncHaltReason.INTEGRATION_MISSING)
         return
 
@@ -504,15 +499,15 @@ def sync_status_inbound(
     data: Mapping[str, Any],
 ) -> None:
     integration_provider = data.get(INTEGRATION_PROVIDER_KEY)
+    if not isinstance(integration_provider, str):
+        # Every producer records `started` and attaches the provider before enqueueing.
+        # A payload without it has no matching `started`, so it cannot be tracked.
+        raise ValueError("sync_status_inbound payload is missing the integration provider")
     provider_data = {key: value for key, value in data.items() if key != INTEGRATION_PROVIDER_KEY}
-    event = (
-        ProjectManagementEvent(
-            action_type=ProjectManagementActionType.INBOUND_STATUS_SYNC,
-            provider_key=integration_provider,
-            event_integration_id=integration_id,
-        )
-        if isinstance(integration_provider, str)
-        else None
+    event = ProjectManagementEvent(
+        action_type=ProjectManagementActionType.INBOUND_STATUS_SYNC,
+        provider_key=integration_provider,
+        event_integration_id=integration_id,
     )
     lifecycle = _InboundStatusSyncLifecycle(
         event,
