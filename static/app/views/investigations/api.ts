@@ -47,6 +47,16 @@ export function investigationListQueryOptions({
   );
 }
 
+export function workflowPollInterval(detail?: InvestigationDetail): number | false {
+  if (detail?.workflowReport?.active) {
+    return detail.workflowReport.status === 'awaiting_input' ? 30_000 : 2_000;
+  }
+  if (detail?.workflowLaunch?.status === 'starting') {
+    return 2_000;
+  }
+  return detail?.workflowLaunch?.status === 'unconfirmed' ? 30_000 : false;
+}
+
 export function getInvestigationDetailQueryOptions(
   organizationSlug: string,
   investigationId: string

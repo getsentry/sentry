@@ -32,6 +32,7 @@ import {
   investigationCommentCountsQueryOptions,
   investigationOrchestrationQueryOptions,
   isFollowUpPending,
+  useLaunchInvestigationMutation,
 } from 'sentry/views/investigations/api';
 import {useBlockCommentsDrawer} from 'sentry/views/investigations/comments/useBlockCommentsDrawer';
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
@@ -47,7 +48,10 @@ import {
   useInvestigationAskSeer,
 } from 'sentry/views/investigations/investigationLLMContext';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
-import {getInvestigationSource} from 'sentry/views/investigations/source';
+import {
+  getInvestigationSource,
+  parseMetricOpenPeriodSource,
+} from 'sentry/views/investigations/source';
 import {
   getSeerStatusBlock,
   getWorkflowStatusBlock,
@@ -320,6 +324,22 @@ export function InvestigationPageContent({
     }
   );
   const source = getInvestigationSource(investigation);
+  const launchSource =
+    investigation.workflowLaunch && parseMetricOpenPeriodSource(investigation.source);
+  const retryLaunch = useLaunchInvestigationMutation(
+    organization.slug,
+    {
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: getInvestigationDetailQueryOptions(
+            organization.slug,
+            investigation.id
+          ).queryKey,
+        });
+      },
+    },
+    2
+  );
   const hasDetails =
     Boolean(investigation.orchestration || investigation.workflowReport) ||
     visibleBlocks.length > 0 ||
@@ -478,6 +498,36 @@ export function InvestigationPageContent({
               </Container>
             ) : null}
             <Stack column="2" minWidth={0} gap="3xl">
+              {investigation.workflowLaunch && investigation.status === 'active' && (
+                <Stack gap="sm" align="start">
+                  <Text role="status">
+                    {investigation.workflowLaunch.status === 'starting'
+                      ? t('Starting investigation…')
+                      : investigation.workflowLaunch.status === 'failed'
+                        ? tct('Investigation could not start. [reason]', {
+                            reason: investigation.workflowLaunch.detail,
+                          })
+                        : t('Waiting for confirmation that the investigation started.')}
+                  </Text>
+                  {investigation.workflowLaunch.status !== 'starting' && launchSource && (
+                    <Button
+                      size="sm"
+                      disabled={retryLaunch.isPending}
+                      onClick={() =>
+                        retryLaunch.mutate({
+                          type: launchSource.type,
+                          ref: launchSource.ref,
+                        })
+                      }
+                    >
+                      {t('Retry start')}
+                    </Button>
+                  )}
+                  {retryLaunch.isError && (
+                    <Text role="alert">{t('Unable to retry the investigation.')}</Text>
+                  )}
+                </Stack>
+              )}
               <InvestigationSummaryCard
                 id={SUMMARY_ELEMENT_ID}
                 summary={investigation.summary}

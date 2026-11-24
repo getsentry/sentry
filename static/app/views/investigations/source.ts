@@ -49,7 +49,7 @@ const metricOpenPeriodSourceSchema = z.object({
 
 export type SourceMonitor = z.infer<typeof sourceMonitorSchema> & {projectSlug: string};
 
-function parseMetricOpenPeriodSource(source: InvestigationDetail['source']) {
+export function parseMetricOpenPeriodSource(source: InvestigationDetail['source']) {
   const parsed = metricOpenPeriodSourceSchema.safeParse(source);
   return parsed.success ? parsed.data : null;
 }

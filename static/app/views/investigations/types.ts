@@ -210,6 +210,7 @@ export type InvestigationDetail = InvestigationListItem & {
     type: string;
     snapshot?: Record<string, unknown>;
   };
+  workflowLaunch?: {detail: string; status: 'starting' | 'unconfirmed' | 'failed'};
   workflowReport?: WorkflowReport;
 };
 

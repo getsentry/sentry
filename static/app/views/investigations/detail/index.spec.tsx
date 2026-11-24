@@ -176,6 +176,28 @@ describe('Investigation detail', () => {
     }
   });
 
+  it('retries a rejected workflow start on the same notebook', async () => {
+    const source = {type: 'metric_open_period', ref: {groupId: '1', openPeriodId: '2'}};
+    const notebook = InvestigationDetailFixture({
+      source: {...source, revision: 1},
+      workflowLaunch: {status: 'failed', detail: 'Detector unavailable.'},
+    });
+    const detail = MockApiClient.addMockResponse({url: detailUrl, body: notebook});
+    const launch = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/',
+      method: 'POST',
+      body: notebook,
+    });
+    renderView();
+    expect(await screen.findByText(/Detector unavailable/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Retry start'}));
+    expect(launch).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({data: {source}, query: {version: 2}})
+    );
+    await waitFor(() => expect(detail).toHaveBeenCalledTimes(2));
+  });
+
   describe('while a workflow notebook is running', () => {
     beforeEach(() => {
       jest.useFakeTimers();
@@ -190,9 +212,10 @@ describe('Investigation detail', () => {
     });
     it('answers the question for the paused node and keeps the timer paused', async () => {
       const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
-      MockApiClient.addMockResponse({
+      const detail = MockApiClient.addMockResponse({
         url: detailUrl,
         body: InvestigationDetailFixture({
+          blocks: [],
           workflowReport: {
             runId: 'workflow-1',
             status: 'awaiting_input',
@@ -219,10 +242,14 @@ describe('Investigation detail', () => {
       });
       renderView();
       const answer = await screen.findByRole('textbox', {name: 'Which release?'});
-      await act(() => jest.advanceTimersByTimeAsync(500));
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+      expect(detail).toHaveBeenCalledTimes(1);
+      await act(() => jest.advanceTimersByTimeAsync(28_000));
+      expect(detail).toHaveBeenCalledTimes(2);
       expect(screen.getByRole('timer')).toHaveTextContent('23.0s');
       await user.type(answer, 'release-42');
       await user.click(screen.getByRole('button', {name: 'Send answer'}));
+      await waitFor(() => expect(detail).toHaveBeenCalledTimes(3));
       expect(command).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({

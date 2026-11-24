@@ -64,6 +64,7 @@ import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/pars
 import {
   investigationCandidatesQueryOptions,
   getInvestigationDetailQueryOptions,
+  workflowPollInterval,
   investigationOrchestrationQueryOptions,
   useLaunchInvestigationMutation,
 } from 'sentry/views/investigations/api';
@@ -700,8 +701,8 @@ function SeerInvestigationSection({
     ...getInvestigationDetailQueryOptions(organization.slug, betaId ?? 'disabled'),
     enabled: Boolean(betaId),
     select: response => response.json.workflowReport,
-    refetchInterval: query =>
-      query.state.data?.json.workflowReport?.active ? INVESTIGATION_POLL_INTERVAL : false,
+    refetchInterval: query => workflowPollInterval(query.state.data?.json),
+    refetchOnWindowFocus: 'always',
   });
 
   const launchV2Mutation = useLaunchInvestigationMutation(
