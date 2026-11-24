@@ -701,7 +701,7 @@ function CodingAgentDropdown({
           />
         );
       }}
-      position="bottom-end"
+      position={label ? 'bottom-start' : 'bottom-end'}
       shouldCloseOnBlur={false}
       menuFooter={
         <Footer>
