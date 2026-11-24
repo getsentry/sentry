@@ -30,7 +30,7 @@ from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.organization import Organization
 
 
-class MemberPermission(OrganizationPermission):
+class StarredDashboardPermission(OrganizationPermission):
     scope_map = {
         "GET": ["user_preference:read"],
         "PUT": ["user_preference:write"],
@@ -44,7 +44,7 @@ class MemberPermission(OrganizationPermission):
 class OrganizationDashboardsStarredEndpoint(OrganizationEndpoint):
     publish_status = {"GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
     owner = ApiOwner.DASHBOARDS
-    permission_classes = (MemberPermission,)
+    permission_classes = (StarredDashboardPermission,)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has("organizations:dashboards-starred", organization, actor=request.user)
@@ -112,7 +112,7 @@ class OrganizationDashboardsStarredEndpoint(OrganizationEndpoint):
 class OrganizationDashboardsStarredOrderEndpoint(OrganizationEndpoint):
     publish_status = {"PUT": ApiPublishStatus.PRIVATE}
     owner = ApiOwner.DASHBOARDS
-    permission_classes = (MemberPermission,)
+    permission_classes = (StarredDashboardPermission,)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has("organizations:dashboards-starred", organization, actor=request.user)

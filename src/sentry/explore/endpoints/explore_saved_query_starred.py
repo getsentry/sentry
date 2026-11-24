@@ -43,7 +43,7 @@ class StarQuerySerializer(serializers.Serializer[object, StarQueryData]):
         return data
 
 
-class MemberPermission(OrganizationPermission):
+class StarredExploreSavedQueryPermission(OrganizationPermission):
     scope_map = {
         "POST": ["user_preference:write"],
     }
@@ -58,7 +58,7 @@ class ExploreSavedQueryStarredEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.EXPLORE
-    permission_classes = (MemberPermission,)
+    permission_classes = (StarredExploreSavedQueryPermission,)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
