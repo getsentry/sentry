@@ -5,7 +5,6 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.utils import timezone
 from taskbroker_client.retry import Retry
@@ -14,12 +13,12 @@ from sentry import features, options
 from sentry.anomaly_detection.checkpoint import codec
 from sentry.anomaly_detection.checkpoint.replay import advance_org
 from sentry.anomaly_detection.contracts import AnomalyGroupKey
+from sentry.anomaly_detection.detector import MinuteDecisions
 from sentry.anomaly_detection.evaluation.organization import (
     AnomalyDecision,
     Checkpoint,
     EvaluatorConfig,
 )
-from sentry.anomaly_detection.grouptype import MinuteDecisions
 from sentry.anomaly_detection.inputs.hourly_snapshot import hourly_rows
 from sentry.anomaly_detection.inputs.measurements import collect
 from sentry.anomaly_detection.inputs.new_failures import (
@@ -27,11 +26,11 @@ from sentry.anomaly_detection.inputs.new_failures import (
     new_failure_thresholds,
 )
 from sentry.anomaly_detection.inputs.trace_lookup import TraceLookup
+from sentry.anomaly_detection.state import delete_state, get_state, set_state
 from sentry.constants import ObjectStatus
 from sentry.db.models.base import Model
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.locks import locks
-from sentry.models.anomaly_detection_state import AnomalyDetectionState
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -49,8 +48,6 @@ FEATURE = "organizations:anomaly-detector"
 _MINUTE = timedelta(minutes=1)
 _INGEST_DELAY = timedelta(minutes=2)
 _MINUTE_WARMUP = timedelta(hours=5)
-# State that hasn't advanced this long belongs to an organization that stopped evaluating.
-_ABANDONED_STATE_AGE = timedelta(days=1)
 _RESOLVED_STATE_RETENTION = timedelta(days=30)
 _CLEANUP_BATCH_SIZE = 1000
 _CLEANUP_MAX_BATCHES = 50
@@ -110,9 +107,11 @@ def schedule_anomaly_detectors() -> None:
     silo_mode=SiloMode.CELL,
 )
 def cleanup_anomaly_detection_state() -> None:
-    """Delete abandoned checkpoints and old resolved detector state in bounded batches."""
+    """Delete old resolved anomaly detector state in bounded batches.
+
+    Evaluator checkpoints need no cleanup: they expire in Redis once they stop advancing.
+    """
     now = timezone.now()
-    _bulk_delete(AnomalyDetectionState, date_updated__lt=now - _ABANDONED_STATE_AGE)
     # Every anomaly episode has its own group key, so resolved detector state only grows.
     _bulk_delete(
         DetectorState,
@@ -175,33 +174,6 @@ def _publish(
         process_detectors(packet, [detector])
 
 
-def _commit_checkpoint(
-    organization_id: int,
-    *,
-    stored_minute: datetime | None,
-    next_minute: datetime,
-    checkpoint: bytes,
-) -> bool:
-    """Compare-and-set the checkpoint; return False if another worker advanced it first.
-
-    `stored_minute` is the cursor read before evaluating, or None if there was no row.
-    """
-    if stored_minute is None:
-        try:
-            with transaction.atomic(using=router.db_for_write(AnomalyDetectionState)):
-                AnomalyDetectionState.objects.create(
-                    organization_id=organization_id, next_minute=next_minute, checkpoint=checkpoint
-                )
-        except IntegrityError:
-            return False
-        return True
-    return bool(
-        AnomalyDetectionState.objects.filter(
-            organization_id=organization_id, next_minute=stored_minute
-        ).update(next_minute=next_minute, checkpoint=checkpoint, date_updated=timezone.now())
-    )
-
-
 def _run_organization(organization_id: int, target: datetime) -> bool:
     """Make one bounded unit of progress; return whether to enqueue a continuation."""
     organization = Organization.objects.get_or_none(
@@ -221,7 +193,7 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
         .annotate(project_organization_id=F("project__organization_id"))[: max_projects + 1]
     )
     if not detector_rows:
-        AnomalyDetectionState.objects.filter(organization_id=organization_id).delete()
+        delete_state(organization_id)
         return False
     if len(detector_rows) > max_projects:
         metrics.incr("anomaly_detection.project_limit_exceeded")
@@ -229,17 +201,13 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
     detectors = {detector.linked_project.id: detector for detector in detector_rows}
     projects = [detector.linked_project for detector in detector_rows]
 
-    stored = (
-        AnomalyDetectionState.objects.filter(organization_id=organization_id)
-        .values_list("next_minute", "checkpoint")
-        .get_or_none()
-    )
+    stored = get_state(organization_id)
     target_utc = target.replace(tzinfo=UTC)
     stored_minute: datetime | None = None
     checkpoint: Checkpoint | None = None
     if stored is not None:
-        stored_minute, stored_blob = stored
-        checkpoint = codec.decode(bytes(stored_blob))
+        stored_minute = stored.next_minute
+        checkpoint = codec.decode(stored.checkpoint)
         max_resume_lag = timedelta(minutes=options.get("anomaly_detection.max_resume_lag_minutes"))
         if checkpoint is None:
             metrics.incr("anomaly_detection.checkpoint_discarded")
@@ -282,16 +250,10 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
     metrics.distribution("anomaly_detection.checkpoint_bytes", len(blob))
     # Publish before committing: a crash in between replays the same minutes, which
     # the detectors' per-group dedupe ignores. Committing first could lose transitions.
+    # The caller holds the organization's lease, so no other worker writes this state.
     _publish(decisions, detectors, next_checkpoint.open_groups(), end - _MINUTE)
-    committed = _commit_checkpoint(
-        organization_id,
-        stored_minute=stored_minute,
-        next_minute=end.replace(tzinfo=UTC),
-        checkpoint=blob,
-    )
-    if not committed:
-        metrics.incr("anomaly_detection.checkpoint_conflict")
-    return committed and end < target
+    set_state(organization_id, next_minute=end.replace(tzinfo=UTC), checkpoint=blob)
+    return end < target
 
 
 @instrumented_task(

@@ -37,7 +37,7 @@ from sentry.anomaly_detection.evaluation.series import build, samples_key
 from sentry.anomaly_detection.inputs.measurements import MAX_ENVIRONMENTS, MAX_SLICES, SPAN_SLICES
 from sentry.anomaly_detection.inputs.shapes import SeriesShape, compute, day_of
 from sentry.anomaly_detection.inputs.trace_lookup import TraceLookup
-from sentry.models.anomaly_detection_state import AnomalyDetectionState
+from sentry.anomaly_detection.state import get_state
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
@@ -939,15 +939,17 @@ class TestDenseWorkerCheckpoint(TestCase):
             patch.object(TraceLookup, "footprint", return_value=None),
         ):
             assert not schedule._run_organization(self.organization.id, first_end)
-            state = AnomalyDetectionState.objects.get(organization=self.organization)
+            state = get_state(self.organization.id)
+            assert state is not None
             assert state.next_minute == first_end.replace(tzinfo=UTC)
-            assert codec.decode(bytes(state.checkpoint)) is not None
+            assert codec.decode(state.checkpoint) is not None
 
             assert not schedule._run_organization(self.organization.id, second_end)
-            state.refresh_from_db()
+            state = get_state(self.organization.id)
+            assert state is not None
             assert state.next_minute == second_end.replace(tzinfo=UTC)
 
-        restored = codec.decode(bytes(state.checkpoint))
+        restored = codec.decode(state.checkpoint)
         assert restored is not None
         assert restored.state.next_minute == second_end
         assert restored.series.keys() == set(series)
