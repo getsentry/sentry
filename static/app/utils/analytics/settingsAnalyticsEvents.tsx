@@ -46,6 +46,11 @@ export type SettingsEventParameters = {
    */
   'settings.org_menu.project_clicked': {source: SettingsOrgMenuProjectSource};
   /**
+   * A different organization was picked in the organization selector at the
+   * top of the organization settings sidebar.
+   */
+  'settings.organization_selector.changed': Record<string, unknown>;
+  /**
    * A different project was picked in the project selector at the top of the
    * project settings sidebar.
    */
@@ -63,6 +68,8 @@ export const settingsEventMap: Record<SettingsEventKey, string | null> = {
   'settings.org_menu.project_bookmark_toggled':
     'Settings: Org Menu Project Bookmark Toggled',
   'settings.org_menu.project_clicked': 'Settings: Org Menu Project Clicked',
+  'settings.organization_selector.changed':
+    'Settings: Sidebar Organization Selector Changed',
   'settings.project_selector.changed': 'Settings: Sidebar Project Selector Changed',
   'sidebar.item_clicked': 'Sidebar: Item Clicked',
 };

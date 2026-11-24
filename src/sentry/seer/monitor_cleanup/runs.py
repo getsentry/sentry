@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 from uuid import UUID
 
 from rest_framework.exceptions import NotFound, PermissionDenied, Throttled
@@ -18,8 +18,6 @@ from sentry.seer.monitor_cleanup.results import parse_monitor_cleanup_results
 from sentry.seer.monitor_cleanup.schemas import SeerMonitorCleanupResponse
 from sentry.seer.workflows.runs import create_workflow_run, deliver_workflow_result
 from sentry.seer.workflows.schemas import WorkflowResult, WorkflowResultError, WorkflowRunSource
-from sentry.users.models.user import User
-from sentry.users.services.user import RpcUser
 
 
 def create_monitor_cleanup_run(
@@ -32,7 +30,7 @@ def create_monitor_cleanup_run(
     if not request.user.is_authenticated:
         raise PermissionDenied("Sign in to run a monitor scan.")
     try:
-        client = SeerAgentClient(organization=organization, user=cast(User | RpcUser, request.user))
+        client = SeerAgentClient(organization=organization, user=request.user)
     except SeerPermissionError as error:
         raise PermissionDenied("Seer is not available for this organization.") from error
     if ratelimits.is_limited(

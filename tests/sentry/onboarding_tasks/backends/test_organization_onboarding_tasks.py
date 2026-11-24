@@ -7,12 +7,12 @@ from sentry.onboarding_tasks.backends.organization_onboarding_task import (
     OrganizationOnboardingTaskBackend,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import no_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 backend = OrganizationOnboardingTaskBackend()
 
 
-@no_silo_test
+@cell_silo_test
 class OrganizationOnboardingTaskBackendTest(TestCase):
     def test_fetch_onboarding_tasks_empty_on_org(self) -> None:
         assert len(backend.fetch_onboarding_tasks(self.organization, self.user)) == 0

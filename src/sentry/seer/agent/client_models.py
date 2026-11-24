@@ -115,6 +115,7 @@ class RepoPRState(BaseModel):
     pr_creation_status: Literal["creating", "completed", "error"] | None = None
     pr_creation_error: str | None = None
     pr_creation_error_code: str | None = None
+    credit_denial_reason: str | None = None
     title: str | None = None
     description: str | None = None
     integration_id: str | None = None
@@ -395,6 +396,7 @@ class SeerRunState(BaseModel):
     owner_user_id: int | None = None
     pending_user_input: PendingUserInput | None = None
     repo_pr_states: dict[str, RepoPRState] = Field(default_factory=dict)
+    credit_denial_reason: str | None = None
     # exclude=True omits these from .dict() so they're not exposed via the public
     # chat API. Internal callers (autofix, agentic triage) still access them directly.
     metadata: dict[str, Any] | None = Field(default=None, exclude=True)

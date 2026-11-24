@@ -373,9 +373,10 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         ai_client_filter = "gen_ai.operation.type:ai_client"
         # Some SDKs put messages on the agent span instead of its generation spans.
         agent_filter = "gen_ai.operation.type:agent"
+        conversation_filter = build_escaped_term_filter("gen_ai.conversation.id", conversation_ids)
         results = Spans.run_table_query(
             params=snuba_params,
-            query_string=build_escaped_term_filter("gen_ai.conversation.id", conversation_ids),
+            query_string=f"{conversation_filter} {operation_filter}",
             selected_columns=[
                 "gen_ai.conversation.id",
                 *CONVERSATION_AGGREGATE_COLUMNS,

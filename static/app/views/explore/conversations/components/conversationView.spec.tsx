@@ -1,10 +1,20 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {ConversationViewContent} from './conversationView';
+
+jest.mock('sentry/utils/analytics');
 
 const CONVERSATION_ID = 'conv-1';
 const originalIntersectionObserver = window.IntersectionObserver;
@@ -256,6 +266,113 @@ describe('ConversationViewContent', () => {
 
     expect(await screen.findByText('ID: span-b')).toBeInTheDocument();
     expect(nextRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('searches the transcript and selects the span with the match', async () => {
+    const onSelectSpan = jest.fn();
+    renderView({onSelectSpan});
+    await screen.findByText('Second answer');
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search in transcript'}),
+      'second answer{Enter}'
+    );
+
+    expect(await screen.findByText('1/1')).toBeInTheDocument();
+    expect(onSelectSpan).toHaveBeenCalledWith('span-b');
+
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Search in transcript'}));
+    expect(screen.queryByText('1/1')).not.toBeInTheDocument();
+  });
+
+  it('loads later pages until the search finds a match', async () => {
+    MockApiClient.clearMockResponses();
+    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+    const nextRequest = mockConversation([CONVERSATION_BODY[1]!], {cursor: 'next'});
+    const onSelectSpan = jest.fn();
+    renderView({onSelectSpan});
+    await screen.findByText('First answer');
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search in transcript'}),
+      'second answer{Enter}'
+    );
+
+    expect(await screen.findByText('1/1')).toBeInTheDocument();
+    expect(nextRequest).toHaveBeenCalledTimes(1);
+    expect(onSelectSpan).toHaveBeenCalledWith('span-b');
+  });
+
+  it('shows no results once every page is searched', async () => {
+    MockApiClient.clearMockResponses();
+    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+    const nextRequest = mockConversation([CONVERSATION_BODY[1]!], {cursor: 'next'});
+    const onSelectSpan = jest.fn();
+    renderView({onSelectSpan});
+    await screen.findByText('First answer');
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search in transcript'}),
+      'not in this conversation{Enter}'
+    );
+
+    expect(await screen.findByText('No results')).toBeInTheDocument();
+    expect(nextRequest).toHaveBeenCalledTimes(1);
+    expect(onSelectSpan).not.toHaveBeenCalled();
+    expect(trackAnalytics).not.toHaveBeenCalledWith(
+      'conversations.detail.span-limit-reached',
+      expect.anything()
+    );
+  });
+
+  describe('at the span limit', () => {
+    afterEach(() => {
+      try {
+        cleanup();
+        jest.runOnlyPendingTimers();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('reports when the span limit stops a search', async () => {
+      MockApiClient.clearMockResponses();
+      mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+      let page = 1;
+      const nextRequest = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+        match: [MockApiClient.matchQuery({cursor: 'next'})],
+        body: () => {
+          page++;
+          return {
+            conversationId: CONVERSATION_ID,
+            title: null,
+            spans: [{...CONVERSATION_BODY[1]!, span_id: `span-${page}`}],
+          };
+        },
+        headers: {
+          Link: `</organizations/org-slug/agents/conversations/${CONVERSATION_ID}/?cursor=next>; rel="next"; results="true"; cursor="next"`,
+        },
+      });
+      jest.useFakeTimers();
+      renderView({onSelectSpan: jest.fn()});
+      await screen.findByText('First answer');
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Search in transcript'}),
+        'not in this conversation{Enter}',
+        {delay: null}
+      );
+      await act(() => jest.runAllTimersAsync());
+
+      expect(screen.getByText('No results')).toBeInTheDocument();
+      expect(nextRequest).toHaveBeenCalledTimes(99);
+      expect(trackAnalytics).toHaveBeenCalledTimes(1);
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'conversations.detail.span-limit-reached',
+        expect.objectContaining({organization: expect.anything()})
+      );
+    });
   });
 
   it('does not show the timeline default while a deep link is unresolved', async () => {

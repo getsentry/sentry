@@ -1,9 +1,14 @@
+import type {ComposerValue} from '@sentry/scraps/composer';
+
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 const STORAGE_KEY = 'investigation-comment-drafts';
 const DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-type Drafts = Record<string, {savedAt: number; text: string}>;
+type Drafts = Record<
+  string,
+  {savedAt: number; text: string; mentions?: ComposerValue['mentions']}
+>;
 
 function draftKey(investigationId: string, blockId: string) {
   return `${investigationId}:${blockId}`;
@@ -21,15 +26,23 @@ function readDrafts(): Drafts {
   }
 }
 
-export function loadCommentDraft(investigationId: string, blockId: string) {
-  return readDrafts()[draftKey(investigationId, blockId)]?.text ?? '';
+export function loadCommentDraft(
+  investigationId: string,
+  blockId: string
+): ComposerValue {
+  const draft = readDrafts()[draftKey(investigationId, blockId)];
+  return {text: draft?.text ?? '', mentions: draft?.mentions ?? []};
 }
 
-export function saveCommentDraft(investigationId: string, blockId: string, text: string) {
+export function saveCommentDraft(
+  investigationId: string,
+  blockId: string,
+  value: ComposerValue
+) {
   const key = draftKey(investigationId, blockId);
   const {[key]: _previous, ...drafts} = readDrafts();
-  if (text.trim()) {
-    drafts[key] = {text, savedAt: Date.now()};
+  if (value.text.trim()) {
+    drafts[key] = {...value, savedAt: Date.now()};
   }
   try {
     if (Object.keys(drafts).length) {

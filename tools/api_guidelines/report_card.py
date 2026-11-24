@@ -8,7 +8,9 @@ from pathlib import Path
 
 from tools.api_guidelines.entries import EXCEPTIONS_PATH, describe_entry, diff_entries
 from tools.api_guidelines.owners import UNOWNED
-from tools.api_guidelines.rules import BASELINED_RULES, ApiRule
+from tools.api_guidelines.rules import BASELINED_RULES, RULES, ApiRule
+from tools.api_guidelines.scan import collect_findings
+from tools.api_guidelines.signature import BaselineSignature
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -186,17 +188,93 @@ def _text_row(row: list[str], width: int) -> str:
     return text
 
 
-def team_findings(entries: list[Entry], team: str) -> list[str]:
+def format_legend(markdown: bool) -> list[str]:
+    """What each rule column in the table means -> one line per column
+    `markdown` True for a markdown list, False for plain text
+    Returns lines like "S026  query or body param read without a declared serializer"
+    """
+    lines: list[str] = []
+    for rule in rule_columns():
+        summary = RULES[ApiRule(rule)].summary
+        if markdown:
+            lines.append(f"- `{rule}` {summary}")
+        else:
+            lines.append(f"{rule}  {summary}")
+    return lines
+
+
+def _signature(entry: Entry) -> BaselineSignature:
+    """An entry's signature, to match it with the findings of a rescan"""
+    raw_key = entry["key"]
+    if raw_key is None:
+        key = None
+    else:
+        key = str(raw_key)
+    return BaselineSignature(
+        rule=ApiRule(str(entry["rule"])),
+        path=str(entry["path"]),
+        scope=str(entry["scope"]),
+        key=key,
+    )
+
+
+def find_lines(entries: list[Entry], root: Path) -> dict[BaselineSignature, list[int]]:
+    """Rescans only the files of `entries` to find the line of each finding in the current code.
+    exceptions.json has no lines on purpose, so code moving up or down doesn't change it
+    `entries` the entries that will be printed
+    `root` the checkout to scan
+    Returns {signature: sorted line numbers}. An entry that isn't in the current code has no key
+    """
+    paths: set[str] = set()
+    for entry in entries:
+        paths.add(str(entry["path"]))
+
+    lines: dict[BaselineSignature, list[int]] = {}
+    for path, finding in collect_findings(root, sorted(paths)):
+        signature = BaselineSignature(
+            rule=finding.rule, path=path, scope=finding.scope, key=finding.key
+        )
+        lines.setdefault(signature, []).append(finding.line)
+    for found in lines.values():
+        found.sort()
+    return lines
+
+
+def _describe_with_lines(entry: Entry, lines: dict[BaselineSignature, list[int]]) -> str:
+    """describe_entry with a path:line for each finding, so cmd-click in a terminal opens the line
+    `entry` the entry to describe
+    `lines` {signature: line numbers} from find_lines
+    Returns its description, with the plain path marked when the rescan didn't find it
+    """
+    found = lines.get(_signature(entry))
+    if found is None:
+        where = f"{entry['path']} (not in current code)"
+    else:
+        located: list[str] = []
+        for line in found:
+            located.append(f"{entry['path']}:{line}")
+        where = ", ".join(located)
+
+    # describe_entry is shared with generate_baseline's summary, so only this copy gets the lines
+    with_lines = dict(entry)
+    with_lines["path"] = where
+    return describe_entry(with_lines, with_owner=False)
+
+
+def team_findings(
+    entries: list[Entry], team: str, lines: dict[BaselineSignature, list[int]]
+) -> list[str]:
     """One team's entries, one line each, in the file's order (path, scope, rule, key)
     `entries` every entry in exceptions.json
     `team` the team to list, i.e "issues-feed" or "unowned"
-    Returns lines like "S026 src/sentry/x.py ExampleEndpoint.get query:id (x2)"
+    `lines` {signature: line numbers} from find_lines
+    Returns lines like "S026 src/sentry/x.py:12, src/sentry/x.py:40 ExampleEndpoint.get query:id (x2)"
     """
-    lines: list[str] = []
+    printed: list[str] = []
     for entry in entries:
         if entry_owner(entry) == team:
-            lines.append(f"{describe_entry(entry, with_owner=False)} (x{entry_count(entry)})")
-    return lines
+            printed.append(f"{_describe_with_lines(entry, lines)} (x{entry_count(entry)})")
+    return printed
 
 
 def _owned_by(entries: list[Entry], team: str) -> list[Entry]:
@@ -209,13 +287,18 @@ def _owned_by(entries: list[Entry], team: str) -> list[Entry]:
 
 
 def format_changes(
-    old_entries: list[Entry], new_entries: list[Entry], team: str | None
+    old_entries: list[Entry],
+    new_entries: list[Entry],
+    team: str | None,
+    lines: dict[BaselineSignature, list[int]],
 ) -> list[str]:
     """The new, fixed and changed-count entries between an older exceptions.json and this one, per team
     `old_entries` every entry in the older file
     `new_entries` every entry in this file
     `team` only show this team's changes, or None for every team
-    Returns the section's lines, starting with a summary line
+    `lines` {signature: line numbers} from find_lines, for the new and changed entries
+    Returns the section's lines, starting with a summary line. Fixed entries are no longer in the
+    code so they print their plain path
     """
     added, removed, changed = diff_entries(old_entries, new_entries)
 
@@ -232,21 +315,21 @@ def format_changes(
     # {team: lines}
     per_team: dict[str, list[str]] = {}
     for entry in added:
-        line = f"  new      {describe_entry(entry, with_owner=False)} (x{entry_count(entry)})"
+        line = f"  new      {_describe_with_lines(entry, lines)} (x{entry_count(entry)})"
         per_team.setdefault(entry_owner(entry), []).append(line)
     for entry in removed:
         line = f"  fixed    {describe_entry(entry, with_owner=False)} (x{entry_count(entry)})"
         per_team.setdefault(entry_owner(entry), []).append(line)
     for old, new in changed:
-        line = f"  changed  {describe_entry(new, with_owner=False)} (x{entry_count(old)} -> x{entry_count(new)})"
+        line = f"  changed  {_describe_with_lines(new, lines)} (x{entry_count(old)} -> x{entry_count(new)})"
         per_team.setdefault(entry_owner(new), []).append(line)
 
-    lines = [f"Changes: {len(added)} new, {len(removed)} fixed, {len(changed)} changed count"]
+    section = [f"Changes: {len(added)} new, {len(removed)} fixed, {len(changed)} changed count"]
     for owner in sorted(per_team):
-        lines.append(owner)
+        section.append(owner)
         for line in per_team[owner]:
-            lines.append(line)
-    return lines
+            section.append(line)
+    return section
 
 
 def _display_path(path: Path) -> str:
@@ -257,9 +340,10 @@ def _display_path(path: Path) -> str:
         return str(path)
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, root: Path = _REPO_ROOT) -> int:
     """Prints the API report card from exceptions.json: every team's findings, per rule
     `argv` the CLI arguments. None means use the real ones (tests pass their own list)
+    `root` the checkout rescanned for line numbers. Tests pass a fake repo
     Returns 0 when the report was printed, and 1 when a file is missing or --team is unknown
     """
     parser = argparse.ArgumentParser(
@@ -325,18 +409,38 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Not in exceptions.json (no baseline): {', '.join(rules_not_in_baseline())}")
     print()
 
+    # only the entries that get printed one per line need a line number, so the table alone
+    # rescans nothing. The lines come from the current code, not from an older --compare file
+    to_locate: list[Entry] = []
     if args.team:
-        lines = team_findings(entries, args.team)
-        print(f"{len(lines)} entries owned by {args.team}")
-        for line in lines:
+        to_locate += entries
+    if older is not None:
+        added, _removed, changed = diff_entries(file_entries(older), entries)
+        to_locate += added
+        for _old, new in changed:
+            to_locate.append(new)
+    # format_changes only prints the team's entries, so other teams' files don't need a rescan
+    if args.team:
+        to_locate = _owned_by(to_locate, args.team)
+    lines = find_lines(to_locate, root)
+
+    if args.team:
+        findings = team_findings(entries, args.team, lines)
+        print(f"{len(findings)} entries owned by {args.team}")
+        for line in findings:
             print(line)
     else:
-        for line in format_table(entries, markdown=args.format == "markdown"):
+        markdown = args.format == "markdown"
+        for line in format_table(entries, markdown=markdown):
+            print(line)
+        # the columns stay as codes so the table is narrow, the legend says what they mean
+        print()
+        for line in format_legend(markdown=markdown):
             print(line)
 
     if older is not None:
         print()
-        for line in format_changes(file_entries(older), entries, args.team):
+        for line in format_changes(file_entries(older), entries, args.team, lines):
             print(line)
     return 0
 

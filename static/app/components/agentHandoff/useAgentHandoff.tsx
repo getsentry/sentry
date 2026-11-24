@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 
@@ -34,7 +34,9 @@ interface PromptContext<
 }
 
 interface CachedHandoff<Flow extends AgentHandoffFlow>
-  extends PromptContext<Flow>, Handoff {}
+  extends PromptContext<Flow>, Handoff {
+  copied?: boolean;
+}
 
 interface CopyPromptOptions {
   disableIpPinning: boolean;
@@ -63,9 +65,13 @@ function clipboardError() {
 
 /**
  * Mints short-lived handoff codes and copies a prompt containing them without exposing
- * the code in the UI. Valid codes are cached until their context changes or they approach
- * expiration, and concurrent copy requests share the same operation. Call copyPrompt
+ * the code in the UI. Concurrent copy requests share the same operation. Call copyPrompt
  * directly from the user gesture that authorizes clipboard access.
+ *
+ * Codes are single-use. Once a copied code could have been pasted into an agent, which
+ * means the page was hidden after the copy, the next copy mints a fresh code. Repeated
+ * copies while the page stays visible reuse the code, so mashing the button does not
+ * mint a pile of unused codes.
  */
 export function useAgentHandoff<Flow extends AgentHandoffFlow>(
   flow: Flow,
@@ -79,6 +85,16 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
     retry: false,
     mutationFn: (operation: Promise<string>) => operation,
   });
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.hidden && handoff.current?.copied) {
+        handoff.current = null;
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
 
   async function getPrompt(options: HandoffPromptOptions<Flow>): Promise<PreparedPrompt> {
     const promptContext: PromptContext<Flow> = {
@@ -148,6 +164,12 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
           throw clipboardResult.reason;
         }
 
+        const cachedHandoff = handoff.current;
+        if (cachedHandoff?.handoffId === promptResult.value.handoffId) {
+          // The page can be hidden before the clipboard write settles, and then no
+          // visibilitychange will follow to retire the code.
+          handoff.current = document.hidden ? null : {...cachedHandoff, copied: true};
+        }
         return promptResult.value.handoffId;
       }
     );

@@ -109,7 +109,10 @@ export function investigationCommentsQueryOptions({
 export function useCreateInvestigationCommentMutation(
   organizationSlug: string,
   investigationId: string,
-  options?: MutationOptions<InvestigationComment, {body: string; blockId?: string}>
+  options?: MutationOptions<
+    InvestigationComment,
+    {body: string; blockId?: string; mentions?: string[]}
+  >
 ) {
   const invalidateComments = useInvalidateInvestigationComments(
     organizationSlug,
@@ -118,14 +121,14 @@ export function useCreateInvestigationCommentMutation(
 
   return useMutation({
     ...options,
-    mutationFn: ({body, blockId}) =>
+    mutationFn: ({body, blockId, mentions}) =>
       fetchMutation<InvestigationComment>({
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/notebooks/$notebookId/comments/',
           {path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId}}
         ),
         method: 'POST',
-        data: blockId === undefined ? {body} : {body, blockId},
+        data: {body, blockId, mentions},
       }),
     onSuccess: async (comment, variables, onMutateResult, context) => {
       await invalidateComments();

@@ -94,6 +94,7 @@ export type InvestigationComment = {
   dateCreated: string;
   dateUpdated: string;
   id: string;
+  mentions: Array<{actor_type: 'User' | 'Team'; id: number; slug: string | null}>;
 };
 
 export type InvestigationExecutionStatus =

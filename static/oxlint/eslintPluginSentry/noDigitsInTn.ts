@@ -22,7 +22,7 @@ export const noDigitsInTn = defineRule({
             argument.value.includes('%d')
           ) {
             context.report({
-              node,
+              node: argument,
               messageId: 'noDigits',
               fix(fixer) {
                 return fixer.replaceText(

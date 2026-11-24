@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 from time import time
-from typing import Any, cast
+from typing import Any
 from unittest import mock
 from urllib.parse import quote
 
@@ -75,10 +75,7 @@ class GitLabClientTest(GitLabTestCase):
         identity.save()
 
     def get_stored_identity_data(self) -> dict[str, Any]:
-        return cast(
-            "dict[str, Any]",
-            Identity.objects.get(id=self.gitlab_client.identity.id).data,
-        )
+        return Identity.objects.get(id=self.gitlab_client.identity.id).data
 
 
 @control_silo_test

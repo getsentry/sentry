@@ -14,7 +14,10 @@ import {t} from 'sentry/locale';
 import type {Level} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
+import {
+  groupApiOptions,
+  shouldExpandDerivedData,
+} from 'sentry/views/issueDetails/useGroup';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import {getTraceIssueSeverityClassName} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
 import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';
@@ -57,7 +60,7 @@ function Issue(props: IssueProps) {
       groupId: String(props.issue.issue_id),
       organizationSlug: props.organization.slug,
       environments: [],
-      expandDerivedData: props.organization.features.includes('issue-inbox'),
+      expandDerivedData: shouldExpandDerivedData(props.organization),
     }),
     staleTime: 10 * 60 * 1000,
   });
