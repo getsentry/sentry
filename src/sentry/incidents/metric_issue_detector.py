@@ -6,7 +6,6 @@ from parsimonious.exceptions import ParseError
 from rest_framework import serializers
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
-from sentry import features
 from sentry.auth.principal import has_user
 from sentry.incidents.logic import (
     DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
@@ -361,9 +360,6 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         if organization is None or request is None:
             raise serializers.ValidationError("Missing organization/request context")
         return get_metric_detector_quota(organization, actor=request.user)
-
-    def get_quota_message(self, quota: DetectorQuota) -> str:
-        return metric_detector_quota_message(quota)
 
     def get_quota_message(self, quota: DetectorQuota) -> str:
         return metric_detector_quota_message(quota)

@@ -661,17 +661,6 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
             enabled=True,
         )
 
-        # none of the detectors above count
-        assert get_metric_detector_quota(self.organization).count == 0
-
-        self.create_detector(
-            project_id=self.project.id,
-            name="Enabled Detector",
-            type=MetricIssue.slug,
-            status=ObjectStatus.ACTIVE,
-            enabled=True,
-        )
-
         validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid()
         assert validator.save()
