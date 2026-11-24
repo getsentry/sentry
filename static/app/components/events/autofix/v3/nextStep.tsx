@@ -626,7 +626,13 @@ export function SingleRunHandoffDropdown({
     });
 
   if (codingAgentIntegrations === undefined) {
-    return null;
+    // A labeled trigger is the only action left while the chat is open, so it
+    // stays in place while the agents load or if they fail to load.
+    return label ? (
+      <Button variant="primary" disabled>
+        {label}
+      </Button>
+    ) : null;
   }
 
   return (

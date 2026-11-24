@@ -175,10 +175,33 @@ describe('SeerDrawerContent', () => {
         />
       );
 
-      expect(await screen.findByRole('button', {name: 'Hand off'})).toBeEnabled();
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Hand off'})).toBeEnabled()
+      );
       expect(
         screen.queryByRole('button', {name: 'Open Autofix'})
       ).not.toBeInTheDocument();
+      mockIsOpen = false;
+      mockChatRunId = null;
+    });
+
+    it('keeps a disabled hand-off while the chat is open and coding agents fail to load', async () => {
+      const agentsRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        statusCode: 500,
+      });
+      mockIsOpen = true;
+      mockChatRunId = 776;
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({runState: singleRun})}
+          group={GroupFixture()}
+        />
+      );
+
+      await waitFor(() => expect(agentsRequest).toHaveBeenCalled());
+      expect(screen.getByRole('button', {name: 'Hand off'})).toBeDisabled();
       mockIsOpen = false;
       mockChatRunId = null;
     });
