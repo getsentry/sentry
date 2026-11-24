@@ -57,7 +57,9 @@ export function useExplorerMenu({
   slashCommandHandlers,
   inputAnchorRef,
 }: ExplorerMenuProps) {
-  const [isToolbarMenuOpen, setIsToolbarMenuOpen] = useState(false);
+  const [toolbarMenuContainer, setToolbarMenuContainer] = useState<HTMLElement | null>(
+    null
+  );
   const [menuPosition, setMenuPosition] = useState<{
     bottom?: string | number;
     left?: string | number;
@@ -76,7 +78,7 @@ export function useExplorerMenu({
   }, [allSlashCommands, inputValue]);
 
   const menuItems = filteredSlashCommands;
-  const isVisible = menuItems.length > 0 && !isToolbarMenuOpen;
+  const isVisible = menuItems.length > 0 && !toolbarMenuContainer;
 
   // The menu only shows while the input is a partial slash command, so
   // clearing the input is what closes it.
@@ -248,7 +250,13 @@ export function useExplorerMenu({
         }))}
         position="top-start"
         strategy="fixed"
-        onOpenChange={setIsToolbarMenuOpen}
+        usePortal
+        portalContainerRef={{current: toolbarMenuContainer}}
+        onOpenChange={isOpen =>
+          setToolbarMenuContainer(
+            isOpen ? (composerRef.current?.ownerDocument.body ?? document.body) : null
+          )
+        }
         size="sm"
         trigger={triggerProps => (
           <OverlayTrigger.IconButton

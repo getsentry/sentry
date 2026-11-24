@@ -56,6 +56,7 @@ export function SeerExplorerSettingsMenu({
   return (
     <CompositeSelect
       position="top-start"
+      strategy="fixed"
       preventOverflowOptions={{boundary: document.body}}
       trigger={triggerProps => (
         <OverlayTrigger.IconButton

@@ -124,6 +124,25 @@ describe.each(['main', 'pop-out'] as const)('Explorer menu in %s document', surf
     iframe?.remove();
   });
 
+  it('opens toolbar commands outside the explorer in the same document', async () => {
+    const container = ownerDocument.createElement('div');
+    ownerDocument.body.append(container);
+    const {unmount} = render(
+      <ExplorerMenuInput onNew={jest.fn()} onKeyDown={jest.fn()} />,
+      {container}
+    );
+    const view = within(ownerDocument.body);
+    const user = userEvent.setup({document: ownerDocument});
+
+    await user.click(view.getByRole('button', {name: 'Commands'}));
+
+    const command = await view.findByRole('menuitemradio', {name: /\/new/});
+    expect(command).toBeVisible();
+    expect(container).not.toContainElement(command);
+    unmount();
+    container.remove();
+  });
+
   it.each(['Enter', 'Escape'])('handles %s before the input handler', async key => {
     const onNew = jest.fn();
     const onKeyDown = jest.fn();
