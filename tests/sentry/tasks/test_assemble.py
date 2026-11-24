@@ -336,108 +336,25 @@ class ArtifactBundleBackendChangeTest(BaseAssembleTest):
             assert contents.read() == self.payload
         assert bundle.get_objectstore_session().get(old_key) is None
 
-    def test_identical_reupload_reuses_objectstore_object(self) -> None:
-        bundle = self.create_artifact_bundle(
-            bundle_id=self.bundle_id, use_objectstore=True, payload=self.payload
-        )
-        key = bundle.storage_path
-        assert key is not None
-        session = bundle.get_objectstore_session()
+    def test_reupload_metric_tags_same_checksum(self) -> None:
+        # One existing bundle per backend, since each reads its checksum from a different place.
+        cases = ((False, self.payload, "true"), (True, b"different payload", "false"))
+        for use_objectstore, payload, same_checksum in cases:
+            self.create_artifact_bundle(
+                bundle_id=self.bundle_id, use_objectstore=use_objectstore, payload=payload
+            )
+            with (
+                self.subTest(same_checksum=same_checksum),
+                self.feature("organizations:objectstore-artifact-bundles-exclusive-write"),
+                patch("sentry.tasks.assemble.metrics.incr") as incr,
+            ):
+                self.assemble()
+            ArtifactBundle.objects.filter(bundle_id=self.bundle_id).delete()
 
-        with (
-            self.feature("organizations:objectstore-artifact-bundles-exclusive-write"),
-            patch("sentry.tasks.assemble.get_session", return_value=session),
-            patch.object(session, "put", wraps=session.put) as put,
-            patch.object(session, "extend_expiry", wraps=session.extend_expiry) as extend_expiry,
-            patch.object(ArtifactBundle, "get_objectstore_session", return_value=session),
-            patch.object(session, "delete", wraps=session.delete) as delete,
-        ):
-            self.assemble()
-
-        put.assert_not_called()
-        extend_expiry.assert_called_once()
-        assert extend_expiry.call_args.args[0] == key
-        delete.assert_not_called()
-        bundle.refresh_from_db()
-        assert bundle.storage_path == key
-        with bundle.get_file() as contents:
-            assert contents.read() == self.payload
-
-    def test_identical_reupload_uploads_when_object_is_missing(self) -> None:
-        bundle = self.create_artifact_bundle(
-            bundle_id=self.bundle_id, use_objectstore=True, payload=self.payload
-        )
-        old_key = bundle.storage_path
-        assert old_key is not None
-        bundle.get_objectstore_session().delete(old_key)
-
-        with self.feature("organizations:objectstore-artifact-bundles-exclusive-write"):
-            self.assemble()
-
-        bundle.refresh_from_db()
-        assert bundle.storage_path not in (None, old_key)
-        with bundle.get_file() as contents:
-            assert contents.read() == self.payload
-
-    def test_failed_identical_reupload_keeps_reused_object(self) -> None:
-        bundle = self.create_artifact_bundle(
-            bundle_id=self.bundle_id, use_objectstore=True, payload=self.payload
-        )
-        key = bundle.storage_path
-        session = bundle.get_objectstore_session()
-
-        with (
-            self.feature("organizations:objectstore-artifact-bundles-exclusive-write"),
-            patch("sentry.tasks.assemble.get_session", return_value=session),
-            patch.object(session, "delete", wraps=session.delete) as delete,
-            patch.object(
-                ProjectArtifactBundle.objects, "update_or_create", side_effect=RuntimeError
-            ),
-        ):
-            self.assemble()
-
-        state, _ = get_assemble_status(
-            AssembleTask.ARTIFACT_BUNDLE, self.organization.id, self.blob.checksum
-        )
-        assert state == ChunkFileState.ERROR
-        delete.assert_not_called()
-        bundle.refresh_from_db()
-        assert bundle.storage_path == key
-        with bundle.get_file() as contents:
-            assert contents.read() == self.payload
-
-    def test_identical_reupload_uploads_when_bundle_changes_concurrently(self) -> None:
-        bundle = self.create_artifact_bundle(
-            bundle_id=self.bundle_id, use_objectstore=True, payload=self.payload
-        )
-        reused_key = bundle.storage_path
-        session = bundle.get_objectstore_session()
-        concurrent_key = session.put(b"concurrent payload")
-        reuse = ArtifactBundlePostAssembler._reuse_or_upload_to_objectstore
-
-        def reuse_then_swap(
-            post_assembler: ArtifactBundlePostAssembler, *args: Any, **kwargs: Any
-        ) -> None:
-            reuse(post_assembler, *args, **kwargs)
-            # Another upload replaces the bundle's object before this one takes the row lock.
-            ArtifactBundle.objects.filter(id=bundle.id).update(storage_path=concurrent_key)
-
-        with (
-            self.feature("organizations:objectstore-artifact-bundles-exclusive-write"),
-            patch.object(
-                ArtifactBundlePostAssembler,
-                "_reuse_or_upload_to_objectstore",
-                autospec=True,
-                side_effect=reuse_then_swap,
-            ),
-        ):
-            self.assemble()
-
-        bundle.refresh_from_db()
-        assert bundle.storage_path not in (None, reused_key, concurrent_key)
-        with bundle.get_file() as contents:
-            assert contents.read() == self.payload
-        assert session.get(concurrent_key) is None
+            incr.assert_any_call(
+                "sourcemaps.upload.artifact_bundle.reupload",
+                tags={"same_checksum": same_checksum},
+            )
 
     def test_reupload_moves_bundle_to_filestore_with_flag_disabled(self) -> None:
         bundle = self.create_artifact_bundle(bundle_id=self.bundle_id, use_objectstore=True)

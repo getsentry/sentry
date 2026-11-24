@@ -20,7 +20,6 @@ from django.conf import settings
 from django.db import OperationalError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
-from objectstore_client import ObjectNotFound
 from sentry_sdk import traces
 
 from sentry import features, options
@@ -41,7 +40,6 @@ from sentry.models.artifactbundle import (
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
-    artifact_bundle_retention,
 )
 from sentry.models.files.file import File
 from sentry.models.files.utils import MAX_FILE_SIZE
@@ -483,11 +481,9 @@ class ArtifactBundlePostAssembler:
     ) -> None:
         self.assemble_result = assemble_result
         self.checksum = checksum
-        # Set once the bundle is uploaded to Objectstore, or reused from the existing bundle.
+        # Set once the bundle is uploaded to Objectstore.
         self.storage_path: str | None = None
         self.file_size: int | None = None
-        # Whether `storage_path` belongs to the existing bundle, so we must never delete it.
-        self.reused_object = False
         self.committed = False
         self._validate_bundle_guarded()
 
@@ -544,7 +540,7 @@ class ArtifactBundlePostAssembler:
 
     def _discard_payload(self) -> None:
         self.assemble_result.delete_bundle()
-        if self.storage_path is not None and not self.reused_object:
+        if self.storage_path is not None:
             try:
                 self._get_objectstore_session().delete(self.storage_path)
             except Exception:
@@ -561,36 +557,6 @@ class ArtifactBundlePostAssembler:
         self.storage_path = self._get_objectstore_session().put(
             temp_file, content_type="application/octet-stream"
         )
-        self.reused_object = False
-
-    def _reuse_or_upload_to_objectstore(self, bundle_id: str, date_added: datetime) -> None:
-        # An upload of the exact same bundle keeps the object the existing bundle already has in Objectstore.
-        # Duplicate rows for a `bundle_id` are possible, and any of them works here.
-        existing = ArtifactBundle.objects.filter(
-            organization_id=self.organization.id,
-            bundle_id=bundle_id,
-            checksum=self.checksum,
-            storage_path__isnull=False,
-        ).values_list("storage_path", "file_size")[:1]
-        for storage_path, file_size in existing:
-            assert storage_path is not None
-            try:
-                # The object must live as long as the bundle, whose `date_added` this upload renews.
-                self._get_objectstore_session().extend_expiry(
-                    storage_path, at=date_added + artifact_bundle_retention()
-                )
-            except ObjectNotFound:
-                pass
-            except Exception:
-                logger.exception("assemble.artifact_bundle.objectstore_extend_expiry_failed")
-            else:
-                metrics.incr("tasks.assemble.artifact_bundle.reused_objectstore_object")
-                self.storage_path = storage_path
-                self.file_size = file_size
-                self.reused_object = True
-                return
-
-        self._upload_to_objectstore()
 
     def post_assemble(self) -> None:
         if self.archive.artifact_count == 0:
@@ -652,7 +618,7 @@ class ArtifactBundlePostAssembler:
 
         # We upload the bundle before opening the transaction, to not hold row locks during network I/O.
         if isinstance(self.assemble_result, ObjectstoreAssembleResult):
-            self._reuse_or_upload_to_objectstore(bundle_id, date_snapshot)
+            self._upload_to_objectstore()
 
         # We want to run everything in a transaction, since we don't want the database to be in an inconsistent
         # state after all of these updates.
@@ -851,14 +817,6 @@ class ArtifactBundlePostAssembler:
                     ids=list(map(lambda value: value.id, existing_artifact_bundles))
                 )
 
-            # A concurrent upload replaced or deleted the bundle whose object we reused, and deletes that object when
-            # it commits. This is rare, so we accept uploading while holding the row lock.
-            if self.reused_object and (
-                existing_artifact_bundle is None
-                or existing_artifact_bundle.storage_path != self.storage_path
-            ):
-                self._upload_to_objectstore()
-
             # The bundle is backed by either the legacy `File` or the Objectstore object, and the remaining fields
             # are only set for the latter.
             file = (
@@ -910,14 +868,20 @@ class ArtifactBundlePostAssembler:
                     # File was already deleted by a concurrent worker; nothing to clean up.
                     existing_file = None
 
-                # FIXME: We might want to get this error, but it currently blocks deploys
-                # if existing_artifact_bundle.get_checksum() != self.checksum:
-                #    logger.error("Detected duplicated `ArtifactBundle` with differing checksums")
+                # Re-uploads of the same `bundle_id` often have different contents. This measures how many have the
+                # same, which an Objectstore upload could skip.
+                existing_checksum = (
+                    existing_file.checksum
+                    if existing_file is not None
+                    else existing_artifact_bundle.checksum
+                )
+                metrics.incr(
+                    "sourcemaps.upload.artifact_bundle.reupload",
+                    tags={"same_checksum": str(existing_checksum == self.checksum).lower()},
+                )
 
-                # This captures the storage path the bundle has now, so it has to run before the update below. A reused
-                # object stays.
-                if existing_artifact_bundle.storage_path != self.storage_path:
-                    existing_artifact_bundle.delete_objectstore_file_on_commit()
+                # This captures the storage path the bundle has now, so it has to run before the update below.
+                existing_artifact_bundle.delete_objectstore_file_on_commit()
 
                 # In case there is an ArtifactBundle with a specific bundle_id, we want to replace its payload, which
                 # moves it to the backend of this upload, with its corresponding artifact count and also update the
