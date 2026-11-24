@@ -96,7 +96,7 @@ def upload_from_request(request: Request, project: Project) -> Response:
     fileobj = request.data.get("file")
     if not isinstance(fileobj, UploadedFile):
         return Response({"detail": "Missing uploaded file"}, status=400)
-    files = create_files_from_dif_zip(cast(UploadedFile, fileobj), project=project)
+    files = create_files_from_dif_zip(fileobj, project=project)
     return Response(serialize(files, request.user), status=201)
 
 
