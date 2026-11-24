@@ -256,12 +256,22 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         return self.respond(body, status=200)
 
 
+class OrganizationDashboardVisitPermission(OrganizationDashboardsPermission):
+    # Anyone who can read a dashboard can record a visit to it. A visit only updates
+    # metadata (visit count and last visited times), not the dashboard itself.
+    scope_map = {
+        **OrganizationDashboardsPermission.scope_map,
+        "POST": OrganizationDashboardsPermission.scope_map["GET"],
+    }
+
+
 @extend_schema(tags=["Dashboards"])
 @cell_silo_endpoint
 class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
+    permission_classes = (OrganizationDashboardVisitPermission,)
 
     @extend_schema(
         operation_id="visitOrganizationDashboard",

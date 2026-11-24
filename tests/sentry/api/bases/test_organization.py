@@ -45,14 +45,21 @@ from sentry.auth.principal import set_request_principal
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import Superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
-from sentry.dashboards.endpoints import organization_dashboards_starred
+from sentry.dashboards.endpoints import (
+    organization_dashboard_details,
+    organization_dashboards_starred,
+)
 from sentry.dashboards.endpoints.organization_dashboard_generate import (
     OrganizationDashboardGeneratePermission,
 )
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
-from sentry.discover.endpoints import discover_saved_query_starred
+from sentry.discover.endpoints import discover_saved_query_detail, discover_saved_query_starred
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
-from sentry.explore.endpoints import explore_saved_query_starred, saved_query_starred_order
+from sentry.explore.endpoints import (
+    explore_saved_query_detail,
+    explore_saved_query_starred,
+    saved_query_starred_order,
+)
 from sentry.explore.endpoints.bases import (
     ExploreSavedFormulaPermission,
     ExploreSavedQueryPermission,
@@ -61,7 +68,6 @@ from sentry.insights.endpoints import starred_segments
 from sentry.issues.endpoints import (
     organization_group_search_view_details_starred,
     organization_group_search_view_starred_order,
-    organization_group_search_view_visit,
     organization_group_search_views_starred,
 )
 from sentry.issues.endpoints.bases.group_search_view import GroupSearchViewPermission
@@ -606,7 +612,9 @@ OPTED_IN_PERMISSIONS: list[type[OrganizationPermission]] = [
     starred_segments.MemberPermission,
     organization_group_search_view_details_starred.MemberPermission,
     organization_group_search_view_starred_order.MemberPermission,
-    organization_group_search_view_visit.MemberPermission,
+    organization_dashboard_details.OrganizationDashboardVisitPermission,
+    discover_saved_query_detail.DiscoverSavedQueryVisitPermission,
+    explore_saved_query_detail.ExploreSavedQueryVisitPermission,
     organization_group_search_views_starred.MemberPermission,
 ]
 
