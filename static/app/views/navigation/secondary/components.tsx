@@ -417,7 +417,7 @@ function SecondaryNavigationRow(props: ComponentProps<typeof Grid>) {
       align="center"
       position="relative"
       height="32px"
-      padding="0 sm 0 md"
+      padding="0 md"
       radius="md"
       {...props}
       columns={`${LEADING_SLOT_SIZE} minmax(0, 1fr)`}
@@ -1055,7 +1055,7 @@ function GrabHandle() {
     return (
       <Flex
         align="center"
-        padding="0 sm 0 md"
+        padding="0 md"
         position="absolute"
         inset="0"
         pointerEvents="none"
