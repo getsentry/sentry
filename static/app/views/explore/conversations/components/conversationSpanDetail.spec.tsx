@@ -193,6 +193,15 @@ describe('ConversationSpanDetail', () => {
     [
       'a failed span that is not a tool call',
       'ai_client',
+      [
+        {name: 'span.status', type: 'str', value: 'internal_error'},
+        {name: 'span.status.message', type: 'str', value: 'Context window exceeded'},
+      ],
+      ['Error', 'Context window exceeded'],
+    ],
+    [
+      'a failed span that is not a tool call and has no message',
+      'ai_client',
       [{name: 'span.status', type: 'str', value: 'internal_error'}],
       null,
     ],
@@ -215,6 +224,7 @@ describe('ConversationSpanDetail', () => {
       }
     } else {
       expect(screen.queryByText('Tool Error')).not.toBeInTheDocument();
+      expect(screen.queryByText('Error')).not.toBeInTheDocument();
       expect(
         screen.queryByText('This tool call failed but has no associated issue.')
       ).not.toBeInTheDocument();
