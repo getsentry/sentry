@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping
-from typing import TYPE_CHECKING, Any, TypedDict, TypeGuard
+from typing import TYPE_CHECKING, Annotated, Any, TypedDict, TypeGuard
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.integrations.types import ExternalProviderEnum
 from sentry.notifications.defaults import (
     DEFAULT_ENABLED_PROVIDERS_VALUES,
@@ -69,8 +70,15 @@ def validate(type: NotificationSettingEnum, value: NotificationSettingsOptionEnu
 
 
 class SubscriptionDetails(TypedDict, total=False):
-    disabled: bool
-    reason: str
+    disabled: Annotated[
+        bool, ApiDescription("Whether the requesting user turned off notifications for the issue")
+    ]
+    reason: Annotated[
+        str,
+        ApiDescription(
+            "Why the requesting user is subscribed: commented, assigned, bookmarked, changed_status, mentioned or unknown"
+        ),
+    ]
 
 
 def get_subscription_from_attributes(

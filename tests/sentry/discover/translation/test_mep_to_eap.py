@@ -1,6 +1,10 @@
 import pytest
 
-from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap
+from sentry.discover.translation.mep_to_eap import (
+    DroppedEquation,
+    QueryParts,
+    translate_mep_to_eap,
+)
 
 
 @pytest.mark.parametrize(
@@ -294,7 +298,7 @@ def test_mep_to_eap_simple_selected_columns(
     ],
 )
 def test_mep_to_eap_simple_equations(
-    input: list[str], expected: list[str], dropped: list[dict[str, list[str]]]
+    input: list[str], expected: list[str], dropped: list[DroppedEquation]
 ) -> None:
     old = QueryParts(
         selected_columns=["id"],

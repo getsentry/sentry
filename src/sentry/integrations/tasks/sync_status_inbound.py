@@ -37,14 +37,17 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
+ResolutionParams = dict[str, Any]
+
+
 def get_resolutions_and_activity_data_for_groups(
     affected_groups: Iterable[Group],
     resolution_strategy: str | None,
-    activity_data: dict,
+    activity_data: dict[str, object],
     organization_id: int,
-):
+) -> tuple[dict[int, ResolutionParams], ActivityType, dict[str, object]]:
     activity_data = activity_data.copy()
-    resolutions_by_group_id = {}
+    resolutions_by_group_id: dict[int, ResolutionParams] = {}
     activity_type = ActivityType.SET_RESOLVED
     # If the resolution strategy is set to resolve in the next release or current release
     if resolution_strategy in [
@@ -258,9 +261,9 @@ def sync_status_inbound(
     # Webhook delivery is not ordered, and every provider hands us a delta ("closed",
     # "reopened", a from/to state pair) rather than a snapshot, so a delivery that lands
     # late writes an old status over a newer one.
-    external_issue = ExternalIssue.objects.filter(
+    external_issue = ExternalIssue.objects.get_or_none(
         organization_id=organization_id, integration_id=integration_id, key=issue_key
-    ).first()
+    )
     event_time = parse_provider_event_time(data)
     if external_issue is not None and is_stale_status_event(
         external_issue.provider_status_updated_at, event_time

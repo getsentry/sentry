@@ -7,8 +7,9 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {useLogsTimeseries} from 'sentry/views/explore/logs/useLogsTimeseries';
+
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import {useLogsTimeseries} from './useLogsTimeseries';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
@@ -41,16 +42,8 @@ describe('useLogsTimeseries', () => {
           {
             ...mockTimeSeries,
             yAxis: 'count(message)',
-            values: [
-              {
-                ...mockTimeSeries.values[0]!,
-                value: 0,
-              },
-            ],
-            meta: {
-              ...mockTimeSeries.meta,
-              dataScanned: 'partial',
-            },
+            values: [{...mockTimeSeries.values[0]!, value: 0}],
+            meta: {...mockTimeSeries.meta, dataScanned: 'partial'},
           },
         ],
       },
@@ -64,9 +57,7 @@ describe('useLogsTimeseries', () => {
 
     const mockHighAccuracyRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
-      body: {
-        timeSeries: [TimeSeriesFixture()],
-      },
+      body: {timeSeries: [TimeSeriesFixture()]},
       method: 'GET',
       match: [
         function (_url: string, options: Record<string, any>) {
@@ -87,16 +78,14 @@ describe('useLogsTimeseries', () => {
             isPending: false,
             data: [],
             routingHintsByRow: new Map(),
-            meta: {
-              fields: {},
-              units: {},
-            },
+            meta: {fields: {}, units: {}},
             isRefetching: false,
             isEmpty: true,
             fetchNextPage: () => Promise.resolve({} as any),
             fetchPreviousPage: () => Promise.resolve({} as any),
             refetch: () => Promise.resolve({} as any),
             hasNextPage: false,
+            canFetchNextPage: false,
             queryKey: [] as any,
             hasPreviousPage: false,
             isFetchingNextPage: false,

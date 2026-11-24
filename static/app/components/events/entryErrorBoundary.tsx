@@ -1,7 +1,8 @@
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import type {EntryType} from 'sentry/types/event';
+
+import {EventDataSection} from './eventDataSection';
 
 export function EntryErrorBoundary({
   children,

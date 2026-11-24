@@ -2,8 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
+import {getDuration} from '@sentry/scraps/duration';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -11,11 +12,11 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tn} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import {getDuration} from 'sentry/utils/duration/getDuration';
-import {DetailsTimelineLegend} from 'sentry/views/detectors/components/uptime/detailsTimelineLegend';
-import {type UptimeSummary} from 'sentry/views/detectors/components/uptime/types';
 import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
 import {UptimePercent} from 'sentry/views/insights/uptime/components/percent';
+
+import {DetailsTimelineLegend} from './detailsTimelineLegend';
+import {type UptimeSummary} from './types';
 
 interface UptimeDetailsSidebarProps {
   showMissedLegend: boolean;
@@ -85,7 +86,7 @@ export function UptimeDetailsSidebar({
           </DescriptionList.Details>
           <DescriptionList.Term>{t('Timeout')}</DescriptionList.Term>
           <DescriptionList.Details>
-            {t('After %s', getDuration(uptimeSub.timeoutMs / 1000, 2))}
+            {t('After %s', getDuration(uptimeSub.timeoutMs / 1000, {precision: 2}))}
           </DescriptionList.Details>
           <DescriptionList.Term>{t('Failure tolerance')}</DescriptionList.Term>
           <DescriptionList.Details>

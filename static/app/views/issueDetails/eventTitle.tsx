@@ -22,11 +22,12 @@ import {
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {SectionKey} from 'sentry/views/issueDetails/context';
-import {Divider} from 'sentry/views/issueDetails/divider';
-import {EventCreatedTooltip} from 'sentry/views/issueDetails/eventCreatedTooltip';
-import {IssueDetailsJumpTo} from 'sentry/views/issueDetails/eventNavigation/issueDetailsJumpTo';
-import {getFoldSectionKey} from 'sentry/views/issueDetails/foldSection';
+
+import {IssueDetailsJumpTo} from './eventNavigation/issueDetailsJumpTo';
+import {SectionKey} from './context';
+import {Divider} from './divider';
+import {EventCreatedTooltip} from './eventCreatedTooltip';
+import {getFoldSectionKey} from './foldSection';
 
 type EventNavigationProps = {
   event: Event;
@@ -40,7 +41,7 @@ type EventNavigationProps = {
   style?: CSSProperties;
 };
 
-export const MIN_NAV_HEIGHT = 44;
+const MIN_NAV_HEIGHT = 44;
 
 export function EventTitle({event, group, ref, ...props}: EventNavigationProps) {
   const organization = useOrganization();

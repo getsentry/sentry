@@ -4,20 +4,13 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {EventSdk} from 'sentry/components/events/eventSdk';
+import {EventSdk} from './eventSdk';
 
 describe('event sdk', () => {
   it('display redacted tags', async () => {
     const event = EventFixture({
-      sdk: {
-        name: 'sentry.cocoa',
-        version: '',
-      },
-      _meta: {
-        sdk: {
-          version: {'': {rem: [['organization:0', 'x']]}},
-        },
-      },
+      sdk: {name: 'sentry.cocoa', version: ''},
+      _meta: {sdk: {version: {'': {rem: [['organization:0', 'x']]}}}},
     });
 
     render(<EventSdk sdk={event.sdk} meta={event._meta?.sdk} />, {

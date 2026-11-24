@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Callable
 
 import sentry_sdk
 from django.http import HttpRequest, HttpResponse
@@ -14,10 +15,10 @@ logger = logging.getLogger(__name__)
 
 
 class DevToolbarAnalyticsMiddleware:
-    def __init__(self, get_response):
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
         self.get_response = get_response
 
-    def __call__(self, request):
+    def __call__(self, request: HttpRequest) -> HttpResponse:
         response = self.get_response(request)
         try:
             # Note ordering of conditions to reduce option queries. GET contains the query params, regardless of method.

@@ -6,10 +6,10 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Broadcast} from 'sentry/types/system';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -65,11 +65,7 @@ export function CreateBroadcastModal({
   const navigate = useNavigate();
   const mutation = useMutation({
     mutationFn: (data: CreateBroadcastPayload) =>
-      fetchMutation<Broadcast>({
-        url: getApiUrl('/broadcasts/'),
-        method: 'POST',
-        data,
-      }),
+      fetchMutation<Broadcast>({url: getApiUrl('/broadcasts/'), method: 'POST', data}),
     onSuccess: data => navigate(`/_admin/broadcasts/${data.id}/`),
     onError: error => {
       if (
@@ -78,7 +74,7 @@ export function CreateBroadcastModal({
       ) {
         return;
       }
-      addErrorMessage('An error occurred while submitting this form.');
+      toast.error('An error occurred while submitting this form.');
     },
   });
 

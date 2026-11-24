@@ -28,8 +28,9 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import require_user
 from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
-from sentry.core.endpoints.organization_member_utils import get_allowed_org_roles
+from sentry.core.endpoints.organization_member_utils import TeamAssignment, get_allowed_org_roles
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -40,8 +41,9 @@ from sentry.notifications.utils.tasks import async_send_notification
 
 class InviteRequestPermissions(OrganizationPermission):
     scope_map = {
-        "GET": ["member:read", "member:write", "member:admin"],
-        "POST": ["member:read", "member:write", "member:admin"],
+        "GET": ["member:read", "member:write", "member:admin", "membership:read"],
+        # Any member can request an invite; an admin approves it before anyone joins.
+        "POST": ["member:read", "member:write", "member:admin", "membership:read"],
     }
 
 
@@ -114,6 +116,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
         Create an invite request for an organization given an email and suggested
         role / teams.
         """
+        inviter = require_user(request)
         allowed_roles = get_allowed_org_roles(request, organization, creating_org_invite=True)
         serializer = OrganizationMemberRequestSerializer(
             data=request.data,
@@ -132,6 +135,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             )
 
         result = serializer.validated_data
+        team_assignments: tuple[TeamAssignment, ...] = result["teamRoles"]
 
         with outbox_context(
             transaction.atomic(router.db_for_write(OrganizationMember)), flush=False
@@ -140,13 +144,13 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 organization_id=organization.id,
                 role=result["role"] or organization.default_role,
                 email=result["email"],
-                inviter_id=request.user.id,
+                inviter_id=inviter.id,
                 invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
             )
 
             # Do not set team-roles when inviting a member
             if "teams" in result or "teamRoles" in result:
-                teams = result.get("teams") or [team for team, _ in result.get("teamRoles") or []]
+                teams = result.get("teams") or [assignment.team for assignment in team_assignments]
                 # The member is new, so no other request can change its teams before the commit
                 OrganizationMemberTeam.objects.bulk_create(
                     [OrganizationMemberTeam(organizationmember=om, team=team) for team in teams]
@@ -160,7 +164,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             event=audit_log.get_event_id("INVITE_REQUEST_ADD"),
         )
 
-        async_send_notification(InviteRequestNotification, om, request.user)
+        async_send_notification(InviteRequestNotification, om, inviter)
 
         data: OrganizationMemberResponse = serialize(om)
         return Response(data, status=201)

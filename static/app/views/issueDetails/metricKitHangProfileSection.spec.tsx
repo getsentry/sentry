@@ -6,7 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {
   MetricKitHangProfileSection,
   type HangProfileData,
-} from 'sentry/views/issueDetails/metricKitHangProfileSection';
+} from './metricKitHangProfileSection';
 
 jest.mock(
   'sentry/components/events/interfaces/crashContent/stackTrace/flamegraph',

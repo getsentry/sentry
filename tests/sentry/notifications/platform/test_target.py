@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.integration import SlackIntegration
 from sentry.notifications.platform.target import (
@@ -13,6 +14,7 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -91,6 +93,41 @@ class PreparedIntegrationNotificationTargetTest(TestCase):
                 target=integration_target,
                 installation_cls=SlackIntegration,
             ).organization_integration
+
+    def _slack_target(self) -> PreparedIntegrationNotificationTarget[SlackIntegration]:
+        return PreparedIntegrationNotificationTarget[SlackIntegration](
+            target=IntegrationNotificationTarget(
+                provider_key=NotificationProviderKey.SLACK,
+                resource_type=NotificationTargetResourceType.CHANNEL,
+                resource_id="C01234567890",
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+            ),
+            installation_cls=SlackIntegration,
+        )
+
+    def test_prepare_targets_disabled_integration(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.update(status=ObjectStatus.DISABLED)
+
+        with pytest.raises(
+            IntegrationConfigurationError,
+            match=f"Integration {self.integration.id} is not active",
+        ):
+            self._slack_target().integration_installation
+
+    def test_prepare_targets_disabled_organization_integration(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+            ).update(status=ObjectStatus.DISABLED)
+
+        with pytest.raises(
+            IntegrationConfigurationError,
+            match=f"Organization integration for integration {self.integration.id} and organization {self.organization.id} is not active",
+        ):
+            self._slack_target().integration_installation
 
     @patch("sentry.integrations.slack.integration.SlackSdkClient.chat_postMessage")
     def test_prepare_targets_valid_installation_cls(self, mock_slack_client: MagicMock) -> None:

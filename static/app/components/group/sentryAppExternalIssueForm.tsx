@@ -1,4 +1,3 @@
-import {useExternalIssues} from 'sentry/components/group/externalIssuesList/useExternalIssues';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -11,6 +10,8 @@ import {
   SentryAppExternalForm,
   type SchemaFormConfig,
 } from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
+
+import {useExternalIssues} from './externalIssuesList/useExternalIssues';
 
 type Props = {
   action: 'create' | 'link';

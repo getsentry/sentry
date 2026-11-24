@@ -3,7 +3,7 @@ import {GroupOpenPeriodFixture} from 'sentry-fixture/groupOpenPeriod';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {MetricDetectorRecentIssues} from 'sentry/views/detectors/components/details/metric/recentIssues';
+import {MetricDetectorRecentIssues} from './recentIssues';
 
 describe('MetricDetectorRecentIssues', () => {
   const detector = MetricDetectorFixture({id: '1', projectId: '2'});
@@ -158,10 +158,7 @@ describe('MetricDetectorRecentIssues', () => {
     await userEvent.click(issueRow.getByRole('button', {name: 'Zoom'}));
 
     expect(router.location.query).toEqual(
-      expect.objectContaining({
-        start: '2017-10-10T09:50:00',
-        end: '2017-10-10T12:30:00',
-      })
+      expect.objectContaining({start: '2017-10-10T09:50:00', end: '2017-10-10T12:30:00'})
     );
   });
 

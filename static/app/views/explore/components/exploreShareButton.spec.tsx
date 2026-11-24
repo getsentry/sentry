@@ -4,11 +4,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  ExploreShareButton,
-  getExploreShareLink,
-} from 'sentry/views/explore/components/exploreShareButton';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {ExploreShareButton, getExploreShareLink} from './exploreShareButton';
 
 jest.mock('sentry/utils/analytics');
 
@@ -109,9 +107,7 @@ describe('ExploreShareButton', () => {
   });
 
   it('copies a link with a frozen time range when clicked', async () => {
-    Object.assign(navigator, {
-      clipboard: {writeText: jest.fn().mockResolvedValue('')},
-    });
+    Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
     render(<ExploreShareButton traceItemDataset={TraceItemDataset.LOGS} />, {
       initialRouterConfig,
     });

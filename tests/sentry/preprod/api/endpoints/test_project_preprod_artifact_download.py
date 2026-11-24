@@ -1,4 +1,5 @@
 from io import BytesIO
+from typing import Any
 from unittest.mock import patch
 
 from django.test import override_settings
@@ -29,7 +30,7 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
             artifact_type=PreprodArtifact.ArtifactType.APK,
         )
 
-    def _get_authenticated_request_headers(self, path, data=b""):
+    def _get_authenticated_request_headers(self, path: str, data: bytes = b"") -> dict[str, Any]:
         """Generate the RPC signature authentication headers for the request."""
         signature = generate_service_request_signature(path, data, ["test-secret-key"], "Launchpad")
         return {"HTTP_AUTHORIZATION": f"rpcsignature {signature}"}

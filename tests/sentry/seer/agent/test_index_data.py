@@ -1,5 +1,6 @@
 import uuid
 from datetime import timedelta
+from typing import Any
 from unittest import mock
 
 import orjson
@@ -239,7 +240,9 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
 
         with mock.patch("sentry.seer.agent.utils.get_from_profiling_service") as mock_service:
             # Mock profile service responses for both transaction and continuous profiles
-            def mock_service_response(method, path, *args, **kwargs):
+            def mock_service_response(
+                method: str, path: str, *args: Any, **kwargs: Any
+            ) -> mock.Mock:
                 if f"profiles/{profile1_id}" in path:
                     response = mock.Mock()
                     response.status = 200
@@ -434,7 +437,9 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         # Mock the external profiling service calls
         with mock.patch("sentry.seer.agent.utils.get_from_profiling_service") as mock_service:
             # Mock profile service response
-            def mock_service_response(method, path, *args, **kwargs):
+            def mock_service_response(
+                method: str, path: str, *args: Any, **kwargs: Any
+            ) -> mock.Mock:
                 response = mock.Mock()
                 response.status = 200
                 response.data = orjson.dumps(
@@ -561,7 +566,9 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         # Mock the external profiling service calls
         with mock.patch("sentry.seer.agent.utils.get_from_profiling_service") as mock_service:
             # Mock profile service response for continuous profiles (/chunks endpoint)
-            def mock_service_response(method, path, *args, **kwargs):
+            def mock_service_response(
+                method: str, path: str, *args: Any, **kwargs: Any
+            ) -> mock.Mock:
                 response = mock.Mock()
                 response.status = 200
                 response.data = orjson.dumps(
@@ -685,8 +692,13 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         with mock.patch("sentry.seer.agent.index_data.fetch_profile_data") as mock_fetch:
             # Mock to capture the timestamps passed to fetch_profile_data
             def capture_and_return(
-                profile_id, organization_id, project_id, start_ts, end_ts, is_continuous
-            ):
+                profile_id: str,
+                organization_id: int,
+                project_id: int,
+                start_ts: Any,
+                end_ts: Any,
+                is_continuous: bool,
+            ) -> dict[str, Any]:
                 captured_timestamps["start_ts"] = start_ts
                 captured_timestamps["end_ts"] = end_ts
                 captured_timestamps["profile_id"] = profile_id
@@ -740,10 +752,68 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
             assert captured_timestamps["profile_id"] == profile_id
             assert captured_timestamps["is_continuous"] is False
 
+    def test_get_profiles_for_trace_treats_empty_profiler_id_as_transaction_profile(self) -> None:
+        """A span with a transaction profile id and an empty profiler id is a transaction profile."""
+        trace_id = "e" * 32  # Valid 32-char hex trace ID
+
+        profile_id = uuid.uuid4().hex
+
+        span = self.create_span(
+            {
+                "trace_id": trace_id,
+                "description": "Transaction profile with an empty profiler id",
+                "sentry_tags": {
+                    "transaction": "api/test",
+                    "op": "http.server",
+                    "profiler_id": "",
+                },
+                "is_segment": True,
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        span.update({"profile_id": profile_id})
+
+        self.store_spans([span])
+
+        with mock.patch("sentry.seer.agent.index_data.fetch_profile_data") as mock_fetch:
+            mock_fetch.return_value = {
+                "profile": {
+                    "frames": [
+                        {
+                            "function": "test_function",
+                            "module": "app",
+                            "filename": "test.py",
+                            "lineno": 10,
+                            "in_app": True,
+                        }
+                    ],
+                    "stacks": [[0]],
+                    "samples": [
+                        {
+                            "elapsed_since_start_ns": 1000000,
+                            "thread_id": "1",
+                            "stack_id": 0,
+                        }
+                    ],
+                    "thread_metadata": {"1": {"name": "MainThread"}},
+                }
+            }
+
+            result = get_profiles_for_trace(trace_id, self.project.id)
+
+            assert result is not None
+            assert len(result.profiles) == 1
+            assert result.profiles[0].profile_id == profile_id
+            assert result.profiles[0].is_continuous is False
+
+            assert mock_fetch.call_count == 1
+            assert mock_fetch.call_args.kwargs["profile_id"] == profile_id
+            assert mock_fetch.call_args.kwargs["is_continuous"] is False
+
 
 class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSnubaMixin):
     @property
-    def backend(self):
+    def backend(self) -> EventsDatasetSnubaSearchBackend:
         return EventsDatasetSnubaSearchBackend()
 
     def setUp(self) -> None:
@@ -792,10 +862,14 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
             project_id=self.project.id,
         )
 
+        assert event1.group is not None
+        assert event2.group is not None
+        assert event3.group is not None
         groups = [event1.group, event2.group, event3.group]
 
         for group in groups:
             latest_event = group.get_latest_event()
+            assert latest_event is not None
             transaction_tag = latest_event.get_tag("transaction")
             assert transaction_tag == transaction_name, (
                 f"Expected transaction tag '{transaction_name}', got '{transaction_tag}'"
@@ -845,6 +919,7 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
 
         issue = result.issues[0]
         group = event.group
+        assert group is not None
         assert issue.short_id == group.qualified_short_id
         assert issue.project == group.project_id
 
@@ -954,11 +1029,15 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         )
 
         # Verify both events were stored with correct transaction names
+        assert event1.group is not None
         latest_event1 = event1.group.get_latest_event()
+        assert latest_event1 is not None
         transaction_tag1 = latest_event1.get_tag("transaction")
         assert transaction_tag1 == transaction_name_quotes
 
+        assert event2.group is not None
         latest_event2 = event2.group.get_latest_event()
+        assert latest_event2 is not None
         transaction_tag2 = latest_event2.get_tag("transaction")
         assert transaction_tag2 == transaction_name_in
 
@@ -972,6 +1051,7 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         assert len(result1.issues) == 1
 
         issue1 = result1.issues[0]
+        assert event1.group is not None
         assert issue1.id == event1.group.id
         assert issue1.transaction == transaction_name_quotes
 
@@ -985,5 +1065,6 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         assert len(result2.issues) == 1
 
         issue2 = result2.issues[0]
+        assert event2.group is not None
         assert issue2.id == event2.group.id
         assert issue2.transaction == transaction_name_in

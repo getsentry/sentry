@@ -1,6 +1,6 @@
 import {GroupOpenPeriodFixture} from 'sentry-fixture/groupOpenPeriod';
 
-import {groupOpenPeriodsByIssue} from 'sentry/views/detectors/utils/groupOpenPeriodsByIssue';
+import {groupOpenPeriodsByIssue} from './groupOpenPeriodsByIssue';
 
 describe('groupOpenPeriodsByIssue', () => {
   it('orders issues by their newest open period', () => {

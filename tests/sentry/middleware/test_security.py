@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import cached_property
+from typing import Any
 from unittest import TestCase
 
 from django.test import RequestFactory, override_settings
@@ -14,7 +15,7 @@ class SecurityHeadersMiddlewareTest(TestCase):
     middleware = cached_property(SecurityHeadersMiddleware)
 
     @cached_property
-    def factory(self):
+    def factory(self) -> Any:
         return RequestFactory()
 
     def test_standard_headers_set(self) -> None:

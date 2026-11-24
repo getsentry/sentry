@@ -4,9 +4,7 @@ import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
 
-type Props = {
-  integrations: Integration[] | null;
-};
+type Props = {integrations: Integration[] | null};
 
 export function ReinstallAlert({integrations}: Props) {
   const statusList = integrations?.map(getIntegrationStatus);

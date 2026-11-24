@@ -182,7 +182,7 @@
         <ul class="tag-list">
         {% for tag_key, tag_value in tags %}
           <li>
-              <strong>{{ tag_key|as_tag_alias }}</strong>
+              <strong>{{ tag_key|as_tag_alias|sanitize_periods }}</strong>
               <em>=</em>
               <span>
               {% with query=tag_key|as_tag_alias|add:":\""|add:tag_value|add:"\""|urlencode %}
@@ -206,10 +206,8 @@
         <div class="logo-container">
             <img src="{% static 'sentry/images/logos/logo-slack.svg' %}" class="logo" alt="Slack"/>
             <img src="{% static 'sentry/images/logos/logo-pagerduty.svg' %}" class="logo" alt="PagerDuty"/>
-            <img src="{% static 'sentry/images/logos/logo-msteams.svg' %}" class="logo" alt="MS Teams"/>
-            <img src="{% static 'sentry/images/logos/logo-opsgenie.svg' %}" class="logo" alt="OpsGenie"/>
-            <img src="{% static 'sentry/images/logos/logo-twilio.svg' %}" class="logo" alt="Twilio"/>
-            <img src="{% static 'sentry/images/logos/logo-victorops.svg' %}" class="logo" alt="VictorOps"/>
+            <img src="{% static 'sentry/images/logos/logo-msteams.svg' %}" class="logo" alt="Microsoft Teams"/>
+            <img src="{% static 'sentry/images/logos/logo-opsgenie.svg' %}" class="logo" alt="Opsgenie"/>
         </div>
         <p class="align-center">
             <a href="{% absolute_uri 'settings/{}/integrations/?referrer=alert_email' group.project.organization.slug %}">{{ "Get this alert wherever you work" }}</a>

@@ -2,6 +2,7 @@ from collections.abc import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.conf import settings
 from django.test import override_settings
 
 from sentry.auth.deprecated_scope_translation import (
@@ -11,16 +12,7 @@ from sentry.auth.deprecated_scope_translation import (
 )
 from sentry.testutils.helpers.options import override_options
 
-ORG_READ_GRANULAR_SCOPES = frozenset(
-    {
-        "dashboard:read",
-        "dashboard:write",
-        "saved_query:read",
-        "saved_query:write",
-        "user_preference:read",
-        "user_preference:write",
-    }
-)
+ORG_READ_GRANULAR_SCOPES = settings.DEPRECATED_SCOPE_TRANSLATIONS["org:read"] - {"org:read"}
 USER_PREFERENCE_SCOPES = frozenset({"user_preference:read", "user_preference:write"})
 
 
@@ -34,8 +26,41 @@ def test_translate_org_read_adds_granular_scopes() -> None:
     assert translate_deprecated_scopes(["org:read"]) == {"org:read"} | ORG_READ_GRANULAR_SCOPES
 
 
-def test_translate_member_read_adds_user_preference_scopes() -> None:
-    assert translate_deprecated_scopes(["member:read"]) == {"member:read"} | USER_PREFERENCE_SCOPES
+def test_translate_member_read_adds_granular_scopes() -> None:
+    assert (
+        translate_deprecated_scopes(["member:read"])
+        == {
+            "member:read",
+            "membership:read",
+        }
+        | USER_PREFERENCE_SCOPES
+    )
+
+
+@pytest.mark.parametrize(
+    ("member_scope", "membership_scopes"),
+    [
+        ("member:invite", {"membership:invite"}),
+        ("member:write", {"membership:read", "membership:invite", "membership:write"}),
+        (
+            "member:admin",
+            {"membership:read", "membership:invite", "membership:write", "membership:admin"},
+        ),
+    ],
+)
+def test_translate_member_scope_adds_membership_scopes(
+    member_scope: str, membership_scopes: set[str]
+) -> None:
+    # Membership scopes don't imply each other, so a member scope gets the membership scope
+    # of every method it's accepted on.
+    translated = translate_deprecated_scopes([member_scope])
+    assert member_scope in translated
+    assert {scope for scope in translated if scope.startswith("membership:")} == membership_scopes
+
+
+def test_translate_member_write_keeps_user_preference_access() -> None:
+    # Starring and starred order accept member:write, like member:read.
+    assert USER_PREFERENCE_SCOPES <= translate_deprecated_scopes(["member:write"])
 
 
 def test_translate_org_read_keeps_org_read() -> None:

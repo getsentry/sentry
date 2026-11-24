@@ -37,7 +37,7 @@ class DashboardPermissions(Model):
         "sentry.Dashboard", on_delete=models.CASCADE, related_name="permissions"
     )
 
-    def has_edit_permissions(self, user_id):
+    def has_edit_permissions(self, user_id: int | None) -> bool:
         if self.is_editable_by_everyone:
             return True
         # A caller with no user, like an API key, is neither the creator nor on a team. A None

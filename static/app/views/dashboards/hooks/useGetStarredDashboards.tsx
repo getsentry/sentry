@@ -12,9 +12,7 @@ export function getStarredDashboardsQueryKey(organization: Organization) {
   if (organization.features.includes('dashboards-starred')) {
     return starredDashboardsApiOptions(organization).queryKey;
   }
-  return dashboardsApiOptions(organization, {
-    query: {filter: 'onlyFavorites'},
-  }).queryKey;
+  return dashboardsApiOptions(organization, {query: {filter: 'onlyFavorites'}}).queryKey;
 }
 
 export function useGetStarredDashboards() {
@@ -26,9 +24,7 @@ export function useGetStarredDashboards() {
   return useQuery({
     ...(usesStarredEndpoint
       ? starredDashboardsApiOptions(organization)
-      : dashboardsApiOptions(organization, {
-          query: {filter: 'onlyFavorites'},
-        })),
+      : dashboardsApiOptions(organization, {query: {filter: 'onlyFavorites'}})),
     staleTime: Infinity,
     enabled: hasProjectAccess || !projectsLoaded,
   });

@@ -8,16 +8,13 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {t, tct} from 'sentry/locale';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
-import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {scoreToStatus} from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
-type Props = {
-  webVital: WebVitals;
-  score?: number;
-  value?: string;
-};
+import {PerformanceBadge} from './performanceBadge';
+
+type Props = {webVital: WebVitals; score?: number; value?: string};
 
 export const WEB_VITAL_FULL_NAME_MAP = {
   cls: t('Cumulative Layout Shift'),

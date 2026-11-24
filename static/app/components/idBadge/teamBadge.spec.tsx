@@ -2,8 +2,9 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import {TeamStore} from 'sentry/stores/teamStore';
+
+import {TeamBadge} from './teamBadge';
 
 describe('TeamBadge', () => {
   beforeEach(() => {
@@ -21,10 +22,7 @@ describe('TeamBadge', () => {
     render(<TeamBadge team={team} />);
 
     act(() => {
-      TeamStore.onUpdateSuccess(team.id, {
-        ...team,
-        slug: 'new-team-slug',
-      });
+      TeamStore.onUpdateSuccess(team.id, {...team, slug: 'new-team-slug'});
     });
 
     expect(await screen.findByText(/#new-team-slug/)).toBeInTheDocument();

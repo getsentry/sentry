@@ -14,6 +14,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
 from sentry.models.organization import Organization
@@ -21,6 +22,7 @@ from sentry.seer.agent.client_utils import (
     agent_connection_pool,
     has_seer_agent_access_with_detail,
 )
+from sentry.seer.agent.scm_connect_analytics import record_scm_connect_answered
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES
 from sentry.seer.endpoints.utils import resolve_seer_run
@@ -72,7 +74,7 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
         if not has_access:
             return Response({"detail": error}, status=403)
 
-        user_id = request.user.id
+        user_id = acting_user_id(request.user)
         if user_id is None:
             raise PermissionDenied("A user account is required to update a conversation.")
 
@@ -126,5 +128,8 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
+
+        if payload_type == "user_input_response":
+            record_scm_connect_answered(organization, user_id, resolved.seer_run_state_id, payload)
 
         return Response(status=202, data=response.json())

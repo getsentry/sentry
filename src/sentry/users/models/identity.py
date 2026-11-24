@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from django.conf import settings
 from django.contrib.postgres.fields.array import ArrayField
@@ -261,7 +261,7 @@ class OrganizationIdentity(DefaultFieldsModel):
 
 def link_provider_identity(
     user: User | RpcUser,
-    identity_data: dict[str, Any],
+    identity_data: Mapping[str, object],
     organization_id: int,
 ) -> Identity | None:
     with transaction.atomic(router.db_for_write(Identity)):
@@ -274,7 +274,7 @@ def link_provider_identity(
         linked_identity = Identity.objects.link_identity(
             user=user,
             idp=idp,
-            external_id=identity_data["id"],
+            external_id=cast(str, identity_data["id"]),
             should_reattach=False,
             defaults={
                 "scopes": identity_data.get("scopes", []),

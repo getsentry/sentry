@@ -4,13 +4,13 @@ import logging
 from collections.abc import Mapping
 from typing import Any, TypedDict
 
+from django.conf import settings
 from django.core.signing import BadSignature, SignatureExpired
 from django.http.request import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.fields import CharField
 
-from sentry import options
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import (
     FeatureDescription,
@@ -73,7 +73,7 @@ INSTALL_NOTICE_TEXT = (
 )
 
 external_install = {
-    "url": "https://teams.microsoft.com/l/app/{}".format(options.get("msteams.app-id")),
+    "url": f"https://teams.microsoft.com/l/app/{settings.SENTRY_MSTEAMS_APP_ID}",
     "buttonText": _("Teams Marketplace"),
     "noticeText": _(INSTALL_NOTICE_TEXT),
 }
@@ -90,7 +90,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class MsTeamsIntegration(IntegrationInstallation, IntegrationNotificationClient):
+class MsTeamsIntegration(IntegrationInstallation, IntegrationNotificationClient[AdaptiveCard]):
     def get_client(self) -> MsTeamsClient:
         return MsTeamsClient(self.model)
 
@@ -124,7 +124,7 @@ class MsTeamsInstallParams(TypedDict):
     installation_type: str
 
 
-class MsTeamsInitialDataSerializer(CamelSnakeSerializer):
+class MsTeamsInitialDataSerializer(CamelSnakeSerializer[MsTeamsInstallParams]):
     """Initial pipeline data for Microsoft Teams installs.
 
     The Sentry bot in Teams renders a card with a single `signed_params` blob
@@ -136,14 +136,15 @@ class MsTeamsInitialDataSerializer(CamelSnakeSerializer):
 
     def validate(self, attrs: dict[str, Any]) -> MsTeamsInstallParams:
         try:
-            return unsign(attrs["signed_params"], max_age=INSTALL_EXPIRATION_TIME, salt=SALT)
+            params = unsign(attrs["signed_params"], max_age=INSTALL_EXPIRATION_TIME, salt=SALT)
+            return params
         except SignatureExpired:
             raise serializers.ValidationError("Installation link expired")
         except BadSignature:
             raise serializers.ValidationError("Invalid installation link")
 
 
-class MsTeamsAdvanceSerializer(CamelSnakeSerializer):
+class MsTeamsAdvanceSerializer(CamelSnakeSerializer[dict[str, object]]):
     state = CharField(required=True)
 
 

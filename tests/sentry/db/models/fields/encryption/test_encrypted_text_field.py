@@ -17,7 +17,7 @@ class EncryptedTextFieldModel(models.Model):
         app_label = "fixtures"
 
 
-def generate_secret():
+def generate_secret() -> str:
     """Callable default similar to ApiApplication.generate_token."""
     return secrets.token_hex(nbytes=32)
 
@@ -55,7 +55,7 @@ def test_encrypted_text_field_default_method() -> None:
 
 
 @pytest.mark.django_db
-def test_encrypted_text_field_fernet_end_to_end(fernet_keys_store):
+def test_encrypted_text_field_fernet_end_to_end(fernet_keys_store: tuple[str, bytes]) -> None:
     """Test complete save/retrieve cycle with EncryptedTextField using fernet."""
     key_id, _fernet_key = fernet_keys_store
 
@@ -217,7 +217,7 @@ def test_encrypted_text_field_callable_default_generates_unique_values() -> None
 
 
 @pytest.mark.django_db
-def test_encrypted_text_field_default_with_fernet(fernet_keys_store):
+def test_encrypted_text_field_default_with_fernet(fernet_keys_store: tuple[str, bytes]) -> None:
     """Test that default values work correctly with fernet encryption."""
     key_id, _fernet_key = fernet_keys_store
 

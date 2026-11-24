@@ -1,6 +1,7 @@
 import {MutableSearch as ParsedMutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {formatSearchStringForQueryParam} from 'sentry/utils/url/formatSearchStringForQueryParam';
+
+import {formatSearchStringForQueryParam} from './formatSearchStringForQueryParam';
 
 describe('formatSearchStringForQueryParam', () => {
   it('should format a search string for use as a query parameter', () => {

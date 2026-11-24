@@ -11,10 +11,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.endpoints.project_custom_inbound_filters import (
     CustomInboundFilterCondition,
-    CustomInboundFilterSerializer,
+    CustomInboundFilterRequestSerializer,
     ProjectCustomInboundFilterEndpoint,
 )
 from sentry.apidocs.response_types import DetailResponse, as_validation_errors
+from sentry.auth.principal import acting_user_id
 from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -90,7 +91,7 @@ class CustomInboundFilterValidateEndpoint(ProjectCustomInboundFilterEndpoint):
         stored = (
             self.get_custom_inbound_filter(project, filter_id) if filter_id is not None else None
         )
-        serializer = CustomInboundFilterSerializer(
+        serializer = CustomInboundFilterRequestSerializer(
             stored,
             data=request.data,
             context={"project": project, "request": request},
@@ -108,6 +109,6 @@ class CustomInboundFilterValidateEndpoint(ProjectCustomInboundFilterEndpoint):
             serializer.validated_data["data_type"],
             serializer.validated_data["conditions"],
             organization,
-            user_id=request.user.id,
+            user_id=acting_user_id(request.user),
         )
         return Response({"errors": {}, "suggestedName": suggested_name})

@@ -1,14 +1,18 @@
 import type * as React from 'react';
 import {createRef} from 'react';
 import {ThemeProvider} from '@emotion/react';
-import {render, screen} from '@testing-library/react';
+import {render, renderHook, screen} from '@testing-library/react';
 import {userEvent} from '@testing-library/user-event';
 
 import {lightTheme} from '@sentry/scraps/theme';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
 import {ExternalLink, Link, type LinkProps} from './link';
-import {LinkBehaviorContextProvider} from './linkBehaviorContext';
+import {
+  LinkBehaviorContextProvider,
+  useLinkQueryString,
+  useResolveLinkHref,
+} from './linkBehaviorContext';
 
 function ThemeWrapper({children}: {children: React.ReactNode}) {
   return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
@@ -36,11 +40,17 @@ describe('Link without a router', () => {
         search: '?old=true',
         query: {tag: ['one', 'two'], flag: null, absent: undefined},
       },
-      '/issues/?flag&tag=one&tag=two',
+      '/issues/?tag=one&tag=two&flag=null',
+    ],
+    [
+      {query: {query: 'a b+c~*', empty: '', count: 0, enabled: false, tags: []}},
+      '?query=a+b%2Bc%7E*&empty=&count=0&enabled=false',
     ],
   ])('renders %j as %s', (to, href) => {
     render(<Link to={to}>Issues</Link>, {wrapper: ThemeWrapper});
     expect(screen.getByRole('link', {name: 'Issues'})).toHaveAttribute('href', href);
+    const {result} = renderHook(() => useResolveLinkHref());
+    expect(result.current(to)).toBe(href);
   });
 
   it('forwards refs and filters router-only props', () => {
@@ -120,7 +130,71 @@ describe('Link without a router', () => {
   });
 });
 
+describe('useLinkQueryString without a provider', () => {
+  it('parses native search parameters and preserves repeated values', () => {
+    const {result} = renderHook(() => useLinkQueryString());
+    const query = result.current.parse('?tag=one&tag=two&flag&q=a+b%2Bc&__proto__=safe');
+    expect(query).toEqual({
+      tag: ['one', 'two'],
+      flag: '',
+      q: 'a b+c',
+      ['__proto__']: 'safe',
+    });
+    expect(Object.getPrototypeOf(query)).toBeNull();
+  });
+
+  it('uses native encoding when serializing query parameters', () => {
+    const {result} = renderHook(() => useLinkQueryString());
+    expect(
+      result.current.stringify({
+        tag: ['one', 'two'],
+        q: 'a b+c~*',
+        flag: null,
+        absent: undefined,
+      })
+    ).toBe('tag=one&tag=two&q=a+b%2Bc%7E*&flag=null');
+  });
+});
+
 describe('Link with a supplied behavior', () => {
+  it('serializes collection hrefs through the supplied stringify helper', () => {
+    const {result} = renderHook(() => useResolveLinkHref(), {
+      wrapper: ({children}) => (
+        <LinkBehaviorContextProvider
+          value={{
+            component: () => null,
+            behavior: props => props,
+            stringify: query => `custom=${String(query.q)}`,
+          }}
+        >
+          {children}
+        </LinkBehaviorContextProvider>
+      ),
+    });
+    expect(result.current({pathname: '/issues/', query: {q: 'value'}})).toBe(
+      '/issues/?custom=value'
+    );
+  });
+
+  it('normalizes collection destinations with native query defaults', () => {
+    const {result} = renderHook(() => useResolveLinkHref(), {
+      wrapper: ({children}) => (
+        <LinkBehaviorContextProvider
+          value={{
+            component: () => null,
+            behavior: props => ({
+              ...props,
+              to: {pathname: '/normalized/', query: {q: 'a b'}},
+            }),
+          }}
+        >
+          {children}
+        </LinkBehaviorContextProvider>
+      ),
+    });
+    expect(result.current('/issues/')).toBe('/normalized/?q=a+b');
+  });
+
   it('uses the supplied component and keeps behavior-added handlers', async () => {
     const onClick = jest.fn((event: React.MouseEvent) => event.preventDefault());
     const onFocus = jest.fn();

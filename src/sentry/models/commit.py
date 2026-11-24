@@ -57,6 +57,7 @@ class Commit(Model):
             models.Index(fields=("repository_id", "date_added")),
             models.Index(fields=("author", "date_added")),
             models.Index(fields=("organization_id", "date_added")),
+            models.Index(fields=("date_added", "id")),
         )
         unique_together = (
             ("repository_id", "key"),
@@ -73,13 +74,13 @@ class Commit(Model):
         super().save(*args, **kwargs)
 
     @cached_property
-    def title(self):
+    def title(self) -> str:
         if not self.message:
             return ""
         return self.message.splitlines()[0]
 
     @cached_property
-    def short_id(self):
+    def short_id(self) -> str:
         if len(self.key) == 40:
             return self.key[:7]
         return self.key

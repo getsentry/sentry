@@ -23,8 +23,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
-import {getColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize/utils';
 import {CUSTOM_EQUATION_VALUE} from 'sentry/views/dashboards/widgetBuilder/constants';
 import {SortDirection, sortDirections} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {ArithmeticInput} from 'sentry/views/discover/table/arithmeticInput';
@@ -32,6 +30,9 @@ import {QueryField} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {hasConditionalAggregateFilter} from 'sentry/views/explore/utils/conditionalAggregate';
+
+import {getColumnOptions} from './visualize/utils';
+import {ExploreArithmeticBuilder} from './exploreArithmeticBuilder';
 
 interface Values {
   sortBy: string;
@@ -131,10 +132,7 @@ export function SortBySelectors({
           }))}
           value={values.sortDirection}
           onChange={option => {
-            onChange({
-              sortBy: values.sortBy,
-              sortDirection: option.value,
-            });
+            onChange({sortBy: values.sortBy, sortDirection: option.value});
           }}
         />
       </Tooltip>
@@ -166,10 +164,7 @@ export function SortBySelectors({
                 ({value}) => value
               )}
               onChange={(option: SelectValue<string>) => {
-                onChange({
-                  sortBy: option.value,
-                  sortDirection: values.sortDirection,
-                });
+                onChange({sortBy: option.value, sortDirection: values.sortDirection});
               }}
             />
           ) : (
@@ -193,10 +188,7 @@ export function SortBySelectors({
               }
               onChange={value => {
                 if (value.alias && isEquationAlias(value.alias)) {
-                  onChange({
-                    sortBy: value.alias,
-                    sortDirection: values.sortDirection,
-                  });
+                  onChange({sortBy: value.alias, sortDirection: values.sortDirection});
                   return;
                 }
 
@@ -239,10 +231,7 @@ export function SortBySelectors({
                     parsedValue = `${functionName}(${defaultValue})`;
                   }
                 }
-                onChange({
-                  sortBy: parsedValue,
-                  sortDirection: values.sortDirection,
-                });
+                onChange({sortBy: parsedValue, sortDirection: values.sortDirection});
               }}
               useMenuPortal
             />

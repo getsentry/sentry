@@ -1,6 +1,6 @@
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
+import {DrawerTab} from './types';
 
 const tabParser = parseAsStringLiteral(Object.values(DrawerTab)).withDefault(
   DrawerTab.TAGS

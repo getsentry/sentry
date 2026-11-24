@@ -19,6 +19,7 @@ reportOn = "medium"
 
 [[skills]]
 name = "sentry-backend-bugs"
+incremental = true
 paths = ["src/sentry/**/*.py"]
 ignorePaths = ["**/tests/**", "**/*_test.py", "**/test_*.py"]
 
@@ -28,6 +29,7 @@ actions = ["opened", "synchronize", "reopened"]
 
 [[skills]]
 name = "wrdn-pii"
+incremental = true
 remote = "getsentry/warden-skills"
 paths = ["**/*"]
 
@@ -83,6 +85,7 @@ actions = ["opened", "synchronize", "reopened"]
 
 [[skills]]
 name = "wrdn-dos-review"
+incremental = true
 remote = "getsentry/warden-skills"
 paths = ["src/**/*.py"]
 ignorePaths = ["**/tests/**", "**/*_test.py", "**/test_*.py"]

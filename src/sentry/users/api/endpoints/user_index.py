@@ -8,6 +8,7 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
+from sentry.auth.principal import acting_user_id
 from sentry.db.models.query import in_iexact
 from sentry.search.utils import tokenize_query
 from sentry.users.api.serializers.user import UserSerializer
@@ -40,7 +41,9 @@ class UserIndexEndpoint(Endpoint):
                     valid_ids = []
                     for v in value:
                         if v == "me":
-                            valid_ids.append(request.user.id)
+                            user_id = acting_user_id(request.user)
+                            if user_id is not None:
+                                valid_ids.append(user_id)
                         else:
                             try:
                                 valid_ids.append(int(v))

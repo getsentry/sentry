@@ -1,11 +1,11 @@
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
-import type {TraceRootEventQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
-import {TraceContextVitals} from 'sentry/views/performance/traceDetails/traceContextVitals';
-import {TraceHeaderComponents} from 'sentry/views/performance/traceDetails/traceHeader/styles';
-import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
-import type {TraceLayoutTabsConfig} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
+import type {TraceRootEventQueryResults} from './traceApi/useTraceRootEvent';
+import {TraceHeaderComponents} from './traceHeader/styles';
+import type {TraceTree} from './traceModels/traceTree';
+import {TraceContextVitals} from './traceContextVitals';
+import type {TraceLayoutTabsConfig} from './useTraceLayoutTabs';
 
 type TraceTabsAndVitalsProps = {
   rootEventResults: TraceRootEventQueryResults;
@@ -68,11 +68,13 @@ export function TraceTabsAndVitals({
   return (
     <ToolbarLayout>
       <Tabs value={currentTab} onChange={onTabChange}>
-        <TabList variant="floating">
-          {tabOptions.map(tab => (
-            <TabList.Item key={tab.slug}>{tab.label}</TabList.Item>
-          ))}
-        </TabList>
+        {({TabList}) => (
+          <TabList variant="floating">
+            {tabOptions.map(tab => (
+              <TabList.Item key={tab.slug}>{tab.label}</TabList.Item>
+            ))}
+          </TabList>
+        )}
       </Tabs>
       <TraceContextVitals rootEventResults={rootEventResults} tree={tree} />
     </ToolbarLayout>

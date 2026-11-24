@@ -12,20 +12,14 @@ export const crashReport: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: getCrashReportInstallDescription(),
-        },
+        {type: 'text', text: getCrashReportInstallDescription()},
         {
           type: 'code',
           language: 'powershell',
           code: `$eventId = "An event that will receive user feedback." | Out-Sentry
 [Sentry.SentrySdk]::CaptureUserFeedback($eventId, "user@example.com", "It broke.", "The User")`,
         },
-        {
-          type: 'custom',
-          content: altCrashReportCallout(),
-        },
+        {type: 'custom', content: altCrashReportCallout()},
       ],
     },
   ],

@@ -1,8 +1,9 @@
 import {lazy} from 'react';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
-import {AlertLink} from 'sentry/components/seer/markdown/embeds/components/alert/alertLink';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
+
+import {AlertLink} from './alertLink';
 
 const LazyAlertBlock = lazy(() => import('./alertBlock'));
 

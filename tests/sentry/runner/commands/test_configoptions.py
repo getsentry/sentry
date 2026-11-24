@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+from click.testing import Result
 from django.conf import settings
 from django.test import override_settings
 
@@ -99,7 +100,7 @@ class ConfigOptionsTest(CliTestCase):
             assert not options.isset("map_option")
             assert not options.isset("list_option")
 
-        def assert_output(rv):
+        def assert_output(rv: Result) -> None:
             assert rv.exit_code == 2, rv.output
 
             # The script produces log lines when DRIFT is detected. This

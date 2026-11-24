@@ -4,7 +4,7 @@ import {ImageFixture} from 'sentry-fixture/image';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {ProguardSection} from 'sentry/components/events/interfaces/debugMeta/proguardSection';
+import {ProguardSection} from './proguardSection';
 
 describe('ProguardSection', () => {
   const {organization, project} = initializeOrg();

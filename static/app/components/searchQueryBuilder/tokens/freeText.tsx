@@ -22,17 +22,6 @@ import {
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
-import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
-import {useFilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useFilterKeyListBox';
-import {createConvertHumanizedItem} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
-import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
-import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/tokens/useSortedFilterKeyItems';
-import {
-  getInitialFilterText,
-  itemIsSection,
-  resolveFilterKey,
-  useShiftFocusToChild,
-} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {
   FieldDefinitionGetter,
   FocusOverride,
@@ -60,6 +49,17 @@ import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {FilterKeyItem} from './filterKeyListBox/types';
+import {useFilterKeyListBox} from './filterKeyListBox/useFilterKeyListBox';
+import {createConvertHumanizedItem} from './filterKeyListBox/utils';
+import {SearchQueryBuilderCombobox} from './combobox';
+import {InvalidTokenTooltip} from './invalidTokenTooltip';
+import {useSortedFilterKeyItems} from './useSortedFilterKeyItems';
+import {
+  getInitialFilterText,
+  itemIsSection,
+  resolveFilterKey,
+  useShiftFocusToChild,
+} from './utils';
 
 type SearchQueryBuilderInputProps = {
   item: Node<ParseResultToken>;
@@ -236,18 +236,13 @@ function calculateNextFocusForFilter(
     part = 'key';
   }
 
-  return {
-    itemKey: `${Token.FILTER}:${numPreviousFilterItems}`,
-    part,
-  };
+  return {itemKey: `${Token.FILTER}:${numPreviousFilterItems}`, part};
 }
 
 function calculateNextFocusForInsertedToken(item: Node<ParseResultToken>): FocusOverride {
   const {index} = parseTokenKey(item.key.toString());
 
-  return {
-    itemKey: `${Token.FREE_TEXT}:${index + 1}`,
-  };
+  return {itemKey: `${Token.FREE_TEXT}:${index + 1}`};
 }
 
 function calculateNextFocusForCommittedCustomValue({
@@ -272,9 +267,7 @@ function calculateNextFocusForCommittedCustomValue({
     return undefined;
   }
 
-  return {
-    itemKey: `${tokenType}:${index + diff}`,
-  };
+  return {itemKey: `${tokenType}:${index + diff}`};
 }
 
 function shouldHideInvalidTooltip({
@@ -413,11 +406,7 @@ function SearchQueryBuilderInputInternal({
     filterValue,
   });
   const {items: sortedFilteredItems, isLoading: isLoadingFilterKeys} =
-    useSortedFilterKeyItems({
-      filterValue,
-      inputValue,
-      includeSuggestions: true,
-    });
+    useSortedFilterKeyItems({filterValue, inputValue, includeSuggestions: true});
 
   const humanizedEsqSuggestion = useHumanizedEsqSuggestion(filterKeys, inputValue);
 

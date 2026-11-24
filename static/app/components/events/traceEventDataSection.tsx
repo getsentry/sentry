@@ -10,24 +10,22 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
-import {displayRawContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
-import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {t} from 'sentry/locale';
 import type {Entry, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {defined} from 'sentry/utils/defined';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
-const sortByOptions = {
-  'recent-first': t('Newest'),
-  'recent-last': t('Oldest'),
-};
+import {displayRawContent} from './interfaces/crashContent/stackTrace/rawContent';
+import {useStacktraceContext} from './interfaces/stackTraceContext';
+
+const sortByOptions = {'recent-first': t('Newest'), 'recent-last': t('Oldest')};
 
 export const stackTraceDisplayOptionLabels = {
   'absolute-addresses': t('Absolute addresses'),
@@ -74,7 +72,6 @@ export function TraceEventDataSection({
   activeThreadId,
   initialCollapse,
 }: Props) {
-  const api = useApi();
   const organization = useOrganization();
 
   const {
@@ -96,12 +93,7 @@ export function TraceEventDataSection({
       isFullOptionClicked
         ? 'stack-trace.full_stack_trace_clicked'
         : 'stack-trace.most_relevant_clicked',
-      {
-        organization,
-        project_slug: projectSlug,
-        platform,
-        is_mobile: isMobile,
-      }
+      {organization, project_slug: projectSlug, platform, is_mobile: isMobile}
     );
 
     setIsFullStackTrace(isFullOptionClicked);
@@ -114,12 +106,7 @@ export function TraceEventDataSection({
       isRecentFirst
         ? 'stack-trace.sort_option_recent_first_clicked'
         : 'stack-trace.sort_option_recent_last_clicked',
-      {
-        organization,
-        project_slug: projectSlug,
-        platform,
-        is_mobile: isMobile,
-      }
+      {organization, project_slug: projectSlug, platform, is_mobile: isMobile}
     );
 
     setIsNewestFramesFirst(isRecentFirst);
@@ -436,10 +423,7 @@ export function TraceEventDataSection({
         disabled: !hasMinified,
         tooltip: hasMinified ? undefined : t('Minified version not available'),
       },
-      {
-        label: stackTraceDisplayOptionLabels['raw-stack-trace'],
-        value: 'raw-stack-trace',
-      },
+      {label: stackTraceDisplayOptionLabels['raw-stack-trace'], value: 'raw-stack-trace'},
     ];
   }
 
@@ -450,7 +434,9 @@ export function TraceEventDataSection({
   const threadIdQuery =
     activeThreadId === undefined ? '' : `&thread_id=${activeThreadId}`;
   const appleCrashEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}${threadIdQuery}`;
-  const rawStackTraceDownloadLink = `${api.baseUrl}${appleCrashEndpoint}&download=1`;
+  const rawStackTraceDownloadLink = resolveHostname(
+    `/api/0${appleCrashEndpoint}&download=1`
+  );
 
   const sortByTooltip = hasNewestFirst
     ? displayOptions.includes('raw-stack-trace')

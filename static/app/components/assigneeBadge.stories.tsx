@@ -1,11 +1,12 @@
 import {Fragment, useState} from 'react';
 import {uuid4} from '@sentry/core';
 
-import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import * as Storybook from 'sentry/stories';
 import type {Actor} from 'sentry/types/core';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+
+import {AssigneeBadge} from './assigneeBadge';
 
 export default Storybook.story('AssigneeBadge', story => {
   story('User Assignee', () => {
@@ -51,19 +52,13 @@ export default Storybook.story('AssigneeBadge', story => {
           isMember: true,
           memberCount: 0,
           avatar: {avatarType: 'letter_avatar', avatarUuid: uuid4()},
-          flags: {
-            'idp:provisioned': false,
-          },
+          flags: {'idp:provisioned': false},
           externalTeams: [],
           hasAccess: false,
           isPending: false,
         };
 
-    const teamActor: Actor = {
-      type: 'team',
-      id: team.id,
-      name: team.name,
-    };
+    const teamActor: Actor = {type: 'team', id: team.id, name: team.name};
 
     return (
       <Fragment>

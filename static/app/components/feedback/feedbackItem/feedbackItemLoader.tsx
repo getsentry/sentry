@@ -3,13 +3,14 @@ import {useEffect} from 'react';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackEmptyDetails} from 'sentry/components/feedback/details/feedbackEmptyDetails';
 import {FeedbackErrorDetails} from 'sentry/components/feedback/details/feedbackErrorDetails';
-import {FeedbackItem} from 'sentry/components/feedback/feedbackItem/feedbackItem';
 import {useFeedbackSlug} from 'sentry/components/feedback/useFeedbackSlug';
 import {useFetchFeedbackData} from 'sentry/components/feedback/useFetchFeedbackData';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {FeedbackItem} from './feedbackItem';
 
 interface Props {
   onBackToList?: () => void;

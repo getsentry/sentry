@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -5,6 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.test.utils import override_settings
 from rest_framework.views import APIView
 
+from sentry.api.permissions import SentryPermission
 from sentry.auth import access
 from sentry.auth.scope_declaration import bind_endpoint_scope_declaration
 from sentry.sentry_apps.api.bases.sentryapps import (
@@ -45,11 +47,12 @@ class SentryAppPermissionTest(TestCase):
         installation = self.create_sentry_app_installation(
             slug=self.sentry_app.slug, organization=self.organization, user=self.user
         )
-        for permission, obj in (
+        checks: tuple[tuple[SentryPermission, Any], ...] = (
             (SentryAppPermission(), self.sentry_app),
             (SentryAppAuthorizationsPermission(), installation),
             (SentryInternalAppTokenPermission(), self.sentry_app),
-        ):
+        )
+        for permission, obj in checks:
             with (
                 self.subTest(permission=type(permission).__name__),
                 patch("sentry.auth.access.get_organization_access_context", return_value=None),
@@ -305,6 +308,7 @@ class IntegrationPlatformEndpointTest(TestCase):
     def test_handle_sentry_app_error(self) -> None:
         error = SentryAppError(message="cool", status_code=400)
         response = self.endpoint._handle_sentry_app_exception(error)
+        assert response is not None
 
         assert response.status_code == 400
         assert response.exception is True
@@ -319,6 +323,7 @@ class IntegrationPlatformEndpointTest(TestCase):
             status_code=400,
         )
         response = self.endpoint._handle_sentry_app_exception(error)
+        assert response is not None
 
         assert response.status_code == 400
         assert response.exception is True
@@ -330,6 +335,7 @@ class IntegrationPlatformEndpointTest(TestCase):
             message="bruh", webhook_context={"bruh": "bruhhh"}, public_context=public_context
         )
         response = self.endpoint._handle_sentry_app_exception(error)
+        assert response is not None
 
         assert response.status_code == 500
         assert response.data == {

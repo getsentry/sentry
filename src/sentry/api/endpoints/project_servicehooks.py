@@ -19,7 +19,9 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import require_user
 from sentry.constants import ObjectStatus
+from sentry.models.project import Project
 from sentry.sentry_apps.api.parsers.servicehook import ServiceHookValidator
 from sentry.sentry_apps.api.serializers.servicehook import (
     ServiceHookSerializer,
@@ -38,7 +40,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def has_feature(self, request: Request, project):
+    def has_feature(self, request: Request, project: Project) -> bool:
         return features.has("projects:servicehooks", project=project, actor=request.user)
 
     @extend_schema(
@@ -58,7 +60,9 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project) -> Response[list[ServiceHookSerializerResponse]]:
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[ServiceHookSerializerResponse]]:
         """
         Return a list of service hooks bound to a project.
 
@@ -102,9 +106,12 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def post(self, request: Request, project) -> Response[ServiceHookSerializerResponse]:
+    def post(self, request: Request, project: Project) -> Response[ServiceHookSerializerResponse]:
         """
         Register a new service hook on a project.
+
+        The signing secret is only returned in this response. Store it securely;
+        subsequent reads and updates return an empty string in the secret field.
 
         Events include:
 
@@ -113,8 +120,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
 
         This endpoint requires the `servicehooks` feature to be enabled for your project.
         """
-        if not request.user.is_authenticated:
-            return self.respond(status=401)
+        user = require_user(request)
 
         if not self.has_feature(request, project):
             return self.respond(
@@ -137,7 +143,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
             project_ids=[project.id],
             organization_id=project.organization.id,
             url=result["url"],
-            actor_id=request.user.id,
+            actor_id=user.id,
             events=result.get("events"),
             application_id=app_id,
             installation_id=None,  # Just being explicit here.
@@ -151,7 +157,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
             data=hook.get_audit_log_data(),
         )
 
-        return self.respond(
-            serialize(ServiceHook.objects.get(id=hook.id), request.user, ServiceHookSerializer()),
-            status=201,
-        )
+        created_hook = ServiceHook.objects.get(id=hook.id)
+        data = serialize(created_hook, request.user, ServiceHookSerializer())
+        data["secret"] = created_hook.secret
+        return self.respond(data, status=201)

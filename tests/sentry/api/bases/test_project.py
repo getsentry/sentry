@@ -11,6 +11,7 @@ from sentry.api.bases.project import (
 )
 from sentry.auth.access import from_request
 from sentry.db.models.fields.bounded import BoundedBigAutoField
+from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
@@ -36,7 +37,7 @@ class ProjectPermissionBase(TestCase):
         self,
         method: str,
         obj: Project,
-        auth: ApiToken | None = None,
+        auth: ApiToken | ApiKey | None = None,
         user: User | None = None,
         is_superuser: bool | None = None,
         is_staff: bool | None = None,

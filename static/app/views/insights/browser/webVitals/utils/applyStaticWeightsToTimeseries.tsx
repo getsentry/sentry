@@ -1,6 +1,7 @@
 import type {WebVitalsScoreBreakdown} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
-import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
+
+import {getWeights} from './getWeights';
 
 // Returns a weighed score timeseries with each interval calculated from applying hardcoded weights to unweighted scores
 export function applyStaticWeightsToTimeseries(timeseriesData: WebVitalsScoreBreakdown) {

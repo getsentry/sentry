@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   act,
+  cleanup,
   renderHookWithProviders,
   screen,
   waitFor,
@@ -10,25 +11,26 @@ import {
 
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {
-  decodeMetricsQueryParams,
-  defaultMetricQuery,
-  encodeMetricQueryParams,
-  type MetricQuery,
-} from 'sentry/views/explore/metrics/metricQuery';
-import {
-  LocalMultiMetricsQueryParamsProvider,
-  MultiMetricsQueryParamsProvider,
-  useAddMetricQuery,
-  useMultiMetricsQueryParams,
-  useReorderMetricQueries,
-} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {
+  decodeMetricsQueryParams,
+  defaultMetricQuery,
+  encodeMetricQueryParams,
+  type MetricQuery,
+} from './metricQuery';
+import {
+  LocalMultiMetricsQueryParamsProvider,
+  MultiMetricsQueryParamsProvider,
+  useAddMetricQuery,
+  useMultiMetricsQueryParams,
+  useReorderMetricQueries,
+} from './multiMetricsQueryParams';
 
 function canonicalMetricQueryParam(name: string) {
   return encodeMetricQueryParams(
@@ -364,9 +366,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/explore/metrics/',
-          query: {
-            metric: [metricQuery],
-          },
+          query: {metric: [metricQuery]},
         },
       },
     });
@@ -537,9 +537,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/explore/metrics/',
-          query: {
-            metric: ['foo', 'bar'].map(canonicalMetricQueryParam),
-          },
+          query: {metric: ['foo', 'bar'].map(canonicalMetricQueryParam)},
         },
       },
     });
@@ -890,6 +888,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
@@ -1133,9 +1132,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
     it('duplicates the last metric when adding with equations', async () => {
       const {result, router} = renderHookWithProviders(useAddMetricQuery, {
         additionalWrapper: Wrapper,
-        organization: OrganizationFixture({
-          features: ['tracemetrics-enabled'],
-        }),
+        organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/metrics/',
@@ -1200,9 +1197,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
     it('adds equations to the end of the list', async () => {
       const {result, router} = renderHookWithProviders(useAddMetricQuery, {
         additionalWrapper: Wrapper,
-        organization: OrganizationFixture({
-          features: ['tracemetrics-enabled'],
-        }),
+        organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/metrics/',
@@ -1232,9 +1227,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
             },
           },
         },
-        initialProps: {
-          type: 'equation',
-        },
+        initialProps: {type: 'equation'},
       });
 
       act(() => result.current());
@@ -1276,9 +1269,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
     it('adds metric before equation with independent label sequences', () => {
       const {result} = renderHookWithProviders(useAddMetricQuery, {
         additionalWrapper: Wrapper,
-        organization: OrganizationFixture({
-          features: ['tracemetrics-enabled'],
-        }),
+        organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/metrics/',
@@ -1317,9 +1308,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
     it('increments the equation label from the last equation label counter', () => {
       const {result} = renderHookWithProviders(useAddMetricQuery, {
         additionalWrapper: Wrapper,
-        organization: OrganizationFixture({
-          features: ['tracemetrics-enabled'],
-        }),
+        organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/metrics/',
@@ -1345,9 +1334,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
             },
           },
         },
-        initialProps: {
-          type: 'equation',
-        },
+        initialProps: {type: 'equation'},
       });
 
       act(() => result.current());

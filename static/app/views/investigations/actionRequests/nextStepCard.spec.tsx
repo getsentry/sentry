@@ -12,10 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {
-  getPrimaryActionRequest,
-  NextStepCard,
-} from 'sentry/views/investigations/actionRequests/nextStepCard';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   getInvestigationDetailQueryOptions,
   type ActionRequestFollowUp,
@@ -36,6 +33,10 @@ import {
   SeerExplorerContext,
   useSeerExplorerContext,
 } from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
+import {getPrimaryActionRequest, NextStepCard} from './nextStepCard';
+
+jest.mock('sentry/utils/analytics');
 
 const latencyMonitor = {
   id: '789',
@@ -901,6 +902,85 @@ describe('NextStepCard', () => {
     expect(cached?.version).toBe(4);
   });
 
+  it('tracks when a request is shown and applied', async () => {
+    jest.mocked(trackAnalytics).mockClear();
+    mockApply({body: {actionRequest: InvestigationActionRequestFixture()}});
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+    const tracked = {
+      action_kind: 'update_detector',
+      action_request_id: '312',
+      investigation_id: 'investigation-1',
+      state: 'suggested',
+    };
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'seer.investigation.action_request.shown',
+      expect.objectContaining(tracked)
+    );
+
+    await userEvent.click(await findApplyButton());
+
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'seer.investigation.action_request.applied',
+      expect.objectContaining(tracked)
+    );
+  });
+
+  it('tracks a request as shown once when it is applied', () => {
+    jest.mocked(trackAnalytics).mockClear();
+    const actionRequest = InvestigationActionRequestFixture();
+    const queryClient = makeTestQueryClient();
+    const detailKey = getInvestigationDetailQueryOptions(
+      'org-slug',
+      'investigation-1'
+    ).queryKey;
+    queryClient.setQueryData(detailKey, {
+      headers: {},
+      json: InvestigationDetailFixture({
+        id: 'investigation-1',
+        actionRequests: [actionRequest],
+      }),
+    });
+    const {rerender} = render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[actionRequest]}
+      />,
+      {
+        additionalWrapper: ({children}) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      }
+    );
+
+    rerender(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            state: 'applied',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+          }),
+        ]}
+      />
+    );
+
+    const shown = jest
+      .mocked(trackAnalytics)
+      .mock.calls.filter(
+        ([event]) => event === 'seer.investigation.action_request.shown'
+      );
+    expect(shown).toHaveLength(1);
+  });
+
   it('shows the updating state while the change is applied', async () => {
     mockApply({
       body: {actionRequest: InvestigationActionRequestFixture({state: 'applied'})},
@@ -1348,6 +1428,32 @@ describe('NextStepCard', () => {
     expect(card).toHaveTextContent('Connect Datadog. Checkout logs live in Datadog.');
     expect(connect).toHaveAttribute('href', '/settings/org-slug/integrations/datadog/');
     expect(connect).toHaveAttribute('target', '_blank');
+  });
+
+  it('tracks a click on the link to connect a provider', async () => {
+    jest.mocked(trackAnalytics).mockClear();
+    mockDryRun({statusCode: 400, body: notConnectedBody});
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectRequest()]}
+      />
+    );
+
+    await userEvent.click(
+      await within(getCard()).findByRole('button', {
+        name: 'Connect Datadog (opens in a new tab)',
+      })
+    );
+
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'seer.investigation.action_request.link_clicked',
+      expect.objectContaining({
+        action_kind: 'connect_telemetry',
+        link: 'connect_integration',
+      })
+    );
   });
 
   it.each([

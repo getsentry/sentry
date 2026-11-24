@@ -123,7 +123,7 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
     )
     @patch("sentry.conduit.endpoints.organization_conduit_demo.stream_demo_data")
     @with_feature("organizations:conduit-demo")
-    def test_post_queues_task(self, mock_task: MagicMock):
+    def test_post_queues_task(self, mock_task: MagicMock) -> None:
         self.get_success_response(
             self.organization.slug,
             method="POST",

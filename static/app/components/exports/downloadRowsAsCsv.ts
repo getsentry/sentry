@@ -1,7 +1,8 @@
-import {createExportFilename} from 'sentry/components/exports/createExportFilename';
-import type {ExportableRow} from 'sentry/components/exports/downloadRows';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {unparseCsv} from 'sentry/utils/unparseCsv';
+
+import {createExportFilename} from './createExportFilename';
+import type {ExportableRow} from './downloadRows';
 
 export function downloadRowsAsCsv(
   rows: ExportableRow[],

@@ -6,8 +6,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import {NavigationTourProvider} from 'sentry/views/navigation/navigationTour';
-import {PrimaryNavigationOnboarding} from 'sentry/views/navigation/primary/onboarding';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
+
+import {PrimaryNavigationOnboarding} from './onboarding';
 
 jest.mock('framer-motion', () => ({
   ...jest.requireActual('framer-motion'),
@@ -18,9 +19,7 @@ function renderMockRequests(organization: Organization) {
   const getOnboardingTasksMock = MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/onboarding-tasks/`,
     method: 'GET',
-    body: {
-      onboardingTasks: organization.onboardingTasks,
-    },
+    body: {onboardingTasks: organization.onboardingTasks},
   });
 
   const mutateUserOptionsMock = MockApiClient.addMockResponse({
@@ -40,9 +39,7 @@ describe('Onboarding Status', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/onboarding-tasks/',
       method: 'GET',
-      body: {
-        onboardingTasks: [],
-      },
+      body: {onboardingTasks: []},
     });
 
     MockApiClient.addMockResponse({
@@ -50,10 +47,7 @@ describe('Onboarding Status', () => {
       method: 'POST',
     });
 
-    MockApiClient.addMockResponse({
-      url: '/assistant/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/assistant/', body: []});
   });
 
   it('displays pending tasks', async () => {
@@ -78,9 +72,7 @@ describe('Onboarding Status', () => {
           <PrimaryNavigationOnboarding />
         </NavigationTourProvider>
       </PrimaryNavigationContextProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(screen.getByText('1')).toBeInTheDocument();

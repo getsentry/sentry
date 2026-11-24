@@ -74,7 +74,7 @@ class GetAggregationValueTest(TestCase):
 
 
 class GetAggregationValueHelperTest(TestCase):
-    def _update(self, value):
+    def _update(self, value: object) -> QuerySubscriptionUpdate:
         from sentry.incidents.utils.types import QuerySubscriptionUpdate
 
         update: QuerySubscriptionUpdate = {

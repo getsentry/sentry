@@ -40,6 +40,7 @@ from sentry.auth.principal import acting_user_id
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
+from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
@@ -82,7 +83,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         },
         examples=ReleaseExamples.LIST_PROJECT_RELEASES,
     )
-    def get(self, request: Request, project) -> Response[list[ReleaseSerializerResponse]]:
+    def get(self, request: Request, project: Project) -> Response[list[ReleaseSerializerResponse]]:
         """
         Retrieve a list of releases for a given project.
         """
@@ -135,7 +136,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         examples=ReleaseExamples.CREATE_RELEASE,
     )
     def post(
-        self, request: Request, project
+        self, request: Request, project: Project
     ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Create a new release and/or associate a project with a release. Releases are used by

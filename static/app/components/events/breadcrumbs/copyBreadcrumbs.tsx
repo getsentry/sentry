@@ -1,8 +1,9 @@
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
-import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import type {EnhancedCrumb} from './utils';
 
 function escapeMarkdownCell(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, ' ');
@@ -59,14 +60,18 @@ export function formatBreadcrumbsAsText(crumbs: EnhancedCrumb[]): string {
 
 interface CopyBreadcrumbsDropdownProps {
   breadcrumbs: EnhancedCrumb[];
+  size?: 'xs' | 'sm';
 }
 
-export function CopyBreadcrumbsDropdown({breadcrumbs}: CopyBreadcrumbsDropdownProps) {
+export function CopyBreadcrumbsDropdown({
+  breadcrumbs,
+  size = 'xs',
+}: CopyBreadcrumbsDropdownProps) {
   const organization = useOrganization();
 
   return (
     <CopyAsDropdown
-      size="xs"
+      size={size}
       items={CopyAsDropdown.makeDefaultCopyAsOptions({
         text: () => {
           trackAnalytics('breadcrumbs.drawer.action', {

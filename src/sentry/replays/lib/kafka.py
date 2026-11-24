@@ -1,6 +1,6 @@
 from functools import partial
 
-from arroyo.backends.kafka import FutureTrackingProducer, KafkaPayload
+from arroyo.backends.kafka import FutureTrackingProducer, KafkaPayload, KafkaProducer
 from arroyo.types import Topic as ArroyoTopic
 from sentry_kafka_schemas.codecs import Codec
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
@@ -39,7 +39,7 @@ def _in_process_replay_recording_task() -> bool:
     return task is not None and task.taskname == PROCESS_REPLAY_RECORDING_TASK_NAME
 
 
-def _get_eap_items_producer(name: str = "sentry.replays.lib.kafka.eap_items"):
+def _get_eap_items_producer(name: str = "sentry.replays.lib.kafka.eap_items") -> KafkaProducer:
     """Get a Kafka producer for EAP TraceItems."""
     return get_arroyo_producer(
         name=name,
@@ -74,7 +74,9 @@ def write_trace_items(trace_items: list[TraceItem]) -> None:
 #
 
 
-def _get_ingest_replay_events_producer(name: str = "sentry.replays.lib.kafka.ingest_replay_events"):
+def _get_ingest_replay_events_producer(
+    name: str = "sentry.replays.lib.kafka.ingest_replay_events",
+) -> KafkaProducer:
     return get_arroyo_producer(
         name=name,
         topic=Topic.INGEST_REPLAY_EVENTS,

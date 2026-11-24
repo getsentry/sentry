@@ -6,37 +6,36 @@
  */
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex, Grid, Container} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Authenticator, AuthenticatorDevice} from 'sentry/types/auth';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-import {useAccountSecurityContext} from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
-import {RecoveryCodes} from 'sentry/views/settings/account/accountSecurity/components/recoveryCodes';
-import {RemoveConfirm} from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
-import U2fEnrolledDetails from 'sentry/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
+import {RecoveryCodes} from './components/recoveryCodes';
+import {RemoveConfirm} from './components/removeConfirm';
+import U2fEnrolledDetails from './components/u2fEnrolledDetails';
+import {useAccountSecurityContext} from './accountSecurityWrapper';
+
 const ENDPOINT = '/users/me/authenticators/';
-const getAuthenticatorQueryKey = (authId: string) =>
-  [
-    getApiUrl('/users/$userId/authenticators/$authId/', {
-      path: {userId: 'me', authId},
-    }),
-  ] as const;
+const authenticatorOptions = (authId: string) =>
+  apiOptions.as<Authenticator>()('/users/$userId/authenticators/$authId/', {
+    path: {userId: 'me', authId},
+    staleTime: 0,
+  });
 
 interface AuthenticatorDateProps {
   /**
@@ -68,29 +67,25 @@ export default function AccountSecurityDetails() {
     isPending: isAuthenticatorPending,
     isError,
     refetch,
-  } = useApiQuery<Authenticator>(getAuthenticatorQueryKey(authId), {
-    staleTime: 0,
-  });
+  } = useQuery(authenticatorOptions(authId));
 
   const {mutate: remove, isPending: isRemoveLoading} = useMutation({
     mutationFn: ({id, device}: {id: string; device?: AuthenticatorDevice}) => {
       // if the device is defined, it means that U2f is being removed
       // reason for adding a trailing slash is a result of the endpoint on line 109 needing it but it can't be set there as if deviceId is None, the route will end with '//'
       const deviceId = device ? `${device.key_handle}/` : '';
-      return api.requestPromise(`${ENDPOINT}${id}/${deviceId}`, {
-        method: 'DELETE',
-      });
+      return api.requestPromise(`${ENDPOINT}${id}/${deviceId}`, {method: 'DELETE'});
     },
     onSuccess: (_, {device}) => {
       const deviceName = device ? device.name : t('Authenticator');
-      addSuccessMessage(t('%s has been removed', deviceName));
+      toast.success(t('%s has been removed', deviceName));
     },
     onError: (_, {device}) => {
       const deviceName = device ? device.name : t('Authenticator');
-      addErrorMessage(t('Error removing %s', deviceName));
+      toast.error(t('Error removing %s', deviceName));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({queryKey: getAuthenticatorQueryKey(authId)});
+      queryClient.invalidateQueries({queryKey: authenticatorOptions(authId).queryKey});
     },
   });
 
@@ -106,20 +101,18 @@ export default function AccountSecurityDetails() {
     }) => {
       return api.requestPromise(`${ENDPOINT}${id}/${device.key_handle}/`, {
         method: 'PUT',
-        data: {
-          name,
-        },
+        data: {name},
       });
     },
     onSuccess: () => {
       navigate(`/settings/account/security/mfa/${authId}`);
-      addSuccessMessage(t('Device was renamed'));
+      toast.success(t('Device was renamed'));
     },
     onError: () => {
-      addErrorMessage(t('Error renaming the device'));
+      toast.error(t('Error renaming the device'));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({queryKey: getAuthenticatorQueryKey(authId)});
+      queryClient.invalidateQueries({queryKey: authenticatorOptions(authId).queryKey});
     },
   });
 

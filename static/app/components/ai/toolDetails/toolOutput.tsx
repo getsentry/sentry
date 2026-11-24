@@ -1,8 +1,9 @@
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {StructuredData} from 'sentry/components/structuredEventData';
+import {AnnotatedValue} from 'sentry/components/structuredEventData/annotatedValue';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
 import {t, tn} from 'sentry/locale';
 
@@ -39,7 +40,22 @@ function getOutputLabel(output: ToolOutputData): string {
   }
 }
 
-function ToolOutputContent({output}: {output: ToolOutputData}) {
+interface ToolOutputProps {
+  value: unknown;
+  /**
+   * Meta of the parsed output, in the shape Relay reports for events. The values
+   * it marks as redacted are highlighted.
+   */
+  meta?: Record<string, any>;
+}
+
+function ToolOutputContent({
+  output,
+  meta,
+}: {
+  output: ToolOutputData;
+  meta?: ToolOutputProps['meta'];
+}) {
   switch (output.kind) {
     case 'array':
     case 'object':
@@ -48,6 +64,7 @@ function ToolOutputContent({output}: {output: ToolOutputData}) {
           <StructuredData
             value={output.value}
             config={STRUCTURED_DATA_CONFIG}
+            meta={meta}
             maxDefaultDepth={MAX_DEFAULT_DEPTH}
             autoCollapseLimit={AUTO_COLLAPSE_LIMIT}
             initialExpandedPaths={[
@@ -66,7 +83,7 @@ function ToolOutputContent({output}: {output: ToolOutputData}) {
       }
       return (
         <Text as="div" wrap="pre-wrap" wordBreak="break-word">
-          {output.value}
+          <AnnotatedValue value={output.value} meta={meta} withAnnotatedText />
         </Text>
       );
     case 'number':
@@ -81,7 +98,7 @@ function ToolOutputContent({output}: {output: ToolOutputData}) {
   }
 }
 
-export function ToolOutput({value}: {value: unknown}) {
+export function ToolOutput({value, meta}: ToolOutputProps) {
   const output = parseToolOutput(value);
   const label = getOutputLabel(output);
   if (output.kind === 'missing') {
@@ -112,7 +129,7 @@ export function ToolOutput({value}: {value: unknown}) {
         minWidth="0"
         overflow="auto"
       >
-        <ToolOutputContent output={output} />
+        <ToolOutputContent output={output} meta={meta} />
       </Container>
     </Stack>
   );

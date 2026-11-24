@@ -1,7 +1,8 @@
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {WidgetType} from 'sentry/views/dashboards/types';
-import {shouldForceQueryToSpans} from 'sentry/views/dashboards/utils/shouldForceQueryToSpans';
+
+import {shouldForceQueryToSpans} from './shouldForceQueryToSpans';
 
 describe('shouldForceQueryToSpans', () => {
   it('return true if the widget is a transactions widget and uses measurements.inp', () => {

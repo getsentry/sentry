@@ -18,9 +18,7 @@ function isFieldControl(name: string): boolean {
 export const requireFieldComponent = defineRule({
   meta: {
     type: 'problem',
-    docs: {
-      description: 'Require field render functions to use a bound field component.',
-    },
+    docs: {description: 'Require field render functions to use a bound field component.'},
     schema: [],
     messages: {
       missingComponent:
@@ -83,8 +81,6 @@ export const requireFieldComponent = defineRule({
     }
 
     return {
-      ...importTracker.visitors,
-
       JSXOpeningElement(node) {
         let name = node.name;
         let componentName: string | undefined;

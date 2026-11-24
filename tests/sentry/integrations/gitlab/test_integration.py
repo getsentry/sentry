@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from unittest.mock import Mock, patch
 
 import orjson
@@ -9,6 +9,7 @@ import responses
 from django.core.cache import cache
 from django.test import override_settings
 from django.urls import reverse
+from requests import PreparedRequest
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.constants import ObjectStatus
@@ -18,6 +19,7 @@ from sentry.integrations.gitlab.integration import GitlabIntegration, GitlabInte
 from sentry.integrations.gitlab.metrics import GitLabWebhookUpdateHaltReason
 from sentry.integrations.gitlab.tasks import update_all_project_webhooks
 from sentry.integrations.gitlab.utils import build_integration_external_id
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -25,6 +27,7 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
 from sentry.integrations.types import ExternalProviders
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
@@ -39,13 +42,15 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity
+from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import json
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
 
-def assert_proxy_request(request, is_proxy=True):
-    assert (PROXY_BASE_PATH in request.url) == is_proxy
+def assert_proxy_request(request: PreparedRequest, is_proxy: bool = True) -> None:
+    url = cast(str, request.url)
+    assert (PROXY_BASE_PATH in url) == is_proxy
     assert (PROXY_OI_HEADER in request.headers) == is_proxy
     assert (PROXY_SIGNATURE_HEADER in request.headers) == is_proxy
     # The following Gitlab headers don't appear in proxied requests
@@ -280,7 +285,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
         external_id: str | None = None,
         issue_key: str = "example.gitlab.com/group-x:cool-group/sentry#45",
         create_external_user: bool = True,
-    ) -> tuple:
+    ) -> tuple[RpcUser, GitlabIntegration, ExternalIssue, Integration, Group]:
         """
         Common setup for assignee sync tests.
 
@@ -288,7 +293,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
             tuple: (user, installation, external_issue, integration, group)
         """
 
-        user = serialize_rpc_user(self.create_user(email=user_email))
+        user = self.create_user(email=user_email)
         integration = Integration.objects.get(provider=self.provider)
 
         installation = get_installation_of_type(
@@ -313,7 +318,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
             key=issue_key,
         )
 
-        return user, installation, external_issue, integration, group
+        return serialize_rpc_user(user), installation, external_issue, integration, group
 
     @responses.activate
     @with_feature("organizations:integrations-gitlab-project-management")
@@ -668,13 +673,22 @@ class GitlabIssueSyncTest(GitLabTestCase):
             str(exception_info.value) == "Error Communicating with GitLab (HTTP 403): unauthorized"
         )
 
+    def test_get_group_id_returns_none_when_metadata_is_missing(self) -> None:
+        integration = Integration.objects.get(provider=self.provider)
+        integration.update(metadata={})
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
+
+        assert installation.get_group_id() is None
+
     def test_every_config_save_schedules_webhook_reconciliation(self) -> None:
         self.assert_config_schedules_reconciliation({})
 
     def test_legacy_version_does_not_gate_webhook_reconciliation(self) -> None:
         self.assert_config_schedules_reconciliation({"gitlab_webhook_version": 2})
 
-    def assert_config_schedules_reconciliation(self, config) -> None:
+    def assert_config_schedules_reconciliation(self, config: dict[str, Any]) -> None:
         integration = Integration.objects.get(provider=self.provider)
         org_integration = OrganizationIntegration.objects.get(
             integration=integration, organization_id=self.organization.id
@@ -1237,7 +1251,10 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
         return self._advance_step(data, organization)
 
     def _get_pipeline_signature(self, resp: Any) -> str:
-        return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+        oauth_url = resp.data["data"]["oauthUrl"]
+        if not isinstance(oauth_url, str):
+            raise TypeError("GitLab pipeline response carries no OAuth URL")
+        return oauth_url.split("state=")[1].split("&")[0]
 
     def _run_pipeline(self, organization: Organization | None = None, **overrides: Any) -> Any:
         self._stub_gitlab_oauth()
@@ -1450,15 +1467,23 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
         assert Integration.objects.filter(provider="gitlab").count() == 1
 
     @responses.activate
-    def test_config_step_rejects_blank_group(self) -> None:
-        self._initialize_pipeline()
-        resp = self._submit_config(group="")
-        assert resp.status_code == 400
-        assert resp.data["group"] == ["This field may not be blank."]
-        assert not Integration.objects.filter(provider="gitlab").exists()
+    def test_full_pipeline_flow_without_group(self) -> None:
+        resp = self._run_pipeline(group="", includeSubgroups=True)
+
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+
+        integration = Integration.objects.get(provider="gitlab")
+        assert integration.name == "gitlab.example.com"
+        assert integration.external_id == build_integration_external_id(
+            "gitlab.example.com", None, self.organization.id
+        )
+        assert integration.metadata["domain_name"] == "gitlab.example.com"
+        assert integration.metadata["group_id"] is None
+        assert integration.metadata["include_subgroups"] is False
 
     @responses.activate
-    def test_config_step_rejects_missing_group(self) -> None:
+    def test_config_step_allows_missing_group(self) -> None:
         self._initialize_pipeline()
         data = {
             "url": self.gitlab_url,
@@ -1466,33 +1491,26 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
             "clientSecret": self.client_secret,
         }
         resp = self._advance_step(data)
-        assert resp.status_code == 400
-        assert resp.data["group"] == ["This field is required."]
-        assert not Integration.objects.filter(provider="gitlab").exists()
+
+        assert resp.status_code == 200
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "oauth_login"
 
     @responses.activate
-    def test_build_integration_without_group_in_state_does_not_install(self) -> None:
-        self._stub_gitlab_oauth()
-        self._stub_gitlab_user()
+    def test_install_without_group_in_two_orgs_creates_separate_integrations(self) -> None:
+        self._run_pipeline(group="")
+        first = Integration.objects.get(provider="gitlab")
 
-        self._initialize_pipeline()
-        resp = self._submit_config()
-        pipeline_signature = self._get_pipeline_signature(resp)
+        with assume_test_silo_mode(SiloMode.CELL):
+            other_org = self.create_organization(name="other-org", owner=self.user)
+        resp = self._run_pipeline(other_org, group="")
 
-        # Simulate state that bypassed the config step's validation.
-        original_build = GitlabIntegrationProvider.build_integration
-
-        def build_without_group(provider: Any, state: Any) -> Any:
-            installation_data = {**state["installation_data"], "group": ""}
-            return original_build(provider, {**state, "installation_data": installation_data})
-
-        with patch.object(GitlabIntegrationProvider, "build_integration", build_without_group):
-            resp = self._advance_step({"code": "gitlab-auth-code", "state": pipeline_signature})
-
-        assert resp.status_code == 400
-        assert resp.data["status"] == "error"
-        assert "group is required" in resp.data["data"]["detail"]
-        assert not Integration.objects.filter(provider="gitlab").exists()
+        assert resp.data["status"] == "complete"
+        second = Integration.objects.exclude(id=first.id).get(provider="gitlab")
+        assert second.external_id == build_integration_external_id(
+            "gitlab.example.com", None, other_org.id
+        )
+        assert first.id != second.id
 
     @responses.activate
     def test_config_strips_trailing_slash(self) -> None:
@@ -1574,7 +1592,13 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
         assert hook.call_count == 1
 
     @responses.activate
-    def test_reinstall_sync_relinks_repositories_with_overlapping_webhook_updates(self) -> None:
+    @patch(
+        "sentry.integrations.gitlab.tasks._consume_webhook_reconciliation_capacity",
+        return_value=Mock(wait_time=0),
+    )
+    def test_reinstall_sync_relinks_repositories_with_overlapping_webhook_updates(
+        self, _consume_capacity: Mock
+    ) -> None:
         self._run_pipeline()
         integration = Integration.objects.get(provider="gitlab")
         org_integration = OrganizationIntegration.objects.get(
@@ -1663,7 +1687,11 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
         sync.assert_not_called()
 
     @responses.activate
-    def test_reinstall_bypasses_settings_reconcile_debounce(self) -> None:
+    @patch(
+        "sentry.integrations.gitlab.tasks._consume_webhook_reconciliation_capacity",
+        return_value=Mock(wait_time=0),
+    )
+    def test_reinstall_bypasses_settings_reconcile_debounce(self, _consume_capacity: Mock) -> None:
         self._run_pipeline()
         integration = Integration.objects.get(provider="gitlab")
         org_integration = OrganizationIntegration.objects.get(
@@ -1794,6 +1822,7 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
             in_progress=in_progress,
         )
         metadata = integration.metadata
+        assert organization_integration.default_auth_id is not None
         identity = Identity.objects.get(id=organization_integration.default_auth_id)
         identity_data = identity.data
 

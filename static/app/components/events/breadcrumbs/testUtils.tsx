@@ -1,6 +1,4 @@
 import {EventFixture} from 'sentry-fixture/event';
-import {GroupFixture} from 'sentry-fixture/group';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {EntryType} from 'sentry/types/event';
@@ -52,25 +50,15 @@ export const MOCK_BREADCRUMBS = [
 ] as const;
 const MOCK_BREADCRUMB_ENTRY = {
   type: EntryType.BREADCRUMBS,
-  data: {
-    values: MOCK_BREADCRUMBS,
-  },
+  data: {values: MOCK_BREADCRUMBS},
 };
 export const MOCK_EXCEPTION_ENTRY = {
   type: EntryType.EXCEPTION,
-  data: {
-    values: [
-      {
-        value: 'Error',
-      },
-    ],
-  },
+  data: {values: [{value: 'Error'}]},
 };
 export const MOCK_DATA_SECTION_PROPS = {
   event: EventFixture({
     id: 'abc123def456ghi789jkl',
     entries: [MOCK_BREADCRUMB_ENTRY, MOCK_EXCEPTION_ENTRY],
   }),
-  project: ProjectFixture(),
-  group: GroupFixture(),
 };

@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from contextlib import contextmanager
 
 from drf_spectacular.utils import extend_schema
@@ -12,6 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationAndStaffPermission, OrganizationEndpoint
+from sentry.api.helpers.projects import ParsedProjectIdOrSlugParams
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
@@ -199,8 +201,8 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
                 result = massage_outcomes_result(query, result_totals, result_timeseries)
             return Response(result, status=200)
 
-    def build_outcomes_query(self, request: Request, organization):
-        params = {"organization_id": organization.id}
+    def build_outcomes_query(self, request: Request, organization: Organization) -> QueryDefinition:
+        params: dict[str, object] = {"organization_id": organization.id}
         project_ids = self._get_projects_for_orgstats_query(request, organization)
 
         if project_ids:
@@ -208,7 +210,9 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
 
         return QueryDefinition.from_query_dict(request.GET, params)
 
-    def _get_projects_for_orgstats_query(self, request: Request, organization):
+    def _get_projects_for_orgstats_query(
+        self, request: Request, organization: Organization
+    ) -> list[int] | None:
         # Only an explicit all-projects selection can request an organization total.
         # An omitted project filter means the user's projects.
         requested_projects = self.get_requested_project_params_unchecked(request)
@@ -220,14 +224,16 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
                 raise NoProjects("No projects available")
             return [p.id for p in projects]
 
-    def _is_org_total_query(self, request: Request, requested_projects):
+    def _is_org_total_query(
+        self, request: Request, requested_projects: ParsedProjectIdOrSlugParams
+    ) -> bool:
         all_access_filter = (
             requested_projects.ids == ALL_ACCESS_PROJECTS and not requested_projects.slugs
         ) or (requested_projects.slugs == {ALL_ACCESS_PROJECTS_SLUG} and not requested_projects.ids)
         return all_access_filter and "project" not in request.GET.getlist("groupBy")
 
     @contextmanager
-    def handle_query_errors(self):
+    def handle_query_errors(self) -> Iterator[None]:
         try:
             with handle_query_errors():
                 yield

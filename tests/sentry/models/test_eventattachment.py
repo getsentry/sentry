@@ -65,7 +65,7 @@ class PendingEventAttachmentDeleteTest(TestCase):
     blob is only safe while we still own the row.
     """
 
-    def _create_pending(self, prefix="eventattachments/v1") -> PendingEventAttachment:
+    def _create_pending(self, prefix: str = "eventattachments/v1") -> PendingEventAttachment:
         return PendingEventAttachment.objects.create(
             event_id=uuid4().hex,
             project_id=self.project.id,
@@ -251,26 +251,26 @@ class EventAttachmentPutfileTest(TestCase):
 
 
 class NormalizeContentTypeTest(TestCase):
-    def test_returns_explicit_content_type(self):
+    def test_returns_explicit_content_type(self) -> None:
         assert normalize_content_type("image/png", "file.png") == "image/png"
 
-    def test_strips_charset_from_content_type(self):
+    def test_strips_charset_from_content_type(self) -> None:
         assert normalize_content_type("text/plain; charset=utf-8", "file.txt") == "text/plain"
 
-    def test_infers_from_filename_when_none(self):
+    def test_infers_from_filename_when_none(self) -> None:
         assert normalize_content_type(None, "screenshot.png") == "image/png"
 
-    def test_infers_from_filename_when_octet_stream(self):
+    def test_infers_from_filename_when_octet_stream(self) -> None:
         assert normalize_content_type("application/octet-stream", "screenshot.png") == "image/png"
 
-    def test_falls_back_to_octet_stream_when_unrecognized(self):
+    def test_falls_back_to_octet_stream_when_unrecognized(self) -> None:
         assert normalize_content_type(None, "data.bin") == "application/octet-stream"
 
-    def test_octet_stream_with_unrecognized_name(self):
+    def test_octet_stream_with_unrecognized_name(self) -> None:
         assert (
             normalize_content_type("application/octet-stream", "noext")
             == "application/octet-stream"
         )
 
-    def test_octet_stream_case_insensitive(self):
+    def test_octet_stream_case_insensitive(self) -> None:
         assert normalize_content_type("Application/Octet-Stream", "screenshot.png") == "image/png"

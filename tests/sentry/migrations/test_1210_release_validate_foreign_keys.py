@@ -1,10 +1,11 @@
+from typing import Any
 import pytest
 from django.db import connection
 
 from sentry.testutils.cases import TestMigrations
 
 
-def fetch_release_foreign_keys():
+def fetch_release_foreign_keys() -> list[tuple[Any, ...]]:
     with connection.cursor() as cursor:
         cursor.execute(
             """
@@ -15,7 +16,7 @@ def fetch_release_foreign_keys():
             ORDER BY 1, 2
             """
         )
-        return cursor.fetchall()
+        return list(cursor.fetchall())
 
 
 @pytest.mark.skip(reason="Migration already applied; test is slow and only useful before merge")
@@ -26,7 +27,7 @@ class ValidateReleaseForeignKeysTest(TestMigrations):
     migrate_from = "1206_add_dashboard_create_scope"
     migrate_to = "1210_release_validate_foreign_keys"
 
-    def test_every_foreign_key_is_validated(self):
+    def test_every_foreign_key_is_validated(self) -> None:
         foreign_keys = fetch_release_foreign_keys()
         assert foreign_keys
         unvalidated = [(table, name) for table, name, validated in foreign_keys if not validated]

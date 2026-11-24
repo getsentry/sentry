@@ -1,5 +1,6 @@
-import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {Visualize} from './visualizes';
 
 describe('Visualize', () => {
   it.each(['count(span.duration)', 'count_unique(span.op)', 'sum(span.duration)'])(
@@ -28,9 +29,7 @@ describe('Visualize', () => {
   });
 
   it('uses selected chart type', () => {
-    const visualize = new Visualize('count(span.duration)', {
-      chartType: ChartType.AREA,
-    });
+    const visualize = new Visualize('count(span.duration)', {chartType: ChartType.AREA});
     expect(visualize.chartType).toEqual(ChartType.AREA);
     expect(visualize.stack).toBeDefined();
   });
@@ -59,10 +58,7 @@ describe('Visualize', () => {
 
   it('replaces yAxes and chart type', () => {
     const vis1 = new Visualize('count(span.duration)', {chartType: ChartType.AREA});
-    const vis2 = vis1.replace({
-      yAxis: 'avg(span.duration)',
-      chartType: ChartType.LINE,
-    });
+    const vis2 = vis1.replace({yAxis: 'avg(span.duration)', chartType: ChartType.LINE});
     expect(vis2).toEqual(
       new Visualize('avg(span.duration)', {chartType: ChartType.LINE})
     );
@@ -70,15 +66,11 @@ describe('Visualize', () => {
 
   it('converts to JSON without chart type', () => {
     const visualize = new Visualize('count(span.duration)');
-    expect(visualize.toJSON()).toEqual({
-      yAxes: ['count(span.duration)'],
-    });
+    expect(visualize.toJSON()).toEqual({yAxes: ['count(span.duration)']});
   });
 
   it('converts to JSON with chart type', () => {
-    const visualize = new Visualize('count(span.duration)', {
-      chartType: ChartType.AREA,
-    });
+    const visualize = new Visualize('count(span.duration)', {chartType: ChartType.AREA});
     expect(visualize.toJSON()).toEqual({
       yAxes: ['count(span.duration)'],
       chartType: ChartType.AREA,
@@ -86,9 +78,7 @@ describe('Visualize', () => {
   });
 
   it('converts from JSON without chart type', () => {
-    const visualize = Visualize.fromJSON({
-      yAxes: ['count(span.duration)'],
-    });
+    const visualize = Visualize.fromJSON({yAxes: ['count(span.duration)']});
     expect(visualize).toEqual([new Visualize('count(span.duration)')]);
   });
 

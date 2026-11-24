@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -28,8 +29,8 @@ DYNAMIC_PATH = "/v0/issues/similar-issues/grouping-record/delete/123456"
 def run_test_case(
     path: str = PATH,
     shared_secret: str = "secret-one",
-    **kwargs,
-):
+    **kwargs: Any,
+) -> Any:
     """
     Make a mock connection pool, call `make_signed_seer_api_request` on it, and return the
     pool's `urlopen` method, so we can make assertions on how `make_signed_seer_api_request`

@@ -24,7 +24,7 @@ class IssueTypeFilter(EventFilter):
     prompt = "The issue's type is ..."
 
     @property
-    def form_fields(self) -> dict:
+    def form_fields(self) -> dict[str, object]:
         return {
             "include": {
                 "type": "choice",

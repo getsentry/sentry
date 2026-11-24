@@ -1,16 +1,17 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 
-import {useFetchGroupAndEvent} from 'sentry/components/featureFlags/hooks/useFetchGroupAndEvent';
-import {
-  organizationFlagLogOptions,
-  useOrganizationFlagLogInfinite,
-} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+import {useFetchGroupAndEvent} from './useFetchGroupAndEvent';
+import {
+  organizationFlagLogOptions,
+  useOrganizationFlagLogInfinite,
+} from './useOrganizationFlagLog';
 
 type FetchGroupAndEventParams = Parameters<typeof useFetchGroupAndEvent>[0];
 interface FlagsInEventParams extends FetchGroupAndEventParams {
@@ -42,11 +43,7 @@ export function useFlagsInEventPaginated({
     isPending,
     isError,
     error,
-  } = useFetchGroupAndEvent({
-    eventId,
-    groupId,
-    enabled,
-  });
+  } = useFetchGroupAndEvent({eventId, groupId, enabled});
 
   const {
     data: rawFlagResp,
@@ -54,13 +51,7 @@ export function useFlagsInEventPaginated({
     isError: isFlagsError,
     error: flagsError,
   } = useQuery({
-    ...organizationFlagLogOptions({
-      organization,
-      query: {
-        ...query,
-        flag: eventFlags,
-      },
-    }),
+    ...organizationFlagLogOptions({organization, query: {...query, flag: eventFlags}}),
     enabled: enabled && Boolean(eventFlags?.length),
     select: selectJsonWithHeaders,
   });
@@ -145,10 +136,7 @@ export function useFlagsInEvent({
     error: flagsError,
   } = useOrganizationFlagLogInfinite({
     organization,
-    query: {
-      ...query,
-      flag: eventFlags,
-    },
+    query: {...query, flag: eventFlags},
     enabled: enabled && Boolean(eventFlags.length),
   });
 

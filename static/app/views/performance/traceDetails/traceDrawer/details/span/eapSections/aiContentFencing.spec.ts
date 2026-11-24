@@ -1,4 +1,4 @@
-import {fenceContent} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentFencing';
+import {fenceContent} from './aiContentFencing';
 
 const FENCE = '```';
 

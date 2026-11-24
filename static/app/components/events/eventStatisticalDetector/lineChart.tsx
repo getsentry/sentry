@@ -3,19 +3,21 @@ import {useTheme} from '@emotion/react';
 
 import type {ChartType} from 'sentry/chartcuterie/types';
 import {LineChart as EChartsLineChart} from 'sentry/components/charts/lineChart';
+import type {PageFilterDatetime} from 'sentry/types/core';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+
 import {
   getBreakpointChartOptionsFromData,
   type BreakpointEvidenceData,
   type EventBreakpointChartData,
-} from 'sentry/components/events/eventStatisticalDetector/breakpointChartOptions';
-import type {PageFilterDatetime} from 'sentry/types/core';
-import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+} from './breakpointChartOptions';
 
 interface ChartProps {
   chartType: ChartType;
   datetime: PageFilterDatetime;
   evidenceData: BreakpointEvidenceData;
   percentileData: EventBreakpointChartData['percentileData'];
+  resolvedAt?: EventBreakpointChartData['resolvedAt'];
 }
 
 export function LineChart({
@@ -23,6 +25,7 @@ export function LineChart({
   percentileData,
   evidenceData,
   chartType,
+  resolvedAt,
 }: ChartProps) {
   const theme = useTheme();
   const normalizedDateTime = {
@@ -34,11 +37,11 @@ export function LineChart({
 
   const {series, chartOptions} = useMemo(() => {
     return getBreakpointChartOptionsFromData(
-      {percentileData, evidenceData},
+      {percentileData, evidenceData, resolvedAt},
       chartType,
       theme
     );
-  }, [percentileData, evidenceData, chartType, theme]);
+  }, [percentileData, evidenceData, resolvedAt, chartType, theme]);
 
   return (
     <EChartsLineChart

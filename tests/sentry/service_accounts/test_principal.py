@@ -83,11 +83,11 @@ class ServiceAccountIdCollisionTest(TestCase):
             service_account_id=self.user.id, organization_id=self.organization.id, name="a"
         )
         with pytest.raises(UserRequired):
-            OrganizationMember.objects.filter(user_id=principal.id).exists()  # type: ignore[misc]
+            OrganizationMember.objects.filter(user_id=principal.id).exists()  # type: ignore[attr-defined]
 
     def test_rpc_lookup_by_id_raises(self) -> None:
         principal = ServiceAccountPrincipal(
             service_account_id=self.user.id, organization_id=self.organization.id, name="a"
         )
         with pytest.raises(UserRequired):
-            user_service.get_user(user_id=principal.id)  # type: ignore[arg-type]
+            user_service.get_user(user_id=principal.id)  # type: ignore[attr-defined]

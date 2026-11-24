@@ -9,10 +9,7 @@ describe('CustomerAuditLog', () => {
   const org = OrganizationFixture();
 
   function mockAuditLogsEndpoint(rows: Array<ReturnType<typeof AdminAuditLogFixture>>) {
-    MockApiClient.addMockResponse({
-      url: '/audit-logs/',
-      body: {rows, filters: {}},
-    });
+    MockApiClient.addMockResponse({url: '/audit-logs/', body: {rows, filters: {}}});
   }
 
   beforeEach(() => {
@@ -60,10 +57,31 @@ describe('CustomerAuditLog', () => {
     expect(screen.getByText('Cancelled per customer request')).toBeInTheDocument();
   });
 
-  it('falls back to email when actor name is null', async () => {
+  it('describes simulated LLM usage in the notes', async () => {
     const entry = AdminAuditLogFixture({
-      actor: {email: 'staff@sentry.io', name: null},
+      eventType: 'Org: Simulate LLM usage',
+      data: {
+        notes: 'testing Seer invoicing',
+        feature: 'test_paid',
+        cost_usd: '12.5',
+        project_id: '42',
+        litellm_call_id: 'abc-123',
+      },
     });
+
+    mockAuditLogsEndpoint([entry]);
+
+    render(<CustomerAuditLog orgSlug={org.slug} targetId={String(org.id)} />);
+
+    expect(
+      await screen.findByText(
+        'Simulated $12.50 of test_paid usage in project 42 (call abc-123): testing Seer invoicing'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('falls back to email when actor name is null', async () => {
+    const entry = AdminAuditLogFixture({actor: {email: 'staff@sentry.io', name: null}});
 
     mockAuditLogsEndpoint([entry]);
 

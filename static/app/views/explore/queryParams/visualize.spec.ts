@@ -1,11 +1,12 @@
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+
 import {
   parseAsBaseVisualizeList,
   parseVisualize,
   Visualize,
   VisualizeEquation,
   VisualizeFunction,
-} from 'sentry/views/explore/queryParams/visualize';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+} from './visualize';
 
 describe('VisualizeFunction', () => {
   it('clears transformations explicitly and keeps legacy serialization unchanged', () => {
@@ -133,9 +134,7 @@ describe('VisualizeFunction', () => {
   });
 
   it('replaces visible', () => {
-    const vis1 = new VisualizeFunction('count(span.duration)', {
-      visible: false,
-    });
+    const vis1 = new VisualizeFunction('count(span.duration)', {visible: false});
     const vis2 = vis1.replace({visible: true});
     expect(vis2).toEqual(new VisualizeFunction('count(span.duration)', {visible: true}));
   });
@@ -159,9 +158,7 @@ describe('VisualizeFunction', () => {
   });
 
   it('converts from JSON without chart type', () => {
-    const visualize = Visualize.fromJSON({
-      yAxes: ['count(span.duration)'],
-    });
+    const visualize = Visualize.fromJSON({yAxes: ['count(span.duration)']});
     expect(visualize).toEqual([new VisualizeFunction('count(span.duration)')]);
   });
 

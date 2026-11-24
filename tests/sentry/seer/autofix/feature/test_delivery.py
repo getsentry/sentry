@@ -7,7 +7,11 @@ from django.test.utils import CaptureQueriesContext
 from sentry.seer.agent.feature_delivery import DELIVERY_HANDLERS
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.feature.delivery import deliver_autofix_feature_result
-from sentry.seer.autofix.feature.models import FEATURE_ID, LEGACY_FEATURE_ID
+from sentry.seer.autofix.feature.models import (
+    FEATURE_ID,
+    LEGACY_FEATURE_ID,
+    SINGLE_RUN_FEATURE_ID,
+)
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models.run import SeerAgentRun
 from sentry.testutils.cases import TestCase
@@ -43,6 +47,7 @@ class TestDeliverAutofixFeatureResult(TestCase):
     def test_registers_current_and_legacy_feature_ids(self) -> None:
         assert DELIVERY_HANDLERS[FEATURE_ID] is deliver_autofix_feature_result
         assert DELIVERY_HANDLERS[LEGACY_FEATURE_ID] is deliver_autofix_feature_result
+        assert DELIVERY_HANDLERS[SINGLE_RUN_FEATURE_ID] is deliver_autofix_feature_result
 
     def test_missing_run_logs_warning(self) -> None:
         with patch("sentry.seer.autofix.feature.delivery.logger") as mock_logger:
@@ -92,6 +97,22 @@ class TestDeliverAutofixFeatureResult(TestCase):
 
         self.agent_run.refresh_from_db()
         assert self.agent_run.extras["status"] == "completed"
+
+    def test_stopped_single_run_completes(self) -> None:
+        self.agent_run.source = SINGLE_RUN_FEATURE_ID
+        self.agent_run.save(update_fields=["source"])
+
+        deliver_autofix_feature_result(
+            organization_id=self.organization.id,
+            run_uuid=self.agent_run.run.uuid,
+            status="completed",
+            result={},
+            error=None,
+        )
+
+        self.agent_run.refresh_from_db()
+        assert self.agent_run.extras["status"] == "completed"
+        assert "error_message" not in self.agent_run.extras
 
     def test_error_status_recorded(self) -> None:
         with patch("sentry.seer.autofix.feature.delivery.logger") as mock_logger:

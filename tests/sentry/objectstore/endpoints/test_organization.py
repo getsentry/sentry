@@ -14,7 +14,6 @@ from rest_framework.test import APIRequestFactory
 
 from sentry.objectstore.endpoints.organization import ObjectstoreEndpoint, stream_response
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
-from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers.response import close_streaming_response
@@ -161,7 +160,7 @@ class ObjectstoreEndpointTest(TransactionTestCase):
             },
             stream=True,
         )
-        assert_status_code(get_resp, 206)
+        assert get_resp.status_code == 206, get_resp.content
         assert get_resp.headers.get("Content-Encoding") == "zstd"
         assert get_resp.headers.get("Content-Length") == str(range_end + 1)
         assert get_resp.headers.get("Content-Range") == (f"bytes 0-{range_end}/{len(compressed)}")
@@ -176,7 +175,7 @@ class ObjectstoreEndpointTest(TransactionTestCase):
                 "Range": f"bytes=0-{range_end}",
             },
         )
-        assert_status_code(get_resp, 200)
+        assert get_resp.status_code == 200, get_resp.content
         assert get_resp.headers.get("Content-Encoding") is None
         assert get_resp.headers.get("Content-Length") is None
         assert get_resp.headers.get("Content-Range") is None
@@ -247,7 +246,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     content_type="application/octet-stream",
                     follow=True,
                 )
-                assert_status_code(response, 201)
+                assert response.status_code == 201, response.content
                 object_key = json.loads(close_streaming_response(response))["key"]
                 assert object_key is not None
 
@@ -256,7 +255,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     HTTP_AUTHORIZATION=auth_header,
                     follow=True,
                 )
-                assert_status_code(response, 200)
+                assert response.status_code == 200, response.content
                 assert close_streaming_response(response) == b"test data"
 
                 response = self.client.put(
@@ -266,7 +265,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     HTTP_AUTHORIZATION=auth_header,
                     follow=True,
                 )
-                assert_status_code(response, 200)
+                assert response.status_code == 200, response.content
                 new_key = json.loads(close_streaming_response(response))["key"]
                 assert new_key == object_key
 
@@ -275,7 +274,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     HTTP_AUTHORIZATION=auth_header,
                     follow=True,
                 )
-                assert_status_code(response, 200)
+                assert response.status_code == 200, response.content
                 assert close_streaming_response(response) == b"new data"
 
                 response = self.client.delete(
@@ -283,7 +282,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     HTTP_AUTHORIZATION=auth_header,
                     follow=True,
                 )
-                assert_status_code(response, 204)
+                assert response.status_code == 204, response.content
                 close_streaming_response(response)
 
                 response = self.client.get(
@@ -291,7 +290,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     HTTP_AUTHORIZATION=auth_header,
                     follow=True,
                 )
-                assert_status_code(response, 404)
+                assert response.status_code == 404, response.content
                 close_streaming_response(response)
 
     def test_roundtrip_compressed(self) -> None:
@@ -317,7 +316,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     content_type="application/octet-stream",
                     follow=True,
                 )
-                assert_status_code(response, 201)
+                assert response.status_code == 201, response.content
                 object_key = json.loads(close_streaming_response(response))["key"]
                 assert object_key is not None
 
@@ -326,7 +325,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     HTTP_AUTHORIZATION=auth_header,
                     follow=True,
                 )
-                assert_status_code(response, 200)
+                assert response.status_code == 200, response.content
                 assert close_streaming_response(response) == data
 
 

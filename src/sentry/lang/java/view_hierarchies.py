@@ -43,7 +43,7 @@ class ViewHierarchies:
 
         return class_names
 
-    def deobfuscate_and_save(self, class_names: dict[str, str]):
+    def deobfuscate_and_save(self, class_names: dict[str, str]) -> None:
         """
         Deobfuscates all view hierarchies in-place and persists any changes made.
         """
@@ -70,7 +70,7 @@ class ViewHierarchies:
         store_attachments_for_event(self._project, self._event, attachments, timeout=CACHE_TIMEOUT)
 
 
-def _deobfuscate_view_hierarchy(view_hierarchy: Any, class_names: dict[str, str]):
+def _deobfuscate_view_hierarchy(view_hierarchy: Any, class_names: dict[str, str]) -> None:
     """
     Deobfuscates a view hierarchy in-place.
 

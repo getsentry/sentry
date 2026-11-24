@@ -1,19 +1,90 @@
-from typing import TYPE_CHECKING, Any
+from __future__ import annotations
+
+from collections.abc import Callable, Generator, Iterable, Mapping
+from contextlib import contextmanager
+from typing import IO, TYPE_CHECKING, Any, Protocol, cast
+from uuid import uuid4
 
 import pytest
 import requests
 import responses
+from confluent_kafka import Consumer, KafkaException, TopicPartition
+from django.conf import LazySettings, settings
 
+from sentry.constants import DataCategory
 from sentry.models.eventattachment import PendingEventAttachment
 from sentry.services import eventstore
 from sentry.testutils.helpers import get_auth_header
+from sentry.testutils.pytest import xdist
+from sentry.utils import json
+from sentry.utils.batching_kafka_consumer import create_topics
+from sentry.utils.outcomes import Outcome
 
 if TYPE_CHECKING:
+    from sentry.services.eventstore.models import Event
     from sentry.testutils.cases import TestCase
 
     RequiredBaseclass = TestCase
 else:
     RequiredBaseclass = object
+
+
+class _IngestWaiter(Protocol):
+    def __call__[T](
+        self, predicate: Callable[[], T | None], timeout: float | None = None
+    ) -> T | None: ...
+
+
+def _get_event(project_id: int, event_id: str) -> Event | None:
+    return eventstore.backend.get_event_by_id(
+        project_id,
+        event_id,
+        tenant_ids={"referrer": "relay-test", "organization_id": 123},
+        skip_transaction_groupevent=True,
+    )
+
+
+@contextmanager
+def _capture_outcomes() -> Generator[Callable[[], dict[str, Any] | None]]:
+    """Yield a non-blocking poll over outcomes Relay produces from now on."""
+    topic = xdist.get_kafka_topic("outcomes")
+    create_topics("default", [topic])
+    consumer = Consumer(
+        {
+            **settings.KAFKA_CLUSTERS["default"]["common"],
+            "group.id": f"relay-test-outcomes-{uuid4().hex}",
+            "enable.auto.commit": False,
+        }
+    )
+    try:
+        partitions = consumer.list_topics(topic=topic, timeout=10).topics[topic].partitions
+        assert partitions, f"No partitions for {topic}"
+        # Assign concrete high watermarks rather than OFFSET_END: OFFSET_END is
+        # resolved on first poll and could skip an outcome Relay already produced.
+        consumer.assign(
+            [
+                TopicPartition(
+                    topic,
+                    partition,
+                    consumer.get_watermark_offsets(TopicPartition(topic, partition), timeout=10)[1],
+                )
+                for partition in partitions
+            ]
+        )
+
+        def poll() -> dict[str, Any] | None:
+            message = consumer.poll(0)
+            if message is None:
+                return None
+            if error := message.error():
+                raise KafkaException(error)
+            value = message.value()
+            assert value is not None
+            return json.loads(value)
+
+        yield poll
+    finally:
+        consumer.close()
 
 
 class RelayStoreHelper(RequiredBaseclass):
@@ -30,12 +101,15 @@ class RelayStoreHelper(RequiredBaseclass):
     get_relay_store_url: Any
     auth_header: Any
     get_relay_security_url: Any
-    wait_for_ingest_consumer: Any
+    wait_for_ingest_consumer: _IngestWaiter
     get_relay_attachments_url: Any
     get_relay_minidump_url: Any
     get_relay_unreal_url: Any
+    _rejected_keys: set[tuple[int, int, int]]
 
-    def post_and_retrieve_event(self, data, headers=None):
+    def post_and_retrieve_event(
+        self, data: object, headers: Mapping[str, str] | None = None
+    ) -> Event:
         if headers is None:
             headers = {"x-sentry-auth": self.auth_header, "content-type": "application/json"}
         url = self.get_relay_store_url(self.project.id)
@@ -50,18 +124,12 @@ class RelayStoreHelper(RequiredBaseclass):
         resp_body = resp.json()
         event_id = resp_body["id"]
 
-        event = self.wait_for_ingest_consumer(
-            lambda: eventstore.backend.get_event_by_id(
-                self.project.id,
-                event_id,
-                tenant_ids={"referrer": "relay-test", "organization_id": 123},
-            )
-        )
+        event = self.wait_for_ingest_consumer(lambda: _get_event(self.project.id, event_id))
         # check that we found it in Snuba
         assert event is not None
         return event
 
-    def post_and_retrieve_security_report(self, data):
+    def post_and_retrieve_security_report(self, data: object) -> Event:
         url = self.get_relay_security_url(self.project.id, self.projectkey.public_key)
         responses.add_passthru(url)
 
@@ -73,14 +141,16 @@ class RelayStoreHelper(RequiredBaseclass):
             )
         }
 
-        def has_new_event():
+        def has_new_event() -> Event | None:
             # Hack: security report endpoint does not return event ID
-            for event in eventstore.backend.get_events(
+            events: Iterable[Event] = eventstore.backend.get_events(
                 eventstore.Filter(project_ids=[self.project.id]),
                 tenant_ids={"referrer": "relay-test", "organization_id": 123},
-            ):
+            )
+            for event in events:
                 if event.event_id not in event_ids:
                     return event
+            return None
 
         resp = requests.post(url, json=data)
 
@@ -91,13 +161,63 @@ class RelayStoreHelper(RequiredBaseclass):
         assert event
         return event
 
-    def post_and_try_retrieve_event(self, data, headers=None):
-        try:
-            return self.post_and_retrieve_event(data, headers)
-        except AssertionError:
-            return None
+    def post_and_assert_rejected(
+        self,
+        data: Mapping[str, object],
+        *,
+        outcome: Outcome,
+        reason: str,
+        headers: Mapping[str, str | None] | None = None,
+    ) -> None:
+        """
+        Post an event that Relay accepts over HTTP and then drops asynchronously,
+        and wait for the outcome that records the drop instead of the ingestion timeout.
 
-    def post_and_retrieve_attachment(self, event_id, files):
+        Relay aggregates outcomes and drops their event IDs, so the outcome is matched
+        by org, project, and key. Each test may therefore post only one candidate event
+        per key: a second rejection could pick up the first one's late outcome. A
+        second call for the same key fails, and the quantity check catches outcomes
+        that Relay merged from several events.
+        """
+        own_key = (self.project.organization_id, self.project.id, self.projectkey.id)
+        assert own_key not in self._rejected_keys, "Only one rejection per project key"
+        self._rejected_keys.add(own_key)
+
+        if headers is None:
+            headers = {"x-sentry-auth": self.auth_header, "content-type": "application/json"}
+        url = self.get_relay_store_url(self.project.id)
+        responses.add_passthru(url)
+        event_id = uuid4().hex
+
+        with _capture_outcomes() as poll:
+            resp = requests.post(url, headers=headers, json={**data, "event_id": event_id})
+            assert resp.status_code == 200, resp.text
+            assert resp.json()["id"] == event_id
+
+            def poll_own_outcome() -> dict[str, Any] | None:
+                result = poll()
+                if (
+                    result is not None
+                    and (result.get("org_id"), result.get("project_id"), result.get("key_id"))
+                    == own_key
+                    and result.get("category") == DataCategory.ERROR
+                ):
+                    return result
+                return None
+
+            result = self.wait_for_ingest_consumer(poll_own_outcome)
+
+        assert result is not None, f"Relay produced no error outcome for event {event_id}"
+        assert result["quantity"] == 1, result
+        assert result["outcome"] == outcome, result
+        assert result["reason"] == reason, result
+        assert _get_event(self.project.id, event_id) is None
+
+    def post_and_retrieve_attachment(
+        self,
+        event_id: str,
+        files: Mapping[str, IO[bytes] | tuple[str, IO[bytes]]],
+    ) -> None:
         url = self.get_relay_attachments_url(self.project.id, event_id)
         responses.add_passthru(url)
 
@@ -116,7 +236,11 @@ class RelayStoreHelper(RequiredBaseclass):
 
         assert exists
 
-    def post_and_retrieve_minidump(self, files, data):
+    def post_and_retrieve_minidump(
+        self,
+        files: Mapping[str, IO[bytes] | tuple[str, IO[bytes]]] | None,
+        data: Mapping[str, object] | None,
+    ) -> Event:
         url = self.get_relay_minidump_url(self.project.id, self.projectkey.public_key)
         responses.add_passthru(url)
 
@@ -129,18 +253,12 @@ class RelayStoreHelper(RequiredBaseclass):
         assert resp.ok
         event_id = resp.text.strip().replace("-", "")
 
-        event = self.wait_for_ingest_consumer(
-            lambda: eventstore.backend.get_event_by_id(
-                self.project.id,
-                event_id,
-                tenant_ids={"referrer": "relay-test", "organization_id": 123},
-            )
-        )
+        event = self.wait_for_ingest_consumer(lambda: _get_event(self.project.id, event_id))
         # check that we found it in Snuba
         assert event is not None
         return event
 
-    def post_and_retrieve_unreal(self, payload):
+    def post_and_retrieve_unreal(self, payload: bytes) -> Event:
         url = self.get_relay_unreal_url(self.project.id, self.projectkey.public_key)
         responses.add_passthru(url)
 
@@ -152,13 +270,7 @@ class RelayStoreHelper(RequiredBaseclass):
         assert resp.ok
         event_id = resp.text.strip().replace("-", "")
 
-        event = self.wait_for_ingest_consumer(
-            lambda: eventstore.backend.get_event_by_id(
-                self.project.id,
-                event_id,
-                tenant_ids={"referrer": "relay-test", "organization_id": 123},
-            )
-        )
+        event = self.wait_for_ingest_consumer(lambda: _get_event(self.project.id, event_id))
         # check that we found it in Snuba
         assert event is not None
         return event
@@ -166,14 +278,14 @@ class RelayStoreHelper(RequiredBaseclass):
     @pytest.fixture(autouse=True)
     def relay_setup_fixtures(
         self,
-        settings,
-        get_relay_store_url,
-        get_relay_minidump_url,
-        get_relay_unreal_url,
-        get_relay_security_url,
-        get_relay_attachments_url,
-        wait_for_ingest_consumer,
-    ):
+        settings: LazySettings,
+        get_relay_store_url: Callable[..., str],
+        get_relay_minidump_url: Callable[..., str],
+        get_relay_unreal_url: Callable[..., str],
+        get_relay_security_url: Callable[..., str],
+        get_relay_attachments_url: Callable[..., str],
+        wait_for_ingest_consumer: Callable[..., Callable[..., object | None]],
+    ) -> None:
         self.auth_header = get_auth_header(
             "TEST_USER_AGENT/0.0.0",
             self.projectkey.public_key,
@@ -186,4 +298,5 @@ class RelayStoreHelper(RequiredBaseclass):
         self.get_relay_unreal_url = get_relay_unreal_url
         self.get_relay_security_url = get_relay_security_url
         self.get_relay_attachments_url = get_relay_attachments_url
-        self.wait_for_ingest_consumer = wait_for_ingest_consumer(settings)
+        self.wait_for_ingest_consumer = cast("_IngestWaiter", wait_for_ingest_consumer(settings))
+        self._rejected_keys = set()

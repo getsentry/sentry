@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from typing import Any, ClassVar
 
 import sentry_sdk
@@ -9,7 +10,9 @@ from django.db.models import CheckConstraint, Q, UniqueConstraint
 from django.db.models.query import QuerySet
 from django.utils import timezone
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
@@ -71,11 +74,11 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
         """
         return self.filter(
             organization=organization, user_id=user_id, dashboard=dashboard, favorited=True
-        ).first()
+        ).first()  # noqa: S035
 
     def reorder_favorite_dashboards(
         self, organization: Organization, user_id: int, new_dashboard_positions: list[int]
-    ):
+    ) -> None:
         """
         Reorders the positions of favorited dashboards for a user in an organization.
         Does NOT add or remove favorited dashboards. Also normalizes the positions
@@ -173,7 +176,7 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
                     dashboard=dashboard,
                 )
                 .select_for_update()
-                .first()
+                .first()  # noqa: S035
             )
 
             if existing and existing.favorited:
@@ -219,7 +222,7 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
                     dashboard=dashboard,
                 )
                 .select_for_update()
-                .first()
+                .first()  # noqa: S035
             )
 
             if existing and existing.favorited:
@@ -359,6 +362,13 @@ class DashboardLastVisited(DefaultFieldsModel):
         ]
 
 
+def _query_priority_choices() -> list[tuple[int, str]]:
+    # need to avoid a circular import
+    from sentry.search.eap.constants import QueryPriorities
+
+    return QueryPriorities.as_choices()
+
+
 @cell_silo_model
 class Dashboard(Model):
     """
@@ -386,6 +396,8 @@ class Dashboard(Model):
     projects = models.ManyToManyField("sentry.Project", through=DashboardProject)
     filters: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
     prebuilt_id = BoundedPositiveIntegerField(null=True, db_default=None)
+    # defaults to normal if its null
+    query_priority = BoundedPositiveIntegerField(choices=_query_priority_choices, null=True)
 
     MAX_WIDGETS = 30
 
@@ -422,8 +434,16 @@ class Dashboard(Model):
 
     __repr__ = sane_repr("organization", "title")
 
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        # Org auth tokens are imported after every other model, so their new pks can't be mapped
+        # here. Drop the reference rather than dropping the whole dashboard.
+        self.created_by_org_auth_token_id = None
+        return super().normalize_before_relocation_import(pk_map, scope, flags)
+
     @property
-    def favorited_by(self):
+    def favorited_by(self) -> Iterable[int]:
         """
         @deprecated Use the DashboardFavoriteUser object manager instead.
         """
@@ -433,7 +453,7 @@ class Dashboard(Model):
         return user_ids
 
     @favorited_by.setter
-    def favorited_by(self, user_ids):
+    def favorited_by(self, user_ids: Iterable[int]) -> None:
         """
         @deprecated Use the DashboardFavoriteUser object manager instead.
         """
@@ -452,7 +472,7 @@ class Dashboard(Model):
             users_to_refavorite = new_user_ids & existing_user_ids
 
             for user_id in users_to_refavorite:
-                fav = existing_favorites.filter(user_id=user_id, favorited=False).first()
+                fav = existing_favorites.filter(user_id=user_id, favorited=False).first()  # noqa: S035
                 if fav:
                     last_position = DashboardFavoriteUser.objects.get_last_position(
                         self.organization, user_id

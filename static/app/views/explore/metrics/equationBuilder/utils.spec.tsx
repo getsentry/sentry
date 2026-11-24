@@ -1,8 +1,4 @@
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {
-  syncEquationMetricQueries,
-  unresolveExpression,
-} from 'sentry/views/explore/metrics/equationBuilder/utils';
 import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
@@ -10,14 +6,13 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 
+import {syncEquationMetricQueries, unresolveExpression} from './utils';
+
 describe('unresolveExpression', () => {
   it('replaces function calls with reference labels', () => {
     const result = unresolveExpression(
       'sum(value,metricA,counter,none) + avg(value,metricB,gauge,none)',
-      {
-        A: 'sum(value,metricA,counter,none)',
-        B: 'avg(value,metricB,gauge,none)',
-      }
+      {A: 'sum(value,metricA,counter,none)', B: 'avg(value,metricB,gauge,none)'}
     );
     expect(result).toBe('A + B');
   });

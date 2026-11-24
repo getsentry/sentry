@@ -1,17 +1,10 @@
 import {TabularColumnsFixture} from 'sentry-fixture/tabularColumns';
 
-import {decodeColumnAliases} from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {decodeColumnAliases} from './utils';
 
 describe('Table Widget Visualization Utils', () => {
   describe('decodeColumnAliases', () => {
-    const columns = TabularColumnsFixture([
-      {
-        key: 'columnOne',
-      },
-      {
-        key: 'columnTwo',
-      },
-    ]);
+    const columns = TabularColumnsFixture([{key: 'columnOne'}, {key: 'columnTwo'}]);
     const fieldAliases = ['Column One', ''];
     const fieldHeaderMap: Record<string, string> = {
       columnOne: 'Custom column ONE',

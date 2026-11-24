@@ -8,8 +8,6 @@ import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logs
 import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {getIngestDelayFilterValue} from 'sentry/views/explore/logs/logsIngestDelay';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
@@ -19,6 +17,9 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {areAllVisualizesInvalidConditionalFilters} from 'sentry/views/explore/utils/conditionalAggregate';
 import {getVisualizeTimeseriesQueries} from 'sentry/views/explore/utils/getVisualizeTimeseriesQueries';
+
+import {getIngestDelayFilterValue} from './logsIngestDelay';
+import {OurLogKnownFieldKey} from './types';
 
 export const DEFAULT_LOGS_TIMESERIES_Y_AXIS = `${AggregationKey.COUNT}(${OurLogKnownFieldKey.MESSAGE})`;
 

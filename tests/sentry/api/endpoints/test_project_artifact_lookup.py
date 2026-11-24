@@ -3,11 +3,12 @@ import zipfile
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
 from io import BytesIO
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from uuid import uuid4
 
 import orjson
+import requests
 from django.core.files.base import ContentFile
 from django.urls import reverse
 
@@ -20,26 +21,37 @@ from sentry.models.artifactbundle import (
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
-    SourceFileType,
 )
+from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
-from sentry.models.releasefile import ReleaseFile, read_artifact_index, update_artifact_index
+from sentry.models.project import Project
+from sentry.models.releasefile import (
+    ReleaseFile,
+    read_artifact_index,
+    update_artifact_index,
+)
 from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
+from sentry.testutils.skips import requires_objectstore
 
 
-def make_file(artifact_name, content, type="artifact.bundle", headers=None):
+def make_file(
+    artifact_name: str,
+    content: bytes,
+    type: str = "artifact.bundle",
+    headers: dict[str, str] | None = None,
+) -> File:
     file = File.objects.create(name=artifact_name, type=type, headers=(headers or {}))
     file.putfile(BytesIO(content))
     return file
 
 
-def make_compressed_zip_file(files):
-    def remove_and_return(dictionary, key):
+def make_compressed_zip_file(files: dict[str, dict[str, Any]]) -> bytes:
+    def remove_and_return(dictionary: dict[str, Any], key: str) -> dict[str, Any]:
         dictionary.pop(key)
         return dictionary
 
@@ -65,18 +77,68 @@ def make_compressed_zip_file(files):
     return compressed.getvalue()
 
 
-def upload_bundle(bundle_file, project, release=None, dist=None):
+def upload_bundle(
+    bundle_file: bytes, project: Project, release: str | None = None, dist: str | None = None
+) -> None:
     blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), project.organization)
     total_checksum = sha1(bundle_file).hexdigest()
 
     return assemble_artifacts(
         org_id=project.organization.id,
         project_ids=[project.id],
-        version=release,
+        version=cast(str, release),
         dist=dist,
         checksum=total_checksum,
         chunks=[blob1.checksum],
     )
+
+
+@requires_objectstore
+class ObjectstoreArtifactLookupTest(APITestCase):
+    endpoint = "sentry-api-0-project-artifact-lookup"
+
+    def create_bundle(self) -> ArtifactBundle:
+        bundle = self.create_artifact_bundle(org=self.organization, use_objectstore=True)
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=bundle,
+        )
+        self.login_as(self.user)
+        return bundle
+
+    def test_foreign_bundle_linked_to_project_returns_404(self) -> None:
+        foreign_bundle = self.create_artifact_bundle(
+            org=self.create_organization(), use_objectstore=True
+        )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=foreign_bundle,
+        )
+        self.login_as(self.user)
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            download=f"artifact_bundle/{foreign_bundle.id}",
+        )
+        assert response.status_code == 404
+
+    def test_internal_redirect(self) -> None:
+        bundle = self.create_bundle()
+        with (
+            mock.patch("sentry.auth.system.is_internal_ip", return_value=True),
+            mock.patch("sentry.objectstore._IS_SYMBOLICATOR_CONTAINER", False),
+        ):
+            response = self.get_response(
+                self.organization.slug, self.project.slug, download=f"artifact_bundle/{bundle.id}"
+            )
+        assert response.status_code == 302
+        assert "/v1/objects/artifact_bundles/" in response["Location"]
+        downloaded = requests.get(response["Location"], timeout=10)
+        assert downloaded.status_code == 200
+        assert sha1(downloaded.content).hexdigest() == bundle.get_checksum()
 
 
 class ArtifactLookupTest(APITestCase):
@@ -86,7 +148,12 @@ class ArtifactLookupTest(APITestCase):
         for chunk in response:
             assert file.read(len(chunk)) == chunk
 
-    def create_archive(self, fields, files, dist=None):
+    def create_archive(
+        self,
+        fields: dict[str, Any],
+        files: dict[str, Any],
+        dist: Distribution | None = None,
+    ) -> tuple[ReleaseFile, bytes]:
         manifest = dict(
             fields, files={filename: {"url": f"fake://{filename}"} for filename in files}
         )
@@ -102,7 +169,10 @@ class ArtifactLookupTest(APITestCase):
         file_.putfile(buffer)
         file_.update(timestamp=datetime(2021, 6, 11, 9, 13, 1, 317902, tzinfo=timezone.utc))
 
-        return (update_artifact_index(self.release, dist, file_), buffer.getvalue())
+        return (
+            cast(ReleaseFile, update_artifact_index(self.release, dist, file_)),
+            buffer.getvalue(),
+        )
 
     def lookup_with_legacy_calls(self, query: str) -> tuple[list[dict[str, Any]], int]:
         """
@@ -528,7 +598,6 @@ class ArtifactLookupTest(APITestCase):
                 organization_id=self.organization.id,
                 debug_id=debug_id,
                 artifact_bundle=artifact_bundle,
-                source_file_type=SourceFileType.SOURCE_MAP.value,
                 date_added=date_added,
             )
 

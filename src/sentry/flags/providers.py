@@ -68,7 +68,7 @@ class ProviderProtocol(Protocol[T]):
 class DeserializationError(Exception):
     """The request body could not be deserialized."""
 
-    def __init__(self, errors):
+    def __init__(self, errors: Any) -> None:
         self.errors = errors
 
 
@@ -596,5 +596,5 @@ def _query_signing_secrets(organization_id: int, provider: str) -> Iterator[str]
         yield model.secret
 
 
-def hmac_sha256_hex_digest(key: str, message: bytes):
+def hmac_sha256_hex_digest(key: str, message: bytes) -> str:
     return hmac.new(key.encode(), message, hashlib.sha256).hexdigest()

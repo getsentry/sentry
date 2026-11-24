@@ -11,8 +11,9 @@ from rest_framework.views import APIView
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupsearchview import (
@@ -26,10 +27,10 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.principal import owned_by_acting_user
+from sentry.auth.principal import is_owned_by_acting_user, require_user
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
@@ -39,8 +40,8 @@ from sentry.models.project import Project
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["member:read", "member:write"],
-        "POST": ["member:read", "member:write"],
+        "GET": ["member:read", "member:write", "saved_query:read"],
+        "POST": ["member:read", "member:write", "saved_query:write"],
     }
 
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
@@ -100,6 +101,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
     }
     idempotent_methods = frozenset()
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     permission_classes = (MemberPermission,)
 
     @extend_schema(
@@ -109,6 +111,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationGroupSearchViewGetSerializer,
             CursorQueryParam,
+            VisibilityParams.PER_PAGE,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -128,10 +131,8 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         | Response[None]
     ):
         """
-        List the current organization member's custom views
-        `````````````````````````````````````````
-
-        Retrieve a list of custom views for the current organization member.
+        Return the current organization member's issue views, with starred views first. Set
+        `createdBy=others` to list organization-visible views created by other members instead.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -141,7 +142,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
         starred_view_ids = GroupSearchViewStarred.objects.filter(
-            owned_by_acting_user(request.user), organization=organization
+            is_owned_by_acting_user(request.user), organization=organization
         ).values_list("group_search_view_id", flat=True)
 
         createdBy: Literal["me", "others"] = serializer.validated_data.get("createdBy", "me")
@@ -158,7 +159,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         last_visited_query = Subquery(
             GroupSearchViewLastVisited.objects.filter(
-                owned_by_acting_user(request.user),
+                is_owned_by_acting_user(request.user),
                 organization=organization,
                 group_search_view_id=OuterRef("id"),
             ).values("last_visited")[:1]
@@ -167,13 +168,13 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         if createdBy == "me":
             starred_query = (
-                base_queryset.filter(owned_by_acting_user(request.user), id__in=starred_view_ids)
+                base_queryset.filter(is_owned_by_acting_user(request.user), id__in=starred_view_ids)
                 .prefetch_related("projects")
                 .annotate(popularity=starred_count_query, last_visited=last_visited_query)
                 .order_by(*sorts)
             )
             non_starred_query = (
-                base_queryset.filter(owned_by_acting_user(request.user))
+                base_queryset.filter(is_owned_by_acting_user(request.user))
                 .exclude(id__in=starred_view_ids)
                 .prefetch_related("projects")
                 .annotate(popularity=starred_count_query, last_visited=last_visited_query)
@@ -185,7 +186,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     visibility=GroupSearchViewVisibility.ORGANIZATION,
                     id__in=starred_view_ids,
                 )
-                .exclude(owned_by_acting_user(request.user))
+                .exclude(is_owned_by_acting_user(request.user))
                 .prefetch_related("projects")
                 .annotate(popularity=starred_count_query, last_visited=last_visited_query)
                 .order_by(*sorts)
@@ -194,7 +195,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 base_queryset.filter(
                     visibility=GroupSearchViewVisibility.ORGANIZATION,
                 )
-                .exclude(owned_by_acting_user(request.user))
+                .exclude(is_owned_by_acting_user(request.user))
                 .exclude(id__in=starred_view_ids)
                 .prefetch_related("projects")
                 .annotate(popularity=starred_count_query, last_visited=last_visited_query)
@@ -266,10 +267,16 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         for project in projects:
             self.check_object_permissions(request, project)
 
+        # Saved views act on the caller as a person, so only a user can create one.
+        user = require_user(request)
+
         # Create the new view
+        creator = get_creator_reference(request)
         view = GroupSearchView.objects.create(
             organization=organization,
-            user_id=request.user.id,
+            user_id=creator["created_by_id"],
+            created_by_service_account_id=creator["created_by_service_account_id"],
+            created_by_org_auth_token_id=creator["created_by_org_auth_token_id"],
             name=validated_data["name"],
             query=validated_data["query"],
             query_sort=validated_data["querySort"],
@@ -283,7 +290,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         if validated_data.get("starred"):
             GroupSearchViewStarred.objects.insert_starred_view(
                 organization=organization,
-                user_id=request.user.id,
+                user_id=user.id,
                 view=view,
             )
 

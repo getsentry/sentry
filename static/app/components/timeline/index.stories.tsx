@@ -8,9 +8,9 @@ import {IconSentry} from '@sentry/icons/sentry';
 import {IconSort} from '@sentry/icons/sort';
 
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
+import {DateTime} from '@sentry/scraps/dateTime';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {Timeline} from 'sentry/components/timeline';
 import * as Storybook from 'sentry/stories';
@@ -278,10 +278,7 @@ export default Storybook.story('Timeline', story => {
 
 const JSONPayload: Record<string, any> = {
   logger: 'info',
-  url: {
-    addr: 'example.com/checkout',
-    query: {isBetaUi: true},
-  },
+  url: {addr: 'example.com/checkout', query: {isBetaUi: true}},
   user_id: 123,
   organizations: ['acme', 'xyz'],
 };

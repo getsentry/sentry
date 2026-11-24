@@ -27,15 +27,9 @@ export function normalizeAssertion(op: UptimeOp): UptimeOp {
       };
     case UptimeOpType.AND:
     case UptimeOpType.OR:
-      return {
-        ...op,
-        children: op.children.map(normalizeAssertion),
-      };
+      return {...op, children: op.children.map(normalizeAssertion)};
     case UptimeOpType.NOT:
-      return {
-        ...op,
-        operand: normalizeAssertion(op.operand),
-      };
+      return {...op, operand: normalizeAssertion(op.operand)};
     default:
       return op;
   }
@@ -47,11 +41,7 @@ export function normalizeAssertion(op: UptimeOp): UptimeOp {
  * "edit with no assertions" vs the default assertions for new monitors.
  */
 export function createEmptyAssertionRoot(): UptimeAndOp {
-  return {
-    op: UptimeOpType.AND,
-    id: uniqueId(),
-    children: [],
-  };
+  return {op: UptimeOpType.AND, id: uniqueId(), children: []};
 }
 
 /**

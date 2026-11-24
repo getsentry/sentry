@@ -1,17 +1,21 @@
 from unittest.mock import patch
 
 import orjson
-from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.slack.notifications import send_notification_as_slack
+from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.types import ExternalProviders
-from sentry.notifications.additional_attachment_manager import manager
+from sentry.models.organization import Organization
+from sentry.notifications.additional_attachment_manager import slack_attachment_manager
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import DummyNotification
 
 
-def additional_attachment_generator_block_kit(integration, organization):
+def additional_attachment_generator_block_kit(
+    integration: Integration, organization: Organization
+) -> list[dict[str, object]]:
     return [
         {"type": "section", "text": {"type": "mrkdwn", "text": organization.slug}},
         {"type": "section", "text": {"type": "mrkdwn", "text": integration.id}},
@@ -26,7 +30,7 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
     def test_additional_attachment(self) -> None:
         with (
             patch.dict(
-                manager.attachment_generators,
+                slack_attachment_manager.attachment_generators,
                 {ExternalProviders.SLACK: additional_attachment_generator_block_kit},
             ),
         ):
@@ -96,7 +100,7 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
 
     def test_send_notification_as_slack(self) -> None:
         with patch.dict(
-            manager.attachment_generators,
+            slack_attachment_manager.attachment_generators,
             {ExternalProviders.SLACK: additional_attachment_generator_block_kit},
         ):
             with self.tasks():
@@ -115,12 +119,12 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
 
         with (
             patch.dict(
-                manager.attachment_generators,
+                slack_attachment_manager.attachment_generators,
                 {ExternalProviders.SLACK: additional_attachment_generator_block_kit},
             ),
             patch(
                 "slack_sdk.web.client.WebClient.chat_postMessage",
-                side_effect=SlackApiError("error", mock_slack_response),
+                side_effect=TypedSlackApiError("error", mock_slack_response),
             ),
         ):
             with self.tasks():

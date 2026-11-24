@@ -25,27 +25,15 @@ export const Pill = memo(function PillComponent({
     switch (value) {
       case 'true':
       case true:
-        return {
-          valueType: 'positive',
-          renderValue: 'true',
-        };
+        return {valueType: 'positive', renderValue: 'true'};
       case 'false':
       case false:
-        return {
-          valueType: 'negative',
-          renderValue: 'false',
-        };
+        return {valueType: 'negative', renderValue: 'false'};
       case null:
       case undefined:
-        return {
-          valueType: 'error',
-          renderValue: 'n/a',
-        };
+        return {valueType: 'error', renderValue: 'n/a'};
       default:
-        return {
-          valueType: undefined,
-          renderValue: String(value),
-        };
+        return {valueType: undefined, renderValue: String(value)};
     }
   };
 
@@ -125,16 +113,6 @@ const PillValue = styled(PillName)`
     white-space: nowrap;
     display: inline-block;
     vertical-align: text-bottom;
-  }
-
-  .pill-icon,
-  .external-icon {
-    display: inline;
-    margin: 0 0 0 ${p => p.theme.space.md};
-    color: ${p => p.theme.tokens.content.secondary};
-    &:hover {
-      color: ${p => p.theme.tokens.content.primary};
-    }
   }
 `;
 

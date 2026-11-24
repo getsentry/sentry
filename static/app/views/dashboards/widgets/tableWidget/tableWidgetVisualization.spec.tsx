@@ -21,23 +21,18 @@ import type {
   TabularData,
   TabularRow,
 } from 'sentry/views/dashboards/widgets/common/types';
-import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleHTTPRequestTableData';
-import type {FieldRenderer} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
-import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 
-jest.mock('@sentry/icons/arrow', () => ({
-  IconArrow: jest.fn(() => <div />),
-}));
+import {sampleHTTPRequestTableData} from './fixtures/sampleHTTPRequestTableData';
+import type {FieldRenderer} from './tableWidgetVisualization';
+import {TableWidgetVisualization} from './tableWidgetVisualization';
+
+jest.mock('@sentry/icons/arrow', () => ({IconArrow: jest.fn(() => <div />)}));
 
 describe('TableWidgetVisualization', () => {
   const columns: Array<Partial<TabularColumn>> = [
-    {
-      key: 'count(span.duration)',
-    },
-    {
-      key: 'http.request_method',
-    },
+    {key: 'count(span.duration)'},
+    {key: 'http.request_method'},
   ];
   const sortableColumns = columns.map(column => ({...column, sortable: true}));
 
@@ -143,12 +138,7 @@ describe('TableWidgetVisualization', () => {
     it('Uses custom renderer over fallback renderer', async () => {
       const tableData: TabularData = {
         data: [{date: '2025-06-20T15:14:52+00:00'}],
-        meta: {
-          fields: {date: 'date'},
-          units: {
-            date: null,
-          },
-        },
+        meta: {fields: {date: 'date'}, units: {date: null}},
       };
 
       function getRenderer(fieldName: string): FieldRenderer {
@@ -263,9 +253,7 @@ describe('TableWidgetVisualization', () => {
           tableData={sampleHTTPRequestTableData}
           columns={TabularColumnsFixture(sortableColumns)}
         />,
-        {
-          initialRouterConfig: {},
-        }
+        {initialRouterConfig: {}}
       );
 
       const $header = screen.getAllByRole('columnheader')[0]?.children[0]!;
@@ -278,6 +266,32 @@ describe('TableWidgetVisualization', () => {
       );
       await waitFor(() =>
         expect(testRouter.location.query.sort).toBe('-count(span.duration)')
+      );
+    });
+
+    it('keeps other query params when the sort link is followed', async () => {
+      const {router: testRouter} = render(
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          columns={TabularColumnsFixture(sortableColumns)}
+        />,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/mock-pathname/',
+              query: {project: ['1', '2'], sort: 'http.request_method'},
+            },
+          },
+        }
+      );
+
+      await userEvent.click(screen.getAllByRole('columnheader')[0]?.children[0]!);
+
+      await waitFor(() =>
+        expect(testRouter.location.query).toEqual({
+          project: ['1', '2'],
+          sort: '-count(span.duration)',
+        })
       );
     });
 
@@ -325,15 +339,67 @@ describe('TableWidgetVisualization', () => {
           tableData={sampleHTTPRequestTableData}
           columns={TabularColumnsFixture(columns)}
         />,
-        {
-          initialRouterConfig: {},
-        }
+        {initialRouterConfig: {}}
       );
 
       dragHandle(screen.getAllByRole('separator')[0]!, {from: 0, to: 100});
       await waitFor(() =>
         expect(testRouter.location.query.width).toStrictEqual(['100', '-1'])
       );
+    });
+
+    it('replaces history when writing widths on column resize', async () => {
+      const onNuqsUrlUpdate = jest.fn();
+      render(
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          columns={TabularColumnsFixture(columns)}
+        />,
+        {onNuqsUrlUpdate}
+      );
+
+      dragHandle(screen.getAllByRole('separator')[0]!, {from: 0, to: 100});
+
+      await waitFor(() =>
+        expect(onNuqsUrlUpdate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            queryString: '?width=100&width=-1',
+            options: expect.objectContaining({history: 'replace'}),
+          })
+        )
+      );
+    });
+
+    it('applies URL widths to the columns when their counts match', () => {
+      render(<TableWidgetVisualization tableData={sampleHTTPRequestTableData} />, {
+        initialRouterConfig: {
+          location: {pathname: '/mock-pathname/', query: {width: ['200', '-1']}},
+        },
+      });
+
+      expect(screen.getByRole('table')).toHaveStyle({
+        gridTemplateColumns: '200px minmax(90px, auto)',
+      });
+    });
+
+    it('applies a single URL width to a one-column table', () => {
+      const singleColumnTableData: TabularData = {
+        data: [{'count(span.duration)': 14105}],
+        meta: {
+          fields: {'count(span.duration)': 'integer'},
+          units: {'count(span.duration)': null},
+        },
+      };
+
+      render(<TableWidgetVisualization tableData={singleColumnTableData} />, {
+        initialRouterConfig: {
+          location: {pathname: '/mock-pathname/', query: {width: '200'}},
+        },
+      });
+
+      expect(screen.getByRole('table')).toHaveStyle({
+        gridTemplateColumns: 'minmax(200px, auto)',
+      });
     });
 
     it('Uses onChangeResizeColumn if supplied on column resize', async () => {
@@ -348,16 +414,8 @@ describe('TableWidgetVisualization', () => {
       dragHandle(screen.getAllByRole('separator')[0]!, {from: 0, to: 100});
       await waitFor(() =>
         expect(onResizeColumnMock).toHaveBeenCalledWith([
-          {
-            key: 'http.request_method',
-            type: 'string',
-            width: 100,
-          },
-          {
-            key: 'count(span.duration)',
-            type: 'integer',
-            width: -1,
-          },
+          {key: 'http.request_method', type: 'string', width: 100},
+          {key: 'count(span.duration)', type: 'integer', width: -1},
         ])
       );
     });
@@ -434,9 +492,7 @@ describe('TableWidgetVisualization', () => {
         (_actions: Actions, _value: string | number, _dataRow: TabularRow) => {}
       );
       Object.assign(navigator, {
-        clipboard: {
-          writeText: jest.fn(() => Promise.resolve()),
-        },
+        clipboard: {writeText: jest.fn(() => Promise.resolve())},
       });
 
       render(

@@ -1,7 +1,6 @@
 import type {ListState} from '@react-stately/list';
 import type {Key} from '@react-types/shared';
 
-import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {
   BooleanOperator,
   FilterType,
@@ -17,6 +16,8 @@ import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
+
+import type {FieldDefinitionGetter} from './types';
 
 function getFilterKeysFromQuery(value: string | undefined): string[] {
   if (!value) {

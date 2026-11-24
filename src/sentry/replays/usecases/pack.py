@@ -28,7 +28,7 @@ class Encoding(Enum):
 
 
 def pack(rrweb: bytes, video: bytes | None) -> bytes:
-    def _to_uint_bytes(length):
+    def _to_uint_bytes(length: int) -> bytes:
         return bytes([(length >> (i * 8)) & 0xFF for i in range(USIZE - 1, -1, -1)])
 
     if video is None:
@@ -37,7 +37,7 @@ def pack(rrweb: bytes, video: bytes | None) -> bytes:
         return b"\x01" + _to_uint_bytes(len(video)) + video + rrweb
 
 
-def unpack(obj: bytes):
+def unpack(obj: bytes) -> tuple[memoryview | None, memoryview]:
     mv = memoryview(obj)
     if mv[0] == 91:  # Not packed.
         return (None, mv)

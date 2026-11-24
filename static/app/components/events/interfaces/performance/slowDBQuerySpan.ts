@@ -1,11 +1,12 @@
-import {getSpanDuration} from 'sentry/components/events/interfaces/performance/spanMetrics';
+import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
+import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
+
+import {getSpanDuration} from './spanMetrics';
 import {
   getSpanCategory,
   getSpanInfoFromTransactionEvent,
   getSpanSentryGroupValue,
-} from 'sentry/components/events/interfaces/performance/utils';
-import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
-import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
+} from './utils';
 
 /** The evidence the slow-query pane needs, independent of its storage format. */
 export interface SlowDBQuerySpan {

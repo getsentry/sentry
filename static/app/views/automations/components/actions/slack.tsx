@@ -12,12 +12,10 @@ import {t, tct} from 'sentry/locale';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodeContext';
-import {IntegrationField} from 'sentry/views/automations/components/actions/integrationField';
-import {TagsField} from 'sentry/views/automations/components/actions/tagsField';
-import {
-  TargetDisplayField,
-  TargetIdentifierField,
-} from 'sentry/views/automations/components/actions/targetDisplayField';
+
+import {IntegrationField} from './integrationField';
+import {TagsField} from './tagsField';
+import {TargetDisplayField, TargetIdentifierField} from './targetDisplayField';
 
 export function SlackDetails({
   action,
@@ -35,12 +33,12 @@ export function SlackDetails({
       logo: ActionMetadata[ActionType.SLACK]?.icon,
       workspace: integrationName,
       channel: action.config.targetDisplay || action.config.targetIdentifier,
-      tagsAndNotes: SlackTagsAndNotes(action),
+      tagsAndNotes: <SlackTagsAndNotes action={action} />,
     }
   );
 }
 
-function SlackTagsAndNotes(action: Action) {
+function SlackTagsAndNotes({action}: {action: Action}) {
   const notes = action.data.notes;
   const tags = action.data.tags;
 
@@ -99,9 +97,7 @@ function NotesField() {
       placeholder={t('e.g. @jane, @on-call-team')}
       value={action.data.notes ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-        onUpdate({
-          data: {...action.data, notes: e.target.value},
-        });
+        onUpdate({data: {...action.data, notes: e.target.value}});
       }}
     />
   );

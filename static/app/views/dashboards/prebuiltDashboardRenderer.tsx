@@ -18,17 +18,17 @@ import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {DashboardDetailWithInjectedProps as DashboardDetail} from 'sentry/views/dashboards/detail';
+
+import {mergeGlobalFilters} from './globalFilter/utils';
+import {getPrebuiltDashboardConfig, PrebuiltDashboardId} from './utils/prebuiltConfigs';
+import {useGetPrebuiltDashboard} from './utils/usePopulateLinkedDashboards';
+import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
 import {
   DashboardState,
   type DashboardDetails,
   type DashboardFilters,
   type GlobalFilter,
-} from 'sentry/views/dashboards/types';
-import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
-
-import {mergeGlobalFilters} from './globalFilter/utils';
-import {getPrebuiltDashboardConfig, PrebuiltDashboardId} from './utils/prebuiltConfigs';
+} from './types';
 
 type PrebuiltDashboardRendererProps = {
   prebuiltId: PrebuiltDashboardId;

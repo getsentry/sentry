@@ -1,11 +1,10 @@
 import styled from '@emotion/styled';
+import {parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
 
 import {ExternalLink} from '@sentry/scraps/link';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
-import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {NoAccess} from 'sentry/components/noAccess';
 import {
   DatePageFilter,
   type DatePageFilterProps,
@@ -25,14 +24,12 @@ import {canUseMetricsData} from 'sentry/utils/performance/contexts/useMEPSetting
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {
   OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS,
   FRONTEND_PLATFORMS,
@@ -57,6 +54,8 @@ import {
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
+import {OVERVIEW_PAGE_ALLOWED_OPS} from './settings';
+
 const APDEX_TOOLTIP = tct(
   'An industry-standard metric used to measure user satisfaction based on your application response times. [link:Learn more.]',
   {
@@ -80,6 +79,12 @@ const BACKEND_COLUMN_TITLES = [
   {title: 'User misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
+const searchParamsParsers = {
+  cursor: parseAsString,
+  query: parseAsString,
+  isDefaultQuery: parseAsBoolean,
+};
+
 interface AM1BackendOverviewPageProps {
   datePageFilterProps: DatePageFilterProps;
 }
@@ -93,7 +98,7 @@ export function Am1BackendOverviewPage({
   const {setPageDanger} = usePageAlert();
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
-  const navigate = useNavigate();
+  const [, setSearchParams] = useQueryStates(searchParamsParsers);
   const {teams} = useUserTeams();
   const {selection} = usePageFilters();
 
@@ -204,87 +209,70 @@ export function Am1BackendOverviewPage({
   function handleSearch(searchQuery: string) {
     trackAnalytics('performance.domains.backend.search', {organization});
 
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        query: String(searchQuery).trim() || undefined,
-        isDefaultQuery: false,
-      },
-    });
+    setSearchParams(
+      {cursor: null, query: String(searchQuery).trim() || null, isDefaultQuery: false},
+      {history: 'push'}
+    );
   }
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
 
   return (
-    <Feature
-      features="performance-view"
-      organization={organization}
-      renderDisabled={NoAccess}
-    >
-      <Layout.Body>
-        <Layout.Main width="full">
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <ToolRibbon>
-                <PageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter {...datePageFilterProps} />
-                </PageFilterBar>
-                {!showOnboarding && (
-                  <StyledTransactionNameSearchBar
-                    organization={organization}
-                    eventView={searchBarEventView}
-                    onSearch={(query: string) => {
-                      handleSearch(query);
-                    }}
-                    query={getFreeTextFromQuery(derivedQuery) ?? ''}
-                  />
-                )}
-              </ToolRibbon>
-            </ModuleLayout.Full>
-            <PageAlert />
-            <ModuleLayout.Full>
-              {showOnboarding ? (
-                <LegacyOnboarding
-                  project={onboardingProject}
+    <Layout.Body>
+      <Layout.Main width="full">
+        <ModuleLayout.Layout>
+          <ModuleLayout.Full>
+            <ToolRibbon>
+              <PageFilterBar condensed>
+                <ProjectPageFilter />
+                <EnvironmentPageFilter />
+                <DatePageFilter {...datePageFilterProps} />
+              </PageFilterBar>
+              {!showOnboarding && (
+                <StyledTransactionNameSearchBar
                   organization={organization}
+                  eventView={searchBarEventView}
+                  onSearch={(query: string) => {
+                    handleSearch(query);
+                  }}
+                  query={getFreeTextFromQuery(derivedQuery) ?? ''}
                 />
-              ) : (
-                <PerformanceDisplayContext
-                  value={{performanceType: ProjectPerformanceType.BACKEND}}
-                >
-                  <TeamKeyTransactionManager.Provider
-                    organization={organization}
-                    teams={teams}
-                    selectedTeams={['myteams']}
-                    selectedProjects={eventView.project.map(String)}
-                  >
-                    <DoubleChartRow
-                      allowedCharts={doubleChartRowCharts}
-                      {...sharedProps}
-                      eventView={doubleChartRowEventView}
-                    />
-                    <TripleChartRow
-                      allowedCharts={tripleChartRowCharts}
-                      {...sharedProps}
-                    />
-                    <Table
-                      projects={projects}
-                      columnTitles={BACKEND_COLUMN_TITLES}
-                      setError={setPageDanger}
-                      {...sharedProps}
-                    />
-                  </TeamKeyTransactionManager.Provider>
-                </PerformanceDisplayContext>
               )}
-            </ModuleLayout.Full>
-          </ModuleLayout.Layout>
-        </Layout.Main>
-      </Layout.Body>
-    </Feature>
+            </ToolRibbon>
+          </ModuleLayout.Full>
+          <PageAlert />
+          <ModuleLayout.Full>
+            {showOnboarding ? (
+              <LegacyOnboarding project={onboardingProject} organization={organization} />
+            ) : (
+              <PerformanceDisplayContext
+                value={{performanceType: ProjectPerformanceType.BACKEND}}
+              >
+                <TeamKeyTransactionManager.Provider
+                  organization={organization}
+                  teams={teams}
+                  selectedTeams={['myteams']}
+                  selectedProjects={eventView.project.map(String)}
+                >
+                  <DoubleChartRow
+                    allowedCharts={doubleChartRowCharts}
+                    {...sharedProps}
+                    eventView={doubleChartRowEventView}
+                  />
+                  <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
+                  <Table
+                    projects={projects}
+                    columnTitles={BACKEND_COLUMN_TITLES}
+                    setError={setPageDanger}
+                    {...sharedProps}
+                  />
+                </TeamKeyTransactionManager.Provider>
+              </PerformanceDisplayContext>
+            )}
+          </ModuleLayout.Full>
+        </ModuleLayout.Layout>
+      </Layout.Main>
+    </Layout.Body>
   );
 }
 

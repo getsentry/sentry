@@ -2,12 +2,14 @@ import logging
 import posixpath
 import re
 import uuid
-from collections.abc import Iterable, Mapping, Sequence, Set
+from collections.abc import Iterable, Iterator, Mapping, Sequence, Set
 from contextlib import closing
-from typing import TYPE_CHECKING, NotRequired, TypedDict, TypeGuard, cast
+from datetime import datetime
+from typing import TYPE_CHECKING, Annotated, NotRequired, TypedDict, TypeGuard, cast
 
 import jsonschema
 import orjson
+from django.core.files.uploadedfile import UploadedFile
 from django.db import IntegrityError, router
 from django.db.models import Case, Exists, F, IntegerField, Q, QuerySet, Value, When
 from django.http import Http404, HttpResponse, HttpResponseRedirect, StreamingHttpResponse
@@ -42,6 +44,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.dsym_examples import DebugFileExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -83,15 +86,21 @@ DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 _release_suffix = re.compile(r"^(.*)\s+\(([^)]+)\)\s*$")
 
 
-def upload_from_request(request: Request, project: Project):
-    if "file" not in request.data:
+class _ReleaseRow(TypedDict):
+    id: int
+    version: str
+    date_added: datetime
+
+
+def upload_from_request(request: Request, project: Project) -> Response:
+    fileobj = request.data.get("file")
+    if not isinstance(fileobj, UploadedFile):
         return Response({"detail": "Missing uploaded file"}, status=400)
-    fileobj = request.data["file"]
     files = create_files_from_dif_zip(fileobj, project=project)
     return Response(serialize(files, request.user), status=201)
 
 
-def has_download_permission(request: Request, project: Project):
+def has_download_permission(request: Request, project: Project) -> bool:
     if is_system_auth(request.auth) or is_active_superuser(request):
         return True
 
@@ -308,7 +317,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectReleasePermission,)
 
-    def download(self, debug_file_id, project: Project):
+    def download(
+        self, debug_file_id: int, project: Project
+    ) -> HttpResponse | StreamingHttpResponse:
         rate_limited = ratelimits.backend.is_limited(
             project=project,
             key=f"rl:DSymFilesEndpoint:download:{debug_file_id}:{project.id}",
@@ -321,9 +332,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
             )
             return HttpResponse({"Too many download requests"}, status=429)
 
-        debug_file = ProjectDebugFile.objects.filter(
-            id=debug_file_id, project_id=project.id
-        ).first()
+        debug_file = ProjectDebugFile.objects.get_or_none(id=debug_file_id, project_id=project.id)
 
         if debug_file is None:
             raise Http404
@@ -334,7 +343,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         try:
             fp = debug_file.get_file()
 
-            def stream_debug_file():
+            def stream_debug_file() -> Iterator[bytes]:
                 try:
                     yield from iter(lambda: fp.read(4096), b"")
                 finally:
@@ -375,7 +384,12 @@ class DebugFilesEndpoint(ProjectEndpoint):
     )
     def get(
         self, request: Request, project: Project
-    ) -> Response[list[DebugFileSerializerResponse]] | Response[DetailResponse]:
+    ) -> (
+        Response[list[DebugFileSerializerResponse]]
+        | Response[DetailResponse]
+        | HttpResponse
+        | StreamingHttpResponse
+    ):
         """
         Retrieve a list of debug information files for a given project.
         """
@@ -465,12 +479,15 @@ class DebugFilesEndpoint(ProjectEndpoint):
         else:
             queryset = ProjectDebugFile.objects.filter(q).select_related("file")
 
-        def on_results(difs: Sequence[ProjectDebugFile]):
+        def on_results(
+            difs: Sequence[ProjectDebugFile],
+        ) -> list[DebugFileSerializerResponse]:
             # NOTE: we are only refreshing files if there is direct query for specific files
             if debug_id and not query and not file_formats:
                 maybe_renew_debug_files(difs)
 
-            return serialize(difs, request.user)
+            serialized: list[DebugFileSerializerResponse] = serialize(difs, request.user)
+            return serialized
 
         return self.paginate(
             request=request,
@@ -502,7 +519,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 debug_file = (
                     ProjectDebugFile.objects.filter(id=validated_id, project_id=project.id)
                     .select_related("file")
-                    .first()
+                    .get_or_none()
                 )
                 if debug_file is not None:
                     debug_file.delete()
@@ -617,10 +634,21 @@ _ASSEMBLE_REQUEST_OPENAPI_SCHEMA: dict[str, object] = {
 
 class DifAssembleFileResponse(TypedDict):
     # One of the ChunkFileState values: ok, not_found, created, assembling, or error.
-    state: str
-    missingChunks: list[str]
-    detail: NotRequired[str | None]
-    dif: NotRequired[DebugFileSerializerResponse]
+    state: Annotated[
+        str, ApiDescription("State of the file: ok, not_found, created, assembling or error")
+    ]
+    missingChunks: Annotated[
+        list[str], ApiDescription("Checksums of the chunks the server doesn't have yet")
+    ]
+    detail: NotRequired[
+        Annotated[str | None, ApiDescription("Error message when the state is error")]
+    ]
+    dif: NotRequired[
+        Annotated[
+            DebugFileSerializerResponse,
+            ApiDescription("Debug file created from the chunks. Only set when the state is ok"),
+        ]
+    ]
 
 
 class _AssembleErrorResponse(TypedDict):
@@ -672,7 +700,7 @@ def batch_assemble(
                 "state": state,
                 "detail": None,
                 "missingChunks": [],
-                "dif": detail,
+                "dif": cast("DebugFileSerializerResponse", detail),
             }
             files_to_check.pop(checksum)
         elif state is not None and state != ChunkFileState.OK:
@@ -1088,7 +1116,7 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
             queryset = queryset.filter(query_q)
 
-        def expose_release(release, count: int):
+        def expose_release(release: _ReleaseRow, count: int) -> dict[str, object]:
             return {
                 "type": "release",
                 "id": release["id"],
@@ -1097,13 +1125,16 @@ class SourceMapsEndpoint(ProjectEndpoint):
                 "fileCount": count,
             }
 
-        def serialize_results(results):
+        def serialize_results(
+            results: Sequence[_ReleaseRow],
+        ) -> list[dict[str, object]]:
             file_count_map = get_artifact_counts([r["id"] for r in results])
             # In case we didn't find a file count for a specific release, we will return -1, signaling to the
             # frontend that this release doesn't have one or more ReleaseFile.
-            return serialize(
+            serialized: list[dict[str, object]] = serialize(
                 [expose_release(r, file_count_map.get(r["id"], -1)) for r in results], request.user
             )
+            return serialized
 
         sort_by = request.GET.get("sortBy", "-date_added")
         if sort_by not in {"-date_added", "date_added"}:

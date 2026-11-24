@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 import jsonschema
 import orjson
@@ -117,7 +117,7 @@ class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
             if error_message:
                 return Response({"error": error_message}, status=400)
 
-            checksum = data.get("checksum")
+            checksum = cast(str, data.get("checksum"))
             chunks = data.get("chunks", [])
 
             # Check if all requested chunks have been uploaded

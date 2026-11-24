@@ -13,18 +13,19 @@ import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectSection} from 'sentry/views/detectors/components/forms/common/projectSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
-import {MobileBuildDetectSection} from 'sentry/views/detectors/components/forms/mobileBuild/detectSection';
-import {PREPROD_DETECTOR_DRAFT_SCHEMA} from 'sentry/views/detectors/components/forms/mobileBuild/mobileBuildDraftConfig';
+import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
+import {STATUS_CHECK_ALLOWED_FILTER_KEYS} from 'sentry/views/settings/project/preprod/types';
+
+import {MobileBuildDetectSection} from './detectSection';
+import {PREPROD_DETECTOR_DRAFT_SCHEMA} from './mobileBuildDraftConfig';
 import {
   PREPROD_DEFAULT_FORM_DATA,
   PREPROD_DETECTOR_FORM_FIELDS,
   preprodFormDataToEndpointPayload,
   preprodSavedDetectorToFormData,
   usePreprodDetectorFormField,
-} from 'sentry/views/detectors/components/forms/mobileBuild/mobileBuildFormData';
-import {MobileBuildPreviewSection} from 'sentry/views/detectors/components/forms/mobileBuild/previewSection';
-import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
-import {STATUS_CHECK_ALLOWED_FILTER_KEYS} from 'sentry/views/settings/project/preprod/types';
+} from './mobileBuildFormData';
+import {MobileBuildPreviewSection} from './previewSection';
 
 function MobileBuildDetectorForm() {
   const theme = useTheme();

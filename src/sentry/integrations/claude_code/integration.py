@@ -42,6 +42,7 @@ from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.seer.autofix.utils import CodingAgentState
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.utils.imports import import_string
+from sentry.utils.locking.lock import Lock
 
 logger = logging.getLogger(__name__)
 
@@ -155,7 +156,7 @@ def _delete_legacy_integrations(organization_id: int, external_id: str) -> None:
         integration.delete()
 
 
-class ClaudeCodeApiKeySerializer(CamelSnakeSerializer):
+class ClaudeCodeApiKeySerializer(CamelSnakeSerializer[dict[str, str]]):
     api_key = CharField(required=True, max_length=255)
 
 
@@ -306,7 +307,7 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         """Parse and return the integration metadata."""
         return ClaudeCodeIntegrationMetadata.parse_obj(self.model.metadata or {})
 
-    def _vault_metadata_lock(self):
+    def _vault_metadata_lock(self) -> Lock:
         return locks.get(
             f"claude_code:vault:{self.model.id}",
             duration=VAULT_METADATA_LOCK_DURATION_S,

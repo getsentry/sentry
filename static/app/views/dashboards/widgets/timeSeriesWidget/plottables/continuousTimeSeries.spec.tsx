@@ -1,11 +1,30 @@
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
+import type {TimeSeriesItem} from 'sentry/views/dashboards/widgets/common/types';
 
 import {ContinuousTimeSeries} from './continuousTimeSeries';
 import type {Plottable} from './plottable';
 
 describe('ContinuousTimeSeries', () => {
+  describe('labelSuffix', () => {
+    it.each([
+      {alias: undefined, groupBy: undefined, expectedLabel: 'avg(span.duration)'},
+      {alias: 'Duration', groupBy: undefined, expectedLabel: 'Duration'},
+      {alias: undefined, groupBy: [{key: 'span.op', value: 'db'}], expectedLabel: 'db'},
+    ])('keeps $expectedLabel separate from transformations', config => {
+      const series = TimeSeriesFixture({
+        yAxis: 'avg(span.duration)',
+        groupBy: config.groupBy,
+        requestedTransformations: ['fill(linear)', 'smooth(sma,5)'],
+      });
+      const plottable = new Dots(series, {alias: config.alias});
+
+      expect(plottable.label).toBe(config.expectedLabel);
+      expect(plottable.labelSuffix).toBe('fill(linear) → smooth(sma,5)');
+    });
+  });
+
   describe('isEmpty', () => {
     it('marks normal plottables as not empty', () => {
       const timeSeries = TimeSeriesFixture();
@@ -16,9 +35,7 @@ describe('ContinuousTimeSeries', () => {
     });
 
     it('marks empty series as empty', () => {
-      const timeSeries = TimeSeriesFixture({
-        values: [],
-      });
+      const timeSeries = TimeSeriesFixture({values: []});
 
       const plottable = new Dots(timeSeries);
 
@@ -65,9 +82,7 @@ describe('ContinuousTimeSeries', () => {
 
   describe('start/end', () => {
     it('sets start and end to null if there is not data', () => {
-      const timeSeries = TimeSeriesFixture({
-        values: [],
-      });
+      const timeSeries = TimeSeriesFixture({values: []});
 
       const plottable = new Dots(timeSeries);
 
@@ -98,6 +113,156 @@ describe('ContinuousTimeSeries', () => {
 
       expect(plottable.start).toBe(1729796400000);
       expect(plottable.end).toBe(1729798200000);
+    });
+  });
+
+  describe('confidence', () => {
+    it('is full when no points are sampled', () => {
+      expect(new Dots(TimeSeriesFixture()).confidence).toBe('full');
+
+      const unsampled = TimeSeriesFixture({
+        values: [
+          {timestamp: 1, value: 1, sampleRate: 1, confidence: 'high'},
+          {timestamp: 2, value: 2, sampleRate: 1, confidence: 'high'},
+        ],
+      });
+      expect(new Dots(unsampled).confidence).toBe('full');
+    });
+
+    it('is high when some points are sampled but none are low confidence', () => {
+      const timeSeries = TimeSeriesFixture({
+        values: [
+          {timestamp: 1, value: 1, sampleRate: 1, confidence: 'high'},
+          {timestamp: 2, value: 2, sampleRate: 0.5, confidence: 'high'},
+        ],
+      });
+      expect(new Dots(timeSeries).confidence).toBe('high');
+    });
+
+    it('is mixed when some points are low confidence', () => {
+      const timeSeries = TimeSeriesFixture({
+        values: [
+          {timestamp: 1, value: 1, sampleRate: 0.5, confidence: 'high'},
+          {timestamp: 2, value: 2, sampleRate: 0.01, confidence: 'low'},
+        ],
+      });
+      expect(new Dots(timeSeries).confidence).toBe('mixed');
+    });
+
+    it('is low when every point is low confidence', () => {
+      const timeSeries = TimeSeriesFixture({
+        values: [
+          {timestamp: 1, value: 1, sampleRate: 0.01, confidence: 'low'},
+          {timestamp: 2, value: 2, sampleRate: 0.01, confidence: 'low'},
+        ],
+      });
+      expect(new Dots(timeSeries).confidence).toBe('low');
+    });
+
+    it('counts extrapolated points with null confidence as low confidence', () => {
+      const timeSeries = TimeSeriesFixture({
+        values: [
+          {timestamp: 1, value: 1, sampleRate: 0.5, confidence: 'high'},
+          {timestamp: 2, value: 2, sampleRate: 0.01, confidence: null},
+        ],
+      });
+      expect(new Dots(timeSeries).confidence).toBe('mixed');
+    });
+
+    it('ignores points without a value', () => {
+      const timeSeries = TimeSeriesFixture({
+        values: [
+          {timestamp: 1, value: 1, sampleRate: 0.01, confidence: 'low'},
+          {timestamp: 2, value: null, sampleRate: 1, confidence: 'high'},
+        ],
+      });
+      expect(new Dots(timeSeries).confidence).toBe('low');
+    });
+
+    it('ignores low confidence in incomplete points', () => {
+      const timeSeries = TimeSeriesFixture({
+        values: [
+          {
+            timestamp: 1,
+            value: 1,
+            sampleRate: 0.5,
+            confidence: 'high',
+            incomplete: false,
+          },
+          {timestamp: 2, value: 2, sampleRate: 0.01, confidence: 'low', incomplete: true},
+        ],
+      });
+      expect(new Dots(timeSeries).confidence).toBe('high');
+    });
+
+    it('is low when every complete point is low confidence', () => {
+      const timeSeries = TimeSeriesFixture({
+        values: [
+          {
+            timestamp: 1,
+            value: 1,
+            sampleRate: 0.01,
+            confidence: 'low',
+            incomplete: false,
+          },
+          {timestamp: 2, value: 2, sampleRate: 1, confidence: 'high', incomplete: true},
+        ],
+      });
+      expect(new Dots(timeSeries).confidence).toBe('low');
+    });
+  });
+
+  describe('lowConfidenceRanges', () => {
+    const interval = 1_000;
+
+    function timeSeriesWith(items: Array<Partial<TimeSeriesItem>>) {
+      return new Dots(
+        TimeSeriesFixture({
+          meta: {valueType: 'number', valueUnit: null, interval},
+          values: items.map((item, index) => ({
+            timestamp: index * interval,
+            value: 1,
+            ...item,
+          })),
+        })
+      );
+    }
+
+    it('covers half an interval either side of each low confidence bucket', () => {
+      const plottable = timeSeriesWith([
+        {},
+        {confidence: 'low'},
+        {},
+        {confidence: 'low'},
+      ]);
+
+      expect(plottable.lowConfidenceRanges).toEqual([
+        {start: 500, end: 1_500},
+        {start: 2_500, end: 3_500},
+      ]);
+    });
+
+    it('merges consecutive low confidence buckets', () => {
+      const plottable = timeSeriesWith([
+        {},
+        {confidence: 'low'},
+        {confidence: 'low'},
+        {confidence: 'low'},
+        {},
+      ]);
+
+      expect(plottable.lowConfidenceRanges).toEqual([{start: 500, end: 3_500}]);
+    });
+
+    it('ignores high, null, empty, and incomplete buckets', () => {
+      const plottable = timeSeriesWith([
+        {confidence: 'high'},
+        {confidence: null},
+        {confidence: 'low', value: null},
+        {confidence: 'low', incomplete: true},
+      ]);
+
+      expect(plottable.lowConfidenceRanges).toEqual([]);
     });
   });
 

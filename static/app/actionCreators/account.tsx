@@ -1,4 +1,5 @@
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {Client} from 'sentry/api';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {UserIdentityConfig} from 'sentry/types/auth';
@@ -16,16 +17,14 @@ export async function disconnectIdentity(
   try {
     await api.requestPromise(
       `/users/me/user-identities/${identity.category}/${identity.id}/`,
-      {
-        method: 'DELETE',
-      }
+      {method: 'DELETE'}
     );
   } catch {
-    addErrorMessage('Error disconnecting identity');
+    toast.error('Error disconnecting identity');
     return;
   }
 
-  addSuccessMessage(`Disconnected ${identity.provider.name}`);
+  toast.success(`Disconnected ${identity.provider.name}`);
   onSuccess();
 }
 
@@ -48,10 +47,7 @@ export function updateUser(user: User | ChangeAvatarUser) {
   ConfigStore.set('user', {...previousUser, ...user, options});
 }
 
-type LogoutOptions = {
-  redirect?: boolean;
-  redirectUrl?: string;
-};
+type LogoutOptions = {redirect?: boolean; redirectUrl?: string};
 
 export async function logout(
   api: Client,

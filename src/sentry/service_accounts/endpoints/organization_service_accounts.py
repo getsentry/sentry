@@ -9,12 +9,13 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict, cast
+from typing import Any, NotRequired, TypedDict
 
 from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -38,19 +39,24 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.access import Access
+from sentry.auth.principal import acting_user_id
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,
+    organization_service,
 )
 from sentry.service_accounts.models import (
     GRANTABLE_SCOPES,
     MAX_NAME_LENGTH,
     ServiceAccount,
+    ServiceAccountOwnerKind,
     ServiceAccountProject,
 )
 
 FEATURE_FLAG = "organizations:service-accounts"
+MAX_PROJECT_IDS_PER_REQUEST = 1000
 
 DUPLICATE_NAME_ERROR = "A service account with this name already exists."
 ALL_PROJECTS_WITH_PROJECTS_ERROR = (
@@ -60,6 +66,12 @@ ALL_PROJECTS_WITH_PROJECTS_ERROR = (
 ALL_PROJECTS_ROLE_ERROR = (
     "Only a role with access to all projects, such as Manager or Owner,"
     " can give a service account access to all projects."
+)
+NARROW_ALL_PROJECTS_ERROR = (
+    "Only a caller with access to all projects can narrow a service account's projects."
+)
+ADD_SCOPES_HIDDEN_PROJECTS_ERROR = (
+    "You can't add scopes to a service account that has projects you can't access."
 )
 
 SERVICE_ACCOUNT_ID = OpenApiParameter(
@@ -77,7 +89,8 @@ class ServiceAccountResponse(TypedDict):
     scopes: list[str]
     projectIds: list[str]
     allProjects: bool
-    isActive: bool
+    # A `ServiceAccountOwnerKind`. Null when the owner is unknown.
+    ownerKind: str | None
     dateCreated: datetime
 
 
@@ -86,7 +99,6 @@ class ServiceAccountCreateRequestData(TypedDict):
     scopes: list[str]
     projectIds: NotRequired[list[int] | None]
     allProjects: NotRequired[bool]
-    isActive: NotRequired[bool]
 
 
 class ServiceAccountUpdateRequestData(TypedDict, total=False):
@@ -94,7 +106,6 @@ class ServiceAccountUpdateRequestData(TypedDict, total=False):
     scopes: list[str]
     projectIds: list[int] | None
     allProjects: bool
-    isActive: bool
 
 
 class ServiceAccountSerializer(Serializer[ServiceAccountResponse]):
@@ -117,7 +128,7 @@ class ServiceAccountSerializer(Serializer[ServiceAccountResponse]):
             "scopes": sorted(obj.scope_list),
             "projectIds": [str(project_id) for project_id in attrs["project_ids"]],
             "allProjects": obj.all_projects,
-            "isActive": obj.is_active,
+            "ownerKind": obj.owner_kind,
             "dateCreated": obj.date_added,
         }
 
@@ -128,7 +139,6 @@ def _audit_log_data(response: ServiceAccountResponse) -> dict[str, Any]:
         "scopes": response["scopes"],
         "project_ids": response["projectIds"],
         "all_projects": response["allProjects"],
-        "is_active": response["isActive"],
     }
 
 
@@ -140,19 +150,14 @@ def _check_can_grant_all_projects(request: Request) -> None:
         raise PermissionDenied(ALL_PROJECTS_ROLE_ERROR)
 
 
-def _replace_projects(service_account: ServiceAccount, project_ids: Sequence[int]) -> None:
-    existing = set()
-    # Delete links one at a time: a queryset delete wouldn't write the account's outbox.
-    for link in ServiceAccountProject.objects.filter(service_account=service_account):
-        if link.project_id in project_ids:
-            existing.add(link.project_id)
-        else:
-            link.delete()
-    ServiceAccountProject.objects.bulk_create(
-        ServiceAccountProject(service_account=service_account, project_id=project_id)
-        for project_id in project_ids
-        if project_id not in existing
+def hidden_project_ids(access: Access, service_account: ServiceAccount) -> set[int]:
+    """The account's linked projects the caller can't access. Empty for all-projects accounts."""
+    if access.has_global_access:
+        return set()
+    linked = ServiceAccountProject.objects.filter(service_account=service_account).values_list(
+        "project_id", flat=True
     )
+    return set(linked) - access.accessible_project_ids
 
 
 class ServiceAccountCreateSerializer(serializers.Serializer):
@@ -166,6 +171,7 @@ class ServiceAccountCreateSerializer(serializers.Serializer):
     )
     projectIds = serializers.ListField(
         child=serializers.IntegerField(),
+        max_length=MAX_PROJECT_IDS_PER_REQUEST,
         required=False,
         allow_null=True,
         help_text=(
@@ -181,23 +187,30 @@ class ServiceAccountCreateSerializer(serializers.Serializer):
             " such as Manager or Owner."
         ),
     )
-    isActive = serializers.BooleanField(
-        required=False, help_text="Whether the service account can be used. Defaults to true."
-    )
 
     def validate_projectIds(self, project_ids: list[int] | None) -> list[int]:
         if not project_ids:
             return []
         access = self.context["access"]
-        grantable = {project.id for project in self.context["organization"].projects}
-        if not access.has_global_access:
-            grantable &= access.accessible_project_ids
-        ungrantable = set(project_ids) - grantable
+        requested = set(project_ids)
+        candidates = (
+            requested if access.has_global_access else requested & access.accessible_project_ids
+        )
+        grantable = (
+            set(
+                organization_service.get_active_project_ids(
+                    organization_id=self.context["organization"].id, project_ids=sorted(candidates)
+                )
+            )
+            if candidates
+            else set()
+        )
+        ungrantable = requested - grantable
         if ungrantable:
             raise serializers.ValidationError(
                 f"You can't grant access to projects: {', '.join(map(str, sorted(ungrantable)))}"
             )
-        return sorted(set(project_ids))
+        return sorted(requested)
 
     def validate_scopes(self, scopes: list[str]) -> list[str]:
         ungrantable = set(scopes) - self.context["access"].scopes
@@ -240,7 +253,7 @@ class ServiceAccountPermission(OrganizationPermission):
 
 class OrganizationServiceAccountEndpointBase(ControlSiloOrganizationEndpoint):
     owner = ApiOwner.COMMUNITY
-    permission_classes = (ServiceAccountPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (ServiceAccountPermission,)
 
     def convert_args(
         self, request: Request, *args: Any, **kwargs: Any
@@ -278,7 +291,7 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
     ) -> Response:
         return self.paginate(
             request=request,
-            queryset=ServiceAccount.objects.filter(organization_id=organization.id),
+            queryset=ServiceAccount.objects.filter(organization_id=organization.id, is_active=True),
             order_by="id",
             paginator_cls=OffsetPaginator,
             on_results=lambda results: serialize(
@@ -311,25 +324,21 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
         )
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
-        data = cast(ServiceAccountCreateRequestData, serializer.validated_data)
+        data = serializer.validated_data
         all_projects = data.get("allProjects", False)
         if all_projects:
             _check_can_grant_all_projects(request)
 
         try:
-            with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
-                service_account = ServiceAccount.objects.create(
-                    organization_id=organization.id,
-                    name=data["name"],
-                    scope_list=data["scopes"],
-                    is_active=data.get("isActive", True),
-                    all_projects=all_projects,
-                    created_by_id=request.user.id,
-                )
-                ServiceAccountProject.objects.bulk_create(
-                    ServiceAccountProject(service_account=service_account, project_id=project_id)
-                    for project_id in data.get("projectIds") or ()
-                )
+            service_account = ServiceAccount.create_with_projects(
+                organization_id=organization.id,
+                name=data["name"],
+                scope_list=data["scopes"],
+                project_ids=data.get("projectIds") or (),
+                all_projects=all_projects,
+                created_by_id=acting_user_id(request.user),
+                owner_kind=ServiceAccountOwnerKind.ORGANIZATION,
+            )
         except IntegrityError:
             # The (organization_id, name) unique constraint is the duplicate name check.
             return Response({"detail": {"name": [DUPLICATE_NAME_ERROR]}}, status=400)
@@ -345,13 +354,8 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
         return Response(response, status=201)
 
 
-@control_silo_endpoint
-class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpointBase):
-    publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
-        "DELETE": ApiPublishStatus.PRIVATE,
-    }
+class ServiceAccountScopedEndpointBase(OrganizationServiceAccountEndpointBase):
+    """Resolves `service_account_id` to an active account in the URL's organization."""
 
     def convert_args(
         self, request: Request, *args: Any, **kwargs: Any
@@ -361,10 +365,20 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
             kwargs["service_account"] = ServiceAccount.objects.get(
                 organization_id=kwargs["organization"].id,
                 id=kwargs.pop("service_account_id"),
+                is_active=True,
             )
         except ServiceAccount.DoesNotExist:
             raise ResourceDoesNotExist
         return args, kwargs
+
+
+@control_silo_endpoint
+class OrganizationServiceAccountDetailsEndpoint(ServiceAccountScopedEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PRIVATE,
+    }
 
     @extend_schema(
         operation_id="Retrieve a Service Account",
@@ -421,27 +435,37 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
         )
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
-        data = cast(ServiceAccountUpdateRequestData, serializer.validated_data)
+        data = serializer.validated_data
 
         try:
             with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
                 service_account = ServiceAccount.objects.select_for_update().get(
-                    id=service_account.id
+                    id=service_account.id, is_active=True
                 )
+                # Checked against the locked row, so the checks see the grants being changed.
+                hidden = hidden_project_ids(request.access, service_account)
                 if "name" in data:
                     service_account.name = data["name"]
                 if "scopes" in data:
+                    if hidden and set(data["scopes"]) - set(service_account.scope_list):
+                        raise PermissionDenied(ADD_SCOPES_HIDDEN_PROJECTS_ERROR)
                     service_account.scope_list = data["scopes"]
-                if "isActive" in data:
-                    service_account.is_active = data["isActive"]
-                # Checked against the locked row, so keeping all projects on an account
-                # also needs the role, even when the request doesn't mention it.
-                service_account.all_projects = data.get("allProjects", service_account.all_projects)
+                all_projects = data.get("allProjects", service_account.all_projects)
+                if (
+                    service_account.all_projects
+                    and not all_projects
+                    and not request.access.has_global_access
+                ):
+                    raise PermissionDenied(NARROW_ALL_PROJECTS_ERROR)
+                service_account.all_projects = all_projects
+                # Keeping all projects on an account also needs the role, even when the
+                # request doesn't mention it.
                 if service_account.all_projects:
                     _check_can_grant_all_projects(request)
-                    _replace_projects(service_account, [])
+                    service_account.replace_projects([])
                 elif "projectIds" in data:
-                    _replace_projects(service_account, data["projectIds"] or [])
+                    # A replace keeps the projects the caller can't see.
+                    service_account.replace_projects({*(data["projectIds"] or []), *hidden})
                 service_account.save()
         except ServiceAccount.DoesNotExist:
             # Deleted by another request after convert_args loaded it.
@@ -481,8 +505,9 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
             serialize(service_account, request.user, serializer=ServiceAccountSerializer())
         )
         service_account_id = service_account.id
-        # The tombstone cascade removes the cell replica. The project rows go with the account.
-        service_account.delete()
+        if not service_account.deactivate():
+            # Deleted by another request after convert_args loaded it.
+            raise ResourceDoesNotExist
         self.create_audit_entry(
             request,
             organization=organization,

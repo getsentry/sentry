@@ -3,7 +3,8 @@ from __future__ import annotations
 import logging
 import random
 import re
-from typing import Any
+from collections.abc import MutableMapping
+from typing import Any, TextIO
 
 from django.utils.timezone import now
 from structlog import get_logger
@@ -57,7 +58,12 @@ _json_encoder_no_skipkeys = _json_encoder(skipkeys=False)
 
 
 class JSONRenderer:
-    def __call__(self, logger, name, event_dict):
+    def __call__(
+        self,
+        logger: object,
+        name: str,
+        event_dict: MutableMapping[str, Any],
+    ) -> str:
         try:
             return _json_encoder_no_skipkeys.encode(event_dict)
         except Exception:
@@ -70,7 +76,12 @@ class JSONRenderer:
 
 
 class HumanRenderer:
-    def __call__(self, logger, name, event_dict):
+    def __call__(
+        self,
+        logger: object,
+        name: str,
+        event_dict: MutableMapping[str, Any],
+    ) -> str:
         level = event_dict.pop("level")
         real_level = level.upper() if isinstance(level, str) else logging.getLevelName(level)
         base = "{} [{}] {}: {}".format(
@@ -84,7 +95,7 @@ class HumanRenderer:
         return "{}{}".format(base, (" (%s)" % join if join else ""))
 
 
-class StructLogHandler(logging.StreamHandler):
+class StructLogHandler(logging.StreamHandler[TextIO]):
     def get_log_kwargs(self, record: logging.LogRecord) -> dict[str, Any]:
         kwargs = {k: v for k, v in vars(record).items() if k not in throwaways and v is not None}
         kwargs.update(
@@ -143,14 +154,14 @@ class MessageContainsFilter(logging.Filter):
     contains -- a string or list of strings to match
     """
 
-    def __init__(self, contains):
+    def __init__(self, contains: str | list[str]) -> None:
         if not isinstance(contains, list):
             contains = [contains]
         if not all(isinstance(c, str) for c in contains):
             raise TypeError("'contains' must be a string or list of strings")
         self.contains = contains
 
-    def filter(self, record):
+    def filter(self, record: logging.LogRecord) -> bool:
         message = record.getMessage()
         return any(c in message for c in self.contains)
 
@@ -160,7 +171,7 @@ metrics_badchars_re = re.compile("[^a-z0-9_.]")
 
 
 class MetricsLogHandler(logging.Handler):
-    def emit(self, record, logger=None):
+    def emit(self, record: logging.LogRecord, logger: logging.Logger | None = None) -> None:
         """
         Turn something like:
             > django.request.Forbidden (CSRF cookie not set.): /account

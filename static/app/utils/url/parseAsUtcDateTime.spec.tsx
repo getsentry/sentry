@@ -2,7 +2,7 @@ import {useQueryState} from 'nuqs';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {parseAsUtcDateTime} from 'sentry/utils/url/parseAsUtcDateTime';
+import {parseAsUtcDateTime} from './parseAsUtcDateTime';
 
 describe('parseAsUtcDateTime', () => {
   // Run in a timezone behind UTC so a value read as local time lands on a

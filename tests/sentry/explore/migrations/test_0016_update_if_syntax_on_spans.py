@@ -1,3 +1,7 @@
+from typing import Any
+
+from django.db.migrations.state import StateApps
+
 from sentry.models.project import Project
 from sentry.testutils.cases import TestMigrations
 
@@ -7,18 +11,18 @@ class UpdateIfSyntaxOnSpansTest(TestMigrations):
     migrate_to = "0016_update_if_syntax_on_spans"
     app = "explore"
 
-    def setup_initial_state(self):
+    def setup_initial_state(self) -> None:
         # Preserve the project flags previously set by SnubaTestCase without
         # requiring Snuba for these PostgreSQL-only query rewrites.
         self.project = self.create_project(
             name="Bar", slug="bar", flags=Project.flags.has_transactions
         )
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         ExploreSavedQuery = apps.get_model("explore", "ExploreSavedQuery")
         ExploreSavedQueryProject = apps.get_model("explore", "ExploreSavedQueryProject")
 
-        def create_query(*, name, dataset, query):
+        def create_query(*, name: str, dataset: int, query: dict[str, object]) -> Any:
             saved = ExploreSavedQuery.objects.create(
                 organization_id=self.organization.id,
                 name=name,
@@ -209,7 +213,7 @@ class UpdateIfSyntaxOnSpansTest(TestMigrations):
 
         return super().setup_before_migration(apps)
 
-    def test_rewrites_saved_queries(self):
+    def test_rewrites_saved_queries(self) -> None:
         # All scenarios share the same before/after state. Run the migration once
         # and keep separate failure reports for each set of read-only assertions.
         with self.subTest(scenario="basic_aggregates_and_orderby"):
@@ -221,7 +225,7 @@ class UpdateIfSyntaxOnSpansTest(TestMigrations):
         with self.subTest(scenario="already_migrated_unchanged"):
             self._assert_already_migrated_unchanged()
 
-    def _assert_basic_aggregates_and_orderby(self):
+    def _assert_basic_aggregates_and_orderby(self) -> None:
         self.query_basic.refresh_from_db()
         assert self.query_basic.query == {
             "name": "Basic if combinators",
@@ -277,7 +281,7 @@ class UpdateIfSyntaxOnSpansTest(TestMigrations):
             "interval": "1m",
         }
 
-    def _assert_equation_patterns(self):
+    def _assert_equation_patterns(self) -> None:
         self.query_equations.refresh_from_db()
         y_axes = [
             field["yAxes"][0] for field in self.query_equations.query["query"][0]["aggregateField"]
@@ -290,7 +294,7 @@ class UpdateIfSyntaxOnSpansTest(TestMigrations):
             "equation|count_if(`span.description:a:b:c`) / count_if(`span.description:c:b:a`)",
         ]
 
-    def _assert_duration_unit_thresholds(self):
+    def _assert_duration_unit_thresholds(self) -> None:
         self.query_duration_units.refresh_from_db()
         y_axes = [
             field["yAxes"][0]
@@ -302,7 +306,7 @@ class UpdateIfSyntaxOnSpansTest(TestMigrations):
             "equation|count_if(`span.duration:<7s`)/(count_if(`span.duration:>7s`)+count_if(`span.duration:<7s`))",
         ]
 
-    def _assert_already_migrated_unchanged(self):
+    def _assert_already_migrated_unchanged(self) -> None:
         self.query_already_migrated.refresh_from_db()
         y_axes = [
             field["yAxes"][0]

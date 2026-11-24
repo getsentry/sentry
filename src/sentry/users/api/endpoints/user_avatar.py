@@ -9,6 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.avatar import AvatarMixin
 from sentry.auth.principal import require_user
+from sentry.db.models.base import Model
 from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
@@ -17,7 +18,7 @@ from sentry.users.services.user.service import user_service
 
 
 @control_silo_endpoint
-class UserAvatarEndpoint(AvatarMixin[UserAvatar], UserEndpoint):
+class UserAvatarEndpoint(AvatarMixin[UserAvatar, Model], UserEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,

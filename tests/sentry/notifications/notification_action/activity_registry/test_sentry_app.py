@@ -22,6 +22,9 @@ class TestSentryAppActivityHandlerRegistration:
     def test_webhook_registered(self) -> None:
         assert activity_handler_registry.get(Action.Type.WEBHOOK) is SentryAppActivityHandler
 
+    def test_seer_stopped_is_not_sent_to_sentry_apps(self) -> None:
+        assert ActivityType.SEER_STOPPED not in SentryAppActivityHandler.compatible_activity_types
+
 
 class TestBuildActivityData(BaseWorkflowTest):
     def test_rca_completed_includes_summary(self) -> None:

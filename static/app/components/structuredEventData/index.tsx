@@ -1,11 +1,13 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {RecursiveStructuredData} from 'sentry/components/structuredEventData/recursiveStructuredData';
-import {ExpandedStateContextProvider} from 'sentry/components/structuredEventData/useExpandedState';
-import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
+
 import {t} from 'sentry/locale';
+
+import {RecursiveStructuredData} from './recursiveStructuredData';
+import {ExpandedStateContextProvider} from './useExpandedState';
+import {getDefaultExpanded} from './utils';
 
 export type StructedEventDataConfig = {
   isBoolean?: (value: unknown) => boolean;

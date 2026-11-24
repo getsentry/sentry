@@ -4,9 +4,9 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol
 
-from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
+from sentry.auth.principal import RequestPrincipal
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.email import MessageBuilder
 
@@ -32,7 +32,7 @@ class SecurityEmailAccount(Protocol):
 def generate_security_email(
     account: User | RpcUser | SecurityEmailAccount,
     type: str,
-    actor: AnonymousUser | User | RpcUser,
+    actor: RequestPrincipal,
     ip_address: str,
     context: Mapping[str, Any] | None = None,
     current_datetime: datetime | None = None,

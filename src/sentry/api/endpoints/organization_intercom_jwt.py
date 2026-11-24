@@ -2,7 +2,6 @@ import datetime
 import logging
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,6 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint
+from sentry.auth.principal import require_user
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -49,8 +49,7 @@ class OrganizationIntercomJwtEndpoint(ControlSiloOrganizationEndpoint):
         Returns a JWT signed with HS256 containing user identity claims,
         along with user data for the frontend to pass to Intercom.
         """
-        if isinstance(request.user, AnonymousUser):
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        user = require_user(request)
 
         signing_secret = settings.SENTRY_INTERCOM_API_SECRET
         if not signing_secret:
@@ -60,7 +59,6 @@ class OrganizationIntercomJwtEndpoint(ControlSiloOrganizationEndpoint):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
-        user = request.user
         now = int(datetime.datetime.now(datetime.UTC).timestamp())
         exp = now + JWT_VALIDITY_WINDOW_SECONDS
 

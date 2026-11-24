@@ -4,30 +4,27 @@ import {
   DomainViewHeader,
   type Props as HeaderProps,
 } from 'sentry/views/insights/pages/domainViewHeader';
-import {
-  MOBILE_LANDING_SUB_PATH,
-  MOBILE_LANDING_TITLE,
-  MODULES,
-} from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 
-type Props = {
+import {MOBILE_LANDING_SUB_PATH, MOBILE_LANDING_TITLE, MODULES} from './settings';
+
+type Props<T extends string = string> = {
   breadcrumbs?: HeaderProps['additionalBreadCrumbs'];
   headerActions?: HeaderProps['additonalHeaderActions'];
   headerTitle?: HeaderProps['headerTitle'];
   hideDefaultTabs?: HeaderProps['hideDefaultTabs'];
   module?: HeaderProps['selectedModule'];
-  tabs?: HeaderProps['tabs'];
+  tabs?: HeaderProps<T>['tabs'];
 };
 
-export function MobileHeader({
+export function MobileHeader<T extends string = string>({
   module,
   hideDefaultTabs,
   headerActions,
   headerTitle,
   tabs,
   breadcrumbs,
-}: Props) {
+}: Props<T>) {
   const organization = useOrganization();
 
   const mobileBaseUrl = normalizeUrl(

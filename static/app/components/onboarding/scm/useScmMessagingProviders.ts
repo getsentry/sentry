@@ -1,21 +1,22 @@
 import {useMemo} from 'react';
 import {useQueries, type QueryObserverResult} from '@tanstack/react-query';
 
-import {
-  SCM_MESSAGING_PROVIDER_KEYS,
-  type ScmMessagingProviderKey,
-} from 'sentry/components/onboarding/scm/messagingProviders';
-import {useScmMessagingIntegrationsQuery} from 'sentry/components/onboarding/scm/useScmMessagingIntegrationsQuery';
-import {
-  isEligibleForIssueAlerts,
-  isIntegrationActive,
-} from 'sentry/components/onboarding/scm/useScmMessagingSetupValidation';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {
+  SCM_MESSAGING_PROVIDER_KEYS,
+  type ScmMessagingProviderKey,
+} from './messagingProviders';
+import {useScmMessagingIntegrationsQuery} from './useScmMessagingIntegrationsQuery';
+import {
+  isEligibleForIssueAlerts,
+  isIntegrationActive,
+} from './useScmMessagingSetupValidation';
 
 /**
  * Settled fetch-state for a single curated messaging provider row.

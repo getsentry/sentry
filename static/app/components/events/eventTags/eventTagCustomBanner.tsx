@@ -7,10 +7,11 @@ import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
+
+import {TAGS_DOCS_LINK} from './util';
 
 export function EventTagCustomBanner() {
   return (

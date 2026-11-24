@@ -246,6 +246,39 @@ class ThreadingServiceStoreNewThreadTest(ThreadingServiceTestBase):
         assert NotificationRecord.objects.count() == 2
 
 
+class ThreadingServiceGetOrCreateThreadTest(ThreadingServiceTestBase):
+    def test_creates_thread_without_record(self) -> None:
+        thread = ThreadingService.get_or_create_thread(
+            threading_config={
+                **self.threading_config,
+                "provider_data": {"final_sent": False},
+                "object_type": NotificationThreadObjectType.INVESTIGATION,
+                "object_id": 456,
+                "integration_id": 42,
+            }
+        )
+
+        assert thread.thread_key == self.thread_key
+        assert thread.thread_identifier == self.thread_identifier
+        assert thread.provider_data == {"final_sent": False}
+        assert thread.object_type == NotificationThreadObjectType.INVESTIGATION
+        assert thread.object_id == 456
+        assert thread.integration_id == 42
+        assert not NotificationRecord.objects.exists()
+
+    def test_returns_existing_thread(self) -> None:
+        first = ThreadingService.get_or_create_thread(threading_config=self.threading_config)
+        first.update(provider_data={"final_sent": True})
+
+        second = ThreadingService.get_or_create_thread(
+            threading_config={**self.threading_config, "provider_data": {"final_sent": False}}
+        )
+
+        assert second.id == first.id
+        assert second.provider_data == {"final_sent": True}
+        assert NotificationThread.objects.count() == 1
+
+
 class ThreadingServiceGetThreadsForObjectTest(ThreadingServiceTestBase):
     def store_thread(
         self,

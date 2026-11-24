@@ -6,10 +6,11 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import {IssueListSortOptions} from 'sentry/views/issueList/actions/sortOptions';
-import {IssueSearch} from 'sentry/views/issueList/issueSearch';
-import {IssueViewSaveButton} from 'sentry/views/issueList/issueViews/issueViewSaveButton';
-import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {IssueListSortOptions} from './actions/sortOptions';
+import {IssueViewSaveButton} from './issueViews/issueViewSaveButton';
+import {IssueSearch} from './issueSearch';
+import type {IssueSortOptions} from './utils';
 
 interface Props {
   onSearch: (query: string) => void;
@@ -23,11 +24,7 @@ const RESET_PARAMS_ON_CHANGE = ['page', 'cursor'];
 export function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
   return (
     <Grid
-      columns={{
-        zero: '100%',
-        xl: '1fr auto',
-        '4xl': 'auto 1fr auto',
-      }}
+      columns={{zero: '100%', xl: '1fr auto', '4xl': 'auto 1fr auto'}}
       areas={{
         zero: `
           "page-filters"
@@ -53,12 +50,7 @@ export function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
       <Search {...{query, onSearch}} />
 
       <Flex justifySelf="end" gap="md" area="sort-save" align="start">
-        <IssueListSortOptions
-          query={query}
-          sort={sort}
-          onSelect={onSortChange}
-          triggerSize="md"
-        />
+        <IssueListSortOptions sort={sort} onSelect={onSortChange} triggerSize="md" />
 
         <IssueViewSaveButton query={query} sort={sort} />
       </Flex>

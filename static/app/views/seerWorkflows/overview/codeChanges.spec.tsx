@@ -5,8 +5,9 @@ import {
   DiffLineType,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
-import {CodeChanges} from 'sentry/views/seerWorkflows/overview/codeChanges';
-import type {OverviewCodeChangeFile} from 'sentry/views/seerWorkflows/overview/types';
+
+import {CodeChanges} from './codeChanges';
+import type {OverviewCodeChangeFile} from './types';
 
 function fileFixture(
   overrides: Partial<FilePatch> = {},

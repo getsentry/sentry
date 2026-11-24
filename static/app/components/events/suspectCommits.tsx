@@ -5,7 +5,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {CommitRow} from 'sentry/components/commitRow';
-import {SuspectCommitFeedback} from 'sentry/components/events/suspectCommitFeedback';
 import {Panel} from 'sentry/components/panels/panel';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {t} from 'sentry/locale';
@@ -20,6 +19,8 @@ import {useCommitters} from 'sentry/utils/useCommitters';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 
+import {SuspectCommitFeedback} from './suspectCommitFeedback';
+
 interface Props {
   eventId: string;
   group: Group;
@@ -29,11 +30,7 @@ interface Props {
 export function SuspectCommits({group, eventId, projectSlug}: Props) {
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug});
-  const {data} = useCommitters({
-    eventId,
-    projectSlug,
-    group,
-  });
+  const {data} = useCommitters({eventId, projectSlug, group});
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
   const committers = useMemo(

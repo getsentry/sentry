@@ -8,37 +8,19 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
-import {TeamSelector} from 'sentry/components/teamSelector';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 
-jest.mock('sentry/actionCreators/projects', () => ({
-  addTeamToProject: jest.fn(),
-}));
-jest.mock('sentry/actionCreators/modal', () => ({
-  openCreateTeamModal: jest.fn(),
-}));
+import {TeamSelector} from './teamSelector';
+
+jest.mock('sentry/actionCreators/projects', () => ({addTeamToProject: jest.fn()}));
+jest.mock('sentry/actionCreators/modal', () => ({openCreateTeamModal: jest.fn()}));
 
 const teamData = [
-  {
-    id: '1',
-    slug: 'team1',
-    name: 'Team 1',
-    isMember: true,
-  },
-  {
-    id: '2',
-    slug: 'team2',
-    name: 'Team 2',
-    isMember: false,
-  },
-  {
-    id: '3',
-    slug: 'team3',
-    name: 'Team 3',
-    isMember: false,
-  },
+  {id: '1', slug: 'team1', name: 'Team 1', isMember: true},
+  {id: '2', slug: 'team2', name: 'Team 2', isMember: false},
+  {id: '3', slug: 'team3', name: 'Team 3', isMember: false},
 ];
 const teams = teamData.map(data => TeamFixture(data));
 const project = ProjectFixture({teams: [teams[0]!]});
@@ -181,9 +163,7 @@ describe('Team Selector', () => {
     createWrapper({useId: true, onChange: onChangeMock});
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/teams/`,
-    });
+    MockApiClient.addMockResponse({url: `/organizations/${organization.slug}/teams/`});
 
     await userEvent.type(screen.getByLabelText('Select a team'), 'team2');
 
@@ -196,19 +176,11 @@ describe('Team Selector', () => {
   });
 
   it('allows to create a new team if org admin', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/teams/`,
-    });
+    MockApiClient.addMockResponse({url: `/organizations/${organization.slug}/teams/`});
     const onChangeMock = jest.fn();
     const orgWithAccess = OrganizationFixture({access: ['project:admin']});
 
-    createWrapper(
-      {
-        allowCreate: true,
-        onChange: onChangeMock,
-      },
-      orgWithAccess
-    );
+    createWrapper({allowCreate: true, onChange: onChangeMock}, orgWithAccess);
 
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
     await userEvent.click(screen.getByText('Create team'));
@@ -217,18 +189,12 @@ describe('Team Selector', () => {
   });
 
   it('allows to create a new team if org admin (multiple select)', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/teams/`,
-    });
+    MockApiClient.addMockResponse({url: `/organizations/${organization.slug}/teams/`});
     const onChangeMock = jest.fn();
     const orgWithAccess = OrganizationFixture({access: ['project:admin']});
 
     const {rerender} = createWrapper(
-      {
-        allowCreate: true,
-        multiple: true,
-        onChange: onChangeMock,
-      },
+      {allowCreate: true, multiple: true, onChange: onChangeMock},
       orgWithAccess
     );
 
@@ -246,19 +212,11 @@ describe('Team Selector', () => {
   });
 
   it('does not allow to create a new team if not org owner', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/teams/`,
-    });
+    MockApiClient.addMockResponse({url: `/organizations/${organization.slug}/teams/`});
     const onChangeMock = jest.fn();
     const orgWithoutAccess = OrganizationFixture({access: ['project:write']});
 
-    createWrapper(
-      {
-        allowCreate: true,
-        onChange: onChangeMock,
-      },
-      orgWithoutAccess
-    );
+    createWrapper({allowCreate: true, onChange: onChangeMock}, orgWithoutAccess);
 
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
     await userEvent.click(screen.getByText('Create team'));

@@ -49,18 +49,13 @@ import {
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useSpansQueryWithoutPageFilters} from 'sentry/views/insights/common/queries/useSpansQuery';
-import {getIsAiGenerationNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getIsAiGenerationNode,
+  getIsExecuteToolNode,
+} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/traceDetails/traceApi/useTransaction';
 import {IssueList} from 'sentry/views/performance/traceDetails/traceDrawer/details/issues/issues';
-import {AIInputSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput';
-import {AIIOAlert} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiIOAlert';
-import {AIOutputSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
-import {AttributesSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/attributes';
-import {CacheLifecycleSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/cacheLifecycle';
-import {Contexts} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/contexts';
-import {MCPInputSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/mcpInput';
-import {MCPOutputSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/mcpOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import {BreadCrumbs} from 'sentry/views/performance/traceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import {ReplayPreview} from 'sentry/views/performance/traceDetails/traceDrawer/details/transaction/sections/replayPreview';
@@ -70,9 +65,19 @@ import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModel
 
 import {LogDetails} from './components/logDetails';
 import {ProfileDetails} from './components/profileDetails';
+import {AIInputSection} from './eapSections/aiInput';
+import {AIIOAlert} from './eapSections/aiIOAlert';
+import {AIOutputSection} from './eapSections/aiOutput';
+import {AttributesSection} from './eapSections/attributes';
+import {CacheLifecycleSection} from './eapSections/cacheLifecycle';
+import {Contexts} from './eapSections/contexts';
 import {SpanDescription as EAPSpanDescription} from './eapSections/description';
+import {MCPInputSection} from './eapSections/mcpInput';
+import {MCPOutputSection} from './eapSections/mcpOutput';
+import {ServerRenderingSection} from './eapSections/serverRendering';
 import {TraceSpanLinks} from './eapSections/traceSpanLinks';
 import {HttpErrorCard} from './sections/httpErrorCard';
+import {ToolErrorCard} from './sections/toolErrorCard';
 
 export function useAvgSpanDuration(
   span: TraceTree.EAPSpan | undefined,
@@ -105,7 +110,6 @@ export function useAvgSpanDuration(
     eventView,
     initialData: [],
     referrer: 'api.explore.spans-aggregates-table', // TODO: replace with trace span details referrer
-    trackResponseAnalytics: false,
   });
 
   return result.data?.[0]?.['avg(span.duration)'];
@@ -151,7 +155,7 @@ export function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
     projectId: node.value.project_id.toString(),
     traceId: node.extra?.replayTraceSlug ?? traceId,
     traceItemType: TraceItemDataset.SPANS,
-    referrer: 'api.explore.log-item-details', // TODO: change to span details
+    referrer: 'api.trace-view.span-detail',
     timestamp: node.value.start_timestamp,
     enabled: true,
   });
@@ -400,7 +404,13 @@ function EAPSpanNodeDetailsContent({
         {issues.length > 0 ? (
           <IssueList organization={organization} issues={issues} node={node} />
         ) : null}
-        {node.hasHttpError && issues.length === 0 ? <HttpErrorCard node={node} /> : null}
+        {issues.length === 0 ? (
+          getIsExecuteToolNode(node) ? (
+            <ToolErrorCard node={node} attributes={attributes} />
+          ) : (
+            <HttpErrorCard node={node} />
+          )
+        ) : null}
         <EAPSpanDescription
           node={node}
           project={project}
@@ -410,17 +420,24 @@ function EAPSpanNodeDetailsContent({
           avgSpanDuration={avgSpanDuration}
           hideNodeActions={hideNodeActions}
         />
-        {organization.features.includes('performance-trace-cache-lifecycle') ? (
-          <CacheLifecycleSection
-            node={node}
-            attributes={attributes}
-            links={links}
-            location={location}
-            organization={organization}
-            tree={tree}
-            onTabScrollToNode={onTabScrollToNode}
-          />
-        ) : null}
+        <CacheLifecycleSection
+          node={node}
+          attributes={attributes}
+          links={links}
+          location={location}
+          organization={organization}
+          tree={tree}
+          onTabScrollToNode={onTabScrollToNode}
+        />
+        <ServerRenderingSection
+          node={node}
+          attributes={attributes}
+          links={links}
+          location={location}
+          organization={organization}
+          tree={tree}
+          onTabScrollToNode={onTabScrollToNode}
+        />
         <AIIOAlert node={node} attributes={attributes} />
         <AIInputSection
           node={node}

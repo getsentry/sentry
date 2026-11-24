@@ -48,7 +48,7 @@ class CodeExplanationPermission(ProjectPermission):
 @extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class ProjectCodeExplanationEndpoint(ProjectEndpoint):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.AGENT_TRACING
     publish_status = {"POST": ApiPublishStatus.PRIVATE}
     permission_classes = (CodeExplanationPermission,)
     enforce_rate_limit = True

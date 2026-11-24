@@ -1,7 +1,8 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {AnomalyType, type Anomaly} from 'sentry/views/alerts/types';
-import {getAnomalyMarkerSeries} from 'sentry/views/detectors/utils/anomalyChart';
+
+import {getAnomalyMarkerSeries} from './anomalyChart';
 
 const theme = ThemeFixture();
 
@@ -22,16 +23,8 @@ describe('anomalyChart', () => {
 
   it('should not create anomaly values', () => {
     const input: Anomaly[] = [
-      {
-        anomaly,
-        timestamp: d(-3),
-        value: 1,
-      },
-      {
-        anomaly,
-        timestamp: d(-2),
-        value: 1,
-      },
+      {anomaly, timestamp: d(-3), value: 1},
+      {anomaly, timestamp: d(-2), value: 1},
     ];
 
     expect(getAnomalyMarkerSeries(input, {theme})).toHaveLength(1);
@@ -39,26 +32,10 @@ describe('anomalyChart', () => {
 
   it('should create two anomaly areas', () => {
     const input: Anomaly[] = [
-      {
-        anomaly: anomaly_high,
-        timestamp: d(-3),
-        value: 1,
-      },
-      {
-        anomaly: anomaly_high,
-        timestamp: d(-2),
-        value: 1,
-      },
-      {
-        anomaly,
-        timestamp: d(-1),
-        value: 0,
-      },
-      {
-        anomaly,
-        timestamp: d(-1),
-        value: 0,
-      },
+      {anomaly: anomaly_high, timestamp: d(-3), value: 1},
+      {anomaly: anomaly_high, timestamp: d(-2), value: 1},
+      {anomaly, timestamp: d(-1), value: 0},
+      {anomaly, timestamp: d(-1), value: 0},
     ];
 
     expect(getAnomalyMarkerSeries(input, {theme})).toHaveLength(2);
@@ -66,36 +43,12 @@ describe('anomalyChart', () => {
 
   it('should create three anomaly areas', () => {
     const input: Anomaly[] = [
-      {
-        anomaly: anomaly_high,
-        timestamp: d(-3),
-        value: 1,
-      },
-      {
-        anomaly: anomaly_high,
-        timestamp: d(-2),
-        value: 1,
-      },
-      {
-        anomaly,
-        timestamp: d(-1),
-        value: 0,
-      },
-      {
-        anomaly,
-        timestamp: d(-1),
-        value: 0,
-      },
-      {
-        anomaly: anomaly_low,
-        timestamp: d(1),
-        value: 2,
-      },
-      {
-        anomaly: anomaly_low,
-        timestamp: d(2),
-        value: 2,
-      },
+      {anomaly: anomaly_high, timestamp: d(-3), value: 1},
+      {anomaly: anomaly_high, timestamp: d(-2), value: 1},
+      {anomaly, timestamp: d(-1), value: 0},
+      {anomaly, timestamp: d(-1), value: 0},
+      {anomaly: anomaly_low, timestamp: d(1), value: 2},
+      {anomaly: anomaly_low, timestamp: d(2), value: 2},
     ];
 
     expect(getAnomalyMarkerSeries(input, {theme})).toHaveLength(3);

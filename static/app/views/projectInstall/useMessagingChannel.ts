@@ -5,23 +5,17 @@ import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
   type ChannelIdentityField,
   getChannelSelectedBy,
   type IntegrationChannel,
-} from 'sentry/views/projectInstall/messagingIntegrationTypes';
-import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
+} from './messagingIntegrationTypes';
+import {validateChannelQueryOptions} from './useValidateChannel';
 
-type Channel = {
-  display: string;
-  id: string;
-  name: string;
-  type: string;
-};
+type Channel = {display: string; id: string; name: string; type: string};
 
-type ChannelListResponse = {
-  results: Channel[];
-};
+type ChannelListResponse = {results: Channel[]};
 
 /**
  * A picker entry for a raw channel, carrying both identifiers so a caller can
@@ -106,10 +100,7 @@ export function useMessagingChannel({
       {
         path:
           provider && integration?.id
-            ? {
-                organizationIdOrSlug: organization.slug,
-                integrationId: integration.id,
-              }
+            ? {organizationIdOrSlug: organization.slug, integrationId: integration.id}
             : skipToken,
         staleTime: refetchOnWindowFocus ? 0 : Infinity,
       }

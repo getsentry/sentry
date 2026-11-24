@@ -5,6 +5,7 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {
   act,
+  cleanup,
   render,
   renderHookWithProviders,
   screen,
@@ -14,10 +15,11 @@ import {
 
 import {Button} from '@sentry/scraps/button';
 
-import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {HOUR, MINUTE} from 'sentry/utils/formatters';
+
+import {useDroppedData} from './useDroppedData';
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],
@@ -53,10 +55,6 @@ function ChartWithLateConsumer() {
 describe('useDroppedData', () => {
   beforeEach(() => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it('requests dropped events and returns them', async () => {
@@ -113,6 +111,26 @@ describe('useDroppedData', () => {
     expect(result.current.droppedEvents).toEqual(droppedEvents);
   });
 
+  it('requests the chart projects over the page filter projects', async () => {
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-dropped/`,
+      body: droppedEventsBody(),
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useDroppedData({dataset: DiscoverDatasets.SPANS, interval: '1h', projects: [2]}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    expect(request).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events-dropped/`,
+      expect.objectContaining({query: expect.objectContaining({project: [2]})})
+    );
+  });
+
   it('does not request dropped events without the feature flag', () => {
     const request = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-dropped/`,
@@ -135,14 +153,13 @@ describe('useDroppedData', () => {
       jest.useFakeTimers({advanceTimers: true});
       jest.setSystemTime(now);
       PageFiltersStore.onInitializeUrlState(
-        PageFiltersFixture({
-          datetime: {start: null, end: null, period: '14d', utc: null},
-        })
+        PageFiltersFixture({datetime: {start: null, end: null, period: '14d', utc: null}})
       );
     });
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();

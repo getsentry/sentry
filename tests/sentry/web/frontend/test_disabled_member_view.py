@@ -19,7 +19,7 @@ class DisabledMemberViewTest(TestCase):
         self.user = self.create_user()
         self.login_as(self.user)
 
-    def create_one_member(self, flags=None) -> None:
+    def create_one_member(self, flags: int | None = None) -> None:
         self.create_member(user=self.user, organization=self.org, role="member", flags=flags)
 
     def test_member_missing(self) -> None:

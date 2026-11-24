@@ -8,25 +8,27 @@ class MockRateLimitProvider:
         self._get_and_set_return = get_and_set_return
         self._accounted_usage = accounted_usage
         self.accounted_keys: list[str] = []
-        self.set_kvs: dict = {}
+        self.set_kvs: dict[str, tuple[int, int | None]] = {}
         self.get_and_set_calls: list[tuple[str, str, int]] = []
 
-    def get_and_set_rate_limit(self, total_key, usage_key, expiration):
+    def get_and_set_rate_limit(
+        self, total_key: str, usage_key: str, expiration: int
+    ) -> tuple[int | None, int]:
         self.get_and_set_calls.append((total_key, usage_key, expiration))
         return self._get_and_set_return
 
-    def get_accounted_usage(self, keys):
+    def get_accounted_usage(self, keys: list[str]) -> int:
         self.accounted_keys.extend(keys)
         return self._accounted_usage
 
-    def set_key_values(self, kvs):
+    def set_key_values(self, kvs: dict[str, tuple[int, int | None]]) -> None:
         self.set_kvs.update(kvs)
 
 
 def make_limiter(
     get_and_set_return: tuple[int | None, int] = (None, 0),
     accounted_usage: int = 0,
-    referrer_allocation: dict | None = None,
+    referrer_allocation: dict[str, float] | None = None,
     get_time_in_seconds: Callable[[], int] = lambda: 73,
     resource_windows: dict[str, int] | None = None,
 ) -> tuple[DynamicRateLimiter, MockRateLimitProvider]:
@@ -50,14 +52,16 @@ class StatefulRateLimitProvider:
         self.capacities: dict[str, int] = {}
         self.usage: dict[str, int] = {}
 
-    def get_and_set_rate_limit(self, total_key, usage_key, expiration):
+    def get_and_set_rate_limit(
+        self, total_key: str, usage_key: str, expiration: int
+    ) -> tuple[int | None, int]:
         self.usage[usage_key] = self.usage.get(usage_key, 0) + 1
         return (self.capacities.get(total_key), self.usage[usage_key])
 
-    def get_accounted_usage(self, keys):
+    def get_accounted_usage(self, keys: list[str]) -> int:
         return sum(self.usage.get(key, 0) for key in keys)
 
-    def set_key_values(self, kvs):
+    def set_key_values(self, kvs: dict[str, tuple[int, int | None]]) -> None:
         for key, (value, _) in kvs.items():
             self.capacities[key] = value
 

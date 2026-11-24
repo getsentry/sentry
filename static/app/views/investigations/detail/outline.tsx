@@ -7,14 +7,15 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {scrollIntoViewBelowTopBar} from 'sentry/utils/scrollIntoViewBelowTopBar';
+import type {InvestigationBlock} from 'sentry/views/investigations/types';
+import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
+
 import {
   getBlockElementId,
   getBlockHeadingElement,
   getTextBlockMarkdown,
   isBlockWorking,
-} from 'sentry/views/investigations/detail/block';
-import type {InvestigationBlock} from 'sentry/views/investigations/types';
-import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
+} from './block';
 
 export const SUMMARY_ELEMENT_ID = 'investigation-summary';
 export const HYPOTHESES_ELEMENT_ID = 'investigation-hypotheses';

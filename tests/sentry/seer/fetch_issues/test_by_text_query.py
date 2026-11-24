@@ -4,6 +4,7 @@ from sentry.models.repository import Repository
 from sentry.seer.fetch_issues import utils
 from sentry.seer.fetch_issues.by_text_query import _fetch_issues_from_repo_projects, fetch_issues
 from sentry.seer.fetch_issues.utils import get_repo_and_projects
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -11,14 +12,14 @@ from sentry.testutils.helpers.datetime import before_now
 class CreateEventTestCase(TestCase):
     def _create_event(
         self,
-        culprit=None,
-        timestamp=None,
-        filenames=None,
-        function_names=None,
-        project_id=None,
-        user_id=None,
-        handled=False,
-    ):
+        culprit: str | None = None,
+        timestamp: str | None = None,
+        filenames: list[str] | None = None,
+        function_names: list[str] | None = None,
+        project_id: int | None = None,
+        user_id: str | None = None,
+        handled: bool = False,
+    ) -> Event:
         if culprit is None:
             culprit = "issue0"
         if timestamp is None:
@@ -36,7 +37,7 @@ class CreateEventTestCase(TestCase):
         for i, filename in enumerate(filenames):
             frames.append({"filename": filename, "function": function_names[i]})
 
-        return self.store_event(
+        event: Event = self.store_event(
             data={
                 "message": "hello!",
                 "culprit": culprit,
@@ -57,6 +58,7 @@ class CreateEventTestCase(TestCase):
             },
             project_id=project_id,
         )
+        return event
 
 
 class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
@@ -79,12 +81,14 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
 
     def test_fetch_issues_message_substring_search(self) -> None:
         """Test that text queries do case-insensitive substring search in issue messages."""
-        group = self._create_event(
+        event = self._create_event(
             filenames=["auth.py", "utils.py"],
             function_names=["authenticate", "validate"],
             culprit="Authentication failed",
             user_id="1",
-        ).group
+        )
+        assert event.group is not None
+        group = event.group
 
         # Test queries that should match content in the message
         # Message will be something like: "hello! Error auth.py authenticate Authentication failed"
@@ -159,12 +163,14 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
 
     def test_fetch_issues_culprit_search(self) -> None:
         """Test that queries match content in the culprit field."""
-        group = self._create_event(
+        event = self._create_event(
             filenames=["test.py"],
             function_names=["test_func"],
             culprit="Database connection timeout",
             user_id="1",
-        ).group
+        )
+        assert event.group is not None
+        group = event.group
 
         # Query for a keyword from the culprit
         assert self.gh_repo.external_id is not None
@@ -216,6 +222,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             culprit="Authentication failed",
             user_id="1",
         )
+        assert event.group is not None
         expected_group = event.group
 
         # Get repo projects

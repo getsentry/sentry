@@ -1,5 +1,8 @@
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TypedDict
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.explore.models import (
@@ -7,6 +10,8 @@ from sentry.explore.models import (
     TraceItemAttributeTypes,
     TraceItemTypes,
 )
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class TraceItemAttributeContextResponse(TypedDict):
@@ -25,7 +30,11 @@ class TraceItemAttributeContextResponse(TypedDict):
 @register(TraceItemAttributeContext)
 class TraceItemAttributeContextSerializer(Serializer):
     def serialize(
-        self, obj: TraceItemAttributeContext, attrs: Any, user: Any, **kwargs: Any
+        self,
+        obj: TraceItemAttributeContext,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
     ) -> TraceItemAttributeContextResponse:
         return {
             "id": str(obj.id),

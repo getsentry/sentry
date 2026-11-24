@@ -5,12 +5,14 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t, tn} from 'sentry/locale';
-import {ActivityLineDotMarker} from 'sentry/views/issueDetails/activitySection/activityLineItem/marker';
 import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
+
+import {ActivityLineDotMarker} from './marker';
 
 interface CollapsedStatusActivityRowProps {
   children: ReactNode;
   eventCount: number;
+  defaultExpanded?: boolean;
 }
 
 interface StatusActivityToggleRowProps {
@@ -20,9 +22,10 @@ interface StatusActivityToggleRowProps {
 
 export function CollapsedStatusActivityRow({
   children,
+  defaultExpanded = false,
   eventCount,
 }: CollapsedStatusActivityRowProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   if (!isExpanded) {
     return (

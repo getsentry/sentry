@@ -3,12 +3,13 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 import type {ControlProps} from '@sentry/scraps/select';
 
-import {RoleSelectControl} from 'sentry/components/roleSelectControl';
 import type {Organization, Team, TeamMember} from 'sentry/types/organization';
 import {
   hasOrgRoleOverwrite,
   RoleOverwriteIcon,
 } from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
+
+import {RoleSelectControl} from './roleSelectControl';
 
 interface Props {
   member: TeamMember;

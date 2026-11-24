@@ -20,7 +20,7 @@ from sentry.utils.http import absolute_uri
 logger = logging.getLogger(__name__)
 
 
-def _org_exists(slug):
+def _org_exists(slug: str | None) -> bool:
     if not slug:
         return False
     return (
@@ -28,25 +28,26 @@ def _org_exists(slug):
     )
 
 
-def _query_string(request):
+def _query_string(request: HttpRequest) -> str:
     qs = request.META.get("QUERY_STRING") or ""
     if qs:
         qs = f"?{qs}"
     return qs
 
 
-def _resolve_activeorg(request):
+def _resolve_activeorg(request: HttpRequest) -> str | None:
     subdomain = request.subdomain
     session = getattr(request, "session", None)
     if _org_exists(subdomain):
         # Assume subdomain is an org slug being accessed
         return subdomain
     elif session and "activeorg" in session and _org_exists(session["activeorg"]):
-        return session["activeorg"]
+        activeorg = session["activeorg"]
+        return activeorg
     return None
 
 
-def _resolve_redirect_url(request, activeorg):
+def _resolve_redirect_url(request: HttpRequest, activeorg: str) -> str | None:
     subdomain = request.subdomain
     redirect_subdomain = subdomain != activeorg
     redirect_url = ""
@@ -114,8 +115,8 @@ class CustomerDomainMiddleware:
                 del session["activeorg"]
             return self.get_response(request)
         auth.set_active_org(request, activeorg)
-        redirect_url = _resolve_redirect_url(request, activeorg)
-        if redirect_url is not None and len(redirect_url) > 0:
-            logger.info("customer_domain.redirect", extra={"location": redirect_url})
-            return HttpResponseRedirect(redirect_url)
+        activeorg_redirect_url = _resolve_redirect_url(request, activeorg)
+        if activeorg_redirect_url is not None and len(activeorg_redirect_url) > 0:
+            logger.info("customer_domain.redirect", extra={"location": activeorg_redirect_url})
+            return HttpResponseRedirect(activeorg_redirect_url)
         return self.get_response(request)

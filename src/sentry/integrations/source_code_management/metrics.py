@@ -36,7 +36,6 @@ class SCMIntegrationInteractionType(StrEnum):
     # SourceCodeSearchEndpoint
     HANDLE_SEARCH_ISSUES = "handle_search_issues"
     HANDLE_SEARCH_REPOSITORIES = "handle_search_repositories"
-    GET = "get"
 
     # CommitContextIntegration
     GET_BLAME_FOR_FILES = "get_blame_for_files"
@@ -65,12 +64,6 @@ class SCMIntegrationInteractionType(StrEnum):
 
     # Status Checks
     CREATE_STATUS_CHECK = "create_status_check"
-
-    # Rate Limiting
-    GET_RATE_LIMIT = "get_rate_limit"
-
-    # Repo Trees
-    GET_REPO_TREE = "get_repo_tree"
 
 
 _current_scm_interaction_type: ContextVar[SCMIntegrationInteractionType | None] = ContextVar(
@@ -208,13 +201,9 @@ class LinkAllReposHaltReason(StrEnum):
 
 class SourceCodeSearchEndpointHaltReason(StrEnum):
     """
-    Reasons why a SourceCodeSearchEndpoint method (handle_search_issues,
-    handle_search_repositories, or get) may halt without success/failure.
+    Reasons why a SourceCodeSearchEndpoint search handler may halt without success/failure.
     """
 
     NO_ISSUE_TRACKER = "no_issue_tracker"
     RATE_LIMITED = "rate_limited"
     MISSING_REPOSITORY_OR_NO_ACCESS = "missing_repository_or_no_access"
-    MISSING_INTEGRATION = "missing_integration"
-    SERIALIZER_ERRORS = "serializer_errors"
-    MISSING_REPOSITORY_FIELD = "missing_repository_field"

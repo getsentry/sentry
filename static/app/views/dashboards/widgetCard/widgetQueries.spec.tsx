@@ -9,8 +9,9 @@ import type {PageFilters} from 'sentry/types/core';
 import {WidgetInViewportProvider} from 'sentry/views/dashboards/contexts/widgetViewportContext';
 import {DashboardFilterKeys, DisplayType} from 'sentry/views/dashboards/types';
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
-import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {WidgetQueries} from 'sentry/views/dashboards/widgetCard/widgetQueries';
+
+import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
+import {WidgetQueries} from './widgetQueries';
 
 describe('Dashboards > WidgetQueries', () => {
   const initialData = initializeOrg();
@@ -83,12 +84,7 @@ describe('Dashboards > WidgetQueries', () => {
   const selection: PageFilters = {
     projects: [1],
     environments: ['prod'],
-    datetime: {
-      period: '14d',
-      start: null,
-      end: null,
-      utc: false,
-    },
+    datetime: {period: '14d', start: null, end: null, utc: false},
   };
 
   afterEach(() => {
@@ -234,12 +230,7 @@ describe('Dashboards > WidgetQueries', () => {
     const longSelection: PageFilters = {
       projects: [1],
       environments: ['prod', 'dev'],
-      datetime: {
-        period: '90d',
-        start: null,
-        end: null,
-        utc: false,
-      },
+      datetime: {period: '90d', start: null, end: null, utc: false},
     };
 
     // Initialize PageFiltersStore with the specific selection for this test
@@ -283,19 +274,14 @@ describe('Dashboards > WidgetQueries', () => {
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(errorMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-timeseries/',
-      expect.objectContaining({
-        query: expect.objectContaining({interval: '30m'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({interval: '30m'})})
     );
   });
 
   it('can send table result queries', async () => {
     const tableMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {'sdk.name': 'string'},
-        data: [{'sdk.name': 'python'}],
-      },
+      body: {meta: {'sdk.name': 'string'}, data: [{'sdk.name': 'python'}]},
     });
 
     // Initialize PageFiltersStore with selection
@@ -335,18 +321,12 @@ describe('Dashboards > WidgetQueries', () => {
   it('can send multiple table queries', async () => {
     const firstQuery = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {'sdk.name': 'string'},
-        data: [{'sdk.name': 'python'}],
-      },
+      body: {meta: {'sdk.name': 'string'}, data: [{'sdk.name': 'python'}]},
       match: [MockApiClient.matchQuery({query: 'event.type:error'})],
     });
     const secondQuery = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {title: 'string'},
-        data: [{title: 'ValueError'}],
-      },
+      body: {meta: {title: 'string'}, data: [{title: 'ValueError'}]},
       match: [MockApiClient.matchQuery({query: 'title:ValueError'})],
     });
 
@@ -398,10 +378,7 @@ describe('Dashboards > WidgetQueries', () => {
   it('can send big number result queries', async () => {
     const tableMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {'sdk.name': 'string'},
-        data: [{'sdk.name': 'python'}],
-      },
+      body: {meta: {'sdk.name': 'string'}, data: [{'sdk.name': 'python'}]},
     });
 
     // Initialize PageFiltersStore with selection
@@ -464,10 +441,7 @@ describe('Dashboards > WidgetQueries', () => {
     });
     const secondQuery = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {title: 'string'},
-        data: [{title: 'ValueError'}],
-      },
+      body: {meta: {title: 'string'}, data: [{title: 'ValueError'}]},
       match: [MockApiClient.matchQuery({query: 'title:ValueError'})],
     });
 
@@ -615,12 +589,7 @@ describe('Dashboards > WidgetQueries', () => {
 
     const longSelection = {
       ...selection,
-      datetime: {
-        period: '90d',
-        start: null,
-        end: null,
-        utc: false,
-      },
+      datetime: {period: '90d', start: null, end: null, utc: false},
     };
 
     // Initialize PageFiltersStore with longSelection
@@ -700,11 +669,7 @@ describe('Dashboards > WidgetQueries', () => {
   });
 
   it('does not inject equation aliases for top N requests', async () => {
-    const testData = initializeOrg({
-      organization: {
-        ...OrganizationFixture(),
-      },
-    });
+    const testData = initializeOrg({organization: {...OrganizationFixture()}});
     const eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
       body: {timeSeries: []},

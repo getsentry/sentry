@@ -8,8 +8,9 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
-import {MemoryChart} from 'sentry/views/explore/replays/detail/memoryPanel/memoryChart';
 import {NoRowRenderer} from 'sentry/views/explore/replays/detail/noRowRenderer';
+
+import {MemoryChart} from './memoryChart';
 
 export function MemoryPanel() {
   const replay = useReplayReader();

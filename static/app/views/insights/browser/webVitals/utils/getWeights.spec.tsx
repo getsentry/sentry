@@ -1,4 +1,4 @@
-import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
+import {getWeights} from './getWeights';
 
 describe('getWeights', () => {
   it('returns the default weights when every web vital has data', () => {

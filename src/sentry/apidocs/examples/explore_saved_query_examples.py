@@ -30,6 +30,7 @@ EXPLORE_SAVED_QUERY_OBJ = {
     "position": None,
     "isPrebuilt": False,
     "changedReason": None,
+    "queryPriority": "normal",
     "createdBy": {
         "id": "1",
         "name": "Admin",
@@ -80,6 +81,7 @@ SAVED_QUERIES = [
         "position": None,
         "isPrebuilt": False,
         "changedReason": None,
+        "queryPriority": "normal",
         "createdBy": {
             "id": "1",
             "name": "Admin",
@@ -128,6 +130,7 @@ SAVED_QUERIES = [
         "position": None,
         "isPrebuilt": False,
         "changedReason": None,
+        "queryPriority": "normal",
         "createdBy": {
             "id": "1",
             "name": "Admin",

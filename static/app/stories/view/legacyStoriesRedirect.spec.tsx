@@ -1,6 +1,6 @@
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import LegacyStoriesRedirect from 'sentry/stories/view/legacyStoriesRedirect';
+import LegacyStoriesRedirect from './legacyStoriesRedirect';
 
 describe('LegacyStoriesRedirect', () => {
   it('redirects stories deep links to scraps and preserves the query and hash', async () => {
@@ -24,9 +24,7 @@ describe('LegacyStoriesRedirect', () => {
   it('does not replace an organization slug named stories', async () => {
     const {router} = render(<LegacyStoriesRedirect />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/stories/stories/core/button/',
-        },
+        location: {pathname: '/organizations/stories/stories/core/button/'},
       },
     });
 

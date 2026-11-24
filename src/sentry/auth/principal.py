@@ -69,7 +69,7 @@ def is_acting_user(principal: RequestPrincipal, user_id: int | None) -> bool:
     return acting is not None and acting == user_id
 
 
-def owned_by_acting_user(principal: RequestPrincipal, field: str = "user_id") -> Q:
+def is_owned_by_acting_user(principal: RequestPrincipal, field: str = "user_id") -> Q:
     """
     Rows that belong to the user behind the caller: ``filter()`` it for "mine", ``exclude()``
     it for "not mine". With no user it matches nothing, so None never reaches a lookup.

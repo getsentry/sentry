@@ -12,6 +12,9 @@ EXCLUDED_ROUTE_PREFIXES = (
     "/issues/$issueId/",
     # Prefer /issues/ instead of /groups/
     "/organizations/$organizationIdOrSlug/groups/",
+    # Called by Seer's coding jobs, never the frontend. ExtractPathParams would also read its
+    # parameter as "repositoryId.git".
+    "/internal/scm-git/",
 )
 
 

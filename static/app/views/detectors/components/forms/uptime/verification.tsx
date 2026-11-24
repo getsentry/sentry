@@ -1,8 +1,9 @@
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
-import {UptimeSectionGrid} from 'sentry/views/detectors/components/forms/uptime/styles';
 import {UptimeAssertionsField} from 'sentry/views/detectors/components/uptime/assertions/field';
+
+import {UptimeSectionGrid} from './styles';
 
 export function UptimeDetectorVerificationSection({step}: {step?: number}) {
   return (

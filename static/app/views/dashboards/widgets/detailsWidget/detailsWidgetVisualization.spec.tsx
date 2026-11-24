@@ -8,9 +8,10 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
-import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import type {SpanResponse} from 'sentry/views/insights/types';
+
+import {DetailsWidgetVisualization} from './detailsWidgetVisualization';
+import type {DefaultDetailWidgetFields} from './types';
 
 type TestSpan = Pick<SpanResponse, DefaultDetailWidgetFields>;
 
@@ -36,15 +37,7 @@ describe('DetailsWidgetVisualization', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [
-          {
-            project: project.slug,
-            span_id: '123',
-            'span.domain': 'sentry.io',
-          },
-        ],
-      },
+      body: {data: [{project: project.slug, span_id: '123', 'span.domain': 'sentry.io'}]},
       match: [
         MockApiClient.matchQuery({
           referrer: 'api.dashboards.details-widget.domain-status',
@@ -54,7 +47,6 @@ describe('DetailsWidgetVisualization', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
   });
 

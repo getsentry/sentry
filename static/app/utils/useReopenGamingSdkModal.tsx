@@ -4,7 +4,9 @@ import {useQueryState} from 'nuqs';
 
 import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
 import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/privateGamingSdkAccessModal';
-import {parseAsBooleanLiteral} from 'sentry/utils/url/parseAsBooleanLiteral';
+
+import {apiOptions} from './api/apiOptions';
+import {parseAsBooleanLiteral} from './url/parseAsBooleanLiteral';
 
 export function useReopenGamingSdkModal(
   modalProps: Omit<PrivateGamingSdkAccessModalProps, 'onSubmit'> & {onSubmit?: () => void}
@@ -20,9 +22,9 @@ export function useReopenGamingSdkModal(
 
   useEffect(() => {
     if (reopenModal) {
-      queryClient.invalidateQueries({
-        queryKey: ['/users/me/user-identities/'],
-      });
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter('/users/$userId/user-identities/', {path: {userId: 'me'}})
+      );
       setReopenModal(null);
       openPrivateGamingSdkAccessModal(modalPropsRef.current);
     }

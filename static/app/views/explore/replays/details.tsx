@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import invariant from 'invariant';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 import {Stack} from '@sentry/scraps/layout';
@@ -12,21 +13,21 @@ import {
 } from 'sentry/components/replays/replayAccess';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useReplayPageview} from 'sentry/utils/replays/hooks/useReplayPageview';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {ReplayDetailsProviders} from 'sentry/views/explore/replays/detail/body/replayDetailsProviders';
-import {ReplayDetailsEntityHeader} from 'sentry/views/explore/replays/detail/header/replayDetailsEntityHeader';
-import {ReplayDetailsPageBreadcrumbs} from 'sentry/views/explore/replays/detail/header/replayDetailsPageBreadcrumbs';
-import {ReplayDetailsPage} from 'sentry/views/explore/replays/detail/page';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+
+import {ReplayDetailsProviders} from './detail/body/replayDetailsProviders';
+import {ReplayDetailsEntityHeader} from './detail/header/replayDetailsEntityHeader';
+import {ReplayDetailsPageBreadcrumbs} from './detail/header/replayDetailsPageBreadcrumbs';
+import {ReplayDetailsPage} from './detail/page';
 
 function ReplayDetailsInner() {
   return (
@@ -51,7 +52,10 @@ function ReplayDetailsInner() {
 
 function ReplayDetailsContent() {
   const user = useUser();
-  const location = useLocation();
+  const [{referrer, t_main: tab}] = useQueryStates({
+    referrer: parseAsScalar,
+    t_main: parseAsString,
+  });
   const organization = useOrganization();
   const {replaySlug} = useParams();
   invariant(replaySlug, '`replaySlug` is required as part of the route params');
@@ -60,19 +64,16 @@ function ReplayDetailsContent() {
 
   // TODO: replayId is known ahead of time and useReplayData is parsing it from the replaySlug
   // once we fix the route params and links we should fix this to accept replayId and stop returning it
-  const readerResult = useLoadReplayReader({
-    replaySlug,
-    orgSlug,
-  });
+  const readerResult = useLoadReplayReader({replaySlug, orgSlug});
   const {replay, replayRecord} = readerResult;
 
   useReplayPageview('replay.details-time-spent');
   useRouteAnalyticsEventNames('replay_details.viewed', 'Replay Details: Viewed');
   useRouteAnalyticsParams({
     organization,
-    referrer: decodeScalar(location.query.referrer),
+    referrer: referrer ?? undefined,
     user_email: user.email,
-    tab: location.query.t_main,
+    tab: tab ?? undefined,
     mobile: replay?.isVideoReplay(),
   });
 

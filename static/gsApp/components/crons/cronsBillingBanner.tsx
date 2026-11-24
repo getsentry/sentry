@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 
 import {tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
-import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {
   CronsBannerOnDemandCTA,
@@ -36,10 +36,7 @@ function getCronsPricingInfo(config?: BillingConfig): CronsPricingInfo {
   const bucket = config?.planList.find(plan => plan.id === 'am2_business')?.planCategories
     .monitorSeats?.[0];
 
-  return {
-    onDemandPrice: bucket?.onDemandPrice,
-    reserved: bucket?.events,
-  };
+  return {onDemandPrice: bucket?.onDemandPrice, reserved: bucket?.events};
 }
 
 /** @internal exported for tests only */
@@ -51,15 +48,11 @@ export function CronsBillingBanner({organization, subscription}: Props) {
   const {data: billingConfig} = useBillingConfig({organization});
   const {onDemandPrice, reserved} = getCronsPricingInfo(billingConfig);
 
-  const {data, isPending} = useApiQuery<MonitorCountResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/monitor-count/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
-      staleTime: 0,
-    }
+  const {data, isPending} = useQuery(
+    apiOptions.as<MonitorCountResponse>()(
+      '/organizations/$organizationIdOrSlug/monitor-count/',
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+    )
   );
 
   if (!data || isPending || !subscription.canSelfServe || !onDemandPrice || !reserved) {
@@ -211,9 +204,7 @@ function InsufficentOnDemandMonitorsDisabledBanner({
   );
 }
 
-export default withSubscription(CronsBillingBanner, {
-  noLoader: true,
-});
+export default withSubscription(CronsBillingBanner, {noLoader: true});
 
 const NoBorderRadiusAlert = styled(Alert)`
   border-radius: 0;

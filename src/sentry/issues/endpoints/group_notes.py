@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers.models.activity import (
@@ -13,7 +13,9 @@ from sentry.api.serializers.models.activity import (
     serialize_group_notes,
 )
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log.read_metrics import (
     ActivityReadResult,
@@ -25,11 +27,14 @@ from sentry.issues.comments import create_comment
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.types.activity import ActivityType
 
 
 @cell_silo_endpoint
 class GroupNotesEndpoint(GroupEndpoint):
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
+
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
@@ -63,7 +68,8 @@ class GroupNotesEndpoint(GroupEndpoint):
     @extend_schema(
         request=NoteSerializer,
         responses={
-            201: inline_sentry_response_serializer("CreateGroupNote", GroupNoteSerializerResponse)
+            201: inline_sentry_response_serializer("CreateGroupNote", GroupNoteSerializerResponse),
+            400: RESPONSE_BAD_REQUEST,
         },
     )
     @deprecated(
@@ -72,7 +78,11 @@ class GroupNotesEndpoint(GroupEndpoint):
         url_names=["sentry-api-0-group-notes"],
     )
     def post(self, request: Request, group: Group) -> Response:
-        if not request.user.is_authenticated:
+        user = acting_user(request.user)
+        service_account_id = None
+        if is_service_account_auth(request.auth):
+            service_account_id = request.auth.entity_id
+        if user is None and service_account_id is None:
             raise PermissionDenied(detail="Key doesn't have permission to create Note")
 
         serializer = NoteSerializer(
@@ -92,7 +102,11 @@ class GroupNotesEndpoint(GroupEndpoint):
             data["mentions"] = [m.dict() for m in data["mentions"]]
 
         activity = create_comment(
-            group=group, user=request.user, data=data, source=resolve_action_source(request)
+            group=group,
+            user=user,
+            data=data,
+            source=resolve_action_source(request),
+            service_account_id=service_account_id,
         )
         if activity is None:
             return Response(

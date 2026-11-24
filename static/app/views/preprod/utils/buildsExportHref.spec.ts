@@ -1,4 +1,4 @@
-import {getBuildsExportHref} from 'sentry/views/preprod/utils/buildsExportHref';
+import {getBuildsExportHref} from './buildsExportHref';
 
 describe('getBuildsExportHref', () => {
   it('targets the org-scoped export endpoint', () => {
@@ -19,9 +19,7 @@ describe('getBuildsExportHref', () => {
   });
 
   it('serializes multiple projects as repeated params', () => {
-    const href = getBuildsExportHref('my-org', {
-      project: ['1', '2'],
-    });
+    const href = getBuildsExportHref('my-org', {project: ['1', '2']});
     expect(href).toContain('project=1');
     expect(href).toContain('project=2');
   });

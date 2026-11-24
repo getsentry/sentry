@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import TypedDict
 
 from snuba_sdk import (
     Column,
@@ -21,7 +22,17 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import raw_snql_query
 
 
-def _get_ai_labels_from_tags(alias: str | None = None):
+class AILabelCount(TypedDict):
+    label: str
+    count: int
+
+
+class RecentFeedbackWithAILabels(TypedDict):
+    labels: list[str]
+    feedback: str
+
+
+def _get_ai_labels_from_tags(alias: str | None = None) -> Function:
     """
     Gets all the AI label values as an array from the tags column.
 
@@ -80,7 +91,7 @@ def query_top_ai_labels_by_feedback_count(
     start: datetime,
     end: datetime,
     limit: int,
-):
+) -> list[AILabelCount]:
     """
     Query the top `limit` AI-generated labels by feedback count.
 
@@ -123,7 +134,7 @@ def query_top_ai_labels_by_feedback_count(
         limit=Limit(limit),
     )
 
-    return raw_snql_query(
+    data = raw_snql_query(
         Request(
             dataset=dataset.value,
             app_id="feedback-backend-web",
@@ -132,6 +143,7 @@ def query_top_ai_labels_by_feedback_count(
         ),
         referrer="feedbacks.label_query",
     )["data"]
+    return data
 
 
 def query_recent_feedbacks_with_ai_labels(
@@ -140,7 +152,7 @@ def query_recent_feedbacks_with_ai_labels(
     start: datetime,
     end: datetime,
     limit: int,
-):
+) -> list[RecentFeedbackWithAILabels]:
     """
     Query the most recent `limit` feedbacks, along with their AI labels. Ensures feedbacks have at least one AI label.
 
@@ -229,7 +241,7 @@ def query_recent_feedbacks_with_ai_labels(
         limit=Limit(limit),
     )
 
-    return raw_snql_query(
+    data = raw_snql_query(
         Request(
             dataset=dataset.value,
             app_id="feedback-backend-web",
@@ -238,6 +250,7 @@ def query_recent_feedbacks_with_ai_labels(
         ),
         referrer="feedbacks.label_query",
     )["data"]
+    return data
 
 
 def query_label_group_counts(
@@ -246,7 +259,7 @@ def query_label_group_counts(
     start: datetime,
     end: datetime,
     labels_groups: list[list[str]],
-):
+) -> list[int]:
     """
     Query how many feedbacks are in each of the given `labels_groups`.
 

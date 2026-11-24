@@ -1,10 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {BACKEND_PLATFORMS} from 'sentry/views/insights/pages/backend/settings';
-import {FRONTEND_PLATFORMS} from 'sentry/views/insights/pages/frontend/settings';
-import {MOBILE_PLATFORMS} from 'sentry/views/insights/pages/mobile/settings';
-import {DOMAIN_VIEW_MODULES} from 'sentry/views/insights/pages/settings';
-import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {
   MODULE_FEATURE_MAP,
   MODULE_FEATURE_VISIBLE_MAP,
@@ -12,6 +7,12 @@ import {
   MODULES_CONSIDERED_NEW,
 } from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
+
+import {BACKEND_PLATFORMS} from './backend/settings';
+import {FRONTEND_PLATFORMS} from './frontend/settings';
+import {MOBILE_PLATFORMS} from './mobile/settings';
+import {DOMAIN_VIEW_MODULES} from './settings';
+import type {DomainView} from './useFilters';
 
 export const isModuleEnabled = (module: ModuleName, organization: Organization) =>
   MODULE_FEATURE_MAP[module].every(f => organization.features.includes(f));

@@ -3,8 +3,8 @@ import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {CONTEXT_DOCS_LINK} from 'sentry/components/events/contexts/utils';
 import {t, tct} from 'sentry/locale';
@@ -19,9 +19,7 @@ interface HighlightsSettingsFormProps {
   projectSlug: string;
 }
 
-const highlightTagsSchema = z.object({
-  highlightTags: z.string(),
-});
+const highlightTagsSchema = z.object({highlightTags: z.string()});
 
 const highlightContextSchema = z.object({
   highlightContext: z.string().transform((value, ctx) => {
@@ -39,10 +37,7 @@ const highlightContextSchema = z.object({
 
 export function HighlightsSettingsForm({projectSlug}: HighlightsSettingsFormProps) {
   const organization = useOrganization();
-  const {data: project} = useDetailedProject({
-    orgSlug: organization.slug,
-    projectSlug,
-  });
+  const {data: project} = useDetailedProject({orgSlug: organization.slug, projectSlug});
 
   if (!project) {
     return null;
@@ -62,7 +57,7 @@ function LoadedHighlightsSettingsForm({project}: LoadedHighlightsSettingsFormPro
 
   const handleSubmitSuccess = () => {
     trackAnalytics('highlights.project_settings.updated_manually', {organization});
-    addSuccessMessage(`Successfully updated highlights for '${project.name}'`);
+    toast.success(`Successfully updated highlights for '${project.name}'`);
   };
 
   const highlightTagsMutationOptions = mutationOptions({

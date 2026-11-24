@@ -1,10 +1,11 @@
-import {droppedEventsToOutcomeSections} from 'sentry/components/droppedData/outcomeSections';
-import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+
+import {droppedEventsToOutcomeSections} from './outcomeSections';
+import {useDroppedData} from './useDroppedData';
 
 const CONTEXT_HINT =
   'Sentry dropped-data panel. drops are the events Sentry dropped for this ' +
@@ -14,11 +15,15 @@ const CONTEXT_HINT =
 
 interface DroppedDataLLMContextProps {
   dataset: DiscoverDatasets;
+  interval?: string;
 }
 
-function DroppedDataLLMContextInner({dataset}: DroppedDataLLMContextProps) {
-  const [interval] = useChartInterval();
-  const {droppedEvents, acceptedEvents, isPending} = useDroppedData({dataset, interval});
+function DroppedDataLLMContextInner({dataset, interval}: DroppedDataLLMContextProps) {
+  const [chartInterval] = useChartInterval();
+  const {droppedEvents, acceptedEvents, isPending} = useDroppedData({
+    dataset,
+    interval: interval ?? chartInterval,
+  });
   useLLMContext(
     {
       contextHint: CONTEXT_HINT,

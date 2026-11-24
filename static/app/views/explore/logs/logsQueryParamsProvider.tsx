@@ -4,13 +4,14 @@ import {createContext, useContext} from 'react';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsAutoRefreshProvider} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {PersistedLogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+
 import {
   LogsFrozenContextProvider,
   type LogsFrozenContextProviderProps,
-} from 'sentry/views/explore/logs/logsFrozenContext';
-import {LogsLocationQueryParamsProvider} from 'sentry/views/explore/logs/logsLocationQueryParamsProvider';
-import {LogsStateQueryParamsProvider} from 'sentry/views/explore/logs/logsStateQueryParamsProvider';
-import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+} from './logsFrozenContext';
+import {LogsLocationQueryParamsProvider} from './logsLocationQueryParamsProvider';
+import {LogsStateQueryParamsProvider} from './logsStateQueryParamsProvider';
 
 const LogsAnalyticsPageSourceContext = createContext<LogsAnalyticsPageSource | undefined>(
   undefined

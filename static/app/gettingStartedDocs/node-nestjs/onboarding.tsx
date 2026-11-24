@@ -106,13 +106,8 @@ export const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: t('Add the Sentry NestJS SDK as a dependency:'),
-        },
-        getInstallCodeBlock(params, {
-          packageName: '@sentry/nestjs',
-        }),
+        {type: 'text', text: t('Add the Sentry NestJS SDK as a dependency:')},
+        getInstallCodeBlock(params, {packageName: '@sentry/nestjs'}),
       ],
     },
   ],
@@ -183,9 +178,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'If you are using a global catch-all exception filter add a [code:@SentryExceptionCaptured()] decorator to the [code:catch()] method of this global error filter. This will report all unhandled errors to Sentry',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -203,9 +196,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Alternatively, add the [code:SentryGlobalFilter] before any other exception filters to the providers of your main module.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -240,11 +231,7 @@ export const onboarding: OnboardingConfig = {
             "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
           ),
         },
-        {
-          type: 'code',
-          language: 'javascript',
-          code: getVerifySnippet(params),
-        },
+        {type: 'code', language: 'javascript', code: getVerifySnippet(params)},
       ],
     },
   ],

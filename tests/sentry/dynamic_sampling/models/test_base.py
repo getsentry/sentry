@@ -8,11 +8,11 @@ from sentry.dynamic_sampling.models.full_rebalancing import (
 
 
 @pytest.fixture
-def full_rebalancing_model():
+def full_rebalancing_model() -> FullRebalancingModel:
     return FullRebalancingModel()
 
 
-def test_run_with_exception(full_rebalancing_model) -> None:
+def test_run_with_exception(full_rebalancing_model: FullRebalancingModel) -> None:
     with pytest.raises(InvalidModelInputError):
         full_rebalancing_model.run(
             FullRebalancingInput(

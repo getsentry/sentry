@@ -5,10 +5,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {
-  EXPLORE_AGENTS_SUB_PATH,
-  CONVERSATIONS_DETAIL_SUB_PATH,
-} from 'sentry/views/explore/conversations/settings';
+
+import {EXPLORE_AGENTS_SUB_PATH, CONVERSATIONS_DETAIL_SUB_PATH} from './settings';
 
 /**
  * Redirects the legacy `/explore/conversations/*` paths to their `/explore/agents/`

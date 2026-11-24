@@ -3,8 +3,9 @@ import {IconSettings} from '@sentry/icons/settings';
 import {CompositeSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
+
+import {useStackTraceViewState} from './stackTraceContext';
 
 /**
  * A single dropdown that consolidates view, sort, and display toggles.

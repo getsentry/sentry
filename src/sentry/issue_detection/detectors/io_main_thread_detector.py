@@ -173,7 +173,8 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
             )
             return ".".join([func.method for func in functions])
         else:
-            return frame.get("function", "")
+            function = frame.get("function", "")
+            return function
 
     def _fingerprint(self, span_list: list[Span]) -> str:
         call_stack_strings = []

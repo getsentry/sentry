@@ -4,6 +4,7 @@ import logging
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
+from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
@@ -19,12 +20,14 @@ from sentry.models.apidevicecode import (
 )
 from sentry.utils import json, metrics
 from sentry.utils.http import absolute_uri
+from sentry.web.decorators import ai_machine_readable
 from sentry.web.frontend.base import control_silo_view
 
 logger = logging.getLogger("sentry.oauth")
 
 
 @control_silo_view
+@ai_machine_readable
 class OAuthDeviceAuthorizationView(View):
     """
     OAuth 2.0 Device Authorization Endpoint (RFC 8628 §3.1/§3.2).
@@ -65,7 +68,7 @@ class OAuthDeviceAuthorizationView(View):
 
     @csrf_exempt
     @method_decorator(never_cache)
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponseBase:
         return super().dispatch(request, *args, **kwargs)
 
     def error(

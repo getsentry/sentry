@@ -3,18 +3,6 @@ import styled from '@emotion/styled';
 import {getEscapedKey, HighlightText} from '@sentry/scraps/compactSelect';
 
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
-import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/getKeyLabel';
-import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
-import type {
-  ConvertHumanizedItem,
-  FilterValueItem,
-  KeyItem,
-  KeySectionItem,
-  LogicFilterItem,
-  RawSearchFilterIsValueItem,
-  RawSearchItem,
-  RecentQueryItem,
-} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import type {
   FieldDefinitionGetter,
   FilterKeySection,
@@ -34,6 +22,19 @@ import {defined} from 'sentry/utils/defined';
 import {type FieldDefinition} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
+
+import {getKeyLabel} from './getKeyLabel';
+import {KeyDescription} from './keyDescription';
+import type {
+  ConvertHumanizedItem,
+  FilterValueItem,
+  KeyItem,
+  KeySectionItem,
+  LogicFilterItem,
+  RawSearchFilterIsValueItem,
+  RawSearchItem,
+  RecentQueryItem,
+} from './types';
 
 export const ALL_CATEGORY_VALUE = '__all';
 export const RECENT_SEARCH_CATEGORY_VALUE = '__recent_searches';

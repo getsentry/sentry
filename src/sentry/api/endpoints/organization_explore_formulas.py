@@ -1,3 +1,4 @@
+import re
 from collections.abc import Iterator, MutableMapping, Sequence
 from contextlib import contextmanager
 from types import SimpleNamespace
@@ -21,12 +22,13 @@ from rest_framework.serializers import (
 )
 from rest_framework.serializers import Serializer as RequestSerializer
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import Serializer, serialize
 from sentry.api.utils import SortBy, parse_sort_by, to_valid_int_id
@@ -70,6 +72,19 @@ MAX_INPUT_PARAMS = 2
 MAX_GENERIC_PARAMS = 7
 MAX_REFERENCES = 5
 FORMULA_PREFIX = "formula."
+
+
+def saved_formula_regex(formula: str) -> str:
+    """
+    Match a saved formula call in stored query text.
+
+    The call may sit in JSON, a search condition (`formula.name(...):`), or on
+    its own as an aggregate.
+    """
+    if not formula.startswith(FORMULA_PREFIX):
+        raise ParseError(f"Formulas start with {FORMULA_PREFIX}")
+    escaped = re.escape(formula)
+    return rf'(^|[^\\]"|[[:space:]])(-)?{escaped}\([^")]*\)(:|"|$|[[:space:]])'
 
 
 class ExploreSavedReference(TypedDict):
@@ -210,10 +225,14 @@ class ExploreSavedParamsSerializer(Serializer[ExploreSavedParam]):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> ExploreSavedParam:
+        assert obj.order is not None
+        assert obj.param_type is not None
+        param_type = ParamItemTypes.get_type_name(obj.param_type)
+        assert param_type is not None
         return {
             "name": obj.name,
             "order": obj.order,
-            "type": ParamItemTypes.get_type_name(obj.param_type),
+            "type": param_type,
             "value": obj.value,
         }
 
@@ -258,7 +277,8 @@ class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
         # Make sure that we use the prefetch
         variables = list(obj.variables.all())
         params = sorted(
-            (var for var in variables if var.kind == KindItemTypes.PARAM), key=lambda var: var.order
+            (var for var in variables if var.kind == KindItemTypes.PARAM),
+            key=lambda var: var.order if var.order is not None else 0,
         )
         # order by name so references return in a consistent order
         references = sorted(
@@ -266,11 +286,13 @@ class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
             key=lambda var: var.name,
         )
 
+        dataset = ExploreSavedQueryDataset.get_type_name(obj.dataset)
+        assert dataset is not None
         data: ExploreSavedFormulaResponse = {
             "formula": obj.formula,
             "id": str(obj.id),
             "name": obj.name,
-            "dataset": ExploreSavedQueryDataset.get_type_name(obj.dataset),
+            "dataset": dataset,
             "description": obj.description,
             "params": serialize(params, user, serializer=ExploreSavedParamsSerializer()),
             "references": serialize(
@@ -688,7 +710,7 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
         with write_formula_to_db():
             formula = ExploreSavedFormula.objects.create(
                 organization=organization,
-                created_by_id=acting_user_id(request.user),
+                **get_creator_reference(request),
                 formula=data["formula"],
                 description=data["description"],
                 name=data["name"],
@@ -713,6 +735,14 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
                     value=param["value"],
                     kind=KindItemTypes.REFERENCE,
                 )
+
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=formula.id,
+            event=audit_log.get_event_id("FORMULA_ADD"),
+            data=formula.get_audit_log_data(),
+        )
 
         return Response(
             serialize(formula, request.user, serializer=ExploreSavedFormulaSerializer()),
@@ -775,6 +805,13 @@ class OrganizationExploreFormulasDetail(OrganizationExploreFormulaBase):
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=formula.id,
+            event=audit_log.get_event_id("FORMULA_REMOVE"),
+            data=formula.get_audit_log_data(),
+        )
         formula.delete()
 
         return Response(status=204)
@@ -826,6 +863,13 @@ class OrganizationExploreFormulasDetail(OrganizationExploreFormulaBase):
                 )
 
         formula.refresh_from_db()
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=formula.id,
+            event=audit_log.get_event_id("FORMULA_EDIT"),
+            data=formula.get_audit_log_data(),
+        )
 
         return Response(
             serialize(formula, request.user, serializer=ExploreSavedFormulaSerializer()),

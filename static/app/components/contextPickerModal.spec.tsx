@@ -1,22 +1,18 @@
-import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {makeCloseButton, ModalBody, ModalFooter} from '@sentry/scraps/modal';
 
-import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
-import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+
+import {ContextPickerModalContainer as ContextPickerModal} from './contextPickerModal';
 
 describe('ContextPickerModal', () => {
   let project!: Project;
@@ -32,10 +28,7 @@ describe('ContextPickerModal', () => {
     project = ProjectFixture();
     org = OrganizationFixture();
     project2 = ProjectFixture({slug: 'project2'});
-    org2 = OrganizationFixture({
-      slug: 'org2',
-      id: '21',
-    });
+    org2 = OrganizationFixture({slug: 'org2', id: '21'});
     project4 = ProjectFixture({slug: 'project4', isMember: false});
 
     OrganizationsStore.load([]);
@@ -133,12 +126,7 @@ describe('ContextPickerModal', () => {
       body: [project, project2, project4],
     });
 
-    render(
-      getComponent({
-        needOrg: true,
-        needProject: true,
-      })
-    );
+    render(getComponent({needOrg: true, needProject: true}));
 
     await waitFor(() => {
       expect(fetchProjectsForOrg).toHaveBeenCalled();
@@ -161,14 +149,8 @@ describe('ContextPickerModal', () => {
 
   it('can select org and project', async () => {
     const organizations = [
-      {
-        ...org,
-        projects: [project],
-      },
-      {
-        ...org2,
-        projects: [project2, ProjectFixture({slug: 'project3'})],
-      },
+      {...org, projects: [project]},
+      {...org2, projects: [project2, ProjectFixture({slug: 'project3'})]},
     ];
     const fetchProjectsForOrg = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/projects/`,
@@ -240,133 +222,6 @@ describe('ContextPickerModal', () => {
     expect(fetchProjectsForOrg2).toHaveBeenCalled();
     expect(await screen.findByText('org2-project')).toBeInTheDocument();
     expect(screen.queryByText('org1-project')).not.toBeInTheDocument();
-  });
-
-  it('isSuperUser and selects an integrationConfig and calls `onFinish` with URL to that configuration', async () => {
-    OrganizationsStore.load([org]);
-    OrganizationStore.onUpdate(org);
-    ConfigStore.set('user', UserFixture({isSuperuser: true}));
-
-    const provider = {slug: 'github'};
-    const configQueryKey = [
-      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
-        path: {organizationIdOrSlug: org.slug},
-      }),
-      {query: {provider_key: provider.slug, includeConfig: 0}},
-    ] satisfies ApiQueryKey;
-    const integration = GitHubIntegrationFixture();
-    const fetchGithubConfigs = MockApiClient.addMockResponse({
-      url: configQueryKey[0],
-      body: [integration],
-      match: [MockApiClient.matchQuery(configQueryKey[1].query)],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/projects/`,
-      body: [],
-    });
-
-    render(
-      getComponent({
-        needOrg: false,
-        needProject: false,
-        nextPath: `/settings/${org.slug}/integrations/${provider.slug}/`,
-        configQueryKey,
-      })
-    );
-
-    await waitFor(() => {
-      expect(fetchGithubConfigs).toHaveBeenCalled();
-    });
-
-    if (integration.domainName === null) {
-      throw new Error('Integration domainName is null');
-    }
-
-    await selectEvent.select(await screen.findByRole('textbox'), integration.domainName);
-    expect(onFinish).toHaveBeenCalledWith(
-      `/settings/${org.slug}/integrations/github/${integration.id}/`
-    );
-  });
-
-  it('not superUser and cannot select an integrationConfig and calls `onFinish` with URL to integration overview page', async () => {
-    OrganizationsStore.load([org]);
-    OrganizationStore.onUpdate(org);
-    ConfigStore.set('user', UserFixture({isSuperuser: false}));
-
-    const provider = {slug: 'github'};
-    const configQueryKey = [
-      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
-        path: {organizationIdOrSlug: org.slug},
-      }),
-      {query: {provider_key: provider.slug, includeConfig: 0}},
-    ] satisfies ApiQueryKey;
-
-    const fetchGithubConfigs = MockApiClient.addMockResponse({
-      url: configQueryKey[0],
-      body: [GitHubIntegrationFixture()],
-      match: [MockApiClient.matchQuery(configQueryKey[1].query)],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/projects/`,
-      body: [],
-    });
-
-    render(
-      getComponent({
-        needOrg: false,
-        needProject: false,
-        nextPath: `/settings/${org.slug}/integrations/${provider.slug}/`,
-        configQueryKey,
-      })
-    );
-
-    await waitFor(() => {
-      expect(fetchGithubConfigs).toHaveBeenCalled();
-    });
-  });
-
-  it('is superUser and no integration configurations and calls `onFinish` with URL to integration overview page', async () => {
-    OrganizationsStore.load([org]);
-    OrganizationStore.onUpdate(org);
-    ConfigStore.set('user', UserFixture({isSuperuser: false}));
-
-    const provider = {slug: 'github'};
-    const configQueryKey = [
-      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
-        path: {organizationIdOrSlug: org.slug},
-      }),
-      {query: {provider_key: provider.slug, includeConfig: 0}},
-    ] satisfies ApiQueryKey;
-
-    const fetchGithubConfigs = MockApiClient.addMockResponse({
-      url: configQueryKey[0],
-      body: [],
-      match: [MockApiClient.matchQuery(configQueryKey[1].query)],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/projects/`,
-      body: [],
-    });
-
-    render(
-      getComponent({
-        needOrg: false,
-        needProject: false,
-        nextPath: `/settings/${org.slug}/integrations/${provider.slug}/`,
-        configQueryKey,
-      })
-    );
-
-    await waitFor(() => {
-      expect(fetchGithubConfigs).toHaveBeenCalled();
-    });
-
-    await waitFor(() => {
-      expect(onFinish).toHaveBeenCalledWith(`/settings/${org.slug}/integrations/github/`);
-    });
   });
 
   it('preserves path object query parameters', async () => {

@@ -7,7 +7,7 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from datetime import datetime, timezone
 from hashlib import md5
-from typing import TYPE_CHECKING, Any, Literal, Optional, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
 import orjson
 from dateutil.parser import parse as parse_date
@@ -94,15 +94,16 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def trace_id(self) -> str | None:
         # Reuse the Snuba column to avoid loading the full event body from nodestore.
         if "trace_id" in self._snuba_data:
-            return cast(str | None, self._snuba_data["trace_id"])
-        return get_path(self.data, "contexts", "trace", "trace_id")
+            return self._snuba_data["trace_id"]
+        trace_id = get_path(self.data, "contexts", "trace", "trace_id")
+        return trace_id
 
     @property
     def platform(self) -> str | None:
         column = self._get_column_name(Columns.PLATFORM)
         if column in self._snuba_data:
-            return cast(str, self._snuba_data[column])
-        return cast(str, self.data.get("platform", None))
+            return self._snuba_data[column]
+        return self.data.get("platform", None)
 
     @property
     def message(self) -> str:
@@ -216,9 +217,11 @@ class BaseEvent(metaclass=abc.ABCMeta):
             username = self._snuba_data[user_username_column]
             ip_address = self._snuba_data[user_ip_address_column]
 
-            return User.to_python(
+            user = User.to_python(
                 {"id": user_id, "email": email, "username": username, "ip_address": ip_address}
             )
+            assert user is not None
+            return user
 
         return self.get_interface("user")
 
@@ -230,22 +233,22 @@ class BaseEvent(metaclass=abc.ABCMeta):
         """
         column = self._get_column_name(Columns.TYPE)
         if column in self._snuba_data:
-            return cast(eventtypes.EventTypeStr, self._snuba_data[column])
-        return cast(eventtypes.EventTypeStr, self.data.get("type", "default"))
+            return self._snuba_data[column]
+        return self.data.get("type", "default")
 
     @property
     def ip_address(self) -> str | None:
         column = self._get_column_name(Columns.USER_IP_ADDRESS)
         if column in self._snuba_data:
-            return cast(str, self._snuba_data[column])
+            return self._snuba_data[column]
 
         ip_address = get_path(self.data, "user", "ip_address")
         if ip_address:
-            return cast(str, ip_address)
+            return ip_address
 
         remote_addr = get_path(self.data, "request", "env", "REMOTE_ADDR")
         if remote_addr:
-            return cast(str, remote_addr)
+            return remote_addr
 
         return None
 
@@ -253,7 +256,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def title(self) -> str:
         column = self._get_column_name(Columns.TITLE)
         if column in self._snuba_data:
-            return cast(str, self._snuba_data[column])
+            return self._snuba_data[column]
 
         title = self.data.get("title")
         event_type = self.get_event_type()
@@ -269,14 +272,14 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def culprit(self) -> str | None:
         column = self._get_column_name(Columns.CULPRIT)
         if column in self._snuba_data:
-            return cast(str, self._snuba_data[column])
-        return cast(Optional[str], self.data.get("culprit"))
+            return self._snuba_data[column]
+        return self.data.get("culprit")
 
     @property
     def location(self) -> str | None:
         column = self._get_column_name(Columns.LOCATION)
         if column in self._snuba_data:
-            return cast(str, self._snuba_data[column])
+            return self._snuba_data[column]
         et = eventtypes.get(self.get_event_type())()
         return et.get_location(self.get_event_metadata())
 
@@ -477,7 +480,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def version(self) -> str:
-        return cast(str, self.data.get("version", "5"))
+        return self.data.get("version", "5")
 
     def get_raw_data(self, for_stream: bool = False) -> Mapping[str, Any]:
         """Returns the internal raw event data dict."""
@@ -561,7 +564,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
             culprit_u = force_str(culprit, errors="replace")
             message = f"{message} {culprit_u}"
 
-        return cast(str, trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH))
+        return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 
     def _get_column_name(self, column: Columns) -> str:
         # Events are currently populated from the Events dataset
@@ -794,7 +797,7 @@ class GroupEvent(BaseEvent):
 
         column = self._get_column_name(Columns.OCCURRENCE_ID)
         if column in self._snuba_data:
-            return cast(str, self._snuba_data[column])
+            return self._snuba_data[column]
         return None
 
     @cached_property
@@ -839,9 +842,9 @@ class EventSubjectTemplateData(dict[str, str]):
                 raise KeyError
             return str(value)
         elif name == "project":
-            return cast(str, self.event.project.get_full_name())
+            return self.event.project.get_full_name()
         elif name == "projectID":
-            return cast(str, self.event.project.slug)
+            return self.event.project.slug
         elif name == "shortID" and self.event.group_id and self.event.group:
             return cast(str, self.event.group.qualified_short_id)
         elif name == "orgID":

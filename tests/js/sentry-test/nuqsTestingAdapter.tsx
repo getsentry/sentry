@@ -1,5 +1,5 @@
 import {createContext, use, useCallback, type ReactElement, type ReactNode} from 'react';
-import {UNSAFE_DataRouterContext} from 'react-router';
+import {UNSAFE_DataRouterContext, type DataRouter} from 'react-router';
 import {
   unstable_createAdapterProvider as createAdapterProvider,
   renderQueryString,
@@ -8,18 +8,13 @@ import type {unstable_AdapterInterface as AdapterInterface} from 'nuqs/adapters/
 import {NuqsTestingAdapter, type OnUrlUpdateFunction} from 'nuqs/adapters/testing';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 type SentryNuqsTestingAdapterProps = {
   children: ReactNode;
   /**
    * Default options to pass to nuqs
    */
-  defaultOptions?: {
-    clearOnDefault?: boolean;
-    scroll?: boolean;
-    shallow?: boolean;
-  };
+  defaultOptions?: {clearOnDefault?: boolean; scroll?: boolean; shallow?: boolean};
   /**
    * A function that will be called whenever the URL is updated.
    * Connect that to a spy in your tests to assert the URL updates.
@@ -29,6 +24,9 @@ type SentryNuqsTestingAdapterProps = {
 
 const UrlUpdateContext = createContext<OnUrlUpdateFunction | undefined>(undefined);
 
+// Stands in for production's retained queue: serve a write's URL until the router leaves it.
+const writtenLocationKeys = new WeakMap<DataRouter, string>();
+
 function useSentryAdapter(): AdapterInterface {
   const routerContext = use(UNSAFE_DataRouterContext);
   if (!routerContext) {
@@ -37,23 +35,27 @@ function useSentryAdapter(): AdapterInterface {
   const {router} = routerContext;
   const onUrlUpdate = use(UrlUpdateContext);
   const location = useLocation();
-  const navigate = useNavigate();
-  const searchParams = new URLSearchParams(location.search);
+  const searchParams = new URLSearchParams(
+    router.state.historyAction !== 'POP' &&
+      router.state.location.key === writtenLocationKeys.get(router)
+      ? router.state.location.search
+      : location.search
+  );
 
   const updateUrl = useCallback<AdapterInterface['updateUrl']>(
     (search, options) => {
       const queryString = renderQueryString(search);
-      onUrlUpdate?.({
-        searchParams: new URLSearchParams(search),
-        queryString,
-        options,
-      });
+      onUrlUpdate?.({searchParams: new URLSearchParams(search), queryString, options});
 
-      navigate(`${router.state.location.pathname}${queryString}`, {
-        replace: options.history === 'replace',
-      });
+      const current = router.state.location;
+      const navigation = router.navigate(
+        {pathname: current.pathname, search: queryString, hash: current.hash},
+        {replace: options.history === 'replace', state: current.state}
+      );
+      writtenLocationKeys.set(router, router.state.location.key);
+      return navigation;
     },
-    [navigate, onUrlUpdate, router]
+    [onUrlUpdate, router]
   );
 
   // A queued write can follow navigation before React renders the new
@@ -68,16 +70,13 @@ function useSentryAdapter(): AdapterInterface {
     updateUrl,
     getSearchParamsSnapshot,
     rateLimitFactor: 0,
+    // Production resets the queue on window.history changes, which the memory router never makes.
     autoResetQueueOnUpdate: true,
   };
 }
 
 const AdapterProvider = createAdapterProvider(useSentryAdapter);
 
-/**
- * Read rendered query state from useLocation and compose queued writes onto
- * the data router's current location. Keep the provider stable across rerenders.
- */
 export function SentryNuqsTestingAdapter({
   children,
   defaultOptions,

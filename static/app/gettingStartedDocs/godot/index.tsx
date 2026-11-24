@@ -1,8 +1,6 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {logs} from 'sentry/gettingStartedDocs/godot/logs';
-import {onboarding} from 'sentry/gettingStartedDocs/godot/onboarding';
 
-export const docs: Docs = {
-  onboarding,
-  logsOnboarding: logs,
-};
+import {logs} from './logs';
+import {onboarding} from './onboarding';
+
+export const docs: Docs = {onboarding, logsOnboarding: logs};

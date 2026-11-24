@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
@@ -33,10 +33,7 @@ export function SelectorLink({
     </Grid>
   );
 
-  const pathname = makeReplaysPathname({
-    path: '/',
-    organization,
-  });
+  const pathname = makeReplaysPathname({path: '/', organization});
 
   return (
     <StyledTextOverflow>

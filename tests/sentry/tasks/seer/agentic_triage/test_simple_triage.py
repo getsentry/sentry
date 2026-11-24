@@ -86,7 +86,7 @@ def test_excludes_prior_seer_pull_requests_after_cooldown(
 class TestAgenticTriageScore(TestCase):
     """Tests for _agentic_triage_score — min-max normalization and weighted sum."""
 
-    def test_varying_values(self):
+    def test_varying_values(self) -> None:
         """Candidates with different factor values get different scores."""
         factors = {
             1: {"max_timestamp": 100.0, "max_level": 3, "unique_users": 10, "event_count": 500},
@@ -104,7 +104,7 @@ class TestAgenticTriageScore(TestCase):
         # No single group dominates all factors, so scores should differ.
         assert len(set(scores.values())) == 3
 
-    def test_all_identical(self):
+    def test_all_identical(self) -> None:
         """When all candidates have the same values, all scores are 0."""
         factors = {
             1: {"max_timestamp": 100.0, "max_level": 3, "unique_users": 10, "event_count": 50},
@@ -114,7 +114,7 @@ class TestAgenticTriageScore(TestCase):
         assert scores[1] == 0.0
         assert scores[2] == 0.0
 
-    def test_single_candidate(self):
+    def test_single_candidate(self) -> None:
         """A single candidate gets score 0 (min == max for all factors)."""
         factors = {
             1: {"max_timestamp": 100.0, "max_level": 3, "unique_users": 10, "event_count": 50},
@@ -122,7 +122,7 @@ class TestAgenticTriageScore(TestCase):
         scores = _agentic_triage_score([1], factors)
         assert scores[1] == 0.0
 
-    def test_missing_group_in_snuba(self):
+    def test_missing_group_in_snuba(self) -> None:
         """A group not returned by Snuba gets 0 for all factors."""
         factors = {
             1: {"max_timestamp": 200.0, "max_level": 4, "unique_users": 100, "event_count": 500},
@@ -132,7 +132,7 @@ class TestAgenticTriageScore(TestCase):
         assert scores[1] > scores[2]
         assert scores[2] == 0.0
 
-    def test_zero_weight_factor_skipped(self):
+    def test_zero_weight_factor_skipped(self) -> None:
         """Factors with weight=0 are excluded from the score."""
         factors = {
             1: {"max_timestamp": 100.0, "max_level": 3, "unique_users": 999, "event_count": 50},
@@ -146,7 +146,7 @@ class TestAgenticTriageScore(TestCase):
         # Group 2 has higher recency so it should score higher.
         assert scores[2] > scores[1]
 
-    def test_empty_inputs(self):
+    def test_empty_inputs(self) -> None:
         """Empty group_ids or factors returns all zeros."""
         assert _agentic_triage_score([], {}) == {}
         assert _agentic_triage_score([1, 2], {}) == {1: 0.0, 2: 0.0}

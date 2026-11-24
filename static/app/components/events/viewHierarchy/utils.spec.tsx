@@ -1,37 +1,17 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import type {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
-import {
-  calculateScale,
-  getDeepestNodeAtPoint,
-  getHierarchyDimensions,
-} from 'sentry/components/events/viewHierarchy/utils';
 import {defined} from 'sentry/utils/defined';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
-const LEAF_NODE = {
-  x: 2,
-  y: 2,
-  width: 5,
-  height: 5,
-};
+import {calculateScale, getDeepestNodeAtPoint, getHierarchyDimensions} from './utils';
 
-const INTERMEDIATE_NODE = {
-  x: 10,
-  y: 5,
-  width: 10,
-  height: 10,
-  children: [LEAF_NODE],
-};
+const LEAF_NODE = {x: 2, y: 2, width: 5, height: 5};
+
+const INTERMEDIATE_NODE = {x: 10, y: 5, width: 10, height: 10, children: [LEAF_NODE]};
 
 const DEFAULT_MOCK_HIERARCHY = [
-  {
-    x: 0,
-    y: 0,
-    width: 10,
-    height: 10,
-    children: [INTERMEDIATE_NODE],
-  },
+  {x: 0, y: 0, width: 10, height: 10, children: [INTERMEDIATE_NODE]},
   {x: 10, y: 0, width: 20, height: 20},
 ] as ViewHierarchyWindow[];
 
@@ -79,10 +59,7 @@ describe('View Hierarchy Utils', () => {
       actual: number,
       border: {x: number; y: number};
 
-    const bounds = {
-      height: 10,
-      width: 10,
-    };
+    const bounds = {height: 10, width: 10};
 
     beforeEach(() => {
       border = {x: 0, y: 0};
@@ -123,13 +100,7 @@ describe('View Hierarchy Utils', () => {
   describe('getDeepestNodeAtPoint', () => {
     beforeEach(() => {
       MOCK_HIERARCHY = [
-        {
-          x: 0,
-          y: 0,
-          width: 10,
-          height: 10,
-          children: [INTERMEDIATE_NODE],
-        },
+        {x: 0, y: 0, width: 10, height: 10, children: [INTERMEDIATE_NODE]},
       ] as ViewHierarchyWindow[];
     });
 

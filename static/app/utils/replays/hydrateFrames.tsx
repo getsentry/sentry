@@ -6,7 +6,7 @@ import type {
   RawSpanFrame,
   RecordingFrame,
   VideoEvent,
-} from 'sentry/utils/replays/types';
+} from './types';
 import {
   EventType,
   isBreadcrumbFrameEvent,
@@ -14,7 +14,7 @@ import {
   isRecordingFrame,
   isSpanFrameEvent,
   isVideoFrameEvent,
-} from 'sentry/utils/replays/types';
+} from './types';
 
 // The SDK occasionally records a pointer move with no positions. rrweb reads
 // the last position of every move it applies while seeking, so one of these
@@ -68,11 +68,5 @@ export function hydrateFrames(attachments: unknown[]) {
     });
   }
 
-  return {
-    breadcrumbFrames,
-    optionFrame,
-    rrwebFrames,
-    spanFrames,
-    videoFrames,
-  };
+  return {breadcrumbFrames, optionFrame, rrwebFrames, spanFrames, videoFrames};
 }

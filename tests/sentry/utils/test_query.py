@@ -1,8 +1,10 @@
 from datetime import timedelta
+from typing import NoReturn
 from unittest.mock import patch
 
 import pytest
 from django.db import connections
+from django.db.models import QuerySet
 from django.db.utils import OperationalError
 from django.utils import timezone
 
@@ -95,7 +97,7 @@ class RangeQuerySetWrapperTest(TestCase):
         current_batch_count = 0
         original_getitem = type(qs).__getitem__
 
-        def mock_getitem(self, slice_obj):
+        def mock_getitem(self: QuerySet[User], slice_obj: slice) -> QuerySet[User]:
             nonlocal current_batch_count
             current_batch_count += 1
             if len(batch_attempts) == 0 and current_batch_count <= 2:
@@ -120,7 +122,7 @@ class RangeQuerySetWrapperTest(TestCase):
 
         qs = User.objects.all()
 
-        def always_fail(self, slice_obj):
+        def always_fail(self: QuerySet[User], slice_obj: slice) -> NoReturn:
             raise OperationalError("canceling statement due to user request")
 
         with patch.object(type(qs), "__getitem__", always_fail):
@@ -141,7 +143,7 @@ class RangeQuerySetWrapperTest(TestCase):
 
         attempt_count = {"count": 0}
 
-        def raise_value_error(self, slice_obj):
+        def raise_value_error(self: QuerySet[User], slice_obj: slice) -> NoReturn:
             attempt_count["count"] += 1
             raise ValueError("Some other error")
 
@@ -164,7 +166,7 @@ class RangeQuerySetWrapperTest(TestCase):
 
         attempt_count = {"count": 0}
 
-        def fail_once(self, slice_obj):
+        def fail_once(self: QuerySet[User], slice_obj: slice) -> QuerySet[User]:
             attempt_count["count"] += 1
             raise OperationalError("canceling statement due to user request")
 

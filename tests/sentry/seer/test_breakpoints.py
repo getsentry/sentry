@@ -1,5 +1,6 @@
 from collections.abc import Generator
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from django.test import override_settings
@@ -56,7 +57,9 @@ def test_detect_breakpoints(mock_urlopen: mock.MagicMock) -> None:
 )
 @mock.patch("sentry_sdk.capture_exception")
 @mock.patch("sentry.seer.breakpoints.seer_breakpoint_connection_pool.urlopen")
-def test_detect_breakpoints_errors(mock_urlopen, mock_capture_exception, body, status) -> None:
+def test_detect_breakpoints_errors(
+    mock_urlopen: MagicMock, mock_capture_exception: MagicMock, body: bytes, status: int
+) -> None:
     mock_urlopen.return_value = HTTPResponse(body, status=status)
 
     assert detect_breakpoints({"data": {}}) == {"data": []}

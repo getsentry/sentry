@@ -4,9 +4,10 @@ import {FormContext} from 'sentry/components/forms/formContext';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useAutomationFormContext} from 'sentry/views/automations/components/forms/context';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {useAutomationFormContext} from './forms/context';
 
 export function EditableAutomationName() {
   const organization = useOrganization();

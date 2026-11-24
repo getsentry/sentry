@@ -36,7 +36,9 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
-from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.data_condition import Condition, get_internal_condition_types
+from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
+from sentry.workflow_engine.types import DataConditionHandler
 
 InputData = dict[str, Any]
 ListInputData = list[InputData]
@@ -48,6 +50,7 @@ class ActionFilterInput(DataConditionGroupInput):
 
 
 class ActionFilterValidator(BaseDataConditionGroupValidator):
+    handler_group = DataConditionHandler.Group.ACTION_FILTER
     actions = serializers.ListField(child=serializers.DictField())
 
     def validate_actions(self, value: ListInputData) -> ListInputData:
@@ -93,6 +96,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
     triggers = BaseDataConditionGroupValidator(
         required=False,
+        handler_group=DataConditionHandler.Group.WORKFLOW_TRIGGER,
         help_text=WORKFLOW_TRIGGERS_HELP_TEXT,
     )
     action_filters = ActionFilterValidator(
@@ -116,9 +120,10 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
         return actions, action_filter
 
-    def validate_config(self, value: Any) -> bool:
+    def validate_config[T](self, value: T) -> T:
         schema = Workflow.config_schema
-        return validate_json_schema(value, schema)
+        validate_json_schema(value, schema)
+        return value
 
     def validate_triggers(self, value: InputData) -> InputData:
         if "workflow" in self.context:
@@ -318,6 +323,26 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                         f"Action ID {action_id} does not belong to this workflow"
                     )
 
+        # Omitted groups are detached without passing through the group validator.
+        omitted_ids = valid_dcg_ids - {
+            int(action_filter["id"])
+            for action_filter in action_filters
+            if action_filter.get("id") is not None
+        }
+        internal_types = get_internal_condition_types()
+        if (
+            omitted_ids
+            and internal_types
+            and DataConditionGroup.objects.filter(
+                id__in=omitted_ids,
+                organization_id=workflow.organization_id,
+                conditions__type__in=internal_types,
+            ).exists()
+        ):
+            raise serializers.ValidationError(
+                "Internal condition groups cannot be configured through the API."
+            )
+
     def update_action_filters(self, action_filters: ListInputData) -> list[DataConditionGroup]:
         instance = self.context["workflow"]
         filters: list[DataConditionGroup] = []
@@ -342,6 +367,9 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
     def update(self, instance: Workflow, validated_data: InputData) -> Workflow:
         organization = self.context["organization"]
         request = self.context["request"]
+
+        # The workflow's primary key comes from the URL and must never be written from the payload.
+        validated_data.pop("id", None)
 
         detector_ids = None
         if "detector_ids" in validated_data:
@@ -389,7 +417,12 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         """
         org = self.context["organization"]
         assert isinstance(org, Organization)
-        workflow_count = Workflow.objects.filter(organization_id=org.id).count()
+
+        # hidden workflows do not count towards user limit
+        workflow_count = Workflow.objects.filter(
+            organization_id=org.id, type__in=VISIBLE_WORKFLOW_TYPES
+        ).count()
+
         if features.has("organizations:more-workflows", org):
             max_workflows = options.get("workflow_engine.max_more_workflows_per_org")
         else:

@@ -13,13 +13,17 @@ from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.roles import organization_roles
+from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 from tests.sentry.core.endpoints.test_organization_member_index import (
     mock_organization_roles_get_factory,
@@ -30,64 +34,64 @@ class OrganizationMemberTeamTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-member-team-details"
 
     @cached_property
-    def org(self):
+    def org(self) -> Organization:
         # open membership
         return self.create_organization(owner=self.user, flags=Organization.flags.allow_joinleave)
 
     @cached_property
-    def team(self):
+    def team(self) -> Team:
         return self.create_team(organization=self.org)
 
     @cached_property
-    def idp_team(self):
+    def idp_team(self) -> Team:
         return self.create_team(organization=self.org, idp_provisioned=True)
 
     @cached_property
-    def owner(self):
+    def owner(self) -> OrganizationMember:
         return OrganizationMember.objects.get(organization=self.org, user_id=self.user.id)
 
     @cached_property
-    def member(self):
+    def member(self) -> OrganizationMember:
         return self.create_member(organization=self.org, user=self.create_user(), role="member")
 
     @cached_property
-    def admin(self):
+    def admin(self) -> OrganizationMember:
         self.admin_user = self.create_user()
         return self.create_member(organization=self.org, user=self.admin_user, role="admin")
 
     @cached_property
-    def manager(self):
+    def manager(self) -> OrganizationMember:
         self.manager_user = self.create_user()
         return self.create_member(organization=self.org, user=self.manager_user, role="manager")
 
     @cached_property
-    def member_on_team(self):
+    def member_on_team(self) -> OrganizationMember:
         self.member_on_team_user = self.create_user()
         return self.create_member(
             organization=self.org, user=self.member_on_team_user, role="member", teams=[self.team]
         )
 
     @cached_property
-    def admin_on_team(self):
+    def admin_on_team(self) -> OrganizationMember:
         self.admin_on_team_user = self.create_user()
         return self.create_member(
             organization=self.org, user=self.admin_on_team_user, role="admin", teams=[self.team]
         )
 
     @cached_property
-    def manager_on_team(self):
+    def manager_on_team(self) -> OrganizationMember:
         return self.create_member(
             organization=self.org, user=self.create_user(), role="manager", teams=[self.team]
         )
 
     @cached_property
-    def owner_on_team(self):
+    def owner_on_team(self) -> OrganizationMember:
         return self.create_member(
             organization=self.org, user=self.create_user(), role="owner", teams=[self.team]
         )
 
     @cached_property
-    def team_admin(self):
+    def team_admin(self) -> OrganizationMember:
         self.team_admin_user = self.create_user()
         member = self.create_member(organization=self.org, user=self.team_admin_user, role="member")
         OrganizationMemberTeam.objects.create(
@@ -344,7 +348,7 @@ class CreateAsServiceAccountTest(OrganizationMemberTeamTestBase):
 
 class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
     @cached_property
-    def org(self):
+    def org(self) -> Organization:
         # rerun create org member tests with closed membership
         return self.create_organization(owner=self.user, flags=0)
 
@@ -800,6 +804,26 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             team=idp_team, organizationmember=member
         ).exists()
 
+    def test_removing_pending_invite_keeps_team_subscriptions(self) -> None:
+        invite = self.create_member(
+            organization=self.org, email="invited@example.com", role="member", teams=[self.team]
+        )
+        group = self.create_group()
+        GroupAssignee.objects.create(group=group, team=self.team, project=group.project)
+        GroupSubscription.objects.create(
+            group=group,
+            project=group.project,
+            team=self.team,
+            reason=GroupSubscriptionReason.assigned,
+        )
+
+        self.login_as(self.user)
+        self.get_success_response(
+            self.org.slug, invite.id, self.team.slug, status_code=status.HTTP_200_OK
+        )
+
+        assert GroupSubscription.objects.filter(group=group, team=self.team).exists()
+
     def test_unsubscribe_user_from_team_issues_legacy(self) -> None:
         """
         We have some legacy DB rows from before the GroupSubscription table had a team_id
@@ -1190,3 +1214,20 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
 
         assert resp.status_code == 400
         assert resp.data["detail"] == ERR_INSUFFICIENT_ROLE
+
+
+class OrganizationMemberTeamMembershipScopeTest(OrganizationMemberTeamTestBase):
+    method = "get"
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:read")
+    def test_membership_read_can_get_team_membership(self) -> None:
+        self._use_token(["membership:read"])
+        response = self.get_success_response(self.org.slug, self.member_on_team.id, self.team.slug)
+        assert response.data["isActive"] is True

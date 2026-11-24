@@ -10,7 +10,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import OrganizationFeatureFlagsChangeTracking, {
   type Secret,
@@ -22,15 +23,8 @@ describe('OrganizationFeatureFlagsIndex', () => {
   const {organization} = initializeOrg();
 
   beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/1234/',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: LOGS_ENDPOINT,
-      method: 'GET',
-      body: {data: []},
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/1234/', body: {}});
+    MockApiClient.addMockResponse({url: LOGS_ENDPOINT, method: 'GET', body: {data: []}});
     OrganizationsStore.addOrReplace(organization);
   });
 
@@ -114,7 +108,7 @@ describe('OrganizationFeatureFlagsIndex', () => {
 
   describe('removing', () => {
     it('allows to remove secrets', async () => {
-      jest.spyOn(indicators, 'addSuccessMessage');
+      jest.spyOn(toast, 'success');
 
       const secrets: Secret[] = [
         SecretFixture(),
@@ -153,16 +147,14 @@ describe('OrganizationFeatureFlagsIndex', () => {
       expect(secretsTable.getByText('openfeature')).toBeInTheDocument();
       expect(secretsTable.queryByText('launchdarkly')).not.toBeInTheDocument();
 
-      expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
+      expect(toast.success).toHaveBeenCalledWith(
         'Removed the provider and signing secret for the organization.'
       );
 
       expect(deleteMock).toHaveBeenCalledTimes(1);
     });
     it('does not allow to remove without permission', async () => {
-      const org = OrganizationFixture({
-        access: ['org:integrations'],
-      });
+      const org = OrganizationFixture({access: ['org:integrations']});
 
       const secrets: Secret[] = [
         SecretFixture(),

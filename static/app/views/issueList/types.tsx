@@ -1,12 +1,8 @@
 import type {PageFilterDatetime} from 'sentry/types/core';
-import type {
-  GroupStatusResolution,
-  MarkReviewed,
-  PriorityLevel,
-  TagValue,
-} from 'sentry/types/group';
+import type {GroupStatusResolution, PriorityLevel, TagValue} from 'sentry/types/group';
 import type {AvatarUser} from 'sentry/types/user';
-import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import type {IssueSortOptions} from './utils';
 
 export type TagValueLoader = (key: string, search: string) => Promise<TagValue[]>;
 
@@ -14,7 +10,6 @@ export type IssueUpdateData =
   | {isBookmarked: boolean}
   | {isSubscribed: boolean}
   | {priority: PriorityLevel}
-  | MarkReviewed
   | GroupStatusResolution;
 
 export enum GroupSearchViewVisibility {

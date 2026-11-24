@@ -174,7 +174,8 @@ def run_metrics_query(
         end=end,
     )
     result = raw_snql_query(request, referrer, use_cache=True)
-    return result["data"]
+    data = result["data"]
+    return data
 
 
 _PREFIX_TO_METRIC_ENTITY: dict[str, MetricEntity] = {

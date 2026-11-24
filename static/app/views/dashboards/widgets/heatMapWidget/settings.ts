@@ -30,6 +30,14 @@ export const HEATMAP_COLORS = [
 ] as const;
 
 /**
+ * Lines drawn over the heat map (cursor, overlay lines). The palette runs from
+ * near-black to bright coral, so a light line with a dark halo reads on every
+ * cell regardless of theme.
+ */
+export const HEATMAP_OVERLAY_LINE_COLOR = '#ffffff';
+export const HEATMAP_OVERLAY_LINE_SHADOW_COLOR = 'rgba(0, 0, 0, 0.8)';
+
+/**
  * Target size, in pixels, of a single heat map bucket along each axis. Both the
  * X-axis (time) interval and the Y-axis bucket count are chosen so that cells
  * are roughly this size, keeping them approximately square. A smaller value

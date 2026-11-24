@@ -8,13 +8,11 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {Organization} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import {
-  formatTraceMetricsFunction,
-  TraceMetricsConfig,
-} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {DisplayType, WidgetType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
+
+import {formatTraceMetricsFunction, TraceMetricsConfig} from './traceMetrics';
 
 const mockUseTraceItemSearchQueryBuilderProps = jest.fn(() => ({
   filterKeys: {},
@@ -104,11 +102,7 @@ describe('TraceMetricsConfig', () => {
             yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
         ],
       };
@@ -140,20 +134,12 @@ describe('TraceMetricsConfig', () => {
             yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
           {
             yAxis: 'p50(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 80}],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
         ],
       };
@@ -189,21 +175,13 @@ describe('TraceMetricsConfig', () => {
             yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [{key: 'project', value: 'frontend'}],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
           {
             yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 200}],
             groupBy: [{key: 'project', value: 'backend'}],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
         ],
       };
@@ -237,41 +215,25 @@ describe('TraceMetricsConfig', () => {
             yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [{key: 'project', value: 'frontend'}],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
           {
             yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 200}],
             groupBy: [{key: 'project', value: 'backend'}],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
           {
             yAxis: 'p50(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 80}],
             groupBy: [{key: 'project', value: 'frontend'}],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
           {
             yAxis: 'p50(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 160}],
             groupBy: [{key: 'project', value: 'backend'}],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
         ],
       };
@@ -314,11 +276,7 @@ describe('TraceMetricsConfig', () => {
               {key: 'project', value: 'frontend'},
               {key: 'environment', value: 'production'},
             ],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
           {
             yAxis: 'avg(value,test_metric,millisecond,none)',
@@ -327,11 +285,7 @@ describe('TraceMetricsConfig', () => {
               {key: 'project', value: 'frontend'},
               {key: 'environment', value: 'staging'},
             ],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
           {
             yAxis: 'p50(value,test_metric,millisecond,none)',
@@ -340,11 +294,7 @@ describe('TraceMetricsConfig', () => {
               {key: 'project', value: 'frontend'},
               {key: 'environment', value: 'production'},
             ],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
           {
             yAxis: 'p50(value,test_metric,millisecond,none)',
@@ -353,11 +303,7 @@ describe('TraceMetricsConfig', () => {
               {key: 'project', value: 'frontend'},
               {key: 'environment', value: 'staging'},
             ],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
         ],
       };
@@ -396,21 +342,13 @@ describe('TraceMetricsConfig', () => {
             yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [{key: 'project', value: null}],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
           {
             yAxis: 'p50(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 80}],
             groupBy: [{key: 'project', value: null}],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
         ],
       };
@@ -447,11 +385,7 @@ describe('TraceMetricsConfig', () => {
             yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
         ],
       };
@@ -483,21 +417,13 @@ describe('TraceMetricsConfig', () => {
             yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
           {
             yAxis: 'p50(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 80}],
             groupBy: [],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
         ],
       };
@@ -533,21 +459,13 @@ describe('TraceMetricsConfig', () => {
             yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [{key: 'project', value: 'frontend'}],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
           {
             yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 200}],
             groupBy: [{key: 'project', value: 'backend'}],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
         ],
       };
@@ -580,41 +498,25 @@ describe('TraceMetricsConfig', () => {
             yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [{key: 'project', value: 'frontend'}],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
           {
             yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 200}],
             groupBy: [{key: 'project', value: 'backend'}],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
           {
             yAxis: 'p50(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 80}],
             groupBy: [{key: 'project', value: 'frontend'}],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
           {
             yAxis: 'p50(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 160}],
             groupBy: [{key: 'project', value: 'backend'}],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
         ],
       };
@@ -654,21 +556,13 @@ describe('TraceMetricsConfig', () => {
             yAxis: 'avg(value,db_latency,millisecond,none)',
             values: [{timestamp: 1, value: 150}],
             groupBy: [{key: 'environment', value: 'prod'}],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
           {
             yAxis: 'avg(value,db_latency,millisecond,none)',
             values: [{timestamp: 1, value: 75}],
             groupBy: [{key: 'environment', value: 'dev'}],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
         ],
       };
@@ -690,21 +584,13 @@ describe('TraceMetricsConfig', () => {
             yAxis: 'avg(value,cache_hits,counter,none)',
             values: [{timestamp: 1, value: 980}],
             groupBy: [{key: 'environment', value: 'prod'}],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
           {
             yAxis: 'avg(value,cache_hits,counter,none)',
             values: [{timestamp: 1, value: 920}],
             groupBy: [{key: 'environment', value: 'dev'}],
-            meta: {
-              interval: 0,
-              valueType: 'number',
-              valueUnit: null,
-            },
+            meta: {interval: 0, valueType: 'number', valueUnit: null},
           },
         ],
       };
@@ -942,9 +828,7 @@ describe('TraceMetricsConfig', () => {
       );
 
       expect(mockUseTraceItemSearchQueryBuilderProps).toHaveBeenCalledWith(
-        expect.objectContaining({
-          attributeQuery: undefined,
-        })
+        expect.objectContaining({attributeQuery: undefined})
       );
     });
 

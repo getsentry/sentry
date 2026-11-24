@@ -4,19 +4,17 @@ import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
-import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
+import {markLine as createMarkLine} from './components/markLine';
+import {MiniBarChart} from './miniBarChart';
+
 function asChartPoint(point: [number, number]): {name: number | string; value: number} {
-  return {
-    name: point[0] * 1000,
-    value: point[1],
-  };
+  return {name: point[0] * 1000, value: point[1]};
 }
 
 const EMPTY_STATS: readonly TimeseriesValue[] = [];
@@ -62,11 +60,7 @@ export function GroupStatusChart({
         opacity: 0.6,
         cap: 'round', // Rounded edges for the dashes
       },
-      data: [
-        {
-          type: 'max',
-        },
-      ],
+      data: [{type: 'max'}],
       animation: false,
       label: {
         show: true,
@@ -87,10 +81,7 @@ export function GroupStatusChart({
               data: secondaryStats.map(asChartPoint),
               markLine: max > 0 ? markLine : undefined,
             },
-            {
-              seriesName: t('Matching Events'),
-              data: stats.map(asChartPoint),
-            },
+            {seriesName: t('Matching Events'), data: stats.map(asChartPoint)},
           ]
         : [
             {

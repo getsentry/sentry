@@ -1,9 +1,5 @@
 import {Fragment, useMemo} from 'react';
 
-import {EntryErrorBoundary} from 'sentry/components/events/entryErrorBoundary';
-import {Exception} from 'sentry/components/events/interfaces/exception';
-import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
-import {Threads} from 'sentry/components/events/interfaces/threads';
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
 import {getOrderedExceptions} from 'sentry/components/stackTrace/issueStackTrace/utils';
 import type {Event} from 'sentry/types/event';
@@ -17,6 +13,11 @@ import {
   getHangProfileData,
   MetricKitHangProfileSection,
 } from 'sentry/views/issueDetails/metricKitHangProfileSection';
+
+import {Exception} from './interfaces/exception';
+import {StackTrace} from './interfaces/stackTrace';
+import {Threads} from './interfaces/threads';
+import {EntryErrorBoundary} from './entryErrorBoundary';
 
 interface EventStackTraceProps {
   event: Event;

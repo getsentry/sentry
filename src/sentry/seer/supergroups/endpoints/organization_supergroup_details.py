@@ -11,6 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.auth.principal import acting_user_id
 from sentry.models.organization import Organization
 from sentry.seer.signed_seer_api import SeerViewerContext, make_supergroups_get_request
 
@@ -40,7 +41,9 @@ class OrganizationSupergroupDetailsEndpoint(OrganizationEndpoint):
                 "organization_id": organization.id,
                 "supergroup_id": supergroup_id,
             },
-            SeerViewerContext(organization_id=organization.id, user_id=request.user.id),
+            SeerViewerContext(
+                organization_id=organization.id, user_id=acting_user_id(request.user)
+            ),
             timeout=10,
         )
 

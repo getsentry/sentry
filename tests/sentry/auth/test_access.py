@@ -1,14 +1,18 @@
+from collections.abc import Iterable
 from datetime import timedelta
+from typing import cast
 from unittest.mock import Mock, patch
 
+import pytest
 from django.contrib.auth.models import AnonymousUser
+from django.http import HttpRequest
 from django.test import override_settings
 from django.utils import timezone
 from rest_framework.request import Request
 
 from sentry.api.permissions import SentryPermission
 from sentry.auth import access
-from sentry.auth.access import Access, NoAccess
+from sentry.auth.access import Access, NoAccess, has_member_scope
 from sentry.auth.principal import set_request_principal
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.scope_declaration import (
@@ -49,11 +53,11 @@ from sentry.users.models.user import User
 
 
 def silo_from_user(
-    user,
-    organization=None,
-    scopes=None,
-    is_superuser=False,
-    is_staff=False,
+    user: User | AnonymousUser,
+    organization: Organization | None = None,
+    scopes: Iterable[str] | None = None,
+    is_superuser: bool = False,
+    is_staff: bool = False,
 ) -> Access:
     rpc_user_org_context = None
     if organization:
@@ -69,7 +73,11 @@ def silo_from_user(
     )
 
 
-def silo_from_request(request, organization: Organization | None = None, scopes=None) -> Access:
+def silo_from_request(
+    request: HttpRequest,
+    organization: Organization | None = None,
+    scopes: Iterable[str] | None = None,
+) -> Access:
     rpc_user_org_context = None
     if organization:
         rpc_user_org_context = access.get_organization_access_context(
@@ -81,26 +89,40 @@ def silo_from_request(request, organization: Organization | None = None, scopes=
 
 
 class AccessFactoryTestCase(TestCase):
-    def from_user(self, *args, **kwds):
+    def from_user(
+        self,
+        user: User | AnonymousUser,
+        organization: Organization | None = None,
+        scopes: Iterable[str] | None = None,
+        is_superuser: bool = False,
+        is_staff: bool = False,
+    ) -> Access:
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            return access.from_user(*args, **kwds)
-        return silo_from_user(*args, **kwds)
+            return access.from_user(user, organization, scopes, is_superuser, is_staff)
+        return silo_from_user(user, organization, scopes, is_superuser, is_staff)
 
-    def from_request(self, *args, **kwds):
+    def from_request(
+        self,
+        request: HttpRequest,
+        organization: Organization | None = None,
+        scopes: Iterable[str] | None = None,
+    ) -> Access:
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            return access.from_request(*args, **kwds)
-        return silo_from_request(*args, **kwds)
+            return access.from_request(cast(Request, request), organization, scopes)
+        return silo_from_request(request, organization, scopes)
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_api_key(self, organization: Organization, **kwds):
+    def create_api_key(self, organization: Organization, **kwds: object) -> ApiKey:
         return ApiKey.objects.create(organization_id=organization.id, **kwds)
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_auth_provider(self, organization: Organization, **kwds):
+    def create_auth_provider(self, organization: Organization, **kwds: object) -> AuthProvider:
         return AuthProvider.objects.create(organization_id=organization.id, **kwds)
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_auth_identity(self, auth_provider: AuthProvider, user: User, **kwds):
+    def create_auth_identity(
+        self, auth_provider: AuthProvider, user: User, **kwds: object
+    ) -> AuthIdentity:
         return AuthIdentity.objects.create(auth_provider=auth_provider, user=user, **kwds)
 
 
@@ -830,7 +852,10 @@ class FromRequestTest(AccessFactoryTestCase):
         self.create_member(user=user, organization=organization, role="admin", teams=[member_team])
 
         request = self.make_request()
-        request.auth = self.create_api_key(organization=organization, allowed_origins="*")
+        request.auth = cast(
+            AuthenticatedToken,
+            self.create_api_key(organization=organization, allowed_origins="*"),
+        )
         result = self.from_request(request, organization)
 
         assert result.team_ids_with_membership == frozenset({})
@@ -853,7 +878,10 @@ class FromRequestTest(AccessFactoryTestCase):
 
         request = self.make_request()
         # Using an API key for another org should be invalid
-        request.auth = self.create_api_key(organization=other_organization, allowed_origins="*")
+        request.auth = cast(
+            AuthenticatedToken,
+            self.create_api_key(organization=other_organization, allowed_origins="*"),
+        )
         result = self.from_request(request, organization)
 
         assert result == NoAccess()
@@ -999,6 +1027,30 @@ class FromSentryAppTest(AccessFactoryTestCase):
         assert result.has_scope("team:read") is True
         assert result.has_scope("team:write") is True
         assert result.has_scope("team:admin") is False
+
+    def _org_read_app_access(self) -> Access:
+        app = self.create_sentry_app(name="OrgReadApp", organization=self.org)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            app.update(scope_list=["org:read"])
+        self.create_sentry_app_installation(organization=self.org, slug=app.slug, user=self.user)
+        return self.from_request(self.make_request(user=app.proxy_user), self.org)
+
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_deprecated_scope_not_translated_without_granular_scopes(self) -> None:
+        result = self._org_read_app_access()
+        assert result.scopes == frozenset({"org:read"})
+        assert not result.has_scope("dashboard:write")
+        assert not result.has_scope("saved_query:write")
+        assert not result.has_scope("user_preference:write")
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_deprecated_scope_translated_with_granular_scopes(self) -> None:
+        result = self._org_read_app_access()
+        assert result.has_scope("org:read")
+        assert result.has_scope("dashboard:write")
+        assert result.has_scope("saved_query:write")
+        assert result.has_scope("user_preference:write")
 
 
 @all_silo_test
@@ -1413,6 +1465,7 @@ class ServiceAccountAccessTest(TestCase):
         result = self._access()
 
         assert isinstance(result, access.ServiceAccountAccess)
+        assert not result.has_all_projects
         assert not result.has_global_access
         assert not result.has_open_membership
         assert result.has_scope("project:read")
@@ -1456,6 +1509,8 @@ class ServiceAccountAccessTest(TestCase):
 
         result = self._access()
 
+        assert isinstance(result, access.ServiceAccountAccess)
+        assert result.has_all_projects
         # Org-wide access would also cover team and member actions, so it stays off.
         assert not result.has_global_access
         assert not result.has_open_membership
@@ -1503,3 +1558,20 @@ class SystemAccessTest(TestCase):
         assert not result.has_team_membership(team)
         assert result.has_scope("project:read")
         assert result.has_team_access(team)
+
+
+@pytest.mark.parametrize(
+    ("scopes", "member_scope", "expected"),
+    [
+        (["member:admin"], "member:admin", True),
+        (["membership:admin"], "member:admin", True),
+        (["membership:invite"], "member:invite", True),
+        (["membership:invite"], "member:admin", False),
+        (["membership:write"], "member:write", True),
+        (["member:write"], "member:admin", False),
+    ],
+)
+def test_has_member_scope(scopes: list[str], member_scope: str, expected: bool) -> None:
+    token_access = Mock(spec=Access)
+    token_access.has_scope.side_effect = lambda scope: scope in scopes
+    assert has_member_scope(token_access, member_scope) is expected

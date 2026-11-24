@@ -19,7 +19,9 @@ class ListResolverTestCase(TestCase):
 
     def test_generates_list_ids(self) -> None:
         expected = f"<{self.event.project.slug}.{self.event.organization.slug}.namespace>"
-        assert self.resolver(self.event.group) == expected
+        group = self.event.group
+        assert group is not None
+        assert self.resolver(group) == expected
         assert self.resolver(self.event.project) == expected
 
     def test_rejects_invalid_objects(self) -> None:

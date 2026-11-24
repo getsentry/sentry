@@ -10,11 +10,14 @@ from sentry.models.organization import Organization
 
 class GroupSearchViewPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:read", "org:write", "org:admin"],
-        "DELETE": ["org:read", "org:write", "org:admin"],
+        "GET": ["org:read", "org:write", "org:admin", "saved_query:read"],
+        "POST": ["org:read", "org:write", "org:admin", "saved_query:write"],
+        "PUT": ["org:read", "org:write", "org:admin", "saved_query:write"],
+        "DELETE": ["org:read", "org:write", "org:admin", "saved_query:write"],
     }
+
+    # saved_query:read and saved_query:write replace org:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
 
     def has_object_permission(self, request: Request, view: APIView, obj: object) -> bool:
         if isinstance(obj, Organization):

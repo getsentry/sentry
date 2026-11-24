@@ -3,11 +3,11 @@ import {IconChevron} from '@sentry/icons/chevron';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
@@ -34,10 +34,7 @@ interface FileInsightItemDiffTableProps {
 
 // This table is very similar  to FileInsightItemDiffTable, but shows only files. Should remain separate.
 export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTableProps) {
-  const [sort, setSort] = useState<DiffTableSort>({
-    field: 'size_diff',
-    kind: 'desc',
-  });
+  const [sort, setSort] = useState<DiffTableSort>({field: 'size_diff', kind: 'desc'});
 
   const [currentPage, setCurrentPage] = useState(0);
 
@@ -123,7 +120,7 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
           </SimpleTable.Empty>
         )}
         {currentDiffItems.map(fileDiffItem => {
-          // oxlint-disable-next-line react/todo
+          // oxlint-disable-next-line react/immutability
           rowIndex++;
           const fileDiffItemChange = getDiffChangeElements(fileDiffItem);
 

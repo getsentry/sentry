@@ -2,19 +2,24 @@ from __future__ import annotations
 
 import logging
 import posixpath
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping, Sequence
+from functools import partial
 from typing import Any
 
 import sentry_sdk
-from requests.exceptions import RequestException
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import ParseDebugIdError
 
-from sentry import options
+from sentry import features, options
+from sentry.lang.javascript import processing as javascript_processing
+from sentry.lang.javascript.utils import JAVASCRIPT_PLATFORMS
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.flamegraphs import (
     MAX_SYMBOLICATION_FRAMES,
+    FlamegraphExpansionLimitExceeded,
     Flamegraphs,
+    FlamegraphSymbolicationInput,
+    Stacktrace,
     expand_inline_frames,
 )
 from sentry.lang.native.symbolicator import FrameOrder, Symbolicator, SymbolicatorFunction
@@ -32,6 +37,7 @@ from sentry.lang.native.utils import (
     signal_from_data,
 )
 from sentry.models.eventerror import EventErrorType
+from sentry.models.project import Project
 from sentry.options.rollout import in_random_rollout
 from sentry.stacktraces.functions import trim_function_name
 from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
@@ -84,7 +90,9 @@ ELECTRON_FIRST_MODULE_REWRITE_RULES = [
 ]
 
 
-def _merge_frame(new_frame, symbolicated, platform="native"):
+def _merge_frame(
+    new_frame: dict[str, Any], symbolicated: Mapping[str, Any], platform: str = "native"
+) -> None:
     # il2cpp events which have the "csharp" platform have good (C#) names
     # coming from the SDK, we do not want to override those with bad (mangled) C++ names.
     if platform != "csharp" and symbolicated.get("function"):
@@ -143,7 +151,9 @@ def _merge_frame(new_frame, symbolicated, platform="native"):
         frame_meta["symbolicator_status"] = symbolicated["status"]
 
 
-def _handle_image_status(status, image, os, data):
+def _handle_image_status(
+    status: str, image: dict[str, Any], os: str | None, data: MutableMapping[str, Any]
+) -> None:
     if status in ("found", "unused"):
         return
     elif status == "unsupported":
@@ -195,7 +205,12 @@ def _handle_image_status(status, image, os, data):
     write_error(error, data)
 
 
-def _merge_image(raw_image, complete_image, os, data):
+def _merge_image(
+    raw_image: dict[str, Any],
+    complete_image: Mapping[str, Any],
+    os: str | None,
+    data: MutableMapping[str, Any],
+) -> None:
     statuses = set()
 
     # Set image data from symbolicator as symbolicator might know more
@@ -210,7 +225,9 @@ def _merge_image(raw_image, complete_image, os, data):
         _handle_image_status(status, raw_image, os, data)
 
 
-def _handle_response_status(event_data, response_json):
+def _handle_response_status(
+    event_data: MutableMapping[str, Any], response_json: Mapping[str, Any]
+) -> bool | None:
     if not response_json:
         error = SymbolicationFailed(type=EventErrorType.NATIVE_INTERNAL_FAILURE)
     elif response_json["status"] == "completed":
@@ -225,9 +242,10 @@ def _handle_response_status(event_data, response_json):
         error = SymbolicationFailed(type=EventErrorType.NATIVE_INTERNAL_FAILURE)
 
     write_error(error, event_data)
+    return None
 
 
-def _merge_system_info(data, system_info):
+def _merge_system_info(data: dict[str, Any], system_info: Mapping[str, Any]) -> None:
     set_path(data, "contexts", "os", "type", value="os")  # Required by "get_os_from_event"
 
     os_name = system_info.get("os_name")
@@ -251,7 +269,7 @@ def _merge_system_info(data, system_info):
         setdefault_path(data, "contexts", "device", "model", value=device_model)
 
 
-def _merge_full_response(data, response):
+def _merge_full_response(data: dict[str, Any], response: Mapping[str, Any]) -> None:
     data["platform"] = "native"
     # Specifically for Unreal events: Do not overwrite the level as it has already been set in Relay when merging the context.
     if response.get("crashed") is not None and data.get("level") is None:
@@ -385,7 +403,7 @@ def process_applecrashreport(symbolicator: Symbolicator, data: Any) -> Any:
     return data
 
 
-def _handles_frame(data, frame):
+def _handles_frame(data: Mapping[str, Any], frame: Mapping[str, Any] | None) -> bool:
     if not frame:
         return False
 
@@ -398,11 +416,11 @@ def _handles_frame(data, frame):
 
 
 def get_frames_for_symbolication(
-    frames,
-    data,
-    modules,
-    adjustment=None,
-):
+    frames: Sequence[Mapping[str, Any]],
+    data: Mapping[str, Any],
+    modules: Sequence[Mapping[str, Any]],
+    adjustment: str | None = None,
+) -> list[dict[str, Any]]:
     modules_by_debug_id = None
     rv = []
     adjustment = adjustment or "auto"
@@ -419,7 +437,7 @@ def get_frames_for_symbolication(
         # expand it, we keep None which is absolute.  That's not great but
         # at least won't do damage.
         addr_mode = s_frame.pop("addr_mode", None)
-        sanitized_addr_mode = None
+        sanitized_addr_mode: str | None = None
 
         # None and abs mean absolute addressing explicitly.
         if addr_mode in (None, "abs"):
@@ -456,20 +474,18 @@ def get_frames_for_symbolication(
     return rv
 
 
-def _get_flamegraph_stacktraces(
-    payload: dict[str, Any],
-) -> tuple[list[dict[str, Any]], list[int], list[dict[str, Any]]]:
+def _get_flamegraph_stacktraces(payload: dict[str, Any]) -> FlamegraphSymbolicationInput:
     frame_ids = []
-    stacktraces = []
+    stacktraces: list[Stacktrace] = []
     original_modules = payload.get("debug_meta", {}).get("images", [])
-    modules: list[dict[str, Any]] = []
+    modules: list[dict[str, object]] = []
     module_indices: dict[int, int] = {}
     for index, image in enumerate(original_modules):
         if is_native_image(image):
             module_indices[index] = len(modules)
             modules.append(image)
     if not modules:
-        return [], [], []
+        return FlamegraphSymbolicationInput(modules=[], frame_ids=[], stacktraces=[])
     for frame_id, frame in enumerate(payload["frames"][:MAX_SYMBOLICATION_FRAMES]):
         frames = get_frames_for_symbolication([frame], payload, original_modules, adjustment="none")
         if not frames:
@@ -485,7 +501,9 @@ def _get_flamegraph_stacktraces(
             frames[0]["addr_mode"] = f"rel:{module_index}"
         frame_ids.append(frame_id)
         stacktraces.append({"frames": frames})
-    return modules, frame_ids, stacktraces
+    return FlamegraphSymbolicationInput(
+        modules=modules, frame_ids=frame_ids, stacktraces=stacktraces
+    )
 
 
 def _merge_flamegraph_frames(
@@ -528,30 +546,82 @@ def _merge_flamegraph_frames(
 
 
 def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
-    flamegraphs = Flamegraphs(symbolicator.project, data)
+    event_changed = _process_native_event_stacktraces(symbolicator, data)
+    attachments_changed = _process_flamegraphs(symbolicator, data)
+    return data if event_changed or attachments_changed else None
+
+
+def _process_flamegraphs(symbolicator: Symbolicator, data: Any) -> bool:
+    # Imported at invocation time to avoid the symbolication task's processing import cycle.
+    from sentry.tasks.symbolication import SymbolicationTimeout
+
     attachments_changed = False
-    for attachment_index, payload in flamegraphs.get_flamegraphs():
-        modules, frame_ids, stacktraces = _get_flamegraph_stacktraces(payload)
-        if not stacktraces:
-            continue
-        try:
-            response = symbolicator.process_payload(
-                platform=payload["platform"],
-                stacktraces=stacktraces,
-                modules=modules,
-                frame_order=FrameOrder.caller_first,
-                apply_source_context=False,
-            )
-        except (OSError, RequestException) as error:
-            sentry_sdk.capture_exception(error)
-            continue
-        if not response or response.get("status") != "completed":
-            continue
-        resolved_stacktraces = response.get("stacktraces", [])
-        if len(resolved_stacktraces) != len(frame_ids):
-            continue
-        output = _merge_flamegraph_frames(payload, frame_ids, resolved_stacktraces)
-        attachments_changed |= flamegraphs.save(attachment_index, output)
+    try:
+        flamegraphs = Flamegraphs(symbolicator.project, data)
+        for attachment_index, payload in flamegraphs.get_flamegraphs():
+            reason = "processing_error"
+            try:
+                if payload["platform"] not in JAVASCRIPT_PLATFORMS:
+                    get_stacktraces = _get_flamegraph_stacktraces
+                    process = symbolicator.process_payload
+                    merge_frames = _merge_flamegraph_frames
+                else:
+                    get_stacktraces = javascript_processing.get_flamegraph_stacktraces
+                    process = partial(
+                        symbolicator.with_function(SymbolicatorFunction.js).process_js,
+                        release=data.get("release"),
+                        dist=data.get("dist"),
+                    )
+                    merge_frames = javascript_processing.merge_flamegraph_frames
+                symbolication_input = get_stacktraces(payload)
+                if not symbolication_input.stacktraces:
+                    metrics.incr(
+                        "process.native.flamegraph.skipped", tags={"reason": "no_stacktraces"}
+                    )
+                    continue
+                reason = "request_error"
+                response = process(
+                    platform=payload["platform"],
+                    stacktraces=symbolication_input.stacktraces,
+                    modules=symbolication_input.modules,
+                    frame_order=FrameOrder.caller_first,
+                    apply_source_context=False,
+                )
+                if not response or response.get("status") != "completed":
+                    metrics.incr(
+                        "process.native.flamegraph.skipped", tags={"reason": "request_error"}
+                    )
+                    continue
+                resolved_stacktraces = response.get("stacktraces", [])
+                if len(resolved_stacktraces) != len(symbolication_input.frame_ids):
+                    metrics.incr(
+                        "process.native.flamegraph.skipped", tags={"reason": "invalid_response"}
+                    )
+                    continue
+                reason = "merge_error"
+                output = merge_frames(payload, symbolication_input.frame_ids, resolved_stacktraces)
+                reason = "save_error"
+                if flamegraphs.save(attachment_index, output):
+                    attachments_changed = True
+                    metrics.incr("process.native.flamegraph.processed")
+            except SymbolicationTimeout as error:
+                sentry_sdk.capture_exception(error)
+                metrics.incr("process.native.flamegraph.skipped", tags={"reason": "timeout"})
+                break
+            except FlamegraphExpansionLimitExceeded:
+                metrics.incr(
+                    "process.native.flamegraph.skipped", tags={"reason": "expansion_limit"}
+                )
+            except Exception as error:
+                sentry_sdk.capture_exception(error)
+                metrics.incr("process.native.flamegraph.skipped", tags={"reason": reason})
+    except Exception as error:
+        sentry_sdk.capture_exception(error)
+        metrics.incr("process.native.flamegraph.skipped", tags={"reason": "processing_error"})
+    return attachments_changed
+
+
+def _process_native_event_stacktraces(symbolicator: Symbolicator, data: Any) -> bool:
     stacktrace_infos = [
         stacktrace
         for stacktrace in find_stacktraces_in_data(data)
@@ -574,7 +644,7 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     ]
 
     if not any(stacktrace["frames"] for stacktrace in stacktraces):
-        return data if attachments_changed else None
+        return False
 
     signal = signal_from_data(data)
 
@@ -590,7 +660,7 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     )
 
     if not _handle_response_status(data, response):
-        return data
+        return True
 
     # Emit Apple symbol stats
     apple_symbol_stats = response.get("apple_symbol_stats")
@@ -643,10 +713,10 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         new_frames.reverse()
         sinfo.stacktrace["frames"] = new_frames
 
-    return data
+    return True
 
 
-def emit_apple_symbol_stats(apple_symbol_stats, data):
+def emit_apple_symbol_stats(apple_symbol_stats: Mapping[str, Any], data: Mapping[str, Any]) -> None:
     os_name = get_path(data, "contexts", "os", "name") or get_path(
         data, "contexts", "os", "raw_description"
     )
@@ -728,7 +798,7 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
 
 
 def get_native_symbolication_functions(
-    data: Mapping[str, Any], stacktraces: list[StacktraceInfo]
+    data: Mapping[str, Any], stacktraces: list[StacktraceInfo], project: Project
 ) -> list[SymbolicatorFunction]:
     """
     Yields the symbolication functions that will process the event,
@@ -743,8 +813,12 @@ def get_native_symbolication_functions(
         functions.append(SymbolicatorFunction.native)
         return functions  # early return to prevent duplicates
 
-    if has_native_stacktraces(stacktraces) or any(
-        attachment.get("type") == "event.flamegraph" for attachment in data.get("_attachments", [])
+    if has_native_stacktraces(stacktraces) or (
+        any(
+            attachment.get("type") == "event.flamegraph"
+            for attachment in data.get("_attachments", [])
+        )
+        and features.has("organizations:flamegraph-attachments", project.organization)
     ):
         # Run native symbolication first, to prevent sending minidump / ACR events to
         # symbolicator twice (after symbolication a minidump event will have native stacktraces).
@@ -753,7 +827,7 @@ def get_native_symbolication_functions(
     return functions
 
 
-def get_required_attachment_types(data) -> set[str]:
+def get_required_attachment_types(data: Mapping[str, object]) -> set[str]:
     if is_minidump_event(data):
         return {MINIDUMP_ATTACHMENT_TYPE}
     elif is_applecrashreport_event(data):

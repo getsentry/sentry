@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from django.http import JsonResponse
 
@@ -15,7 +15,7 @@ from sentry.viewer_context import (
 
 class ClientParameterHandlingTest(TestCase):
     @patch("sentry.api.client.resolve")
-    def test_mixed_parameters_in_query_string(self, mock_resolve):
+    def test_mixed_parameters_in_query_string(self, mock_resolve: MagicMock) -> None:
         mock_view = Mock(return_value=JsonResponse({"success": True}))
         mock_resolve.return_value = (mock_view, (), {})
 
@@ -53,7 +53,7 @@ class ClientParameterHandlingTest(TestCase):
 
 class ClientViewerContextTest(TestCase):
     @patch("sentry.api.client.resolve")
-    def test_view_caller_does_not_leak(self, mock_resolve):
+    def test_view_caller_does_not_leak(self, mock_resolve: MagicMock) -> None:
         mock_view = Mock(return_value=JsonResponse({}))
         mock_resolve.return_value = (mock_view, (), {})
         outer = ViewerContext(actor=Actor(type=ActorType.UNKNOWN))

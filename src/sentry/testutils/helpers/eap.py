@@ -67,7 +67,8 @@ def _dataset_from_query(query: Mapping[str, Any]) -> str | None:
             continue
         if isinstance(value, (list, tuple)):
             return value[0] if value else None
-        return value
+        if isinstance(value, str):
+            return value
     return None
 
 

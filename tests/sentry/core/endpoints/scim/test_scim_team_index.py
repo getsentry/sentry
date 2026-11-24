@@ -226,6 +226,15 @@ class SCIMIndexCreateTest(SCIMTestCase):
             "sentry.scim.team.provision",
         )
 
+    def test_scim_team_index_create_requires_display_name(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            schemas=self.post_data["schemas"],
+            members=[],
+            status_code=400,
+        )
+        assert response.data == {"displayName": ["This field is required."]}
+
     def test_scim_team_no_duplicate_names(self) -> None:
         self.create_team(organization=self.organization, name=self.post_data["displayName"])
         response = self.get_error_response(

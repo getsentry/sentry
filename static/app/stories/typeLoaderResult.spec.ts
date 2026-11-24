@@ -1,7 +1,7 @@
 // oxlint-disable-next-line import/no-nodejs-modules -- Execute the generated loader module in an isolated context.
 import {runInNewContext} from 'node:vm';
 
-import {serializeTypeLoaderResult} from 'sentry/stories/typeLoaderResult';
+import {serializeTypeLoaderResult} from './typeLoaderResult';
 
 it('emits a module with working shared prop references', () => {
   const component: TypeLoader.ComponentDoc = {

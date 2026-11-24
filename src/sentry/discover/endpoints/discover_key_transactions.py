@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TypedDict
+from collections.abc import Mapping, Sequence
+from typing import TypedDict, cast
 
+from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError
@@ -42,8 +44,11 @@ from sentry.discover.endpoints.discover_key_transactions_types import (
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import Team
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class KeyTransactionPermission(OrganizationPermission):
@@ -112,8 +117,6 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         Return the teams that have marked a transaction as key, limited to teams the
         requesting user is a member of.
         """
-        if not self.has_feature(organization, request):
-            return Response(status=404)
 
         transaction_name = request.GET.get("transaction")
         if transaction_name is None:
@@ -156,8 +159,6 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         the project, and a team can have at most 100 key transactions. Returns `204` if
         every team already has the transaction marked as key.
         """
-        if not self.has_feature(organization, request):
-            return Response(status=404)
 
         project = self.get_project(request, organization)
 
@@ -228,8 +229,6 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         """
         Remove a transaction from the key transactions of one or more teams.
         """
-        if not self.has_feature(organization, request):
-            return Response(status=404)
 
         project = self.get_project(request, organization)
 
@@ -307,8 +306,6 @@ class KeyTransactionListEndpoint(KeyTransactionBase):
         is the team's total number of key transactions across all projects, while `keyed`
         only lists the ones in the requested projects.
         """
-        if not self.has_feature(organization, request):
-            return Response(status=404)
 
         try:
             teams = get_teams(request, organization)
@@ -330,7 +327,13 @@ class KeyTransactionListEndpoint(KeyTransactionBase):
 
 @register(TeamKeyTransaction)
 class TeamKeyTransactionSerializer(Serializer[KeyTransactionTeamResponse]):
-    def serialize(self, obj, attrs, user, **kwargs) -> KeyTransactionTeamResponse:
+    def serialize(
+        self,
+        obj: TeamKeyTransaction,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> KeyTransactionTeamResponse:
         return {
             "team": str(obj.project_team.team_id),
         }
@@ -342,10 +345,15 @@ class KeyTransactionTeamAttrs(TypedDict):
 
 
 class KeyTransactionTeamSerializer(Serializer[TeamKeyTransactionsResponse]):
-    def __init__(self, projects):
+    def __init__(self, projects: Sequence[Project]) -> None:
         self.project_ids = {project.id for project in projects}
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[Team],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[Team, KeyTransactionTeamAttrs]:
         team_key_transactions = (
             TeamKeyTransaction.objects.filter(
                 project_team__in=ProjectTeam.objects.filter(team__in=item_list),
@@ -375,9 +383,16 @@ class KeyTransactionTeamSerializer(Serializer[TeamKeyTransactionsResponse]):
 
         return attrs
 
-    def serialize(self, obj, attrs, user, **kwargs) -> TeamKeyTransactionsResponse:
+    def serialize(
+        self,
+        obj: Team,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> TeamKeyTransactionsResponse:
+        team_attrs = cast(KeyTransactionTeamAttrs, attrs)
         return {
             "team": str(obj.id),
-            "count": attrs.get("count", 0),
-            "keyed": attrs.get("key_transactions", []),
+            "count": team_attrs.get("count", 0),
+            "keyed": team_attrs.get("key_transactions", []),
         }

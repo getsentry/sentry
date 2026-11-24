@@ -82,7 +82,7 @@ class DeploySerializer(serializers.Serializer):
         help_text="The optional list of project slugs to create a deploy within. If not provided, deploys are created for all of the release's projects.",
     )
 
-    def validate_environment(self, value):
+    def validate_environment(self, value: str) -> str:
         if not Environment.is_valid_name(value):
             raise serializers.ValidationError("Invalid value for environment")
         return value
@@ -156,7 +156,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         responses={200: DeployResponseSerializer(many=True)},
     )
     def get(
-        self, request: Request, organization, version
+        self, request: Request, organization: Organization, version: str
     ) -> Response[list[DeploySerializerResponse]]:
         """
         Returns a list of deploys based on the organization, version, and project.
@@ -177,7 +177,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         projects = self.get_projects(request, organization)
         project_id = [p.id for p in projects]
 
-        if project_id and project_id != "-1":
+        if project_id:
             release_project_envs = release_project_envs.filter(project_id__in=project_id)
 
         deploy_ids = release_project_envs.values_list("last_deploy_id", flat=True)
@@ -199,7 +199,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         responses={201: DeployResponseSerializer, 400: RESPONSE_BAD_REQUEST},
     )
     def post(
-        self, request: Request, organization, version
+        self, request: Request, organization: Organization, version: str
     ) -> Response[DeploySerializerResponse] | Response[ValidationErrorResponse]:
         """
         Create a deploy for a given release.

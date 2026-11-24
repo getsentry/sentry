@@ -29,7 +29,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpointTest(APITestCase):
             build_number=42,
         )
 
-    def _get_url(self, artifact_id=None):
+    def _get_url(self, artifact_id: int | None = None) -> str:
         artifact_id = artifact_id or self.preprod_artifact.id
         return reverse(
             self.endpoint,

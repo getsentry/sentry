@@ -4,24 +4,21 @@ import {IconArrow} from '@sentry/icons/arrow';
 import {IconMegaphone} from '@sentry/icons/megaphone';
 import {useMutation} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
+import {parseAsString, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 
-const joinRequestSchema = z.object({
-  email: z.email(t('Enter a valid email')),
-});
+const joinRequestSchema = z.object({email: z.email(t('Enter a valid email'))});
 
 export function OrganizationJoinRequest({organizationSlug}: {organizationSlug: string}) {
   const [isOpen, setIsOpen] = useState(false);
@@ -92,7 +89,7 @@ function JoinRequestForm({
   onSuccess: () => void;
   organizationSlug: string;
 }) {
-  const location = useLocation();
+  const [referrer] = useQueryState('referrer', parseAsString.withDefault(''));
   const mutation = useMutation({
     mutationFn: (data: {email: string}) =>
       fetchMutation({
@@ -103,14 +100,11 @@ function JoinRequestForm({
         data,
       }),
     onSuccess: () => {
-      trackAnalytics('join_request.created', {
-        organization: organizationSlug,
-        referrer: decodeScalar(location.query.referrer, ''),
-      });
+      trackAnalytics('join_request.created', {organization: organizationSlug, referrer});
       onSuccess();
     },
     onError: () => {
-      addErrorMessage(t('Could not send request. Try again.'));
+      toast.error(t('Could not send request. Try again.'));
     },
   });
 

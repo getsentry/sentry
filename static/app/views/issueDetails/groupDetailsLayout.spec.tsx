@@ -12,8 +12,8 @@ import {Container} from '@sentry/scraps/layout';
 
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
+import {GroupDataContextProvider} from './groupDataContext';
 import {GroupDetailsLayout} from './groupDetailsLayout';
 
 jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
@@ -30,10 +30,7 @@ describe('GroupDetailsLayout', () => {
   beforeEach(() => {
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/flags/logs/',
       body: {data: []},
@@ -47,10 +44,7 @@ describe('GroupDetailsLayout', () => {
       url: '/organizations/org-slug/replay-count/',
       body: {},
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/repos/',
-      body: {},
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/repos/', body: {}});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/stats/`,
       body: [],
@@ -104,9 +98,7 @@ describe('GroupDetailsLayout', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        integration: {ok: true, reason: null},
-      }),
+      body: AutofixSetupFixture({integration: {ok: true, reason: null}}),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
@@ -145,17 +137,13 @@ describe('GroupDetailsLayout', () => {
 
     expect(await screen.findByTestId('children')).toBeInTheDocument();
     expect(
-      await screen.findByRole('link', {
-        name: 'Track this issue in Jira, GitHub, etc.',
-      })
+      await screen.findByRole('link', {name: 'Track this issue in Jira, GitHub, etc.'})
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Close sidebar'}));
     expect(await screen.findByTestId('children')).toBeInTheDocument();
     expect(
-      screen.queryByRole('link', {
-        name: 'Track this issue in Jira, GitHub, etc.',
-      })
+      screen.queryByRole('link', {name: 'Track this issue in Jira, GitHub, etc.'})
     ).not.toBeInTheDocument();
   });
 });

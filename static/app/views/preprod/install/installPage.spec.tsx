@@ -6,7 +6,7 @@ import {
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import {DateTimeProvider} from '@sentry/scraps/datetime';
+import {DateTimeProvider} from '@sentry/scraps/dateTime';
 
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {BuildDetailsSizeAnalysisState} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -142,14 +142,12 @@ describe('InstallPage', () => {
           size_metrics: [],
           base_size_metrics: [],
         },
-        {
-          app_info: PreprodAppInfoFixture({date_added: '2017-10-16T19:41:20+00:00'}),
-        }
+        {app_info: PreprodAppInfoFixture({date_added: '2017-10-16T19:41:20+00:00'})}
       ),
     });
 
     render(
-      <DateTimeProvider value={{timezone: 'America/Los_Angeles', clockDisplay: '12'}}>
+      <DateTimeProvider value={{timezone: 'America/Los_Angeles', clock: '12'}}>
         <ExampleInstallPage />
       </DateTimeProvider>,
       {organization, initialRouterConfig}

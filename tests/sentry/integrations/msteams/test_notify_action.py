@@ -1,5 +1,6 @@
 import re
 import time
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -13,6 +14,7 @@ from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
 from sentry.integrations.msteams.actions.notification import MsTeamsNotifyServiceAction
 from sentry.integrations.msteams.analytics import MSTeamsIntegrationNotificationSent
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.analytics import (
@@ -28,6 +30,11 @@ pytestmark = [requires_snuba]
 
 class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = MsTeamsNotifyServiceAction
+
+    def get_msteams_rule(self, **kwargs: Any) -> MsTeamsNotifyServiceAction:
+        rule = self.get_rule(**kwargs)
+        assert isinstance(rule, MsTeamsNotifyServiceAction)
+        return rule
 
     def setUp(self) -> None:
         event = self.get_event()
@@ -56,9 +63,9 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch("sentry.analytics.record")
     def test_applies_correctly(self, mock_record: MagicMock, mock_record_event: MagicMock) -> None:
-        event = self.get_event()
+        event = self.get_group_event()
 
-        rule = self.get_rule(
+        rule = self.get_msteams_rule(
             data={"team": self.integration.id, "channel": "Naboo", "channel_id": "nb"}
         )
 
@@ -116,9 +123,9 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch("sentry.analytics.record")
     def test_client_error(self, mock_record: MagicMock, mock_record_event: MagicMock) -> None:
-        event = self.get_event()
+        event = self.get_group_event()
 
-        rule = self.get_rule(
+        rule = self.get_msteams_rule(
             data={"team": self.integration.id, "channel": "Naboo", "channel_id": "nb"}
         )
 
@@ -176,9 +183,9 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch("sentry.analytics.record")
     def test_halt(self, mock_record: MagicMock, mock_record_event: MagicMock) -> None:
-        event = self.get_event()
+        event = self.get_group_event()
 
-        rule = self.get_rule(
+        rule = self.get_msteams_rule(
             data={"team": self.integration.id, "channel": "Naboo", "channel_id": "nb"}
         )
 
@@ -252,7 +259,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
         group_event = event.for_group(event.groups[0])
 
-        rule = self.get_rule(
+        rule = self.get_msteams_rule(
             data={"team": self.integration.id, "channel": "Hellboy", "channel_id": "nb"}
         )
         results = list(rule.after(event=group_event))
@@ -265,7 +272,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             json={},
         )
 
-        results[0].callback(event, futures=[])
+        results[0].callback(group_event, futures=[])
 
         data = orjson.loads(responses.calls[0].request.body)
         assert "attachments" in data
@@ -294,11 +301,13 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         self, occurrence: MagicMock, mock_record_event: MagicMock
     ) -> None:
         event = self.create_performance_issue()
+        assert event.group is not None
+        group_event = event if isinstance(event, GroupEvent) else event.for_group(event.group)
 
-        rule = self.get_rule(
+        rule = self.get_msteams_rule(
             data={"team": self.integration.id, "channel": "Naboo", "channel_id": "nb"}
         )
-        results = list(rule.after(event=event))
+        results = list(rule.after(event=group_event))
         assert len(results) == 1
 
         responses.add(
@@ -308,7 +317,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             json={},
         )
 
-        results[0].callback(event, futures=[])
+        results[0].callback(group_event, futures=[])
 
         data = orjson.loads(responses.calls[0].request.body)
         assert "attachments" in data
@@ -329,7 +338,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.SUCCESS)
 
     def test_render_label(self) -> None:
-        rule = self.get_rule(data={"team": self.integration.id, "channel": "Tatooine"})
+        rule = self.get_msteams_rule(data={"team": self.integration.id, "channel": "Tatooine"})
 
         assert rule.render_label() == "Send a notification to the Galactic Empire Team to Tatooine"
 
@@ -337,13 +346,13 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         with assume_test_silo_mode_of(Integration):
             self.integration.delete()
 
-        rule = self.get_rule(data={"team": self.integration.id, "channel": "Coruscant"})
+        rule = self.get_msteams_rule(data={"team": self.integration.id, "channel": "Coruscant"})
 
         assert rule.render_label() == "Send a notification to the [removed] Team to Coruscant"
 
     @responses.activate
     def test_valid_channel_selected(self) -> None:
-        rule = self.get_rule(data={"team": self.integration.id, "channel": "Death Star"})
+        rule = self.get_msteams_rule(data={"team": self.integration.id, "channel": "Death Star"})
 
         channels = [{"id": "d_s", "name": "Death Star"}]
 
@@ -358,7 +367,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
     @responses.activate
     def test_valid_member_selected(self) -> None:
-        rule = self.get_rule(data={"team": self.integration.id, "channel": "Darth Vader"})
+        rule = self.get_msteams_rule(data={"team": self.integration.id, "channel": "Darth Vader"})
 
         channels = [{"id": "i_s_d", "name": "Imperial Star Destroyer"}]
 
@@ -387,7 +396,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
     @responses.activate
     def test_invalid_channel_selected(self) -> None:
-        rule = self.get_rule(data={"team": self.integration.id, "channel": "Alderaan"})
+        rule = self.get_msteams_rule(data={"team": self.integration.id, "channel": "Alderaan"})
 
         channels = [{"name": "Hoth", "id": "hh"}]
 

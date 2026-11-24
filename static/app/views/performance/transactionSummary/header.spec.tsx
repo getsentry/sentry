@@ -5,20 +5,20 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {Tabs} from '@sentry/scraps/tabs';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {PlatformKey} from 'sentry/types/platform';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {TransactionHeader} from 'sentry/views/performance/transactionSummary/header';
-import {Tab} from 'sentry/views/performance/transactionSummary/tabs';
+
+import {TransactionHeader} from './header';
+import {Tab} from './tabs';
 
 const TRANSACTION_NAME = 'transaction_name';
 
-type InitialOpts = {
-  features?: string[];
-  platform?: PlatformKey;
-};
+type InitialOpts = {features?: string[]; platform?: PlatformKey};
 
 function initializeData(opts?: InitialOpts) {
   const {features, platform} = opts ?? {};
@@ -27,20 +27,12 @@ function initializeData(opts?: InitialOpts) {
     TeamFixture({id: '2', slug: 'team2', name: 'Team 2'}),
   ];
   const project = ProjectFixture({platform, teams});
-  const organization = OrganizationFixture({
-    features: features ?? [],
-  });
+  const organization = OrganizationFixture({features: features ?? []});
 
   ProjectsStore.loadInitialData([project]);
   TeamStore.loadInitialData(teams, false, null);
 
-  const router = RouterFixture({
-    location: {
-      query: {
-        project: project.id,
-      },
-    },
-  });
+  const router = RouterFixture({location: {query: {project: project.id}}});
   const eventView = EventView.fromSavedQuery({
     id: undefined,
     version: 2,
@@ -48,32 +40,34 @@ function initializeData(opts?: InitialOpts) {
     fields: ['transaction.status'], // unused fields
     projects: [parseInt(project.id, 10)],
   });
-  return {
-    project,
-    organization,
-    router,
-    eventView,
-    teams,
-  };
+  return {project, organization, router, eventView, teams};
 }
 
 // The header renders into TopBar slots, so the bar has to be mounted alongside
 // it for the breadcrumbs and title to appear.
-function renderHeader(data = initializeData()) {
+function renderHeader(
+  data = initializeData(),
+  currentTab: Tab = Tab.TRANSACTION_SUMMARY
+) {
   const {project, organization, router, eventView} = data;
 
   return render(
     <TopBar.Slot.Provider>
       <TopBar />
-      <TransactionHeader
-        eventView={eventView}
-        location={router.location}
-        organization={organization}
-        projects={[project]}
-        projectId={project.id}
-        transactionName={TRANSACTION_NAME}
-        currentTab={Tab.TRANSACTION_SUMMARY}
-      />
+      <Tabs value={currentTab} onChange={jest.fn()}>
+        {({TabList}) => (
+          <TransactionHeader
+            TabList={TabList}
+            eventView={eventView}
+            location={router.location}
+            organization={organization}
+            projects={[project]}
+            projectId={project.id}
+            transactionName={TRANSACTION_NAME}
+            currentTab={currentTab}
+          />
+        )}
+      </Tabs>
     </TopBar.Slot.Provider>,
     {organization}
   );
@@ -125,7 +119,7 @@ describe('Performance > Transaction Summary Header', () => {
     );
 
     expect(
-      await screen.findByRole('menuitemradio', {name: 'Star for Team'})
+      await screen.findByRole('menuitem', {name: 'Star for Team'})
     ).toBeInTheDocument();
     expect(
       screen.getByRole('menuitemradio', {name: 'Transaction Settings'})
@@ -144,7 +138,7 @@ describe('Performance > Transaction Summary Header', () => {
     );
 
     expect(
-      await screen.findByRole('menuitemradio', {name: 'Star for Team'})
+      await screen.findByRole('menuitem', {name: 'Star for Team'})
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('menuitemradio', {name: 'Transaction Settings'})
@@ -170,6 +164,7 @@ describe('Performance > Transaction Summary Header', () => {
       await screen.findByRole('button', {name: 'Transaction Actions'})
     );
 
+    // A disabled submenu trigger does not open a menu, so it has no popup role.
     expect(
       await screen.findByRole('menuitemradio', {name: 'Star for Team'})
     ).toHaveAttribute('aria-disabled', 'true');
@@ -184,9 +179,7 @@ describe('Performance > Transaction Summary Header', () => {
     );
 
     // Submenus open on hover, not on click.
-    await userEvent.hover(
-      await screen.findByRole('menuitemradio', {name: 'Star for Team'})
-    );
+    await userEvent.hover(await screen.findByRole('menuitem', {name: 'Star for Team'}));
 
     for (const team of data.teams) {
       expect(

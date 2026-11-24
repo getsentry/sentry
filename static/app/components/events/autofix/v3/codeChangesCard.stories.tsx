@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -9,17 +9,13 @@ import type {
   RawFeedback,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {CodeChangesCard} from 'sentry/components/events/autofix/v3/codeChangesCard';
+import {SeerCreditCheckStub} from 'sentry/components/seer/outOfCredits/__stories__/seerCreditCheckStub';
 import * as Storybook from 'sentry/stories';
 import type {User} from 'sentry/types/user';
-import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+import type {ExplorerFilePatch, RepoPRState} from 'sentry/views/seerExplorer/types';
 
-// The Feedback section is gated behind this feature flag; the wrapper below
-// injects it so every example renders it.
-const PR_ITERATION_FEATURE = 'autofix-pr-iteration-manual';
+import {CodeChangesCard} from './codeChangesCard';
 
 const noop = () => {};
 
@@ -100,16 +96,70 @@ function makeFeedbackBlock(
   };
 }
 
+/**
+ * The agent's closing reply. The card shows the last one when a step ends
+ * without a diff.
+ */
+function makeAssistantBlock(
+  id: string,
+  content: string
+): AutofixSection['blocks'][number] {
+  return {id, timestamp: '2026-07-20T00:00:00Z', message: {role: 'assistant', content}};
+}
+
+function makeStepBlock(
+  step: string | undefined,
+  content: string
+): AutofixSection['blocks'][number] {
+  return {
+    id: `block-${step ?? 'continued'}`,
+    timestamp: '2026-07-20T00:00:00Z',
+    message: {role: 'assistant', content, metadata: step ? {step} : undefined},
+  };
+}
+
+// The block Seer appends when a run stops for credits. The card leaves it out
+// in favor of its own line saying why the step stopped.
+const SEER_OUT_OF_CREDITS_BLOCK: AutofixSection['blocks'][number] = {
+  id: 'error-1',
+  timestamp: '2026-07-20T00:00:00Z',
+  message: {
+    role: 'assistant',
+    content:
+      "Your organization doesn't have enough Seer credits for this, so I stopped here. Add credits to continue.",
+  },
+};
+
+// The open PR Seer iterates on.
+const PULL_REQUEST: RepoPRState = {
+  repo_name: 'org/repo',
+  branch_name: 'seer/fix-null-user',
+  commit_sha: 'abc1234',
+  pr_number: 42,
+  pr_id: 42,
+  pr_url: 'https://github.com/org/repo/pull/42',
+  title: 'Guard against a null user',
+  pr_creation_status: 'completed',
+  pr_creation_error: null,
+};
+
+// Seer refused to push because newer commits landed on the PR branch.
+const BRANCH_MOVED_PULL_REQUEST: RepoPRState = {
+  ...PULL_REQUEST,
+  pr_creation_status: 'error',
+  pr_creation_error_code: 'branch_moved',
+  pr_creation_error:
+    "The pull request's branch has commits newer than the code Seer edited, so pushing would have to force-push over them.",
+};
+
 function makeSection(
   status: AutofixSection['status'],
-  blocks: AutofixSection['blocks']
+  blocks: AutofixSection['blocks'],
+  artifacts: AutofixSection['artifacts'] = [
+    [makePatch('org/repo', 'src/handlers/user.py')],
+  ]
 ): AutofixSection {
-  return {
-    step: 'code_changes',
-    status,
-    blocks,
-    artifacts: [[makePatch('org/repo', 'src/handlers/user.py')]],
-  };
+  return {step: 'code_changes', status, blocks, artifacts};
 }
 
 function makeAutofix(
@@ -133,7 +183,7 @@ function makeAutofix(
     isPolling: false,
     isProcessing: false,
     // Async no-ops — none of these are invoked by the static examples below.
-    startStep: () => Promise.resolve(0),
+    startStep: () => Promise.resolve({runId: 0, isSingleRun: false}),
     createPR: () => Promise.resolve(),
     reset: noop,
     triggerCodingAgentHandoff: () => Promise.resolve(),
@@ -236,7 +286,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
   story('All feedback sources', () => {
     const user = useUser();
     return (
-      <FeatureWrapper>
+      <Fragment>
         <Text size="sm" variant="muted">
           Every feedback source type, shown as <code>processed</code> block feedback (top
           six) plus <code>queued</code> feedback (bottom two). Newest is listed first.
@@ -280,7 +330,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
             ),
           ])}
         />
-      </FeatureWrapper>
+      </Fragment>
     );
   });
 
@@ -289,37 +339,51 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
     return (
       <Stack gap="xl">
         <StatusExample label="Processed — the iteration it drove has finished and its changes are pushed (accent checkmark).">
-          <FeatureWrapper>
-            <CodeChangesCard
-              groupId="1"
-              autofix={makeAutofix()}
-              section={makeSection('completed', [
-                makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
-              ])}
-            />
-          </FeatureWrapper>
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix()}
+            section={makeSection('completed', [
+              makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
+            ])}
+          />
         </StatusExample>
 
         <StatusExample label="In progress — driving the iteration currently being processed (spinner). The card body shows the “Iterating on PR…” loader.">
-          <FeatureWrapper>
-            <CodeChangesCard
-              groupId="1"
-              autofix={makeAutofix()}
-              section={makeSection('processing', [
-                makeFeedbackBlock(0, userUiFeedback('Fix the failing CI check', user)),
-              ])}
-            />
-          </FeatureWrapper>
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix()}
+            section={makeSection('processing', [
+              makeFeedbackBlock(0, userUiFeedback('Fix the failing CI check', user)),
+            ])}
+          />
         </StatusExample>
 
         <StatusExample label="Queued — submitted while a run was processing, not yet picked up (muted circle + “Queued” label).">
-          <FeatureWrapper>
-            <CodeChangesCard
-              groupId="1"
-              autofix={makeAutofix([userUiFeedback('Make the button blue', user)])}
-              section={makeSection('completed', [])}
-            />
-          </FeatureWrapper>
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix([userUiFeedback('Make the button blue', user)])}
+            section={makeSection('completed', [])}
+          />
+        </StatusExample>
+
+        <StatusExample label="Waiting for credits — runs the next time Seer iterates (warning clock + “Queued” label).">
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix([userUiFeedback('Make the button blue', user)], {
+              pr_iteration_out_of_credits: {unfinished_action: null, denial_reason: null},
+            })}
+            section={makeSection('completed', [])}
+          />
+        </StatusExample>
+
+        <StatusExample label="Paused — queued, but iteration is paused, so it won't run (muted circle).">
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix([userUiFeedback('Make the button blue', user)], {
+              pr_iteration_paused: true,
+            })}
+            section={makeSection('completed', [])}
+          />
         </StatusExample>
       </Stack>
     );
@@ -328,7 +392,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
   story('Push refused to protect newer PR commits', () => {
     const user = useUser();
     return (
-      <FeatureWrapper>
+      <Fragment>
         <Text size="sm" variant="muted">
           The latest feedback failed because pushing would require a force push over newer
           PR commits. Hover over the red error icon for the explanation. Earlier feedback
@@ -338,21 +402,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
           groupId="1"
           autofix={makeAutofix([], {
             pr_iteration_paused: true,
-            repo_pr_states: {
-              'org/repo': {
-                repo_name: 'org/repo',
-                branch_name: 'seer/fix-null-user',
-                commit_sha: 'earlier-pushed-commit',
-                pr_number: 42,
-                pr_id: 42,
-                pr_url: 'https://github.com/org/repo/pull/42',
-                title: 'Guard against a null user',
-                pr_creation_status: 'error',
-                pr_creation_error_code: 'branch_moved',
-                pr_creation_error:
-                  "The pull request's branch has commits newer than the code Seer edited, so pushing would have to force-push over them.",
-              },
-            },
+            repo_pr_states: {'org/repo': BRANCH_MOVED_PULL_REQUEST},
           })}
           section={makeSection('completed', [
             makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
@@ -362,7 +412,123 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
             ),
           ])}
         />
-      </FeatureWrapper>
+      </Fragment>
+    );
+  });
+
+  story('PR iteration without a code change', () => {
+    return (
+      <Stack gap="xl">
+        <Text size="sm" variant="muted">
+          Seer can finish a PR iteration on purpose without changing the code, for example
+          when the failing check has nothing to do with the PR. The card then shows only
+          the agent's reply. It doesn't say the fix failed, and there's no{' '}
+          <code>Add context & retry</code> button. The header reset icon still opens the
+          PR iteration form.
+        </Text>
+
+        <StatusExample label="No change after PR iteration: the latest step is a PR iteration with no diff, so only the agent's reply shows.">
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix([], {repo_pr_states: {'org/repo': PULL_REQUEST}})}
+            section={makeSection(
+              'completed',
+              [
+                makeFeedbackBlock(0, checkSuiteFeedback()),
+                makeAssistantBlock(
+                  'block-reply-0',
+                  "I looked into the failing `CI` check. It fails in `tests/test_billing.py::test_invoice_rounding`, which this PR doesn't touch, and the same test fails on `main`. So I left the code as it is."
+                ),
+              ],
+              []
+            )}
+          />
+        </StatusExample>
+
+        <StatusExample label="For comparison, no diff from the code changes step: Seer meant to change the code and couldn't, so the card offers a retry.">
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix()}
+            section={makeSection(
+              'completed',
+              [
+                makeAssistantBlock(
+                  'block-reply-0',
+                  "The fix belongs in `src/handlers/user.py`, but that file isn't in any repository connected to this project."
+                ),
+              ],
+              []
+            )}
+          />
+        </StatusExample>
+      </Stack>
+    );
+  });
+
+  story('Stopped for credits', () => (
+    <Stack gap="xl">
+      <Text size="sm" variant="muted">
+        The organization ran out of Seer credits while Seer was writing the code changes.
+        The run ends with <code>failure_reason: out_of_credits</code>. The card keeps what
+        Seer wrote and the partial diff, then says why the step stopped. The credit check
+        for <code>autofix_code_changes</code> says the organization still can't afford it,
+        so Re-run and the header's Re-run step are disabled (hover Re-run for why). Copy
+        as Markdown stays disabled for partial changes. The out-of-credits CTA is not
+        here: the alert at the top of the Autofix tab and drawer covers it.
+      </Text>
+      <SeerCreditCheckStub hasEnoughCredits={false}>
+        <CodeChangesStoppedForCredits />
+      </SeerCreditCheckStub>
+    </Stack>
+  ));
+
+  story('Stopped for credits, after a top-up', () => (
+    <Stack gap="xl">
+      <Text size="sm" variant="muted">
+        The same stopped run once the organization has added credits: the credit check now
+        says it can afford <code>autofix_code_changes</code>, so Re-run and Re-run step
+        are enabled again without reloading.
+      </Text>
+      <SeerCreditCheckStub hasEnoughCredits>
+        <CodeChangesStoppedForCredits />
+      </SeerCreditCheckStub>
+    </Stack>
+  ));
+
+  story('PR iteration stopped for credits', () => {
+    const user = useUser();
+    return (
+      <Fragment>
+        <Text size="sm" variant="muted">
+          The organization ran out of credits while Seer was working on feedback for an
+          open PR. The feedback item is marked failed (hover the red icon), the code
+          already pushed stays on screen, and a line says the PR update stopped. The
+          credit check for <code>autofix_pr_iteration</code> says the organization still
+          can't afford it, so “Add context & retry” and Re-run step are disabled.
+        </Text>
+        <SeerCreditCheckStub hasEnoughCredits={false}>
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix([], {
+              status: 'error',
+              failure_reason: 'out_of_credits',
+              repo_pr_states: {'org/repo': PULL_REQUEST},
+            })}
+            section={{
+              ...makeSection('error', [
+                makeStepBlock('code_changes', 'Guarded the handler against a null user.'),
+                makeFeedbackBlock(0, userUiFeedback('Add a regression test', user)),
+                makeStepBlock(
+                  undefined,
+                  'Adding a test for an unauthenticated request in `test_handlers.py`.'
+                ),
+                SEER_OUT_OF_CREDITS_BLOCK,
+              ]),
+              failureReason: 'out_of_credits',
+            }}
+          />
+        </SeerCreditCheckStub>
+      </Fragment>
     );
   });
 
@@ -375,114 +541,103 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
           <code>Changes requested</code>, or <code>Reviewed</code>), and the review's
           inline comments nest beneath it with a left rule. The body and its comments
           share one iteration block (mirroring a single review webhook), which is what
-          keys them together on <code>(iterationIndex, reviewId)</code>.
+          keys them together on <code>reviewId</code>.
         </Text>
 
         <StatusExample label="Changes requested — a review body plus two inline comments, grouped under a danger badge.">
-          <FeatureWrapper>
-            <CodeChangesCard
-              groupId="1"
-              autofix={makeAutofix()}
-              section={makeSection('completed', [
-                makeFeedbackBlock(0, [
-                  githubPrReviewBodyFeedback({
-                    reviewId: 100,
-                    reviewState: 'changes_requested',
-                    body: 'A couple of blockers before this can merge — see inline.',
-                  }),
-                  githubPrReviewCommentFeedback('This branch is never hit — remove it.', {
-                    reviewId: 100,
-                  }),
-                  githubPrReviewCommentFeedback(
-                    'Guard against the null user before dereferencing.',
-                    {reviewId: 100}
-                  ),
-                ]),
-              ])}
-            />
-          </FeatureWrapper>
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix()}
+            section={makeSection('completed', [
+              makeFeedbackBlock(0, [
+                githubPrReviewBodyFeedback({
+                  reviewId: 100,
+                  reviewState: 'changes_requested',
+                  body: 'A couple of blockers before this can merge — see inline.',
+                }),
+                githubPrReviewCommentFeedback('This branch is never hit — remove it.', {
+                  reviewId: 100,
+                }),
+                githubPrReviewCommentFeedback(
+                  'Guard against the null user before dereferencing.',
+                  {reviewId: 100}
+                ),
+              ]),
+            ])}
+          />
         </StatusExample>
 
         <StatusExample label="Approved — a review body with one inline comment, grouped under a success badge.">
-          <FeatureWrapper>
-            <CodeChangesCard
-              groupId="1"
-              autofix={makeAutofix()}
-              section={makeSection('completed', [
-                makeFeedbackBlock(0, [
-                  githubPrReviewBodyFeedback({
-                    reviewId: 200,
-                    reviewState: 'approved',
-                    body: 'LGTM! One tiny nit inline, feel free to ignore.',
-                    login: 'monalisa',
-                  }),
-                  githubPrReviewCommentFeedback('Nit: prefer `const` here.', {
-                    reviewId: 200,
-                    login: 'monalisa',
-                  }),
-                ]),
-              ])}
-            />
-          </FeatureWrapper>
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix()}
+            section={makeSection('completed', [
+              makeFeedbackBlock(0, [
+                githubPrReviewBodyFeedback({
+                  reviewId: 200,
+                  reviewState: 'approved',
+                  body: 'LGTM! One tiny nit inline, feel free to ignore.',
+                  login: 'monalisa',
+                }),
+                githubPrReviewCommentFeedback('Nit: prefer `const` here.', {
+                  reviewId: 200,
+                  login: 'monalisa',
+                }),
+              ]),
+            ])}
+          />
         </StatusExample>
 
         <StatusExample label="Commented — a review left with only inline comments and a body, no explicit approve/reject, grouped under a muted badge.">
-          <FeatureWrapper>
-            <CodeChangesCard
-              groupId="1"
-              autofix={makeAutofix()}
-              section={makeSection('completed', [
-                makeFeedbackBlock(0, [
-                  githubPrReviewBodyFeedback({
-                    reviewId: 300,
-                    reviewState: 'commented',
-                    body: 'A few thoughts, nothing blocking.',
-                  }),
-                  githubPrReviewCommentFeedback(
-                    'Could this be extracted into a helper?',
-                    {reviewId: 300}
-                  ),
-                ]),
-              ])}
-            />
-          </FeatureWrapper>
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix()}
+            section={makeSection('completed', [
+              makeFeedbackBlock(0, [
+                githubPrReviewBodyFeedback({
+                  reviewId: 300,
+                  reviewState: 'commented',
+                  body: 'A few thoughts, nothing blocking.',
+                }),
+                githubPrReviewCommentFeedback('Could this be extracted into a helper?', {
+                  reviewId: 300,
+                }),
+              ]),
+            ])}
+          />
         </StatusExample>
 
         <StatusExample label="Body-only review — an approval with no inline comments renders as a single row with just the badge.">
-          <FeatureWrapper>
-            <CodeChangesCard
-              groupId="1"
-              autofix={makeAutofix()}
-              section={makeSection('completed', [
-                makeFeedbackBlock(0, [
-                  githubPrReviewBodyFeedback({
-                    reviewId: 400,
-                    reviewState: 'approved',
-                    body: 'Ship it 🚀',
-                    login: 'monalisa',
-                  }),
-                ]),
-              ])}
-            />
-          </FeatureWrapper>
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix()}
+            section={makeSection('completed', [
+              makeFeedbackBlock(0, [
+                githubPrReviewBodyFeedback({
+                  reviewId: 400,
+                  reviewState: 'approved',
+                  body: 'Ship it 🚀',
+                  login: 'monalisa',
+                }),
+              ]),
+            ])}
+          />
         </StatusExample>
 
         <StatusExample label="Comment-only review — GitHub's “Add single comment” has no body, so there's no header or badge; the comment stays flat.">
-          <FeatureWrapper>
-            <CodeChangesCard
-              groupId="1"
-              autofix={makeAutofix()}
-              section={makeSection('completed', [
-                makeFeedbackBlock(
-                  0,
-                  githubPrReviewCommentFeedback(
-                    'Drive-by comment, not part of a submitted review.',
-                    {}
-                  )
-                ),
-              ])}
-            />
-          </FeatureWrapper>
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix()}
+            section={makeSection('completed', [
+              makeFeedbackBlock(
+                0,
+                githubPrReviewCommentFeedback(
+                  'Drive-by comment, not part of a submitted review.',
+                  {}
+                )
+              ),
+            ])}
+          />
         </StatusExample>
       </Stack>
     );
@@ -490,18 +645,25 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
 });
 
 /**
- * Injects the `autofix-pr-iteration-manual` feature into the surrounding organization
- * so the Feedback section renders. Mirrors the pattern used by
- * activityLineItem.stories.tsx.
+ * Code changes that stopped part way, one file in, because the organization ran
+ * out of credits.
  */
-function FeatureWrapper({children}: {children: ReactNode}) {
-  const organization = useOrganization();
-  const features = [...organization.features, PR_ITERATION_FEATURE];
-
+function CodeChangesStoppedForCredits() {
   return (
-    <OrganizationContext.Provider value={{...organization, features}}>
-      {children}
-    </OrganizationContext.Provider>
+    <CodeChangesCard
+      groupId="1"
+      autofix={makeAutofix([], {status: 'error', failure_reason: 'out_of_credits'})}
+      section={{
+        ...makeSection('error', [
+          makeStepBlock(
+            'code_changes',
+            'Passing an initial accumulator to `reduce` so an empty cart totals to zero. Next I was going to add a regression test in `cartService.test.ts`.'
+          ),
+          SEER_OUT_OF_CREDITS_BLOCK,
+        ]),
+        failureReason: 'out_of_credits',
+      }}
+    />
   );
 }
 

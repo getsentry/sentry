@@ -1,8 +1,4 @@
-type CursorInfo = {
-  isPrev: boolean;
-  offset: number;
-  value: number;
-};
+type CursorInfo = {isPrev: boolean; offset: number; value: number};
 
 /// Converts a cursor string into a Cursor object.
 export function parseCursor(

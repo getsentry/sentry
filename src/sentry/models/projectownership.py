@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import sentry_sdk
 from django.db import models
@@ -69,7 +69,7 @@ class ProjectOwnership(Model):
     __repr__ = sane_repr("project_id", "is_active")
 
     @classmethod
-    def get_cache_key(self, project_id) -> str:
+    def get_cache_key(self, project_id: int) -> str:
         return f"projectownership_project_id:1:{project_id}"
 
     @classmethod
@@ -93,7 +93,7 @@ class ProjectOwnership(Model):
         return ownership.schema
 
     @classmethod
-    def get_ownership_cached(cls, project_id):
+    def get_ownership_cached(cls, project_id: int) -> ProjectOwnership | None:
         """
         Cached read access to projectownership.
 
@@ -164,7 +164,7 @@ class ProjectOwnership(Model):
     @classmethod
     def _hydrate_rules(
         cls, project_id: int, rules: Sequence[Rule], type: str = OwnerRuleType.OWNERSHIP_RULE.value
-    ):
+    ) -> list[tuple[Rule, Sequence[Team | RpcUser], str]]:
         """
         Get the last matching rule to take the most precedence.
         """
@@ -174,7 +174,7 @@ class ProjectOwnership(Model):
             for key, val in resolve_actors({owner for owner in owners}, project_id).items()
             if val
         }
-        result = [
+        result: list[tuple[Rule, Sequence[Team | RpcUser], str]] = [
             (
                 rule,
                 Actor.resolve_many([actors[owner] for owner in rule.owners if owner in actors]),
@@ -242,7 +242,7 @@ class ProjectOwnership(Model):
         return rules_with_owners
 
     @classmethod
-    def _get_autoassignment_types(cls, ownership):
+    def _get_autoassignment_types(cls, ownership: ProjectOwnership) -> list[int]:
         from sentry.models.groupowner import GroupOwnerType
 
         autoassignment_types = []
@@ -267,7 +267,7 @@ class ProjectOwnership(Model):
         group: Group | None = None,
         organization_id: int | None = None,
         force_autoassign: bool = False,
-        logging_extra: dict[str, str | bool | int] | None = None,
+        logging_extra: dict[str, object] | None = None,
     ) -> None:
         """
         Get the auto-assign owner for a project if there are any.
@@ -311,15 +311,16 @@ class ProjectOwnership(Model):
 
             if issue_owner is False:
                 return
+            issue_owner = cast(GroupOwner, issue_owner)
             logging_extra["issue_owner"] = issue_owner
 
-            owner = issue_owner.owner()
-            if not owner:
+            actor = issue_owner.owner()
+            if not actor:
                 return
 
-            logging_extra["owner"] = owner
+            logging_extra["owner"] = actor
             try:
-                owner = owner.resolve()
+                owner = actor.resolve()
             except (User.DoesNotExist, Team.DoesNotExist):
                 logger.info("handle_auto_assignment.no_resolved_owner", extra=logging_extra)
                 return
@@ -351,11 +352,6 @@ class ProjectOwnership(Model):
                 auto_assigned = latest_assignment.data.get("integration")
                 if not auto_assigned and not force_autoassign:
                     return
-
-            if not isinstance(owner, Team) and not isinstance(owner, RpcUser):
-                logging_extra["owner_type"] = str(type(owner))
-                logger.info("handle_auto_assignment.unknown_owner_type", extra=logging_extra)
-                return
 
             if (
                 isinstance(owner, Team)
@@ -445,7 +441,7 @@ class ProjectOwnership(Model):
         return [rule for rule in rules if rule.test(data, munged_data)]
 
 
-def process_resource_change(instance, change, **kwargs):
+def process_resource_change(instance: ProjectOwnership, change: str, **kwargs: object) -> None:
     from sentry.models.groupowner import GroupOwner
     from sentry.models.projectownership import ProjectOwnership
 

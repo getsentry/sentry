@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from itertools import chain
-from typing import Any
+from typing import Any, TypedDict, cast
 
 from django.http.request import HttpRequest
 from django.urls import reverse
@@ -104,6 +104,15 @@ metadata = IntegrationMetadata(
 scopes = ("issue:write", "pullrequest", "webhook", "repository")
 
 
+class BitbucketRepoPayload(TypedDict, total=False):
+    full_name: str
+    uuid: str
+
+
+class BitbucketSearchResponse(TypedDict, total=False):
+    values: list[BitbucketRepoPayload]
+
+
 class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketIssuesSpec):
     codeowners_locations = [".bitbucket/CODEOWNERS"]
 
@@ -116,8 +125,9 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
 
     # IntegrationInstallation methods
 
-    def error_message_from_json(self, data):
-        return data.get("error", {}).get("message", "unknown error")
+    def error_message_from_json(self, data: Mapping[str, object]) -> object:
+        error = cast(Mapping[str, object], data.get("error", {}))
+        return error.get("message", "unknown error")
 
     # RepositoryIntegration methods
 
@@ -317,7 +327,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
                 "expect_exists": True,
             }
 
-    def setup(self):
+    def setup(self) -> None:
         from sentry.plugins.base import bindings
 
         bindings.add(

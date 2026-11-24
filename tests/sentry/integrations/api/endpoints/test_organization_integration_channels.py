@@ -1,5 +1,5 @@
 from typing import cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -30,7 +30,7 @@ class OrganizationIntegrationChannelsSlackTest(OrganizationIntegrationChannelsTe
         )
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_list")
-    def test_slack_channels_list(self, mock_conversations_list):
+    def test_slack_channels_list(self, mock_conversations_list: MagicMock) -> None:
         channels = [
             {"id": "C123", "name": "general", "is_private": False},
             {"id": "C124", "name": "random", "is_private": True},
@@ -53,7 +53,7 @@ class OrganizationIntegrationChannelsSlackTest(OrganizationIntegrationChannelsTe
             }
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_list")
-    def test_large_slack_channel_list(self, mock_conversations_list):
+    def test_large_slack_channel_list(self, mock_conversations_list: MagicMock) -> None:
         mock_channels = [
             {"id": f"C{i:04}", "name": f"channel-{i}", "is_private": i % 2 == 0}
             for i in range(1, 1001)
@@ -83,7 +83,7 @@ class OrganizationIntegrationChannelsDiscordTest(OrganizationIntegrationChannels
         )
 
     @patch("sentry.integrations.discord.client.DiscordClient.get")
-    def test_discord_channels_list(self, mock_get):
+    def test_discord_channels_list(self, mock_get: MagicMock) -> None:
         mock_channels = [
             {"id": "123456", "name": "general", "type": 0},
             {"id": "789012", "name": "announcements", "type": 5},
@@ -129,7 +129,7 @@ class OrganizationIntegrationChannelsMsTeamsTest(OrganizationIntegrationChannels
         )
 
     @patch("sentry.integrations.msteams.client.MsTeamsClient.get")
-    def test_msteams_channels_list(self, mock_get):
+    def test_msteams_channels_list(self, mock_get: MagicMock) -> None:
         # The Bot Framework returns `id`, `name` and `type` per channel. The
         # General channel has no name, and its id is the team id.
         mock_get.return_value = {

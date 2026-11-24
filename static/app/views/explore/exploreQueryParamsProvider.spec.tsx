@@ -5,15 +5,15 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {Button} from '@sentry/scraps/button';
 
-import {ExploreQueryParamsProvider} from 'sentry/views/explore/exploreQueryParamsProvider';
 import {
   useQueryParamsQuery,
   useSetQueryParams,
   useSetQueryParamsQuery,
-} from 'sentry/views/explore/queryParams/context';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+} from './queryParams/context';
+import {Mode} from './queryParams/mode';
+import {ReadableQueryParams} from './queryParams/readableQueryParams';
+import type {WritableQueryParams} from './queryParams/writableQueryParams';
+import {ExploreQueryParamsProvider} from './exploreQueryParamsProvider';
 
 const parsers = {q: parseAsString};
 

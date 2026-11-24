@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 
 import pytest
 
@@ -10,7 +10,7 @@ from sentry.testutils.helpers.options import override_options
 
 
 @pytest.fixture
-def register_option():
+def register_option() -> Iterator[None]:
     options.register("feature.rollout", default=0.0, flags=options.FLAG_AUTOMATOR_MODIFIABLE)
 
     yield
@@ -29,7 +29,7 @@ def run_random_sample(option_name: str) -> Sequence[int]:
     return (success, failure)
 
 
-def test_in_random_rollout(register_option) -> None:
+def test_in_random_rollout(register_option: None) -> None:
     success = 0
     failure = 0
 
@@ -65,7 +65,7 @@ def run_rollout_group(option_name: str, id: int | str) -> Sequence[int]:
     return (success, failure)
 
 
-def test_in_rollout_group_int(register_option) -> None:
+def test_in_rollout_group_int(register_option: None) -> None:
     with override_options({"feature.rollout": 0.25}):
         success, failure = run_rollout_group("feature.rollout", 123456871)
         assert success == 0
@@ -76,7 +76,7 @@ def test_in_rollout_group_int(register_option) -> None:
         assert failure == 0
 
 
-def test_in_rollout_group_str(register_option) -> None:
+def test_in_rollout_group_str(register_option: None) -> None:
     with override_options({"feature.rollout": 0.25}):
         success, failure = run_rollout_group("feature.rollout", "some-value")
         assert success == 0

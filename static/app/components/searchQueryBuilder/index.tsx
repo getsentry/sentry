@@ -1,4 +1,4 @@
-import {useCallback, useLayoutEffect, useRef} from 'react';
+import {useCallback, useEffectEvent, useLayoutEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconCase} from '@sentry/icons/case';
@@ -11,25 +11,6 @@ import {Input} from '@sentry/scraps/input';
 import {PanelProvider} from '@sentry/scraps/panelProvider';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  SearchQueryBuilderProvider,
-  useHasSearchQueryBuilderProvider,
-  useSearchQueryBuilderAI,
-  useSearchQueryBuilderConfig,
-  useSearchQueryBuilderLayout,
-  useSearchQueryBuilderState,
-} from 'sentry/components/searchQueryBuilder/context';
-import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
-import {useOnChange} from 'sentry/components/searchQueryBuilder/hooks/useOnChange';
-import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
-import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
-import {
-  QueryInterfaceType,
-  type CallbackSearchState,
-  type FieldDefinitionGetter,
-  type FilterKeySection,
-} from 'sentry/components/searchQueryBuilder/types';
-import {queryIsValid} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {QueryBuilderPanel} from 'sentry/components/tokenizedInput/token/queryBuilderPanel';
 import {t} from 'sentry/locale';
@@ -37,6 +18,27 @@ import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import type {FieldKind} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {usePrevious} from 'sentry/utils/usePrevious';
+
+import {useOnChange} from './hooks/useOnChange';
+import {
+  SearchQueryBuilderProvider,
+  useHasSearchQueryBuilderProvider,
+  useSearchQueryBuilderAI,
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from './context';
+import type {CaseInsensitive} from './hooks';
+import {PlainTextQueryInput} from './plainTextQueryInput';
+import {TokenizedQueryGrid} from './tokenizedQueryGrid';
+import {
+  QueryInterfaceType,
+  type CallbackSearchState,
+  type FieldDefinitionGetter,
+  type FilterKeySection,
+} from './types';
+import {queryIsValid} from './utils';
 
 export interface GetTagValuesParams {
   /**
@@ -339,7 +341,7 @@ function SearchQueryBuilderUI({
   trailingItems,
   onChange,
 }: SearchQueryBuilderProps) {
-  const {parsedQuery, query, dispatch} = useSearchQueryBuilderState();
+  const {committedQuery, parsedQuery, query, dispatch} = useSearchQueryBuilderState();
   const {wrapperRef, actionBarRef, size, menuPresentation, panelRef, setMenuContainer} =
     useSearchQueryBuilderLayout();
   const {skipNextSearchQueryBuilderAutoFocusRef} = useSearchQueryBuilderAI();
@@ -359,9 +361,20 @@ function SearchQueryBuilderUI({
   );
 
   useOnChange({onChange});
+
+  const previousCommittedQuery = usePrevious(committedQuery);
+  const syncInitialQuery = useEffectEvent((newInitialQuery: string) => {
+    // An unsearched commit from this render must win, or useOnChange searches a
+    // query the builder no longer shows and the URL and builder swap forever.
+    if (committedQuery !== previousCommittedQuery) {
+      return;
+    }
+
+    dispatch({type: 'UPDATE_QUERY', query: newInitialQuery, ignoreDisabled: true});
+  });
   useLayoutEffect(() => {
-    dispatch({type: 'UPDATE_QUERY', query: initialQuery, ignoreDisabled: true});
-  }, [dispatch, initialQuery]);
+    syncInitialQuery(initialQuery);
+  }, [initialQuery]);
 
   const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
 

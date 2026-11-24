@@ -8,9 +8,10 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {useLogsSeriesQuery} from 'sentry/views/dashboards/widgetCard/hooks/useLogsWidgetQuery';
-import {useSpansSeriesQuery} from 'sentry/views/dashboards/widgetCard/hooks/useSpansWidgetQuery';
-import {useTraceMetricsSeriesQuery} from 'sentry/views/dashboards/widgetCard/hooks/useTraceMetricsWidgetQuery';
+
+import {useLogsSeriesQuery} from './useLogsWidgetQuery';
+import {useSpansSeriesQuery} from './useSpansWidgetQuery';
+import {useTraceMetricsSeriesQuery} from './useTraceMetricsWidgetQuery';
 
 describe('dashboard transformation queries', () => {
   const pageFilters = PageFiltersFixture();
@@ -114,9 +115,7 @@ describe('dashboard transformation queries', () => {
     });
     const request = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
-      body: {
-        timeSeries: [TimeSeriesFixture({yAxis: 'count()'})],
-      },
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
     });
     const {result} = renderHookWithProviders(() =>
       useSpansSeriesQuery({

@@ -1,9 +1,10 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import {FeedbackConfigToggle} from 'sentry/components/feedback/feedbackOnboarding/feedbackConfigToggle';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
@@ -14,9 +15,10 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {FeedbackConfigToggle} from './feedbackConfigToggle';
 
 export function FeedbackOnboardingLayout({
   docsConfig,
@@ -37,7 +39,10 @@ export function FeedbackOnboardingLayout({
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
   const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
@@ -54,17 +59,10 @@ export function FeedbackOnboardingLayout({
       isPerformanceSelected: false,
       isProfilingSelected: false,
       isReplaySelected: false,
-      sourcePackageRegistries: {
-        isLoading: isLoadingRegistry,
-        data: registryData,
-      },
+      sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
       platformOptions: selectedOptions,
       docsFlow,
-      feedbackOptions: {
-        email,
-        name,
-        screenshot,
-      },
+      feedbackOptions: {email, name, screenshot},
       isSelfHosted,
       urlPrefix,
     };
@@ -133,16 +131,10 @@ export function FeedbackOnboardingLayout({
           content: feedbackConfigToggle,
         });
       }
-      return {
-        ...step,
-        content: newContent,
-      };
+      return {...step, content: newContent};
     }
 
-    return {
-      ...step,
-      codeHeader: feedbackConfigToggle,
-    };
+    return {...step, codeHeader: feedbackConfigToggle};
   });
 
   return (

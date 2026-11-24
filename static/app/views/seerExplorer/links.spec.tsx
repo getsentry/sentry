@@ -7,14 +7,15 @@ import {decodeMetricsQueryParams} from 'sentry/views/explore/metrics/metricQuery
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {getReadableQueryParamsFromLocation as getSpansQueryParamsFromLocation} from 'sentry/views/explore/spans/spansQueryParams';
+
 import {
   LINK_RULES,
   type LinkSubject,
   resolveLink,
   subjectFromCallRecord,
   subjectFromToolLink,
-} from 'sentry/views/seerExplorer/links';
-import type {CallRecord} from 'sentry/views/seerExplorer/types';
+} from './links';
+import type {CallRecord} from './types';
 
 const organization = OrganizationFixture({slug: 'org-slug'});
 const projects = [
@@ -755,9 +756,7 @@ describe('search links', () => {
       ctx
     );
     expect(result?.url).toEqual(
-      expect.objectContaining({
-        query: expect.objectContaining({project: ['3']}),
-      })
+      expect.objectContaining({query: expect.objectContaining({project: ['3']})})
     );
   });
 
@@ -796,9 +795,7 @@ describe('search links', () => {
       ctx
     );
     expect(result?.url).toEqual(
-      expect.objectContaining({
-        pathname: '/organizations/org-slug/explore/logs/',
-      })
+      expect.objectContaining({pathname: '/organizations/org-slug/explore/logs/'})
     );
     const decoded = getReadableQueryParamsFromLocation(
       LocationFixture(result?.url as LocationDescriptorObject)
@@ -933,11 +930,7 @@ describe('search links', () => {
         'Querying issues for unresolved issues related to logs page in the last 7 days',
       url: {
         pathname: '/organizations/org-slug/issues/',
-        query: {
-          query: 'is:unresolved logs',
-          project: null,
-          statsPeriod: '7d',
-        },
+        query: {query: 'is:unresolved logs', project: null, statsPeriod: '7d'},
       },
     });
   });
@@ -1233,10 +1226,7 @@ describe('search links', () => {
       label: 'Listing issues',
       url: {
         pathname: '/organizations/org-slug/issues/',
-        query: {
-          query: 'is:unresolved',
-          project: null,
-        },
+        query: {query: 'is:unresolved', project: null},
       },
     });
   });
@@ -1324,9 +1314,7 @@ describe('search links', () => {
         id: 'telemetry_live_search',
         url: expect.objectContaining({
           pathname: '/organizations/org-slug/explore/discover/homepage/',
-          query: expect.objectContaining({
-            field: ['title', 'count()'],
-          }),
+          query: expect.objectContaining({field: ['title', 'count()']}),
         }),
       })
     );
@@ -1351,10 +1339,7 @@ describe('search links', () => {
       expect.objectContaining({
         id: 'telemetry_live_search',
         url: expect.objectContaining({
-          query: expect.objectContaining({
-            field: ['count()'],
-            yAxis: ['count()'],
-          }),
+          query: expect.objectContaining({field: ['count()'], yAxis: ['count()']}),
         }),
       })
     );

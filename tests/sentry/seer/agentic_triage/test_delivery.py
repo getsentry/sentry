@@ -3,6 +3,9 @@ from unittest.mock import Mock, patch
 from uuid import UUID
 
 import pytest
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+)
 
 from sentry.api.serializers import EventSerializer
 from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, TriggerAutofixAction
@@ -192,6 +195,41 @@ class TestDeliverAgenticTriageResult(TestCase):
             failed_shard.extras["error_type"]
             == SeerAgenticTriageRunErrorType.SHARD_DELIVERY_FAILED.value
         )
+
+    def _deliver_autofix_verdict(self, **options: Any) -> Mock:
+        org = self.create_organization()
+        group = self.create_group(project=self.create_project(organization=org))
+        run = self._create_agentic_triage_run(organization=org, options=options)
+        with patch(
+            "sentry.seer.agentic_triage.delivery.trigger_autofix_agent",
+            return_value=self._triggered_run(1, org),
+        ) as mock_trigger:
+            deliver_agentic_triage_result(
+                organization_id=org.id,
+                run_uuid=self._run_uuid(run),
+                status="completed",
+                result={
+                    "verdicts": [
+                        {"group_id": group.id, "action": TriageAction.AUTOFIX.value, "reason": "ok"}
+                    ]
+                },
+                error=None,
+            )
+        return mock_trigger
+
+    def test_single_run_option_starts_single_runs(self) -> None:
+        mock_trigger = self._deliver_autofix_verdict(single_run=True)
+
+        assert mock_trigger.call_args.kwargs["single_run"] is True
+        assert (
+            mock_trigger.call_args.kwargs["billing_feature"]
+            == SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE
+        )
+
+    def test_dry_run_with_single_run_starts_nothing(self) -> None:
+        mock_trigger = self._deliver_autofix_verdict(single_run=True, dry_run=True)
+
+        mock_trigger.assert_not_called()
 
     def test_invalid_result_logs_exception(self) -> None:
         """When result can't be parsed as TriageResponse, log and return."""
@@ -737,7 +775,7 @@ class TestDeliverAgenticTriageResult(TestCase):
                 return_value=True,
             ) as mock_rate_limited,
             patch(
-                "sentry.seer.agentic_triage.delivery.is_seer_seat_based_tier_enabled",
+                "sentry.seer.agentic_triage.delivery.is_seer_seat_or_token_billed_enabled",
                 return_value=True,
             ),
             patch(

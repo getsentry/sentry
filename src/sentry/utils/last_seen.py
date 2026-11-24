@@ -8,6 +8,8 @@ from typing import Any, Protocol
 from django.core.cache import cache
 from django.db.utils import OperationalError
 
+from sentry.metrics.base import MutableTags
+
 LAST_SEEN_INTERVAL_SECONDS = 60
 
 
@@ -36,7 +38,7 @@ def try_bump_last_seen(
     datetime: dt,
     bump_key: str,
     cache_key: str,
-    metrics_tags: dict[str, str],
+    metrics_tags: MutableTags,
 ) -> BumpResult:
     """Throttled last_seen bump — at most once per 60s per row via a cache-based lock."""
     if instance.last_seen >= datetime - timedelta(seconds=LAST_SEEN_INTERVAL_SECONDS):

@@ -57,13 +57,7 @@ export function dismissGuide(guide: string, step: number, orgId: string | null) 
 
 export function recordFinish(guide: string, orgId: string | null) {
   if (!isDemoModeActive()) {
-    api.requestPromise('/assistant/', {
-      method: 'PUT',
-      data: {
-        guide,
-        status: 'viewed',
-      },
-    });
+    api.requestPromise('/assistant/', {method: 'PUT', data: {guide, status: 'viewed'}});
   }
 
   const tourTask = getTourTask(guide);
@@ -79,20 +73,14 @@ export function recordFinish(guide: string, orgId: string | null) {
     return;
   }
 
-  trackAnalytics('assistant.guide_finished', {
-    organization: orgId,
-    guide,
-  });
+  trackAnalytics('assistant.guide_finished', {organization: orgId, guide});
 }
 
 function recordDismiss(guide: string, step: number, orgId: string | null) {
   if (!isDemoModeActive()) {
     api.requestPromise('/assistant/', {
       method: 'PUT',
-      data: {
-        guide,
-        status: 'dismissed',
-      },
+      data: {guide, status: 'dismissed'},
     });
   }
 
@@ -100,9 +88,5 @@ function recordDismiss(guide: string, step: number, orgId: string | null) {
   if (!user) {
     return;
   }
-  trackAnalytics('assistant.guide_dismissed', {
-    organization: orgId,
-    guide,
-    step,
-  });
+  trackAnalytics('assistant.guide_dismissed', {organization: orgId, guide, step});
 }

@@ -28,16 +28,16 @@ class SourceMapProcessingIssue:
     }
 
     @classmethod
-    def get_message(cls, data):
+    def get_message(cls, data: str) -> str:
         return cls(data).message
 
-    def __init__(self, type, data=None):
+    def __init__(self, type: str, data: object | None = None) -> None:
         self.type = type
         self.data = data
 
     @property
-    def message(self):
+    def message(self) -> str:
         return self._messages.get(self.type, self._messages["unknown_error"])
 
-    def get_api_context(self):
+    def get_api_context(self) -> dict[str, object]:
         return {"type": self.type, "message": self.message, "data": self.data}

@@ -186,7 +186,8 @@ class RedisReprocessingStore(ReprocessingStore):
         info = self.redis.get(_get_info_reprocessed_key(group_id))
         if info is None:
             return None
-        return orjson.loads(info)
+        data = orjson.loads(info)
+        return data
 
     def try_claim_page(
         self,

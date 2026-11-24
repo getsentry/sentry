@@ -213,6 +213,13 @@ class EventAttachment(EventAttachmentBase):
         indexes = (
             models.Index(fields=("project_id", "date_added")),
             models.Index(fields=("project_id", "event_id")),
+            # Keeps the per-group crash report limit check cheap for groups that have
+            # many attachments but few crash reports.
+            models.Index(
+                fields=("group_id", "-date_added"),
+                condition=models.Q(type__in=CRASH_REPORT_TYPES),
+                name="sentry_eventatt_crash_grp_idx",
+            ),
         )
 
     __repr__ = sane_repr("event_id", "name")
@@ -284,7 +291,7 @@ class EventAttachment(EventAttachmentBase):
 
     @classmethod
     def putfile(cls, project_id: int, attachment: CachedAttachment) -> PutfileResult:
-        content_type = normalize_content_type(attachment.content_type, attachment.name)
+        content_type = normalize_content_type(attachment.content_type, attachment.name or "")
         if attachment.size == 0:
             return PutfileResult(content_type=content_type, size=0, sha1=sha1().hexdigest())
         if attachment.stored_id is not None:
@@ -402,7 +409,7 @@ class PendingEventAttachment(EventAttachmentBase):
             # left to report the drop to.
             return
 
-        kwargs = dict(
+        track_outcome(
             org_id=organization_id,
             project_id=self.project_id,
             key_id=None,  # DSN is unknown at this point
@@ -410,15 +417,17 @@ class PendingEventAttachment(EventAttachmentBase):
             reason="missing_event",
             timestamp=self.date_added,  # matches accepted outcome
             event_id=self.event_id,
-        )
-
-        track_outcome(
-            **kwargs,
             category=DataCategory.ATTACHMENT,
             quantity=self.size or 1,
         )
         track_outcome(
-            **kwargs,
+            org_id=organization_id,
+            project_id=self.project_id,
+            key_id=None,
+            outcome=Outcome.INVALID,
+            reason="missing_event",
+            timestamp=self.date_added,
+            event_id=self.event_id,
             category=DataCategory.ATTACHMENT_ITEM,
             quantity=1,
         )

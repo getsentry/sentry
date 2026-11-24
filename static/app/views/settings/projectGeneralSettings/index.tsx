@@ -2,13 +2,16 @@ import {useCallback, useMemo} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {PlatformIcon} from 'platformicons';
 import {z} from 'zod';
+import {useStore} from 'zustand';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
+import {Confirm} from '@sentry/scraps/confirm';
 import {
   AutoSaveForm,
   defaultFormOptions,
+  DisplayField,
   FieldGroup,
   FormSearch,
   setFieldErrors,
@@ -18,15 +21,14 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {createFilter} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   changeProjectSlug,
   removeProject,
   transferProject,
 } from 'sentry/actionCreators/projects';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup as SettingsFieldGroup} from 'sentry/components/forms/fieldGroup';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
@@ -42,7 +44,6 @@ import {consoles} from 'sentry/data/platformCategories';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {DetailedProject} from 'sentry/types/project';
@@ -63,13 +64,12 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
-import {ConnectedRepositoriesPanel} from 'sentry/views/settings/projectGeneralSettings/connectedRepositoriesPanel';
+import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
-type Props = {
-  onChangeSlug: (slug: string) => void;
-  project: DetailedProject;
-};
+import {ConnectedRepositoriesPanel} from './connectedRepositoriesPanel';
+
+type Props = {onChangeSlug: (slug: string) => void; project: DetailedProject};
 
 const ORG_DISABLED_REASON = t(
   "This option is enforced by your organization's settings and cannot be customized per-project."
@@ -134,10 +134,7 @@ function RemoveProjectSection({
   organization: Organization;
   project: DetailedProject;
 }) {
-  const isProjectAdmin = hasEveryAccess(['project:admin'], {
-    organization,
-    project,
-  });
+  const isProjectAdmin = hasEveryAccess(['project:admin'], {organization, project});
   const {isInternal} = project;
 
   return (
@@ -145,10 +142,7 @@ function RemoveProjectSection({
       label={t('Remove Project')}
       help={tct(
         'Remove the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
-        {
-          project: <strong>{project.slug}</strong>,
-          linebreak: <br />,
-        }
+        {project: <strong>{project.slug}</strong>, linebreak: <br />}
       )}
     >
       {!isProjectAdmin &&
@@ -184,25 +178,15 @@ function RemoveProjectSection({
   );
 }
 
-const slugSchema = z.object({
-  slug: z.string().min(1, t('Slug is required')),
-});
+const slugSchema = z.object({slug: z.string().min(1, t('Slug is required'))});
 
-const projectIdSchema = z.object({
-  projectId: z.string(),
-});
+const projectIdSchema = z.object({projectId: z.string()});
 
-const resolveAgeSchema = z.object({
-  resolveAge: z.number(),
-});
+const resolveAgeSchema = z.object({resolveAge: z.number()});
 
-const securityTokenSchema = z.object({
-  securityToken: z.string(),
-});
+const securityTokenSchema = z.object({securityToken: z.string()});
 
-const securityTokenHeaderSchema = z.object({
-  securityTokenHeader: z.string(),
-});
+const securityTokenHeaderSchema = z.object({securityTokenHeader: z.string()});
 
 const projectSettingsSchema = z.object({
   // The full platform list is large, so skip the enum and just carry the
@@ -557,7 +541,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
   const settingsV3 = useSettingsV3();
   const transferForm: Record<string, FieldValue> = {};
   const navigate = useNavigate();
-  const {isSelfHosted} = useLegacyStore(ConfigStore);
+  const isSelfHosted = useStore(ConfigStore, state => state.isSelfHosted);
 
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
@@ -587,11 +571,11 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
         origin: 'settings',
       });
     } catch (err) {
-      addErrorMessage(tct('Error removing [project]', {project: project.slug}));
+      toast.error(tct('Error removing [project]', {project: project.slug}));
       throw err;
     }
 
-    addSuccessMessage(tct('[project] was successfully removed', {project: project.slug}));
+    toast.success(tct('[project] was successfully removed', {project: project.slug}));
     navigate(`/settings/${organization.slug}/projects/`);
   };
 
@@ -678,7 +662,10 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
 
   return (
     <div>
-      <SentryDocumentTitle title={t('Project Settings')} projectSlug={project.slug} />
+      <SentryDocumentTitle
+        title={getSettingsScopeTitle('project')}
+        projectSlug={project.slug}
+      />
       <SettingsPageHeader title={settingsV3 ? t('General') : t('Project Settings')} />
       <ProjectPermissionAlert project={project} />
 
@@ -724,9 +711,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
           </AutoSaveForm>
         </FieldGroup>
 
-        {organization.features.includes('code-mappings-refactor') && (
-          <ConnectedRepositoriesPanel project={project} />
-        )}
+        <ConnectedRepositoriesPanel project={project} />
 
         <FieldGroup title={t('Email')}>
           <AutoSaveForm
@@ -768,9 +753,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
                 ? undefined
                 : tct(
                     'Turning this off means Sentry will no longer create releases from ingested events. You will need to create releases manually, for example with the [link:Sentry CLI]. Are you sure you want to disable this?',
-                    {
-                      link: <ExternalLink href="https://docs.sentry.io/cli/releases/" />,
-                    }
+                    {link: <ExternalLink href="https://docs.sentry.io/cli/releases/" />}
                   )
             }
           >
@@ -928,7 +911,15 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
             )}
           </AutoSaveForm>
 
-          <SecurityTokenForm project={project} disabled={disabled} />
+          {disabled || project.securityToken === undefined ? (
+            <DisplayField.Row label={t('Security Token')} hintText={SECURITY_TOKEN_HELP}>
+              <Text variant="muted">
+                {t('You do not have permission to view this token.')}
+              </Text>
+            </DisplayField.Row>
+          ) : (
+            <SecurityTokenForm project={project} disabled={disabled} />
+          )}
 
           <SecurityTokenHeaderForm project={project} disabled={disabled} />
 
@@ -967,10 +958,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
           label={t('Transfer Project')}
           help={tct(
             'Transfer the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
-            {
-              project: <strong>{project.slug}</strong>,
-              linebreak: <br />,
-            }
+            {project: <strong>{project.slug}</strong>, linebreak: <br />}
           )}
         >
           {!isOrgOwner &&
@@ -1045,10 +1033,7 @@ export default function ProjectGeneralSettingsContainer() {
     (newSlug: string) => {
       navigate(
         recreateRoute('', {
-          params: {
-            orgId: organization.slug,
-            projectId: newSlug,
-          },
+          params: {orgId: organization.slug, projectId: newSlug},
           routes,
           location,
         }),

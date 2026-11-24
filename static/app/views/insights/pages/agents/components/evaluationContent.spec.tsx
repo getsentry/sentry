@@ -4,7 +4,7 @@ import {
   EvaluatedContent,
   EvaluationResults,
   EvaluationResultSummary,
-} from 'sentry/views/insights/pages/agents/components/evaluationContent';
+} from './evaluationContent';
 
 describe('EvaluatedContent', () => {
   it('renders the text without a Pretty/Raw toggle', async () => {

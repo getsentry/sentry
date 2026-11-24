@@ -316,7 +316,10 @@ class FingerprintInput:
     @cached_property
     def data(self) -> MutableMapping[str, Any]:
         with open(path.join(FINGERPRINT_INPUTS_DIR, self.filename)) as f:
-            return json.load(f)
+            data = json.load(f)
+        if not isinstance(data, dict):
+            raise TypeError(f"{self.filename} does not contain a JSON object")
+        return data
 
     def create_event(self) -> tuple[FingerprintingConfig, Event]:
         config = FingerprintingConfig.from_json(

@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import cast
 
 from taskbroker_client.retry import Retry
 
@@ -85,7 +86,7 @@ def deliver_digest(
                 project,
                 digest,
                 target_type,
-                target_identifier,
+                cast("int | None", target_identifier),
                 fallthrough_choice=fallthrough_choice,
                 notification_uuid=notification_uuid,
             )

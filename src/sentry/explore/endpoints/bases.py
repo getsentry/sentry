@@ -1,7 +1,9 @@
 from django.db.models import Exists, OuterRef, Q, QuerySet
+from rest_framework.request import Request
+from rest_framework.views import APIView
 
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.auth.principal import is_acting_user, owned_by_acting_user
+from sentry.auth.principal import is_acting_user, is_owned_by_acting_user
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryProject
 from sentry.models.organization import Organization
 
@@ -15,7 +17,10 @@ class ExploreSavedQueryPermission(OrganizationPermission):
         "DELETE": ["org:read", "org:write", "org:admin", "saved_query:write"],
     }
 
-    def has_object_permission(self, request, view, obj):
+    # saved_query:read and saved_query:write replace org:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
+
+    def has_object_permission(self, request: Request, view: APIView, obj: object) -> bool:
         if isinstance(obj, Organization):
             return super().has_object_permission(request, view, obj)
 
@@ -51,15 +56,18 @@ class ExploreSavedFormulaPermission(OrganizationPermission):
     # Any organization member can read and change any formula, including ones
     # created by someone else.
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:read", "org:write", "org:admin"],
-        "DELETE": ["org:read", "org:write", "org:admin"],
+        "GET": ["org:read", "org:write", "org:admin", "saved_query:read"],
+        "POST": ["org:read", "org:write", "org:admin", "saved_query:write"],
+        "PUT": ["org:read", "org:write", "org:admin", "saved_query:write"],
+        "DELETE": ["org:read", "org:write", "org:admin", "saved_query:write"],
     }
+
+    # saved_query:read and saved_query:write replace org:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
 
 
 def filter_to_accessible_explore_queries(
-    request, queryset: QuerySet[ExploreSavedQuery]
+    request: Request, queryset: QuerySet[ExploreSavedQuery]
 ) -> QuerySet[ExploreSavedQuery]:
     """
     Filter an ``ExploreSavedQuery`` queryset to only those rows the request actor can access.
@@ -92,7 +100,9 @@ def filter_to_accessible_explore_queries(
         explore_saved_query_id=OuterRef("id"),
     )
     queryset = queryset.filter(
-        Exists(has_any_project) | owned_by_acting_user(request.user, "created_by_id") | is_prebuilt
+        Exists(has_any_project)
+        | is_owned_by_acting_user(request.user, "created_by_id")
+        | is_prebuilt
     )
 
     return queryset

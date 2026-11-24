@@ -3,6 +3,7 @@ import logging
 from hashlib import sha256
 
 from django.http import HttpRequest, HttpResponse
+from django.http.response import HttpResponseBase
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -20,7 +21,7 @@ logger = logging.getLogger("sentry.webhooks")
 
 @cell_silo_view
 class ReleaseWebhookView(View):
-    def verify(self, plugin_id, project_id, token, signature):
+    def verify(self, plugin_id: str, project_id: str, token: str, signature: str) -> bool:
         return constant_time_compare(
             signature,
             hmac.new(
@@ -31,10 +32,10 @@ class ReleaseWebhookView(View):
         )
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponseBase:
+        return super().dispatch(request, *args, **kwargs)
 
-    def _handle_builtin(self, request: HttpRequest, project):
+    def _handle_builtin(self, request: HttpRequest, project: Project) -> HttpResponse:
         endpoint = f"/projects/{project.organization.slug}/{project.slug}/releases/"
 
         try:
@@ -63,7 +64,9 @@ class ReleaseWebhookView(View):
             status=resp.status_code, content=json.dumps(resp.data), content_type="application/json"
         )
 
-    def post(self, request: HttpRequest, plugin_id, project_id, signature) -> HttpResponse:
+    def post(
+        self, request: HttpRequest, plugin_id: str, project_id: str, signature: str
+    ) -> HttpResponse:
         try:
             project = Project.objects.get_from_cache(id=project_id)
         except ValueError:

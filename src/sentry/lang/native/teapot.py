@@ -202,7 +202,8 @@ class TeapotClient:
                 raise TeapotUnavailable(detail)
 
             try:
-                return resp.json()
+                payload = resp.json()
+                return payload
             except ValueError as e:
                 raise TeapotUnavailable(f"teapot returned non-JSON body: {e}") from e
 
@@ -212,7 +213,7 @@ class TeapotClient:
             return i < attempts and isinstance(exc, _RetryableTeapotError)
 
         def backoff(i: int) -> float:
-            return min(RETRY_BACKOFF_SECONDS * 2 ** (i - 1), RETRY_BACKOFF_MAX_SECONDS)
+            return min(RETRY_BACKOFF_SECONDS * (1 << (i - 1)), RETRY_BACKOFF_MAX_SECONDS)
 
         try:
             return ConditionalRetryPolicy(should_retry, backoff)(attempt)

@@ -4,23 +4,6 @@ import isInteger from 'lodash/isInteger';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
-import type {PageFilterAdjustments} from 'sentry/components/pageFilters/adjustments';
-import {PageFilterAdjustmentReason} from 'sentry/components/pageFilters/adjustments';
-import {
-  ALL_ACCESS_PROJECTS,
-  DATE_TIME_KEYS,
-  getDefaultPageFilterSelection,
-  URL_PARAM,
-} from 'sentry/components/pageFilters/constants';
-import {
-  getDatetimeFromState,
-  getStateFromQuery,
-} from 'sentry/components/pageFilters/parse';
-import {
-  getPageFilterStorage,
-  setPageFiltersStorage,
-} from 'sentry/components/pageFilters/persistence';
-import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {
   DateString,
@@ -37,6 +20,18 @@ import {DAY as DAY_IN_MS} from 'sentry/utils/formatters';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+
+import type {PageFilterAdjustments} from './adjustments';
+import {PageFilterAdjustmentReason} from './adjustments';
+import {
+  ALL_ACCESS_PROJECTS,
+  DATE_TIME_KEYS,
+  getDefaultPageFilterSelection,
+  URL_PARAM,
+} from './constants';
+import {getDatetimeFromState, getStateFromQuery} from './parse';
+import {getPageFilterStorage, setPageFiltersStorage} from './persistence';
+import {PageFiltersStore} from './store';
 
 type EnvironmentId = Environment['id'];
 
@@ -401,12 +396,7 @@ export function initializeUrlState({
 
   let newDatetime: PageFiltersUpdate;
   if (shouldUseMaxDateRange) {
-    newDatetime = {
-      period: `${maxDateRange}d`,
-      start: null,
-      end: null,
-      utc: datetime.utc,
-    };
+    newDatetime = {period: `${maxDateRange}d`, start: null, end: null, utc: datetime.utc};
   } else if (shouldUseMaxPickableDays) {
     newDatetime = {
       period: `${maxPickableDays}d`,
@@ -594,10 +584,7 @@ function getNewQueryParams(
   const extraParams = omit(cleanCurrentQuery, omittedParameters);
 
   // Override parameters
-  const {project, environment, start, end, utc} = {
-    ...currentQueryState,
-    ...obj,
-  };
+  const {project, environment, start, end, utc} = {...currentQueryState, ...obj};
 
   // Only set a stats period if we don't have an absolute date
   const statsPeriod = !start && !end ? obj.period || currentQueryState.period : null;

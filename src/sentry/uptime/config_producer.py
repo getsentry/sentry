@@ -18,7 +18,7 @@ from sentry.utils import redis
 logger = logging.getLogger(__name__)
 
 
-def produce_config(destination_region_slug: str, config: CheckConfig):
+def produce_config(destination_region_slug: str, config: CheckConfig) -> None:
     jsonschema.validate(config, CHECK_CONFIG_SCHEMA)
     _send_to_redis(
         destination_region_slug,
@@ -27,7 +27,7 @@ def produce_config(destination_region_slug: str, config: CheckConfig):
     )
 
 
-def produce_config_removal(destination_region_slug: str, subscription_id: str):
+def produce_config_removal(destination_region_slug: str, subscription_id: str) -> None:
     _send_to_redis(destination_region_slug, UUID(subscription_id), None)
 
 
@@ -60,7 +60,7 @@ def _send_to_redis(
 
     key = subscription_id.hex
     config_key, update_key = get_partition_keys(subscription_id, region_config)
-    cluster: RedisCluster | StrictRedis = redis.redis_clusters.get_binary(
+    cluster: RedisCluster[bytes] | StrictRedis[bytes] = redis.redis_clusters.get_binary(
         region_config.config_redis_cluster
     )
     pipe = cluster.pipeline()

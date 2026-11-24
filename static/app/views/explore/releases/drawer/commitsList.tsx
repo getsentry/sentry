@@ -12,6 +12,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {EmptyState} from 'sentry/views/explore/releases/detail/commitsAndFiles/emptyState';
 import {ReleaseCommit} from 'sentry/views/explore/releases/detail/commitsAndFiles/releaseCommit';
 import {RepositorySwitcher} from 'sentry/views/explore/releases/detail/commitsAndFiles/repositorySwitcher';
@@ -19,8 +20,9 @@ import {
   getCommitsByRepository,
   getReposToRender,
 } from 'sentry/views/explore/releases/detail/utils';
-import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {useReleaseCommits} from 'sentry/views/explore/releases/utils/useReleaseCommits';
+
+import {ReleasesDrawerFields} from './utils';
 
 interface CommitsProps {
   projectSlug: Project['slug'];
@@ -78,7 +80,7 @@ export function CommitsList({release, releaseRepos, projectSlug}: CommitsProps) 
             </PanelBody>
           </Panel>
           <Pagination
-            pageLinks={data?.headers.Link}
+            {...getPaginationProps(data?.headers.Link)}
             onCursor={cursor => {
               setRdCiCursor(cursor ?? null);
             }}

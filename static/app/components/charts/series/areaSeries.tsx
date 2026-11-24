@@ -1,9 +1,7 @@
 import type {LineSeriesOption} from 'echarts';
 
-import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
+import {createLineSeries} from './lineSeries';
 
 export function createAreaSeries(props: LineSeriesOption = {}): LineSeriesOption {
-  return createLineSeries({
-    ...props,
-  });
+  return createLineSeries({...props});
 }

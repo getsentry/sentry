@@ -1,9 +1,5 @@
-import {Rect} from 'sentry/utils/profiling/speedscope';
-import {
-  makeFormatter,
-  makeFormatTo,
-  makeTimelineFormatter,
-} from 'sentry/utils/profiling/units/units';
+import {makeFormatter, makeFormatTo, makeTimelineFormatter} from './units/units';
+import {Rect} from './speedscope';
 
 export type UIFrameNode = {
   duration: number;
@@ -13,15 +9,9 @@ export type UIFrameNode = {
   type: 'slow' | 'frozen';
 };
 
-export type UIFrameMeasurements = {
-  unit: string;
-  values: UIFrameMeasurement[];
-};
+export type UIFrameMeasurements = {unit: string; values: UIFrameMeasurement[]};
 
-type UIFrameMeasurement = {
-  elapsed: number;
-  value: number;
-};
+type UIFrameMeasurement = {elapsed: number; value: number};
 
 function sortFramesByStartedTime(a: UIFrameMeasurement, b: UIFrameMeasurement) {
   return a.elapsed - a.value - (b.elapsed - b.value);

@@ -1,4 +1,4 @@
-import {capitalize} from 'sentry/utils/string/capitalize';
+import {capitalize} from './capitalize';
 
 describe('capitalize', () => {
   it('capitalizes the first letter of a string', () => {

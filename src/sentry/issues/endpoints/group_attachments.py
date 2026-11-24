@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environments
@@ -68,6 +68,8 @@ def get_event_ids_from_filters(
 
 @cell_silo_endpoint
 class GroupAttachmentsEndpoint(GroupEndpoint):
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
+
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -77,7 +79,7 @@ class GroupAttachmentsEndpoint(GroupEndpoint):
         suggested_api="sentry-api-0-organization-group-group-attachments",
         url_names=["sentry-api-0-group-attachments"],
     )
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         """
         List Event Attachments
         ``````````````````````

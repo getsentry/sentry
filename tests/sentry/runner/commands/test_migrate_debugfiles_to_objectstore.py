@@ -38,9 +38,9 @@ class MigrateDebugfilesToObjectstoreCliTest(CliTestCase):
 
         first.refresh_from_db()
         second.refresh_from_db()
-        assert first.file_id is None
-        assert second.file_id is None
-        assert first.storage_path is not None
-        assert second.storage_path is not None
+        assert not first.file_id
+        assert not second.file_id
+        assert first.storage_path
+        assert second.storage_path
         assert not File.objects.filter(id=first_file_id).exists()
         assert not File.objects.filter(id=second_file_id).exists()

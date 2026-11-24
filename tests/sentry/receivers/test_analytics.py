@@ -13,7 +13,7 @@ from sentry.users.models.user import User
 
 class CreateDefaultProjectsTest(TestCase):
     @patch("sentry.analytics.record")
-    def test_user_created_records_analytics(self, mock_record: MagicMock):
+    def test_user_created_records_analytics(self, mock_record: MagicMock) -> None:
         user: User = self.create_user()
         assert_last_analytics_event(
             mock_record,

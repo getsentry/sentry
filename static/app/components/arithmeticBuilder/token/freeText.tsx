@@ -26,7 +26,6 @@ import {
   isTokenReference,
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
-import {Row} from 'sentry/components/arithmeticBuilder/token/styles';
 import {
   nextSimilarTokenKey,
   nextTokenKeyOfKind,
@@ -38,6 +37,8 @@ import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
+
+import {Row} from './styles';
 
 interface ArithmeticTokenFreeTextProps {
   item: Node<Token>;
@@ -55,12 +56,7 @@ export function ArithmeticTokenFreeText({
   nextAllowedTokenKinds,
 }: ArithmeticTokenFreeTextProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const {rowProps, gridCellProps} = useGridListItem({
-    item,
-    ref,
-    state,
-    focusable: true,
-  });
+  const {rowProps, gridCellProps} = useGridListItem({item, ref, state, focusable: true});
 
   const isCollapsed = !token.text.trim();
 
@@ -92,14 +88,9 @@ export function ArithmeticTokenFreeText({
   );
 }
 
-type FocusTokenFunction = {
-  func: string;
-  kind: TokenKind.FUNCTION;
-};
+type FocusTokenFunction = {func: string; kind: TokenKind.FUNCTION};
 
-type FocusTokenLiteral = {
-  kind: TokenKind.LITERAL;
-};
+type FocusTokenLiteral = {kind: TokenKind.LITERAL};
 
 type FocusToken = FocusTokenFunction | FocusTokenLiteral;
 
@@ -190,11 +181,7 @@ function InternalInput({
   }, [updateSelectionIndex]);
 
   const onInputBlur = useCallback(() => {
-    dispatch({
-      type: 'REPLACE_TOKEN',
-      token,
-      text: inputValue.trim(),
-    });
+    dispatch({type: 'REPLACE_TOKEN', token, text: inputValue.trim()});
     resetInputValue();
   }, [dispatch, inputValue, token, resetInputValue]);
 
@@ -210,9 +197,7 @@ function InternalInput({
             type: 'REPLACE_TOKEN',
             token,
             text,
-            focusOverride: {
-              itemKey: getNextFocusOverride(),
-            },
+            focusOverride: {itemKey: getNextFocusOverride()},
           });
           resetInputValue();
           return;
@@ -223,9 +208,7 @@ function InternalInput({
             type: 'REPLACE_TOKEN',
             token,
             text,
-            focusOverride: {
-              itemKey: getNextFocusOverride(),
-            },
+            focusOverride: {itemKey: getNextFocusOverride()},
           });
           resetInputValue();
           return;
@@ -252,11 +235,7 @@ function InternalInput({
             type: 'REPLACE_TOKEN',
             token,
             text,
-            focusOverride: {
-              itemKey: getNextFocusOverride({
-                kind: TokenKind.LITERAL,
-              }),
-            },
+            focusOverride: {itemKey: getNextFocusOverride({kind: TokenKind.LITERAL})},
           });
           resetInputValue();
           return;
@@ -305,19 +284,13 @@ function InternalInput({
       type: 'REPLACE_TOKEN',
       token,
       text: inputValue.trim(),
-      focusOverride: {
-        itemKey: getNextFocusOverride(),
-      },
+      focusOverride: {itemKey: getNextFocusOverride()},
     });
     resetInputValue();
   }, [dispatch, inputValue, token, resetInputValue, getNextFocusOverride]);
 
   const onInputEscape = useCallback(() => {
-    dispatch({
-      type: 'REPLACE_TOKEN',
-      token,
-      text: inputValue,
-    });
+    dispatch({type: 'REPLACE_TOKEN', token, text: inputValue});
     resetInputValue();
   }, [dispatch, token, inputValue, resetInputValue]);
 
@@ -458,12 +431,8 @@ function useSuggestionItems({
   filterValue: string;
   nextAllowedTokenKinds: TokenKind[];
 }): Array<SelectSectionWithKey<string>> {
-  const parenthesisItems = useParenthesisItems({
-    nextAllowedTokenKinds,
-  });
-  const operatorItems = useOperatorItems({
-    nextAllowedTokenKinds,
-  });
+  const parenthesisItems = useParenthesisItems({nextAllowedTokenKinds});
+  const operatorItems = useOperatorItems({nextAllowedTokenKinds});
   const functionItems = useFunctionItems({
     allowedFunctions,
     filterValue,
@@ -511,13 +480,7 @@ function useParenthesisItems({
       return [];
     }
 
-    return [
-      {
-        key: 'parenthesis',
-        label: t('parenthesis'),
-        options,
-      },
-    ];
+    return [{key: 'parenthesis', label: t('parenthesis'), options}];
   }, [nextAllowedTokenKinds]);
 }
 
@@ -566,13 +529,7 @@ function useOperatorItems({
       return [];
     }
 
-    return [
-      {
-        key: 'operator',
-        label: t('operator'),
-        options,
-      },
-    ];
+    return [{key: 'operator', label: t('operator'), options}];
   }, [nextAllowedTokenKinds]);
 }
 

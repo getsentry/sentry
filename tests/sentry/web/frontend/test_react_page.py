@@ -1,9 +1,10 @@
+from collections.abc import Iterator, Sequence
 from fnmatch import fnmatch
 from importlib import reload
 
 from django.conf import settings as django_settings
 from django.test import override_settings
-from django.urls import URLResolver, get_resolver, reverse
+from django.urls import URLPattern, URLResolver, get_resolver, reverse
 
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.models.organization import OrganizationStatus
@@ -220,19 +221,21 @@ class ReactPageViewTest(TestCase):
         org = self.create_organization(owner=user)
         self.login_as(user)
 
-        def extract_url_names(urlpatterns, parents):
+        def extract_url_names(
+            urlpatterns: Sequence[URLPattern | URLResolver],
+            parents: list[URLPattern | URLResolver],
+        ) -> Iterator[str]:
             for pattern in urlpatterns:
                 path = parents[:] + [pattern]
                 if isinstance(pattern, URLResolver):
                     yield from extract_url_names(pattern.url_patterns, path)
                 else:
-                    url_pattern = path[-1]
-                    url_name = url_pattern.name
+                    url_name = pattern.name
                     if (
                         url_name
-                        and url_pattern.callback
-                        and hasattr(url_pattern.callback, "view_class")
-                        and issubclass(url_pattern.callback.view_class, ReactMixin)
+                        and pattern.callback is not None
+                        and hasattr(pattern.callback, "view_class")
+                        and issubclass(pattern.callback.view_class, ReactMixin)
                     ):
                         yield url_name
 
@@ -281,7 +284,7 @@ class ReactPageViewTest(TestCase):
             assert response.redirect_chain == [(f"http://{other_org.slug}.testserver/issues/", 302)]
             assert "activeorg" not in self.client.session
 
-    def _run_customer_domain_elevated_privileges(self, is_superuser: bool, is_staff: bool):
+    def _run_customer_domain_elevated_privileges(self, is_superuser: bool, is_staff: bool) -> None:
         user = self.create_user("foo@example.com", is_superuser=is_superuser, is_staff=is_staff)
         org = self.create_organization(owner=user)
         other_org = self.create_organization()

@@ -5,9 +5,9 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {joinTeamPromise} from 'sentry/actionCreators/teams';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -20,9 +20,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
-type TeamDetailsOutletContext = {
-  team: Team;
-};
+type TeamDetailsOutletContext = {team: Team};
 
 function TeamDetailsOutlet(props: TeamDetailsOutletContext) {
   return <Outlet context={props} />;
@@ -45,21 +43,10 @@ export default function TeamDetails() {
     setRequesting(true);
 
     try {
-      await joinTeamPromise(api, {
-        orgId: orgSlug,
-        teamId: teamSlug,
-      });
-      addSuccessMessage(
-        tct('You have requested access to [team]', {
-          team: `#${teamSlug}`,
-        })
-      );
+      await joinTeamPromise(api, {orgId: orgSlug, teamId: teamSlug});
+      toast.success(tct('You have requested access to [team]', {team: `#${teamSlug}`}));
     } catch {
-      addErrorMessage(
-        tct('Unable to request access to [team]', {
-          team: `#${teamSlug}`,
-        })
-      );
+      toast.error(tct('Unable to request access to [team]', {team: `#${teamSlug}`}));
       // oxlint-disable-next-line react/todo
     } finally {
       setRequesting(false);
@@ -80,11 +67,9 @@ export default function TeamDetails() {
     );
   }
   const routePrefix = `/settings/${orgSlug}/teams/${params.teamId}/`;
-  const tab = location.pathname.split('/').at(-2);
+  const tab = location.pathname.split('/').at(-2) ?? 'members';
 
-  const activeTab = ['members', 'projects', 'notifications', 'settings'].includes(
-    tab ?? ''
-  )
+  const activeTab = ['members', 'projects', 'notifications', 'settings'].includes(tab)
     ? tab
     : 'members';
 
@@ -98,22 +83,24 @@ export default function TeamDetails() {
           </h3>
 
           <TabsContainer>
-            <Tabs value={activeTab}>
-              <TabList>
-                <TabList.Item key="members" to={`${routePrefix}members/`}>
-                  {t('Members')}
-                </TabList.Item>
-                <TabList.Item key="projects" to={`${routePrefix}projects/`}>
-                  {t('Projects')}
-                </TabList.Item>
-                <TabList.Item key="notifications" to={`${routePrefix}notifications/`}>
-                  {t('Notifications')}
-                </TabList.Item>
-                <TabList.Item key="settings" to={`${routePrefix}settings/`}>
-                  {t('Settings')}
-                </TabList.Item>
-              </TabList>
-            </Tabs>
+            <LinkTabs value={activeTab}>
+              {({TabList}) => (
+                <TabList>
+                  <TabList.Item key="members" to={`${routePrefix}members/`}>
+                    {t('Members')}
+                  </TabList.Item>
+                  <TabList.Item key="projects" to={`${routePrefix}projects/`}>
+                    {t('Projects')}
+                  </TabList.Item>
+                  <TabList.Item key="notifications" to={`${routePrefix}notifications/`}>
+                    {t('Notifications')}
+                  </TabList.Item>
+                  <TabList.Item key="settings" to={`${routePrefix}settings/`}>
+                    {t('Settings')}
+                  </TabList.Item>
+                </TabList>
+              )}
+            </LinkTabs>
           </TabsContainer>
 
           <TeamDetailsOutlet team={team} />

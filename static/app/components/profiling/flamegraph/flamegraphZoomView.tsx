@@ -4,9 +4,8 @@ import {vec2} from 'gl-matrix';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
 import {Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {
@@ -52,6 +51,7 @@ import {useDrawSelectedBorderEffect} from './interactions/useDrawSelectedBorderE
 import {useInteractionViewCheckPoint} from './interactions/useInteractionViewCheckPoint';
 import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
 import type {FlamegraphContextMenuProps} from './flamegraphContextMenu';
+import {FlamegraphTooltip} from './flamegraphTooltip';
 
 function isHighlightingAllOccurrences(
   node: FlamegraphFrame | null,
@@ -337,10 +337,7 @@ function FlamegraphZoomView({
     flamegraphState.search.highlightFrames,
   ]);
 
-  useInteractionViewCheckPoint({
-    view: flamegraphView,
-    lastInteraction,
-  });
+  useInteractionViewCheckPoint({view: flamegraphView, lastInteraction});
 
   useDrawSelectedBorderEffect({
     scheduler,
@@ -407,10 +404,7 @@ function FlamegraphZoomView({
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [flamegraphCanvas, canvasPoolManager, dispatch, scheduler, flamegraphView]);
 
-  const previousKeyPress = useRef<{at: number; key: string | null}>({
-    key: null,
-    at: 0,
-  });
+  const previousKeyPress = useRef<{at: number; key: string | null}>({key: null, at: 0});
   useEffect(() => {
     const onKeyDown = (evt: KeyboardEvent) => {
       if (!flamegraphView) {
@@ -721,10 +715,7 @@ function FlamegraphZoomView({
 
     dispatch({
       type: 'set highlight all frames',
-      payload: {
-        name: frameName,
-        package: packageName,
-      },
+      payload: {name: frameName, package: packageName},
     });
 
     let frames = flamegraph.findAllMatchingFrames(frameName, packageName);
@@ -765,10 +756,10 @@ function FlamegraphZoomView({
     navigator.clipboard
       .writeText(hoveredNodeOnContextMenuOpen.current.frame.name)
       .then(() => {
-        addSuccessMessage(t('Function name copied to clipboard'));
+        toast.success(t('Function name copied to clipboard'));
       })
       .catch(() => {
-        addErrorMessage(t('Failed to copy function name to clipboard'));
+        toast.error(t('Failed to copy function name to clipboard'));
       });
   }, []);
 
@@ -781,17 +772,17 @@ function FlamegraphZoomView({
     const link = makeSourceCodeLink(frame);
 
     if (!link) {
-      addErrorMessage(t('Failed to resolve path for this function frame.'));
+      toast.error(t('Failed to resolve path for this function frame.'));
       return;
     }
 
     navigator.clipboard
       .writeText(link)
       .then(() => {
-        addSuccessMessage(t('Function source copied to clipboard'));
+        toast.success(t('Function source copied to clipboard'));
       })
       .catch(() => {
-        addErrorMessage(t('Failed to copy function source to clipboard'));
+        toast.error(t('Failed to copy function source to clipboard'));
       });
   }, []);
 

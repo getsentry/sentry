@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from unittest.mock import Mock
 
 import pytest
@@ -103,7 +104,7 @@ def test_invalid_secondary_backend(delegator_fixture: tuple[Delegator, Mock, Moc
 
 
 @pytest.fixture
-def register_option():
+def register_option() -> Iterator[None]:
     options.register("feature.rollout", default=0.0, flags=options.FLAG_AUTOMATOR_MODIFIABLE)
 
     yield
@@ -111,7 +112,7 @@ def register_option():
     options.unregister("feature.rollout")
 
 
-def test_make_writebehind_selector_str_key(register_option) -> None:
+def test_make_writebehind_selector_str_key(register_option: None) -> None:
     context = Mock()
     selector = make_writebehind_selector(
         option_name="feature.rollout",
@@ -156,7 +157,7 @@ def test_make_writebehind_selector_str_key(register_option) -> None:
         assert result == ["new", "old"]
 
 
-def test_make_writebehind_selector_int_key(register_option) -> None:
+def test_make_writebehind_selector_int_key(register_option: None) -> None:
     context = Mock()
     selector = make_writebehind_selector(
         option_name="feature.rollout",

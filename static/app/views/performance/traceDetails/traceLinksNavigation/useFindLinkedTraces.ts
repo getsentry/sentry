@@ -6,7 +6,8 @@ import type {
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {getSpanLinkType} from 'sentry/views/performance/traceDetails/getSpanLinkType';
-import type {ConnectedTraceConnection} from 'sentry/views/performance/traceDetails/traceLinksNavigation/types';
+
+import type {ConnectedTraceConnection} from './types';
 
 /**
  * Find an adjacent trace (next or previous) by querying the spans endpoint.
@@ -25,12 +26,7 @@ export function useFindAdjacentTrace({
   attributes: TraceItemResponseAttribute[];
   direction: ConnectedTraceConnection;
   links?: TraceItemResponseLink[];
-}): {
-  available: boolean;
-  isLoading: boolean;
-  id?: string;
-  trace?: string;
-} {
+}): {available: boolean; isLoading: boolean; id?: string; trace?: string} {
   const {
     projectId,
     currentTraceId,

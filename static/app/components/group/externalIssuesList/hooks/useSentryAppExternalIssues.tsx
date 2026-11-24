@@ -1,9 +1,9 @@
 import {useQuery} from '@tanstack/react-query';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {deleteExternalIssue} from 'sentry/actionCreators/platformExternalIssues';
 import {sentryAppInstallationsApiOptions} from 'sentry/actionCreators/sentryAppInstallations';
-import type {GroupIntegrationIssueResult} from 'sentry/components/group/externalIssuesList/hooks/types';
 import {useExternalIssues} from 'sentry/components/group/externalIssuesList/useExternalIssues';
 import {openSentryAppIssueModal} from 'sentry/components/group/sentryAppExternalIssueModal';
 import {SentryAppComponentIcon} from 'sentry/components/sentryAppComponentIcon';
@@ -13,6 +13,8 @@ import type {Group} from 'sentry/types/group';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSentryAppComponents} from 'sentry/utils/useSentryAppComponents';
+
+import type {GroupIntegrationIssueResult} from './types';
 
 export function useSentryAppExternalIssues({
   group,
@@ -27,13 +29,8 @@ export function useSentryAppExternalIssues({
     data: externalIssues,
     isLoading,
     onDeleteExternalIssue,
-  } = useExternalIssues({
-    group,
-    organization,
-  });
-  const sentryAppComponents = useSentryAppComponents({
-    componentType: 'issue-link',
-  });
+  } = useExternalIssues({group, organization});
+  const sentryAppComponents = useSentryAppComponents({componentType: 'issue-link'});
   // Tickets from installed apps without an issue-link component still show,
   // components alone can't tell us those apps are installed
   const {data: sentryAppInstallations = []} = useQuery(
@@ -71,10 +68,10 @@ export function useSentryAppExternalIssues({
           deleteExternalIssue(api, organization.slug, group.id, externalIssue.id)
             .then(_data => {
               onDeleteExternalIssue(externalIssue);
-              addSuccessMessage(t('Successfully unlinked issue.'));
+              toast.success(t('Successfully unlinked issue.'));
             })
             .catch(_error => {
-              addErrorMessage(t('Unable to unlink issue.'));
+              toast.error(t('Unable to unlink issue.'));
             });
         },
       });
@@ -129,10 +126,10 @@ export function useSentryAppExternalIssues({
         deleteExternalIssue(api, organization.slug, group.id, externalIssue.id)
           .then(_data => {
             onDeleteExternalIssue(externalIssue);
-            addSuccessMessage(t('Successfully unlinked issue.'));
+            toast.success(t('Successfully unlinked issue.'));
           })
           .catch(_error => {
-            addErrorMessage(t('Unable to unlink issue.'));
+            toast.error(t('Unable to unlink issue.'));
           });
       },
     });

@@ -3,7 +3,8 @@ import zipfile
 from datetime import datetime, timedelta
 from hashlib import sha1
 from io import BytesIO
-from unittest.mock import patch
+from typing import Literal, TypedDict
+from unittest.mock import MagicMock, patch
 
 from django.core.files.base import ContentFile
 from django.db import connections, router
@@ -28,18 +29,25 @@ from sentry.models.artifactbundle import (
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
-    SourceFileType,
 )
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.project import Project
 from sentry.tasks.assemble import assemble_artifacts
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.skips import requires_objectstore
 from sentry.utils import json
 
 
-def make_compressed_zip_file(files):
-    def remove_and_return(dictionary, key):
+class _ArtifactFile(TypedDict, total=False):
+    url: str
+    type: str
+    content: bytes
+    headers: dict[str, str]
+
+
+def make_compressed_zip_file(files: dict[str, _ArtifactFile]) -> bytes:
+    def remove_and_return(dictionary: _ArtifactFile, key: Literal["content"]) -> _ArtifactFile:
         dictionary.pop(key)
         return dictionary
 
@@ -65,7 +73,12 @@ def make_compressed_zip_file(files):
     return compressed.getvalue()
 
 
-def upload_bundle(bundle_file, project, release=None, dist=None):
+def upload_bundle(
+    bundle_file: bytes,
+    project: Project,
+    release: str,
+    dist: str | None = None,
+) -> None:
     blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), project.organization)
     total_checksum = sha1(bundle_file).hexdigest()
 
@@ -79,7 +92,9 @@ def upload_bundle(bundle_file, project, release=None, dist=None):
     )
 
 
-def get_artifact_bundles(project, release_name="", dist_name=""):
+def get_artifact_bundles(
+    project: Project, release_name: str = "", dist_name: str = ""
+) -> list[ArtifactBundle]:
     return list(
         ArtifactBundle.objects.filter(
             organization_id=project.organization.id,
@@ -90,7 +105,9 @@ def get_artifact_bundles(project, release_name="", dist_name=""):
     )
 
 
-def get_indexed_files(project, release_name="", dist_name="", distinct=False):
+def get_indexed_files(
+    project: Project, release_name: str = "", dist_name: str = "", distinct: bool = False
+) -> list[ArtifactBundleIndex]:
     query = ArtifactBundleIndex.objects.filter(
         organization_id=project.organization.id,
         artifact_bundle__projectartifactbundle__project_id=project.id,
@@ -103,7 +120,7 @@ def get_indexed_files(project, release_name="", dist_name="", distinct=False):
 
 
 class ArtifactLookupTest(TestCase):
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         redis_client = get_redis_cluster_for_artifact_bundles()
         redis_client.flushdb()
 
@@ -370,7 +387,7 @@ class IndexUrlsInBundleTest(TestCase):
     debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
 
     def index(self) -> list[str]:
-        files = {
+        files: dict[str, _ArtifactFile] = {
             "files/_/_/generated.js": {
                 "url": f"~/{self.debug_id}-0.js",
                 "type": "minified_source",
@@ -432,12 +449,38 @@ class IndexUrlsInBundleTest(TestCase):
         ]
 
 
+class IndexUrlsInDeletedBundleTest(TransactionTestCase):
+    # `TestCase` never commits, so it would never check the deferred foreign key.
+    @patch("sentry.debug_files.artifact_bundles.metrics.incr")
+    def test_bundle_deleted_before_commit(self, mock_incr: MagicMock) -> None:
+        artifact_bundle = self.create_artifact_bundle(artifact_count=1)
+        files: dict[str, _ArtifactFile] = {
+            "files/_/_/app.js": {
+                "url": "~/static/js/app.js",
+                "type": "minified_source",
+                "content": b"app",
+            },
+        }
+        with ArtifactBundleArchive(BytesIO(make_compressed_zip_file(files))) as archive:
+            # Simulate an upload of the same bundle deleting this one as a duplicate.
+            ArtifactBundle.objects.filter(id=artifact_bundle.id).delete()
+
+            index_urls_in_bundle(self.organization.id, artifact_bundle, archive)
+
+        mock_incr.assert_any_call("artifact_bundle_indexing.bundle_deleted_during_indexing")
+        assert not ArtifactBundleIndex.objects.filter(
+            artifact_bundle_id=artifact_bundle.id
+        ).exists()
+
+
 class GetArtifactBundlesContainingUrlTest(TestCase):
     def setUp(self) -> None:
         self.release_name = "1.0.0"
         self.dist_name = "dist1"
 
-    def create_bundle(self, date_added=None, date_last_modified=None):
+    def create_bundle(
+        self, date_added: datetime | None = None, date_last_modified: datetime | None = None
+    ) -> ArtifactBundle:
         if date_added is None:
             date_added = timezone.now()
         if date_last_modified is None:
@@ -470,7 +513,9 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
         )
         return artifact_bundle
 
-    def assert_results(self, results: set[tuple[int, datetime]], expected_bundle_ids: set[int]):
+    def assert_results(
+        self, results: set[tuple[int, datetime]], expected_bundle_ids: set[int]
+    ) -> None:
         assert {bundle_id for bundle_id, _ in results} == expected_bundle_ids
 
     def test_get_artifact_bundles_containing_url_exact_match(self) -> None:
@@ -973,15 +1018,12 @@ class GetArtifactBundlesContainingDebugIdTest(TestCase):
             date_added=date_added,
         )
         for debug_id in debug_ids:
-            # A minified file and its source map share a debug ID.
-            for source_file_type in (SourceFileType.MINIFIED_SOURCE, SourceFileType.SOURCE_MAP):
-                DebugIdArtifactBundle.objects.create(
-                    organization_id=project.organization_id,
-                    debug_id=debug_id,
-                    artifact_bundle=artifact_bundle,
-                    source_file_type=source_file_type.value,
-                    date_added=date_added,
-                )
+            DebugIdArtifactBundle.objects.create(
+                organization_id=project.organization_id,
+                debug_id=debug_id,
+                artifact_bundle=artifact_bundle,
+                date_added=date_added,
+            )
         return artifact_bundle
 
     def lookup(self) -> tuple[set[int], list[set[str]]]:
@@ -1083,8 +1125,11 @@ class GetArtifactBundlesContainingDebugIdTest(TestCase):
 
     @override_options({"sourcemaps.artifact-bundles.debug-id-lookup.max-rows": 1})
     def test_debug_id_with_more_rows_joins_all_tables(self) -> None:
-        # The bundle has two rows for the debug ID, one more than we read.
+        # Another project's bundle adds a second row for the debug ID, one more than we read.
         bundle = self.create_bundle((self.debug_id,))
+        self.create_bundle(
+            (self.debug_id,), project=self.create_project(organization=self.create_organization())
+        )
 
         with patch("sentry.debug_files.artifact_bundles.metrics") as metrics:
             assert self.lookup() == (
@@ -1113,9 +1158,11 @@ class GetArtifactBundlesContainingDebugIdTest(TestCase):
 
 
 class RenewArtifactBundleTest(TestCase):
-    def setUp(self) -> None:
+    def create_old_bundle(self, use_objectstore: bool = False) -> None:
         self.old_date = timezone.now() - timedelta(days=60)
-        self.artifact_bundle = self.create_artifact_bundle(self.organization, artifact_count=1)
+        self.artifact_bundle = self.create_artifact_bundle(
+            self.organization, artifact_count=1, use_objectstore=use_objectstore
+        )
         ArtifactBundle.objects.filter(id=self.artifact_bundle.id).update(date_added=self.old_date)
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -1134,7 +1181,6 @@ class RenewArtifactBundleTest(TestCase):
             organization_id=self.organization.id,
             debug_id=uuid.uuid4(),
             artifact_bundle=self.artifact_bundle,
-            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
             date_added=self.old_date,
         )
         ArtifactBundleIndex.objects.create(
@@ -1159,6 +1205,7 @@ class RenewArtifactBundleTest(TestCase):
         }
 
     def test_renews_bundle_and_linked_rows(self) -> None:
+        self.create_old_bundle()
         now = self.renew()
 
         assert ArtifactBundle.objects.get(id=self.artifact_bundle.id).date_added == now
@@ -1166,7 +1213,37 @@ class RenewArtifactBundleTest(TestCase):
 
     @override_options({"sourcemaps.artifact-bundles.date-only-on-bundle": True})
     def test_renews_only_the_bundle_with_date_only_on_bundle(self) -> None:
+        self.create_old_bundle()
         now = self.renew()
 
         assert ArtifactBundle.objects.get(id=self.artifact_bundle.id).date_added == now
+        assert self.linked_dates() == {self.old_date}
+
+    @requires_objectstore
+    def test_failed_renewal_retries_on_next_access(self) -> None:
+        self.create_old_bundle(use_objectstore=True)
+        session = self.artifact_bundle.get_objectstore_session()
+        with (
+            patch.object(ArtifactBundle, "get_objectstore_session", return_value=session),
+            patch.object(session, "extend_expiry", side_effect=OSError("Objectstore unavailable")),
+        ):
+            self.renew()
+
+        assert ArtifactBundle.objects.get(id=self.artifact_bundle.id).date_added == self.old_date
+        assert self.linked_dates() == {self.old_date}
+
+        now = self.renew()
+        assert ArtifactBundle.objects.get(id=self.artifact_bundle.id).date_added == now
+        assert self.linked_dates() == {now}
+
+    @requires_objectstore
+    def test_missing_object_leaves_bundle_and_linked_dates_unchanged(self) -> None:
+        self.create_old_bundle(use_objectstore=True)
+        assert self.artifact_bundle.storage_path is not None
+        self.artifact_bundle.get_objectstore_session().delete(self.artifact_bundle.storage_path)
+
+        self.renew()
+
+        self.artifact_bundle.refresh_from_db()
+        assert self.artifact_bundle.date_added == self.old_date
         assert self.linked_dates() == {self.old_date}

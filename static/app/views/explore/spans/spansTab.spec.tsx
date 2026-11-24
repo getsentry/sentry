@@ -6,6 +6,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
   render,
+  renderGlobalModal,
+  renderHookWithProviders,
   screen,
   userEvent,
   waitFor,
@@ -26,13 +28,25 @@ import {
   useQueryParamsFields,
   useQueryParamsGroupBys,
 } from 'sentry/views/explore/queryParams/context';
-import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
-import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
+import {usePageContextCapture} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
+
+import {SpansQueryParamsProvider} from './spansQueryParamsProvider';
+import {SpansTabContent} from './spansTab';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
+}
+
+function PageContextWrapper({children}: {children: ReactNode}) {
+  return (
+    <Wrapper>
+      <SpansTabContent datePageFilterProps={datePageFilterProps} />
+      {children}
+    </Wrapper>
+  );
 }
 
 jest.mock('sentry/utils/analytics');
@@ -52,12 +66,7 @@ const invalidAttributeValidationBody: EventValidationData = {
   dataset: [],
   environment: [],
   field: [
-    {
-      attrType: null,
-      error: 'unknown attribute',
-      name: 'invalid.attribute',
-      valid: false,
-    },
+    {attrType: null, error: 'unknown attribute', name: 'invalid.attribute', valid: false},
   ],
   orderby: [],
   projects: [],
@@ -145,9 +154,7 @@ describe('SpansTabContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
-      body: {
-        timeSeries: [],
-      },
+      body: {timeSeries: []},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/traces/`,
@@ -167,13 +174,7 @@ describe('SpansTabContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
-      body: [
-        {
-          key: 'project',
-          name: 'project',
-          attributeSource: {source_type: 'sentry'},
-        },
-      ],
+      body: [{key: 'project', name: 'project', attributeSource: {source_type: 'sentry'}}],
       match: [MockApiClient.matchQuery({attributeType: 'string'})],
     });
   });
@@ -198,7 +199,8 @@ describe('SpansTabContent', () => {
     localStorage.removeItem('explore-spans-toolbar');
   });
 
-  it('disables saving when a hidden sibling has transformations and restores it after clearing', async () => {
+  it('allows query saves when a hidden sibling has transformations', async () => {
+    renderGlobalModal({organization, additionalWrapper: Wrapper});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'full'}},
@@ -226,16 +228,31 @@ describe('SpansTabContent', () => {
       }
     );
 
-    expect(await screen.findByRole('button', {name: 'Save as'})).toHaveAttribute(
+    expect(await screen.findByRole('button', {name: 'Save as'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Chart actions'}));
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Add to Dashboard'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('menuitemradio', {name: 'Create a Monitor'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
-    expect(screen.getByRole('button', {name: 'Chart actions'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    await userEvent.keyboard('{Escape}');
     await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
-    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeEnabled();
+    expect(screen.getByRole('menuitem', {name: 'Dashboard widget'})).not.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('menuitemradio', {name: 'Monitor for'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'New Query'}));
+    expect(
+      await screen.findByPlaceholderText('Enter a name for your new query')
+    ).toBeVisible();
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
     act(() => {
       router.navigate('/organizations/org-slug/explore/traces/');
@@ -276,10 +293,7 @@ describe('SpansTabContent', () => {
   it('should fire analytics once per change', async () => {
     const {router} = render(
       <SpansTabContent datePageFilterProps={datePageFilterProps} />,
-      {
-        organization,
-        additionalWrapper: Wrapper,
-      }
+      {organization, additionalWrapper: Wrapper}
     );
 
     await screen.findByText(/No spans found/);
@@ -355,6 +369,51 @@ describe('SpansTabContent', () => {
     );
   });
 
+  it('captures per-axis transformations and the selected chart interval', async () => {
+    const visualizes = [
+      {yAxes: ['avg(span.duration)'], transformations: ['fill(zero)', 'smooth(sma,5)']},
+      {yAxes: ['avg(span.duration)'], transformations: ['fill(locf)']},
+      {yAxes: ['avg(span.duration)']},
+    ];
+    const {result} = renderHookWithProviders(usePageContextCapture, {
+      organization,
+      additionalWrapper: PageContextWrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {
+            query: 'span.op:http.client',
+            aggregateField: [
+              JSON.stringify({groupBy: 'span.op'}),
+              ...visualizes.map(visualize => JSON.stringify(visualize)),
+            ],
+            interval: '3h',
+          },
+        },
+      },
+    });
+
+    await waitFor(() => {
+      const captured = result.current({route: '/explore/traces/', allowStructured: true});
+      expect(captured.isStructured).toBe(true);
+      const snapshot: LLMContextSnapshot = JSON.parse(captured.screenshot!);
+      expect(
+        snapshot.nodes.find(node => node.nodeType === 'traces-explorer')?.data
+      ).toEqual(
+        expect.objectContaining({
+          visualizes,
+          interval: '3h',
+          searchQuery: 'span.op:http.client',
+          groupBys: ['span.op'],
+          projectIds: [project.id],
+          projectSlugs: [project.slug],
+          projectSelectionMode: 'explicit',
+          currentSelectedDateRange: {period: '7d', start: null, end: null, utc: null},
+        })
+      );
+    });
+  });
+
   it('publishes the aggregate sort to the LLM context in aggregate mode', async () => {
     let getLLMContext: ReturnType<typeof useLLMContext>['getLLMContext'] | undefined;
     function Component() {
@@ -396,10 +455,7 @@ describe('SpansTabContent', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',
-            query: {
-              field: ['span.name', 'invalid.attribute'],
-              sort: 'invalid.attribute',
-            },
+            query: {field: ['span.name', 'invalid.attribute'], sort: 'invalid.attribute'},
           },
         },
       }
@@ -448,15 +504,8 @@ describe('SpansTabContent', () => {
     });
 
     await waitFor(() => {
-      expect(aggregateFields).not.toContainEqual({
-        groupBy: 'invalid.attribute',
-      });
-      expect(aggregateSortBys).toEqual([
-        {
-          field: 'count(span.duration)',
-          kind: 'desc',
-        },
-      ]);
+      expect(aggregateFields).not.toContainEqual({groupBy: 'invalid.attribute'});
+      expect(aggregateSortBys).toEqual([{field: 'count(span.duration)', kind: 'desc'}]);
     });
   });
 
@@ -566,9 +615,7 @@ describe('SpansTabContent', () => {
         {organization, additionalWrapper: Wrapper}
       );
 
-      const caseSensitivityToggle = screen.getByRole('button', {
-        name: 'Ignore case',
-      });
+      const caseSensitivityToggle = screen.getByRole('button', {name: 'Ignore case'});
       expect(caseSensitivityToggle).toBeInTheDocument();
       await userEvent.click(caseSensitivityToggle);
 
@@ -585,9 +632,7 @@ describe('SpansTabContent', () => {
       const eventsTimeSeriesMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-timeseries/`,
         method: 'GET',
-        body: {
-          timeSeries: [],
-        },
+        body: {timeSeries: []},
       });
 
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
@@ -595,9 +640,7 @@ describe('SpansTabContent', () => {
         additionalWrapper: Wrapper,
       });
 
-      const caseSensitivityToggle = screen.getByRole('button', {
-        name: 'Ignore case',
-      });
+      const caseSensitivityToggle = screen.getByRole('button', {name: 'Ignore case'});
       expect(caseSensitivityToggle).toBeInTheDocument();
       await userEvent.click(caseSensitivityToggle);
 
@@ -613,9 +656,7 @@ describe('SpansTabContent', () => {
       await waitFor(() =>
         expect(eventsTimeSeriesMock).toHaveBeenCalledWith(
           `/organizations/${organization.slug}/events-timeseries/`,
-          expect.objectContaining({
-            query: expect.objectContaining({caseInsensitive: 1}),
-          })
+          expect.objectContaining({query: expect.objectContaining({caseInsensitive: 1})})
         )
       );
     });
@@ -1093,10 +1134,7 @@ describe('SpansTabContent', () => {
       setProjects([logsProject]);
 
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
-        organization: {
-          ...organization,
-          features: [...organization.features],
-        },
+        organization: {...organization, features: [...organization.features]},
         additionalWrapper: Wrapper,
         initialRouterConfig: {
           location: {
@@ -1117,10 +1155,7 @@ describe('SpansTabContent', () => {
       setProjects([logsProject]);
 
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
-        organization: {
-          ...organization,
-          features: [...organization.features],
-        },
+        organization: {...organization, features: [...organization.features]},
         additionalWrapper: Wrapper,
         initialRouterConfig: {
           location: {
@@ -1154,10 +1189,7 @@ describe('SpansTabContent', () => {
 
     it('switches from Attribute Breakdowns to Span tab when cross event is added', async () => {
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
-        organization: {
-          ...organization,
-          features: [...organization.features],
-        },
+        organization: {...organization, features: [...organization.features]},
         additionalWrapper: Wrapper,
         initialRouterConfig: {
           location: {
@@ -1190,10 +1222,7 @@ describe('SpansTabContent', () => {
 
     it('switches from Trace Samples to Span tab when cross event is added', async () => {
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
-        organization: {
-          ...organization,
-          features: [...organization.features],
-        },
+        organization: {...organization, features: [...organization.features]},
         additionalWrapper: Wrapper,
         initialRouterConfig: {
           location: {

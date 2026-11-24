@@ -4,14 +4,14 @@ import contextvars
 import functools
 import logging
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Iterator
 from concurrent.futures import Future, InvalidStateError
 from concurrent.futures import ThreadPoolExecutor as _ThreadPoolExecutor  # noqa: S016
 from concurrent.futures._base import FINISHED, RUNNING
 from contextlib import contextmanager
 from queue import Full, PriorityQueue
 from time import time
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, Never, cast
 
 import sentry_sdk
 import sentry_sdk.scope
@@ -24,22 +24,22 @@ class PriorityTask[T](NamedTuple):
     priority: int
     item: tuple[sentry_sdk.Scope, sentry_sdk.Scope, Callable[[], T], Future[T]]
 
-    def __eq__(self, b):
-        return self.priority == b.priority
+    def __eq__(self, other: object) -> bool:
+        return self.priority == cast(PriorityTask[object], other).priority
 
-    def __lt__(self, b):
-        return self.priority < b.priority
+    def __lt__(self, other: object) -> bool:
+        return self.priority < cast(PriorityTask[object], other).priority
 
 
 class TimedFuture[T](Future[T]):
     _condition: threading.Condition
     _state: str
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Never, **kwargs: Never) -> None:
         self.__timing: list[float | None] = [None, None]  # [started, finished/cancelled]
         super().__init__(*args, **kwargs)
 
-    def get_timing(self):
+    def get_timing(self) -> tuple[float | None, float | None]:
         """\
         Return the timing data for this future in the form ``(started, finished)``.
 
@@ -61,9 +61,9 @@ class TimedFuture[T](Future[T]):
           the ``finished`` time (when the future was cancelled) may be before
           the ``started`` time (when the future was attempted to be executed.)
         """
-        return tuple(self.__timing)
+        return self.__timing[0], self.__timing[1]
 
-    def set_running_or_notify_cancel(self, *args, **kwargs):
+    def set_running_or_notify_cancel(self, *args: Never, **kwargs: Never) -> bool:
         result = super().set_running_or_notify_cancel(*args, **kwargs)
         # This method can only be called once (the second invocation will raise
         # a ``RuntimeError``) so if we've gotten this far we can be reasonably
@@ -71,7 +71,7 @@ class TimedFuture[T](Future[T]):
         self.__timing[0] = time()
         return result
 
-    def cancel(self, *args, **kwargs):
+    def cancel(self, *args: Never, **kwargs: Never) -> bool:
         with self._condition:
             # Futures can only be marked as cancelled if they are neither
             # running or finished (we have to duplicate this check that is also
@@ -85,7 +85,7 @@ class TimedFuture[T](Future[T]):
             return super().cancel(*args, **kwargs)
 
     @contextmanager
-    def __set_finished_time_on_success(self):
+    def __set_finished_time_on_success(self) -> Iterator[None]:
         prev_value = self.__timing[1]
         self.__timing[1] = time()
         try:
@@ -94,13 +94,13 @@ class TimedFuture[T](Future[T]):
             self.__timing[1] = prev_value
             raise
 
-    def set_result(self, *args, **kwargs):
+    def set_result(self, result: T) -> None:
         with self._condition, self.__set_finished_time_on_success():
-            return super().set_result(*args, **kwargs)
+            return super().set_result(result)
 
-    def set_exception(self, *args, **kwargs):
+    def set_exception(self, exception: BaseException | None) -> None:
         with self._condition, self.__set_finished_time_on_success():
-            return super().set_exception(*args, **kwargs)
+            return super().set_exception(exception)
 
 
 class Executor:
@@ -120,7 +120,7 @@ class Executor:
         callable: Callable[[], T],
         priority: int = 0,
         block: bool = True,
-        timeout=None,
+        timeout: float | None = None,
     ) -> TimedFuture[T]:
         """
         Enqueue a task to be executed, returning a ``TimedFuture``.
@@ -143,7 +143,9 @@ class SynchronousExecutor(Executor):
     # TODO: The ``Future`` implementation here could be replaced with a
     # lock-free future for efficiency.
 
-    def submit[T](self, callable: Callable[[], T], *args, **kwargs) -> TimedFuture[T]:
+    def submit[T](
+        self, callable: Callable[[], T], *args: object, **kwargs: object
+    ) -> TimedFuture[T]:
         """
         Immediately execute a callable, returning a ``TimedFuture``.
         """
@@ -169,14 +171,14 @@ class ThreadedExecutor(Executor):
     exits. Any items remaining in the queue at this point may not be executed!
     """
 
-    def __init__(self, worker_count=1, maxsize=0):
+    def __init__(self, worker_count: int = 1, maxsize: int = 0) -> None:
         self.__worker_count = worker_count
-        self.__workers = set()
+        self.__workers: set[threading.Thread] = set()
         self.__started = False
         self.__queue: PriorityQueue[PriorityTask[Any]] = PriorityQueue(maxsize)
         self.__lock = threading.Lock()
 
-    def __worker(self):
+    def __worker(self) -> None:
         queue = self.__queue
         while True:
             priority, item = queue.get(True)
@@ -193,7 +195,7 @@ class ThreadedExecutor(Executor):
                         future.set_result(result)
                     queue.task_done()
 
-    def start(self):
+    def start(self) -> None:
         with self.__lock:
             if self.__started:
                 return
@@ -207,7 +209,11 @@ class ThreadedExecutor(Executor):
             self.__started = True
 
     def submit[T](
-        self, callable: Callable[[], T], priority=0, block=True, timeout=None
+        self,
+        callable: Callable[[], T],
+        priority: int = 0,
+        block: bool = True,
+        timeout: float | None = None,
     ) -> TimedFuture[T]:
         """\
         Enqueue a task to be executed, returning a ``TimedFuture``.
@@ -249,39 +255,39 @@ class ContextPropagatingThreadPoolExecutor(_ThreadPoolExecutor):
     available in worker threads without manual propagation.
     """
 
-    def submit(self, fn, /, *args, **kwargs):
+    def submit[T, **P](self, fn: Callable[P, T], /, *args: P.args, **kwargs: P.kwargs) -> Future[T]:
         ctx = contextvars.copy_context()
-        return super().submit(ctx.run, fn, *args, **kwargs)
+        return super().submit(ctx.run, functools.partial(fn, *args, **kwargs))
 
 
-class FutureSet:
+class FutureSet[T]:
     """\
     Coordinates a set of ``Future`` objects (either from
     ``concurrent.futures``, or otherwise API compatible), and allows for
     attaching a callback when all futures have completed execution.
     """
 
-    def __init__(self, futures):
-        self.__pending = set(futures)
-        self.__completed = set()
-        self.__callbacks = []
+    def __init__(self, futures: Iterable[Future[T]]) -> None:
+        self.__pending: set[Future[T]] = set(futures)
+        self.__completed: set[Future[T]] = set()
+        self.__callbacks: list[Callable[[FutureSet[T]], None]] = []
         self.__lock = threading.Lock()
 
         for future in futures:
             future.add_done_callback(self.__mark_completed)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Future[T]]:
         with self.__lock:
             futures = self.__pending | self.__completed
         return iter(futures)
 
-    def __execute_callback(self, callback):
+    def __execute_callback(self, callback: Callable[[FutureSet[T]], None]) -> None:
         try:
             callback(self)
         except Exception as error:
             logger.warning("Error when calling callback %r: %s", callback, error, exc_info=True)
 
-    def __mark_completed(self, future):
+    def __mark_completed(self, future: Future[T]) -> None:
         with self.__lock:
             self.__pending.remove(future)
             self.__completed.add(future)
@@ -291,7 +297,7 @@ class FutureSet:
             for callback in self.__callbacks:
                 self.__execute_callback(callback)
 
-    def add_done_callback(self, callback):
+    def add_done_callback(self, callback: Callable[[FutureSet[T]], None]) -> None:
         with self.__lock:
             remaining = len(self.__pending)
             if remaining > 0:

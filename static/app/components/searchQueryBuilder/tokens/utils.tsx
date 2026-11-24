@@ -8,7 +8,6 @@ import type {
   SelectSectionWithKey,
 } from '@sentry/scraps/compactSelect';
 
-import {areWildcardOperatorsAllowed} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {
   TermOperator,
   WildcardOperators,
@@ -26,6 +25,8 @@ import {
   prettifyTagKey,
   type FieldDefinition,
 } from 'sentry/utils/fields';
+
+import {areWildcardOperatorsAllowed} from './filter/utils';
 
 export function shiftFocusToChild(
   element: HTMLElement,
@@ -54,9 +55,7 @@ export function useShiftFocusToChild(
     [item, state]
   );
 
-  return {
-    shiftFocusProps: {onFocus},
-  };
+  return {shiftFocusProps: {onFocus}};
 }
 
 const EXPLICIT_TAG_KEY_PATTERN = /^tags\[(.*),(string|number|boolean)\]$/;
@@ -103,10 +102,7 @@ function tagFromResolverItem(item: FilterKeyResolverItem): Tag | null {
     return null;
   }
 
-  return {
-    key: item.value,
-    name: item.textValue ?? prettifyTagKey(item.value),
-  };
+  return {key: item.value, name: item.textValue ?? prettifyTagKey(item.value)};
 }
 
 function getTagsFromResolverItems(items: FilterKeyResolverItem[]): Tag[] {

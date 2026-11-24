@@ -1,24 +1,19 @@
 import {IconGraph} from '@sentry/icons/graph';
 
-import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
-import {
-  chartUnitFromTimeSeries,
-  QueryEmbedChart,
-  seriesFromTimeSeries,
-} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedChart';
-import {QUERY_EMBED_ROW_LIMIT} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedConstants';
-import {useQueryEmbedEventsTable} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedQueries';
-import {
-  eventColumns,
-  eventRowKey,
-  QueryEmbedTable,
-} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
-import {toPageFilters} from 'sentry/components/seer/markdown/embeds/components/queryEmbedParams';
 import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {QueryEmbedCard} from './queryEmbed/queryEmbedCard';
+import {
+  chartUnitFromTimeSeries,
+  QueryEmbedChart,
+  seriesFromTimeSeries,
+} from './queryEmbed/queryEmbedChart';
+import {QUERY_EMBED_ROW_LIMIT} from './queryEmbed/queryEmbedConstants';
+import {useQueryEmbedEventsTable} from './queryEmbed/queryEmbedQueries';
+import {eventColumns, eventRowKey, QueryEmbedTable} from './queryEmbed/queryEmbedTable';
 import {getMetricsQueryTitle} from './metricsQueryLink';
 import {
   buildMetricsEventView,
@@ -27,6 +22,7 @@ import {
   resolveMetricYAxes,
   type MetricsQueryData,
 } from './metricsQueryUtils';
+import {toPageFilters} from './queryEmbedParams';
 
 /** An aggregate that groups by nothing collapses to one row per y-axis. */
 function hasNoGroupBy(data: MetricsQueryData): boolean {

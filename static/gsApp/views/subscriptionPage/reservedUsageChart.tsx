@@ -1,6 +1,5 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 import moment from 'moment-timezone';
 
 import {markLine} from 'sentry/components/charts/components/markLine';
@@ -8,7 +7,6 @@ import {ChartTooltip} from 'sentry/components/charts/components/tooltip';
 import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {
   ChartDataTransform,
   UsageChart,
@@ -23,21 +21,7 @@ import {type BillingStats, type CustomerUsage, type Subscription} from 'getsentr
 import {formatReservedWithUnits, isUnlimitedReserved} from 'getsentry/utils/billing';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 
-type DroppedBreakdown = {
-  other: number;
-  overQuota: number;
-  spikeProtection: number;
-};
-
-export function selectedTransform(location: Location) {
-  const transform = decodeScalar(location.query.transform) as
-    | undefined
-    | ChartDataTransform;
-  if (!transform || !Object.values(ChartDataTransform).includes(transform)) {
-    return ChartDataTransform.CUMULATIVE;
-  }
-  return transform;
-}
+type DroppedBreakdown = {other: number; overQuota: number; spikeProtection: number};
 
 function chartTooltip(category: DataCategory) {
   const tooltipValueFormatter = getTooltipFormatter(category);
@@ -105,13 +89,7 @@ export function mapReservedToChart(reserved: number | null, category: DataCatego
 }
 
 function defaultChartData(): ChartStats {
-  return {
-    accepted: [],
-    dropped: [],
-    projected: [],
-    reserved: [],
-    onDemand: [],
-  };
+  return {accepted: [], dropped: [], projected: [], reserved: [], onDemand: []};
 }
 
 export function mapStatsToChart({
@@ -156,13 +134,9 @@ export function mapStatsToChart({
     sumOther = Math.max(sumDropped - sumOverQuota - sumSpikeProtection, 0);
 
     if (isProjected) {
-      chartData.projected.push({
-        value: [date, sumAccepted],
-      });
+      chartData.projected.push({value: [date, sumAccepted]});
     } else {
-      chartData.accepted.push({
-        value: [date, sumAccepted],
-      });
+      chartData.accepted.push({value: [date, sumAccepted]});
       // TODO(ts)
       (chartData.dropped as any[]).push({
         value: [date, sumDropped],
@@ -209,22 +183,13 @@ export function ProductUsageChart({
       yAxisQuotaLineLabel: string;
     } = {
       isUnlimitedQuota: false,
-      chartData: {
-        accepted: [],
-        dropped: [],
-        projected: [],
-        reserved: [],
-        onDemand: [],
-      },
+      chartData: {accepted: [], dropped: [], projected: [], reserved: [], onDemand: []},
       yAxisQuotaLine: 0,
       yAxisQuotaLineLabel: '',
     };
 
     if (categoryStats) {
-      dataCategoryMetadata.chartData = mapStatsToChart({
-        stats: categoryStats,
-        transform,
-      });
+      dataCategoryMetadata.chartData = mapStatsToChart({stats: categoryStats, transform});
     }
 
     if (currentHistory) {

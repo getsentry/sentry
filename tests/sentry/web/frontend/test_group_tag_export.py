@@ -1,6 +1,7 @@
 from datetime import datetime
 from unittest.mock import patch
 
+from django.http import HttpResponseBase
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -34,19 +35,20 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
             assert_no_errors=False,
         )
 
+        assert self.event.group is not None
         self.group = self.event.group
 
         self.first_seen = datetime.fromisoformat(event_timestamp).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         self.last_seen = self.first_seen
         self.login_as(user=self.user)
 
-    def verify_test(self, response):
+    def verify_test(self, response: HttpResponseBase) -> None:
         assert response.status_code == 200
         assert response.streaming
         assert response["Content-Type"] == "text/csv"
-        rows = list(response.streaming_content)
-        for idx, row in enumerate(rows):
-            row = row.decode("utf-8")
+        rows = list(getattr(response, "streaming_content"))
+        for idx, chunk in enumerate(rows):
+            row = chunk.decode("utf-8")
             assert row.endswith("\r\n")
             bits = row[:-2].split(",")
             if idx == 0:

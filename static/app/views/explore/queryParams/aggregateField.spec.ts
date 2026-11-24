@@ -1,12 +1,7 @@
-import {
-  getAggregateFields,
-  serializeAggregateFields,
-} from 'sentry/views/explore/queryParams/aggregateField';
-import {
-  VisualizeEquation,
-  VisualizeFunction,
-} from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {getAggregateFields, serializeAggregateFields} from './aggregateField';
+import {VisualizeEquation, VisualizeFunction} from './visualize';
 
 describe('getAggregateFields', () => {
   it('returns null when there are no aggregate fields', () => {

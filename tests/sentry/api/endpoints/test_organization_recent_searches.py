@@ -4,26 +4,34 @@ from datetime import UTC, datetime, timedelta
 from functools import cached_property
 from typing import Any
 
+from django.test import override_settings
+from django.urls import reverse
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
+from sentry.models.organization import Organization
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.search_common import SearchType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.user import User
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class RecentSearchesListTest(APITestCase):
     endpoint = "sentry-api-0-organization-recent-searches"
 
     @cached_property
-    def user(self):
+    def user(self) -> User:
         return self.create_user("test@test.com")
 
-    def check_results(self, expected, search_type, query=None):
+    def check_results(
+        self, expected: list[RecentSearch], search_type: SearchType, query: str | None = None
+    ) -> None:
         self.login_as(user=self.user)
         kwargs = {}
         if query:
@@ -188,17 +196,44 @@ class RecentSearchesListTest(APITestCase):
         ]
         self.check_results(issue_recent_searches[1:], search_type=SearchType.ISSUE, query="lde")
 
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_sees_no_recent_searches(self) -> None:
+        RecentSearch.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            type=SearchType.ISSUE.value,
+            query="some test",
+        )
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:read"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+        url = reverse(self.endpoint, args=[self.organization.slug])
+
+        response = self.client.get(
+            url, {"type": SearchType.ISSUE.value}, HTTP_X_VIEWER_CONTEXT=viewer_context
+        )
+        assert response.status_code == 200, response.content
+        assert response.data == []
+
 
 class RecentSearchesCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-recent-searches"
     method = "post"
 
     @cached_property
-    def organization(self):
+    def organization(self) -> Organization:
         return self.create_organization()
 
     @cached_property
-    def user(self):
+    def user(self) -> User:
         user = self.create_user("test@test.com")
         self.create_team(members=[user], organization=self.organization)
         return user
@@ -275,3 +310,47 @@ class RecentSearchesScopeTest(APITestCase):
         self.get_error_response(
             self.organization.slug, type=SearchType.ISSUE.value, status_code=403
         )
+
+
+@with_feature("organizations:granular-permission-scopes")
+@override_options({"auth.deprecated-scope-translation.enabled": True})
+class RecentSearchesGranularScopesTest(APITestCase):
+    """With granular scopes, recent searches require user_preference:* instead of org:read."""
+
+    endpoint = "sentry-api-0-organization-recent-searches"
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def test_org_read_token_is_translated(self) -> None:
+        self._use_token(["org:read"])
+        self.get_success_response(self.organization.slug, type=SearchType.ISSUE.value)
+        self.get_success_response(
+            self.organization.slug,
+            method="post",
+            type=SearchType.ISSUE.value,
+            query="is:unresolved",
+            status_code=201,
+        )
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    def test_org_read_not_accepted(self) -> None:
+        self._use_token(["org:read"])
+        self.get_error_response(
+            self.organization.slug, type=SearchType.ISSUE.value, status_code=403
+        )
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @with_feature({"organizations:granular-permission-scopes": False})
+    def test_org_read_accepted_without_granular_scopes(self) -> None:
+        self._use_token(["org:read"])
+        self.get_success_response(self.organization.slug, type=SearchType.ISSUE.value)
+
+    def test_member_session_has_access(self) -> None:
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.login_as(member)
+        self.get_success_response(self.organization.slug, type=SearchType.ISSUE.value)

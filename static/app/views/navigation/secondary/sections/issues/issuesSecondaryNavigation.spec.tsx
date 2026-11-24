@@ -4,10 +4,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/pages/inbox/utils';
-import {IssuesSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/issues/issuesSecondaryNavigation';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {LLMContextNodeSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
+
+import {IssuesSecondaryNavigation} from './issuesSecondaryNavigation';
 
 describe('IssuesSecondaryNavigation', () => {
   const inboxCountQuery = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned,identified] assigned_or_suggested:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`;
@@ -39,9 +40,7 @@ describe('IssuesSecondaryNavigation', () => {
   }
 
   it('shows the inbox count for Seer progress sections assigned or suggested to the user or their teams', async () => {
-    const request = mockInboxCount({
-      [inboxCountQuery]: 12,
-    });
+    const request = mockInboxCount({[inboxCountQuery]: 12});
 
     renderNavigation();
 
@@ -61,9 +60,7 @@ describe('IssuesSecondaryNavigation', () => {
   });
 
   it('caps the count at 99+ since the endpoint stops counting at 100', async () => {
-    mockInboxCount({
-      [inboxCountQuery]: 100,
-    });
+    mockInboxCount({[inboxCountQuery]: 100});
 
     renderNavigation();
 
@@ -117,7 +114,6 @@ describe('IssuesSecondaryNavigation', () => {
 
       function ContextCapture() {
         const {getLLMContext} = useLLMContext();
-        // oxlint-disable-next-line react/immutability
         ref.current = () => getLLMContext().nodes;
         return null;
       }

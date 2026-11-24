@@ -56,5 +56,5 @@ class DeleteReleaseTest(TransactionTestCase, HybridCloudTestMixin):
 
         release1.refresh_from_db()
         release2.refresh_from_db()
-        assert release1.owner_id is None
+        assert not release1.owner_id
         assert release2.owner_id is not None

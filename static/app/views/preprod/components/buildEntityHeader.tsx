@@ -8,9 +8,7 @@ import {EntityHeader} from '@sentry/scraps/entityHeader';
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
-import {AppIcon} from 'sentry/views/preprod/components/appIcon';
 import type {BuildDetailsAppInfo} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getBuildNumber} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
@@ -19,6 +17,8 @@ import {
   getReadableArtifactTypeTooltip,
   getReadablePlatformLabel,
 } from 'sentry/views/preprod/utils/labelUtils';
+
+import {AppIcon} from './appIcon';
 
 interface BuildEntityHeaderProps {
   projectSlug: string;
@@ -116,9 +116,9 @@ export function BuildEntityHeader({
           },
           dateBuiltOrAdded
             ? {
-                type: 'text',
+                type: 'date',
                 label: appInfo?.date_built ? t('Built') : t('Uploaded'),
-                value: <DateTime date={dateBuiltOrAdded} seconds timeZone />,
+                date: dateBuiltOrAdded,
                 leadingGraphic: <IconClock size="md" />,
               }
             : null,

@@ -95,7 +95,8 @@ class BitbucketInstalledEndpointTest(APITestCase):
 
     def install(self, data: dict[str, Any]) -> Response:
         with mock.patch.object(BitbucketApiClient, "get_workspace_hooks"):
-            return self.client.post(self.path, data=data)
+            response: Response[Any] = self.client.post(self.path, data=data)
+            return response
 
     def test_installed_with_public_key(self) -> None:
         response = self.install(self.team_data_from_bitbucket)

@@ -6,7 +6,12 @@ from typing import Any
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from sentry.issues.action_log.types import FirstSeenAction, GroupAction, GroupActionType
+from sentry.issues.action_log.types import (
+    FirstSeenAction,
+    GroupAction,
+    GroupActionType,
+    SeerPRCreatedAction,
+)
 
 # Existing payload fields with open-ended types. These are debt, not precedent (see the
 # GroupAction docstring). Remove entries as fields get fixed shapes; never add to this.
@@ -75,6 +80,15 @@ def test_datetime_round_trips_through_json_dict() -> None:
 
     assert data == {"first_seen": first_seen.isoformat()}
     assert FirstSeenAction(**data).first_seen == first_seen
+
+
+def test_seer_pull_requests_keep_the_pr_number_an_int() -> None:
+    pull_request = {"pr_id": 7, "pr_number": 42, "pr_url": "https://github.com/o/r/pull/42"}
+    action = SeerPRCreatedAction(
+        pull_requests=[{"provider": "github", "repo_name": "o/r", "pull_request": pull_request}]
+    )
+
+    assert action.json_dict()["pull_requests"][0]["pull_request"] == pull_request
 
 
 def test_no_new_open_ended_fields() -> None:

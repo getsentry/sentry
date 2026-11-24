@@ -28,6 +28,7 @@ class GitLabWebhookUpdateHaltReason(StrEnum):
     MISSING_WEBHOOK_CONFIG = "missing_webhook_config"
     DEBOUNCED = "debounced"
     REPOSITORY_CHANGED = "repository_changed"
+    RATE_LIMITED = "rate_limited"
 
 
 @dataclass

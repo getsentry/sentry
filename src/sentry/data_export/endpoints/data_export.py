@@ -17,6 +17,7 @@ from sentry.api.bases.organization import OrganizationDataExportPermission, Orga
 from sentry.api.helpers.environments import get_environment_id
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
+from sentry.auth.principal import require_user
 from sentry.data_export.base import ExportError, ExportQueryType
 from sentry.data_export.models import ExportedData
 from sentry.data_export.processors.discover import DiscoverProcessor
@@ -373,6 +374,9 @@ class DataExportEndpoint(OrganizationEndpoint):
         Create a new asynchronous or sync file export task depending on requested file size,
         and email user upon completion.
         """
+        # The export is emailed to and downloaded by its user, so a caller with no user
+        # could never get it.
+        user_id = require_user(request).id
 
         extra = {
             "organization_id": organization.id,
@@ -423,7 +427,7 @@ class DataExportEndpoint(OrganizationEndpoint):
             query_type = ExportQueryType.from_str(validated_data["query_type"])
             data_export, created = ExportedData.objects.get_or_create(
                 organization=organization,
-                user_id=request.user.id,
+                user_id=user_id,
                 query_type=query_type,
                 query_info=validated_data["query_info"],
                 date_finished=None,

@@ -5,9 +5,10 @@ import {
   RateUnit,
   type AggregationOutputType,
 } from 'sentry/utils/discover/fields';
-import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+
+import {parseGroupBy} from './parseGroupBy';
 
 /**
  * Delimiter used by the backend to separate parts of a series name.
@@ -57,14 +58,7 @@ export function transformLegacySeriesToTimeSeries(
     )
   )[1];
 
-  return {
-    ...timeSeries,
-    groupBy,
-    meta: {
-      ...timeSeries.meta,
-      isOther,
-    },
-  };
+  return {...timeSeries, groupBy, meta: {...timeSeries.meta, isOther}};
 }
 
 function createEventsStatsFromSeries(
@@ -80,12 +74,8 @@ function createEventsStatsFromSeries(
       [{count: dataUnit.value, comparisonCount: undefined}],
     ]),
     meta: {
-      fields: {
-        [series.seriesName]: valueType,
-      },
-      units: {
-        [series.seriesName]: valueUnit,
-      },
+      fields: {[series.seriesName]: valueType},
+      units: {[series.seriesName]: valueUnit},
       isMetricsData: false,
       tips: {columns: undefined, query: undefined},
     },

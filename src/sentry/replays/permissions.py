@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 from django.http import HttpRequest
 
+from sentry.auth.principal import is_owned_by_acting_user
 from sentry.auth.superuser import superuser_has_permission
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import OrganizationMember
@@ -76,15 +77,17 @@ def is_sentry_app_with_permission(user: Any, organization: Organization) -> bool
 
 def granular_permissions_turned_off(organization: Organization) -> bool:
     """Check if granular replay permissions are disabled for the organization."""
-    org_option = OrganizationOption.objects.filter(
+    org_option = OrganizationOption.objects.get_or_none(
         organization=organization, key="sentry:granular-replay-permissions"
-    ).first()
+    )
     return not org_option or not org_option.value
 
 
 def get_org_member(organization: Organization, request: HttpRequest) -> OrganizationMember | None:
     """Get the OrganizationMember for the request user, or None if not a member."""
     try:
-        return OrganizationMember.objects.get(organization=organization, user_id=request.user.id)
+        return OrganizationMember.objects.get(
+            is_owned_by_acting_user(request.user), organization=organization
+        )
     except OrganizationMember.DoesNotExist:
         return None

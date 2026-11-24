@@ -1,11 +1,12 @@
 import uuid
 from hashlib import md5
-from typing import Any
+from typing import Any, cast
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry import nodestore
 from sentry.constants import MAX_TAG_VALUE_LENGTH
@@ -49,7 +50,7 @@ from sentry.spans.consumers.process_segments.message import (
     process_segment,
 )
 from sentry.spans.consumers.process_segments.shim import build_shim_event_data
-from sentry.spans.consumers.process_segments.types import attribute_value
+from sentry.spans.consumers.process_segments.types import CompatibleSpan, attribute_value
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -69,7 +70,7 @@ def generate_n_plus_one_spans(
     *,
     has_performance_issues_spans_relay_flag: bool = False,
     event_id: str | None = None,
-):
+) -> list[SpanEvent]:
     """
     Build a set of spans containing an N+1 problem.
 
@@ -107,7 +108,7 @@ def generate_n_plus_one_spans(
     )
     repeating_span_description = 'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added", "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21'
 
-    def repeating_span():
+    def repeating_span() -> SpanEvent:
         return build_mock_span(
             project_id=project.id,
             span_op="db",
@@ -133,7 +134,7 @@ class TestSpansTask(TestCase):
     def tearDown(self) -> None:
         message_module.cache = None
 
-    def generate_basic_spans(self):
+    def generate_basic_spans(self) -> list[SpanEvent]:
         segment_span = build_mock_span(
             project_id=self.project.id,
             is_segment=True,
@@ -198,7 +199,9 @@ class TestSpansTask(TestCase):
         mock_log.assert_any_call("spans.process_segments.title_generation.error")
 
     def test_build_shim_event_data_supports_legacy_profile_id(self) -> None:
-        segment_span = build_mock_span(project_id=self.project.id, is_segment=True)
+        segment_span = cast(
+            CompatibleSpan, build_mock_span(project_id=self.project.id, is_segment=True)
+        )
         segment_span["hash"] = "hashed-segment"
 
         event = build_shim_event_data(segment_span, [segment_span])
@@ -225,7 +228,11 @@ class TestSpansTask(TestCase):
 
     def test_create_models_trim_environment_name(self) -> None:
         spans = self.generate_basic_spans()
-        spans[1]["attributes"]["sentry.environment"]["value"] = "a" * 100
+        attributes = spans[1]["attributes"]
+        assert attributes is not None
+        environment_attribute = attributes["sentry.environment"]
+        assert environment_attribute is not None
+        environment_attribute["value"] = "a" * 100
         assert process_segment(spans)
 
         # Environment is trimmed
@@ -335,7 +342,7 @@ class TestSpansTask(TestCase):
         )
         repeating_span_description = 'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added", "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21'
 
-        def repeating_span():
+        def repeating_span() -> SpanEvent:
             return build_mock_span(
                 project_id=self.project.id,
                 span_op="db",
@@ -477,7 +484,7 @@ class TestSpansTask(TestCase):
             )
 
     @mock.patch("sentry.spans.consumers.process_segments.message.set_project_flag_and_signal")
-    def test_record_signals(self, mock_track):
+    def test_record_signals(self, mock_track: MagicMock) -> None:
         span = build_mock_span(
             project_id=self.project.id,
             is_segment=True,
@@ -495,7 +502,7 @@ class TestSpansTask(TestCase):
         assert "has_insights_agent_monitoring" not in signals
 
     @mock.patch("sentry.spans.consumers.process_segments.message.set_project_flag_and_signal")
-    def test_record_signals_vitals_from_top_level_is_segment(self, mock_track):
+    def test_record_signals_vitals_from_top_level_is_segment(self, mock_track: MagicMock) -> None:
         span = build_mock_span(
             project_id=self.project.id,
             is_segment=True,
@@ -514,7 +521,9 @@ class TestSpansTask(TestCase):
         assert "has_insights_vitals" in signals
 
     @mock.patch("sentry.spans.consumers.process_segments.message.set_project_flag_and_signal")
-    def test_record_signals_does_not_set_screen_load_from_navigation_segment(self, mock_track):
+    def test_record_signals_does_not_set_screen_load_from_navigation_segment(
+        self, mock_track: MagicMock
+    ) -> None:
         span = build_mock_span(
             project_id=self.project.id,
             is_segment=True,
@@ -531,7 +540,7 @@ class TestSpansTask(TestCase):
         assert "has_insights_screen_load" not in signals
 
     @mock.patch("sentry.spans.consumers.process_segments.message.set_project_flag_and_signal")
-    def test_record_signals_agents_via_gen_ai_op_name(self, mock_track):
+    def test_record_signals_agents_via_gen_ai_op_name(self, mock_track: MagicMock) -> None:
         """Test that spans with gen_ai.operation.name attribute trigger agents insight."""
         span = build_mock_span(
             project_id=self.project.id,
@@ -571,8 +580,11 @@ class TestSpansTask(TestCase):
 
     def test_segment_name_propagation_when_name_missing(self) -> None:
         child_span, segment_span = self.generate_basic_spans()
-        del segment_span["name"]
-        del segment_span["attributes"]["sentry.segment.name"]
+        segment_span_dict = cast(dict[str, Any], segment_span)
+        del segment_span_dict["name"]
+        segment_attributes = segment_span["attributes"]
+        assert segment_attributes is not None
+        del segment_attributes["sentry.segment.name"]
 
         processed_spans = process_segment([child_span, segment_span])
 
@@ -1122,17 +1134,19 @@ class TestSegmentDropKillswitch(TestCase):
 
 @exclude_experimental_detectors
 class TestProcessSegmentCaching(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.base_ts = 1707953018.972  # Default `end_timestamp` generated by `build_mock_span`
         message_module.cache = None
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         message_module.cache = None
 
     @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
     @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
-    def test_first_segment_calls_create_models(self, mock_create, mock_bump):
+    def test_first_segment_calls_create_models(
+        self, mock_create: MagicMock, mock_bump: MagicMock
+    ) -> None:
         segment = build_mock_span(project_id=self.project.id, is_segment=True)
         process_segment([segment])
 
@@ -1141,7 +1155,7 @@ class TestProcessSegmentCaching(TestCase):
 
     @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
     @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
-    def test_duplicate_segment_is_noop(self, mock_create, mock_bump):
+    def test_duplicate_segment_is_noop(self, mock_create: MagicMock, mock_bump: MagicMock) -> None:
         segment = build_mock_span(project_id=self.project.id, is_segment=True)
         process_segment([segment])
         mock_create.reset_mock()
@@ -1153,7 +1167,9 @@ class TestProcessSegmentCaching(TestCase):
 
     @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
     @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
-    def test_segment_within_interval_is_noop(self, mock_create, mock_bump):
+    def test_segment_within_interval_is_noop(
+        self, mock_create: MagicMock, mock_bump: MagicMock
+    ) -> None:
         segment = build_mock_span(project_id=self.project.id, is_segment=True)
         process_segment([segment])
         mock_create.reset_mock()
@@ -1170,7 +1186,9 @@ class TestProcessSegmentCaching(TestCase):
 
     @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
     @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
-    def test_segment_exceeding_interval_calls_bump(self, mock_create, mock_bump):
+    def test_segment_exceeding_interval_calls_bump(
+        self, mock_create: MagicMock, mock_bump: MagicMock
+    ) -> None:
         segment = build_mock_span(project_id=self.project.id, is_segment=True)
         process_segment([segment])
         mock_create.reset_mock()
@@ -1187,7 +1205,9 @@ class TestProcessSegmentCaching(TestCase):
 
     @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
     @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
-    def test_bump_advances_cached_timestamp(self, mock_create, mock_bump):
+    def test_bump_advances_cached_timestamp(
+        self, mock_create: MagicMock, mock_bump: MagicMock
+    ) -> None:
         segment = build_mock_span(project_id=self.project.id, is_segment=True)
         process_segment([segment])
         mock_create.reset_mock()
@@ -1222,7 +1242,9 @@ class TestProcessSegmentCaching(TestCase):
 
     @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
     @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
-    def test_different_release_triggers_create_models(self, mock_create, mock_bump):
+    def test_different_release_triggers_create_models(
+        self, mock_create: MagicMock, mock_bump: MagicMock
+    ) -> None:
         segment = build_mock_span(project_id=self.project.id, is_segment=True)
         process_segment([segment])
         mock_create.reset_mock()
@@ -1239,7 +1261,9 @@ class TestProcessSegmentCaching(TestCase):
 
     @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
     @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
-    def test_different_environment_triggers_create_models(self, mock_create, mock_bump):
+    def test_different_environment_triggers_create_models(
+        self, mock_create: MagicMock, mock_bump: MagicMock
+    ) -> None:
         segment = build_mock_span(project_id=self.project.id, is_segment=True)
         process_segment([segment])
         mock_create.reset_mock()
@@ -1256,7 +1280,9 @@ class TestProcessSegmentCaching(TestCase):
 
     @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
     @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
-    def test_out_of_order_old_event_is_noop(self, mock_create, mock_bump):
+    def test_out_of_order_old_event_is_noop(
+        self, mock_create: MagicMock, mock_bump: MagicMock
+    ) -> None:
         later = build_mock_span(
             project_id=self.project.id,
             is_segment=True,

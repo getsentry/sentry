@@ -8,7 +8,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {CronRulesEdit} from 'sentry/views/alerts/rules/crons/edit';
+
+import {CronRulesEdit} from './edit';
 
 describe('CronRulesEdit', () => {
   const organization = OrganizationFixture();

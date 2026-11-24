@@ -1,7 +1,7 @@
 import logging
 import re
 from collections.abc import Mapping
-from typing import Any, Literal
+from typing import Any, Literal, cast
 from urllib.parse import urlparse
 
 from jsonschema import Draft7Validator
@@ -158,7 +158,7 @@ def send_and_save_sentry_app_request(
             event=event,
             url=url,
             error_id=resp.headers.get("Sentry-Hook-Error"),
-            project_id=resp.headers.get("Sentry-Hook-Project"),
+            project_id=cast(Any, resp.headers.get("Sentry-Hook-Project")),
             response=resp,
             headers=loggable_headers,
         )

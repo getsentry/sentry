@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import errno
 import logging
+from math import ceil
+from random import randint
 from typing import Any
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 from redis.exceptions import RedisError
@@ -21,10 +24,12 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import repository_service
 from sentry.locks import locks
+from sentry.ratelimits.leaky_bucket import LeakyBucketLimitInfo, LeakyBucketRateLimiter
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiForbiddenError,
     ApiPaginationTruncated,
+    ApiRateLimitedError,
     ApiUnauthorized,
     IntegrationConfigurationError,
 )
@@ -38,6 +43,21 @@ from sentry.utils.redis import load_redis_script, redis_clusters
 
 logger = logging.getLogger(__name__)
 release_debounce = load_redis_script("utils/locking/delete_lock.lua")
+
+MAX_RATE_LIMIT_DEFERRALS = 1000
+# The limiter is cell-local and scoped by GitLab host. These caps keep two active
+# cells at a combined best-effort ceiling of 20 burst and 4 tokens per second per host.
+WEBHOOK_RECONCILIATION_MAX_BURST = 10
+WEBHOOK_RECONCILIATION_MAX_PER_SECOND = 2
+WEBHOOK_RECONCILIATION_MAX_FORCED_FANOUT_JITTER_SECONDS = 3600
+WEBHOOK_RECONCILIATION_MAX_RETRY_DELAY_SECONDS = 3600
+WEBHOOK_RECONCILIATION_REPOSITORY_COST = 5
+WEBHOOK_RECONCILIATION_RETRY_AFTER_JITTER_SECONDS = 300
+WEBHOOK_RECONCILIATION_RATE_LIMIT_JITTER_MIN_SECONDS = 11
+WEBHOOK_RECONCILIATION_RATE_LIMIT_JITTER_MAX_SECONDS = 73
+WEBHOOK_RECONCILIATION_FANOUT_JITTER_SECONDS = 5
+WEBHOOK_RECONCILIATION_FORCED_FANOUT_JITTER_MIN_SECONDS = 11
+WEBHOOK_RECONCILIATION_SUCCESS_OUTCOMES = frozenset({"adopted", "created", "recreated", "updated"})
 
 GITLAB_RETRY_CODES = (
     status.HTTP_429_TOO_MANY_REQUESTS,
@@ -69,17 +89,187 @@ def _matching_project_webhooks(
     return sorted(hooks, key=lambda hook: int(hook["id"]))
 
 
-def _discard_project_webhook(
-    client: GitLabApiClient, project_id: int | str, hook_id: int | str
+def _enqueue_project_webhook_cleanup(
+    *,
+    integration_id: int,
+    organization_id: int,
+    repository_id: int,
+    project_id: int | str,
+    reconciliation_id: str,
+    hook_ids: set[int | str],
 ) -> None:
+    for hook_id in hook_ids:
+        delete_redundant_project_webhook.delay(
+            integration_id,
+            organization_id,
+            repository_id,
+            project_id,
+            hook_id,
+            reconciliation_id,
+        )
+
+
+@instrumented_task(
+    name="sentry.tasks.integrations.gitlab.delete_redundant_project_webhook",
+    namespace=integrations_tasks,
+    silo_mode=SiloMode.CELL,
+    processing_deadline_duration=60,
+    retry=Retry(times=3, delay=60, on=(Exception,), ignore=(Integration.DoesNotExist,)),
+)
+def delete_redundant_project_webhook(
+    integration_id: int,
+    organization_id: int,
+    repository_id: int,
+    project_id: int | str,
+    hook_id: int | str,
+    reconciliation_id: str,
+) -> None:
+    """Delete an unreferenced hook whose reconciliation identity proves we created it."""
+    integration = integration_service.get_integration(
+        integration_id=integration_id,
+        status=ObjectStatus.ACTIVE,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
+    )
+    if not integration:
+        return
+
     try:
-        client.delete_project_webhook(project_id, hook_id)
+        with _project_webhook_lock(repository_id).blocking_acquire(initial_delay=0.1, timeout=5):
+            repo = repository_service.get_repository(
+                organization_id=organization_id,
+                id=repository_id,
+            )
+            if (
+                repo
+                and repo.config.get("project_id") == project_id
+                and repo.config.get("webhook_id") == hook_id
+            ):
+                return
+
+            installation = integration.get_installation(organization_id=organization_id)
+            client = installation.get_client()
+            try:
+                hook = client.get_project_webhook(project_id, hook_id)
+            except ApiError as e:
+                if e.code == 404:
+                    return
+                raise
+
+            if hook.get("url") != client.project_webhook_url(reconciliation_id):
+                return
+
+            repo = repository_service.get_repository(
+                organization_id=organization_id,
+                id=repository_id,
+            )
+            if (
+                repo
+                and repo.config.get("project_id") == project_id
+                and repo.config.get("webhook_id") == hook_id
+            ):
+                return
+
+            client.delete_project_webhook(project_id, hook_id)
+    except IntegrationConfigurationError:
+        logger.info(
+            "delete-redundant-project-webhook.identity-unavailable",
+            extra={"project_id": project_id, "webhook_id": hook_id},
+        )
+    except (ApiUnauthorized, ApiForbiddenError) as e:
+        logger.warning(
+            "delete-redundant-project-webhook.authorization-failed",
+            extra={"project_id": project_id, "webhook_id": hook_id, "status_code": e.code},
+        )
     except ApiError as e:
+        if e.code in GITLAB_RETRY_CODES:
+            raise
         if e.code != 404:
             logger.warning(
-                "update-project-webhook.discard-failed",
+                "delete-redundant-project-webhook.failed",
                 extra={"project_id": project_id, "webhook_id": hook_id, "status_code": e.code},
             )
+
+
+class WebhookReconciliationRateLimitError(Exception):
+    pass
+
+
+class WebhookReconciliationRedisError(Exception):
+    pass
+
+
+def _webhook_reconciliation_rate_limits() -> tuple[int, int]:
+    return (
+        min(
+            WEBHOOK_RECONCILIATION_MAX_BURST,
+            max(
+                WEBHOOK_RECONCILIATION_REPOSITORY_COST,
+                options.get("gitlab.webhook-reconcile.rate-limit.burst"),
+            ),
+        ),
+        min(
+            WEBHOOK_RECONCILIATION_MAX_PER_SECOND,
+            max(1, options.get("gitlab.webhook-reconcile.rate-limit.per-second")),
+        ),
+    )
+
+
+def _webhook_reconciliation_retry_delay_seconds() -> int:
+    return min(
+        WEBHOOK_RECONCILIATION_MAX_RETRY_DELAY_SECONDS,
+        max(1, options.get("gitlab.webhook-reconcile.rate-limit.retry-delay-seconds")),
+    )
+
+
+def _webhook_reconciliation_forced_fanout_jitter_max_seconds() -> int:
+    return min(
+        WEBHOOK_RECONCILIATION_MAX_FORCED_FANOUT_JITTER_SECONDS,
+        max(
+            WEBHOOK_RECONCILIATION_FORCED_FANOUT_JITTER_MIN_SECONDS,
+            options.get("gitlab.webhook-reconcile.forced-fanout-jitter-max-seconds"),
+        ),
+    )
+
+
+def _consume_webhook_reconciliation_capacity(base_url: str) -> LeakyBucketLimitInfo:
+    hostname = urlsplit(base_url).hostname or base_url
+    burst_limit, drip_rate = _webhook_reconciliation_rate_limits()
+    limiter = LeakyBucketRateLimiter(
+        burst_limit=burst_limit,
+        drip_rate=drip_rate,
+        key=f"gitlab:webhook-reconcile:{hostname}",
+        fail_open=False,
+    )
+    try:
+        return limiter.use_and_get_info(incr_by=WEBHOOK_RECONCILIATION_REPOSITORY_COST)
+    except LeakyBucketRateLimiter.Unavailable as e:
+        raise WebhookReconciliationRedisError(
+            "Redis is unavailable for GitLab webhook reconciliation rate limiting"
+        ) from e
+
+
+def _defer_update_project_webhook(
+    *,
+    integration_id: int,
+    organization_id: int,
+    repository_id: int,
+    rate_limit_deferrals: int,
+    countdown: int,
+) -> None:
+    if rate_limit_deferrals >= MAX_RATE_LIMIT_DEFERRALS:
+        raise WebhookReconciliationRateLimitError(
+            "GitLab webhook reconciliation exceeded its rate-limit deferral budget"
+        )
+
+    update_project_webhook.apply_async(
+        kwargs={
+            "integration_id": integration_id,
+            "organization_id": organization_id,
+            "repository_id": repository_id,
+            "rate_limit_deferrals": rate_limit_deferrals + 1,
+        },
+        countdown=countdown,
+    )
 
 
 @instrumented_task(
@@ -94,7 +284,12 @@ def _discard_project_webhook(
         ignore=(Integration.DoesNotExist, IntegrationConfigurationError),
     ),
 )
-def update_project_webhook(integration_id: int, organization_id: int, repository_id: int) -> None:
+def update_project_webhook(
+    integration_id: int,
+    organization_id: int,
+    repository_id: int,
+    rate_limit_deferrals: int = 0,
+) -> None:
     """
     Update a single project webhook for a GitLab integration.
     This task is spawned by update_all_project_webhooks for each repository.
@@ -148,6 +343,7 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
                 webhook_id = repo.config.get("webhook_id")
                 project_id = repo.config.get("project_id")
                 reconciliation_id = repo.config.get("webhook_reconciliation_id")
+                reconciliation_pending = repo.config.get("webhook_reconciliation_pending")
 
                 lifecycle.add_extras(
                     {
@@ -165,6 +361,32 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
 
                 installation = integration.get_installation(organization_id=organization_id)
                 client = installation.get_client()
+
+                limit_info = _consume_webhook_reconciliation_capacity(client.base_url)
+                if limit_info.wait_time:
+                    countdown = max(
+                        ceil(limit_info.wait_time),
+                        _webhook_reconciliation_retry_delay_seconds(),
+                    ) + randint(
+                        WEBHOOK_RECONCILIATION_RATE_LIMIT_JITTER_MIN_SECONDS,
+                        WEBHOOK_RECONCILIATION_RATE_LIMIT_JITTER_MAX_SECONDS,
+                    )
+                    lifecycle.add_extras(
+                        {
+                            "rate_limit_countdown": countdown,
+                            "rate_limit_deferrals": rate_limit_deferrals + 1,
+                        }
+                    )
+                    _defer_update_project_webhook(
+                        integration_id=integration_id,
+                        organization_id=organization_id,
+                        repository_id=repository_id,
+                        rate_limit_deferrals=rate_limit_deferrals,
+                        countdown=countdown,
+                    )
+                    lifecycle.record_halt(GitLabWebhookUpdateHaltReason.RATE_LIMITED)
+                    return
+
                 outcome = "failure"
 
                 if webhook_id:
@@ -177,6 +399,42 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
                             raise
                     else:
                         if hook.get("alert_status") != "disabled":
+                            if reconciliation_pending is True:
+                                cleanup_ids: set[int | str] = set()
+                                if isinstance(reconciliation_id, str):
+                                    cleanup_ids = {
+                                        candidate["id"]
+                                        for candidate in _matching_project_webhooks(
+                                            client, project_id, reconciliation_id
+                                        )
+                                        if candidate["id"] != webhook_id
+                                    }
+                                    _enqueue_project_webhook_cleanup(
+                                        integration_id=integration_id,
+                                        organization_id=organization_id,
+                                        repository_id=repository_id,
+                                        project_id=project_id,
+                                        reconciliation_id=reconciliation_id,
+                                        hook_ids=cleanup_ids,
+                                    )
+                                if not repository_service.update_repository_config(
+                                    organization_id=organization_id,
+                                    id=repository_id,
+                                    config_updates={},
+                                    config_deletions=["webhook_reconciliation_pending"],
+                                    expected_integration_id=integration_id,
+                                    expected_config={
+                                        "project_id": project_id,
+                                        "webhook_id": webhook_id,
+                                        "webhook_reconciliation_id": reconciliation_id,
+                                        "webhook_reconciliation_pending": True,
+                                    },
+                                ):
+                                    outcome = "repository_changed"
+                                    lifecycle.record_halt(
+                                        GitLabWebhookUpdateHaltReason.REPOSITORY_CHANGED
+                                    )
+                                    return
                             outcome = "updated"
                             return
 
@@ -191,23 +449,31 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
 
                 if not isinstance(reconciliation_id, str) or not reconciliation_id:
                     new_reconciliation_id = uuid4().hex
+                else:
+                    new_reconciliation_id = reconciliation_id
+
+                if reconciliation_pending is not True or (
+                    reconciliation_id != new_reconciliation_id
+                ):
                     if not repository_service.update_repository_config(
                         organization_id=organization_id,
                         id=repository_id,
-                        config_updates={"webhook_reconciliation_id": new_reconciliation_id},
+                        config_updates={
+                            "webhook_reconciliation_id": new_reconciliation_id,
+                            "webhook_reconciliation_pending": True,
+                        },
                         expected_integration_id=integration_id,
                         expected_config={
                             "project_id": project_id,
                             "webhook_id": webhook_id,
                             "webhook_reconciliation_id": reconciliation_id,
+                            "webhook_reconciliation_pending": reconciliation_pending,
                         },
                     ):
                         outcome = "repository_changed"
                         lifecycle.record_halt(GitLabWebhookUpdateHaltReason.REPOSITORY_CHANGED)
                         return
                     reconciliation_id = new_reconciliation_id
-                else:
-                    new_reconciliation_id = reconciliation_id
 
                 matching_hooks = _matching_project_webhooks(
                     client, project_id, new_reconciliation_id
@@ -215,7 +481,6 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
                 adoptable_hooks = [
                     hook for hook in matching_hooks if hook.get("alert_status") != "disabled"
                 ]
-                created_hook = not adoptable_hooks
                 if adoptable_hooks:
                     hook_id = adoptable_hooks[0]["id"]
                     client.update_project_webhook(
@@ -243,14 +508,56 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
                         "project_id": project_id,
                         "webhook_id": webhook_id,
                         "webhook_reconciliation_id": new_reconciliation_id,
+                        "webhook_reconciliation_pending": True,
                     },
                 ):
                     outcome = "repository_changed"
-                    if created_hook:
-                        _discard_project_webhook(client, project_id, hook_id)
+                    cleanup_ids = {hook["id"] for hook in matching_hooks}
+                    cleanup_ids.add(hook_id)
+                    _enqueue_project_webhook_cleanup(
+                        integration_id=integration_id,
+                        organization_id=organization_id,
+                        repository_id=repository_id,
+                        project_id=project_id,
+                        reconciliation_id=new_reconciliation_id,
+                        hook_ids=cleanup_ids,
+                    )
                     lifecycle.add_extra("created_webhook_id", hook_id)
                     lifecycle.record_halt(GitLabWebhookUpdateHaltReason.REPOSITORY_CHANGED)
                     return
+                cleanup_ids = {hook["id"] for hook in matching_hooks if hook["id"] != hook_id}
+                _enqueue_project_webhook_cleanup(
+                    integration_id=integration_id,
+                    organization_id=organization_id,
+                    repository_id=repository_id,
+                    project_id=project_id,
+                    reconciliation_id=new_reconciliation_id,
+                    hook_ids=cleanup_ids,
+                )
+
+                if not repository_service.update_repository_config(
+                    organization_id=organization_id,
+                    id=repository_id,
+                    config_updates={},
+                    config_deletions=["webhook_reconciliation_pending"],
+                    expected_integration_id=integration_id,
+                    expected_config={
+                        "project_id": project_id,
+                        "webhook_id": hook_id,
+                        "webhook_reconciliation_id": new_reconciliation_id,
+                        "webhook_reconciliation_pending": True,
+                    },
+                ):
+                    _enqueue_project_webhook_cleanup(
+                        integration_id=integration_id,
+                        organization_id=organization_id,
+                        repository_id=repository_id,
+                        project_id=project_id,
+                        reconciliation_id=new_reconciliation_id,
+                        hook_ids={hook_id},
+                    )
+                    outcome = "repository_changed"
+                    lifecycle.record_halt(GitLabWebhookUpdateHaltReason.REPOSITORY_CHANGED)
         except UnableToAcquireLock as e:
             lifecycle.record_halt(e)
             raise
@@ -262,6 +569,31 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
             outcome = "forbidden" if e.code == 403 else "unauthorized"
             lifecycle.record_halt(e)
             # Don't retry if we've lost access
+            return
+
+        except ApiRateLimitedError as e:
+            if e.retry_after is None:
+                raise
+
+            countdown = max(1, e.retry_after) + randint(
+                0, WEBHOOK_RECONCILIATION_RETRY_AFTER_JITTER_SECONDS
+            )
+            lifecycle.add_extras(
+                {
+                    "rate_limit_countdown": countdown,
+                    "rate_limit_deferrals": rate_limit_deferrals + 1,
+                    "rate_limit_source": "gitlab",
+                }
+            )
+            _defer_update_project_webhook(
+                integration_id=integration_id,
+                organization_id=organization_id,
+                repository_id=repository_id,
+                rate_limit_deferrals=rate_limit_deferrals,
+                countdown=countdown,
+            )
+            outcome = "rate_limited"
+            lifecycle.record_halt(GitLabWebhookUpdateHaltReason.RATE_LIMITED)
             return
 
         except ApiError as e:
@@ -277,6 +609,19 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
         finally:
             if outcome is not None:
                 metrics.incr("gitlab.project_webhook.reconcile", tags={"outcome": outcome})
+                if outcome in WEBHOOK_RECONCILIATION_SUCCESS_OUTCOMES:
+                    logger.info(
+                        "update-project-webhook.success",
+                        extra={
+                            "integration_id": integration_id,
+                            "interaction_type": str(
+                                GitLabTaskInteractionType.UPDATE_PROJECT_WEBHOOK
+                            ),
+                            "organization_id": organization_id,
+                            "outcome": outcome,
+                            "repository_id": repository_id,
+                        },
+                    )
 
 
 @instrumented_task(
@@ -358,8 +703,28 @@ def update_all_project_webhooks(
                 return
 
             lifecycle.add_extra("total_repositories", len(repositories))
-            for repo in repositories:
-                update_project_webhook.delay(integration_id, organization_id, repo.id)
+            burst_limit, drip_rate = _webhook_reconciliation_rate_limits()
+            fanout_jitter_min = (
+                WEBHOOK_RECONCILIATION_FORCED_FANOUT_JITTER_MIN_SECONDS if force else 0
+            )
+            fanout_jitter_max = (
+                _webhook_reconciliation_forced_fanout_jitter_max_seconds()
+                if force
+                else WEBHOOK_RECONCILIATION_FANOUT_JITTER_SECONDS
+            )
+            for index, repo in enumerate(repositories):
+                required_capacity = (index + 1) * WEBHOOK_RECONCILIATION_REPOSITORY_COST
+                if required_capacity <= burst_limit and not force:
+                    update_project_webhook.delay(integration_id, organization_id, repo.id)
+                    continue
+
+                countdown = max(0, ceil((required_capacity - burst_limit) / drip_rate)) + randint(
+                    fanout_jitter_min, fanout_jitter_max
+                )
+                update_project_webhook.apply_async(
+                    args=(integration_id, organization_id, repo.id),
+                    countdown=countdown,
+                )
         except Exception:
             # Allow retry after a failed lookup or fan-out. If our TTL expired,
             # leave any subsequent run's debounce key intact.

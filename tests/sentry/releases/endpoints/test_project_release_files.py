@@ -9,6 +9,7 @@ from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseFile
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now
 
 
 class ReleaseFilesListTest(APITestCase):
@@ -60,7 +61,7 @@ class ReleaseFilesListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-        def create_release_file(**kwargs):
+        def create_release_file(**kwargs: object) -> ReleaseFile:
             name = uuid.uuid4().hex
             return ReleaseFile.objects.create(
                 organization_id=project.organization_id,
@@ -241,6 +242,30 @@ class ReleaseFilesListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["name"] == "~/index.js.map"
+
+    def test_listing_does_not_renew_date_accessed(self) -> None:
+        releasefile = self.create_release_file(
+            release_id=self.release.id,
+            file=self.create_file(name="application.js", type="release.file"),
+        )
+        date_accessed = before_now(days=60)
+        ReleaseFile.objects.filter(id=releasefile.id).update(date_accessed=date_accessed)
+
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-release-files",
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "version": self.release.version,
+            },
+        )
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert response.data[0]["id"] == str(releasefile.id)
+        releasefile.refresh_from_db()
+        assert releasefile.date_accessed == date_accessed
 
 
 class ReleaseFileCreateTest(APITestCase):

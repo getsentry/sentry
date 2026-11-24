@@ -27,7 +27,6 @@ import {
   isMeasurement,
   measurementType,
   PROFILING_FIELDS,
-  TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
@@ -48,13 +47,18 @@ import {
   type Widget,
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
+import {
+  supportsWidgetTransformations,
+  type QueryTransformations,
+} from 'sentry/views/dashboards/utils/transformations';
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
-import {getAllViews} from 'sentry/views/discover/results/data';
-import {displayModeToDisplayType} from 'sentry/views/discover/savedQuery/utils';
-import type {FieldValue} from 'sentry/views/discover/table/types';
-import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {getMetricMonitorUrl} from 'sentry/views/insights/common/utils/getMetricMonitorUrl';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+
+import {getAllViews} from './results/data';
+import {displayModeToDisplayType} from './savedQuery/utils';
+import type {FieldValue} from './table/types';
+import {FieldValueKind} from './table/types';
 
 /**
  * @returns whether `widgetType` is one that stores a {@link DisplayType} directly
@@ -382,13 +386,9 @@ export function generateFieldOptions({
   aggregations = AGGREGATIONS,
   fieldKeys = DISCOVER_FIELDS,
 }: FieldGeneratorOpts) {
-  let functions = Object.keys(aggregations);
+  const functions = Object.keys(aggregations);
 
   // Strip tracing features if the org doesn't have access.
-  if (!organization.features.includes('performance-view')) {
-    fieldKeys = fieldKeys.filter(item => !TRACING_FIELDS.includes(item));
-    functions = functions.filter(item => !TRACING_FIELDS.includes(item));
-  }
 
   // Strip profiling features if the org doesn't have access.
   if (!organization.features.includes('profiling')) {
@@ -407,21 +407,12 @@ export function generateFieldOptions({
       if (overrides === undefined) {
         return param;
       }
-      return {
-        ...param,
-        ...overrides({parameter: param}),
-      };
+      return {...param, ...overrides({parameter: param})};
     });
 
     fieldOptions[`function:${func}`] = {
       label: `${func}(${ellipsis})`,
-      value: {
-        kind: FieldValueKind.FUNCTION,
-        meta: {
-          name: func,
-          parameters,
-        },
-      },
+      value: {kind: FieldValueKind.FUNCTION, meta: {name: func, parameters}},
     };
   });
 
@@ -497,10 +488,7 @@ export function generateFieldOptions({
           : tag;
       fieldOptions[`tag:${tag}`] = {
         label: tag,
-        value: {
-          kind: FieldValueKind.TAG,
-          meta: {name: tagValue, dataType: 'string'},
-        },
+        value: {kind: FieldValueKind.TAG, meta: {name: tagValue, dataType: 'string'}},
       };
     });
   }
@@ -564,6 +552,7 @@ export function handleAddQueryToDashboard({
   yAxis,
   widgetType,
   source,
+  transformations,
 }: {
   eventView: EventView;
   location: Location;
@@ -571,14 +560,11 @@ export function handleAddQueryToDashboard({
   source: DashboardWidgetSource;
   widgetType: WidgetType | undefined;
   query?: NewQuery;
+  transformations?: QueryTransformations;
   yAxis?: string | string[];
 }) {
   const displayType = resolveDisplayType(widgetType, eventView.display);
-  const defaultWidgetQuery = eventViewToWidgetQuery({
-    eventView,
-    displayType,
-    yAxis,
-  });
+  const defaultWidgetQuery = eventViewToWidgetQuery({eventView, displayType, yAxis});
 
   const {query: widgetAsQueryParams} = constructAddQueryToDashboardLink({
     eventView,
@@ -613,6 +599,10 @@ export function handleAddQueryToDashboard({
         queries: [
           {
             ...defaultWidgetQuery,
+            ...(transformations &&
+              supportsWidgetTransformations(widgetType, displayType) && {
+                transformations,
+              }),
             ...widgetQueryFieldsForDisplayType(
               displayType,
               typeof yAxis === 'string' ? [yAxis] : (yAxis ?? ['count()']),
@@ -632,25 +622,25 @@ export function handleAddQueryToDashboard({
 }
 
 export function handleAddMultipleQueriesToDashboard({
-  eventViews,
+  queries,
   location,
   organization,
   widgetType,
   source,
   selection,
 }: {
-  eventViews: EventView[];
   location: Location;
   organization: Organization;
+  queries: Array<{eventView: EventView; transformations?: QueryTransformations}>;
   selection: PageFilters;
   source: DashboardWidgetSource;
   widgetType: WidgetType | undefined;
 }) {
-  if (eventViews.length === 0) {
+  if (queries.length === 0) {
     return;
   }
 
-  const widgets = eventViews.map(eventView => {
+  const widgets = queries.map(({eventView, transformations}) => {
     const displayType = resolveDisplayType(widgetType, eventView.display);
 
     const defaultWidgetQuery = eventViewToWidgetQuery({
@@ -677,6 +667,8 @@ export function handleAddMultipleQueriesToDashboard({
       queries: [
         {
           ...defaultWidgetQuery,
+          ...(transformations &&
+            supportsWidgetTransformations(widgetType, displayType) && {transformations}),
           ...widgetQueryFieldsForDisplayType(
             displayType,
             toArray(yAxis ?? 'count()'),
@@ -776,11 +768,7 @@ export function constructAddQueryToDashboardLink({
   yAxis?: string | string[];
 }) {
   const displayType = resolveDisplayType(widgetType, eventView.display);
-  const defaultWidgetQuery = eventViewToWidgetQuery({
-    eventView,
-    displayType,
-    yAxis,
-  });
+  const defaultWidgetQuery = eventViewToWidgetQuery({eventView, displayType, yAxis});
 
   const defaultTitle =
     query?.name ?? (eventView.name === 'All Events' ? undefined : eventView.name);

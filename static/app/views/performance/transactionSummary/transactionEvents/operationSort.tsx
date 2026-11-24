@@ -76,10 +76,7 @@ export function OperationSort({eventView, location, tableMeta, title: Title}: Pr
     const nextEventView = eventView.sortOnField(field, tableMeta, 'desc');
     const queryStringObject = nextEventView.generateQueryStringObject();
 
-    return {
-      ...location,
-      query: {...location.query, sort: queryStringObject.sort},
-    };
+    return {...location, query: {...location.query, sort: queryStringObject.sort}};
   }
 
   return (

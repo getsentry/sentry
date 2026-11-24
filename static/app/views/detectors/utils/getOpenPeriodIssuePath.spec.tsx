@@ -3,7 +3,7 @@ import {
   GroupOpenPeriodFixture,
 } from 'sentry-fixture/groupOpenPeriod';
 
-import {getOpenPeriodIssuePath} from 'sentry/views/detectors/utils/getOpenPeriodIssuePath';
+import {getOpenPeriodIssuePath} from './getOpenPeriodIssuePath';
 
 describe('getOpenPeriodIssuePath', () => {
   it('links to the event that opened the open period', () => {

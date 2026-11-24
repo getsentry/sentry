@@ -1,4 +1,4 @@
-import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
+import type {InvestigationOrchestration} from './types';
 
 export function isWritingMetadata(projection: InvestigationOrchestration) {
   return projection.status === 'processing' && projection.phase === 'metadata';

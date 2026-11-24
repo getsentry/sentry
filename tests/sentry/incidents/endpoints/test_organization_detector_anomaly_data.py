@@ -1,10 +1,11 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.incidents.grouptype import MetricIssue
+from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.snuba.subscriptions import create_snuba_subscription
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.models import DataSourceDetector
+from sentry.workflow_engine.models import DataSource, DataSourceDetector
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 pytestmark = [requires_snuba]
@@ -74,7 +75,7 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
     @patch(
         "sentry.workflow_engine.endpoints.organization_detector_anomaly_data.get_anomaly_threshold_data_from_seer"
     )
-    def test_seer_error(self, mock_get_data):
+    def test_seer_error(self, mock_get_data: MagicMock) -> None:
         mock_get_data.return_value = None
 
         response = self.get_error_response(
@@ -89,7 +90,7 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
     @patch(
         "sentry.workflow_engine.endpoints.organization_detector_anomaly_data.get_anomaly_threshold_data_from_seer"
     )
-    def test_successful_fetch(self, mock_get_data):
+    def test_successful_fetch(self, mock_get_data: MagicMock) -> None:
         mock_data = [
             {
                 "external_alert_id": 24,
@@ -160,6 +161,39 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
             end="1729179000.0",
             status_code=403,
         )
+
+    def test_ignores_non_snuba_data_source(self) -> None:
+        DataSource.objects.filter(id=self.data_source.id).update(type=DATA_SOURCE_CRON_MONITOR)
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            start="1729178100.0",
+            end="1729179000.0",
+            status_code=404,
+        )
+        assert response.data["detail"] == "Could not find query subscription for detector"
+
+    def test_ignores_subscription_outside_detector_project(self) -> None:
+        other_project = self.create_project(organization=self.create_organization())
+        with self.tasks():
+            other_subscription = create_snuba_subscription(
+                project=other_project,
+                subscription_type="metrics_alerts",
+                snuba_query=self.create_snuba_query(),
+            )
+        DataSource.objects.filter(id=self.data_source.id).update(
+            source_id=str(other_subscription.id)
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            start="1729178100.0",
+            end="1729179000.0",
+            status_code=404,
+        )
+        assert response.data["detail"] == "Could not find query subscription for detector"
 
     def test_invalid_detector_id(self) -> None:
         """Test that non-numeric detector IDs return 404"""

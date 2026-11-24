@@ -7,13 +7,6 @@ import {markdownToPlainText} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
-import {QUERY_EMBED_ROW_LIMIT} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedConstants';
-import {
-  QueryEmbedTable,
-  type QueryEmbedColumn,
-} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
-import {toPageFilters} from 'sentry/components/seer/markdown/embeds/components/queryEmbedParams';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
@@ -29,12 +22,16 @@ import {
   CONVERSATION_METRIC_FIELDS,
   type ConversationMetrics,
 } from './conversation/conversationMetrics';
+import {QueryEmbedCard} from './queryEmbed/queryEmbedCard';
+import {QUERY_EMBED_ROW_LIMIT} from './queryEmbed/queryEmbedConstants';
+import {QueryEmbedTable, type QueryEmbedColumn} from './queryEmbed/queryEmbedTable';
 import {
   combineAgentQuery,
   getConversationsQueryHref,
   getConversationsQueryTitle,
   type ConversationsQueryData,
 } from './conversationsQueryLink';
+import {toPageFilters} from './queryEmbedParams';
 
 /**
  * The list endpoint's raw rows. `useConversations` flattens the two content

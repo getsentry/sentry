@@ -8,6 +8,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.billing.v1.common.v1 import seer_billing_feature_pb2 as billing
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -93,6 +94,10 @@ conditions and name may differ between queries on the same widget.
 http_error_count_percent.
 - Do not use widget_type "discover" or "transaction-like" — they are deprecated. Use "spans" or \
 "error-events" instead.
+- In logs and spans widgets, refer to a numeric custom attribute (anything other than a \
+built-in field like `span.duration`) as `tags[<name>,number]`, e.g. \
+`p95(tags[queue_wait_ms,number])` rather than `p95(queue_wait_ms)`. A bare custom attribute name \
+is treated as a string, so numeric aggregates over it fail.
 
 Projects:
 - If the user names one or more projects for the dashboard, set the dashboard's `projects` field \
@@ -146,6 +151,9 @@ class OrganizationDashboardGeneratePermission(OrganizationPermission):
     scope_map = {
         "POST": ["org:read", "dashboard:read"],
     }
+
+    # dashboard:read replaces org:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
 
 
 @cell_silo_endpoint
@@ -218,6 +226,7 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
                 artifact_key="dashboard",
                 artifact_schema=GeneratedDashboard,
                 request=request,
+                billing_feature=billing.SEER_BILLING_FEATURE_DASHBOARD_GENERATION,
             )
             return Response(
                 DashboardGenerateResponse(

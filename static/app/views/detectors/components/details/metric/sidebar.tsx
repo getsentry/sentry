@@ -13,7 +13,8 @@ import {useUser} from 'sentry/utils/useUser';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsDescription} from 'sentry/views/detectors/components/details/common/description';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
-import {MetricDetectorDetailsDetect} from 'sentry/views/detectors/components/details/metric/detect';
+
+import {MetricDetectorDetailsDetect} from './detect';
 
 interface DetectorDetailsSidebarProps {
   detector: MetricDetector;

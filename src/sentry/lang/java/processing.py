@@ -279,7 +279,8 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             }
 
     classes = response.get("classes")
-    view_hierarchies.deobfuscate_and_save(classes)
+    if classes is not None:
+        view_hierarchies.deobfuscate_and_save(classes)
     exceptions.deobfuscate_and_save(classes, response["exceptions"])
 
     return data

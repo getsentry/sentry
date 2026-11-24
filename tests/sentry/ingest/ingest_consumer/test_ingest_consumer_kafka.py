@@ -2,20 +2,25 @@ import logging
 import random
 import time
 import uuid
+from collections.abc import Callable
+from typing import ContextManager
 
 import msgpack
 import orjson
 import pytest
+from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry import nodestore
 from sentry.conf.types.kafka_definition import Topic
 from sentry.consumers import get_stream_processor
 from sentry.event_manager import EventManager
+from sentry.models.project import Project
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.kafka import _KafkaAdminWrapper
 from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.batching_kafka_consumer import create_topics
@@ -38,12 +43,14 @@ DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 
 
 @pytest.fixture
-def get_test_message(default_project):
+def get_test_message(
+    default_project: Project,
+) -> Callable[[str, Project], tuple[bytes, str]]:
     """
     creates a test message to be inserted in a kafka queue
     """
 
-    def inner(type, project=default_project):
+    def inner(type: str, project: Project = default_project) -> tuple[bytes, str]:
         # the event id should be 32 digits
         event_id = uuid.uuid4().hex
         message_text = f"some message {event_id}"
@@ -82,13 +89,13 @@ def random_group_id() -> str:
 
 @django_db_all(transaction=True)
 def test_ingest_consumer_reads_from_topic_and_calls_task(
-    task_runner,
-    kafka_producer,
-    kafka_admin,
-    default_project,
-    get_test_message,
-    random_group_id,
-):
+    task_runner: Callable[[], ContextManager[None]],
+    kafka_producer: Callable[[object], Producer],
+    kafka_admin: Callable[[object], _KafkaAdminWrapper],
+    default_project: Project,
+    get_test_message: Callable[[str, Project], tuple[bytes, str]],
+    random_group_id: str,
+) -> None:
     topic = Topic.INGEST_EVENTS
     topic_event_name = get_topic_definition(topic)["real_topic_name"]
 
@@ -98,7 +105,7 @@ def test_ingest_consumer_reads_from_topic_and_calls_task(
 
     create_topics("default", [topic_event_name])
 
-    message, event_id = get_test_message(type="event")
+    message, event_id = get_test_message("event", default_project)
     producer.produce(topic_event_name, message)
 
     consumer = get_stream_processor(
@@ -114,28 +121,29 @@ def test_ingest_consumer_reads_from_topic_and_calls_task(
     with task_runner():
         i = 0
         while i < MAX_POLL_ITERATIONS:
-            message = eventstore.backend.get_event_by_id(default_project.id, event_id)
+            stored_event = eventstore.backend.get_event_by_id(default_project.id, event_id)
 
-            if message:
+            if stored_event:
                 break
 
             consumer._run_once()
             i += 1
 
     # check that we got the messages
-    assert message.data["event_id"] == event_id
-    assert message.data["extra"]["the_id"] == event_id
+    assert stored_event is not None
+    assert stored_event.data["event_id"] == event_id
+    assert stored_event.data["extra"]["the_id"] == event_id
 
 
 @django_db_all(transaction=True)
 def test_ingest_consumer_gets_event_unstuck(
-    task_runner,
-    kafka_producer,
-    kafka_admin,
-    default_project,
-    get_test_message,
-    random_group_id,
-):
+    task_runner: Callable[[], ContextManager[None]],
+    kafka_producer: Callable[[object], Producer],
+    kafka_admin: Callable[[object], _KafkaAdminWrapper],
+    default_project: Project,
+    get_test_message: Callable[[str, Project], tuple[bytes, str]],
+    random_group_id: str,
+) -> None:
     topic = Topic.INGEST_EVENTS
     topic_event_name = get_topic_definition(topic)["real_topic_name"]
 
@@ -145,10 +153,10 @@ def test_ingest_consumer_gets_event_unstuck(
 
     create_topics("default", [topic_event_name])
 
-    message1, event_id1 = get_test_message(type="event")
+    message1, event_id1 = get_test_message("event", default_project)
     producer.produce(topic_event_name, message1)
 
-    message2, event_id2 = get_test_message(type="event")
+    message2, event_id2 = get_test_message("event", default_project)
     producer.produce(topic_event_name, message2)
 
     # an event is "stuck" when it is in the processing store, so lets fake that:
@@ -191,13 +199,13 @@ def test_ingest_consumer_gets_event_unstuck(
 
 @django_db_all(transaction=True)
 def test_ingest_consumer_reprocesses_events_not_in_nodestore(
-    task_runner,
-    kafka_producer,
-    kafka_admin,
-    default_project,
-    get_test_message,
-    random_group_id,
-):
+    task_runner: Callable[[], ContextManager[None]],
+    kafka_producer: Callable[[object], Producer],
+    kafka_admin: Callable[[object], _KafkaAdminWrapper],
+    default_project: Project,
+    get_test_message: Callable[[str, Project], tuple[bytes, str]],
+    random_group_id: str,
+) -> None:
     topic = Topic.INGEST_EVENTS
     topic_event_name = get_topic_definition(topic)["real_topic_name"]
 
@@ -207,10 +215,10 @@ def test_ingest_consumer_reprocesses_events_not_in_nodestore(
 
     create_topics("default", [topic_event_name])
 
-    message1, event_id1 = get_test_message(type="event")
+    message1, event_id1 = get_test_message("event", default_project)
     producer.produce(topic_event_name, message1)
 
-    message2, event_id2 = get_test_message(type="event")
+    message2, event_id2 = get_test_message("event", default_project)
     producer.produce(topic_event_name, message2)
 
     # the first event already made it to `nodestore`, so lets fake that:

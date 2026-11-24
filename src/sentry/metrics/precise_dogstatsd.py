@@ -1,10 +1,11 @@
 import atexit
-from typing import Any
+from typing import Any, cast
 
 from datadog.dogstatsd.base import DogStatsd
 from datadog.util.hostname import get_hostname
 
 from .base import MetricsBackend, Tags
+from .datadog_stats import DatadogStats
 
 __all__ = ["PreciseDogStatsdMetricsBackend"]
 
@@ -33,7 +34,7 @@ class PreciseDogStatsdMetricsBackend(MetricsBackend):
             if port := kwargs.get("statsd_port"):
                 instance_kwargs["port"] = int(port)
 
-        self.statsd = DogStatsd(**instance_kwargs)
+        self.statsd: DatadogStats = cast("DatadogStats", DogStatsd(**instance_kwargs))
 
         # Origin detection is enabled after 0.45 by default.
         # Disable it since it silently fails.

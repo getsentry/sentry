@@ -4,11 +4,10 @@ import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {DocumentationHint} from 'sentry/components/documentationHint';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
@@ -49,9 +48,6 @@ import {
   ExploreContentSection,
 } from 'sentry/views/explore/components/styles';
 import {ReleaseArchivedNotice} from 'sentry/views/explore/releases/detail/overview/releaseArchivedNotice';
-import {MobileBuilds} from 'sentry/views/explore/releases/list/mobileBuilds';
-import {ReleaseHealthCTA} from 'sentry/views/explore/releases/list/releaseHealthCTA';
-import {ReleaseListInner} from 'sentry/views/explore/releases/list/releaseListInner';
 import {isMobileRelease} from 'sentry/views/explore/releases/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
@@ -62,6 +58,9 @@ import {
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
+import {MobileBuilds} from './mobileBuilds';
+import {ReleaseHealthCTA} from './releaseHealthCTA';
+import {ReleaseListInner} from './releaseListInner';
 import {ReleasesDisplayOption, ReleasesDisplayOptions} from './releasesDisplayOptions';
 import {ReleasesSortOptions} from './releasesSortOptions';
 import {ReleasesStatusOption, ReleasesStatusOptions} from './releasesStatusOptions';
@@ -71,14 +70,8 @@ type ReleaseTab = 'releases' | 'mobile-builds' | 'snapshots';
 
 const RELEASE_FILTER_KEYS = [
   ...Object.values(SEMVER_TAGS),
-  {
-    key: 'release',
-    name: 'release',
-  },
-  {
-    key: FieldKey.RELEASE_CREATED,
-    name: FieldKey.RELEASE_CREATED,
-  },
+  {key: 'release', name: 'release'},
+  {key: FieldKey.RELEASE_CREATED, name: FieldKey.RELEASE_CREATED},
 ].reduce<TagCollection>((acc, tag) => {
   acc[tag.key] = tag;
   return acc;
@@ -120,9 +113,7 @@ function makeReleaseListApiOptions({
 
 const releasesFeedbackOptions = {
   messagePlaceholder: t('How can we improve the Releases experience?'),
-  tags: {
-    'feedback.source': 'releases-list-header',
-  },
+  tags: {'feedback.source': 'releases-list-header'},
 };
 
 function ReleasesListInnerPage() {
@@ -143,10 +134,7 @@ function ReleasesListInnerPage() {
       navigate(
         {
           pathname: location.pathname,
-          query: {
-            ...location.query,
-            statsPeriod: validatedStatsPeriod,
-          },
+          query: {...location.query, statsPeriod: validatedStatsPeriod},
         },
         {replace: true}
       );
@@ -319,20 +307,14 @@ function ReleasesListInnerPage() {
 
   const handleSearch = useCallback(
     (query: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, query},
-      });
+      navigate({...location, query: {...location.query, cursor: undefined, query}});
     },
     [location, navigate]
   );
 
   const handleSortBy = useCallback(
     (sort: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, sort},
-      });
+      navigate({...location, query: {...location.query, cursor: undefined, sort}});
     },
     [location, navigate]
   );
@@ -372,23 +354,16 @@ function ReleasesListInnerPage() {
 
   const handleStatus = useCallback(
     (status: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, status},
-      });
+      navigate({...location, query: {...location.query, cursor: undefined, status}});
     },
     [location, navigate]
   );
 
   const handleTabChange = (newTab: string) => {
     if (newTab === 'mobile-builds') {
-      trackAnalytics('preprod.releases.mobile-builds.tab-clicked', {
-        organization,
-      });
+      trackAnalytics('preprod.releases.mobile-builds.tab-clicked', {organization});
     } else if (newTab === 'snapshots') {
-      trackAnalytics('preprod.releases.snapshots.tab-clicked', {
-        organization,
-      });
+      trackAnalytics('preprod.releases.snapshots.tab-clicked', {organization});
     }
   };
 
@@ -488,59 +463,53 @@ function ReleasesListInnerPage() {
                     </PageFilterBar>
                   )}
                 </Container>
-                <Tabs value={selectedTab} onChange={handleTabChange}>
-                  <TabList aria-label={t('Releases tab selector')}>
-                    <TabList.Item
-                      key="releases"
-                      to={{
-                        pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: undefined,
-                          tab: undefined,
-                        },
-                      }}
-                      textValue={t('Releases')}
-                    >
-                      {t('Releases')}
-                    </TabList.Item>
-                    <TabList.Item
-                      key="mobile-builds"
-                      hidden={!shouldShowMobileBuildsTab}
-                      to={{
-                        pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: undefined,
-                          tab: 'mobile-builds',
-                        },
-                      }}
-                      textValue={t('Mobile Builds')}
-                    >
-                      <Flex align="center" gap="sm">
-                        {t('Mobile Builds')}
-                        <FeatureBadge type="new" />
-                      </Flex>
-                    </TabList.Item>
-                    <TabList.Item
-                      key="snapshots"
-                      to={{
-                        pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: undefined,
-                          tab: 'snapshots',
-                        },
-                      }}
-                      textValue={t('Snapshots')}
-                    >
-                      <Flex align="center" gap="sm">
-                        {t('Snapshots')}
-                        <FeatureBadge type="beta" />
-                      </Flex>
-                    </TabList.Item>
-                  </TabList>
-                </Tabs>
+                <LinkTabs value={selectedTab} onChange={handleTabChange}>
+                  {({TabList}) => (
+                    <TabList aria-label={t('Releases tab selector')}>
+                      <TabList.Item
+                        key="releases"
+                        to={{
+                          pathname: location.pathname,
+                          query: {...location.query, query: undefined, tab: undefined},
+                        }}
+                        textValue={t('Releases')}
+                      >
+                        {t('Releases')}
+                      </TabList.Item>
+                      <TabList.Item
+                        key="mobile-builds"
+                        hidden={!shouldShowMobileBuildsTab}
+                        to={{
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            query: undefined,
+                            tab: 'mobile-builds',
+                          },
+                        }}
+                        textValue={t('Mobile Builds')}
+                      >
+                        <Flex align="center" gap="sm">
+                          {t('Mobile Builds')}
+                          <FeatureBadge type="new" />
+                        </Flex>
+                      </TabList.Item>
+                      <TabList.Item
+                        key="snapshots"
+                        to={{
+                          pathname: location.pathname,
+                          query: {...location.query, query: undefined, tab: 'snapshots'},
+                        }}
+                        textValue={t('Snapshots')}
+                      >
+                        <Flex align="center" gap="sm">
+                          {t('Snapshots')}
+                          <FeatureBadge type="beta" />
+                        </Flex>
+                      </TabList.Item>
+                    </TabList>
+                  )}
+                </LinkTabs>
               </Stack>
             </Layout.Main>
           </ReleasesBodySearch>
@@ -668,15 +637,7 @@ function ReleasesHeader() {
           ),
         }}
       />
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          feedbackOptions={releasesFeedbackOptions}
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
+      <TopBar.Slot name="feedback" feedbackOptions={releasesFeedbackOptions} />
     </Fragment>
   );
 }

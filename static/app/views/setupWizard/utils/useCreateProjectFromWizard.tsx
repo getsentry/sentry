@@ -1,6 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -46,7 +47,7 @@ export function useCreateProjectFromWizard() {
       fetchOrganizationDetails(api, params.organization.slug);
     },
     onError: () => {
-      addErrorMessage(t('Failed to create project! Please try again'));
+      toast.error(t('Failed to create project! Please try again'));
     },
   });
 }

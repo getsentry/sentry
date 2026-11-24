@@ -1,7 +1,8 @@
 import {UserFixture} from 'sentry-fixture/user';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {getTimeFormat, setDateToTime, shouldUse24Hours} from 'sentry/utils/dates';
+
+import {setDateToTime, shouldUse24Hours} from './dates';
 
 describe('utils.dates', () => {
   describe('setDateToTime', () => {
@@ -42,21 +43,6 @@ describe('utils.dates', () => {
         user.options.clock24Hours = true;
         ConfigStore.set('user', user);
         expect(shouldUse24Hours()).toBe(true);
-      });
-    });
-
-    describe('getTimeFormat()', () => {
-      it('does not use AM/PM if shouldUse24Hours is true', () => {
-        const user = UserFixture();
-        user.options.clock24Hours = true;
-        ConfigStore.set('user', user);
-        expect(getTimeFormat()).toBe('HH:mm');
-      });
-      it('uses AM/PM if shouldUse24Hours is false', () => {
-        const user = UserFixture();
-        user.options.clock24Hours = false;
-        ConfigStore.set('user', user);
-        expect(getTimeFormat()).toBe('LT');
       });
     });
   });

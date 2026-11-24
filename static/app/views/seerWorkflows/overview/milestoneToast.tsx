@@ -4,9 +4,9 @@ import {IconOpen} from '@sentry/icons/open';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useAutofixCreatePrGate} from 'sentry/components/events/autofix/useAutofixCreatePrGate';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -103,9 +103,7 @@ function showMilestoneAdvanceToast(
   advance: MilestoneAdvance,
   organization: Organization
 ) {
-  addSuccessMessage(
-    <MilestoneToast run={advance.run} toMilestone={advance.toMilestone} />
-  );
+  toast.success(<MilestoneToast run={advance.run} toMilestone={advance.toMilestone} />);
   trackAnalytics('autofix.overview.milestone_advanced', {
     organization,
     group_id: advance.run.groupId,

@@ -49,7 +49,7 @@ class SlackSeerAgentMessageCache:
                 integration_id=integration_id,
                 channel_id=channel_id,
                 message_ts=message_ts,
-            ),
+            )
         )
 
 

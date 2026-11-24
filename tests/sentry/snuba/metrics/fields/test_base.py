@@ -1,4 +1,5 @@
 import copy
+from collections.abc import Callable, Sequence
 from functools import partial
 from unittest import mock
 from unittest.mock import patch
@@ -60,7 +61,7 @@ perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
 rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 
 
-def get_entity_of_metric_mocked(_, metric_mri, use_case_id):
+def get_entity_of_metric_mocked(_: object, metric_mri: str, use_case_id: UseCaseID) -> str:
     return {
         SessionMRI.RAW_SESSION.value: EntityKey.MetricsCounters,
         SessionMRI.RAW_USER.value: EntityKey.MetricsSets,
@@ -97,7 +98,9 @@ MOCKED_DERIVED_METRICS.update(
 )
 
 
-def mocked_mri_resolver(metric_mris, mri_func):
+def mocked_mri_resolver(
+    metric_mris: Sequence[str], mri_func: Callable[[str], str]
+) -> Callable[[str], str]:
     return lambda x: x if x in metric_mris else mri_func(x)
 
 

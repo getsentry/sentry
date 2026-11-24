@@ -1,7 +1,10 @@
 import type {Location} from 'history';
 
 import type {Project} from 'sentry/types/project';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {
+  loadQueryParamsFromLocation,
+  parseAsScalar,
+} from 'sentry/views/explore/queryParams/parsers';
 import type {TrendFunction, TrendParameter} from 'sentry/views/performance/trends/types';
 import {
   TrendFunctionField,
@@ -12,6 +15,12 @@ import {
   platformToPerformanceType,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
+
+const trendsParsers = {
+  topEvents: parseAsScalar,
+  trendFunction: parseAsScalar,
+  trendParameter: parseAsScalar,
+};
 
 const TRENDS_FUNCTIONS: TrendFunction[] = [
   {
@@ -47,38 +56,14 @@ const TRENDS_FUNCTIONS: TrendFunction[] = [
 ];
 
 const TRENDS_PARAMETERS: TrendParameter[] = [
-  {
-    label: TrendParameterLabel.DURATION,
-    column: TrendParameterColumn.DURATION,
-  },
-  {
-    label: TrendParameterLabel.LCP,
-    column: TrendParameterColumn.LCP,
-  },
-  {
-    label: TrendParameterLabel.FCP,
-    column: TrendParameterColumn.FCP,
-  },
-  {
-    label: TrendParameterLabel.FID,
-    column: TrendParameterColumn.FID,
-  },
-  {
-    label: TrendParameterLabel.CLS,
-    column: TrendParameterColumn.CLS,
-  },
-  {
-    label: TrendParameterLabel.SPANS_HTTP,
-    column: TrendParameterColumn.SPANS_HTTP,
-  },
-  {
-    label: TrendParameterLabel.SPANS_DB,
-    column: TrendParameterColumn.SPANS_DB,
-  },
-  {
-    label: TrendParameterLabel.SPANS_BROWSER,
-    column: TrendParameterColumn.SPANS_BROWSER,
-  },
+  {label: TrendParameterLabel.DURATION, column: TrendParameterColumn.DURATION},
+  {label: TrendParameterLabel.LCP, column: TrendParameterColumn.LCP},
+  {label: TrendParameterLabel.FCP, column: TrendParameterColumn.FCP},
+  {label: TrendParameterLabel.FID, column: TrendParameterColumn.FID},
+  {label: TrendParameterLabel.CLS, column: TrendParameterColumn.CLS},
+  {label: TrendParameterLabel.SPANS_HTTP, column: TrendParameterColumn.SPANS_HTTP},
+  {label: TrendParameterLabel.SPANS_DB, column: TrendParameterColumn.SPANS_DB},
+  {label: TrendParameterLabel.SPANS_BROWSER, column: TrendParameterColumn.SPANS_BROWSER},
   {
     label: TrendParameterLabel.SPANS_RESOURCE,
     column: TrendParameterColumn.SPANS_RESOURCE,
@@ -90,7 +75,8 @@ export function getCurrentTrendFunction(
   _trendFunctionField?: TrendFunctionField
 ): TrendFunction {
   const trendFunctionField =
-    _trendFunctionField ?? decodeScalar(location?.query?.trendFunction);
+    _trendFunctionField ??
+    loadQueryParamsFromLocation(trendsParsers, location).trendFunction;
   const trendFunction = TRENDS_FUNCTIONS.find(({field}) => field === trendFunctionField);
   return trendFunction || TRENDS_FUNCTIONS[1]!;
 }
@@ -110,7 +96,10 @@ export function getCurrentTrendParameter(
   projects: Project[],
   projectIds: readonly number[]
 ): TrendParameter {
-  const trendParameterLabel = decodeScalar(location?.query?.trendParameter);
+  const {trendParameter: trendParameterLabel} = loadQueryParamsFromLocation(
+    trendsParsers,
+    location
+  );
   const trendParameter = TRENDS_PARAMETERS.find(
     ({label}) => label === trendParameterLabel
   );
@@ -128,21 +117,15 @@ export function performanceTypeToTrendParameterLabel(
 ): TrendParameter {
   switch (performanceType) {
     case ProjectPerformanceType.FRONTEND:
-      return {
-        label: TrendParameterLabel.LCP,
-        column: TrendParameterColumn.LCP,
-      };
+      return {label: TrendParameterLabel.LCP, column: TrendParameterColumn.LCP};
     case ProjectPerformanceType.ANY:
     case ProjectPerformanceType.BACKEND:
     case ProjectPerformanceType.FRONTEND_OTHER:
     default:
-      return {
-        label: TrendParameterLabel.DURATION,
-        column: TrendParameterColumn.DURATION,
-      };
+      return {label: TrendParameterLabel.DURATION, column: TrendParameterColumn.DURATION};
   }
 }
 
 export function getTopTrendingEvents(location: Location) {
-  return decodeScalar(location?.query?.topEvents);
+  return loadQueryParamsFromLocation(trendsParsers, location).topEvents ?? undefined;
 }

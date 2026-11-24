@@ -1,9 +1,10 @@
-import * as qs from 'query-string';
+import {createLoader} from 'nuqs';
 
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {parseAsRawList} from 'sentry/views/explore/queryParams/parsers';
 
 import type {TraceDrawerActionKind} from './traceDrawer/details/utils';
 import type {TraceShape, TraceTree} from './traceModels/traceTree';
@@ -15,6 +16,8 @@ export type TraceTreeSource =
   | 'issue_details_trace_preview'
   | 'issue_details_span_evidence'
   | 'issue_details_anr_root_cause';
+
+const loadTraceAnalyticsQueryParams = createLoader({source: parseAsRawList});
 
 const trackTraceSuccessState = (
   tree: TraceTree,
@@ -38,14 +41,14 @@ const trackTraceSuccessState = (
     .filter(p => projectSlugs.includes(p.slug))
     .map(project => project?.platform ?? '');
 
-  const query = qs.parse(location.search);
+  const {source: referrer} = loadTraceAnalyticsQueryParams(location.search);
 
   trackAnalytics('trace.metadata', {
     shape: tree.shape,
     // round trace_duration_seconds to nearest two decimal places
     trace_duration_seconds: Math.round(trace_duration_seconds * 100) / 100,
     has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
-    referrer: query.source?.toString() || null,
+    referrer: referrer.join(',') || null,
     num_root_children: tree.root.children.length,
     num_nodes: tree.list.length,
     project_platforms: projectPlatforms,
@@ -58,15 +61,10 @@ const trackTraceSuccessState = (
 };
 
 const trackLayoutChange = (layout: string, organization: Organization) =>
-  trackAnalytics('trace.trace_layout.change', {
-    layout,
-    organization,
-  });
+  trackAnalytics('trace.trace_layout.change', {layout, organization});
 
 const trackDrawerMinimize = (organization: Organization) =>
-  trackAnalytics('trace.trace_layout.drawer_minimize', {
-    organization,
-  });
+  trackAnalytics('trace.trace_layout.drawer_minimize', {organization});
 
 const trackExploreSearch = (
   organization: Organization,
@@ -84,9 +82,7 @@ const trackExploreSearch = (
   });
 
 const trackShowInView = (organization: Organization) =>
-  trackAnalytics('trace.trace_layout.show_in_view', {
-    organization,
-  });
+  trackAnalytics('trace.trace_layout.show_in_view', {organization});
 
 const trackTracingOnboarding = (
   organization: Organization,
@@ -114,22 +110,16 @@ const trackPerformanceSetupDocsViewed = (organization: Organization, platform: s
   });
 
 const trackViewEventJSON = (organization: Organization) =>
-  trackAnalytics('trace.trace_layout.view_event_json', {
-    organization,
-  });
+  trackAnalytics('trace.trace_layout.view_event_json', {organization});
 const trackViewContinuousProfile = (organization: Organization) => {
-  trackAnalytics('trace.trace_layout.view_continuous_profile', {
-    organization,
-  });
+  trackAnalytics('trace.trace_layout.view_continuous_profile', {organization});
   trackAnalytics('profiling_views.go_to_flamegraph', {
     organization,
     source: 'performance.trace_view.details',
   });
 };
 const trackViewTransactionProfile = (organization: Organization) => {
-  trackAnalytics('trace.trace_layout.view_transaction_profile', {
-    organization,
-  });
+  trackAnalytics('trace.trace_layout.view_transaction_profile', {organization});
   trackAnalytics('profiling_views.go_to_flamegraph', {
     organization,
     source: 'performance.trace_view.details',
@@ -137,20 +127,13 @@ const trackViewTransactionProfile = (organization: Organization) => {
 };
 
 const trackTabPin = (organization: Organization) =>
-  trackAnalytics('trace.trace_layout.tab_pin', {
-    organization,
-  });
+  trackAnalytics('trace.trace_layout.tab_pin', {organization});
 
 const trackTabView = (tab: string, organization: Organization) =>
-  trackAnalytics('trace.trace_layout.tab_view', {
-    organization,
-    tab,
-  });
+  trackAnalytics('trace.trace_layout.tab_view', {organization, tab});
 
 const trackSearchFocus = (organization: Organization) =>
-  trackAnalytics('trace.trace_layout.search_focus', {
-    organization,
-  });
+  trackAnalytics('trace.trace_layout.search_focus', {organization});
 
 const trackEAPSpanHasDetails = (
   organization: Organization,
@@ -164,9 +147,7 @@ const trackEAPSpanHasDetails = (
   });
 
 const trackAITabClicked = (organization: Organization) =>
-  trackAnalytics('trace.trace_layout.ai_tab_clicked', {
-    organization,
-  });
+  trackAnalytics('trace.trace_layout.ai_tab_clicked', {organization});
 
 const trackGenAISpanDetailsViewed = (organization: Organization, operationType: string) =>
   trackAnalytics('trace.trace_drawer_details.gen_ai_span_details_viewed', {
@@ -175,19 +156,13 @@ const trackGenAISpanDetailsViewed = (organization: Organization, operationType: 
   });
 
 const trackResetZoom = (organization: Organization) =>
-  trackAnalytics('trace.trace_layout.reset_zoom', {
-    organization,
-  });
+  trackAnalytics('trace.trace_layout.reset_zoom', {organization});
 
 const trackPerformanceSetupChecklistTriggered = (organization: Organization) =>
-  trackAnalytics('trace.quality.performance_setup.checklist_triggered', {
-    organization,
-  });
+  trackAnalytics('trace.quality.performance_setup.checklist_triggered', {organization});
 
 const trackPerformanceSetupBannerLoaded = (organization: Organization) =>
-  trackAnalytics('trace.quality.performance_setup.banner_loaded', {
-    organization,
-  });
+  trackAnalytics('trace.quality.performance_setup.banner_loaded', {organization});
 
 const trackQuotaExceededIncreaseBudgetClicked = (
   organization: Organization,
@@ -199,15 +174,10 @@ const trackQuotaExceededIncreaseBudgetClicked = (
   });
 
 const trackMissingSpansDocLinkClicked = (organization: Organization) =>
-  trackAnalytics('trace.quality.missing_spans.doc_link_clicked', {
-    organization,
-  });
+  trackAnalytics('trace.quality.missing_spans.doc_link_clicked', {organization});
 
 const trackTraceEmptyState = (organization: Organization, source: TraceTreeSource) =>
-  trackAnalytics('trace.load.empty_state', {
-    organization,
-    source,
-  });
+  trackAnalytics('trace.load.empty_state', {organization, source});
 
 const trackTraceErrorState = (
   organization: Organization,
@@ -232,41 +202,24 @@ const trackQuotaExceededLearnMoreClicked = (
   });
 
 const trackQuotaExceededBannerLoaded = (organization: Organization, traceType: string) =>
-  trackAnalytics('trace.quality.quota_exceeded.banner_loaded', {
-    organization,
-    traceType,
-  });
+  trackAnalytics('trace.quality.quota_exceeded.banner_loaded', {organization, traceType});
 
 const trackPerformanceSetupLearnMoreClicked = (organization: Organization) =>
-  trackAnalytics('trace.quality.performance_setup.learn_more_clicked', {
-    organization,
-  });
+  trackAnalytics('trace.quality.performance_setup.learn_more_clicked', {organization});
 
 const trackViewShortcuts = (organization: Organization) =>
-  trackAnalytics('trace.trace_layout.view_shortcuts', {
-    organization,
-  });
+  trackAnalytics('trace.trace_layout.view_shortcuts', {organization});
 
 const trackTraceWarningType = (type: TraceShape, organization: Organization) =>
-  trackAnalytics('trace.trace_warning_type', {
-    organization,
-    type,
-  });
+  trackAnalytics('trace.trace_warning_type', {organization, type});
 
 const trackTraceConfigurationsDocsClicked = (organization: Organization, title: string) =>
-  trackAnalytics('trace.configurations_docs_link_clicked', {
-    organization,
-    title,
-  });
+  trackAnalytics('trace.configurations_docs_link_clicked', {organization, title});
 
 const trackAutogroupingPreferenceChange = (
   organization: Organization,
   enabled: boolean
-) =>
-  trackAnalytics('trace.preferences.autogrouping_change', {
-    organization,
-    enabled,
-  });
+) => trackAnalytics('trace.preferences.autogrouping_change', {organization, enabled});
 
 const trackMissingInstrumentationPreferenceChange = (
   organization: Organization,
@@ -281,10 +234,7 @@ const trackCompressedTimelinePreferenceChange = (
   organization: Organization,
   enabled: boolean
 ) =>
-  trackAnalytics('trace.preferences.compressed_timeline_change', {
-    organization,
-    enabled,
-  });
+  trackAnalytics('trace.preferences.compressed_timeline_change', {organization, enabled});
 
 const traceAnalytics = {
   // Trace Onboarding

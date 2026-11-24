@@ -2,25 +2,13 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {DataCategory} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useExploreQuerySpeed} from 'sentry/views/explore/hooks/useExploreQuerySpeed';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {
-  AlwaysPresentLogFields,
-  QUERY_PAGE_LIMIT,
-  QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
-} from 'sentry/views/explore/logs/constants';
-import {
-  useLogsFrozenProjectIds,
-  useLogsFrozenReplayInfo,
-  useLogsFrozenSearch,
-  useLogsFrozenTraceIds,
-  useLogsFrozenTraceTimestamp,
-} from 'sentry/views/explore/logs/logsFrozenContext';
-import type {EventsLogsResult} from 'sentry/views/explore/logs/types';
-import {useLogsQueryTruncate} from 'sentry/views/explore/logs/useLogsQueryTruncate';
 import {
   useQueryParamsCursor,
   useQueryParamsFields,
@@ -30,12 +18,29 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 
+import {
+  AlwaysPresentLogFields,
+  QUERY_PAGE_LIMIT,
+  QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
+} from './constants';
+import {
+  useLogsFrozenProjectIds,
+  useLogsFrozenReplayInfo,
+  useLogsFrozenSearch,
+  useLogsFrozenTraceIds,
+  useLogsFrozenTraceTimestamp,
+} from './logsFrozenContext';
+import type {EventsLogsResult} from './types';
+import {useLogsQueryTruncate} from './useLogsQueryTruncate';
+
 const LOGS_DATA_CATEGORIES = [DataCategory.LOG_BYTE] as const;
 
 function getSamplingMode({
+  faster,
   highAccuracy,
   highFidelity,
 }: {
+  faster?: boolean;
   highAccuracy?: boolean;
   highFidelity?: boolean;
 }) {
@@ -45,6 +50,10 @@ function getSamplingMode({
 
   if (highFidelity) {
     return SAMPLING_MODE.FLEX_TIME;
+  }
+
+  if (faster) {
+    return SAMPLING_MODE.LOW_PRIORITY;
   }
 
   return SAMPLING_MODE.NORMAL;
@@ -77,6 +86,7 @@ function useLogsApiOptions({
   const groupBys = useQueryParamsGroupBys();
   const [caseInsensitive] = useCaseInsensitivity();
   const truncate = useLogsQueryTruncate();
+  const {speed} = useExploreQuerySpeed();
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
@@ -123,7 +133,7 @@ function useLogsApiOptions({
     orderby,
     per_page: limit ? limit : undefined,
     referrer,
-    sampling: getSamplingMode({highAccuracy, highFidelity}),
+    sampling: getSamplingMode({faster: speed === 'faster', highAccuracy, highFidelity}),
     caseInsensitive: caseInsensitive ? '1' : undefined,
     truncate,
   };
@@ -141,18 +151,22 @@ function useLogsApiOptions({
   const path = {organizationIdOrSlug: organization.slug};
   const data = {highFidelity};
 
-  const infiniteApiOptions =
-    frozenTraceIds || frozenReplayInfo.replayId
-      ? apiOptions.asInfinite<EventsLogsResult>()(
-          '/organizations/$organizationIdOrSlug/trace-logs/',
-          {path, query, data, staleTime: 0}
-        )
-      : apiOptions.asInfinite<EventsLogsResult>()(
-          '/organizations/$organizationIdOrSlug/events/',
-          {path, query, data, staleTime: 0}
-        );
+  const url = usesTraceLogsEndpoint
+    ? '/organizations/$organizationIdOrSlug/trace-logs/'
+    : '/organizations/$organizationIdOrSlug/events/';
 
-  return {infiniteApiOptions, eventView, pageFiltersReady};
+  const infiniteApiOptions = apiOptions.asInfinite<EventsLogsResult>()(url, {
+    path,
+    query,
+    data,
+    staleTime: 0,
+  });
+
+  // A single page of the same endpoint, with the query of that page
+  const pageApiOptions = (pageQuery: QueryKeyEndpointOptions['query']) =>
+    apiOptions.as<EventsLogsResult>()(url, {path, query: pageQuery, data, staleTime: 0});
+
+  return {infiniteApiOptions, pageApiOptions, eventView, pageFiltersReady};
 }
 
 export function useLogsApiOptionsWithInfinite({
@@ -166,19 +180,14 @@ export function useLogsApiOptionsWithInfinite({
   highAccuracy?: boolean;
   highFidelity?: boolean;
 }) {
-  const {infiniteApiOptions, eventView, pageFiltersReady} = useLogsApiOptions({
-    limit: autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT,
-    referrer,
-    highAccuracy,
-    highFidelity,
-  });
-  return {
-    infiniteApiOptions,
-    other: {
-      eventView,
-      pageFiltersReady,
-    },
-  };
+  const {infiniteApiOptions, pageApiOptions, eventView, pageFiltersReady} =
+    useLogsApiOptions({
+      limit: autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT,
+      referrer,
+      highAccuracy,
+      highFidelity,
+    });
+  return {infiniteApiOptions, pageApiOptions, other: {eventView, pageFiltersReady}};
 }
 
 export type LogsInfiniteQueryKey = ReturnType<

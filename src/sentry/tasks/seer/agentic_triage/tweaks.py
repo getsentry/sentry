@@ -21,7 +21,8 @@ DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS = ""
 
 
 def default_max_candidates() -> int:
-    return options.get("seer.night_shift.issues_per_org")
+    max_candidates = options.get("seer.night_shift.issues_per_org")
+    return max_candidates
 
 
 class AgenticTriageTweaks(pydantic.BaseModel):

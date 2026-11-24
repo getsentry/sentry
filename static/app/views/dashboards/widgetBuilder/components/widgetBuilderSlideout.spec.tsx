@@ -9,10 +9,10 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {WidgetBuilderSlideout} from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {
   useSpanItemAttributes,
@@ -20,13 +20,14 @@ import {
   useTraceMetricItemAttributes,
 } from 'sentry/views/explore/hooks/useTraceItemAttributes';
 
+import {WidgetBuilderSlideout} from './widgetBuilderSlideout';
+
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
-jest.mock('sentry/actionCreators/indicator');
-
 describe('WidgetBuilderSlideout', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
     organization = OrganizationFixture();
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
@@ -52,10 +53,7 @@ describe('WidgetBuilderSlideout', () => {
       statusCode: 200,
     });
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -189,9 +187,7 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
     renderGlobalModal();
 
@@ -218,9 +214,7 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     renderGlobalModal();
@@ -264,7 +258,7 @@ describe('WidgetBuilderSlideout', () => {
             query: {
               field: [],
               yAxis: ['count()'],
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.LINE,
             },
           },
@@ -275,7 +269,7 @@ describe('WidgetBuilderSlideout', () => {
     await userEvent.click(await screen.findByText('Add Widget'));
 
     await waitFor(() => {
-      expect(addErrorMessage).toHaveBeenCalledWith('Title is required during creation');
+      expect(toast.error).toHaveBeenCalledWith('Title is required during creation');
     });
 
     expect(screen.getByText('Custom Widget Builder')).toBeInTheDocument();
@@ -344,7 +338,7 @@ describe('WidgetBuilderSlideout', () => {
             query: {
               field: ['count()'],
               yAxis: [],
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.TABLE,
             },
           },
@@ -387,10 +381,7 @@ describe('WidgetBuilderSlideout', () => {
         initialRouterConfig: {
           location: {
             pathname: '/dashboards/',
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.BIG_NUMBER,
-            },
+            query: {dataset: WidgetType.ERRORS, displayType: DisplayType.BIG_NUMBER},
           },
         },
       }
@@ -450,7 +441,7 @@ describe('WidgetBuilderSlideout', () => {
           location: {
             pathname: '/dashboards/1/',
             query: {
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.LINE,
               yAxis: ['count()'],
               thresholds: '{"max_values":{"max1":100,"max2":200},"unit":null}',
@@ -468,9 +459,7 @@ describe('WidgetBuilderSlideout', () => {
       expect(onSave).toHaveBeenCalledWith({
         index: 1,
         widget: expect.objectContaining({
-          thresholds: expect.objectContaining({
-            timeWindow: '1h',
-          }),
+          thresholds: expect.objectContaining({timeWindow: '1h'}),
         }),
       });
     });
@@ -498,7 +487,7 @@ describe('WidgetBuilderSlideout', () => {
           location: {
             pathname: '/dashboards/1/',
             query: {
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.ERRORS,
               displayType: DisplayType.LINE,
               yAxis: ['count()'],
               thresholds:
@@ -534,17 +523,12 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     await userEvent.click(await screen.findByText('Add Widget'));
 
-    expect(onSave).toHaveBeenCalledWith({
-      index: undefined,
-      widget: expect.any(Object),
-    });
+    expect(onSave).toHaveBeenCalledWith({index: undefined, widget: expect.any(Object)});
   });
 
   it('should render the widget template title if templates selected', () => {
@@ -562,9 +546,7 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(screen.getByText('Widget Library')).toBeInTheDocument();
@@ -585,9 +567,7 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     screen.getByText('Widget Library');
@@ -633,9 +613,7 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={setOpenWidgetTemplates}
         />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     await userEvent.click(screen.getByText('Duration Distribution'));
@@ -667,12 +645,48 @@ describe('WidgetBuilderSlideout', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('should show deprecation alert when flag enabled', async () => {
+  it('should show deprecation alert for transaction widgets', async () => {
     const organizationWithFeature = OrganizationFixture({
-      features: [
-        'discover-saved-queries-deprecation',
-        'performance-transaction-deprecation-banner',
-      ],
+      features: ['performance-transaction-deprecation-banner'],
+    });
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithFeature,
+        initialRouterConfig: {
+          route: '/dashboards/:widgetIndex/',
+          location: {
+            pathname: '/dashboards/1/',
+            query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
+          },
+        },
+      }
+    );
+    renderGlobalModal();
+
+    expect(
+      await screen.findByText(
+        /Editing of transaction-based widgets is disabled, as we migrate to the span dataset/i
+      )
+    ).toBeInTheDocument();
+
+    expect(screen.getAllByTestId('transaction-widget-disabled-wrapper')).toHaveLength(2);
+  });
+
+  it('links to the spans dataset keeping only the page filters when editing a transaction widget', async () => {
+    const organizationWithFeature = OrganizationFixture({
+      features: ['performance-transaction-deprecation-banner'],
     });
     render(
       <WidgetBuilderProvider>
@@ -696,23 +710,26 @@ describe('WidgetBuilderSlideout', () => {
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
+              project: ['1', '2'],
+              environment: 'prod',
+              statsPeriod: '7d',
+              utc: 'true',
             },
           },
         },
       }
     );
-    renderGlobalModal();
 
-    expect(
-      await screen.findByText(
-        /Editing of transaction-based widgets is disabled, as we migrate to the span dataset/i
-      )
-    ).toBeInTheDocument();
-
-    expect(screen.getAllByTestId('transaction-widget-disabled-wrapper')).toHaveLength(2);
+    expect(await screen.findByRole('link', {name: 'spans'})).toHaveAttribute(
+      'href',
+      '/dashboards/1/?environment=prod&project=1&project=2&statsPeriod=7d&utc=true'
+    );
   });
 
-  it('should not show deprecation alert when flag enabled', async () => {
+  it('should not show deprecation alert for non-transaction widgets', async () => {
+    const organizationWithFeature = OrganizationFixture({
+      features: ['performance-transaction-deprecation-banner'],
+    });
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
@@ -727,28 +744,24 @@ describe('WidgetBuilderSlideout', () => {
         />
       </WidgetBuilderProvider>,
       {
-        organization,
+        organization: organizationWithFeature,
         initialRouterConfig: {
           route: '/dashboards/:widgetIndex/',
           location: {
             pathname: '/dashboards/1/',
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.LINE,
-            },
+            query: {dataset: WidgetType.ERRORS, displayType: DisplayType.LINE},
           },
         },
       }
     );
     renderGlobalModal();
 
-    await waitFor(() => {
-      expect(
-        screen.queryByText(
-          /You may have limited functionality due to the ongoing migration of transactions to spans/i
-        )
-      ).not.toBeInTheDocument();
-    });
+    expect(await screen.findByText('Visualize')).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        /Editing of transaction-based widgets is disabled, as we migrate to the span dataset/i
+      )
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('transaction-widget-disabled-wrapper')
     ).not.toBeInTheDocument();
@@ -773,10 +786,7 @@ describe('WidgetBuilderSlideout', () => {
         initialRouterConfig: {
           location: {
             pathname: '/dashboards/',
-            query: {
-              dataset: WidgetType.ISSUE,
-              displayType: DisplayType.LINE,
-            },
+            query: {dataset: WidgetType.ISSUE, displayType: DisplayType.LINE},
           },
         },
       }
@@ -807,12 +817,7 @@ describe('WidgetBuilderSlideout', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/dashboards/',
-            query: {
-              displayType: DisplayType.TEXT,
-            },
-          },
+          location: {pathname: '/dashboards/', query: {displayType: DisplayType.TEXT}},
         },
       }
     );
@@ -839,12 +844,7 @@ describe('WidgetBuilderSlideout', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/dashboards/',
-            query: {
-              displayType: DisplayType.TEXT,
-            },
-          },
+          location: {pathname: '/dashboards/', query: {displayType: DisplayType.TEXT}},
         },
       }
     );
@@ -872,12 +872,7 @@ describe('WidgetBuilderSlideout', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/dashboards/',
-            query: {
-              displayType: DisplayType.TEXT,
-            },
-          },
+          location: {pathname: '/dashboards/', query: {displayType: DisplayType.TEXT}},
         },
       }
     );
@@ -901,9 +896,7 @@ describe('WidgetBuilderSlideout', () => {
         setOpenWidgetTemplates={jest.fn()}
       />,
       {
-        organization: OrganizationFixture({
-          features: ['tracemetrics-enabled'],
-        }),
+        organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
         initialRouterConfig: {
           location: {
             pathname: '/dashboards/',
@@ -946,9 +939,7 @@ describe('WidgetBuilderSlideout', () => {
         setOpenWidgetTemplates={jest.fn()}
       />,
       {
-        organization: OrganizationFixture({
-          features: ['tracemetrics-enabled'],
-        }),
+        organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
         initialRouterConfig: {
           location: {
             pathname: '/dashboards/',
@@ -993,9 +984,7 @@ describe('WidgetBuilderSlideout', () => {
         setOpenWidgetTemplates={jest.fn()}
       />,
       {
-        organization: OrganizationFixture({
-          features: ['tracemetrics-enabled'],
-        }),
+        organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
         initialRouterConfig: {
           location: {
             pathname: '/dashboards/',
@@ -1035,10 +1024,7 @@ describe('WidgetBuilderSlideout', () => {
         initialRouterConfig: {
           location: {
             pathname: '/dashboards/',
-            query: {
-              dataset: WidgetType.ISSUE,
-              displayType: DisplayType.LINE,
-            },
+            query: {dataset: WidgetType.ISSUE, displayType: DisplayType.LINE},
           },
         },
       }

@@ -45,6 +45,7 @@ def load_service_definitions() -> dict[str, Service]:
             _is_cluster, cluster, _config = redis.get_dynamic_cluster_from_options(
                 setting=f"SENTRY_PROCESSING_SERVICES[{name}]",
                 config={"cluster": cluster_id},
+                decode_responses=True,
             )
             services[name] = Redis(cluster)
         else:

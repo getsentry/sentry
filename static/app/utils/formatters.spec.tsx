@@ -1,4 +1,4 @@
-import {RateUnit} from 'sentry/utils/discover/fields';
+import {RateUnit} from './discover/fields';
 import {
   formatAbbreviatedNumber,
   formatAbbreviatedNumberWithDynamicPrecision,
@@ -6,7 +6,7 @@ import {
   formatRate,
   formatSpanOperation,
   userDisplayName,
-} from 'sentry/utils/formatters';
+} from './formatters';
 
 describe('formatAbbreviatedNumber()', () => {
   it('should format numbers smaller than 1', () => {
@@ -142,43 +142,25 @@ describe('formatRate()', () => {
 
 describe('userDisplayName', () => {
   it('should only show email, if name and email are the same', () => {
-    expect(
-      userDisplayName({
-        name: 'foo@bar.com',
-        email: 'foo@bar.com',
-      })
-    ).toBe('foo@bar.com');
+    expect(userDisplayName({name: 'foo@bar.com', email: 'foo@bar.com'})).toBe(
+      'foo@bar.com'
+    );
   });
 
   it('should show name + email, if name and email differ', () => {
-    expect(
-      userDisplayName({
-        name: 'user',
-        email: 'foo@bar.com',
-      })
-    ).toBe('user (foo@bar.com)');
+    expect(userDisplayName({name: 'user', email: 'foo@bar.com'})).toBe(
+      'user (foo@bar.com)'
+    );
   });
 
   it('should show unknown author with email, if email is only provided', () => {
-    expect(
-      userDisplayName({
-        email: 'foo@bar.com',
-      })
-    ).toBe('Unknown author (foo@bar.com)');
+    expect(userDisplayName({email: 'foo@bar.com'})).toBe('Unknown author (foo@bar.com)');
   });
 
   it('should show unknown author, if author or email is just whitespace', () => {
-    expect(
-      userDisplayName({
-        name: '\t\n ',
-      })
-    ).toBe('Unknown author');
+    expect(userDisplayName({name: '\t\n '})).toBe('Unknown author');
 
-    expect(
-      userDisplayName({
-        email: '\t\n ',
-      })
-    ).toBe('Unknown author');
+    expect(userDisplayName({email: '\t\n '})).toBe('Unknown author');
   });
 
   it('should show unknown author, if user object is either not an object or incomplete', () => {

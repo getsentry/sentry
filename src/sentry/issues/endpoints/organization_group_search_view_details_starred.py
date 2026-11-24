@@ -4,9 +4,10 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.utils import to_valid_int_id
+from sentry.auth.principal import require_user
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
@@ -16,7 +17,7 @@ class StarViewSerializer(serializers.Serializer):
     starred = serializers.BooleanField(required=True)
     position = serializers.IntegerField(required=False)
 
-    def validate(self, data):
+    def validate(self, data: dict[str, object]) -> dict[str, object]:
         if not data["starred"] and "position" in data:
             raise serializers.ValidationError("Position is only allowed when starring a view.")
         return data
@@ -27,6 +28,9 @@ class MemberPermission(OrganizationPermission):
         "POST": ["member:read", "member:write", "user_preference:write"],
     }
 
+    # user_preference:write replaces member:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
+
 
 @cell_silo_endpoint
 class OrganizationGroupSearchViewDetailsStarredEndpoint(OrganizationEndpoint):
@@ -34,6 +38,7 @@ class OrganizationGroupSearchViewDetailsStarredEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     permission_classes = (MemberPermission,)
 
     def post(self, request: Request, organization: Organization, view_id: str) -> Response:
@@ -42,6 +47,8 @@ class OrganizationGroupSearchViewDetailsStarredEndpoint(OrganizationEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        user = require_user(request)
 
         view_id_int = to_valid_int_id("view_id", view_id, raise_404=True)
 
@@ -57,8 +64,7 @@ class OrganizationGroupSearchViewDetailsStarredEndpoint(OrganizationEndpoint):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         if not (
-            view.user_id == request.user.id
-            or view.visibility == GroupSearchViewVisibility.ORGANIZATION
+            view.user_id == user.id or view.visibility == GroupSearchViewVisibility.ORGANIZATION
         ):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
@@ -66,17 +72,15 @@ class OrganizationGroupSearchViewDetailsStarredEndpoint(OrganizationEndpoint):
             insert_position = (
                 serializer.validated_data["position"]
                 if "position" in serializer.validated_data
-                else GroupSearchViewStarred.objects.num_starred_views(organization, request.user.id)
+                else GroupSearchViewStarred.objects.num_starred_views(organization, user.id)
             )
 
             if GroupSearchViewStarred.objects.insert_starred_view(
-                organization, request.user.id, view, insert_position
+                organization, user.id, view, insert_position
             ):
                 return Response(status=status.HTTP_200_OK)
         else:
-            if GroupSearchViewStarred.objects.delete_starred_view(
-                organization, request.user.id, view
-            ):
+            if GroupSearchViewStarred.objects.delete_starred_view(organization, user.id, view):
                 return Response(status=status.HTTP_200_OK)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

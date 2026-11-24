@@ -15,10 +15,13 @@ from sentry.seer.models.workflow import (
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
+    SeerWorkflowRunSource,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
     WorkflowRunError,
 )
+from sentry.seer.workflows.base import AdmittedRun, SelectedProjects, lock_config
+from sentry.seer.workflows.definitions import get_definition
 from sentry.seer.workflows.runs import (
     InvalidWorkflowTransition,
     SeerWorkflowRunLifecycle,
@@ -28,7 +31,7 @@ from sentry.seer.workflows.runs import (
     get_workflow_run_status,
 )
 from sentry.seer.workflows.schemas import WorkflowResult
-from sentry.seer.workflows.workflow import SeerWorkflow, SelectedProjects
+from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 
@@ -187,20 +190,27 @@ class WorkflowRunTest(TestCase):
         return run
 
 
+def admit(workflow: SeerWorkflow, *, trigger_key: str, inputs: BaseModel) -> AdmittedRun:
+    with lock_config(workflow.organization_id, workflow.config_id) as config:
+        return get_definition(config.strategy).admit_run(
+            config, trigger_key=trigger_key, source=SeerWorkflowRunSource.MANUAL, inputs=inputs
+        )
+
+
 class SeerWorkflowRunLifecycleTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         config = Factories.create_seer_workflow_config(
             self.organization,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             filters={"all_projects": True},
         )
         self.workflow = SeerWorkflow(config_id=config.id, organization_id=self.organization.id)
 
     def test_config_changes_only_apply_to_new_runs(self) -> None:
         original_project = self.create_project()
-        original_result = self.workflow.get_or_create_run(
-            trigger_key="manual:first", inputs=RunInputs(issue_limit=10)
+        original_result = admit(
+            self.workflow, trigger_key="manual:first", inputs=RunInputs(issue_limit=10)
         )
         original_run = original_result.lifecycle
         assert original_result.created is True
@@ -215,17 +225,18 @@ class SeerWorkflowRunLifecycleTest(TestCase):
         other = SeerWorkflow(
             config_id=self.workflow.config_id, organization_id=self.organization.id
         )
-        other.set_project_selection(SelectedProjects(project_ids=(new_project.id,)))
-        retry_result = self.workflow.get_or_create_run(
-            trigger_key="manual:first", inputs=RunInputs(issue_limit=20)
+        with other.update_config() as update:
+            update.set_scope(SelectedProjects(project_ids=(new_project.id,)))
+        retry_result = admit(
+            self.workflow, trigger_key="manual:first", inputs=RunInputs(issue_limit=20)
         )
         retried_run = retry_result.lifecycle
         assert retry_result.created is False
         assert retried_run.run_id == original_run.run_id
         assert retried_run.extras.snapshot == snapshot
 
-        new_result = self.workflow.get_or_create_run(
-            trigger_key="manual:next", inputs=RunInputs(issue_limit=20)
+        new_result = admit(
+            self.workflow, trigger_key="manual:next", inputs=RunInputs(issue_limit=20)
         )
         new_run = new_result.lifecycle
         assert new_result.created is True
@@ -236,17 +247,17 @@ class SeerWorkflowRunLifecycleTest(TestCase):
 
     def test_request_identity_and_history_are_scoped_to_config_and_organization(self) -> None:
         other_config = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
         )
         other_workflow = SeerWorkflow(
             config_id=other_config.id, organization_id=self.organization.id
         )
-        first_result = self.workflow.get_or_create_run(
-            trigger_key="event:occurrence", inputs=RunInputs(issue_limit=10)
+        first_result = admit(
+            self.workflow, trigger_key="event:occurrence", inputs=RunInputs(issue_limit=10)
         )
         first = first_result.lifecycle
-        second_result = other_workflow.get_or_create_run(
-            trigger_key="event:occurrence", inputs=RunInputs(issue_limit=10)
+        second_result = admit(
+            other_workflow, trigger_key="event:occurrence", inputs=RunInputs(issue_limit=10)
         )
         second = second_result.lifecycle
         assert second_result.created is True
@@ -263,8 +274,8 @@ class SeerWorkflowRunLifecycleTest(TestCase):
         )
         assert not wrong_org_workflow.get_runs().exists()
         with pytest.raises(SeerWorkflowConfig.DoesNotExist):
-            wrong_org_workflow.get_or_create_run(
-                trigger_key="event:occurrence", inputs=RunInputs(issue_limit=10)
+            admit(
+                wrong_org_workflow, trigger_key="event:occurrence", inputs=RunInputs(issue_limit=10)
             )
         wrong_org_run = SeerWorkflowRunLifecycle(organization_id=other_org.id, run_id=first.run_id)
         with pytest.raises(SeerWorkflowRun.DoesNotExist):
@@ -453,9 +464,7 @@ class SeerWorkflowRunLifecycleTest(TestCase):
         return run
 
     def create_run(self, *, trigger_key: str = "manual:first") -> SeerWorkflowRunLifecycle:
-        result = self.workflow.get_or_create_run(
-            trigger_key=trigger_key, inputs=RunInputs(issue_limit=10)
-        )
+        result = admit(self.workflow, trigger_key=trigger_key, inputs=RunInputs(issue_limit=10))
         return result.lifecycle
 
     def create_executions(

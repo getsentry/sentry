@@ -73,7 +73,7 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
             ),
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         serializer = SentryAppInstallationsSerializer(data=request.data)
 
         if not serializer.is_valid():
@@ -82,7 +82,7 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
         slug = serializer.validated_data.get("slug")
 
         # only published or owned apps are allowed to be installed
-        app = SentryApp.objects.filter(slug=slug).first()
+        app = SentryApp.objects.get_or_none(slug=slug)
         if app is None or (
             app.status != SentryAppStatus.PUBLISHED
             and app.owner_id != organization.id

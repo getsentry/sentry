@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -13,19 +14,21 @@ MOCK_TARGET = "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_
 
 
 class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
 
-    def _get_url(self, snapshot_id, image_identifier):
+    def _get_url(self, snapshot_id: int, image_identifier: str) -> str:
         return reverse(
             "sentry-api-0-organization-preprod-snapshots-image-detail",
             args=[self.org.slug, snapshot_id, image_identifier],
         )
 
-    def _create_artifact_with_manifest(self, images=None):
+    def _create_artifact_with_manifest(
+        self, images: Mapping[str, Mapping[str, object]] | None = None
+    ) -> tuple[PreprodArtifact, PreprodSnapshotMetrics, str, bytes]:
         if images is None:
             images = {
                 "screen1.png": {
@@ -49,8 +52,8 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         manifest_json = orjson.dumps({"images": images})
         return artifact, snapshot_metrics, manifest_key, manifest_json
 
-    def _create_mock_session(self, key_to_data):
-        def side_effect(key):
+    def _create_mock_session(self, key_to_data: dict[str, bytes]) -> MagicMock:
+        def side_effect(key: str) -> MagicMock:
             mock_result = MagicMock()
             mock_result.payload.read.return_value = key_to_data[key]
             return mock_result
@@ -59,7 +62,13 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         mock_session.get.side_effect = side_effect
         return mock_session
 
-    def _build_comparison_manifest(self, head_artifact, base_artifact, images, summary=None):
+    def _build_comparison_manifest(
+        self,
+        head_artifact: PreprodArtifact,
+        base_artifact: PreprodArtifact,
+        images: Mapping[str, Mapping[str, object]],
+        summary: dict[str, int] | None = None,
+    ) -> bytes:
         if summary is None:
             summary = {
                 "total": len(images),
@@ -82,11 +91,11 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
 
     def _create_comparison(
         self,
-        head_images,
-        base_images,
-        comparison_images,
-        summary=None,
-    ):
+        head_images: Mapping[str, Mapping[str, object]],
+        base_images: Mapping[str, Mapping[str, object]],
+        comparison_images: Mapping[str, Mapping[str, object]],
+        summary: dict[str, int] | None = None,
+    ) -> tuple[PreprodArtifact, PreprodArtifact, dict[str, bytes]]:
         head_artifact, head_metrics, head_manifest_key, head_manifest_json = (
             self._create_artifact_with_manifest(head_images)
         )
@@ -111,7 +120,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         return head_artifact, base_artifact, key_to_data
 
     @patch(MOCK_TARGET)
-    def test_solo_snapshot_returns_head_image(self, mock_get_session):
+    def test_solo_snapshot_returns_head_image(self, mock_get_session: MagicMock) -> None:
         images = {
             "components/alert.png": {
                 "content_hash": "abc123",
@@ -158,7 +167,9 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
 
     @patch("sentry.analytics.record")
     @patch(MOCK_TARGET)
-    def test_records_web_client_analytics(self, mock_get_session, mock_record):
+    def test_records_web_client_analytics(
+        self, mock_get_session: MagicMock, mock_record: MagicMock
+    ) -> None:
         images = {
             "components/alert.png": {
                 "content_hash": "abc123",
@@ -187,7 +198,9 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
 
     @patch("sentry.analytics.record")
     @patch(MOCK_TARGET)
-    def test_records_mcp_client_analytics(self, mock_get_session, mock_record):
+    def test_records_mcp_client_analytics(
+        self, mock_get_session: MagicMock, mock_record: MagicMock
+    ) -> None:
         images = {
             "components/alert.png": {
                 "content_hash": "abc123",
@@ -219,7 +232,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         )
 
     @patch(MOCK_TARGET)
-    def test_changed_image_returns_full_comparison(self, mock_get_session):
+    def test_changed_image_returns_full_comparison(self, mock_get_session: MagicMock) -> None:
         head_images = {
             "alert.png": {
                 "content_hash": "head_hash",
@@ -296,7 +309,9 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert data["diff_percentage"] == 0.01
 
     @patch(MOCK_TARGET)
-    def test_changed_image_missing_from_selective_base_manifest(self, mock_get_session):
+    def test_changed_image_missing_from_selective_base_manifest(
+        self, mock_get_session: MagicMock
+    ) -> None:
         head_images = {
             "alert.png": {
                 "content_hash": "head_hash",
@@ -330,7 +345,9 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert "/files/images/inherited_base_hash/" in base["image_url"]
 
     @patch(MOCK_TARGET)
-    def test_unchanged_image_missing_from_selective_base_manifest(self, mock_get_session):
+    def test_unchanged_image_missing_from_selective_base_manifest(
+        self, mock_get_session: MagicMock
+    ) -> None:
         head_images = {
             "alert.png": {
                 "content_hash": "same_hash",
@@ -355,7 +372,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert response.data["base_image"] == response.data["head_image"]
 
     @patch(MOCK_TARGET)
-    def test_added_image(self, mock_get_session):
+    def test_added_image(self, mock_get_session: MagicMock) -> None:
         head_images = {
             "new_screen.png": {
                 "content_hash": "head_hash",
@@ -364,7 +381,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
                 "height": 812,
             },
         }
-        base_images: dict = {}
+        base_images: Mapping[str, Mapping[str, object]] = {}
         comparison_images = {
             "new_screen.png": {
                 "status": "added",
@@ -400,8 +417,8 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert data["diff_image_url"] is None
 
     @patch(MOCK_TARGET)
-    def test_removed_image(self, mock_get_session):
-        head_images: dict = {}
+    def test_removed_image(self, mock_get_session: MagicMock) -> None:
+        head_images: Mapping[str, Mapping[str, object]] = {}
         base_images = {
             "old_screen.png": {
                 "content_hash": "base_hash",
@@ -446,7 +463,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert "/files/images/base_hash/" in data["base_image"]["image_url"]
 
     @patch(MOCK_TARGET)
-    def test_renamed_image(self, mock_get_session):
+    def test_renamed_image(self, mock_get_session: MagicMock) -> None:
         head_images = {
             "new_alert.png": {
                 "content_hash": "shared_hash",
@@ -499,7 +516,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert data["previous_image_file_name"] == "old_alert.png"
 
     @patch(MOCK_TARGET)
-    def test_unchanged_image(self, mock_get_session):
+    def test_unchanged_image(self, mock_get_session: MagicMock) -> None:
         images = {
             "stable.png": {
                 "content_hash": "same_hash",
@@ -542,8 +559,8 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert data["base_image"] is not None
 
     @patch(MOCK_TARGET)
-    def test_skipped_image(self, mock_get_session):
-        head_images: dict = {}
+    def test_skipped_image(self, mock_get_session: MagicMock) -> None:
+        head_images: Mapping[str, Mapping[str, object]] = {}
         base_images = {
             "skipped_screen.png": {
                 "content_hash": "base_hash",
@@ -592,7 +609,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert data["diff_percentage"] is None
 
     @patch(MOCK_TARGET)
-    def test_lookup_by_content_hash(self, mock_get_session):
+    def test_lookup_by_content_hash(self, mock_get_session: MagicMock) -> None:
         images = {
             "components/alert.png": {
                 "content_hash": "abc123",
@@ -614,7 +631,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert data["head_image"]["key"] == "abc123"
 
     @patch(MOCK_TARGET)
-    def test_extra_metadata_fields_passed_through(self, mock_get_session):
+    def test_extra_metadata_fields_passed_through(self, mock_get_session: MagicMock) -> None:
         images = {
             "screen.png": {
                 "content_hash": "hash1",
@@ -638,7 +655,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert head["custom_field"] == "value"
 
     @patch(MOCK_TARGET)
-    def test_canvas_theme_passed_through(self, mock_get_session):
+    def test_canvas_theme_passed_through(self, mock_get_session: MagicMock) -> None:
         images = {
             "screen.png": {
                 "content_hash": "hash1",
@@ -660,7 +677,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert head["canvas_theme"] == "dark"
 
     @patch(MOCK_TARGET)
-    def test_canvas_theme_invalid_value_coerced_to_null(self, mock_get_session):
+    def test_canvas_theme_invalid_value_coerced_to_null(self, mock_get_session: MagicMock) -> None:
         images = {
             "screen.png": {
                 "content_hash": "hash1",
@@ -682,7 +699,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert head["canvas_theme"] is None
 
     @patch(MOCK_TARGET)
-    def test_missing_manifest_returns_404(self, mock_get_session):
+    def test_missing_manifest_returns_404(self, mock_get_session: MagicMock) -> None:
         artifact, _, _, _ = self._create_artifact_with_manifest()
         mock_session = MagicMock()
         mock_session.get.return_value = None

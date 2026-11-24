@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
@@ -8,7 +8,7 @@ from tests.sentry.feedback import MockSeerResponse
 
 
 @patch("sentry.feedback.usecases.label_generation.make_label_generation_request")
-def test_generate_labels_success_response(mock_make_seer_request) -> None:
+def test_generate_labels_success_response(mock_make_seer_request: MagicMock) -> None:
     mock_response = MockSeerResponse(
         200,
         {"data": {"labels": ["User Interface", "Navigation", "Right Sidebar"]}},
@@ -31,7 +31,7 @@ def test_generate_labels_success_response(mock_make_seer_request) -> None:
 
 
 @patch("sentry.feedback.usecases.label_generation.make_label_generation_request")
-def test_generate_labels_failed_response(mock_make_seer_request) -> None:
+def test_generate_labels_failed_response(mock_make_seer_request: MagicMock) -> None:
     mock_response = MockSeerResponse(
         500,
         {"error": "Internal Server Error"},
@@ -53,7 +53,7 @@ def test_generate_labels_failed_response(mock_make_seer_request) -> None:
 
 
 @patch("sentry.feedback.usecases.label_generation.make_label_generation_request")
-def test_generate_labels_network_error(mock_make_seer_request) -> None:
+def test_generate_labels_network_error(mock_make_seer_request: MagicMock) -> None:
     mock_make_seer_request.side_effect = requests.exceptions.Timeout("Request timed out")
 
     with pytest.raises(requests.exceptions.Timeout, match="Request timed out"):

@@ -17,7 +17,7 @@ type PullRequestReviewEventListener = Callable[[PullRequestReviewEvent], None]
 
 
 class SourceCodeManagerEventStream:
-    def __init__(self):
+    def __init__(self) -> None:
         self.check_run_listeners: dict[str, CheckRunEventListener] = {}
         self.check_suite_listeners: dict[str, CheckSuiteEventListener] = {}
         self.comment_listeners: dict[str, CommentEventListener] = {}
@@ -71,7 +71,15 @@ class SourceCodeManagerEventStream:
         self, event_type: Literal["pull_request_review"]
     ) -> Callable[[PullRequestReviewEventListener], PullRequestReviewEventListener]: ...
 
-    def listen_for(self, event_type: str):
+    def listen_for(
+        self, event_type: str
+    ) -> (
+        Callable[[CheckRunEventListener], CheckRunEventListener]
+        | Callable[[CheckSuiteEventListener], CheckSuiteEventListener]
+        | Callable[[CommentEventListener], CommentEventListener]
+        | Callable[[PullRequestEventListener], PullRequestEventListener]
+        | Callable[[PullRequestReviewEventListener], PullRequestReviewEventListener]
+    ):
         """
         Decorator to register a callback for a specific event type.
 

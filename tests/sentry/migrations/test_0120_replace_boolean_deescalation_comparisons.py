@@ -1,5 +1,6 @@
 import pytest
 
+from django.db.migrations.state import StateApps
 from sentry.testutils.cases import TestMigrations
 
 
@@ -9,7 +10,7 @@ class ReplaceBooleanDeescalationComparisonsTest(TestMigrations):
     migrate_from = "0119_add_index_for_all_project_detectors"
     migrate_to = "0120_replace_boolean_deescalation_comparisons"
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         DataCondition = apps.get_model("workflow_engine", "DataCondition")
         DataConditionGroup = apps.get_model("workflow_engine", "DataConditionGroup")
 
@@ -33,7 +34,7 @@ class ReplaceBooleanDeescalationComparisonsTest(TestMigrations):
             condition_result=True,
         )
 
-    def test(self):
+    def test(self) -> None:
         DataCondition = self.apps.get_model("workflow_engine", "DataCondition")
 
         boolean_condition = DataCondition.objects.get(id=self.boolean_condition.id)

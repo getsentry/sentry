@@ -1,4 +1,4 @@
-import {PREPROD_DETECTOR_DRAFT_SCHEMA} from 'sentry/views/detectors/components/forms/mobileBuild/mobileBuildDraftConfig';
+import {PREPROD_DETECTOR_DRAFT_SCHEMA} from './mobileBuildDraftConfig';
 
 describe('PREPROD_DETECTOR_DRAFT_SCHEMA', () => {
   it('drops thresholds when the threshold type is invalid', () => {

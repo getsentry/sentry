@@ -1,4 +1,5 @@
 from .advanced_search_feature_gated import *  # noqa: F401,F403
+from .agent_handoff import *  # noqa: F401,F403
 from .agentic_onboarding import *  # noqa: F401,F403
 from .alert_created import *  # noqa: F401,F403
 from .alert_edited import *  # noqa: F401,F403
@@ -64,6 +65,7 @@ from .missing_members_nudge import *  # noqa: F401,F403
 from .monitor_mark_failed import *  # noqa: F401,F403
 from .notification_tracking import *  # noqa: F401,F403
 from .oauth_consent import *  # noqa: F401,F403
+from .oauth_setup_code import *  # noqa: F401,F403
 from .onboarding_complete import *  # noqa: F401,F403
 from .onboarding_continuation_sent import *  # noqa: F401,F403
 from .org_auth_token_created import *  # noqa: F401,F403
@@ -89,6 +91,7 @@ from .rule_disable_opt_out import *  # noqa: F401,F403
 from .rule_reenable import *  # noqa: F401,F403
 from .search_saved import *  # noqa: F401,F403
 from .second_platform_added import *  # noqa: F401,F403
+from .seer_scm_connect_events import *  # noqa: F401,F403
 from .sentry_app_created import *  # noqa: F401,F403
 from .sentry_app_deleted import *  # noqa: F401,F403
 from .sentry_app_installation_token_created import *  # noqa: F401,F403

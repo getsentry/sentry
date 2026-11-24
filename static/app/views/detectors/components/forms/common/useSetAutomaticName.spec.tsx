@@ -10,9 +10,10 @@ import type {
   BaseDetectorUpdatePayload,
   Detector,
 } from 'sentry/types/workflowEngine/detectors';
-import {useSetAutomaticName} from 'sentry/views/detectors/components/forms/common/useSetAutomaticName';
 import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
+
+import {useSetAutomaticName} from './useSetAutomaticName';
 
 // Test component that uses the hook
 function TestDetectorForm() {

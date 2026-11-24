@@ -4,7 +4,10 @@ from rest_framework.views import APIView
 
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.auth.access import from_request
+from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -28,8 +31,8 @@ class TeamPermissionBase(TestCase):
     def has_object_perm(
         self,
         method: str,
-        obj: Team,
-        auth: ApiToken | None = None,
+        obj: Team | Organization | Project,
+        auth: ApiKey | ApiToken | None = None,
         user: User | None = None,
         is_superuser: bool | None = None,
     ) -> bool:

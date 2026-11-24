@@ -8,9 +8,10 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
-import {logsVerify} from 'sentry/gettingStartedDocs/native/logs';
-import {getVerifySnippet} from 'sentry/gettingStartedDocs/native/utils';
 import {t, tct} from 'sentry/locale';
+
+import {logsVerify} from './logs';
+import {getVerifySnippet} from './utils';
 
 const getConfigureSnippet = (params: DocsParams) => `
 #include <sentry.h>
@@ -68,18 +69,12 @@ export const onboarding: OnboardingConfig = {
             'Import and initialize the Sentry SDK early in your application setup:'
           ),
         },
-        {
-          type: 'code',
-          language: 'c',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'c', code: getConfigureSnippet(params)},
         {
           type: 'text',
           text: tct(
             'Alternatively, the DSN can be passed as [code:SENTRY_DSN] environment variable during runtime. This can be especially useful for server applications.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
       ],
@@ -95,11 +90,7 @@ export const onboarding: OnboardingConfig = {
             'The quickest way to verify Sentry in your Native application is by capturing a message:'
           ),
         },
-        {
-          type: 'code',
-          language: 'c',
-          code: getVerifySnippet(),
-        },
+        {type: 'code', language: 'c', code: getVerifySnippet()},
         {
           type: 'text',
           text: t(
@@ -115,12 +106,7 @@ export const onboarding: OnboardingConfig = {
       ],
     },
     ...(params.isLogsSelected
-      ? ([
-          {
-            title: t('Logs'),
-            content: [logsVerify(params)],
-          },
-        ] satisfies OnboardingStep[])
+      ? ([{title: t('Logs'), content: [logsVerify(params)]}] satisfies OnboardingStep[])
       : []),
     ...([getConsoleExtensions(params)].filter(Boolean) as OnboardingStep[]),
     {

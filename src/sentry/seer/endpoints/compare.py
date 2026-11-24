@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 def compare_distributions(
-    baseline: list,
-    outliers: list,
+    baseline: list[dict[str, Any]],
+    outliers: list[dict[str, Any]],
     total_baseline: int,
     total_outliers: int,
     config: dict[str, Any],

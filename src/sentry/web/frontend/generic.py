@@ -4,7 +4,14 @@ from urllib.parse import unquote
 
 from django.conf import settings
 from django.contrib.staticfiles import finders
-from django.http import Http404, HttpResponse, HttpResponseNotFound, HttpResponseNotModified
+from django.http import (
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    HttpResponseBase,
+    HttpResponseNotFound,
+    HttpResponseNotModified,
+)
 from django.views import static
 from requests.exceptions import RequestException
 
@@ -18,12 +25,12 @@ from sentry.web.constants import FOREVER_CACHE, NEVER_CACHE, NO_CACHE
 from sentry.web.frontend.base import all_silo_view, control_silo_view
 
 
-def dev_favicon(request, extension):
+def dev_favicon(request: HttpRequest, extension: str) -> HttpResponseBase:
     document_root, path = resolve("sentry/images/favicon-dev.png")
     return static.serve(request, path, document_root=document_root)
 
 
-def resolve(path):
+def resolve(path: str) -> tuple[str, str]:
     # Mostly yanked from Django core and changed to return the path:
     # See: https://github.com/django/django/blob/1.6.11/django/contrib/staticfiles/views.py
     normalized_path = posixpath.normpath(unquote(path)).lstrip("/")
@@ -41,7 +48,7 @@ def resolve(path):
 
 
 @all_silo_view
-def frontend_app_static_media(request, **kwargs):
+def frontend_app_static_media(request: HttpRequest, **kwargs: str) -> HttpResponseBase:
     """
     Serve static files that should not have any versioned paths/filenames.
     These assets will have cache headers to say that it can be cached by a
@@ -102,7 +109,7 @@ def _fetch_worker_bundle(commit_sha: str) -> bytes | None:
 
 
 @control_silo_view
-def service_worker(request):
+def service_worker(request: HttpRequest) -> HttpResponseBase:
     """
     Serve the service worker script from our own origin.
 
@@ -153,7 +160,7 @@ def service_worker(request):
 
 
 @all_silo_view
-def static_media(request, **kwargs):
+def static_media(request: HttpRequest, **kwargs: str) -> HttpResponseBase:
     """
     Serve static files below a given point in the directory structure.
     """

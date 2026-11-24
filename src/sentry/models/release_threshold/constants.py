@@ -31,7 +31,7 @@ class ReleaseThresholdType:
     CRASH_FREE_USER_RATE_STR: Final = "crash_free_user_rate"
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> tuple[tuple[str, int], ...]:
         return (
             (cls.TOTAL_ERROR_COUNT_STR, cls.TOTAL_ERROR_COUNT),
             (cls.NEW_ISSUE_COUNT_STR, cls.NEW_ISSUE_COUNT),
@@ -40,18 +40,6 @@ class ReleaseThresholdType:
             (cls.FAILURE_RATE_STR, cls.FAILURE_RATE),
             (cls.CRASH_FREE_SESSION_RATE_STR, cls.CRASH_FREE_SESSION_RATE),
             (cls.CRASH_FREE_USER_RATE_STR, cls.CRASH_FREE_USER_RATE),
-        )
-
-    @classmethod
-    def as_str_choices(cls):
-        return (
-            (cls.TOTAL_ERROR_COUNT_STR, cls.TOTAL_ERROR_COUNT_STR),
-            (cls.NEW_ISSUE_COUNT_STR, cls.NEW_ISSUE_COUNT_STR),
-            (cls.UNHANDLED_ISSUE_COUNT_STR, cls.UNHANDLED_ISSUE_COUNT_STR),
-            (cls.REGRESSED_ISSUE_COUNT_STR, cls.REGRESSED_ISSUE_COUNT_STR),
-            (cls.FAILURE_RATE_STR, cls.FAILURE_RATE_STR),
-            (cls.CRASH_FREE_SESSION_RATE_STR, cls.CRASH_FREE_SESSION_RATE_STR),
-            (cls.CRASH_FREE_USER_RATE_STR, cls.CRASH_FREE_USER_RATE_STR),
         )
 
 
@@ -63,17 +51,10 @@ class TriggerType:
     UNDER_STR: Final = "under"
 
     @classmethod
-    def as_choices(cls):  # choices for model column
+    def as_choices(cls) -> tuple[tuple[str, int], ...]:  # choices for model column
         return (
             (cls.OVER_STR, cls.OVER),
             (cls.UNDER_STR, cls.UNDER),
-        )
-
-    @classmethod
-    def as_str_choices(cls):  # choices for serializer
-        return (
-            (cls.OVER_STR, cls.OVER_STR),
-            (cls.UNDER_STR, cls.UNDER_STR),
         )
 
 
@@ -87,22 +68,7 @@ THRESHOLD_TYPE_INT_TO_STR: dict[int, ThresholdTypeName] = {
     ReleaseThresholdType.CRASH_FREE_USER_RATE: ReleaseThresholdType.CRASH_FREE_USER_RATE_STR,
 }
 
-THRESHOLD_TYPE_STR_TO_INT = {
-    ReleaseThresholdType.TOTAL_ERROR_COUNT_STR: ReleaseThresholdType.TOTAL_ERROR_COUNT,
-    ReleaseThresholdType.NEW_ISSUE_COUNT_STR: ReleaseThresholdType.NEW_ISSUE_COUNT,
-    ReleaseThresholdType.UNHANDLED_ISSUE_COUNT_STR: ReleaseThresholdType.UNHANDLED_ISSUE_COUNT,
-    ReleaseThresholdType.REGRESSED_ISSUE_COUNT_STR: ReleaseThresholdType.REGRESSED_ISSUE_COUNT,
-    ReleaseThresholdType.FAILURE_RATE_STR: ReleaseThresholdType.FAILURE_RATE,
-    ReleaseThresholdType.CRASH_FREE_SESSION_RATE_STR: ReleaseThresholdType.CRASH_FREE_SESSION_RATE,
-    ReleaseThresholdType.CRASH_FREE_USER_RATE_STR: ReleaseThresholdType.CRASH_FREE_USER_RATE,
-}
-
 TRIGGER_TYPE_INT_TO_STR: dict[int, TriggerTypeName] = {
     TriggerType.OVER: TriggerType.OVER_STR,
     TriggerType.UNDER: TriggerType.UNDER_STR,
-}
-
-TRIGGER_TYPE_STRING_TO_INT = {
-    TriggerType.OVER_STR: TriggerType.OVER,
-    TriggerType.UNDER_STR: TriggerType.UNDER,
 }

@@ -14,7 +14,7 @@ from sentry.sentry_metrics.querying.data.mapping.base import (
     get_or_create_mapper,
 )
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
-from sentry.sentry_metrics.querying.types import QueryExpression
+from sentry.sentry_metrics.querying.types import QueryCondition, QueryExpression
 from sentry.sentry_metrics.querying.units import (
     Unit,
     UnitMetadata,
@@ -94,10 +94,10 @@ class QueryValidationV2Visitor(QueryExpressionVisitor[QueryExpression]):
     Visitor that recursively validates the `QueryExpression` of the new endpoint.
     """
 
-    def __init__(self):
-        self._query_namespace = None
-        self._query_entity = None
-        self._query_group_bys = None
+    def __init__(self) -> None:
+        self._query_namespace: str | None = None
+        self._query_entity: str | None = None
+        self._query_group_bys: list[str] | None = None
         self._query_group_bys_stack: list[list[str]] = []
 
     def _visit_formula(self, formula: Formula) -> QueryExpression:
@@ -148,7 +148,7 @@ class QueryValidationV2Visitor(QueryExpressionVisitor[QueryExpression]):
 
         return timeseries
 
-    def _validate_accumulated_group_bys(self, timeseries: Timeseries):
+    def _validate_accumulated_group_bys(self, timeseries: Timeseries) -> None:
         """
         Validates that the group bys on a given `Timeseries` are equal to the ones previously encountered (if any).
 
@@ -198,7 +198,7 @@ class QueryConditionsCompositeVisitor(QueryExpressionVisitor[QueryExpression]):
     Visitor that runs a series of `QueryConditionVisitor`(s) on each filters of elements of a `QueryExpression`.
     """
 
-    def __init__(self, *visitors: QueryConditionVisitor):
+    def __init__(self, *visitors: QueryConditionVisitor[QueryCondition]) -> None:
         self._visitors = list(visitors)
 
     def _visit_formula(self, formula: Formula) -> QueryExpression:
@@ -245,7 +245,7 @@ class QueriedMetricsVisitor(QueryExpressionVisitor[set[str]]):
 
         return {timeseries.metric.mri}
 
-    def _visit_int(self, int_number: float):
+    def _visit_int(self, int_number: float) -> set[str]:
         return set()
 
     def _visit_float(self, float_number: float) -> set[str]:
@@ -274,7 +274,7 @@ class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
     def _visit_timeseries(self, timeseries: Timeseries) -> set[str]:
         return self._group_bys_as_string(timeseries.groupby)
 
-    def _visit_int(self, int_number: float):
+    def _visit_int(self, int_number: float) -> set[str]:
         return set()
 
     def _visit_float(self, float_number: float) -> set[str]:
@@ -319,8 +319,8 @@ class UnitsNormalizationVisitor(QueryExpressionVisitor[tuple[UnitMetadata, Query
 
     UNITLESS_AGGREGATES = {"count", "count_unique"}
 
-    def __init__(self):
-        self._unit_family = None
+    def __init__(self) -> None:
+        self._unit_family: str | None = None
 
     def _visit_formula(self, formula: Formula) -> tuple[UnitMetadata, QueryExpression]:
         last_metadata: WithUnit | None = None
@@ -475,7 +475,7 @@ class NumericScalarsNormalizationVisitor(QueryExpressionVisitor[QueryExpression]
         return isinstance(value, int) or isinstance(value, float)
 
 
-class MapperVisitor(QueryExpressionVisitor):
+class MapperVisitor(QueryExpressionVisitor[QueryExpression]):
     """
     Visitor that recursively transforms the QueryExpression components to modulate certain attributes to be queried
     by API that need to be translated for Snuba to be able to query the data.

@@ -1,8 +1,9 @@
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
+import {openModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
+
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Client} from 'sentry/api';
 import {tct} from 'sentry/locale';
@@ -14,19 +15,14 @@ import type {Invoice, Plan, PreviewData, Subscription} from 'getsentry/types';
 import {displayBudgetName, hasBillingAccess, supportsPayg} from 'getsentry/utils/billing';
 import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';
 
-type UpsellModalOptions = {
-  organization: Organization;
-  source: string;
-};
+type UpsellModalOptions = {organization: Organization; source: string};
 
 export async function openUpsellModal(options: UpsellModalOptions) {
   const {default: Modal, modalCss} = await import('getsentry/components/upsellModal');
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-type TrialModalProps = {
-  organization: Organization;
-};
+type TrialModalProps = {organization: Organization};
 
 function genTrialEndingModalOnClose(options: TrialModalProps) {
   const api = new Client();
@@ -41,7 +37,7 @@ function genTrialEndingModalOnClose(options: TrialModalProps) {
   // closed
   return () => {
     promptsUpdate(api, promptParams);
-    SubscriptionStore.set(options.organization.slug, subUpdate);
+    SubscriptionStore.update(options.organization.slug, subUpdate);
   };
 }
 
@@ -75,7 +71,7 @@ export async function openOnDemandBudgetEditModal(
       modalCss: theme ? onDemandBudgetEditModalCss(theme) : undefined,
     });
   } else {
-    addErrorMessage(
+    toast.error(
       tct("You don't have permission to edit [budgetTerm] budgets.", {
         budgetTerm: displayBudgetName(subscription.planDetails),
       })

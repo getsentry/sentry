@@ -3,10 +3,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ProjectQuickLinks} from 'sentry/views/projectDetail/projectQuickLinks';
+import {ProjectQuickLinks} from './projectQuickLinks';
 
 describe('ProjectDetail > ProjectQuickLinks', () => {
-  const organization = OrganizationFixture({features: ['performance-view']});
+  const organization = OrganizationFixture();
 
   afterEach(() => {
     jest.clearAllMocks();
@@ -34,21 +34,5 @@ describe('ProjectDetail > ProjectQuickLinks', () => {
       expect(router.location.pathname).toBe('/organizations/org-slug/insights/backend/');
       expect(router.location.query).toEqual({project: '2'});
     });
-  });
-
-  it('disables link if feature is missing', async () => {
-    render(
-      <ProjectQuickLinks
-        organization={{...organization, features: []}}
-        project={ProjectFixture()}
-      />
-    );
-
-    const keyTransactions = screen.getByText('View Transactions');
-
-    await userEvent.hover(keyTransactions);
-    expect(
-      await screen.findByText("You don't have access to this feature")
-    ).toBeInTheDocument();
   });
 });

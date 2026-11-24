@@ -8,7 +8,8 @@ import {makeTraceError} from 'sentry/views/performance/traceDetails/traceModels/
 import {TraceScheduler} from 'sentry/views/performance/traceDetails/traceRenderers/traceScheduler';
 import {TraceView} from 'sentry/views/performance/traceDetails/traceRenderers/traceView';
 import {VirtualizedViewManager} from 'sentry/views/performance/traceDetails/traceRenderers/virtualizedViewManager';
-import {TraceErrorRow} from 'sentry/views/performance/traceDetails/traceRow/traceErrorRow';
+
+import {TraceErrorRow} from './traceErrorRow';
 
 describe('TraceErrorRow', () => {
   it('renders colored text without escape codes when the error title has ANSI codes', () => {

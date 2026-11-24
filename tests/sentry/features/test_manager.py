@@ -1,4 +1,5 @@
-from typing import Any
+from collections.abc import Sequence
+from typing import Any, cast
 from unittest import mock
 
 from django.conf import settings
@@ -13,10 +14,16 @@ from sentry.features.base import (
     ProjectFeature,
     SystemFeature,
 )
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+
+FeatureEntity = Organization | RpcOrganization | User | RpcUser | AnonymousUser | None
+FeatureActor = User | RpcUser | AnonymousUser | None
 
 
 class MockBatchHandler(features.BatchFeatureHandler):
@@ -31,8 +38,15 @@ class MockBatchHandler(features.BatchFeatureHandler):
     ) -> bool:
         return True
 
-    def batch_has(self, feature_names, *args: Any, projects=None, organization=None, **kwargs: Any):
-        feature_results = {
+    def batch_has(
+        self,
+        feature_names: Sequence[str],
+        *args: Any,
+        projects: Sequence[Project] | None = None,
+        organization: Organization | RpcOrganization | None = None,
+        **kwargs: Any,
+    ) -> dict[str, dict[str, bool | None]] | None:
+        feature_results: dict[str, bool | None] = {
             feature_name: True for feature_name in feature_names if feature_name in self.features
         }
 
@@ -44,10 +58,14 @@ class MockBatchHandler(features.BatchFeatureHandler):
 
         return {"unscoped": feature_results}
 
-    def _check_for_batch(self, feature_name, organization, actor):
+    def _check_for_batch(
+        self, feature_name: str, organization: FeatureEntity, actor: FeatureActor
+    ) -> bool | None:
         raise NotImplementedError
 
-    def batch_has_for_organizations(self, feature_name, organizations) -> dict[str, bool]:
+    def batch_has_for_organizations(
+        self, feature_name: str, organizations: Sequence[Organization | RpcOrganization]
+    ) -> dict[str, bool]:
         results: dict[str, bool] = {}
         for org in organizations:
             entity_key = f"organization:{org.id}"
@@ -58,10 +76,40 @@ class MockBatchHandler(features.BatchFeatureHandler):
 class MockUserBatchHandler(features.BatchFeatureHandler):
     features = {"users:feature"}
 
-    def _check_for_batch(self, feature_name, user, actor):
-        return user.name == "steve"
+    def _check_for_batch(
+        self, feature_name: str, user: FeatureEntity, actor: FeatureActor
+    ) -> bool | None:
+        return cast("User | RpcUser", user).name == "steve"
 
-    def batch_has(self, *a, **k):
+    def batch_has(self, *a: Any, **k: Any) -> dict[str, dict[str, bool | None]] | None:
+        raise NotImplementedError("unreachable")
+
+
+class OrganizationBatchHandler(features.BatchFeatureHandler):
+    def __init__(
+        self,
+        flags: Sequence[str],
+        result: bool | None,
+        expected_org: Organization,
+        expected_actor: User,
+    ) -> None:
+        self.features = set(flags)
+        self.result = result
+        self.expected_org = expected_org
+        self.expected_actor = expected_actor
+        self.hit_counter = 0
+
+    def _check_for_batch(
+        self, feature_name: str, organization: FeatureEntity, actor: FeatureActor
+    ) -> bool | None:
+        assert feature_name in self.features
+        assert organization == self.expected_org
+        assert actor == self.expected_actor
+
+        self.hit_counter += 1
+        return self.result
+
+    def batch_has(self, *a: Any, **k: Any) -> dict[str, dict[str, bool | None]] | None:
         raise NotImplementedError("unreachable")
 
 
@@ -121,26 +169,27 @@ class FeatureManagerTest(TestCase):
         class TestProjectHandler(features.FeatureHandler):
             features = {project_flag}
 
-            def __init__(self, true_set, false_set):
+            def __init__(self, true_set: Sequence[Project], false_set: Sequence[Project]) -> None:
                 self.true_set = frozenset(true_set)
                 self.false_set = frozenset(false_set)
 
             def has(
                 self,
-                feature,
-                actor,
+                feature: Feature,
+                actor: FeatureActor,
                 skip_entity: bool | None = False,
                 skip_experiment_exposure: bool = False,
-            ):
+            ) -> bool | None:
                 assert actor == test_user
 
-                if feature.project in self.true_set:
+                project = cast(ProjectFeature, feature).project
+                if project in self.true_set:
                     return True
-                if feature.project in self.false_set:
+                if project in self.false_set:
                     return False
                 return None
 
-            def batch_has(self, *a, **k):
+            def batch_has(self, *a: Any, **k: Any) -> dict[str, dict[str, bool | None]] | None:
                 raise NotImplementedError("unreachable")
 
         p1 = self.create_project()
@@ -204,7 +253,8 @@ class FeatureManagerTest(TestCase):
         # The entity_handler doesn't have a response for this feature either, so settings should be checked instead
         entity_handler.has.return_value = None
         with mock.patch.dict(settings.SENTRY_FEATURES, {"organizations:settings-feature": "test"}):
-            assert manager.has("organizations:settings-feature", test_org) == "test"
+            settings_result: object = manager.has("organizations:settings-feature", test_org)
+            assert settings_result == "test"
             assert len(entity_handler.mock_calls) == 2
 
     def test_entity_handler_has_capture_error(self) -> None:
@@ -231,25 +281,8 @@ class FeatureManagerTest(TestCase):
 
         projects = [self.create_project(organization=test_org) for i in range(5)]
 
-        def create_handler(flags, result):
-            class OrganizationTestHandler(features.BatchFeatureHandler):
-                features = set(flags)
-
-                def __init__(self):
-                    self.hit_counter = 0
-
-                def _check_for_batch(self, feature_name, organization, actor):
-                    assert feature_name in self.features
-                    assert organization == test_org
-                    assert actor == test_user
-
-                    self.hit_counter += 1
-                    return result
-
-                def batch_has(self, *a, **k):
-                    raise NotImplementedError("unreachable")
-
-            return OrganizationTestHandler()
+        def create_handler(flags: Sequence[str], result: bool | None) -> OrganizationBatchHandler:
+            return OrganizationBatchHandler(flags, result, test_org, test_user)
 
         yes_flag = "organizations:yes"
         no_flag = "organizations:no"
@@ -588,17 +621,22 @@ class FeatureManagerTest(TestCase):
 
             def has(
                 self,
-                feature,
-                actor,
+                feature: Feature,
+                actor: FeatureActor,
                 skip_entity: bool | None = False,
                 skip_experiment_exposure: bool = False,
-            ):
+            ) -> bool | None:
                 return feature.name in self.features
 
             def batch_has(
-                self, feature_names, *args: Any, projects=None, organization=None, **kwargs: Any
-            ):
-                feature_results = {
+                self,
+                feature_names: Sequence[str],
+                *args: Any,
+                projects: Sequence[Project] | None = None,
+                organization: Organization | RpcOrganization | None = None,
+                **kwargs: Any,
+            ) -> dict[str, dict[str, bool | None]] | None:
+                feature_results: dict[str, bool | None] = {
                     feature_name: True
                     for feature_name in feature_names
                     if feature_name in self.features
@@ -612,7 +650,9 @@ class FeatureManagerTest(TestCase):
 
                 return {"unscoped": feature_results}
 
-            def _check_for_batch(self, feature_name, organization, actor):
+            def _check_for_batch(
+                self, feature_name: str, organization: FeatureEntity, actor: FeatureActor
+            ) -> bool | None:
                 raise NotImplementedError
 
         manager = features.FeatureManager()

@@ -12,8 +12,9 @@ import {
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useGetSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
-import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
+
+import {MultiQueryModeContent} from './content';
+import {useReadQueriesFromLocation} from './locationUtils';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
@@ -31,12 +32,7 @@ describe('MultiQueryModeContent', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [project].map(p => parseInt(p.id, 10)),
       environments: [],
-      datetime: {
-        period: '7d',
-        start: null,
-        end: null,
-        utc: null,
-      },
+      datetime: {period: '7d', start: null, end: null, utc: null},
     });
 
     MockApiClient.addMockResponse({
@@ -73,9 +69,7 @@ describe('MultiQueryModeContent', () => {
     eventsTimeSeriesRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
-      body: {
-        timeSeries: [TimeSeriesFixture()],
-      },
+      body: {timeSeries: [TimeSeriesFixture()]},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
@@ -107,7 +101,6 @@ describe('MultiQueryModeContent', () => {
   it('changes to count(span.duration) when using count', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -119,12 +112,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -139,12 +127,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['avg(span.self_time)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.self_time', 'timestamp'],
         groupBys: [],
         query: '',
@@ -157,12 +140,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -186,7 +164,6 @@ describe('MultiQueryModeContent', () => {
   it('changes to epm() when using epm', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -198,12 +175,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -218,12 +190,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['avg(span.self_time)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.self_time', 'timestamp'],
         groupBys: [],
         query: '',
@@ -236,12 +203,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['epm()'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'timestamp'],
         groupBys: [],
         query: '',
@@ -252,7 +214,6 @@ describe('MultiQueryModeContent', () => {
   it('changes to failure_rate() when using failure_rate', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -264,12 +225,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -284,12 +240,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['avg(span.self_time)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.self_time', 'timestamp'],
         groupBys: [],
         query: '',
@@ -302,12 +253,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['failure_rate()'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'timestamp'],
         groupBys: [],
         query: '',
@@ -331,7 +277,6 @@ describe('MultiQueryModeContent', () => {
   it('defaults count_unique argument to span.op', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -343,12 +288,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -361,12 +301,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count_unique(span.op)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.op', 'timestamp'],
         groupBys: [],
         query: '',
@@ -381,12 +316,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['avg(span.self_time)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.self_time', 'timestamp'],
         groupBys: [],
         query: '',
@@ -399,12 +329,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count_unique(span.op)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.op', 'timestamp'],
         groupBys: [],
         query: '',
@@ -415,7 +340,6 @@ describe('MultiQueryModeContent', () => {
   it('updates visualization and outdated sorts', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -427,12 +351,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -448,12 +367,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['avg(span.self_time)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.self_time', 'timestamp'],
         groupBys: [],
         query: '',
@@ -464,7 +378,6 @@ describe('MultiQueryModeContent', () => {
   it('explicitly selecting visualization persists it', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -485,12 +398,7 @@ describe('MultiQueryModeContent', () => {
       {
         chartType: 2,
         yAxes: ['avg(span.self_time)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.self_time', 'timestamp'],
         groupBys: [],
         query: '',
@@ -501,7 +409,6 @@ describe('MultiQueryModeContent', () => {
   it('updates sorts', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -511,12 +418,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -528,12 +430,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'id',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'id', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -544,7 +441,6 @@ describe('MultiQueryModeContent', () => {
   it('updates group bys and outdated sorts', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -554,12 +450,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -571,12 +462,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'count(span.duration)',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'count(span.duration)', kind: 'desc'}],
         query: '',
         groupBys: ['span.op'],
         fields: ['id', 'span.duration', 'timestamp'],
@@ -587,7 +473,6 @@ describe('MultiQueryModeContent', () => {
   it('allows changing a query', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -597,12 +482,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -617,12 +497,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['avg(span.self_time)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.self_time', 'timestamp'],
         groupBys: [],
         query: '',
@@ -633,7 +508,6 @@ describe('MultiQueryModeContent', () => {
   it('allows changing case insensitivity', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -643,12 +517,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -660,12 +529,7 @@ describe('MultiQueryModeContent', () => {
       {
         caseInsensitive: '1',
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -676,7 +540,6 @@ describe('MultiQueryModeContent', () => {
   it('allows adding a query', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -686,12 +549,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -703,24 +561,14 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
       },
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -731,7 +579,6 @@ describe('MultiQueryModeContent', () => {
   it('allows duplicating a query', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -741,12 +588,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -765,24 +607,14 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['avg(span.self_time)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.self_time', 'timestamp'],
         groupBys: [],
         query: '',
       },
       {
         yAxes: ['avg(span.self_time)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.self_time', 'timestamp'],
         groupBys: [],
         query: '',
@@ -793,7 +625,6 @@ describe('MultiQueryModeContent', () => {
   it('allows deleting a query', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -803,12 +634,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -820,24 +646,14 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
       },
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -852,24 +668,14 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['avg(span.self_time)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.self_time', 'timestamp'],
         groupBys: [],
         query: '',
       },
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -882,12 +688,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -898,7 +699,6 @@ describe('MultiQueryModeContent', () => {
   it('calls events and stats APIs', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -908,12 +708,7 @@ describe('MultiQueryModeContent', () => {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -1028,14 +823,8 @@ describe('MultiQueryModeContent', () => {
       method: 'GET',
       body: {
         data: [
-          {
-            'span.op': 'POST',
-            'avg(span.duration)': 147.02002059925093,
-          },
-          {
-            'span.op': 'GET',
-            'avg(span.duration)': 1.9993342331511974,
-          },
+          {'span.op': 'POST', 'avg(span.duration)': 147.02002059925093},
+          {'span.op': 'GET', 'avg(span.duration)': 1.9993342331511974},
         ],
       },
       match: [
@@ -1047,7 +836,6 @@ describe('MultiQueryModeContent', () => {
 
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -1058,12 +846,7 @@ describe('MultiQueryModeContent', () => {
       {
         chartType: undefined,
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
@@ -1082,12 +865,7 @@ describe('MultiQueryModeContent', () => {
       {
         chartType: undefined,
         yAxes: ['count(span.duration)'],
-        sortBys: [
-          {
-            field: 'timestamp',
-            kind: 'desc',
-          },
-        ],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
         fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: 'span.op:POST',
@@ -1126,9 +904,7 @@ describe('MultiQueryModeContent', () => {
   });
 
   it('renders a save query button', async () => {
-    render(<MultiQueryModeContent />, {
-      organization,
-    });
+    render(<MultiQueryModeContent />, {organization});
     expect(await screen.findByLabelText('Save')).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('Save'));
     expect(await screen.findByText('New Query')).toBeInTheDocument();
@@ -1149,12 +925,7 @@ describe('MultiQueryModeContent', () => {
             fields: ['count(span.duration)'],
             groupby: ['span.op'],
             orderby: '-count(span.duration)',
-            visualize: [
-              {
-                chartType: 1,
-                yAxes: ['count(span.duration)'],
-              },
-            ],
+            visualize: [{chartType: 1, yAxes: ['count(span.duration)']}],
             mode: 'aggregate',
           },
         ],

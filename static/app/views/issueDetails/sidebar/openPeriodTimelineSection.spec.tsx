@@ -6,7 +6,7 @@ import {
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import {OpenPeriodTimelineSection} from 'sentry/views/issueDetails/sidebar/openPeriodTimelineSection';
+import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
 
 describe('OpenPeriodTimelineSection', () => {
   beforeEach(() => {

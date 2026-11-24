@@ -1,9 +1,10 @@
 import type {AlertProps} from '@sentry/scraps/alert';
 import type {SelectValue, createFilter} from '@sentry/scraps/select';
 
-import type {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
-import type {FormModel} from 'sentry/components/forms/model';
 import type {SliderProps} from 'sentry/components/slider';
+
+import type {ChoiceMapperProps} from './fields/choiceMapperField';
+import type {FormModel} from './model';
 
 type FieldType =
   | 'array'
@@ -118,22 +119,13 @@ type SelectControlType = {type: 'choice' | 'select'} & {
   options?: Array<SelectValue<any>>;
 };
 
-type TextareaType = {type: 'textarea'} & {
-  autosize?: boolean;
-  rows?: number;
-};
+type TextareaType = {type: 'textarea'} & {autosize?: boolean; rows?: number};
 
-type NumberType = {type: 'number'} & {
-  max?: number;
-  min?: number;
-  step?: number;
-};
+type NumberType = {type: 'number'} & {max?: number; min?: number; step?: number};
 
 type RangeType = {type: 'range'} & SliderProps;
 
-type FileType = {type: 'file'} & {
-  accept?: string[];
-};
+type FileType = {type: 'file'} & {accept?: string[]};
 
 type DateTimeType = {type: 'datetime'};
 
@@ -155,9 +147,7 @@ export interface TableType {
   // TODO(TS): Should we have addButtonText and allowEmpty here as well?
 }
 
-type ChoiceMapperType = {
-  type: 'choice_mapper';
-} & ChoiceMapperProps;
+type ChoiceMapperType = {type: 'choice_mapper'} & ChoiceMapperProps;
 
 export type Field = (
   | CustomType

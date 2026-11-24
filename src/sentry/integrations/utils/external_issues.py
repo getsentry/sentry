@@ -4,12 +4,11 @@ import logging
 from typing import Any, TypedDict
 
 from sentry import features
+from sentry.auth.principal import RequestPrincipal, acting_user_id
 from sentry.models.group import Group
 from sentry.seer.oneshot import run_oneshot
 from sentry.seer.seer_setup import has_seer_access
 from sentry.services.eventstore.models import GroupEvent
-from sentry.users.models.user import User
-from sentry.users.services.user import RpcUser
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger(__name__)
@@ -73,7 +72,7 @@ def _make_generate_external_issue_details_request(
 
 
 def maybe_generate_external_issue_details(
-    *, group: Group, user: User | RpcUser, event: GroupEvent | None = None
+    *, group: Group, user: RequestPrincipal, event: GroupEvent | None = None
 ) -> GeneratedExternalIssueDetails:
     organization = group.organization
     empty_result = GeneratedExternalIssueDetails(title=None, description=None)
@@ -83,7 +82,9 @@ def maybe_generate_external_issue_details(
         return empty_result
 
     try:
-        result = _make_generate_external_issue_details_request(group, event=event, user_id=user.id)
+        result = _make_generate_external_issue_details_request(
+            group, event=event, user_id=acting_user_id(user)
+        )
     except Exception:
         logger.error("external_issues.generate_issue_details_failed", exc_info=True)
         return empty_result

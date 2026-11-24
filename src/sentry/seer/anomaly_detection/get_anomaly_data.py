@@ -177,7 +177,7 @@ def get_anomaly_data_from_seer(
         )
         return None
 
-    extra_data = {
+    extra_data: dict[str, object] = {
         "subscription_id": subscription.id,
         "organization_id": subscription.project.organization_id,
         "project_id": subscription.project_id,

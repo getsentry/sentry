@@ -5,6 +5,7 @@ from functools import cached_property
 import orjson
 import pytest
 import responses
+from requests import PreparedRequest
 
 from fixtures.bitbucket_server import (
     COMMIT_CHANGELIST_EXAMPLE,
@@ -298,7 +299,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
             integration_id=self.integration.id,
         )
 
-        def create(request):
+        def create(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
             Repository.objects.filter(id=repo.id).update(status=ObjectStatus.DISABLED)
             return 201, {}, '{"id": 79}'
 
@@ -353,7 +354,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
             status=201,
         )
 
-        organization = self.organization
+        organization = serialize_rpc_organization(self.organization)
         integration = self.integration
 
         data = {
@@ -361,8 +362,8 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
             "identifier": project + "/" + repo,
             "installation": integration.id,
         }
-        data = self.provider.get_repository_data(organization, data)
-        assert data == {
+        repository_config = self.provider.get_repository_data(organization, data)
+        assert repository_config == {
             "provider": "integrations:bitbucket_server",
             "repo": repo,
             "project": project,
@@ -401,5 +402,5 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
 
     def test_get_repository_data_no_installation_id(self) -> None:
         with pytest.raises(IntegrationError) as e:
-            self.provider.get_repository_data(self.organization, {})
+            self.provider.get_repository_data(serialize_rpc_organization(self.organization), {})
         assert "requires an integration id" in str(e.value)

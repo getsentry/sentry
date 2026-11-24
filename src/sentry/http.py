@@ -4,12 +4,14 @@ import contextlib
 import logging
 import time
 import warnings
+from collections.abc import Mapping, MutableMapping
 from io import BytesIO
 from typing import Any, NamedTuple
 from urllib.parse import urlparse
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
+from requests import Response
 from requests.exceptions import ReadTimeout, RequestException, Timeout
 
 from sentry import options
@@ -43,7 +45,7 @@ class UrlResult(NamedTuple):
 class BadSource(Exception):
     error_type = EventErrorType.UNKNOWN_ERROR
 
-    def __init__(self, data=None):
+    def __init__(self, data: MutableMapping[str, object] | None = None) -> None:
         if data is None:
             data = {}
         data.setdefault("type", self.error_type)
@@ -56,25 +58,26 @@ class CannotFetch(BadSource):
 
 
 def get_server_hostname() -> str:
-    return urlparse(options.get("system.url-prefix")).hostname
+    hostname = urlparse(options.get("system.url-prefix")).hostname
+    return hostname
 
 
 build_session = SafeSession
 
 
 def safe_urlopen(
-    url,
-    method=None,
-    params=None,
-    data=None,
-    json=None,
-    headers=None,
-    allow_redirects=False,
-    timeout=30,
-    verify_ssl=True,
-    user_agent=None,
-    stream=False,
-):
+    url: str | bytes | None,
+    method: str | None = None,
+    params: Mapping[str, object] | None = None,
+    data: Mapping[str, object] | str | bytes | None = None,
+    json: object = None,
+    headers: MutableMapping[str, str] | None = None,
+    allow_redirects: bool = False,
+    timeout: float = 30,
+    verify_ssl: bool = True,
+    user_agent: str | None = None,
+    stream: bool = False,
+) -> Response:
     """
     A slightly safer version of ``urlib2.urlopen`` which prevents redirection
     and ensures the URL isn't attempting to hit a blacklisted IP range.
@@ -116,19 +119,18 @@ def safe_urlopen(
         return response
 
 
-def safe_urlread(response):
+def safe_urlread(response: Response) -> bytes:
     return response.content
 
 
-def expose_url(url):
+def expose_url(url: str | bytes | None) -> str:
     if url is None:
         return "<unknown>"
-    if url[:5] == "data:":
-        return "<data url>"
-    url = truncatechars(url, MAX_URL_LENGTH)
     if isinstance(url, bytes):
         url = url.decode("utf-8", "replace")
-    return url
+    if url[:5] == "data:":
+        return "<data url>"
+    return truncatechars(url, MAX_URL_LENGTH)
 
 
 def get_domain_key(url: str) -> str:
@@ -136,7 +138,7 @@ def get_domain_key(url: str) -> str:
     return f"source:blacklist:v2:{md5_text(domain).hexdigest()}"
 
 
-def lock_domain(url, error=None):
+def lock_domain(url: str, error: Mapping[str, object] | None = None) -> None:
     error = dict(error or {})
     if error.get("type") is None:
         error["type"] = EventErrorType.UNKNOWN_ERROR

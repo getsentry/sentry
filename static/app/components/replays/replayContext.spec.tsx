@@ -8,13 +8,11 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {act, cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {
-  Provider as ReplayContextProvider,
-  useReplayContext,
-} from 'sentry/components/replays/replayContext';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
 import type {RawReplayError, RecordingFrame} from 'sentry/utils/replays/types';
 import {EventType} from 'sentry/utils/replays/types';
+
+import {Provider as ReplayContextProvider, useReplayContext} from './replayContext';
 
 const mockPause = jest.fn();
 const mockPlay = jest.fn();
@@ -57,14 +55,16 @@ jest.mock('@sentry/rrweb', () => {
 });
 
 jest.mock('sentry/components/replays/videoReplayerWithInteractions', () => ({
-  VideoReplayerWithInteractions: jest.fn().mockImplementation(() => ({
-    config: {skipInactive: false, speed: 1},
-    destroy: jest.fn(),
-    getCurrentTime: mockGetCurrentTime,
-    pause: mockVideoPause,
-    play: mockVideoPlay,
-    setConfig: jest.fn(),
-  })),
+  VideoReplayerWithInteractions: jest
+    .fn()
+    .mockImplementation(() => ({
+      config: {skipInactive: false, speed: 1},
+      destroy: jest.fn(),
+      getCurrentTime: mockGetCurrentTime,
+      pause: mockVideoPause,
+      play: mockVideoPlay,
+      setConfig: jest.fn(),
+    })),
 }));
 
 const startedAt = new Date('2023-12-25T00:00:00');
@@ -86,10 +86,7 @@ function VideoFrameEventFixture() {
   return {
     type: EventType.Custom,
     timestamp: startedAt.getTime(),
-    data: {
-      tag: 'video',
-      payload: {duration: 5_000, segmentId: 0},
-    },
+    data: {tag: 'video', payload: {duration: 5_000, segmentId: 0}},
   };
 }
 

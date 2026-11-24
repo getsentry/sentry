@@ -2,7 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import OrganizationRestore from 'sentry/views/organizationRestore';
 
@@ -35,9 +36,7 @@ describe('OrganizationRestore', () => {
     render(<OrganizationRestore />, {
       organization: pendingDeleteOrg,
       initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${pendingDeleteOrg.slug}/restore/`,
-        },
+        location: {pathname: `/organizations/${pendingDeleteOrg.slug}/restore/`},
         route: '/organizations/:orgId/restore/',
       },
     });
@@ -61,9 +60,7 @@ describe('OrganizationRestore', () => {
     render(<OrganizationRestore />, {
       organization: pendingDeleteOrg,
       initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${pendingDeleteOrg.slug}/restore/`,
-        },
+        location: {pathname: `/organizations/${pendingDeleteOrg.slug}/restore/`},
         route: '/organizations/:orgId/restore/',
       },
     });
@@ -73,10 +70,7 @@ describe('OrganizationRestore', () => {
 
     expect(mockUpdate).toHaveBeenCalledWith(
       `/organizations/${pendingDeleteOrg.slug}/`,
-      expect.objectContaining({
-        method: 'PUT',
-        data: {cancelDeletion: 1},
-      })
+      expect.objectContaining({method: 'PUT', data: {cancelDeletion: 1}})
     );
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       `/organizations/${pendingDeleteOrg.slug}/issues/`
@@ -84,7 +78,7 @@ describe('OrganizationRestore', () => {
   });
 
   it('shows the API error when restoring fails', async () => {
-    const addErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+    const addErrorMessage = jest.spyOn(toast, 'error');
     MockApiClient.addMockResponse({
       url: `/organizations/${pendingDeleteOrg.slug}/`,
       method: 'GET',
@@ -101,9 +95,7 @@ describe('OrganizationRestore', () => {
     render(<OrganizationRestore />, {
       organization: pendingDeleteOrg,
       initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${pendingDeleteOrg.slug}/restore/`,
-        },
+        location: {pathname: `/organizations/${pendingDeleteOrg.slug}/restore/`},
         route: '/organizations/:orgId/restore/',
       },
     });
@@ -130,9 +122,7 @@ describe('OrganizationRestore', () => {
     render(<OrganizationRestore />, {
       organization: deleteInProgressOrg,
       initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${deleteInProgressOrg.slug}/restore/`,
-        },
+        location: {pathname: `/organizations/${deleteInProgressOrg.slug}/restore/`},
         route: '/organizations/:orgId/restore/',
       },
     });

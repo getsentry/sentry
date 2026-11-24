@@ -5,8 +5,8 @@ import {z} from 'zod';
 import {AlertLink} from '@sentry/scraps/alert';
 import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Redirect} from 'sentry/components/redirect';
@@ -29,10 +29,7 @@ interface SubscriptionNotificationsProps {
   subscription: Subscription;
 }
 
-type ThresholdsType = {
-  perProductOndemandPercent: number[];
-  reservedPercent: number[];
-};
+type ThresholdsType = {perProductOndemandPercent: number[]; reservedPercent: number[]};
 
 function getThresholdsSchema(onDemandEnabled: boolean) {
   return z.object({
@@ -59,10 +56,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
   } = useQuery({
     ...apiOptions.as<ThresholdsType>()(
       '/customers/$organizationIdOrSlug/spend-notifications/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        staleTime: 0,
-      }
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
     ),
     gcTime: 0,
   });
@@ -140,11 +134,11 @@ function ThresholdsForm({
           method: 'POST',
           data: value,
         });
-        addSuccessMessage(t('Threshold notifications saved successfully.'));
+        toast.success(t('Threshold notifications saved successfully.'));
         await onSuccess();
         form.reset();
       } catch {
-        addErrorMessage(t('Unable to save threshold notifications.'));
+        toast.error(t('Unable to save threshold notifications.'));
       }
     },
   });

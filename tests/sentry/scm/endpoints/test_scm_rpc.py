@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import unittest.mock
+from collections.abc import Mapping
+from typing import Any
 
 import requests
 import responses
-from django.test import override_settings
+from django.test import Client, override_settings
 from django.urls import reverse
 from scm import Secret
 from scm.actions import create_branch
@@ -19,13 +21,13 @@ from sentry.testutils.cases import APITestCase
 from sentry.utils import json
 
 
-def assert_coded_error(response, status_code: int, code: str):
+def assert_coded_error(response: Any, status_code: int, code: str) -> None:
     assert response.headers["Content-Type"] == "application/json"
     assert response.status_code == status_code, response.content
     assert response.json()["errors"][0]["code"] == code
 
 
-def assert_streaming_coded_error(response, status_code: int, code: str):
+def assert_streaming_coded_error(response: Any, status_code: int, code: str) -> None:
     assert response.headers["Content-Type"] == "application/json"
     assert response.status_code == status_code, response.content
     assert json.loads(b"".join(response.streaming_content))["errors"][0]["code"] == code
@@ -40,10 +42,10 @@ class DjangoTestClientSessionAdapter:
     Django responses to requests.Response objects.
     """
 
-    def __init__(self, client):
+    def __init__(self, client: Client) -> None:
         self._client = client
 
-    def _convert(self, django_response):
+    def _convert(self, django_response: Any) -> requests.Response:
         resp = requests.Response()
         resp.status_code = django_response.status_code
         if hasattr(django_response, "streaming_content"):
@@ -55,10 +57,16 @@ class DjangoTestClientSessionAdapter:
         resp.encoding = "utf-8"
         return resp
 
-    def get(self, url, headers=None):
+    def get(self, url: str, headers: Mapping[str, str] | None = None) -> requests.Response:
         return self._convert(self._client.get(url, headers=headers))
 
-    def post(self, url, data=None, headers=None, stream=False):
+    def post(
+        self,
+        url: str,
+        data: object = None,
+        headers: Mapping[str, str] | None = None,
+        stream: bool = False,
+    ) -> requests.Response:
         # `stream` is accepted to match the Session protocol; _convert reads the whole body either way.
         h = dict(headers) if headers else {}
         content_type = h.pop("Content-Type", "application/octet-stream")
@@ -102,7 +110,7 @@ class TestScmRpc(APITestCase):
         }
 
     @responses.activate
-    def test_end_to_end(self):
+    def test_end_to_end(self) -> None:
         responses.add(
             responses.POST,
             "https://api.github.com/repos/test-org/test-repo/git/refs",
@@ -115,15 +123,15 @@ class TestScmRpc(APITestCase):
         assert result["data"]["sha"] == "123"
         assert len(responses.calls) == 1
 
-    def test_does_not_retry_integration_proxy_get_requests(self):
+    def test_does_not_retry_integration_proxy_get_requests(self) -> None:
         self._assert_does_not_retry_integration_proxy_requests("GET")
 
-    def test_does_not_retry_integration_proxy_post_requests(self):
+    def test_does_not_retry_integration_proxy_post_requests(self) -> None:
         self._assert_does_not_retry_integration_proxy_requests("POST")
 
     @responses.activate
     @unittest.mock.patch.object(IntegrationProxyClient, "_use_proxy_url_for_tests", True)
-    def _assert_does_not_retry_integration_proxy_requests(self, method):
+    def _assert_does_not_retry_integration_proxy_requests(self, method: str) -> None:
         responses.add(
             method,
             "http://controlserver/api/0/internal/integration-proxy/",
@@ -158,11 +166,11 @@ class TestScmRpc(APITestCase):
         assert_streaming_coded_error(response, 503, "resource_service_unavailable")
         assert len(responses.calls) == 1
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url, headers=self.default_headers)
         assert response.status_code == 200, response.content
 
-    def test_get_fetches_the_integration_once_per_request(self):
+    def test_get_fetches_the_integration_once_per_request(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="github_enterprise",
@@ -197,24 +205,24 @@ class TestScmRpc(APITestCase):
         assert service.get_integration.call_count == 2
 
     @override_settings(SCM_RPC_SHARED_SECRET=[])
-    def test_get_no_secrets_set(self):
+    def test_get_no_secrets_set(self) -> None:
         response = self.client.get(self.url, headers=self.default_headers)
         assert response.status_code == 401, response.content
 
-    def test_get_invalid_headers(self):
+    def test_get_invalid_headers(self) -> None:
         assert_coded_error(
             self.client.get(self.url, headers={}), 400, "rpc_malformed_request_headers"
         )
 
-    def test_get_missing_auth(self):
+    def test_get_missing_auth(self) -> None:
         assert_coded_error(
             self.client.get(self.url, headers={**self.default_headers, "Authorization": ""}),
             401,
             "rpc_invalid_grant",
         )
 
-    def test_get_invalid_secret(self):
-        def sig(secret):
+    def test_get_invalid_secret(self) -> None:
+        def sig(secret: str) -> str:
             return f"rpcsignature {sign_get(Secret(secret), self.organization.id, self.repo.id)}"
 
         # Succeeds with correct secret.
@@ -228,19 +236,19 @@ class TestScmRpc(APITestCase):
         response = self.client.get(self.url, headers={**headers, "Authorization": sig("s")})
         assert_coded_error(response, 401, "rpc_invalid_grant")
 
-    def test_post_invalid_headers(self):
+    def test_post_invalid_headers(self) -> None:
         assert_streaming_coded_error(
             self.client.post(self.url, headers={}), 400, "rpc_malformed_request_headers"
         )
 
-    def test_post_missing_auth(self):
+    def test_post_missing_auth(self) -> None:
         assert_streaming_coded_error(
             self.client.post(self.url, headers={**self.default_headers, "Authorization": ""}),
             401,
             "rpc_invalid_grant",
         )
 
-    def test_post_invalid_secret(self):
+    def test_post_invalid_secret(self) -> None:
         assert_streaming_coded_error(
             self.client.post(
                 self.url,

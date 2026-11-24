@@ -6,7 +6,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {TagStore} from 'sentry/stores/tagStore';
 import type {Tag, TagValue} from 'sentry/types/group';
 import {IsFieldValues} from 'sentry/utils/fields';
-import {IssueListSearchBar} from 'sentry/views/issueList/searchBar';
+
+import {IssueListSearchBar} from './searchBar';
 
 describe('IssueListSearchBar', () => {
   const {organization} = initializeOrg();
@@ -26,10 +27,7 @@ describe('IssueListSearchBar', () => {
       url: '/organizations/org-slug/recent-searches/',
     });
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
   });
 
   afterEach(() => {
@@ -45,10 +43,7 @@ describe('IssueListSearchBar', () => {
     };
 
     it('displays the correct options for the is tag', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/tags/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
 
       render(<IssueListSearchBar {...defaultProps} />);
 
@@ -114,10 +109,7 @@ describe('IssueListSearchBar', () => {
     });
 
     it('displays tags named like Object properties', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/tags/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/',
         body: [
@@ -181,10 +173,7 @@ describe('IssueListSearchBar', () => {
           ip_address: '1',
         },
       ];
-      const tag: Tag = {
-        key: tagKey,
-        name: tagKey,
-      };
+      const tag: Tag = {key: tagKey, name: tagKey};
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/',

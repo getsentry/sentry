@@ -208,7 +208,7 @@ class Feature[T]:
         self._version: Final[int] = version
         self._default = default
         self._default_factory = default_factory
-        self._codec = codec or IDENTITY_CODEC
+        self._codec: Codec[T] = codec or IDENTITY_CODEC
         self._hash = hash((name, version))
 
     @property

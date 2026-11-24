@@ -149,12 +149,14 @@ class OrganizationIncidentGroupOpenPeriodProjectAccessTest(
         assert response.data == serialize(self.igop_1, self.member)
 
     def test_incident_id_requires_project_access(self) -> None:
-        self.assert_mapping_requires_project_access(incident_id=self.igop_1.incident_id)
+        incident_id = self.igop_1.incident_id
+        assert incident_id is not None
+        self.assert_mapping_requires_project_access(incident_id=incident_id)
 
     def test_incident_identifier_requires_project_access(self) -> None:
-        self.assert_mapping_requires_project_access(
-            incident_identifier=self.igop_1.incident_identifier
-        )
+        incident_identifier = self.igop_1.incident_identifier
+        assert incident_identifier is not None
+        self.assert_mapping_requires_project_access(incident_identifier=incident_identifier)
 
     def test_group_id_requires_project_access(self) -> None:
         self.assert_mapping_requires_project_access(group_id=self.group_1.id)

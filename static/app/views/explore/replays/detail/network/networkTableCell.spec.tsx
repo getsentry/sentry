@@ -1,11 +1,11 @@
 import type {ReactNode} from 'react';
-import {NuqsAdapter} from 'nuqs/adapters/react-router/v8';
 import {ReplayRequestFrameFixture} from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {NuqsAdapter} from 'sentry/router/nuqsAdapter';
 import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
 
 import {NetworkTableCell} from './networkTableCell';

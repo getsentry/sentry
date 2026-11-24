@@ -1,7 +1,8 @@
 import type {Sort} from 'sentry/utils/discover/fields';
-import type {WritableAggregateField} from 'sentry/views/explore/queryParams/aggregateField';
-import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
-import type {Mode} from 'sentry/views/explore/queryParams/mode';
+
+import type {WritableAggregateField} from './aggregateField';
+import type {CrossEvent} from './crossEvent';
+import type {Mode} from './mode';
 
 export interface WritableQueryParams {
   aggregateCursor?: string | null;

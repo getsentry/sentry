@@ -11,27 +11,22 @@ import * as Sentry from '@sentry/react';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {connect} from 'echarts/core';
 import cloneDeep from 'lodash/cloneDeep';
+import {useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
-import {
-  NUM_DESKTOP_COLS,
-  DRAG_HANDLE_CLASS,
-  DASHBOARD_CHART_GROUP,
-} from 'sentry/views/dashboards/constants';
-import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
-import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {
@@ -40,8 +35,14 @@ import {
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {WidgetSyncContextProvider} from './contexts/widgetSyncContext';
+import {widgetCanUseTimeSeriesVisualization} from './utils/widgetCanUseTimeSeriesVisualization';
+import {useWidgetQueryQueue} from './utils/widgetQueryQueue';
+import type {DataSet} from './widgetBuilder/utils';
+import {trackEngagementAnalytics} from './widgetBuilder/utils/trackEngagementAnalytics';
+import {WIDGET_TYPE_TO_DROPPED_DATA_DATASET} from './widgetCard/useWidgetChartLayers';
 import {getQueryHintLegend} from './widgetCard/widgetLLMContext';
 import {ADD_WIDGET_BUTTON_DRAG_ID, AddWidget} from './addWidget';
+import {NUM_DESKTOP_COLS, DRAG_HANDLE_CLASS, DASHBOARD_CHART_GROUP} from './constants';
 import {
   assignDefaultLayout,
   assignTempId,
@@ -67,10 +68,7 @@ const MOBILE = 'mobile';
 const NUM_MOBILE_COLS = 2;
 const ROW_HEIGHT = 120;
 const WIDGET_MARGINS: [number, number] = [16, 16];
-const BOTTOM_MOBILE_VIEW_POSITION = {
-  x: 0,
-  y: Number.MAX_SAFE_INTEGER,
-};
+const BOTTOM_MOBILE_VIEW_POSITION = {x: 0, y: Number.MAX_SAFE_INTEGER};
 const MOBILE_BREAKPOINT = (theme: Theme) => parseInt(theme.breakpoints.sm, 10);
 const BREAKPOINTS = (theme: Theme) => ({
   [MOBILE]: 0,
@@ -147,6 +145,26 @@ function DashboardInner({
     // and wait for a widget node to register instead (see PAGE_CONTEXT_READY_NODES).
     {isLoading: dashboard.widgets.length > 0}
   );
+
+  // One node per dataset rather than per widget, so Seer gets each dataset's
+  // drops once. The widgets' bands share the same request.
+  const droppedDataDatasets = useMemo(() => {
+    if (!organization.features.includes('dashboards-data-fidelity-annotations')) {
+      return [];
+    }
+    const datasets = new Set<DiscoverDatasets>();
+    for (const widget of dashboard.widgets) {
+      if (!widget.widgetType || !widgetCanUseTimeSeriesVisualization(widget)) {
+        continue;
+      }
+      const dataset = WIDGET_TYPE_TO_DROPPED_DATA_DATASET[widget.widgetType];
+      if (dataset) {
+        datasets.add(dataset);
+      }
+    }
+    return [...datasets];
+  }, [organization, dashboard.widgets]);
+
   const {queue} = useWidgetQueryQueue();
   const layouts = useMemo<LayoutState>(() => {
     const desktopLayout = getDashboardLayout(dashboard.widgets);
@@ -158,7 +176,8 @@ function DashboardInner({
   const [isMobile, setIsMobile] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const forceCheckTimeout = useRef<number | undefined>(undefined);
-  const isGeneratedDashboard = location.query.seerRunId !== undefined;
+  const [seerRunId] = useQueryState('seerRunId');
+  const isGeneratedDashboard = seerRunId !== null;
 
   const debouncedHandleResize = useDebouncedCallback(
     () => {
@@ -310,25 +329,16 @@ function DashboardInner({
           columnDepths = nextColumnDepths;
 
           // Set the position for the desktop layout
-          matchingLayout = {
-            ...defaultWidgetParams,
-            ...nextPosition,
-          };
+          matchingLayout = {...defaultWidgetParams, ...nextPosition};
 
           if (isMobile) {
             // This is a new widget and it's on the mobile page so we keep it at the bottom
             const mobileLayout = newLayouts[MOBILE].filter(({i}) => i !== gridKey);
-            mobileLayout.push({
-              ...defaultWidgetParams,
-              ...BOTTOM_MOBILE_VIEW_POSITION,
-            });
+            mobileLayout.push({...defaultWidgetParams, ...BOTTOM_MOBILE_VIEW_POSITION});
             newLayouts[MOBILE] = mobileLayout;
           }
         }
-        return {
-          ...widget,
-          layout: pickDefinedStoreKeys(matchingLayout),
-        };
+        return {...widget, layout: pickDefinedStoreKeys(matchingLayout)};
       });
 
       onUpdate(newWidgets);
@@ -357,12 +367,7 @@ function DashboardInner({
       const [nextPosition] = getNextAvailablePosition(columnDepths, 1);
       position = nextPosition;
     }
-    return {
-      ...position,
-      w: DEFAULT_WIDGET_WIDTH,
-      h: 1,
-      isResizable: false,
-    };
+    return {...position, w: DEFAULT_WIDGET_WIDTH, h: 1, isResizable: false};
   }, [layouts, isMobile]);
 
   const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
@@ -371,6 +376,14 @@ function DashboardInner({
 
   return (
     <WidgetSyncContextProvider groupName={DASHBOARD_CHART_GROUP}>
+      {defined(widgetInterval) &&
+        droppedDataDatasets.map(dataset => (
+          <DroppedDataLLMContext
+            key={dataset}
+            dataset={dataset}
+            interval={widgetInterval}
+          />
+        ))}
       <GridLayout
         breakpoints={BREAKPOINTS(theme)}
         cols={COLUMNS}

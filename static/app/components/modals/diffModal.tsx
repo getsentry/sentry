@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import type {Theme} from '@sentry/scraps/theme';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {IssueDiff} from 'sentry/components/issueDiff';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';

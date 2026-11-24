@@ -121,5 +121,5 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
             fp,
             content_type="application/json",
         )
-        response["Content-Length"] = file_obj.size
+        response["Content-Length"] = str(file_obj.size)
         return response

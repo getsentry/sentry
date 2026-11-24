@@ -26,6 +26,7 @@ from sentry.apidocs.parameters import GlobalParams, ReleaseParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.activity import Activity
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releases.exceptions import UnsafeReleaseDeletion
 from sentry.plugins.interfaces.releasehook import ReleaseHook
@@ -64,7 +65,9 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
         },
         examples=ReleaseExamples.RETRIEVE_RELEASE,
     )
-    def get(self, request: Request, project, version) -> Response[ReleaseSerializerResponse]:
+    def get(
+        self, request: Request, project: Project, version: str
+    ) -> Response[ReleaseSerializerResponse]:
         """
         Return details on an individual release.
         """
@@ -115,7 +118,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
         },
     )
     def put(
-        self, request: Request, project, version
+        self, request: Request, project: Project, version: str
     ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Update a release. This can change metadata associated with the release
@@ -194,7 +197,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, project, version) -> Response:
+    def delete(self, request: Request, project: Project, version: str) -> Response:
         """
         Permanently remove a release and all of its files.
         """

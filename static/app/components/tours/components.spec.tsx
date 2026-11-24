@@ -1,22 +1,18 @@
+import {useState} from 'react';
+import {flushSync} from 'react-dom';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {
-  TourAction,
-  TourContextProvider,
-  TourElement,
-  TourGuide,
-} from 'sentry/components/tours/components';
+import {TourAction, TourContextProvider, TourElement, TourGuide} from './components';
 import {
   emptyTourContext,
   ORDERED_TEST_TOUR,
   TestTour,
   TestTourContext,
-} from 'sentry/components/tours/testUtils';
-import {useTourReducer} from 'sentry/components/tours/tourContext';
+} from './testUtils';
+import {useTourReducer} from './tourContext';
 
-jest.mock('sentry/components/tours/tourContext', () => ({
-  useTourReducer: jest.fn(),
-}));
+jest.mock('sentry/components/tours/tourContext', () => ({useTourReducer: jest.fn()}));
 
 const mockUseTourReducer = jest.mocked(useTourReducer);
 
@@ -373,6 +369,137 @@ describe('Tour Components', () => {
       expect(guide.closest<HTMLElement>('[style*="position"]')).toHaveStyle({
         position: 'fixed',
       });
+    });
+
+    it('reports clicks outside the guide and lets them reach the page', async () => {
+      Element.prototype.scrollIntoView = jest.fn();
+      const handlePageClick = jest.fn();
+      const handleClickOutside = jest.fn();
+
+      render(
+        <div>
+          <button onClick={handlePageClick}>Page Button</button>
+          <TourGuide
+            isOpen
+            title="Test Title"
+            description="Test Description"
+            actions={<TourAction>Test Action</TourAction>}
+            onClickOutside={handleClickOutside}
+          >
+            {props => <div {...props}>Child Element</div>}
+          </TourGuide>
+        </div>
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Test Action'}));
+      expect(handleClickOutside).not.toHaveBeenCalled();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Page Button'}));
+      expect(handlePageClick).toHaveBeenCalledTimes(1);
+      expect(handleClickOutside).toHaveBeenCalledTimes(1);
+    });
+
+    it('ignores the click that opened the guide', async () => {
+      Element.prototype.scrollIntoView = jest.fn();
+      const handleClickOutside = jest.fn();
+
+      function OpenOnClick() {
+        const [isOpen, setIsOpen] = useState(false);
+        return (
+          <div>
+            {/* A browser renders the guide while the click is still on its way to
+                the document. flushSync does the same in tests. */}
+            <button onClick={() => flushSync(() => setIsOpen(true))}>Open</button>
+            <TourGuide
+              isOpen={isOpen}
+              title="Test Title"
+              description="Test Description"
+              onClickOutside={handleClickOutside}
+            >
+              {props => <div {...props}>Child Element</div>}
+            </TourGuide>
+          </div>
+        );
+      }
+      render(<OpenOnClick />);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open'}));
+      expect(await screen.findByText('Test Title')).toBeInTheDocument();
+      expect(handleClickOutside).not.toHaveBeenCalled();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open'}));
+      expect(handleClickOutside).toHaveBeenCalledTimes(1);
+    });
+
+    it('ignores keyboard clicks outside the guide', async () => {
+      Element.prototype.scrollIntoView = jest.fn();
+      const handleClickOutside = jest.fn();
+
+      render(
+        <div>
+          <button>Page Button</button>
+          <TourGuide
+            isOpen
+            title="Test Title"
+            description="Test Description"
+            onClickOutside={handleClickOutside}
+          >
+            {props => <div {...props}>Child Element</div>}
+          </TourGuide>
+        </div>
+      );
+
+      expect(await screen.findByText('Test Title')).toBeInTheDocument();
+      screen.getByRole('button', {name: 'Page Button'}).focus();
+      await userEvent.keyboard('{Enter}');
+      expect(handleClickOutside).not.toHaveBeenCalled();
+    });
+
+    it('reports an outside click when the page re-renders during the press', async () => {
+      Element.prototype.scrollIntoView = jest.fn();
+      const handleClickOutside = jest.fn();
+
+      function RerenderOnPress() {
+        const [, setPressCount] = useState(0);
+        return (
+          <div>
+            <button onPointerDown={() => setPressCount(count => count + 1)}>
+              Page Button
+            </button>
+            <TourGuide
+              isOpen
+              title="Test Title"
+              description="Test Description"
+              onClickOutside={() => handleClickOutside()}
+            >
+              {props => <div {...props}>Child Element</div>}
+            </TourGuide>
+          </div>
+        );
+      }
+      render(<RerenderOnPress />);
+
+      expect(await screen.findByText('Test Title')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Page Button'}));
+      expect(handleClickOutside).toHaveBeenCalledTimes(1);
+    });
+
+    it('blocks clicks outside a guide without onClickOutside', async () => {
+      Element.prototype.scrollIntoView = jest.fn();
+      const handlePageClick = jest.fn();
+
+      render(
+        <div>
+          <button onClick={handlePageClick}>Page Button</button>
+          <TourGuide isOpen title="Test Title" description="Test Description">
+            {props => <div {...props}>Child Element</div>}
+          </TourGuide>
+        </div>
+      );
+
+      expect(await screen.findByText('Test Title')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Page Button'}));
+      expect(handlePageClick).not.toHaveBeenCalled();
     });
   });
 });

@@ -6,11 +6,11 @@ import {useTheme} from '@emotion/react';
 import type {GridComponentOption} from 'echarts';
 import set from 'lodash/set';
 
-import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 import {BarChart, type BarChartProps, type BarChartSeries} from './barChart';
+import type {BaseChartProps} from './baseChart';
 
 function makeBaseChartOptions({
   animateBars,
@@ -55,9 +55,7 @@ function makeBaseChartOptions({
           },
     yAxis: {
       max: yAxisMax ?? getYAxisMaxFn(height),
-      splitLine: {
-        show: false,
-      },
+      splitLine: {show: false},
       ...yAxisOptions,
     },
     grid: grid ?? {
@@ -66,44 +64,24 @@ function makeBaseChartOptions({
       top: labelYAxisExtents || showMarkLineLabel ? 6 : 0,
       bottom: labelYAxisExtents || showMarkLineLabel ? 4 : 0,
       left: markLineLabelSide === 'left' ? (showMarkLineLabel ? 35 : 4) : 0,
-      right: markLineLabelSide === 'right' ? (showMarkLineLabel ? 25 : 4) : 0,
+      right: markLineLabelSide === 'right' ? (showMarkLineLabel ? 35 : 4) : 0,
     },
     xAxis: {
       axisLine: showXAxisLine
         ? {
             show: true,
-            lineStyle: {
-              color: xAxisLineColor,
-            },
+            lineStyle: {color: xAxisLineColor},
             onZero: false, // Enables offset for x-axis line
           }
         : {show: false},
-      axisTick: {
-        show: false,
-        alignWithLabel: true,
-      },
+      axisTick: {show: false, alignWithLabel: true},
       offset: showXAxisLine ? -1 : 0,
-      axisLabel: {
-        show: false,
-      },
-      axisPointer: {
-        type: 'line' as const,
-        label: {
-          show: false,
-        },
-        lineStyle: {
-          width: 0,
-        },
-      },
+      axisLabel: {show: false},
+      axisPointer: {type: 'line' as const, label: {show: false}, lineStyle: {width: 0}},
     },
     options: animateBars
-      ? {
-          animation: true,
-          animationEasing: 'circularOut',
-        }
-      : {
-          animation: false,
-        },
+      ? {animation: true, animationEasing: 'circularOut'}
+      : {animation: false},
   };
 }
 
@@ -123,11 +101,7 @@ function makeLabelYAxisOptions(tooltipFormatter: Props['tooltipFormatter']) {
   };
 }
 
-const noLabelYAxisOptions = {
-  axisLabel: {
-    show: false,
-  },
-};
+const noLabelYAxisOptions = {axisLabel: {show: false}};
 
 interface Props extends Omit<BaseChartProps, 'css' | 'colors' | 'series' | 'height'> {
   /**
@@ -259,12 +233,7 @@ function updateDataItemBorderRadius(
     const isLastStackedItem = lastNonZeroIndex === serieIndex;
 
     if (allAreZero || isLastStackedItem) {
-      return {
-        ...dataItem,
-        itemStyle: {
-          borderRadius: [1, 1, 0, 0],
-        },
-      };
+      return {...dataItem, itemStyle: {borderRadius: [1, 1, 0, 0]}};
     }
 
     return dataItem;
@@ -313,11 +282,7 @@ export function MiniBarChart({
 
     for (let i = 0; i < series.length; i++) {
       const original = series[i]!;
-      const updated: BarChartSeries = {
-        ...original,
-        cursor: 'normal',
-        type: 'bar',
-      };
+      const updated: BarChartSeries = {...original, cursor: 'normal', type: 'bar'};
 
       if (i === 0) {
         updated.barMinHeight = 1;

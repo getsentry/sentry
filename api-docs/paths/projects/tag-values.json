@@ -2,7 +2,8 @@
   "get": {
     "tags": ["Projects"],
     "description": "Return a list of values associated with this key.  The `query`\nparameter can be used to to perform a \"contains\" match on\nvalues. \n\nWhen [paginated](/api/pagination) can return at most 1000 values.",
-    "operationId": "List a Tag's Values",
+    "operationId": "listProjectTagValues",
+    "summary": "List a Tag's Values",
     "parameters": [
       {
         "name": "organization_id_or_slug",
@@ -47,7 +48,8 @@
                 "required": ["name"],
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The display label of the tag value. For the `sentry:user` tag, the `id:`, `email:`, `username:` or `ip:` prefix is removed."
                   }
                 }
               }

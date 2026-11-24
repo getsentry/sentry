@@ -4,9 +4,7 @@ from unittest.mock import MagicMock, patch
 from django.utils import timezone as django_timezone
 
 from fixtures.page_objects.issue_list import IssueListPage
-from sentry.models.assistant import AssistantActivity
 from sentry.models.group import GroupStatus
-from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
@@ -41,7 +39,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        add_group_to_inbox(self.event_a.group, GroupInboxReason.NEW)
+        assert self.event_a.group is not None
         self.event_b = self.store_event(
             data={
                 "event_id": "b" * 32,
@@ -51,7 +49,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        add_group_to_inbox(self.event_b.group, GroupInboxReason.NEW)
+        assert self.event_b.group is not None
 
     def test_with_onboarding(self) -> None:
         self.project.update(first_event=None)
@@ -80,6 +78,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()
         group1 = self.event_a.group
+        assert group1 is not None
 
         self.page.visit_issue_list(self.org.slug)
         self.page.wait_for_stream()
@@ -100,6 +99,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.create_issues()
 
         group1 = self.event_a.group
+        assert group1 is not None
 
         self.page.visit_issue_list(self.org.slug)
         self.page.wait_for_stream()
@@ -120,6 +120,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.create_issues()
 
         group1 = self.event_a.group
+        assert group1 is not None
 
         self.page.visit_issue_list(self.org.slug)
         self.page.wait_for_stream()
@@ -140,7 +141,9 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.create_issues()
 
         group1 = self.event_a.group
+        assert group1 is not None
         group2 = self.event_b.group
+        assert group2 is not None
 
         self.page.visit_issue_list(self.org.slug)
         self.page.wait_for_stream()
@@ -155,32 +158,4 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.page.wait_for_issue_count(1)
         groups = self.browser.elements('[data-test-id="event-issue-header"]')
 
-        assert len(groups) == 1
-
-    @patch("django.utils.timezone.now")
-    def test_inbox_results(self, mock_now: MagicMock) -> None:
-        mock_now.return_value = datetime.now(timezone.utc)
-        self.create_issues()
-        # Disable for_review_guide
-        AssistantActivity.objects.create(
-            user=self.user, guide_id=9, viewed_ts=django_timezone.now()
-        )
-
-        self.page.visit_issue_list(
-            self.org.slug,
-            query="?query=is%3Aunresolved+is%3Afor_review+assigned_or_suggested%3A[me, none]",
-        )
-        self.page.wait_for_stream()
-        groups = self.browser.elements('[data-test-id="event-issue-header"]')
-        assert len(groups) == 2
-
-        self.page.select_issue(1)
-        self.page.mark_reviewed_issues()
-
-        self.page.visit_issue_list(
-            self.org.slug,
-            query="?query=is%3Aunresolved+is%3Afor_review+assigned_or_suggested%3A[me, none]",
-        )
-        self.page.wait_for_stream()
-        groups = self.browser.elements('[data-test-id="event-issue-header"]')
         assert len(groups) == 1

@@ -121,7 +121,7 @@ def sync_coding_agent_status(
             handoff.status = status.value
             update_fields = ["status", "date_updated"]
             if agent_url is not None:
-                extras: SeerRunCodingAgentHandoffExtras = {
+                extras = {
                     **handoff.extras,
                     "agent_url": agent_url,
                 }

@@ -1,6 +1,6 @@
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {getReturnPath, useCaptureReturnPath} from 'sentry/utils/useReturnPath';
+import {getReturnPath, useCaptureReturnPath} from './useReturnPath';
 
 const KEY = 'test-return-path';
 const options = {key: KEY, excludePrefix: '/settings'};

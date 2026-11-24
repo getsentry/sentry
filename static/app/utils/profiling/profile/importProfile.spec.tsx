@@ -1,9 +1,8 @@
-import {ContinuousProfile} from 'sentry/utils/profiling/profile/continuousProfile';
-import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
-import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
-import {JSSelfProfile} from 'sentry/utils/profiling/profile/jsSelfProfile';
-import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
-
+import {ContinuousProfile} from './continuousProfile';
+import {EventedProfile} from './eventedProfile';
+import {importProfile} from './importProfile';
+import {JSSelfProfile} from './jsSelfProfile';
+import {SampledProfile} from './sampledProfile';
 import {SentrySampledProfile} from './sentrySampledProfile';
 import {makeSentryContinuousProfile, makeSentrySampledProfile} from './testUtils';
 
@@ -25,9 +24,7 @@ describe('importProfile', () => {
         profileID: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         profiles: [eventedProfile],
         projectID: 1,
-        shared: {
-          frames: [],
-        },
+        shared: {frames: []},
         metadata: {} as Profiling.Schema['metadata'],
       },
       '',
@@ -55,9 +52,7 @@ describe('importProfile', () => {
         profileID: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         profiles: [sampledProfile],
         projectID: 1,
-        shared: {
-          frames: [],
-        },
+        shared: {frames: []},
         metadata: {} as Profiling.Schema['metadata'],
       },
       '',
@@ -72,20 +67,10 @@ describe('importProfile', () => {
       resources: ['app.js', 'vendor.js'],
       frames: [{name: 'ReactDOM.render', line: 1, column: 1, resourceId: 0}],
       samples: [
-        {
-          timestamp: 0,
-          stackId: 0,
-        },
-        {
-          timestamp: 1000,
-          stackId: 0,
-        },
+        {timestamp: 0, stackId: 0},
+        {timestamp: 1000, stackId: 0},
       ],
-      stacks: [
-        {
-          frameId: 0,
-        },
-      ],
+      stacks: [{frameId: 0}],
     };
 
     const imported = importProfile(
@@ -95,9 +80,7 @@ describe('importProfile', () => {
         profiles: [jsSelfProfile],
         projectID: 1,
         metadata: {} as Profiling.Schema['metadata'],
-        shared: {
-          frames: [],
-        },
+        shared: {frames: []},
       },
       '',
       '',
@@ -112,20 +95,10 @@ describe('importProfile', () => {
       resources: ['app.js', 'vendor.js'],
       frames: [{name: 'ReactDOM.render', line: 1, column: 1, resourceId: 0}],
       samples: [
-        {
-          timestamp: 0,
-          stackId: 0,
-        },
-        {
-          timestamp: 1000,
-          stackId: 0,
-        },
+        {timestamp: 0, stackId: 0},
+        {timestamp: 1000, stackId: 0},
       ],
-      stacks: [
-        {
-          frameId: 0,
-        },
-      ],
+      stacks: [{frameId: 0}],
     };
 
     const imported = importProfile(jsSelfProfile, 'profile', '', 'flamechart');

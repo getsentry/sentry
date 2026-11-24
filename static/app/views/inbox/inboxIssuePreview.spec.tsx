@@ -3,17 +3,23 @@ import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ReleaseFixture} from 'sentry-fixture/release';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupStatus} from 'sentry/types/group';
-import {InboxIssuePreview} from 'sentry/views/inbox/inboxIssuePreview';
+
+import {InboxIssuePreview} from './inboxIssuePreview';
 
 describe('InboxIssuePreview', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
-  const group = GroupFixture({project});
+  const group = GroupFixture({
+    project,
+    firstSeen: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    lastSeen: new Date(Date.now() - 60 * 1000).toISOString(),
+  });
   const event = EventFixture({id: 'event-id', projectID: project.id});
 
   beforeEach(() => {
@@ -34,9 +40,37 @@ describe('InboxIssuePreview', () => {
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
       body: {owners: [], rules: []},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
+      body: {firstRelease: null, lastRelease: null},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-components/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-installations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/related/`,
+      body: {data: [], investigations: [], meta: {types: []}},
+    });
   });
 
-  it('shows the issue header and activity', async () => {
+  it('shows the issue header and overview', async () => {
     render(<InboxIssuePreview groupId={group.id} />, {organization});
 
     expect(
@@ -45,17 +79,121 @@ describe('InboxIssuePreview', () => {
     expect(screen.getByLabelText('327,482 events')).toBeInTheDocument();
     expect(screen.getByLabelText('35,097 affected users')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Archive'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Modify issue priority'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Modify issue assignee'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
+    expect(screen.getByRole('tab', {name: 'Overview'})).toHaveAttribute(
       'aria-selected',
       'true'
     );
+    expect(screen.getByRole('heading', {name: 'Issue timeline'})).toBeInTheDocument();
     expect(screen.getByRole('combobox', {name: 'Add a comment'})).toBeInTheDocument();
+
+    const sidebar = screen.getByRole('complementary', {name: 'Issue overview'});
+    expect(
+      within(sidebar).getByRole('button', {name: 'Modify issue assignee'})
+    ).toBeInTheDocument();
+    expect(
+      within(sidebar).getByRole('button', {name: 'Modify issue priority'})
+    ).toBeInTheDocument();
+    expect(within(sidebar).getByRole('heading', {name: 'Last seen'})).toBeInTheDocument();
+    expect(
+      within(sidebar).getByRole('heading', {name: 'First seen'})
+    ).toBeInTheDocument();
+    expect(sidebar).toHaveTextContent(/Last seen\s*1min ago\s*First seen\s*2d ago/);
+    expect(sidebar).not.toHaveTextContent('in release');
+    expect(await within(sidebar).findByText('No related resources')).toBeInTheDocument();
+    expect(
+      await within(sidebar).findByRole('heading', {name: 'External links', level: 3})
+    ).toBeInTheDocument();
+    expect(
+      within(sidebar).queryByRole('button', {name: 'Collapse Section'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('pairs each timestamp with its release', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
+      body: {
+        firstRelease: ReleaseFixture({version: '1.0.0'}),
+        lastRelease: ReleaseFixture({version: '1.1.0'}),
+      },
+    });
+
+    render(<InboxIssuePreview groupId={group.id} />, {organization});
+
+    const sidebar = await screen.findByRole('complementary', {name: 'Issue overview'});
+    expect(await within(sidebar).findByRole('link', {name: '1.1.0'})).toBeInTheDocument();
+    expect(sidebar).toHaveTextContent(/Last seen\s*1min ago\s*in release\s*1\.1\.0/);
+    expect(sidebar).toHaveTextContent(/First seen\s*2d ago\s*in release\s*1\.0\.0/);
+  });
+
+  it('links to the linked investigation and the top related issues', async () => {
+    const relatedIssues = ['11', '12', '13'].map(id => ({
+      issue: GroupFixture({id, shortId: `CHECKOUT-${id}`, title: `Checkout error ${id}`}),
+      relations: [{type: 'same_trace'}],
+    }));
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/related/`,
+      body: {
+        data: relatedIssues,
+        investigations: [
+          {
+            investigation: {id: '5172', title: 'Payment timeouts'},
+            hypothesisStatement: 'Payment retries exhaust the connection pool',
+            reason: 'Its timeouts start with the deploy.',
+          },
+        ],
+        meta: {
+          types: [
+            {type: 'same_trace', status: 'ok'},
+            {type: 'investigations', status: 'ok'},
+          ],
+        },
+      },
+    });
+
+    render(<InboxIssuePreview groupId={group.id} />, {organization});
+
+    const sidebar = await screen.findByRole('complementary', {name: 'Issue overview'});
+    expect(
+      await within(sidebar).findByRole('link', {name: 'Payment timeouts'})
+    ).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/seer/investigations/5172/`
+    );
+    expect(
+      within(sidebar).getByRole('link', {name: 'CHECKOUT-11 – Checkout error 11'})
+    ).toHaveAttribute('href', `/organizations/${organization.slug}/issues/11/`);
+    expect(
+      within(sidebar).getByRole('link', {name: 'CHECKOUT-12 – Checkout error 12'})
+    ).toBeInTheDocument();
+    // The investigation takes one of the three rows
+    expect(
+      within(sidebar).queryByRole('link', {name: 'CHECKOUT-13 – Checkout error 13'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows an error when every related issue type that applies failed', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/related/`,
+      body: {
+        data: [],
+        investigations: [],
+        meta: {
+          types: [
+            {type: 'similar_stacktrace', status: 'unavailable'},
+            {type: 'same_trace', status: 'unavailable'},
+            {type: 'contributing', status: 'not_applicable'},
+            {type: 'investigations', status: 'ok'},
+          ],
+        },
+      },
+    });
+
+    render(<InboxIssuePreview groupId={group.id} />, {organization});
+
+    const sidebar = await screen.findByRole('complementary', {name: 'Issue overview'});
+    expect(
+      await within(sidebar).findByText('Unable to load related resources')
+    ).toBeInTheDocument();
   });
 
   it('resolves the issue from the header actions', async () => {

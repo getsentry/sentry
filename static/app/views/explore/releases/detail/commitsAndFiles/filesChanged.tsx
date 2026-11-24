@@ -15,6 +15,7 @@ import type {Repository} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -116,7 +117,7 @@ function FilesChangedList({organization, releaseRepos, projectSlug}: FilesChange
                   </Panel>
                 );
               })}
-              <Pagination pageLinks={fileListPageLinks} />
+              <Pagination {...getPaginationProps(fileListPageLinks)} />
             </Fragment>
           ) : (
             <EmptyState>
@@ -143,9 +144,7 @@ function FilesChanged() {
     isLoading: isLoadingRepositories,
     isError: isRepositoriesError,
     refetch: refetchRepositories,
-  } = useRepositories({
-    orgSlug: organization.slug,
-  });
+  } = useRepositories({orgSlug: organization.slug});
   const {
     data: releaseRepos,
     isLoading: isLoadingReleaseRepos,
@@ -155,9 +154,7 @@ function FilesChanged() {
     orgSlug: organization.slug,
     projectSlug: releaseContext.project.slug,
     release: params.release,
-    options: {
-      enabled: !!releaseContext.project.slug,
-    },
+    options: {enabled: !!releaseContext.project.slug},
   });
 
   if (isLoadingReleaseRepos || isLoadingRepositories) {

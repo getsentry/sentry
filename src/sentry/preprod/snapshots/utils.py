@@ -15,7 +15,7 @@ def find_base_snapshot_artifact(
     base_repo_name: str,
     project_id: int,
     app_id: str | None,
-    artifact_type: str | None,
+    artifact_type: int | None,
     build_configuration: PreprodBuildConfiguration | None,
 ) -> PreprodArtifact | None:
     qs = PreprodArtifact.objects.filter(

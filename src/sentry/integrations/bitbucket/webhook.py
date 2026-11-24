@@ -5,7 +5,7 @@ import logging
 from abc import ABC
 from collections.abc import Mapping
 from datetime import timezone
-from typing import Any
+from typing import Any, cast
 
 import orjson
 from dateutil.parser import parse as parse_date
@@ -116,12 +116,14 @@ class PushEventWebhook(BitbucketWebhook):
     def event_type(self) -> IntegrationWebhookEventType:
         return IntegrationWebhookEventType.PUSH
 
-    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
+    def __call__(self, event: Mapping[str, Any], **kwargs: object) -> None:
         authors = {}
 
-        if not (repo := kwargs.get("repo")):
+        repo = cast(Repository, kwargs.get("repo"))
+        if not repo:
             raise ValueError("Missing repo")
-        if not (organization := kwargs.get("organization")):
+        organization = cast(Organization, kwargs.get("organization"))
+        if not organization:
             raise ValueError("Missing organization")
 
         # while we're here, make sure repo data is up to date
@@ -170,11 +172,11 @@ class BitbucketWebhookEndpoint(Endpoint):
     permission_classes = ()
     _handlers: dict[str, type[BitbucketWebhook]] = {"repo:push": PushEventWebhook}
 
-    def get_handler(self, event_type) -> type[BitbucketWebhook] | None:
+    def get_handler(self, event_type: str) -> type[BitbucketWebhook] | None:
         return self._handlers.get(event_type)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 

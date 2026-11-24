@@ -118,11 +118,7 @@ type TickInterval = {duration: number; step: number; unit: TimeAxisUnit};
  *   ...
  */
 const SORTED_INTERVALS: TickInterval[] = INTERVAL_LEVELS.flatMap(({unit, steps}) =>
-  steps.map(step => ({
-    unit,
-    step,
-    duration: AXIS_UNIT_DURATIONS[unit] * step,
-  }))
+  steps.map(step => ({unit, step, duration: AXIS_UNIT_DURATIONS[unit] * step}))
 ).sort((a, b) => a.duration - b.duration);
 
 /**

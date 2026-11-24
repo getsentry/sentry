@@ -2,7 +2,6 @@ from collections.abc import Generator, Mapping
 from dataclasses import dataclass
 from typing import Any, Union
 
-import rb
 from redis import StrictRedis
 from sentry_redis_tools.clients import RedisCluster
 
@@ -31,8 +30,8 @@ class NodeInfo:
 
 # Based on configuration, this could be:
 # - a `rediscluster` Cluster (actually `RetryingRedisCluster`)
-# - a `rb.Cluster` (client side routing cluster client)
-Cluster = Union[RedisCluster, rb.Cluster, StrictRedis]
+# - a `StrictRedis` client for a single host
+Cluster = Union[RedisCluster, "StrictRedis[str]", "StrictRedis[bytes]"]
 
 
 def get_memory_usage(node_id: str, info: Mapping[str, Any]) -> ServiceMemory:
@@ -53,10 +52,9 @@ def get_host_port_info(node_id: str, cluster: Cluster) -> NodeInfo:
             # RedisCluster node mapping
             node = cluster.connection_pool.nodes.nodes.get(node_id)
             return NodeInfo(node["host"], node["port"])
-        elif isinstance(cluster, rb.Cluster):
-            # rb.Cluster node mapping
-            node = cluster.hosts[node_id]
-            return NodeInfo(node.host, node.port)
+        elif isinstance(cluster, StrictRedis):
+            kwargs = cluster.connection_pool.connection_kwargs
+            return NodeInfo(kwargs.get("host"), kwargs.get("port"))
     except Exception:
         pass
 
@@ -70,13 +68,8 @@ def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory]:
     if isinstance(cluster, RedisCluster):
         # `RedisCluster` returns these as a dictionary, with the node-id as key
         cluster_info = cluster.info()
-    elif isinstance(cluster, StrictRedis):
-        cluster_info = {"main": cluster.info()}
     else:
-        # rb.Cluster returns a promise with a dictionary with a _local_ node-id as key
-        with cluster.all() as client:
-            promise = client.info()
-        cluster_info = promise.value
+        cluster_info = {"main": cluster.info()}
 
     for node_id, info in cluster_info.items():
         # we only care about the memory level of leader nodes, not followers

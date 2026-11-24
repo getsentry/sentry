@@ -1,8 +1,10 @@
 import {Fragment} from 'react';
-import {mutationOptions, useQueryClient} from '@tanstack/react-query';
+import {useQuery, mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
+import {AutoSaveForm, DisplayField, FieldGroup, FormSearch} from '@sentry/scraps/form';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {updateUser} from 'sentry/actionCreators/account';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
@@ -11,13 +13,15 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {languages} from 'sentry/data/languages';
 import {timezoneOptions} from 'sentry/data/timezones';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {StacktraceOrder, type User} from 'sentry/types/user';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 // The avatar endpoint ("/users/me/avatar/") returns a User-like type without `options` and other properties that are present in User
@@ -38,7 +42,6 @@ export type ChangeAvatarUser = Omit<
   >;
 
 const USER_ENDPOINT = getApiUrl('/users/$userId/', {path: {userId: 'me'}});
-const USER_ENDPOINT_QUERY_KEY: ApiQueryKey = [USER_ENDPOINT];
 
 const accountDetailsSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -49,8 +52,10 @@ const accountDetailsSchema = z.object({
 const languageCodes = languages.map(([code]) => code);
 type Language = (typeof languageCodes)[number];
 
+export const themeSchema = z.enum(['light', 'dark', 'system']);
+
 const preferencesSchema = z.object({
-  theme: z.string(),
+  theme: themeSchema,
   language: z.enum(languageCodes),
   timezone: z.string(),
   stacktraceOrder: z.string(),
@@ -60,7 +65,7 @@ const preferencesSchema = z.object({
 
 type Preferences = z.infer<typeof preferencesSchema>;
 
-const THEME_OPTIONS = [
+export const THEME_OPTIONS: Array<{label: string; value: User['options']['theme']}> = [
   {value: 'light', label: t('Light')},
   {value: 'dark', label: t('Dark')},
   {value: 'system', label: t('Default to system')},
@@ -80,16 +85,19 @@ const DEFAULT_ISSUE_EVENT_OPTIONS = [
   {value: 'oldest', label: t('Oldest')},
 ];
 
+const userOptions = apiOptions.as<User>()('/users/$userId/', {
+  path: {userId: 'me'},
+  staleTime: 0,
+});
+
 function AccountDetails() {
   const settingsV3 = useSettingsV3();
+  const organization = useOrganization({allowNull: true});
+  // The theme field moves to the Appearance page when theme variants are on
+  const hasThemeVariants = organization?.features.includes('theme-variants') ?? false;
   const title = settingsV3 ? t('General') : t('Account Details');
   const queryClient = useQueryClient();
-  const {
-    data: user,
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<User>(USER_ENDPOINT_QUERY_KEY, {staleTime: 0});
+  const {data: user, isPending, isError, refetch} = useQuery(userOptions);
 
   if (isPending) {
     return (
@@ -112,25 +120,24 @@ function AccountDetails() {
     // otherwise it will flick.
     // Use an updater function to merge with existing data because the avatar
     // endpoint returns a partial `User` without `options` and other fields.
-    setApiQueryData<User>(queryClient, USER_ENDPOINT_QUERY_KEY, previousData => {
-      if (!previousData) {
-        return userData as User;
+    queryClient.setQueryData(userOptions.queryKey, response => {
+      if (!response) {
+        return {json: userData as User, headers: {}};
       }
       return {
-        ...previousData,
-        ...userData,
-        options: {...previousData.options, ...userData.options},
+        ...response,
+        json: {
+          ...response.json,
+          ...userData,
+          options: {...response.json.options, ...userData.options},
+        },
       };
     });
   };
 
   const userMutationOptions = mutationOptions({
     mutationFn: (data: Partial<User>) => {
-      return fetchMutation<User>({
-        method: 'PUT',
-        url: USER_ENDPOINT,
-        data,
-      });
+      return fetchMutation<User>({method: 'PUT', url: USER_ENDPOINT, data});
     },
     onSuccess: data => {
       handleSubmitSuccess(data);
@@ -166,7 +173,9 @@ function AccountDetails() {
 
   return (
     <Fragment>
-      <SentryDocumentTitle title={t('Account Details')} />
+      <SentryDocumentTitle
+        title={settingsV3 ? getSettingsScopeTitle('account') : t('Account Details')}
+      />
       <SettingsPageHeader title={title} />
       <FormSearch route="/settings/account/details/">
         <FieldGroup title={t('Account Details')}>
@@ -231,27 +240,38 @@ function AccountDetails() {
         </FieldGroup>
 
         <FieldGroup title={t('Preferences')}>
-          <AutoSaveForm
-            name="theme"
-            schema={preferencesSchema}
-            initialValue={user.options.theme}
-            mutationOptions={themeMutationOptions}
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Theme')}
-                hintText={t(
-                  "Select your theme preference. It can be synced to your system's theme, always light mode, or always dark mode."
-                )}
-              >
-                <field.Select
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  options={THEME_OPTIONS}
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveForm>
+          {hasThemeVariants ? (
+            // We'll eventually remove this link once people know where to find theme settings
+            <DisplayField.Row label={t('Theme')}>
+              <Text>
+                {tct('Theme settings moved to [link:Appearance].', {
+                  link: <Link to="/settings/account/appearance/" />,
+                })}
+              </Text>
+            </DisplayField.Row>
+          ) : (
+            <AutoSaveForm
+              name="theme"
+              schema={preferencesSchema}
+              initialValue={user.options.theme}
+              mutationOptions={themeMutationOptions}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Theme')}
+                  hintText={t(
+                    "Select your theme preference. It can be synced to your system's theme, always light mode, or always dark mode."
+                  )}
+                >
+                  <field.Select
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    options={THEME_OPTIONS}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveForm>
+          )}
 
           <AutoSaveForm
             name="language"

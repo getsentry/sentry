@@ -21,7 +21,8 @@ import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
-import {ReportUri} from 'sentry/views/settings/projectSecurityHeaders/reportUri';
+
+import {ReportUri} from './reportUri';
 
 function ProjectSecurityHeaders() {
   const organization = useOrganization();
@@ -69,9 +70,7 @@ function ProjectSecurityHeaders() {
           <TextBlock style={{marginBottom: 20}}>
             {tct(
               'In addition to the [key_param] parameter, you may also pass the following within the querystring for the report URI:',
-              {
-                key_param: <code>sentry_key</code>,
-              }
+              {key_param: <code>sentry_key</code>}
             )}
           </TextBlock>
           <DescriptionList striped>

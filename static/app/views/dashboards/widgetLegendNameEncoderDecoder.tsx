@@ -3,7 +3,8 @@ import {
   parseFunction,
   prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
-import type {Widget} from 'sentry/views/dashboards/types';
+
+import type {Widget} from './types';
 
 const SERIES_NAME_DELIMITER = '|~|';
 

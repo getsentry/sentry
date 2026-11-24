@@ -4,8 +4,9 @@ import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+
+import {useGroupId} from './groupIdContext';
+import {Tab, TabPaths} from './types';
 
 function getCurrentTab({
   matches,
@@ -36,10 +37,7 @@ function getCurrentRouteInfo({
   matches: UIMatch[];
   organization: Organization;
   params: Record<string, string | undefined>;
-}): {
-  baseUrl: string;
-  currentTab: Tab;
-} {
+}): {baseUrl: string; currentTab: Tab} {
   const currentTab = getCurrentTab({matches, params});
 
   const baseUrl = normalizeUrl(
@@ -62,16 +60,9 @@ export function useCurrentTab(): Tab {
   return getCurrentTab({matches, params});
 }
 
-export function useGroupDetailsRoute(): {
-  baseUrl: string;
-  currentTab: Tab;
-} {
+export function useGroupDetailsRoute(): {baseUrl: string; currentTab: Tab} {
   const organization = useOrganization();
-  const params = useParams<{
-    groupId: string;
-    eventId?: string;
-    tagKey?: string;
-  }>();
+  const params = useParams<{eventId?: string; tagKey?: string}>();
   const matches = useMatches();
   const groupId = useGroupId();
   return getCurrentRouteInfo({

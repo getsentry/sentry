@@ -9,13 +9,11 @@ import {Text} from '@sentry/scraps/text';
 import type {Theme} from '@sentry/scraps/theme';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import type {
-  ExternalIssueAction,
-  ExternalIssueIntegration,
-} from 'sentry/components/group/externalIssuesList/hooks/types';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import type {ExternalIssueAction, ExternalIssueIntegration} from './hooks/types';
 
 const ISSUE_TRACKER_MENU_MAX_HEIGHT = 300;
 

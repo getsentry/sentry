@@ -1,9 +1,14 @@
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TypedDict, cast
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.data_export.base import ExportQueryType, ExportStatus
 from sentry.data_export.models import ExportedData
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
 
@@ -15,7 +20,7 @@ class ExportedDataUserResponse(TypedDict):
 
 class ExportedDataQueryResponse(TypedDict):
     type: str
-    info: dict[str, Any]
+    info: dict[str, object]
 
 
 class ExportedDataResponse(TypedDict):
@@ -33,8 +38,13 @@ class ExportedDataResponse(TypedDict):
 
 @register(ExportedData)
 class ExportedDataSerializer(Serializer):
-    def get_attrs(self, item_list, user, **kwargs):
-        attrs = {}
+    def get_attrs(
+        self,
+        item_list: Sequence[ExportedData],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[ExportedData, dict[str, object]]:
+        attrs: dict[ExportedData, dict[str, object]] = {}
         serialized_users = {
             u["id"]: u
             for u in user_service.serialize_many(
@@ -55,7 +65,13 @@ class ExportedDataSerializer(Serializer):
                 attrs[item] = {}
         return attrs
 
-    def serialize(self, obj, attrs, user, **kwargs) -> ExportedDataResponse:
+    def serialize(
+        self,
+        obj: ExportedData,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> ExportedDataResponse:
         file = obj._get_file()
         if file is None:
             checksum = None
@@ -66,7 +82,7 @@ class ExportedDataSerializer(Serializer):
 
         return {
             "id": obj.id,
-            "user": attrs.get("user"),
+            "user": cast(ExportedDataUserResponse | None, attrs.get("user")),
             "dateCreated": obj.date_added,
             "dateFinished": obj.date_finished,
             "dateExpired": obj.date_expired,

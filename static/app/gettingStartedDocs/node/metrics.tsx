@@ -6,8 +6,9 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {tct} from 'sentry/locale';
+
+import {getInstallCodeBlock} from './utils';
 
 export const getNodeMetricsOnboarding = <
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
@@ -30,10 +31,7 @@ export const getNodeMetricsOnboarding = <
             type: 'text',
             text: tct(
               'Add the Sentry SDK as a dependency. The minimum version of [packageName] that supports metrics is [code:10.25.0].',
-              {
-                code: <code />,
-                packageName: <code>{packageName}</code>,
-              }
+              {code: <code />, packageName: <code>{packageName}</code>}
             ),
           },
           getInstallCodeBlock(params, {packageName}),

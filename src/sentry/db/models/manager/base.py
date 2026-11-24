@@ -75,7 +75,7 @@ class BaseManager(_base_manager_base[M]):
     lookup_handlers = {"iexact": lambda x: x.upper()}
     use_for_related_fields = True
 
-    _queryset_class = BaseQuerySet
+    _queryset_class: type[BaseQuerySet[M, Any]] = BaseQuerySet
 
     def __init__(
         self,
@@ -616,7 +616,7 @@ def create_silo_limited_copy(self: BaseManager[M], limit: SiloLimit) -> BaseMana
 
     # Dynamically extend and replace the queryset class. This will affect all
     # queryset objects later returned from the new manager.
-    qs_cls = manager_instance._queryset_class
+    qs_cls: type[object] = manager_instance._queryset_class
     assert issubclass(qs_cls, BaseQuerySet) or issubclass(qs_cls, models.QuerySet)
     queryset_overrides = {
         "bulk_create": limit.create_override(qs_cls.bulk_create),

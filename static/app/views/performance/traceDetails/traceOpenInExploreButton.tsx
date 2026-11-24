@@ -2,8 +2,9 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {t} from 'sentry/locale';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import type {TraceWaterfallSource} from 'sentry/views/performance/traceDetails/traceWaterfall';
-import {useTraceExploreTarget} from 'sentry/views/performance/traceDetails/useTraceExploreTarget';
+
+import type {TraceWaterfallSource} from './traceWaterfall';
+import {useTraceExploreTarget} from './useTraceExploreTarget';
 
 type Props = {
   source: TraceWaterfallSource;

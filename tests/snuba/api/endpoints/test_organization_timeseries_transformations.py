@@ -1,7 +1,10 @@
-from datetime import timedelta
+from collections.abc import Sequence
+from datetime import datetime, timedelta
+from typing import Any
 
 import pytest
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
@@ -14,14 +17,32 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 def build_expected_transformed_timeseries(
-    *args,
-    filled=None,
-    smoothed=None,
-    comparison_filled=None,
-    comparison_smoothed=None,
-    **kwargs,
-):
-    expected = build_expected_timeseries(*args, **kwargs)
+    start: datetime,
+    interval: int,
+    expected_values: object,
+    expected_comparison: object = None,
+    ignore_accuracy: bool = False,
+    sample_count: Sequence[object] | None = None,
+    sample_rate: Sequence[object] | None = None,
+    confidence: Sequence[object] | None = None,
+    *,
+    filled: Sequence[bool] | None = None,
+    smoothed: Sequence[bool] | None = None,
+    comparison_filled: Sequence[bool] | None = None,
+    comparison_smoothed: Sequence[bool] | None = None,
+) -> list[dict[str, object]]:
+    assert isinstance(expected_values, Sequence)
+    assert expected_comparison is None or isinstance(expected_comparison, Sequence)
+    expected = build_expected_timeseries(
+        start,
+        interval,
+        expected_values,
+        expected_comparison,
+        ignore_accuracy,
+        sample_count,
+        sample_rate,
+        confidence,
+    )
     for index, point in enumerate(expected):
         point["filled"] = filled[index] if filled is not None else False
         point["smoothed"] = smoothed[index] if smoothed is not None else False
@@ -49,7 +70,9 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def _do_request(self, data, features=None):
+    def _do_request(
+        self, data: dict[str, Any], features: dict[str, bool] | None = None
+    ) -> Response:
         with self.feature(
             {
                 "organizations:discover-basic": True,
@@ -70,7 +93,11 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
             )
 
     def _store_spans_in_buckets(
-        self, counts, start, description="foo", interval_seconds=3600
+        self,
+        counts: list[int],
+        start: datetime,
+        description: str = "foo",
+        interval_seconds: int = 3600,
     ) -> None:
         self.store_spans(
             [
@@ -649,7 +676,7 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
             )
             assert timeseries["meta"]["interval"] == 60_000
 
-    def test_transformations_ignored_when_feature_disabled(self) -> None:
+    def test_transformations_rejected_when_feature_disabled(self) -> None:
         self._store_spans_in_buckets([2, 0, 6, 4, 0, 0], self.start)
 
         response = self._do_request(
@@ -658,6 +685,19 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
                 "yAxis": "count()",
                 "transformations[0]": ["fill(locf)", "smooth(sma,2)"],
             },
+            features={"organizations:explore-interpolation-and-smoothing": False},
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "Timeseries transformations are not enabled for this organization"
+        }
+
+    def test_untransformed_query_when_feature_disabled(self) -> None:
+        self._store_spans_in_buckets([2, 0, 6, 4, 0, 0], self.start)
+
+        response = self._do_request(
+            data={"interval": "1h", "yAxis": "count()"},
             features={"organizations:explore-interpolation-and-smoothing": False},
         )
 
@@ -671,3 +711,118 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
             sample_rate=[1, None, 1, 1, None, None],
             confidence=[any_confidence, None, any_confidence, any_confidence, None, None],
         )
+
+    def test_transformations_with_incremental_cache(self) -> None:
+        self._store_spans_in_buckets([2, 0, 6, 4, 0, 0], self.start)
+        data = {"interval": "30m", "yAxis": "count(span.duration)"}
+        features = {"organizations:explore-incremental-timeseries": True}
+
+        raw_response = self._do_request(data, features=features)
+        assert raw_response.status_code == 200, raw_response.content
+        (raw_timeseries,) = raw_response.data["timeSeries"]
+        assert [point["value"] for point in raw_timeseries["values"]] == [
+            2,
+            0,
+            0,
+            0,
+            6,
+            0,
+            4,
+            0,
+            0,
+            0,
+            0,
+            0,
+        ]
+
+        for _ in range(2):
+            response = self._do_request(
+                {**data, "transformations[0]": ["fill(locf)", "smooth(sma,2)"]},
+                features=features,
+            )
+            assert response.status_code == 200, response.content
+            (timeseries,) = response.data["timeSeries"]
+            assert [point["value"] for point in timeseries["values"]] == [
+                2,
+                2,
+                2,
+                2,
+                4,
+                6,
+                5,
+                4,
+                4,
+                4,
+                4,
+                4,
+            ]
+            assert [point["filled"] for point in timeseries["values"]] == [
+                False,
+                True,
+                True,
+                True,
+                False,
+                True,
+                False,
+                True,
+                True,
+                True,
+                True,
+                True,
+            ]
+
+        response = self._do_request(data, features=features)
+        assert response.status_code == 200, response.content
+        (timeseries,) = response.data["timeSeries"]
+        assert [point["value"] for point in timeseries["values"]] == [
+            2,
+            0,
+            0,
+            0,
+            6,
+            0,
+            4,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+        ]
+
+    def test_transformations_preserve_authorized_project_filtering(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self._store_spans_in_buckets([2, 0, 0, 0, 0, 0], self.start)
+        hidden_team = self.create_team(organization=self.organization)
+        hidden_project = self.create_project(organization=self.organization, teams=[hidden_team])
+        self.store_spans([self.create_span(project=hidden_project, start_ts=self.start)])
+        team = self.create_team(organization=self.organization)
+        self.project.add_team(team)
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, teams=[team])
+        self.login_as(member, superuser=False)
+        data = {
+            "interval": "1h",
+            "yAxis": "count()",
+            "project": -1,
+            "transformations[0]": ["fill(locf)"],
+        }
+
+        response = self._do_request(data)
+
+        assert response.status_code == 200, response.content
+        (timeseries,) = response.data["timeSeries"]
+        assert [point["value"] for point in timeseries["values"]] == [2, 2, 2, 2, 2, 2]
+        assert [point["filled"] for point in timeseries["values"]] == [
+            False,
+            True,
+            True,
+            True,
+            True,
+            True,
+        ]
+
+        response = self._do_request({**data, "project": hidden_project.id})
+        assert response.status_code == 403, response.content
+        assert response.data == {"detail": "You do not have permission to perform this action."}

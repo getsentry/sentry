@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 from django.db import router, transaction
 from django.utils.decorators import method_decorator
@@ -80,20 +80,22 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         request: Request,
         organization_id_or_slug: int | str,
         data_forwarder_id: str,
-        *args,
-        **kwargs,
-    ):
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
+        organization = cast(Organization, kwargs["organization"])
+
         if request.method == "PUT" and not features.has(
-            "organizations:data-forwarding", kwargs["organization"]
+            "organizations:data-forwarding", organization
         ):
             raise PermissionDenied
 
         try:
             data_forwarder = DataForwarder.objects.get(
                 id=to_valid_int_id("data_forwarder_id", data_forwarder_id, raise_404=True),
-                organization=kwargs["organization"],
+                organization=organization,
             )
         except DataForwarder.DoesNotExist:
             raise ResourceDoesNotExist
@@ -320,6 +322,9 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
           - 'is_enabled': To enable/disable the forwarder for events on the specific project.
 
         Overrides can be performed with `project:write` permissions on the project being modified.
+        Without `org:write`, overriding a destination (Splunk `instance_url`, or SQS `queue_url`,
+        `region` or `s3_bucket`) also requires overriding that provider's credentials (Splunk
+        `token`, or SQS `access_key` and `secret_key`).
         """
         # Determine operation type based on request body
         has_project_ids = "project_ids" in request.data

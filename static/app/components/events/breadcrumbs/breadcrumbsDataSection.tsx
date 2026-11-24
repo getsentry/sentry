@@ -12,43 +12,33 @@ import {Grid} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
-  BreadcrumbControlOptions,
-  BreadcrumbsDrawer,
-} from 'sentry/components/events/breadcrumbs/breadcrumbsDrawer';
-import {BreadcrumbsTimeline} from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
-import {CopyBreadcrumbsDropdown} from 'sentry/components/events/breadcrumbs/copyBreadcrumbs';
-import {
-  BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
-  BREADCRUMB_TIME_DISPLAY_OPTIONS,
-  BreadcrumbTimeDisplay,
-  getEnhancedBreadcrumbs,
-  getSummaryBreadcrumbs,
-} from 'sentry/components/events/breadcrumbs/utils';
-import {
   BREADCRUMB_SORT_LOCALSTORAGE_KEY,
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
+import {BreadcrumbControlOptions, BreadcrumbsDrawer} from './breadcrumbsDrawer';
+import {BreadcrumbsTimeline} from './breadcrumbsTimeline';
+import {CopyBreadcrumbsDropdown} from './copyBreadcrumbs';
+import {
+  BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
+  BREADCRUMB_TIME_DISPLAY_OPTIONS,
+  BreadcrumbTimeDisplay,
+  getEnhancedBreadcrumbs,
+  getSummaryBreadcrumbs,
+} from './utils';
+
 interface BreadcrumbsDataSectionProps {
   event: Event;
-  group: Group;
-  project: Project;
 }
 
-export function BreadcrumbsDataSection({
-  event,
-  group,
-  project,
-}: BreadcrumbsDataSectionProps) {
+export function BreadcrumbsDataSection({event}: BreadcrumbsDataSectionProps) {
   const theme = useTheme();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -90,9 +80,8 @@ export function BreadcrumbsDataSection({
         <BreadcrumbsDrawer
           breadcrumbs={enhancedCrumbs}
           focusControl={focusControl}
-          project={project}
+
           event={event}
-          group={group}
         />
       ),
       {

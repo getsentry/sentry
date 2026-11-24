@@ -124,12 +124,14 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             )
         )
         self.store_replays(
-            self.mock_event_links(
-                seq1_timestamp,
-                self.project.id,
-                "error",
-                replay1_id,
-                "a3a62ef6ac86415b83c2416fc2f76db1",
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp,
+                    self.project.id,
+                    "error",
+                    replay1_id,
+                    "a3a62ef6ac86415b83c2416fc2f76db1",
+                )
             )
         )
         self.store_replays(
@@ -195,21 +197,25 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(mock_replay(seq2_timestamp, project2.id, replay1_id, segment_id=1))
         self.store_replays(mock_replay(seq3_timestamp, project2.id, replay1_id, segment_id=2))
         self.store_replays(
-            self.mock_event_links(
-                seq1_timestamp,
-                self.project.id,
-                "error",
-                replay1_id,
-                "a3a62ef6ac86415b83c2416fc2f76db1",
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp,
+                    self.project.id,
+                    "error",
+                    replay1_id,
+                    "a3a62ef6ac86415b83c2416fc2f76db1",
+                )
             )
         )
         self.store_replays(
-            self.mock_event_links(
-                seq1_timestamp,
-                project2.id,
-                "error",
-                replay1_id,
-                "e7052fca6e2e406b9dc2d6917932a4c9",
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp,
+                    project2.id,
+                    "error",
+                    replay1_id,
+                    "e7052fca6e2e406b9dc2d6917932a4c9",
+                )
             )
         )
 

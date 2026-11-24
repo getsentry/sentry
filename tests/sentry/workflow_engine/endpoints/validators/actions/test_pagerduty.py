@@ -49,6 +49,15 @@ class TestPagerDutyActionValidator(TestCase):
         assert result is True
         validator.save()
 
+    def test_validate__unknown_data_key(self) -> None:
+        validator = BaseActionValidator(
+            data={**self.valid_data, "data": {"priority": "critical", "unknown": "value"}},
+            context={"organization": self.organization},
+        )
+
+        assert validator.is_valid() is False
+        assert "data" in validator.errors
+
     def test_validate__invalid_service(self) -> None:
         validator = BaseActionValidator(
             data={

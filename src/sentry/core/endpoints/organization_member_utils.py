@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
+from dataclasses import dataclass
 
 from django.db import router, transaction
 from rest_framework import serializers
@@ -9,13 +10,14 @@ from rest_framework.request import Request
 
 from sentry import roles
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.auth.access import Access
+from sentry.auth.access import Access, has_member_scope
+from sentry.auth.principal import is_owned_by_acting_user
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.team import Team
+from sentry.models.team import Team, TeamStatus
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -62,12 +64,12 @@ class MemberConflictValidationError(serializers.ValidationError):
 
 class RelaxedMemberPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["member:read", "member:write", "member:admin"],
-        "POST": ["member:write", "member:admin"],
-        "PUT": ["member:invite", "member:write", "member:admin"],
+        "GET": ["member:read", "member:write", "member:admin", "membership:read"],
+        "POST": ["member:write", "member:admin", "membership:write"],
+        "PUT": ["member:invite", "member:write", "member:admin", "membership:invite"],
         # DELETE checks for role comparison as you can either remove a member
         # with a lower access role, or yourself, without having the req. scope
-        "DELETE": ["member:read", "member:write", "member:admin"],
+        "DELETE": ["member:read", "member:write", "member:admin", "membership:read"],
     }
 
     # Allow deletions to happen for disabled members so they can remove themselves
@@ -86,6 +88,22 @@ class TeamAssignmentChange:
         self.omt_id = omt_id
 
 
+@dataclass(frozen=True)
+class TeamAssignment:
+    team: Team
+    role: TeamRole | None
+
+
+def resolve_active_teams(organization: Organization, slugs: Collection[str]) -> list[Team]:
+    teams = list(
+        Team.objects.filter(organization=organization, status=TeamStatus.ACTIVE, slug__in=slugs)
+    )
+    # Require a distinct active team for every supplied slug.
+    if len(teams) != len(slugs):
+        raise serializers.ValidationError("Invalid teams")
+    return teams
+
+
 class TeamAssignmentDiff:
     def __init__(
         self, added: list[TeamAssignmentChange], removed: list[TeamAssignmentChange]
@@ -97,7 +115,7 @@ class TeamAssignmentDiff:
 def save_team_assignments(
     organization_member: OrganizationMember,
     teams: list[Team] | None,
-    teams_with_roles: list[tuple[Team, str]] | None = None,
+    teams_with_roles: Sequence[TeamAssignment] | None = None,
 ) -> TeamAssignmentDiff:
     # https://github.com/getsentry/sentry/pull/6054/files/8edbdb181cf898146eda76d46523a21d69ab0ec7#r145798271
     lock = locks.get(
@@ -106,8 +124,11 @@ def save_team_assignments(
     with TimedRetryPolicy(10)(lock.acquire):
         if teams_with_roles:
             # Map will avoid O(n * n) search later
-            team_role_map = {team.slug: role_id for team, role_id in teams_with_roles}
-            target_teams = [team for team, _ in teams_with_roles]
+            team_role_map = {
+                assignment.team.slug: assignment.role.id if assignment.role else None
+                for assignment in teams_with_roles
+            }
+            target_teams = [assignment.team for assignment in teams_with_roles]
         elif teams:
             team_role_map = {}
             target_teams = teams
@@ -183,7 +204,7 @@ def can_admin_team(access: Access, team: Team) -> bool:
     return access.has_team_membership(team) and (
         access.has_team_scope(team, "team:write")
         or access.has_scope("org:write")
-        or access.has_scope("member:write")
+        or has_member_scope(access, "member:write")
     )
 
 
@@ -207,13 +228,13 @@ def get_allowed_org_roles(
         return roles.get_all()
 
     # The member:admin scope is not required to invite a new member (when creating_org_invite is True).
-    if not request.access.has_scope("member:admin") and not creating_org_invite:
+    if not has_member_scope(request.access, "member:admin") and not creating_org_invite:
         return ()
 
     if member is None:
         try:
             member = OrganizationMember.objects.get(
-                user_id=request.user.id, organization=organization
+                is_owned_by_acting_user(request.user), organization=organization
             )
         except OrganizationMember.DoesNotExist:
             # This can happen if the request was authorized by an app integration

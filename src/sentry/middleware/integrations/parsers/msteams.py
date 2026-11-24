@@ -32,18 +32,26 @@ class MsTeamsRequestParser(BaseRequestParser):
 
     @cached_property
     def request_data(self) -> Mapping[str, Any]:
-        data = {}
+        data: Mapping[str, Any] = {}
+        body = self.request.body
+        if not body:
+            # Requests such as GET /extensions/msteams/configure/ legitimately carry no body.
+            return data
         try:
-            data = orjson.loads(self.request.body)
+            data = orjson.loads(body)
         except orjson.JSONDecodeError as err:
-            sentry_sdk.capture_exception(err)
+            with sentry_sdk.isolation_scope() as scope:
+                scope.set_extra("request_method", self.request.method)
+                scope.set_extra("request_path", self.request.path)
+                scope.set_extra("body_length", len(body))
+                sentry_sdk.capture_exception(err)
         return data
 
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
         integration = parsing.get_integration_from_request_data(data=self.request_data)
         if integration:
-            return Integration.objects.filter(id=integration.id).first()
+            return Integration.objects.get_or_none(id=integration.id)
         return None
 
     @classmethod

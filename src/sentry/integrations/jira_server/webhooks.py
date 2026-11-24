@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.http.request import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -82,10 +83,10 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
     permission_classes = ()
 
     @csrf_exempt
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> Response:
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: Request, token, *args, **kwargs) -> Response:
+    def post(self, request: Request, token: str, *args: Any, **kwargs: Any) -> Response:
         clear_organization_info()
         extra: dict[str, object] = {}
         try:

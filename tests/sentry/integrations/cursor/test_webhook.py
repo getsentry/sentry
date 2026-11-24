@@ -1,12 +1,13 @@
 import hashlib
 import hmac
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
 from django.urls import reverse
 from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.response import Response
 
 from sentry.models.pullrequest import (
     PullRequestAttribution,
@@ -47,10 +48,13 @@ class TestCursorWebhook(APITestCase):
         signature = hmac.new(used_secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
         return {"HTTP_X_WEBHOOK_SIGNATURE": f"sha256={signature}"}
 
-    def _post_with_headers(self, body: bytes, headers: dict[str, str]):
+    def _post_with_headers(self, body: bytes, headers: dict[str, str]) -> Response:
         # mypy: The DRF APIClient stubs can misinterpret **extra headers as a positional arg.
         client: Any = self.client
-        return client.post(self._url(), data=body, content_type="application/json", **headers)
+        response: Response[Any] = client.post(
+            self._url(), data=body, content_type="application/json", **headers
+        )
+        return response
 
     def _build_status_payload(
         self,
@@ -83,7 +87,7 @@ class TestCursorWebhook(APITestCase):
         return calls[0].kwargs["extra"]
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
-    def test_happy_path_finished(self, mock_update_state):
+    def test_happy_path_finished(self, mock_update_state: MagicMock) -> None:
         mock_update_state.return_value = CodingAgentSyncResult(
             known_to_seer=True, run_id=None, group_id=None
         )
@@ -108,7 +112,9 @@ class TestCursorWebhook(APITestCase):
         assert result.branch_name == "cursor/fix-bug-1234"
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
-    def test_pr_number_parsed_past_trailing_url_segments(self, mock_update_state):
+    def test_pr_number_parsed_past_trailing_url_segments(
+        self, mock_update_state: MagicMock
+    ) -> None:
         for pr_url in [
             "https://github.com/testorg/testrepo/pull/649",
             "https://github.com/testorg/testrepo/pull/649/files",
@@ -127,7 +133,7 @@ class TestCursorWebhook(APITestCase):
             assert result.pr_url == pr_url, pr_url
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
-    def test_pr_number_withheld_when_not_completed(self, mock_update_state):
+    def test_pr_number_withheld_when_not_completed(self, mock_update_state: MagicMock) -> None:
         # Only a completed agent has a result to point at, so an errored one reports neither.
         body = orjson.dumps(self._build_status_payload(status="ERROR"))
         headers = self._signed_headers(body)
@@ -140,7 +146,7 @@ class TestCursorWebhook(APITestCase):
         assert result.pr_number is None
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
-    def test_branch_name_absent_is_none(self, mock_update_state):
+    def test_branch_name_absent_is_none(self, mock_update_state: MagicMock) -> None:
         payload = self._build_status_payload(status="FINISHED", branch_name=None)
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
@@ -151,7 +157,7 @@ class TestCursorWebhook(APITestCase):
         assert mock_update_state.call_args[1]["result"].branch_name is None
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
-    def test_finished_records_pr_attribution(self, mock_update_state):
+    def test_finished_records_pr_attribution(self, mock_update_state: MagicMock) -> None:
         mock_update_state.return_value = CodingAgentSyncResult(
             known_to_seer=True, run_id=123, group_id=456
         )
@@ -177,7 +183,9 @@ class TestCursorWebhook(APITestCase):
         assert attribution.signal_details["group_ids"] == [456]
 
     @patch("sentry.seer.autofix.coding_agent_handoffs.update_coding_agent_state")
-    def test_finished_updates_seer_run_coding_agent_handoff(self, mock_update_state):
+    def test_finished_updates_seer_run_coding_agent_handoff(
+        self, mock_update_state: MagicMock
+    ) -> None:
         # Mocked one level deeper than the other tests in this file (Seer's own RPC call,
         # rather than sync_coding_agent_status itself) so the real Sentry-side DB write
         # inside sync_coding_agent_status still runs and can be asserted on here.
@@ -203,7 +211,7 @@ class TestCursorWebhook(APITestCase):
         assert pull_requests[0].key == "1"
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
-    def test_unknown_agent_records_no_attribution(self, mock_update_state):
+    def test_unknown_agent_records_no_attribution(self, mock_update_state: MagicMock) -> None:
         # Seer returns False (e.g. 404) for agent_ids it doesn't know about —
         # these are Cursor sessions not delegated by Seer, and must not be attributed.
         mock_update_state.return_value = CodingAgentSyncResult(
@@ -220,7 +228,7 @@ class TestCursorWebhook(APITestCase):
         assert not PullRequestAttribution.objects.exists()
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
-    def test_error_status_records_no_attribution(self, mock_update_state):
+    def test_error_status_records_no_attribution(self, mock_update_state: MagicMock) -> None:
         self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
         body = orjson.dumps(self._build_status_payload(status="ERROR", pr_url=None))
         headers = self._signed_headers(body)
@@ -232,7 +240,9 @@ class TestCursorWebhook(APITestCase):
         assert not PullRequestAttribution.objects.exists()
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
-    def test_finished_without_pr_url_records_no_attribution(self, mock_update_state):
+    def test_finished_without_pr_url_records_no_attribution(
+        self, mock_update_state: MagicMock
+    ) -> None:
         # Isolates the ``and pr_url`` half of the attribution guard: a completed
         # agent that produced no PR must not be attributed.
         self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
@@ -247,7 +257,9 @@ class TestCursorWebhook(APITestCase):
 
     @patch("sentry.integrations.cursor.webhooks.handler.logger")
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
-    def test_completed_without_attribution_logs_skip_reason(self, mock_update_state, mock_logger):
+    def test_completed_without_attribution_logs_skip_reason(
+        self, mock_update_state: MagicMock, mock_logger: MagicMock
+    ) -> None:
         # A completed agent that we don't attribute must leave a breadcrumb naming the
         # gate that blocked it, otherwise a missing SEER_DELEGATED_CURSOR row is invisible.
         self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
@@ -276,7 +288,9 @@ class TestCursorWebhook(APITestCase):
         assert extra["has_pr_url"] is False
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
-    def test_finished_records_no_attribution_when_flag_disabled(self, mock_update_state):
+    def test_finished_records_no_attribution_when_flag_disabled(
+        self, mock_update_state: MagicMock
+    ) -> None:
         self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
         body = orjson.dumps(self._build_status_payload(status="FINISHED"))
         headers = self._signed_headers(body)
@@ -314,7 +328,7 @@ class TestCursorWebhook(APITestCase):
         "sentry.integrations.cursor.webhooks.handler.CursorWebhookEndpoint._get_cursor_integration_secret",
         return_value=None,
     )
-    def test_no_webhook_secret_set(self, _mock_secret):
+    def test_no_webhook_secret_set(self, _mock_secret: MagicMock) -> None:
         payload = self._build_status_payload()
         body = orjson.dumps(payload)
         # Provide any signature header so we hit secret lookup path
@@ -323,7 +337,7 @@ class TestCursorWebhook(APITestCase):
         assert response.status_code == 403
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
-    def test_error_status_maps_to_failed(self, mock_update_state):
+    def test_error_status_maps_to_failed(self, mock_update_state: MagicMock) -> None:
         payload = self._build_status_payload(status="ERROR", pr_url=None)
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
@@ -337,7 +351,7 @@ class TestCursorWebhook(APITestCase):
         assert kwargs["result"].pr_url is None
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
-    def test_unknown_status_logs_and_defaults_to_failed(self, mock_update_state):
+    def test_unknown_status_logs_and_defaults_to_failed(self, mock_update_state: MagicMock) -> None:
         payload = self._build_status_payload(status="WEIRD")
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
@@ -362,7 +376,7 @@ class TestCursorWebhook(APITestCase):
         assert resp.status_code == 204
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
-    def test_repo_variants_and_validation(self, mock_update_state):
+    def test_repo_variants_and_validation(self, mock_update_state: MagicMock) -> None:
         # Missing repo
         payload = self._build_status_payload()
         payload["source"].pop("repository")
@@ -406,7 +420,7 @@ class TestCursorWebhook(APITestCase):
         assert mock_update_state.call_count == 1
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
-    def test_invalid_agent_url_is_dropped(self, mock_update_state):
+    def test_invalid_agent_url_is_dropped(self, mock_update_state: MagicMock) -> None:
         mock_update_state.return_value = CodingAgentSyncResult(
             known_to_seer=True, run_id=None, group_id=None
         )
@@ -432,7 +446,7 @@ class TestCursorWebhook(APITestCase):
             assert mock_update_state.call_args[1]["agent_url"] is None, bad_url
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
-    def test_invalid_pr_url_is_dropped(self, mock_update_state):
+    def test_invalid_pr_url_is_dropped(self, mock_update_state: MagicMock) -> None:
         # Anything that isn't a PR URL in the reported repo is nulled out, so no attribution
         # fires.
         mock_update_state.return_value = CodingAgentSyncResult(
@@ -464,7 +478,7 @@ class TestCursorWebhook(APITestCase):
             assert not PullRequestAttribution.objects.exists(), bad_url
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
-    def test_signature_without_prefix(self, mock_update_state):
+    def test_signature_without_prefix(self, mock_update_state: MagicMock) -> None:
         payload = self._build_status_payload(status="FINISHED")
         body = orjson.dumps(payload)
         secret = self.integration.metadata["webhook_secret"]

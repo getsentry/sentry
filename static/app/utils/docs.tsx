@@ -1,5 +1,7 @@
 import type {AvatarProject} from 'sentry/types/project';
 
+import {isReactNativePlatform} from './platform';
+
 const platforms = [
   'dotnet',
   'android',
@@ -44,8 +46,9 @@ function validDocPlatform(platform: any): platform is DocPlatform {
 }
 
 function getDocsPlatform(platform: string, performanceOnly: boolean): DocPlatform | null {
-  // react-native is the only platform that has a dash, and supports performance so we can skip that check
-  if (platform === 'react-native') {
+  // react-native is the only platform that has a dash, and supports performance so we can skip that check.
+  // Expo projects use the React Native SDK and docs.
+  if (isReactNativePlatform(platform)) {
     return 'react-native';
   }
   const index = platform.indexOf('-');

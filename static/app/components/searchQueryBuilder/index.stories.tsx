@@ -1,20 +1,11 @@
 import {Fragment, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 
 import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
 import {ItemType} from 'sentry/components/searchBar/types';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import {
-  SearchQueryBuilderProvider,
-  useSearchQueryBuilderState,
-} from 'sentry/components/searchQueryBuilder/context';
-import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
-import type {
-  FieldDefinitionGetter,
-  FilterKeySection,
-} from 'sentry/components/searchQueryBuilder/types';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import * as Storybook from 'sentry/stories';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -26,6 +17,10 @@ import {
   MobileVital,
   WebVital,
 } from 'sentry/utils/fields';
+
+import {SearchQueryBuilderProvider, useSearchQueryBuilderState} from './context';
+import {ProvidedFormattedQuery} from './formattedQuery';
+import type {FieldDefinitionGetter, FilterKeySection} from './types';
 
 const FILTER_KEYS: TagCollection = {
   [FieldKey.ASSIGNED]: {
@@ -71,48 +66,29 @@ const FILTER_KEYS: TagCollection = {
     name: 'timesSeen',
     kind: FieldKind.FIELD,
   },
-  [WebVital.LCP]: {
-    key: WebVital.LCP,
-    name: 'lcp',
-    kind: FieldKind.FIELD,
-  },
+  [WebVital.LCP]: {key: WebVital.LCP, name: 'lcp', kind: FieldKind.FIELD},
   [MobileVital.FRAMES_SLOW_RATE]: {
     key: MobileVital.FRAMES_SLOW_RATE,
     name: 'framesSlowRate',
     kind: FieldKind.FIELD,
   },
-  custom_tag_name: {
-    key: 'custom_tag_name',
-    name: 'Custom_Tag_Name',
-  },
+  custom_tag_name: {key: 'custom_tag_name', name: 'Custom_Tag_Name'},
 };
 
 const FILTER_KEY_SECTIONS: FilterKeySection[] = [
-  {
-    value: 'cat_1',
-    label: 'Category 1',
-    children: [FieldKey.ASSIGNED, FieldKey.IS],
-  },
+  {value: 'cat_1', label: 'Category 1', children: [FieldKey.ASSIGNED, FieldKey.IS]},
   {
     value: 'cat_2',
     label: 'Category 2',
     children: [WebVital.LCP, MobileVital.FRAMES_SLOW_RATE],
   },
-  {
-    value: 'cat_3',
-    label: 'Category 3',
-    children: [FieldKey.TIMES_SEEN],
-  },
+  {value: 'cat_3', label: 'Category 3', children: [FieldKey.TIMES_SEEN]},
   {
     value: 'cat_4',
     label: 'Category 4',
     children: [FieldKey.LAST_SEEN, FieldKey.TIMES_SEEN],
   },
-  {
-    value: 'cat_5',
-    label: 'Category 5',
-    children: ['custom_tag_name'],
-  },
+  {value: 'cat_5', label: 'Category 5', children: ['custom_tag_name']},
 ];
 
 const getTagValues = (): Promise<string[]> => {
@@ -356,41 +332,17 @@ export default Storybook.story('SearchQueryBuilder', story => {
 
   story('Aggregate filters', () => {
     const aggregateFilterKeys: TagCollection = {
-      apdex: {
-        key: 'apdex',
-        name: 'apdex',
-        kind: FieldKind.FUNCTION,
-      },
-      count: {
-        key: 'count',
-        name: 'count',
-        kind: FieldKind.FUNCTION,
-      },
-      count_if: {
-        key: 'count_if',
-        name: 'count_if',
-        kind: FieldKind.FUNCTION,
-      },
-      p95: {
-        key: 'p95',
-        name: 'p95',
-        kind: FieldKind.FUNCTION,
-      },
+      apdex: {key: 'apdex', name: 'apdex', kind: FieldKind.FUNCTION},
+      count: {key: 'count', name: 'count', kind: FieldKind.FUNCTION},
+      count_if: {key: 'count_if', name: 'count_if', kind: FieldKind.FUNCTION},
+      p95: {key: 'p95', name: 'p95', kind: FieldKind.FUNCTION},
       'transaction.duration': {
         key: 'transaction.duration',
         name: 'transaction.duration',
         kind: FieldKind.FIELD,
       },
-      timesSeen: {
-        key: 'timesSeen',
-        name: 'timesSeen',
-        kind: FieldKind.FIELD,
-      },
-      lastSeen: {
-        key: 'lastSeen',
-        name: 'lastSeen',
-        kind: FieldKind.FIELD,
-      },
+      timesSeen: {key: 'timesSeen', name: 'timesSeen', kind: FieldKind.FIELD},
+      lastSeen: {key: 'lastSeen', name: 'lastSeen', kind: FieldKind.FIELD},
     };
 
     const getAggregateFieldDefinition: FieldDefinitionGetter = key => {
@@ -438,30 +390,12 @@ export default Storybook.story('SearchQueryBuilder', story => {
                 name: 'operator',
                 kind: 'value' as const,
                 options: [
-                  {
-                    label: 'is equal to',
-                    value: 'equals',
-                  },
-                  {
-                    label: 'is not equal to',
-                    value: 'notEquals',
-                  },
-                  {
-                    label: 'is less than',
-                    value: 'less',
-                  },
-                  {
-                    label: 'is greater than',
-                    value: 'greater',
-                  },
-                  {
-                    label: 'is less than or equal to',
-                    value: 'lessOrEquals',
-                  },
-                  {
-                    label: 'is greater than or equal to',
-                    value: 'greaterOrEquals',
-                  },
+                  {label: 'is equal to', value: 'equals'},
+                  {label: 'is not equal to', value: 'notEquals'},
+                  {label: 'is less than', value: 'less'},
+                  {label: 'is greater than', value: 'greater'},
+                  {label: 'is less than or equal to', value: 'lessOrEquals'},
+                  {label: 'is greater than or equal to', value: 'greaterOrEquals'},
                 ],
                 dataType: FieldValueType.STRING,
                 defaultValue: 'equals',
@@ -849,10 +783,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
             dispatch({
               type: 'UPDATE_QUERY',
               query: 'browser.name:""',
-              focusOverride: {
-                itemKey: 'filter:0',
-                part: 'value',
-              },
+              focusOverride: {itemKey: 'filter:0', part: 'value'},
             })
           }
         >

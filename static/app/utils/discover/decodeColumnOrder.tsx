@@ -1,7 +1,10 @@
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
-import type {MetaType} from 'sentry/utils/discover/eventView';
-import type {ColumnValueType, Field} from 'sentry/utils/discover/fields';
+import {getFieldDefinition} from 'sentry/utils/fields';
+import type {TableColumn} from 'sentry/views/discover/table/types';
+
+import type {MetaType} from './eventView';
+import type {ColumnValueType, Field} from './fields';
 import {
   aggregateFunctionOutputType,
   AGGREGATIONS,
@@ -11,9 +14,7 @@ import {
   isMeasurement,
   isSpanOperationBreakdownField,
   measurementType,
-} from 'sentry/utils/discover/fields';
-import {getFieldDefinition} from 'sentry/utils/fields';
-import type {TableColumn} from 'sentry/views/discover/table/types';
+} from './fields';
 
 const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
   key: '',

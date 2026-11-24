@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectStats} from 'sentry/types/project';
@@ -26,11 +27,8 @@ type ProjectStatsData = {
 type ProjectStatsResponse = Project & ProjectStatsData;
 type ProjectStatsState = Record<string, ProjectStatsData>;
 
-function hasStats(stats: ProjectStatsData | undefined, hasPerformance: boolean) {
-  return (
-    stats?.stats !== undefined &&
-    (!hasPerformance || stats.transactionStats !== undefined)
-  );
+function hasStats(stats: ProjectStatsData | undefined) {
+  return stats?.stats !== undefined && stats.transactionStats !== undefined;
 }
 
 function getStatsData(project: ProjectStatsResponse): ProjectStatsData {
@@ -43,17 +41,16 @@ function getStatsData(project: ProjectStatsResponse): ProjectStatsData {
 }
 
 interface Props {
-  hasPerformance: boolean;
   organization: Organization;
 }
 
-export function useProjectStats({hasPerformance, organization}: Props) {
+export function useProjectStats({organization}: Props) {
   const projectStats = useAggregatedQueryKeys<
     string,
     ProjectStatsState,
     ProjectStatsResponse[]
   >({
-    cacheKey: `project-dashboard-stats:${organization.slug}:transaction-stats:${hasPerformance}`,
+    cacheKey: `project-dashboard-stats:${organization.slug}:transaction-stats`,
     bufferLimit: MAX_PROJECTS_TO_FETCH,
     getQueryOptions: useCallback(
       ids =>
@@ -64,16 +61,16 @@ export function useProjectStats({hasPerformance, organization}: Props) {
             query: {
               statsPeriod: '24h',
               query: ids.map(id => `id:${id}`).join(' '),
-              transactionStats: hasPerformance ? '1' : undefined,
+              transactionStats: '1',
               sessionStats: '1',
             },
             staleTime: 0,
           }
         ),
-      [hasPerformance, organization.slug]
+      [organization.slug]
     ),
     onError: useCallback(() => {
-      addErrorMessage(t('Unable to fetch all project stats'));
+      toast.error(t('Unable to fetch all project stats'));
     }, []),
     responseReducer: useCallback(
       (
@@ -89,17 +86,14 @@ export function useProjectStats({hasPerformance, organization}: Props) {
         );
 
         for (const statsProject of response.json) {
-          if (
-            aggregateIds.has(statsProject.id) &&
-            hasStats(statsProject, hasPerformance)
-          ) {
+          if (aggregateIds.has(statsProject.id) && hasStats(statsProject)) {
             nextState[statsProject.id] = getStatsData(statsProject);
           }
         }
 
         return nextState;
       },
-      [hasPerformance]
+      []
     ),
   });
 
@@ -108,17 +102,17 @@ export function useProjectStats({hasPerformance, organization}: Props) {
       const initialStats = getStatsData(project);
       const cachedStats = projectStats.read([project.id])?.[project.id];
 
-      if (cachedStats && hasStats(cachedStats, hasPerformance)) {
+      if (cachedStats && hasStats(cachedStats)) {
         return cachedStats;
       }
 
-      if (!hasStats(initialStats, hasPerformance)) {
+      if (!hasStats(initialStats)) {
         projectStats.buffer([project.id]);
       }
 
       return projectStats.data?.[project.id] ?? initialStats;
     },
-    [hasPerformance, projectStats]
+    [projectStats]
   );
 
   return useMemo(() => ({getOne}), [getOne]);

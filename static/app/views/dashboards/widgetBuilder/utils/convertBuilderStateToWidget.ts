@@ -17,10 +17,11 @@ import {
   supportsWidgetTransformations,
 } from 'sentry/views/dashboards/utils/transformations';
 import {type WidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregateIndex';
-import {serializeSorts} from 'sentry/views/dashboards/widgetBuilder/utils/serialization';
 import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+
+import {getSelectedAggregateIndex} from './getSelectedAggregateIndex';
+import {serializeSorts} from './serialization';
 
 export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   if (state.displayType === DisplayType.TEXT) {

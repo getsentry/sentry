@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import Any
 
 import pytest
 from django.utils import timezone
@@ -15,6 +16,7 @@ from sentry.preprod.artifact_search import (
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeMetrics,
+    PreprodBuildConfiguration,
     PreprodComparisonApproval,
     PreprodSnapshotMetrics,
 )
@@ -25,14 +27,14 @@ from sentry.testutils.cases import TestCase
 class GetSequentialBaseArtifactTest(TestCase):
     def _create_artifact_with_metrics(
         self,
-        app_id="com.example.app",
-        artifact_type=PreprodArtifact.ArtifactType.APK,
-        build_configuration=None,
-        date_added=None,
-        state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-        app_name=None,
-        **kwargs,
-    ):
+        app_id: str = "com.example.app",
+        artifact_type: int = PreprodArtifact.ArtifactType.APK,
+        build_configuration: PreprodBuildConfiguration | None = None,
+        date_added: datetime | None = None,
+        state: int = PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        app_name: str | None = None,
+        **kwargs: Any,
+    ) -> PreprodArtifact:
         artifact = self.create_preprod_artifact(
             project=self.project,
             app_id=app_id,
@@ -341,7 +343,7 @@ class ArtifactMatchesQuerySnapshotStatusFilterTest(TestCase):
         feature_type: int = PreprodComparisonApproval.FeatureType.SNAPSHOTS,
         status: int = PreprodComparisonApproval.ApprovalStatus.APPROVED,
         with_approval_row: bool = True,
-        extras: dict | None = None,
+        extras: dict[str, object] | None = None,
     ) -> PreprodArtifact:
         artifact = self.create_preprod_artifact(project=self.project)
         if with_approval_row:
@@ -652,6 +654,14 @@ class ArtifactMatchesQueryInstallGroupsFilterTest(TestCase):
 
         with pytest.raises(InvalidSearchQuery, match=r"Enter at least one install group\."):
             apply_filters(PreprodArtifact.objects.get_queryset(), [empty_filter], self.organization)
+
+    def test_array_attribute_key(self) -> None:
+        artifact = self._create_artifact_with_install_groups(["beta"])
+        key = "tags[install_groups[*],array]"
+
+        assert artifact_matches_query(artifact, f"{key}:beta", self.organization)
+        assert not artifact_matches_query(artifact, f"{key}:production", self.organization)
+        assert not artifact_matches_query(artifact, f"!{key}:beta", self.organization)
 
     def test_multiple_groups_on_artifact(self) -> None:
         artifact = self._create_artifact_with_install_groups(["beta", "internal", "qa"])

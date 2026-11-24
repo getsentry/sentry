@@ -2,7 +2,6 @@ import type * as React from 'react';
 import {useCallback, useImperativeHandle, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {defined} from '@sentry/scraps/defined';
 import {DRAG_HANDLE_SIZE, DragHandle} from '@sentry/scraps/dragHandle';
 import {Flex, type Responsive, Stack} from '@sentry/scraps/layout';
 import {useResponsivePropValue} from '@sentry/scraps/layout/styles';
@@ -78,7 +77,7 @@ export function SplitPanel({
   const {t} = useTranslation();
   const orientation =
     useResponsivePropValue(orientationProp) === 'vertical' ? 'vertical' : 'horizontal';
-  const hasFill = defined(fill);
+  const hasFill = fill != null;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const dims = useDimensions({elementRef: containerRef});

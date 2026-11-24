@@ -1,6 +1,6 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
+import {useCompactSelectOptionsCache} from './useCompactSelectOptionsCache';
 
 describe('useCompactSelectOptionsCache', () => {
   it('keeps a cache', () => {

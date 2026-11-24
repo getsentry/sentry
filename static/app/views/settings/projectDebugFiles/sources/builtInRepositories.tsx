@@ -2,8 +2,8 @@ import {useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -16,9 +16,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 
 const SECTION_TITLE = t('Built-in Repositories');
 
-const schema = z.object({
-  builtinSymbolSources: z.array(z.string()),
-});
+const schema = z.object({builtinSymbolSources: z.array(z.string())});
 
 type Props = {
   builtinSymbolSourceOptions: BuiltinSymbolSource[];
@@ -49,9 +47,7 @@ export function BuiltInRepositories({
 
   function getRequestMessages(builtinSymbolSourcesQuantity: number) {
     if (builtinSymbolSourcesQuantity === 0) {
-      return {
-        errorMessage: t('This field requires at least one built-in repository'),
-      };
+      return {errorMessage: t('This field requires at least one built-in repository')};
     }
 
     if (builtinSymbolSourcesQuantity > validBuiltInSymbolSources.length) {
@@ -69,10 +65,7 @@ export function BuiltInRepositories({
 
   const options = builtinSymbolSourceOptions
     .filter(source => !source.hidden)
-    .map(source => ({
-      value: source.sentry_key,
-      label: source.name,
-    }));
+    .map(source => ({value: source.sentry_key, label: source.name}));
 
   return (
     <FieldGroup title={SECTION_TITLE}>
@@ -102,14 +95,14 @@ export function BuiltInRepositories({
               variables.builtinSymbolSources.length
             );
             if (successMessage) {
-              addSuccessMessage(successMessage);
+              toast.success(successMessage);
             }
           },
           onError: (_error, variables) => {
             const {errorMessage} = getRequestMessages(
               variables.builtinSymbolSources.length
             );
-            addErrorMessage(errorMessage);
+            toast.error(errorMessage);
           },
         }}
       >

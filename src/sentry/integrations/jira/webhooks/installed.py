@@ -39,7 +39,7 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
     Webhook hit by Jira whenever someone installs the Sentry integration in their Jira instance.
     """
 
-    def post(self, request: Request, *args, **kwargs) -> Response:
+    def post(self, request: Request, *args: object, **kwargs: object) -> Response:
         with IntegrationPipelineViewEvent(
             interaction_type=IntegrationPipelineViewType.VERIFY_INSTALLATION,
             domain=IntegrationDomain.PROJECT_MANAGEMENT,
@@ -125,7 +125,7 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
                 )
 
             data = JiraIntegrationProvider().build_integration(state)
-            integration = ensure_integration(self.provider, data)
+            integration = ensure_integration(self.provider, data, merge_metadata=True)
 
             # Note: Unlike in all other Jira webhooks, we don't call `bind_org_context_from_integration`
             # here, because at this point the integration hasn't yet been bound to an organization. The

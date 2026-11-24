@@ -7,7 +7,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {Button} from '@sentry/scraps/button';
 
 import {EventView} from 'sentry/utils/discover/eventView';
-import {Tags} from 'sentry/views/discover/results/tags';
+
+import {Tags} from './tags';
 
 const org = OrganizationFixture();
 const location = LocationFixture({
@@ -63,9 +64,7 @@ describe('Tags confirmedQuery pulse', () => {
       body: [{key: 'release', topValues: [{count: 30, value: 'abc', name: 'abc'}]}],
     });
 
-    render(<Harness />, {
-      initialRouterConfig: {location: {pathname: location.pathname}},
-    });
+    render(<Harness />, {initialRouterConfig: {location: {pathname: location.pathname}}});
 
     await waitFor(() =>
       expect(screen.queryAllByTestId('loading-placeholder')).toHaveLength(0)

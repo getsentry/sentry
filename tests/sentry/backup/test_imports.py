@@ -4,6 +4,7 @@ import io
 import os
 import tarfile
 import tempfile
+from collections.abc import Callable
 from datetime import UTC, date, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -104,7 +105,7 @@ pytestmark = pytest.mark.usefixtures("skip_group_attributes_snapshots")
 
 
 class ImportTestCase(BackupTransactionTestCase):
-    def export_to_tmp_file_and_clear_database(self, tmp_dir) -> Path:
+    def export_to_tmp_file_and_clear_database(self, tmp_dir: str) -> Path:
         tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
         export_to_file(tmp_path, ExportScope.Global)
         clear_database()
@@ -802,7 +803,7 @@ class ScopingTests(ImportTestCase):
     """
 
     @staticmethod
-    def verify_model_inclusion(scope: ImportScope):
+    def verify_model_inclusion(scope: ImportScope) -> None:
         """
         Ensure all in-scope models are included, and that no out-of-scope models are included.
         Additionally, we verify that each such model had an appropriate `*ImportChunk` written out
@@ -812,8 +813,10 @@ class ScopingTests(ImportTestCase):
             lambda mr: len(mr.get_possible_relocation_scopes() & scope.value) > 0
         )
         excluded_models = get_matching_exportable_models(
-            lambda mr: mr.get_possible_relocation_scopes() != {RelocationScope.Excluded}
-            and not (mr.get_possible_relocation_scopes() & scope.value)
+            lambda mr: (
+                mr.get_possible_relocation_scopes() != {RelocationScope.Excluded}
+                and not (mr.get_possible_relocation_scopes() & scope.value)
+            )
         )
 
         for model in included_models:
@@ -929,7 +932,7 @@ class DatabaseResetTests(ImportTestCase):
     Ensure that database resets work as intended in different import scopes.
     """
 
-    def import_empty_backup_file(self, import_fn):
+    def import_empty_backup_file(self, import_fn: Callable[..., object]) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_empty_file_path = tmp_dir + "empty_backup.json"
             with open(tmp_empty_file_path, "wb") as tmp_file:
@@ -1016,7 +1019,7 @@ class DecryptionTests(ImportTestCase):
     """
 
     @staticmethod
-    def encrypt_json_fixture(tmp_dir) -> tuple[Path, Path]:
+    def encrypt_json_fixture(tmp_dir: str) -> tuple[Path, Path]:
         good_file_path = get_fixture_path("backup", "fresh-install.json")
         (priv_key_pem, pub_key_pem) = generate_rsa_key_pair()
 
@@ -1702,7 +1705,7 @@ class CollisionTests(ImportTestCase):
     @expect_models(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole)
     def test_colliding_configs_overwrite_configs_enabled_in_config_scope(
         self, expected_models: list[type[Model]]
-    ):
+    ) -> None:
         owner = self.create_exhaustive_user("owner", is_admin=True)
         self.create_exhaustive_global_configs(owner)
 
@@ -1798,7 +1801,7 @@ class CollisionTests(ImportTestCase):
     @expect_models(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole)
     def test_colliding_configs_overwrite_configs_disabled_in_config_scope(
         self, expected_models: list[type[Model]]
-    ):
+    ) -> None:
         owner = self.create_exhaustive_user("owner", is_admin=True)
         self.create_exhaustive_global_configs(owner)
 
@@ -1890,7 +1893,7 @@ class CollisionTests(ImportTestCase):
     @expect_models(COLLISION_TESTED, User, UserEmail)
     def test_colliding_user_with_merging_enabled_in_user_scope(
         self, expected_models: list[type[Model]]
-    ):
+    ) -> None:
         self.create_exhaustive_user(username="owner", email="importing@example.com")
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1933,7 +1936,7 @@ class CollisionTests(ImportTestCase):
     @expect_models(COLLISION_TESTED, User, UserEmail)
     def test_colliding_user_with_merging_disabled_in_user_scope(
         self, expected_models: list[type[Model]]
-    ):
+    ) -> None:
         self.create_exhaustive_user(username="owner", email="importing@example.com")
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1977,7 +1980,7 @@ class CollisionTests(ImportTestCase):
     @expect_models(COLLISION_TESTED, Organization, OrganizationMember, User, UserEmail)
     def test_colliding_user_with_merging_enabled_in_organization_scope(
         self, expected_models: list[type[Model]]
-    ):
+    ) -> None:
         owner = self.create_exhaustive_user(username="owner", email="importing@example.com")
         org = self.create_organization("some-org", owner=owner)
         old_org_membership = OrganizationMember.objects.get(organization=org)
@@ -2063,7 +2066,7 @@ class CollisionTests(ImportTestCase):
     @expect_models(COLLISION_TESTED, Organization, OrganizationMember, User, UserEmail)
     def test_colliding_user_with_merging_disabled_in_organization_scope(
         self, expected_models: list[type[Model]]
-    ):
+    ) -> None:
         owner = self.create_exhaustive_user(username="owner", email="importing@example.com")
         org = self.create_organization("some-org", owner=owner)
         old_org_membership = OrganizationMember.objects.get(organization=org)
@@ -2154,7 +2157,7 @@ class CollisionTests(ImportTestCase):
     @expect_models(COLLISION_TESTED, User, UserEmail, UserPermission)
     def test_colliding_user_with_merging_enabled_in_config_scope(
         self, expected_models: list[type[Model]]
-    ):
+    ) -> None:
         self.create_exhaustive_user(username="owner", email="importing@example.com", is_admin=True)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -2201,7 +2204,7 @@ class CollisionTests(ImportTestCase):
     @expect_models(COLLISION_TESTED, User, UserEmail, UserPermission)
     def test_colliding_user_with_merging_disabled_in_config_scope(
         self, expected_models: list[type[Model]]
-    ):
+    ) -> None:
         self.create_exhaustive_user(username="owner", email="importing@example.com", is_admin=True)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -2248,7 +2251,7 @@ class CollisionTests(ImportTestCase):
     @expect_models(COLLISION_TESTED, Organization, OrganizationMember, User, UserEmail)
     def test_colliding_user_email_unique_with_merging_disabled_in_organization_scope(
         self, expected_models: list[type[Model]]
-    ):
+    ) -> None:
         # Create an owner, and set email_unique as it isn't populated by factory methods.
         owner = self.create_exhaustive_user(username="owner", email="importing@example.com")
         owner.email_unique = owner.email
@@ -2301,7 +2304,7 @@ class CollisionTests(ImportTestCase):
     @expect_models(COLLISION_TESTED, Organization, OrganizationMember, User, UserEmail)
     def test_colliding_user_email_unique_existing_user_no_merge(
         self, expected_models: list[type[Model]]
-    ):
+    ) -> None:
         # Create an owner, and ensure that email_unique is None
         owner = self.create_exhaustive_user(username="owner", email="importing@example.com")
         assert owner.email_unique is None
@@ -2535,7 +2538,7 @@ class SeerWorkflowServiceAccountTests(ImportTestCase):
         assert ServiceAccountReplica.objects.get(service_account_id=account.id).id != account.id
         config = Factories.create_seer_workflow_config(
             org,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             service_account_id=account.id,
             enabled=True,
             filters={"environments": ["production"]},
@@ -2545,10 +2548,12 @@ class SeerWorkflowServiceAccountTests(ImportTestCase):
         Factories.create_seer_workflow_config_project(config, project)
         Factories.create_seer_workflow_config(
             org,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             service_account_id=inactive.id,
         )
-        Factories.create_seer_workflow_config(org, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
+        Factories.create_seer_workflow_config(
+            org, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
+        )
         return config
 
     def test_account_identity_remapped_before_replication(self) -> None:

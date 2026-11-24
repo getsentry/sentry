@@ -1,6 +1,6 @@
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useConcurrencyLimitedQueryFn} from 'sentry/utils/api/concurrency/useConcurrencyLimitedQueryFn';
+import {useConcurrencyLimitedQueryFn} from './useConcurrencyLimitedQueryFn';
 
 describe('useConcurrencyLimitedQueryFn', () => {
   it('runs at most `concurrency` calls at a time and resolves all of them', async () => {

@@ -4,7 +4,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
-import {ChartFooter} from 'sentry/views/discover/results/chartFooter';
+
+import {ChartFooter} from './chartFooter';
 
 describe('Discover > ChartFooter', () => {
   const yAxisValue = ['count()', 'failure_count()'];
@@ -113,7 +114,7 @@ describe('Discover > ChartFooter', () => {
       projects: [parseInt(project.id, 10)],
     });
 
-    function renderFooter(showDroppedData: boolean, hasDroppedData = true) {
+    function renderFooter(hasFilterNote: boolean) {
       render(
         <ChartFooter
           total={100}
@@ -128,16 +129,19 @@ describe('Discover > ChartFooter', () => {
           topEvents="5"
           eventView={queryEventView}
           droppedDataLayer={{
-            dataset: DiscoverDatasets.ERRORS,
-            hasDroppedData,
-            showDroppedData,
+            layers: [
+              {value: 'dropped-data', label: 'Dropped Errors', selected: hasFilterNote},
+            ],
             onChange: () => {},
           }}
+          droppedDataFilterNote={
+            hasFilterNote ? {dataset: DiscoverDatasets.ERRORS} : undefined
+          }
         />
       );
     }
 
-    it('notes that dropped errors ignore the search while the layer is on', () => {
+    it('notes that dropped errors ignore the search', () => {
       renderFooter(true);
 
       expect(
@@ -145,14 +149,8 @@ describe('Discover > ChartFooter', () => {
       ).toBeInTheDocument();
     });
 
-    it('omits the note while the layer is off', () => {
+    it('omits the note without a filter note', () => {
       renderFooter(false);
-
-      expect(screen.queryByText(/are not filtered by/)).not.toBeInTheDocument();
-    });
-
-    it('omits the note when nothing was dropped', () => {
-      renderFooter(true, false);
 
       expect(screen.queryByText(/are not filtered by/)).not.toBeInTheDocument();
     });

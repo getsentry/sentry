@@ -592,7 +592,7 @@ def top_events_timeseries(
         issues: Mapping[int, str | None] = {}
         if "issue" in selected_columns and dataset in {Dataset.Discover, Dataset.Events}:
             issues = Group.objects.get_issues_mapping(
-                {cast(int, event["issue.id"]) for event in top_events["data"]},
+                {event["issue.id"] for event in top_events["data"]},
                 snuba_params.project_ids,
                 organization,
             )
@@ -895,6 +895,7 @@ def histogram_query(
     key_column = None
     array_column = None
     field_names = None
+    histogram_function: Callable[[str], str | None]
     if len(fields) > 1:
         array_column = check_multihistogram_fields(fields)
         if array_column == "measurements":

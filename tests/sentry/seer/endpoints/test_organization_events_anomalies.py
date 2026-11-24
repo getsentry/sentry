@@ -50,7 +50,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         super().setUp()
         self.enterContext(override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret"))
 
-    def get_test_data(self, project_id: int) -> dict:
+    def get_test_data(self, project_id: int) -> dict[str, object]:
         return {
             "project_id": str(project_id),  # UI provides project_id as str
             "config": self.config,

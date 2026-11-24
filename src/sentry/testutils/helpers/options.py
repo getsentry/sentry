@@ -1,15 +1,22 @@
+from __future__ import annotations
+
 __all__ = ["override_options"]
 
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 from django.test.utils import override_settings
 
 from sentry.utils.types import Any
 
+if TYPE_CHECKING:
+    from sentry.options.store import Key
+
 
 @contextmanager
-def override_options(options):
+def override_options(options: Mapping[str, object]) -> Iterator[None]:
     """
     A context manager for overriding specific configuration
     Options.
@@ -22,13 +29,13 @@ def override_options(options):
     wrapped = default_manager.store.get
     original_lookup = OptionsManager.lookup_key
 
-    def new_get(key, **kwargs):
+    def new_get(key: Key, silent: bool = False) -> object | None:
         try:
             return options[key.name]
         except KeyError:
-            return wrapped(key, **kwargs)
+            return wrapped(key, silent=silent)
 
-    def new_lookup(self: OptionsManager, key: str):
+    def new_lookup(self: OptionsManager, key: str) -> Key:
         # use the default key definition if available
         if key not in options or key in self.registry:
             return original_lookup(self, key)

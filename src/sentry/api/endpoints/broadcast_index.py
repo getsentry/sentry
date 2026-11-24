@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from functools import reduce
 from operator import or_
+from typing import Any
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
@@ -17,7 +18,7 @@ from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, Organ
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
-from sentry.auth.principal import acting_user_id, owned_by_acting_user, require_user
+from sentry.auth.principal import acting_user_id, is_owned_by_acting_user, require_user
 from sentry.db.models.query import in_icontains
 from sentry.models.broadcast import Broadcast, BroadcastSeen
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -36,20 +37,30 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
     }
     permission_classes = (OrganizationPermission,)
 
-    def _get_serializer(self, request: Request):
+    def _get_serializer(self, request: Request) -> type[BroadcastSerializer]:
         if request.access.has_permission("broadcasts.admin"):
             return AdminBroadcastSerializer
         return BroadcastSerializer
 
-    def _serialize_objects(self, items, request):
+    def _serialize_objects(self, items: Any, request: Request) -> Any:
         serializer_cls = self._get_serializer(request)
         return serialize(items, request.user, serializer=serializer_cls())
 
-    def _secondary_filtering(self, request: Request, organization_slug, queryset):
+    def _secondary_filtering(
+        self,
+        request: Request,
+        organization_slug: RpcOrganization | str | None,
+        queryset: Any,
+    ) -> list[Broadcast]:
         # used in the SAAS product
         return list(queryset)
 
-    def convert_args(self, request: Request, *args, **kwargs):
+    def convert_args(
+        self,
+        request: Request,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         organization_id_or_slug: int | str | None = None
         if args and args[0] is not None:
             organization_id_or_slug = args[0]
@@ -66,7 +77,10 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
         return (args, kwargs)
 
     def get(
-        self, request: Request, organization: RpcOrganization | None = None, **kwargs
+        self,
+        request: Request,
+        organization: RpcOrganization | None = None,
+        **kwargs: Any,
     ) -> Response:
         limit = None
         if request.GET.get("show") == "all" and request.access.has_permission("broadcasts.admin"):
@@ -162,7 +176,7 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
             else:
                 unseen_queryset = queryset.exclude(
                     id__in=queryset.filter(
-                        owned_by_acting_user(request.user, "broadcastseen__user_id")
+                        is_owned_by_acting_user(request.user, "broadcastseen__user_id")
                     ).values("id")
                 )
 

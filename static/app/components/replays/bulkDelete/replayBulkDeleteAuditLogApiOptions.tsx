@@ -1,14 +1,11 @@
 import {queryOptions} from '@tanstack/react-query';
 
-import type {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/types';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
-type Query = {
-  referrer: string;
-  offset?: number;
-  per_page?: number;
-};
+import type {ReplayBulkDeleteAuditLog} from './types';
+
+type Query = {referrer: string; offset?: number; per_page?: number};
 
 const POLL_INTERVAL_MS = 5_000;
 
@@ -18,13 +15,7 @@ export function isBulkDeleteJobRunning(job: ReplayBulkDeleteAuditLog) {
 
 export function replayBulkDeleteAuditLogApiOptions(
   organization: Organization,
-  {
-    projectSlug,
-    query,
-  }: {
-    projectSlug: string;
-    query: Query;
-  }
+  {projectSlug, query}: {projectSlug: string; query: Query}
 ) {
   return queryOptions({
     ...apiOptions.as<{data: ReplayBulkDeleteAuditLog[]}>()(

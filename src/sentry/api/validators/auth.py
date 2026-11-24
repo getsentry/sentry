@@ -1,4 +1,4 @@
-from typing import NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
@@ -24,13 +24,19 @@ class RegistrationRequest(TypedDict):
     timezone: NotRequired[str]
 
 
-class AuthVerifyValidator(serializers.Serializer):
+class AuthVerifyRequest(TypedDict, total=False):
+    password: str
+    challenge: str
+    response: str
+
+
+class AuthVerifyValidator(serializers.Serializer[AuthVerifyRequest]):
     password = serializers.CharField(required=False, trim_whitespace=False)
     # For u2f
     challenge = serializers.CharField(required=False, trim_whitespace=False)
     response = serializers.CharField(required=False, trim_whitespace=False)
 
-    def validate(self, data):
+    def validate(self, data: AuthVerifyRequest) -> AuthVerifyRequest:
         if "password" in data:
             return data
         if "challenge" in data and "response" in data:
@@ -50,7 +56,7 @@ class RegistrationValidator(serializers.Serializer[RegistrationRequest]):
         choices=get_timezone_choices(), required=False, allow_blank=True
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         if not newsletter.backend.is_enabled():
             self.fields.pop("subscribe")

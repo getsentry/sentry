@@ -1,6 +1,7 @@
 from typing import Any
 
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -22,18 +23,23 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import DisallowImpersonatedTokenCreation
 from sentry.api.serializers import serialize
 from sentry.api.utils import to_valid_int_id
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
+from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.principal import acting_user_id
 from sentry.models.orgauthtoken import MAX_NAME_LENGTH, OrgAuthToken
 from sentry.organizations.services.organization.model import RpcOrganization
 
 
+@extend_schema(tags=["Organizations"])
 @control_silo_endpoint
 class OrganizationAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
+    # Revoking an already revoked token returns 404, and each revocation is audit logged.
+    idempotent_methods = frozenset()
     owner = ApiOwner.FOUNDATIONS
     authentication_classes = (SessionNoAuthTokenAuthentication, UserAuthTokenAuthentication)
     permission_classes = (OrgAuthTokenPermission, DisallowImpersonatedTokenCreation)
@@ -58,17 +64,19 @@ class OrganizationAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
     def get(
         self,
         request: Request,
+        organization: RpcOrganization,
         instance: OrgAuthToken,
-        **kwargs,
+        **kwargs: object,
     ) -> Response:
         return Response(serialize(instance, request.user, token=None))
 
     def put(
         self,
         request: Request,
+        organization: RpcOrganization,
         instance: OrgAuthToken,
-        **kwargs,
-    ):
+        **kwargs: object,
+    ) -> Response:
         name = request.data.get("name")
 
         if not name:
@@ -83,13 +91,43 @@ class OrganizationAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
 
         return Response(status=204)
 
+    @extend_schema(
+        operation_id="deleteOrganizationAuthToken",
+        summary="Revoke an Org Auth Token",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="token_id",
+                location="path",
+                required=True,
+                type=int,
+                description="The ID of the org auth token to revoke.",
+            ),
+        ],
+        request=None,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def delete(
         self,
         request: Request,
         organization: RpcOrganization,
         instance: OrgAuthToken,
-        **kwargs,
-    ):
+        **kwargs: object,
+    ) -> Response[None]:
+        """
+        Revoke an organization's org auth token, so it can no longer authenticate requests.
+        The revocation is recorded in the organization's audit log. Revoking a token that
+        was already revoked returns 404.
+
+        Org auth tokens can be managed from a signed-in session, or with an OAuth application
+        token that has the `org:tokens` scope in addition to one of the scopes listed here.
+        Personal auth tokens, org auth tokens and integration tokens can't call this endpoint
+        and get a 403.
+        """
         instance.update(date_deactivated=timezone.now())
 
         self.create_audit_entry(

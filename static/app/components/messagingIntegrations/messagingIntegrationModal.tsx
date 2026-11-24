@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {AddIntegrationRow} from 'sentry/components/messagingIntegrations/addIntegrationRow';
-import type {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
+
+import {AddIntegrationRow} from './addIntegrationRow';
+import type {MessagingIntegrationAnalyticsView} from './setupMessagingIntegrationButton';
 
 type Props = ModalRenderProps & {
   analyticsView: MessagingIntegrationAnalyticsView;

@@ -5,7 +5,6 @@ import {z} from 'zod';
 import {defined} from 'sentry/utils/defined';
 import {EQUATION_PREFIX, type Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {SORTABLE_SAMPLE_COLUMNS} from 'sentry/views/explore/metrics/types';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {validateAggregateSort} from 'sentry/views/explore/queryParams/aggregateSortBy';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
@@ -21,11 +20,9 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 
-export type TraceMetric = {
-  name: string;
-  type: string;
-  unit?: string | null;
-};
+import {SORTABLE_SAMPLE_COLUMNS} from './types';
+
+export type TraceMetric = {name: string; type: string; unit?: string | null};
 
 export const traceMetricSchema = z.looseObject({
   name: z.string(),
@@ -147,21 +144,11 @@ export function defaultFields(): string[] {
 
 export function defaultSortBys(fields: string[]): Sort[] {
   if (fields.includes('timestamp')) {
-    return [
-      {
-        field: 'timestamp',
-        kind: 'desc' as const,
-      },
-    ];
+    return [{field: 'timestamp', kind: 'desc' as const}];
   }
 
   if (fields.length) {
-    return [
-      {
-        field: fields[0]!,
-        kind: 'desc' as const,
-      },
-    ];
+    return [{field: fields[0]!, kind: 'desc' as const}];
   }
 
   return [];

@@ -13,6 +13,7 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers.models.release import expose_version_info
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.organization import Organization
 from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
@@ -37,7 +38,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization, version) -> Response:
+    def get(self, request: Request, organization: Organization, version: str) -> Response:
         """
         Retrieve an Organization's Release's Associated Meta Data
         `````````````````````````````````````````````````````````

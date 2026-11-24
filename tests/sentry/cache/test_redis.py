@@ -1,7 +1,9 @@
+from collections.abc import Callable
+
 import pytest
 
 from sentry import options
-from sentry.cache.redis import RedisCache, RedisClusterCache, ValueTooLarge
+from sentry.cache.redis import CommonRedisCache, RedisCache, RedisClusterCache, ValueTooLarge
 from sentry.exceptions import MissingTTL
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.xdist import get_redis_db
@@ -17,7 +19,7 @@ clients = pytest.mark.parametrize(
 
 
 @clients
-def test_redis_cache_integration(make_client) -> None:
+def test_redis_cache_integration(make_client: Callable[[], CommonRedisCache]) -> None:
     backend = make_client()
     backend.set("foo", {"foo": "bar"}, timeout=50)
 
@@ -34,7 +36,9 @@ def test_redis_cache_integration(make_client) -> None:
 
 
 @clients
-def test_set_without_a_timeout_is_rejected(make_client) -> None:
+def test_set_without_a_timeout_is_rejected(
+    make_client: Callable[[], CommonRedisCache],
+) -> None:
     backend = make_client()
 
     with pytest.raises(MissingTTL):
@@ -47,7 +51,7 @@ def test_set_without_a_timeout_is_rejected(make_client) -> None:
 
 
 @clients
-def test_raw_preserves_bytes(make_client) -> None:
+def test_raw_preserves_bytes(make_client: Callable[[], CommonRedisCache]) -> None:
     backend = make_client()
     backend.set("k", b"\xa0\x12\xfe", timeout=50, raw=True)
     assert backend.get("k", raw=True) == b"\xa0\x12\xfe"
@@ -69,8 +73,8 @@ def _assert_roundtrip(backend: RedisCache) -> None:
 @pytest.mark.parametrize(
     "cache_options", ({}, {"cluster_id": "default"}), ids=("implicit", "named")
 )
-def test_redis_cache_uses_redis_clusters(cache_options) -> None:
-    backend = RedisCache(**cache_options)
+def test_redis_cache_uses_redis_clusters(cache_options: dict[str, str]) -> None:
+    backend = RedisCache(cluster_id=cache_options.get("cluster_id", "default"))
     assert backend._text_client is redis_clusters.get("default")
     assert backend._bytes_client is redis_clusters.get_binary("default")
     _assert_roundtrip(backend)

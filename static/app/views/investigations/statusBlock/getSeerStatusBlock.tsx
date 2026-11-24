@@ -3,16 +3,13 @@ import {
   getInvestigationActiveTime,
   isOnlyNextStepPending,
 } from 'sentry/views/investigations/runState';
-import type {SeerStatusBlockVariant} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
-import {
-  isThought,
-  withThoughts,
-  type SeerStatusActivity,
-} from 'sentry/views/investigations/statusBlock/statusActivity';
 import type {
   InvestigationOrchestration,
   InvestigationToolActivity,
 } from 'sentry/views/investigations/types';
+
+import type {SeerStatusBlockVariant} from './seerStatusBlock';
+import {isThought, withThoughts, type SeerStatusActivity} from './statusActivity';
 
 type SeerStatusBlockContent = {
   statusLabel: string;
@@ -88,8 +85,8 @@ const CURRENT_REASONING_RANK = (IN_FLIGHT_RANK.running ?? 0) + 1;
  */
 function rankEntries(activity: SeerStatusActivity[]) {
   let nextCallRank = CURRENT_REASONING_RANK;
-  return [...activity]
-    .reverse()
+  return activity
+    .toReversed()
     .map(entry => {
       const rank = isThought(entry) ? nextCallRank : (IN_FLIGHT_RANK[entry.status] ?? 0);
       nextCallRank = rank;

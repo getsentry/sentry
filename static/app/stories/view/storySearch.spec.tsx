@@ -8,13 +8,13 @@ jest.mock('sentry/stories/view', () => ({}));
 jest.mock('sentry/stories/storyManifest.generated', () => ({
   storyFiles: [
     'app/components/core/badge/badge.mdx',
-    'app/components/core/badge/tag.mdx',
+    'packages/scraps/src/badge/tag.mdx',
     'app/components/core/principles/tokens/tokens.mdx',
     'app/components/example.stories.tsx',
   ],
   storyFrontmatterIndex: {
     'app/components/core/badge/badge.mdx': {category: 'status', title: 'Badge'},
-    'app/components/core/badge/tag.mdx': {category: 'status', title: 'Tag'},
+    'packages/scraps/src/badge/tag.mdx': {category: 'status', title: 'Tag'},
     'app/components/core/principles/tokens/tokens.mdx': {
       keywords: ['colors', 'palette'],
       title: 'Tokens',
@@ -32,7 +32,7 @@ jest.mock('sentry/stories/storyManifest.generated', () => ({
       {id: 'tag', title: 'Tag', parents: []},
       {id: 'tag-accessibility', title: 'Accessibility', parents: ['Tag']},
     ],
-    'app/components/core/badge/tag.mdx': [],
+    'packages/scraps/src/badge/tag.mdx': [],
     'app/components/core/principles/tokens/tokens.mdx': [],
   },
 }));

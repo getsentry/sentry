@@ -245,6 +245,22 @@ def test_saved_query_write_does_not_imply_read(scopes: list[str], expected: list
 @pytest.mark.parametrize(
     "scopes, expected",
     [
+        (["membership:read"], ["read"]),
+        (["membership:write"], ["write"]),
+        (["membership:admin"], ["admin"]),
+        (["membership:invite"], ["invite"]),
+        (["membership:read", "membership:write"], ["read", "write"]),
+    ],
+)
+def test_membership_scopes_do_not_imply_each_other(scopes: list[str], expected: list[str]) -> None:
+    (group,) = get_permission_groups(scopes)
+    assert group["actions"] == expected
+    assert len(get_permission_descriptions(scopes)) == 1
+
+
+@pytest.mark.parametrize(
+    "scopes, expected",
+    [
         (["service_account:read"], ["read"]),
         (["service_account:write"], ["write"]),
         (["service_account:read", "service_account:write"], ["read", "write"]),

@@ -19,6 +19,7 @@ class PerformanceDetectorSettings(DetectorSettings):
     # continue to reject creation, detail edits, and deletion through their existing paths.
     api_availability = MappingProxyType(
         {
+            DetectorAPIOperation.DISCOVER: False,
             DetectorAPIOperation.LIST: True,
             DetectorAPIOperation.GET: True,
             DetectorAPIOperation.PUT: True,

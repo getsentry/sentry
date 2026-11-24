@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {toast} from '@sentry/scraps/toast';
 
 export function OnTabClickExample() {

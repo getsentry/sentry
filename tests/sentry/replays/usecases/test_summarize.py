@@ -1374,6 +1374,8 @@ def _mutate(event: dict[str, Any], path: tuple[str, ...], replacement: Any) -> d
         del node[path[-1]]
     else:
         node[path[-1]] = replacement
+    if not isinstance(mutated, dict):
+        raise TypeError("Mutated replay payload is not a JSON object")
     return mutated
 
 

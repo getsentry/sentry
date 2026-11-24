@@ -3,13 +3,14 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 
-import {useFetchCrashReport} from 'sentry/components/feedback/feedbackItem/useFetchCrashReport';
 import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
 import {GroupMetaRow} from 'sentry/components/groupMetaRow';
 import {Placeholder} from 'sentry/components/placeholder';
 import {tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+
+import {useFetchCrashReport} from './useFetchCrashReport';
 
 interface Props {
   crashReportId: string;

@@ -3,18 +3,16 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {SeerRepoTableHeader} from 'sentry/components/seer/repoTable/seerRepoTableHeader';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 
+import {SeerRepoTableHeader} from './seerRepoTableHeader';
+
 describe('SeerRepoTableHeader', () => {
   const repository: RepositoryWithSettings = {
     ...RepositoryFixture({id: '1'}),
-    settings: {
-      enabledCodeReview: true,
-      codeReviewTriggers: ['on_ready_for_review'],
-    },
+    settings: {enabledCodeReview: true, codeReviewTriggers: ['on_ready_for_review']},
   };
 
   it.each([

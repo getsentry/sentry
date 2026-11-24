@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 
 import * as Storybook from 'sentry/stories';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -15,20 +15,15 @@ import type {
   TabularData,
   TabularRow,
 } from 'sentry/views/dashboards/widgets/common/types';
-import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleHTTPRequestTableData';
-import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
+
+import {sampleHTTPRequestTableData} from './fixtures/sampleHTTPRequestTableData';
+import {TableWidgetVisualization} from './tableWidgetVisualization';
 
 export default Storybook.story('TableWidgetVisualization', story => {
   const customColumns: TabularColumn[] = [
-    {
-      key: 'count(span.duration)',
-      type: 'number',
-    },
-    {
-      key: 'http.request_method',
-      type: 'string',
-    },
+    {key: 'count(span.duration)', type: 'number'},
+    {key: 'http.request_method', type: 'string'},
   ];
 
   story('Getting Started', () => {
@@ -52,10 +47,7 @@ export default Storybook.story('TableWidgetVisualization', story => {
   });
 
   story('Table Data and Optional Columns', () => {
-    const tableWithEmptyData: TabularData = {
-      ...sampleHTTPRequestTableData,
-      data: [],
-    };
+    const tableWithEmptyData: TabularData = {...sampleHTTPRequestTableData, data: []};
     const aliases = {
       'count(span.duration)': 'Count of Span Duration',
       'http.request_method': 'HTTP Request Method',

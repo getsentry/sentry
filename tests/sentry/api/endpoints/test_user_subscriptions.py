@@ -33,11 +33,13 @@ class UserSubscriptionsNewsletterTest(APITestCase):
 
     def test_subscribe(self) -> None:
         self.get_success_response(self.user.id, listId="123", subscribed=True, status_code=204)
-        results = newsletter.backend.get_subscriptions(self.user)["subscriptions"]
+        subscriptions = newsletter.backend.get_subscriptions(self.user)
+        assert subscriptions is not None
+        results = subscriptions["subscriptions"]
         assert len(results) == 1
-        assert results[0].list_id == 123
-        assert results[0].subscribed
-        assert results[0].verified
+        assert results[0].get("list_id") == 123
+        assert results[0].get("subscribed")
+        assert results[0].get("verified")
 
     def test_requires_subscribed(self) -> None:
         self.get_error_response(self.user.id, listId="123", status_code=400)
@@ -48,16 +50,20 @@ class UserSubscriptionsNewsletterTest(APITestCase):
 
     def test_unsubscribe(self) -> None:
         self.get_success_response(self.user.id, listId="123", subscribed=False, status_code=204)
-        results = newsletter.backend.get_subscriptions(self.user)["subscriptions"]
+        subscriptions = newsletter.backend.get_subscriptions(self.user)
+        assert subscriptions is not None
+        results = subscriptions["subscriptions"]
         assert len(results) == 1
-        assert results[0].list_id == 123
-        assert not results[0].subscribed
-        assert results[0].verified
+        assert results[0].get("list_id") == 123
+        assert not results[0].get("subscribed")
+        assert results[0].get("verified")
 
     def test_default_subscription(self) -> None:
         self.get_success_response(self.user.id, method="post", subscribed=True, status_code=204)
-        results = newsletter.backend.get_subscriptions(self.user)["subscriptions"]
+        subscriptions = newsletter.backend.get_subscriptions(self.user)
+        assert subscriptions is not None
+        results = subscriptions["subscriptions"]
         assert len(results) == 1
-        assert results[0].list_id == newsletter.backend.get_default_list_id()
-        assert results[0].subscribed
-        assert results[0].verified
+        assert results[0].get("list_id") == newsletter.backend.get_default_list_id()
+        assert results[0].get("subscribed")
+        assert results[0].get("verified")

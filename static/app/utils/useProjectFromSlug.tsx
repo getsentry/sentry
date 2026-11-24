@@ -1,5 +1,6 @@
 import type {Organization} from 'sentry/types/organization';
-import {useProjects} from 'sentry/utils/useProjects';
+
+import {useProjects} from './useProjects';
 
 export function useProjectFromSlug({
   organization,

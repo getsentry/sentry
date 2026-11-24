@@ -1,7 +1,10 @@
+from typing import cast
+
 import pytest
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.google.constants import DATA_VERSION
+from sentry.auth.providers.google.provider import GoogleOAuth2Provider
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import TestCase
@@ -31,13 +34,13 @@ class GoogleOAuth2ProviderTest(TestCase):
     def test_handles_multiple_domains(self) -> None:
         self.auth_provider_inst.update(config={"domains": ["example.com"]})
 
-        provider = self.auth_provider_inst.get_provider()
+        provider = cast(GoogleOAuth2Provider, self.auth_provider_inst.get_provider())
         assert provider.domains == ["example.com"]
 
     def test_handles_legacy_single_domain(self) -> None:
         self.auth_provider_inst.update(config={"domain": "example.com"})
 
-        provider = self.auth_provider_inst.get_provider()
+        provider = cast(GoogleOAuth2Provider, self.auth_provider_inst.get_provider())
         assert provider.domains == ["example.com"]
 
     def test_build_config(self) -> None:

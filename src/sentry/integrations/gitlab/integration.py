@@ -37,13 +37,12 @@ from sentry.integrations.source_code_management.commit_context import (
     PRCommentWorkflow,
 )
 from sentry.integrations.source_code_management.repository import (
-    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
 from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
 from sentry.integrations.source_code_management.url import url_is_under
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import HaltReason, IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
@@ -170,7 +169,7 @@ class GitlabIntegration(
             return GitLabApiClient(self)
 
     # IntegrationInstallation methods
-    def error_message_from_json(self, data):
+    def error_message_from_json(self, data: Mapping[str, Any]) -> object:
         """
         Extract error messages from gitlab API errors.
         Generic errors come in the `error` key while validation errors
@@ -182,6 +181,7 @@ class GitlabIntegration(
             return data["message"]
         if "error" in data:
             return data["error"]
+        return None
 
     def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
         # GitLab's get_repositories does not wrap errors in IntegrationError,
@@ -192,10 +192,6 @@ class GitlabIntegration(
                 return "configuration_error"
             if exc.code == 403:
                 return "unauthorized"
-        # Self-hosted GitLab instances sometimes return HTML login/captcha
-        # pages instead of JSON. The response parser raises ValueError.
-        if isinstance(exc, ValueError) and "not a valid response type" in str(exc).lower():
-            return "unsupported_response"
         return super().is_broken_integration_error(exc)
 
     # RepositoryIntegration methods
@@ -494,16 +490,16 @@ class GitlabIntegration(
 
     # Gitlab only functions
 
-    def get_group_id(self):
-        return self.model.metadata["group_id"]
+    def get_group_id(self) -> int | None:
+        return self.model.metadata.get("group_id")
 
-    def search_projects(self, query):
+    def search_projects(self, query: str | None) -> list[Mapping[str, object]]:
         client = self.get_client()
         group_id = self.get_group_id()
         return client.search_projects(group_id, query)
 
     # TODO(cathy): define in issue ABC
-    def search_issues(self, query: str | None, **kwargs) -> list[dict[str, Any]]:
+    def search_issues(self, query: str | None, **kwargs: Any) -> list[dict[str, Any]]:
         client = self.get_client()
         project_id = kwargs["project_id"]
         iids = kwargs["iids"]
@@ -565,9 +561,9 @@ class GitlabPRCommentWorkflow(PRCommentWorkflow):
         }
 
 
-class InstallationConfigSerializer(CamelSnakeSerializer):
+class InstallationConfigSerializer(CamelSnakeSerializer[dict[str, Any]]):
     url = URLField(required=False, default="https://gitlab.com")
-    group = CharField(required=True, allow_blank=False)
+    group = CharField(required=False, allow_blank=True, default="")
     include_subgroups = BooleanField(required=False, default=False)
     verify_ssl = BooleanField(required=False, default=True)
     client_id = CharField(required=True)
@@ -678,7 +674,9 @@ class GitlabIntegrationProvider(IntegrationProvider):
             force=True,
         )
 
-    def get_group_info(self, access_token, installation_data):
+    def get_group_info(
+        self, access_token: str, installation_data: Mapping[str, Any]
+    ) -> Mapping[str, Any]:
         client = GitLabSetupApiClient(
             base_url=installation_data["url"],
             access_token=access_token,
@@ -728,7 +726,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
             lambda: self._make_oauth_api_step(),
         ]
 
-    def _get_external_id(self, hostname: str, group_id: int) -> str:
+    def _get_external_id(self, hostname: str, group_id: int | None) -> str:
         """
         Each organization gets its own integration.
         The external_id is embedded in the webhook token, which is how inbound hooks find
@@ -752,23 +750,24 @@ class GitlabIntegrationProvider(IntegrationProvider):
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state["installation_data"]["url"]
 
-        # Guard against a missing group in the pipeline, we need this to
-        # properly key integrations.
-        if not state["installation_data"].get("group"):
-            raise IntegrationError("A GitLab group is required to install this integration.")
-
-        group = self.get_group_info(data["access_token"], state["installation_data"])
-        include_subgroups = state["installation_data"]["include_subgroups"]
+        requested_group = state["installation_data"].get("group")
+        if requested_group:
+            group = self.get_group_info(data["access_token"], state["installation_data"])
+            group_id = group.get("id")
+            if not group_id or not isinstance(group_id, int):
+                raise IntegrationError("Malformed group provided")
+            include_subgroups = state["installation_data"]["include_subgroups"]
+        else:
+            group = {}
+            group_id = None
+            include_subgroups = False
 
         hostname = urlparse(base_url).netloc
         verify_ssl = state["installation_data"]["verify_ssl"]
 
-        group_id = group["id"]
-        if not group_id or not isinstance(group_id, int):
-            raise IntegrationError("Malformed group provided")
-
         assert self.pipeline.organization is not None
-        legacy_external_id = f"{hostname}:{group_id}"
+        legacy_scope = group_id if group_id is not None else "_instance_"
+        legacy_external_id = f"{hostname}:{legacy_scope}"
         if OrganizationIntegration.objects.filter(
             organization_id=self.pipeline.organization.id,
             integration__provider=self.key,
@@ -788,23 +787,23 @@ class GitlabIntegrationProvider(IntegrationProvider):
         # Hooks on GitLab outlive the org integration that created them, so the
         # secret has to survive a reinstall. No status filter: a disabled row still
         # owns hooks carrying its secret.
-        existing = Integration.objects.filter(provider=self.key, external_id=external_id).first()
+        existing = Integration.objects.get_or_none(provider=self.key, external_id=external_id)
         webhook_secret = existing.metadata.get("webhook_secret") if existing else None
         if not webhook_secret:
             webhook_secret = secrets.token_hex(20)
 
         return {
-            "name": group["full_name"],
+            "name": group.get("full_name", hostname),
             "external_id": external_id,
             "metadata": {
                 "icon": group.get("avatar_url"),
                 "instance": hostname,
-                "domain_name": "{}/{}".format(hostname, group["full_path"]).rstrip("/"),
+                "domain_name": "{}/{}".format(hostname, group.get("full_path", "")).rstrip("/"),
                 "scopes": scopes,
                 "verify_ssl": verify_ssl,
                 "base_url": base_url,
                 "webhook_secret": webhook_secret,
-                "group_id": group.get("id"),
+                "group_id": group_id,
                 "include_subgroups": include_subgroups,
             },
             "user_identity": {
@@ -820,7 +819,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
             },
         }
 
-    def setup(self):
+    def setup(self) -> None:
         from sentry.plugins.base import bindings
 
         bindings.add(

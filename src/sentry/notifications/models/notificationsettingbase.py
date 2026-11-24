@@ -1,6 +1,9 @@
+from collections.abc import Iterable
+
 import sentry_sdk
 from django.conf import settings
 from django.db import models
+from django.db.models.base import ModelBase
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, DefaultFieldsModelExisting, FlexibleForeignKey
@@ -22,11 +25,23 @@ class NotificationSettingBase(DefaultFieldsModelExisting):
     class Meta:
         abstract = True
 
-    def save(self, *args, **kwargs):
+    def save(
+        self,
+        *,
+        force_insert: bool | tuple[ModelBase, ...] = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Iterable[str] | None = None,
+    ) -> None:
         try:
-            assert not (self.user_id is None and self.team_id is None), (
+            assert not (not self.user_id and not self.team_id), (
                 "Notification setting missing user & team"
             )
         except AssertionError as err:
             sentry_sdk.capture_exception(err)
-        super().save(*args, **kwargs)
+        super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )

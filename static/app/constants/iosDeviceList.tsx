@@ -271,6 +271,9 @@ const iOSDeviceMapping: Record<string, string> = {
   // Apple Vision Pro
   'RealityDevice14,1': 'Apple Vision Pro',
   'RealityDevice17,1': 'Apple Vision Pro (M5)',
+  // Apple HomeView
+  'HomeAccessory17,1': 'Apple HomeView',
+  'HomeAccessory17,2': 'Apple HomeView (Wall Mounted)',
 };
 
 export {iOSDeviceMapping};

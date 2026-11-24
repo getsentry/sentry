@@ -9,7 +9,8 @@ import {
   SPA_MODE_ALLOW_URLS,
   SPA_MODE_TRACE_PROPAGATION_TARGETS,
 } from 'sentry/constants/sdk';
-import type {ClientConfig} from 'sentry/serviceWorker/worker/clientConfig';
+
+import type {ClientConfig} from './clientConfig';
 
 let isInitialized = false;
 

@@ -13,7 +13,10 @@ import {
   ReplayOptionFrameFixture,
   ReplaySpanFrameEventFixture,
 } from 'sentry-fixture/replay/replayFrameEvents';
-import {ReplayRequestFrameFixture} from 'sentry-fixture/replay/replaySpanFrameData';
+import {
+  ReplayMemoryFrameFixture,
+  ReplayRequestFrameFixture,
+} from 'sentry-fixture/replay/replaySpanFrameData';
 import {
   RRWebDOMFrameFixture,
   RRWebFullSnapshotFrameEventFixture,
@@ -24,8 +27,9 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {parseEventTimestampMs} from 'sentry/utils/date/eventTimestampMs';
-import {ReplayReader} from 'sentry/utils/replays/replayReader';
-import {EventType, IncrementalSource} from 'sentry/utils/replays/types';
+
+import {ReplayReader} from './replayReader';
+import {EventType, IncrementalSource} from './types';
 
 describe('ReplayReader', () => {
   const replayRecord = ReplayRecordFixture();
@@ -129,9 +133,7 @@ describe('ReplayReader', () => {
     const navCrumb = ReplayBreadcrumbFrameEventFixture({
       timestamp: new Date('2023-12-25T00:03:00'),
       data: {
-        payload: ReplayNavFrameFixture({
-          timestamp: new Date('2023-12-25T00:03:00'),
-        }),
+        payload: ReplayNavFrameFixture({timestamp: new Date('2023-12-25T00:03:00')}),
       },
     });
     const consoleEvent = ReplayConsoleEventFixture({timestamp});
@@ -140,9 +142,7 @@ describe('ReplayReader', () => {
       data: {
         payload: {
           category: 'redux.action',
-          data: {
-            action: 'save.click',
-          },
+          data: {action: 'save.click'},
           message: '',
           timestamp: new Date('2023-12-25T00:02:30').getTime() / 1000,
           type: BreadcrumbType.DEFAULT,
@@ -216,10 +216,7 @@ describe('ReplayReader', () => {
           expect.objectContaining({category: 'ui.click'}),
         ],
       },
-      {
-        method: 'getSDKOptions',
-        expected: optionsFrame,
-      },
+      {method: 'getSDKOptions', expected: optionsFrame},
     ] as const)('Calling $method will filter frames', ({method, expected}) => {
       const replay = ReplayReader.factory({
         attachments,
@@ -231,6 +228,44 @@ describe('ReplayReader', () => {
       const exec = replay?.[method];
       expect(exec?.()).toStrictEqual(expected);
     });
+  });
+
+  it('excludes memory frames without a usable heap size from getMemoryFrames', () => {
+    const timestamp = new Date('2023-12-25T00:02:00');
+    const validMemory = ReplayMemoryEventFixture({
+      startTimestamp: timestamp,
+      endTimestamp: timestamp,
+    });
+    const memoryEventWithData = (data: unknown) =>
+      ReplaySpanFrameEventFixture({
+        timestamp,
+        data: {
+          payload: {
+            ...ReplayMemoryFrameFixture({
+              startTimestamp: timestamp,
+              endTimestamp: timestamp,
+            }),
+            // @ts-expect-error: Explicitly test data that doesn't match the SDK types
+            data,
+          },
+        },
+      });
+
+    const replay = ReplayReader.factory({
+      attachments: [
+        validMemory,
+        memoryEventWithData({}),
+        memoryEventWithData({memory: {}}),
+        memoryEventWithData({memory: {usedJSHeapSize: null}}),
+      ],
+      errors: [],
+      fetching: false,
+      replayRecord,
+    });
+
+    const memoryFrames = replay?.getMemoryFrames();
+    expect(memoryFrames).toHaveLength(1);
+    expect(memoryFrames?.[0]?.data.memory.usedJSHeapSize).toBe(0);
   });
 
   it('excludes a slow click from the chapter frames when its node has no tagName', () => {
@@ -275,10 +310,7 @@ describe('ReplayReader', () => {
 
     const replay = ReplayReader.factory({
       attachments: [
-        ReplayOptionFrameEventFixture({
-          timestamp,
-          data: {payload: optionsFrame},
-        }),
+        ReplayOptionFrameEventFixture({timestamp, data: {payload: optionsFrame}}),
       ],
       errors: [],
       fetching: false,
@@ -296,11 +328,7 @@ describe('ReplayReader', () => {
         attachments: [
           ReplayOptionFrameEventFixture({
             timestamp,
-            data: {
-              payload: ReplayOptionFrameFixture({
-                networkDetailHasUrls: true,
-              }),
-            },
+            data: {payload: ReplayOptionFrameFixture({networkDetailHasUrls: true})},
           }),
         ],
         errors: [],
@@ -313,18 +341,10 @@ describe('ReplayReader', () => {
 
     it.each([
       {
-        data: {
-          method: 'GET',
-          request: {headers: {accept: 'application/json'}},
-        },
+        data: {method: 'GET', request: {headers: {accept: 'application/json'}}},
         expected: true,
       },
-      {
-        data: {
-          method: 'GET',
-        },
-        expected: false,
-      },
+      {data: {method: 'GET'}, expected: false},
     ])('should have isNetworkDetailsSetup=$expected', ({data, expected}) => {
       const startTimestamp = new Date();
       const endTimestamp = new Date();
@@ -360,11 +380,7 @@ describe('ReplayReader', () => {
       childNodes: [
         RRWebDOMFrameFixture({
           tagName: 'div',
-          childNodes: [
-            RRWebDOMFrameFixture({
-              tagName: 'canvas',
-            }),
-          ],
+          childNodes: [RRWebDOMFrameFixture({tagName: 'canvas'})],
         }),
       ],
     });
@@ -389,13 +405,7 @@ describe('ReplayReader', () => {
       data: {
         source: IncrementalSource.Mutation,
         adds: [
-          {
-            node: RRWebDOMFrameFixture({
-              tagName: 'canvas',
-            }),
-            parentId: 0,
-            nextId: null,
-          },
+          {node: RRWebDOMFrameFixture({tagName: 'canvas'}), parentId: 0, nextId: null},
         ],
         removes: [],
         texts: [],
@@ -439,6 +449,46 @@ describe('ReplayReader', () => {
       });
 
       expect(replay?.processingErrors()).toEqual(['Missing Full Snapshot Frame']);
+      expect(replay?.isMissingFullSnapshot()).toBe(true);
+      expect(replay?.hasTimelineData()).toBe(true);
+    });
+
+    it('reports a missing meta frame when the replay only has a full snapshot', () => {
+      const replay = ReplayReader.factory({
+        attachments: [RRWebFullSnapshotFrameEventFixture({timestamp})],
+        errors: [],
+        fetching: false,
+        replayRecord,
+      });
+
+      expect(replay?.processingErrors()).toEqual(['Missing Meta Frame']);
+      expect(replay?.isMissingMeta()).toBe(true);
+      expect(replay?.isMissingFullSnapshot()).toBe(false);
+      expect(replay?.hasTimelineData()).toBe(true);
+    });
+
+    it('has timeline data when the replay only has breadcrumbs', () => {
+      const replay = ReplayReader.factory({
+        attachments: [ReplayConsoleEventFixture({timestamp})],
+        errors: [],
+        fetching: false,
+        replayRecord,
+      });
+
+      expect(replay?.hasProcessingErrors()).toBeTruthy();
+      expect(replay?.hasTimelineData()).toBe(true);
+    });
+
+    it('has no timeline data when the replay has no frames at all', () => {
+      const replay = ReplayReader.factory({
+        attachments: [],
+        errors: [],
+        fetching: false,
+        replayRecord,
+      });
+
+      expect(replay?.processingErrors()).toContain('Missing Meta Frame');
+      expect(replay?.hasTimelineData()).toBe(false);
     });
 
     it('reports no missing full snapshot when the replay is a video replay', () => {
@@ -450,11 +500,7 @@ describe('ReplayReader', () => {
             timestamp: timestamp.getTime(),
             data: {
               tag: 'video',
-              payload: {
-                duration: 5000,
-                segmentId: 0,
-                timestamp: timestamp.getTime(),
-              },
+              payload: {duration: 5000, segmentId: 0, timestamp: timestamp.getTime()},
             },
           },
         ],
@@ -487,25 +533,19 @@ describe('ReplayReader', () => {
     const breadcrumbAttachment1 = ReplayBreadcrumbFrameEventFixture({
       timestamp: new Date('2024-01-01T00:02:30'),
       data: {
-        payload: ReplayNavFrameFixture({
-          timestamp: new Date('2024-01-01T00:02:30'),
-        }),
+        payload: ReplayNavFrameFixture({timestamp: new Date('2024-01-01T00:02:30')}),
       },
     });
     const breadcrumbAttachment2 = ReplayBreadcrumbFrameEventFixture({
       timestamp: new Date('2024-01-01T00:03:05'),
       data: {
-        payload: ReplayNavFrameFixture({
-          timestamp: new Date('2024-01-01T00:03:05'),
-        }),
+        payload: ReplayNavFrameFixture({timestamp: new Date('2024-01-01T00:03:05')}),
       },
     });
     const breadcrumbAttachment3 = ReplayBreadcrumbFrameEventFixture({
       timestamp: new Date('2024-01-01T00:03:30'),
       data: {
-        payload: ReplayNavFrameFixture({
-          timestamp: new Date('2024-01-01T00:03:30'),
-        }),
+        payload: ReplayNavFrameFixture({timestamp: new Date('2024-01-01T00:03:30')}),
       },
     });
 
@@ -685,10 +725,7 @@ describe('ReplayReader', () => {
 
     it('falls back to the whole replay when the window is not a real time', () => {
       // `new Date('nonsense').getTime()` is NaN, and NaN survives `clamp`.
-      const replay = readerWithClipWindow({
-        startTimestampMs: NaN,
-        endTimestampMs: NaN,
-      });
+      const replay = readerWithClipWindow({startTimestampMs: NaN, endTimestampMs: NaN});
 
       expect(replay?.getDurationMs()).toBe(
         replayFinishedAt.getTime() - replayStartedAt.getTime()
@@ -703,13 +740,7 @@ describe('ReplayReader', () => {
         attachments: [
           {
             type: EventType.FullSnapshot,
-            data: {
-              node: {
-                type: 1,
-                tagName: 'html',
-                childNodes: [],
-              },
-            },
+            data: {node: {type: 1, tagName: 'html', childNodes: []}},
             timestamp: 0,
           },
           {
@@ -735,12 +766,7 @@ describe('ReplayReader', () => {
                 {
                   parentId: 414,
                   nextId: null,
-                  node: {
-                    type: 3,
-                    textContent: '.css {...}',
-                    isStyle: true,
-                    id: 427,
-                  },
+                  node: {type: 3, textContent: '.css {...}', isStyle: true, id: 427},
                 },
                 {
                   parentId: 5,
@@ -748,9 +774,7 @@ describe('ReplayReader', () => {
                   node: {
                     type: 1,
                     tagName: 'div',
-                    attributes: {
-                      class: 'test',
-                    },
+                    attributes: {class: 'test'},
                     childNodes: [],
                     id: 48,
                   },

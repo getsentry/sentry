@@ -5,11 +5,12 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
+
+import {DroppedDataLLMContext} from './droppedDataLLMContext';
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],
@@ -31,10 +32,6 @@ function findDroppedDataNode(snapshot: LLMContextSnapshot) {
 describe('DroppedDataLLMContext', () => {
   beforeEach(() => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it('registers nothing without the feature flag', () => {
@@ -79,6 +76,34 @@ describe('DroppedDataLLMContext', () => {
           expect.objectContaining({outcome: 'rate_limited', shareRatio: 0.1}),
         ],
       })
+    );
+  });
+
+  it('requests the interval it is given', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-dropped/`,
+      body: {
+        meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+        droppedEvents: [],
+        acceptedEvents: [],
+      },
+    });
+
+    renderHookWithProviders(() => useLLMContext(), {
+      organization,
+      additionalWrapper: ({children}: {children: ReactNode}) => (
+        <Fragment>
+          <DroppedDataLLMContext dataset={DiscoverDatasets.SPANS} interval="3h" />
+          {children}
+        </Fragment>
+      ),
+    });
+
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({query: expect.objectContaining({interval: '3h'})})
+      )
     );
   });
 });

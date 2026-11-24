@@ -1,6 +1,6 @@
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import {logItemIdToTimestamp} from 'sentry/views/explore/logs/pinning/logItemId';
+import {logItemIdToTimestamp} from './logItemId';
 
 describe('logItemIdToTimestamp', () => {
   beforeEach(() => {

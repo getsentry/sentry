@@ -3,6 +3,7 @@ from unittest import mock
 
 import orjson
 import pytest
+from django.test import override_settings
 
 from sentry.lang.native.sources import (
     get_sources_for_project,
@@ -15,6 +16,7 @@ from sentry.lang.native.symbolicator import (
     SymbolicatorFunction,
     SymbolicatorTaskKind,
 )
+from sentry.models.project import Project
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -39,8 +41,39 @@ CUSTOM_SOURCE_CONFIG = """
 
 
 @django_db_all
+@pytest.mark.parametrize(
+    ("pool_urls", "expected_url"),
+    [
+        ({"default": "http://native.invalid", "js": "http://js.invalid/"}, "http://js.invalid"),
+        ({"default": "http://native.invalid"}, "http://native.invalid"),
+        ({}, "http://fallback.invalid"),
+    ],
+)
+def test_symbolicator_with_function(
+    default_project: Project, pool_urls: dict[str, str], expected_url: str
+) -> None:
+    on_request = mock.Mock()
+    task_kind = SymbolicatorTaskKind(SymbolicatorFunction.native, is_reprocessing=True)
+    with override_settings(
+        SYMBOLICATOR_POOL_URLS=pool_urls,
+        SENTRY_SYMBOLICATOR_OPTIONS={"url": "http://fallback.invalid/"},
+    ):
+        native = Symbolicator(task_kind, on_request, default_project, "0" * 32)
+        javascript = native.with_function(SymbolicatorFunction.js)
+    assert javascript.base_url == expected_url
+    assert javascript.task_kind == SymbolicatorTaskKind(
+        SymbolicatorFunction.js, is_reprocessing=True
+    )
+    assert javascript.project is default_project
+    assert javascript.event_id == "0" * 32
+    assert javascript.on_request is on_request
+    assert native.task_kind == task_kind
+    assert native.base_url == pool_urls.get("default", "http://fallback.invalid")
+
+
+@django_db_all
 @pytest.mark.parametrize("enabled", [False, True])
-def test_process_payload_apply_source_server_info(default_project, enabled) -> None:
+def test_process_payload_apply_source_server_info(default_project: Project, enabled: bool) -> None:
     default_project.update_option("sentry:enable_native_source_server_mapping", enabled)
     symbolicator = Symbolicator(
         task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.native),
@@ -56,7 +89,7 @@ def test_process_payload_apply_source_server_info(default_project, enabled) -> N
 
 
 @django_db_all
-def test_sources_builtin(default_project) -> None:
+def test_sources_builtin(default_project: Project) -> None:
     features = {"organizations:custom-symbol-sources": False}
 
     default_project.update_option("sentry:builtin_symbol_sources", ["microsoft"])
@@ -72,7 +105,7 @@ def test_sources_builtin(default_project) -> None:
 # Test that a builtin source that is not declared in SENTRY_BUILTIN_SOURCES does
 # not lead to an error. It should simply be ignored.
 @django_db_all
-def test_sources_builtin_unknown(default_project) -> None:
+def test_sources_builtin_unknown(default_project: Project) -> None:
     features = {"organizations:custom-symbol-sources": False}
 
     default_project.update_option("sentry:builtin_symbol_sources", ["invalid"])
@@ -85,7 +118,7 @@ def test_sources_builtin_unknown(default_project) -> None:
 
 
 @django_db_all
-def test_sources_custom(default_project) -> None:
+def test_sources_custom(default_project: Project) -> None:
     features = {"organizations:custom-symbol-sources": True}
 
     # Remove builtin sources explicitly to avoid defaults
@@ -102,7 +135,7 @@ def test_sources_custom(default_project) -> None:
 
 
 @django_db_all
-def test_sources_custom_with_event_id(default_project) -> None:
+def test_sources_custom_with_event_id(default_project: Project) -> None:
     features = {"organizations:custom-symbol-sources": True}
 
     # Remove builtin sources explicitly to avoid defaults
@@ -126,7 +159,7 @@ def test_sources_custom_with_event_id(default_project) -> None:
 # Test that previously saved custom sources are not returned if the feature for
 # custom sources is missing at query time.
 @django_db_all
-def test_sources_custom_disabled(default_project) -> None:
+def test_sources_custom_disabled(default_project: Project) -> None:
     features = {"organizations:custom-symbol-sources": False}
 
     default_project.update_option("sentry:builtin_symbol_sources", [])
@@ -275,7 +308,7 @@ class TestInternalSourcesRedaction:
 
 class TestAliasReversion:
     @pytest.fixture
-    def builtin_sources(self):
+    def builtin_sources(self) -> dict[str, dict[str, object]]:
         return {
             "ios": {
                 "id": "sentry:ios",
@@ -295,7 +328,7 @@ class TestAliasReversion:
             },
         }
 
-    def test_reverse_aliases(self, builtin_sources) -> None:
+    def test_reverse_aliases(self, builtin_sources: dict[str, dict[str, object]]) -> None:
         reverse_aliases = reverse_aliases_map(builtin_sources)
         expected = {"sentry:ios-source": "sentry:ios", "sentry:tvos-source": "sentry:ios"}
         assert reverse_aliases == expected

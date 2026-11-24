@@ -286,9 +286,10 @@ class Delegator:
                 block=True,
             )
 
-            if self.callback is not None:
+            callback = self.callback
+            if callback is not None:
                 FutureSet([_f for _f in results if _f]).add_done_callback(
-                    lambda *a, **k: self.callback(
+                    lambda *a, **k: callback(
                         context, attribute_name, callargs, selected_backend_names, results
                     )
                 )

@@ -49,7 +49,7 @@ class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
-        assert response.data["detail"] == "Team does not exist."
+        assert response.data["detail"] == "Team 'not-a-team' does not exist."
 
     @with_feature("organizations:team-roles")
     def test_add_team_with_team_role(self) -> None:
@@ -131,7 +131,7 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
         ar1.refresh_from_db()
         ar2.refresh_from_db()
 
-        assert (r1.owner_team, ar1.team) == (None, None)
+        assert not r1.owner_team and not ar1.team
         assert r2.owner_team == ar2.team == team
 
         self.get_success_response(
@@ -146,7 +146,7 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
         ar1.refresh_from_db()
         ar2.refresh_from_db()
 
-        assert (r1.owner_team, r2.owner_team, ar1.team, ar2.team) == (None, None, None, None)
+        assert not r1.owner_team and not r2.owner_team and not ar1.team and not ar2.team
 
         self.get_success_response(
             another_project.organization.slug,
@@ -169,7 +169,7 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
-        assert response.data["detail"] == "Team does not exist."
+        assert response.data["detail"] == "Team 'not-a-team' does not exist."
 
     @with_feature("organizations:team-roles")
     def test_remove_team_with_team_role(self) -> None:

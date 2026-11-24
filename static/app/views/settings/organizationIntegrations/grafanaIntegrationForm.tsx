@@ -4,8 +4,8 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -35,7 +35,7 @@ export function GrafanaIntegrationForm({
         .mutateAsync(configSchema.parse(value))
         .then(() => {
           form.reset();
-          addSuccessMessage(t('Grafana connection saved'));
+          toast.success(t('Grafana connection saved'));
         })
         .catch(error => {
           if (error instanceof RequestError) {

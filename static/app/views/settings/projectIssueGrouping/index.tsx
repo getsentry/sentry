@@ -12,8 +12,8 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -26,6 +26,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {FingerprintRulesEditor} from './fingerprintRulesEditor';
 
 function FingerprintRulesForm({
   project,
@@ -45,7 +47,7 @@ function FingerprintRulesForm({
         .mutateAsync(value)
         .then(() => {
           formApi.reset(value);
-          addSuccessMessage(t('Fingerprint rules updated.'));
+          toast.success(t('Fingerprint rules updated.'));
         })
         .catch((error: unknown) => {
           // Surface API validation errors (e.g. invalid rule syntax) inline.
@@ -58,7 +60,7 @@ function FingerprintRulesForm({
           ) {
             return;
           }
-          addErrorMessage(t('Unable to save changes.'));
+          toast.error(t('Unable to save changes.'));
         }),
   });
 
@@ -89,18 +91,20 @@ error.type:DatabaseUnavailable -> system-down
 stack.function:malloc -> memory-allocation-error`}
                     </Text>
                   </Container>
-                  <field.TextArea
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    disabled={!hasAccess}
-                    monospace
-                    autosize
-                    rows={2}
-                    maxRows={20}
-                    placeholder={t(
-                      'error.type:MyException -> fingerprint-value\nstack.function:some_panic_function -> fingerprint-value'
+                  <field.Base<HTMLTextAreaElement> disabled={!hasAccess}>
+                    {fieldProps => (
+                      <FingerprintRulesEditor
+                        {...fieldProps}
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                        rows={2}
+                        maxRows={20}
+                        placeholder={t(
+                          'error.type:MyException -> fingerprint-value\nstack.function:some_panic_function -> fingerprint-value'
+                        )}
+                      />
                     )}
-                  />
+                  </field.Base>
                 </Stack>
               </field.Layout.Stack>
             )}
@@ -149,7 +153,7 @@ function StackTraceRulesForm({
         .mutateAsync(value)
         .then(() => {
           formApi.reset(value);
-          addSuccessMessage(t('Stack trace rules updated.'));
+          toast.success(t('Stack trace rules updated.'));
         })
         .catch((error: unknown) => {
           // Surface API validation errors (e.g. invalid rule syntax) inline.
@@ -162,7 +166,7 @@ function StackTraceRulesForm({
           ) {
             return;
           }
-          addErrorMessage(t('Unable to save changes.'));
+          toast.error(t('Unable to save changes.'));
         }),
   });
 

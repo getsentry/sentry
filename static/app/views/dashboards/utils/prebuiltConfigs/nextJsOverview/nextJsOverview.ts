@@ -7,10 +7,6 @@ import type {
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
-  DASHBOARD_DESCRIPTION,
-  DASHBOARD_TITLE,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/nextJsOverview/settings';
-import {
   WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
@@ -21,6 +17,8 @@ import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrar
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {WEB_VITALS_OPS} from 'sentry/views/insights/pages/frontend/settings';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {DASHBOARD_DESCRIPTION, DASHBOARD_TITLE} from './settings';
 
 const CLIENT_QUERY = new MutableSearch('');
 CLIENT_QUERY.addFilterValue(
@@ -180,13 +178,7 @@ const CLIENT_TRANSACTIONS_TABLE: PrebuiltWidget = {
       orderby: `-count(${SpanFields.SPAN_DURATION})`,
     },
   ],
-  layout: {
-    x: 0,
-    y: 5,
-    w: 6,
-    h: 3,
-    minH: TABLE_MIN_HEIGHT,
-  },
+  layout: {x: 0, y: 5, w: 6, h: 3, minH: TABLE_MIN_HEIGHT},
 };
 
 const SERVER_TRANSACTIONS_TABLE_FIELDS = [
@@ -231,24 +223,12 @@ const SERVER_TRANSACTIONS_TABLE: PrebuiltWidget = {
       orderby: `-count(${SpanFields.SPAN_DURATION})`,
     },
   ],
-  layout: {
-    x: 0,
-    y: 8,
-    w: 6,
-    h: 3,
-    minH: TABLE_MIN_HEIGHT,
-  },
+  layout: {x: 0, y: 8, w: 6, h: 3, minH: TABLE_MIN_HEIGHT},
 };
 
 const SERVER_TREE_WIDGET: PrebuiltWidget = {
   ...SERVER_TREE_WIDGET_TEMPLATE,
-  layout: {
-    x: 0,
-    y: 11,
-    w: 6,
-    h: 3,
-    minH: 3,
-  },
+  layout: {x: 0, y: 11, w: 6, h: 3, minH: 3},
 };
 
 export const NEXTJS_FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {

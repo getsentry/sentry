@@ -1,13 +1,14 @@
 import {lazy} from 'react';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
-import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {getGenAiOpType} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {ErrorNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/errorNode';
 import {NoInstrumentationNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/noInstrumentationNode';
 import {ParentAutogroupNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/parentAutogroupNode';
+import {ServerRenderNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/serverRenderNode';
 import {SiblingAutogroupNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/siblingAutogroupNode';
 import {UptimeCheckNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/uptimeCheckNode';
 import {UptimeCheckTimingNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/uptimeCheckTimingNode';
@@ -22,7 +23,7 @@ const LazyEAPSpanNodeDetails = lazy(() =>
 );
 const LazyAiSpanDetails = lazy(() =>
   import('sentry/views/performance/traceDetails/traceDrawer/details/span/aiSpanDetails').then(
-    module => ({default: module.AiSpanDetails})
+    module => ({default: module.AiSpanNodeDetails})
   )
 );
 const LazyErrorNodeDetails = lazy(() =>
@@ -33,6 +34,11 @@ const LazyErrorNodeDetails = lazy(() =>
 const LazyMissingInstrumentationNodeDetails = lazy(() =>
   import('sentry/views/performance/traceDetails/traceDrawer/details/missingInstrumentation').then(
     module => ({default: module.MissingInstrumentationNodeDetails})
+  )
+);
+const LazyServerRenderNodeDetails = lazy(() =>
+  import('sentry/views/performance/traceDetails/traceDrawer/details/serverRender').then(
+    module => ({default: module.ServerRenderNodeDetails})
   )
 );
 const LazyAutogroupNodeDetails = lazy(() =>
@@ -60,9 +66,15 @@ export function NodeDetails(props: TraceTreeNodeDetailsProps<BaseNode>) {
   const {node} = props;
 
   if (node instanceof EapSpanNode) {
-    if (getIsAiNode(node)) {
+    const operationType = getGenAiOpType(node);
+    if (operationType) {
       return (
-        <LazyLoad LazyComponent={LazyAiSpanDetails} node={node} traceId={props.traceId} />
+        <LazyLoad
+          LazyComponent={LazyAiSpanDetails}
+          node={node}
+          operationType={operationType}
+          traceId={props.traceId}
+        />
       );
     }
     return <LazyLoad LazyComponent={LazyEAPSpanNodeDetails} {...props} node={node} />;
@@ -77,6 +89,11 @@ export function NodeDetails(props: TraceTreeNodeDetailsProps<BaseNode>) {
         {...props}
         node={node}
       />
+    );
+  }
+  if (node instanceof ServerRenderNode) {
+    return (
+      <LazyLoad LazyComponent={LazyServerRenderNodeDetails} {...props} node={node} />
     );
   }
   if (node instanceof ParentAutogroupNode || node instanceof SiblingAutogroupNode) {

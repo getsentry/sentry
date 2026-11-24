@@ -2,13 +2,13 @@ import {useEffect, useMemo, useRef} from 'react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {hasGenAiConversationsFeature} from 'sentry/views/explore/conversations/utils/features';
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {getStringAttr} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {TraceAiConversations} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceAiConversations';
-import {TraceAiSpans} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceAiSpans';
+
+import {TraceAiConversations} from './traceAiConversations';
+import {TraceAiSpans} from './traceAiSpans';
 
 function getConversationIds(nodes: AITraceSpanNode[]): string[] {
   const ids = new Set<string>();
@@ -53,7 +53,7 @@ export function TraceAiTab({traceSlug}: {traceSlug: string}) {
 
   return (
     <TraceAiConversations
-      conversationIds={hasGenAiConversationsFeature(organization) ? conversationIds : []}
+      conversationIds={conversationIds}
       allAiNodes={nodes}
       traceSlug={traceSlug}
     />

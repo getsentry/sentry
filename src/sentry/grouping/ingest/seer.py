@@ -36,6 +36,7 @@ from sentry.seer.similarity.utils import (
     filter_null_from_string,
     get_stacktrace_string,
     killswitch_enabled,
+    project_uses_seer_similarity,
     record_did_call_seer_metric,
     stacktrace_exceeds_limits,
 )
@@ -186,19 +187,17 @@ def _stacktrace_exceeds_limits(
 
 
 def _project_has_similarity_grouping_enabled(project: Project) -> bool:
-    # TODO: This is a hack to get ingest to turn on for projects as soon as they're backfilled. When
-    # the backfill script completes, we turn on this option, enabling ingest immediately rather than
-    # forcing the project to wait until it's been manually added to a feature handler. Once all
-    # projects have been backfilled, the option (and this check) can go away.
-    has_been_backfilled = bool(project.get_option("sentry:similarity_backfill_completed"))
+    uses_seer = project_uses_seer_similarity(project)
 
+    # Tag name kept for dashboard continuity: it now reports the helper's answer, not only
+    # whether the project was backfilled.
     metrics.incr(
         "grouping.similarity.event_project_backfill_status",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={"backfilled": has_been_backfilled},
+        tags={"backfilled": uses_seer},
     )
 
-    return has_been_backfilled
+    return uses_seer
 
 
 def _has_custom_fingerprint(

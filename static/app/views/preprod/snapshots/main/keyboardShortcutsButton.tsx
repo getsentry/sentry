@@ -5,10 +5,10 @@ import {IconCommand} from '@sentry/icons/command';
 import {Button} from '@sentry/scraps/button';
 import {Hotkey, Kbd} from '@sentry/scraps/hotkey';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {openModal} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';

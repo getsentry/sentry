@@ -1,9 +1,12 @@
-from datetime import timedelta
+from collections.abc import Sequence
+from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from django.urls import reverse
+from rest_framework.response import Response
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
@@ -16,15 +19,15 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 def build_expected_timeseries(
-    start,
-    interval,
-    expected,
-    expected_comparison=None,
-    ignore_accuracy=False,
-    sample_count=None,
-    sample_rate=None,
-    confidence=None,
-):
+    start: datetime,
+    interval: int,
+    expected: Sequence[object],
+    expected_comparison: Sequence[object] | None = None,
+    ignore_accuracy: bool = False,
+    sample_count: Sequence[object] | None = None,
+    sample_rate: Sequence[object] | None = None,
+    confidence: Sequence[object] | None = None,
+) -> list[dict[str, object]]:
     if expected_comparison is not None:
         assert len(expected_comparison) == len(expected)
     if ignore_accuracy:
@@ -59,7 +62,7 @@ def build_expected_timeseries(
 
 
 class AnyConfidence:
-    def __eq__(self, o: object):
+    def __eq__(self, o: object) -> bool:
         return o in ["high", "low"]
 
 
@@ -83,7 +86,9 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def _do_request(self, data, url=None, features=None):
+    def _do_request(
+        self, data: dict[str, Any], url: str | None = None, features: dict[str, bool] | None = None
+    ) -> Response:
         if features is None:
             features = {"organizations:discover-basic": True}
         features.update(self.features)
@@ -2711,7 +2716,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         "sentry.utils.snuba_rpc._make_rpc_requests",
         wraps=_make_rpc_requests,
     )
-    def test_extrapolation_mode_server_only(self, mock_rpc_request) -> None:
+    def test_extrapolation_mode_server_only(self, mock_rpc_request: MagicMock) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         spans = []
         for hour, count in enumerate(event_counts):

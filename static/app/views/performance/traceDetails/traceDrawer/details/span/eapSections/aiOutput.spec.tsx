@@ -2,20 +2,14 @@ import type {ComponentProps} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {
-  AIOutputSection,
-  getAIToolOutput,
-} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
+import {AIOutputSection, getAIToolOutput} from './aiOutput';
 
 function makeAiNodeWithAttributes(
   attributes: Record<string, unknown>
 ): ComponentProps<typeof AIOutputSection>['node'] {
   return {
     id: 'span-id',
-    attributes: {
-      'gen_ai.operation.type': 'chat',
-      ...attributes,
-    },
+    attributes: {'gen_ai.operation.type': 'chat', ...attributes},
     value: {},
   } as unknown as ComponentProps<typeof AIOutputSection>['node'];
 }
@@ -23,9 +17,7 @@ function makeAiNodeWithAttributes(
 function makeAiNode(
   messages: Array<{role: string; content?: unknown; parts?: unknown[]}>
 ): ComponentProps<typeof AIOutputSection>['node'] {
-  return makeAiNodeWithAttributes({
-    'gen_ai.output.messages': JSON.stringify(messages),
-  });
+  return makeAiNodeWithAttributes({'gen_ai.output.messages': JSON.stringify(messages)});
 }
 
 describe('AIOutputSection', () => {
@@ -78,10 +70,7 @@ describe('AIOutputSection', () => {
     render(
       <AIOutputSection
         node={makeAiNode([
-          {
-            role: 'assistant',
-            parts: [{type: 'reasoning', content: 'Thinking only...'}],
-          },
+          {role: 'assistant', parts: [{type: 'reasoning', content: 'Thinking only...'}]},
         ])}
       />
     );

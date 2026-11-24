@@ -6,18 +6,20 @@ import {Button} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {useAskSeerHandoff} from 'sentry/components/events/autofix/v3/useAskSeerHandoff';
 import {t} from 'sentry/locale';
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
 import type {RequestMessage} from 'sentry/serviceWorker/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {useAskSeerHandoff} from './useAskSeerHandoff';
 
 const SUCCESS_VISIBLE_DURATION_MS = 25_000;
 const PROMPT_FEATURE = 'seer_autofix_sw_notification';
@@ -47,7 +49,9 @@ export function SeerEnableNotifications({status}: Props) {
   const analyticsArea = useAnalyticsArea();
 
   const isEligible =
-    organization.features.includes('autofix-browser-notifications') &&
+    // The sandbox can start Seer runs to showcase AI, but asking a demo visitor
+    // for browser notification permission is not part of that pitch.
+    !isDemoModeActive() &&
     // In code mode the run is handed to the agent and followed in chat, so an
     // offer to announce it from here would point at the wrong surface.
     !isCodeMode &&
@@ -60,11 +64,7 @@ export function SeerEnableNotifications({status}: Props) {
     snoozePrompt,
     isLoading: isPromptLoading,
     isError: isPromptError,
-  } = usePrompt({
-    feature: PROMPT_FEATURE,
-    organization,
-    options: {enabled: isEligible},
-  });
+  } = usePrompt({feature: PROMPT_FEATURE, organization, options: {enabled: isEligible}});
 
   const shouldRender =
     isEligible && !isPromptDismissed && !isPromptLoading && !isPromptError;
@@ -121,7 +121,7 @@ export function SeerEnableNotifications({status}: Props) {
                     },
                   } satisfies RequestMessage);
                 } catch (error) {
-                  addErrorMessage(error instanceof Error ? error.message : String(error));
+                  toast.error(error instanceof Error ? error.message : String(error));
                 }
               }}
             >

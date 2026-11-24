@@ -1,4 +1,4 @@
-import type {RequestFrame, ResourceFrame, SpanFrame} from 'sentry/utils/replays/types';
+import type {RequestFrame, ResourceFrame, SpanFrame} from './types';
 
 export function isRequestFrame(frame: SpanFrame): frame is RequestFrame {
   return ['resource.fetch', 'resource.xhr', 'resource.http'].includes(frame.op);
@@ -34,10 +34,7 @@ export function getReqRespContentTypes(frame: SpanFrame) {
       resp: frame.data?.response?.headers?.['content-type'],
     };
   }
-  return {
-    req: undefined,
-    resp: undefined,
-  };
+  return {req: undefined, resp: undefined};
 }
 
 export function getResponseBodySize(frame: SpanFrame) {

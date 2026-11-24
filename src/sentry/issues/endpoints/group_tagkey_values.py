@@ -6,12 +6,13 @@ from sentry import analytics, tagstore
 from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -23,6 +24,7 @@ from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.tagstore.types import TagValueSerializerResponse
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -35,6 +37,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
 
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
@@ -75,7 +78,9 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         suggested_api="sentry-api-0-organization-group-group-tag-key-values",
         url_names=["sentry-api-0-group-tag-key-values"],
     )
-    def get(self, request: Request, group, key) -> Response[list[TagValueSerializerResponse]]:
+    def get(
+        self, request: Request, group: Group, key: str
+    ) -> Response[list[TagValueSerializerResponse]]:
         """
         List a Tag's Values
         """
@@ -88,16 +93,17 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         lookup_key = tagstore.backend.prefix_reserved_key(key)
 
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
-        tenant_ids = {"organization_id": group.project.organization_id}
-        try:
-            tagstore.backend.get_group_tag_key(
-                group,
-                None,
-                lookup_key,
-                tenant_ids=tenant_ids,
-            )
-        except tagstore.GroupTagKeyNotFound:
-            raise ResourceDoesNotExist
+        tenant_ids: dict[str, int | str] = {"organization_id": group.project.organization_id}
+        with handle_query_errors():
+            try:
+                tagstore.backend.get_group_tag_key(
+                    group,
+                    None,
+                    lookup_key,
+                    tenant_ids=tenant_ids,
+                )
+            except tagstore.GroupTagKeyNotFound:
+                raise ResourceDoesNotExist
         sort = request.GET.get("sort")
         if sort == "date":
             order_by = "-last_seen"
@@ -121,8 +127,9 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
             tenant_ids=tenant_ids,
         )
 
-        return self.paginate(
-            request=request,
-            paginator=paginator,
-            on_results=lambda results: serialize(results, request.user, serializer_cls),
-        )
+        with handle_query_errors():
+            return self.paginate(
+                request=request,
+                paginator=paginator,
+                on_results=lambda results: serialize(results, request.user, serializer_cls),
+            )

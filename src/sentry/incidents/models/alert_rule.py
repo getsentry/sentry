@@ -162,8 +162,8 @@ class AlertRule(Model):
     @owner.setter
     def owner(self, actor: Actor | None) -> None:
         """Part of ActorOwned Protocol"""
-        self.team_id = None
-        self.user_id = None
+        setattr(self, "team_id", None)
+        setattr(self, "user_id", None)
         if actor and actor.is_user:
             self.user_id = actor.id
         if actor and actor.is_team:

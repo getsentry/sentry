@@ -7,8 +7,9 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+
+import {OVERVIEW_PAGE_TITLE} from './settings';
+import {useDomainViewFilters} from './useFilters';
 
 interface DomainOverviewPageProvidersProps {
   children: ReactNode;

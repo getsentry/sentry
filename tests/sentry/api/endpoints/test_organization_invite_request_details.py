@@ -4,11 +4,15 @@ from unittest.mock import MagicMock, patch
 from sentry import audit_log
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -18,23 +22,23 @@ class InviteRequestBase(APITestCase):
     endpoint = "sentry-api-0-organization-invite-request-detail"
 
     @cached_property
-    def org(self):
+    def org(self) -> Organization:
         return self.create_organization(owner=self.user)
 
     @cached_property
-    def team(self):
+    def team(self) -> Team:
         return self.create_team(organization=self.org)
 
     @cached_property
-    def member(self):
+    def member(self) -> OrganizationMember:
         return self.create_member(organization=self.org, user=self.create_user(), role="member")
 
     @cached_property
-    def manager(self):
+    def manager(self) -> OrganizationMember:
         return self.create_member(organization=self.org, user=self.create_user(), role="manager")
 
     @cached_property
-    def invite_request(self):
+    def invite_request(self) -> OrganizationMember:
         return self.create_member(
             email="test@example.com",
             organization=self.org,
@@ -43,7 +47,7 @@ class InviteRequestBase(APITestCase):
         )
 
     @cached_property
-    def request_to_join(self):
+    def request_to_join(self) -> OrganizationMember:
         return self.create_member(
             email="example@gmail.com",
             organization=self.org,
@@ -110,6 +114,31 @@ class OrganizationInviteRequestDeleteTest(InviteRequestBase):
 
 class OrganizationInviteRequestUpdateTest(InviteRequestBase, HybridCloudTestMixin):
     method = "put"
+
+    def test_owner_can_update_team_roles(self) -> None:
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            self.org.slug,
+            self.invite_request.id,
+            teamRoles=[{"teamSlug": self.team.slug, "role": "admin"}],
+        )
+
+        assert response.data["teams"] == [self.team.slug]
+        assert list(
+            OrganizationMemberTeam.objects.filter(
+                organizationmember=self.invite_request
+            ).values_list("team_id", "role")
+        ) == [(self.team.id, None)]
+
+    def test_owner_can_clear_team_roles(self) -> None:
+        self.create_team_membership(team=self.team, member=self.invite_request)
+        self.login_as(user=self.user)
+
+        self.get_success_response(self.org.slug, self.invite_request.id, teamRoles=[])
+
+        assert not OrganizationMemberTeam.objects.filter(
+            organizationmember=self.invite_request
+        ).exists()
 
     def test_owner_can_update_role(self) -> None:
         self.login_as(user=self.user)
@@ -364,3 +393,29 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMix
         resp = self.get_response(self.org.slug, invite_request.id, approve=1)
 
         assert resp.status_code == 200
+
+
+class OrganizationInviteRequestMembershipScopeTest(InviteRequestBase):
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:read")
+    def test_membership_read_can_get_invite_request(self) -> None:
+        self._use_token(["membership:read"])
+        response = self.get_success_response(self.org.slug, self.invite_request.id)
+        assert response.data["id"] == str(self.invite_request.id)
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:read")
+    def test_membership_read_cannot_approve_or_delete_invite_request(self) -> None:
+        self._use_token(["membership:read"])
+        self.get_error_response(
+            self.org.slug, self.invite_request.id, method="put", approve=1, status_code=403
+        )
+        self.get_error_response(
+            self.org.slug, self.invite_request.id, method="delete", status_code=403
+        )
