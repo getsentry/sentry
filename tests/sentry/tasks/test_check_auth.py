@@ -13,6 +13,7 @@ from sentry.tasks.auth.check_auth import (
     AUTH_CHECK_INTERVAL,
     AUTH_CHECK_SKEW,
     check_auth,
+    check_auth_identities,
     check_auth_identity,
 )
 from sentry.testutils.cases import TestCase
@@ -110,6 +111,36 @@ class CheckAuthIdentityTest(TestCase):
         updated_ai = AuthIdentity.objects.get(id=ai.id)
         assert updated_ai.last_synced != ai.last_synced
         assert updated_ai.last_verified != ai.last_verified
+
+    @patch("sentry.tasks.auth.check_auth.in_test_environment", return_value=False)
+    def test_failed_refresh_is_not_a_verification(self, _: MagicMock) -> None:
+        organization = self.create_organization(name="Test")
+        user = self.create_user(email="bar@example.com")
+        auth_provider = AuthProvider.objects.create(
+            organization_id=organization.id, provider="dummy"
+        )
+        om = self.create_member(
+            user_id=user.id, organization=organization, flags=OrganizationMember.flags["sso:linked"]
+        )
+        ai = AuthIdentity.objects.create(
+            auth_provider=auth_provider,
+            user=user,
+            last_verified=timezone.now() - timedelta(days=1),
+            last_synced=timezone.now() - timedelta(days=1),
+        )
+
+        with patch.object(DummyProvider, "refresh_identity", side_effect=Exception("timed out")):
+            check_auth_identities(auth_identity_ids=[ai.id])
+
+        # The member keeps access until the identity hasn't been verified for a week
+        with assume_test_silo_mode(SiloMode.CELL):
+            om.refresh_from_db()
+        assert om.flags["sso:linked"]
+        assert not om.flags["sso:invalid"]
+
+        updated_ai = AuthIdentity.objects.get(id=ai.id)
+        assert updated_ai.last_synced != ai.last_synced
+        assert updated_ai.last_verified == ai.last_verified
 
     def test_skips_provider_that_does_not_require_refresh(self) -> None:
         organization = self.create_organization(name="Test")
