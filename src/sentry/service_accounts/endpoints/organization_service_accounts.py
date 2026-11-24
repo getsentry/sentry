@@ -6,6 +6,7 @@ runs in the cell and reads the account's `ServiceAccountReplica`.
 
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
@@ -41,19 +42,27 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.access import Access
 from sentry.auth.principal import acting_user_id
-from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.models.outbox import (
+    OutboxDatabaseError,
+    OutboxFlushError,
+    outbox_context,
+)
 from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.service_accounts.audit import token_audit_log_data
 from sentry.service_accounts.models import (
     GRANTABLE_SCOPES,
     MAX_NAME_LENGTH,
     ServiceAccount,
     ServiceAccountOwnerKind,
     ServiceAccountProject,
+    ServiceAccountToken,
 )
+
+logger = logging.getLogger(__name__)
 
 FEATURE_FLAG = "organizations:service-accounts"
 MAX_PROJECT_IDS_PER_REQUEST = 1000
@@ -505,9 +514,37 @@ class OrganizationServiceAccountDetailsEndpoint(ServiceAccountScopedEndpointBase
             serialize(service_account, request.user, serializer=ServiceAccountSerializer())
         )
         service_account_id = service_account.id
-        if not service_account.deactivate():
-            # Deleted by another request after convert_args loaded it.
-            raise ResourceDoesNotExist
+        # Set only once the delete succeeds, so a flush failure is told apart from a failed
+        # delete.
+        deactivated_tokens: list[ServiceAccountToken] | None = None
+        try:
+            with transaction.atomic(using=router.db_for_write(ServiceAccount)):
+                # Token create takes this lock too, so the list below is exactly the set of
+                # tokens that deactivate() turns off.
+                if (
+                    ServiceAccount.objects.select_for_update().get_or_none(
+                        id=service_account_id, is_active=True
+                    )
+                    is None
+                ):
+                    # Deleted by another request after convert_args loaded it.
+                    raise ResourceDoesNotExist
+                tokens = service_account.lock_active_tokens()
+                service_account.deactivate()
+                deactivated_tokens = tokens
+        except (OutboxDatabaseError, OutboxFlushError):
+            if deactivated_tokens is None:
+                raise
+            # The delete and its outboxes are committed, so it reaches the cell when the
+            # outboxes drain. Failing here would skip the audit log, and a retry would 404.
+            logger.warning(
+                "service_accounts.delete.outbox-flush-failure",
+                extra={
+                    "service_account_id": service_account_id,
+                    "organization_id": organization.id,
+                },
+                exc_info=True,
+            )
         self.create_audit_entry(
             request,
             organization=organization,
@@ -515,4 +552,12 @@ class OrganizationServiceAccountDetailsEndpoint(ServiceAccountScopedEndpointBase
             event=audit_log.get_event_id("SERVICE_ACCOUNT_REMOVE"),
             data=audit_data,
         )
+        for token in deactivated_tokens:
+            self.create_audit_entry(
+                request,
+                organization=organization,
+                target_object=token.id,
+                event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_REMOVE"),
+                data=token_audit_log_data(service_account, token, account_deleted=True),
+            )
         return Response(status=204)

@@ -41,7 +41,7 @@ const ANNOTATION_AWARE_ATTRIBUTES = new Set(
   ].flatMap(attribute => [attribute, ...getAttributeSearchDeprecationAliases(attribute)])
 );
 
-interface ScrubbingRule {
+export interface ScrubbingRule {
   remark: string;
   ruleId: string;
   projectSlug?: string;

@@ -6,9 +6,9 @@ from sentry.integrations.github.client import GitHubBaseClient
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.source_code_management.repository_reconciliation import RepositoryConfig
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.plugins.providers.integration_repository import RepositoryConfig
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 WEBHOOK_EVENTS = ["push", "pull_request"]

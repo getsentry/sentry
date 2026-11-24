@@ -2098,6 +2098,10 @@ describe('ActivitySection', () => {
         activity: [reference, comment, created, otherReference, ready],
         project,
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${activityGroup.id}/pull-requests/`,
+        body: {pullRequests: []},
+      });
       render(
         <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
           <ActivitySection group={activityGroup} variant="standalone" />
@@ -2776,5 +2780,79 @@ describe('ActivitySection', () => {
     expect(timeline).toHaveTextContent('Mentioned in a deleted investigation');
     expect(timeline).not.toHaveTextContent('Payment retries exhaust the pool');
     expect(screen.queryByRole('link', {name: /investigation/})).not.toBeInTheDocument();
+  });
+
+  describe('linked pull requests', () => {
+    const pullRequest = PullRequestFixture({title: 'Handle missing users'});
+    const referencedGroup = GroupFixture({
+      id: '1503',
+      activity: [
+        ActivityFeedFixture({
+          id: 'pr-reference',
+          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+          data: {pullRequest},
+        }),
+      ],
+      project,
+    });
+
+    function mockLinkedPullRequests() {
+      return MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${referencedGroup.id}/pull-requests/`,
+        match: [MockApiClient.matchQuery({expand: 'checksAndReview'})],
+        body: {
+          pullRequests: [
+            {
+              ...pullRequest,
+              checksStatus: null,
+              dateLinked: '2024-01-01T00:00:00Z',
+              reviewStatus: null,
+              status: 'open',
+            },
+          ],
+        },
+      });
+    }
+
+    it('shows the linked pull request below a pull request reference', async () => {
+      mockLinkedPullRequests();
+
+      render(
+        <GroupDataContextProvider
+          group={referencedGroup}
+          project={referencedGroup.project}
+        >
+          <ActivitySection group={referencedGroup} variant="standalone" />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByTestId('loading-placeholder')).toBeInTheDocument();
+      const linkedPullRequests = await screen.findByRole('list', {
+        name: 'Linked pull requests',
+      });
+      expect(
+        within(linkedPullRequests).getByText('Handle missing users')
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+    });
+
+    it('does not show linked pull requests in the sidebar', async () => {
+      const request = mockLinkedPullRequests();
+
+      render(
+        <GroupDataContextProvider
+          group={referencedGroup}
+          project={referencedGroup.project}
+        >
+          <ActivitySection group={referencedGroup} />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByTestId('activity-timeline')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('list', {name: 'Linked pull requests'})
+      ).not.toBeInTheDocument();
+      expect(request).not.toHaveBeenCalled();
+    });
   });
 });

@@ -45,6 +45,7 @@ from sentry.seer.entrypoints.slack.cache import SlackSeerAgentReply, SlackSeerAg
 from sentry.seer.entrypoints.slack.investigation import SlackInvestigationEntrypoint
 from sentry.seer.entrypoints.slack.messaging import (
     edit_thread_message,
+    get_latest_thread_per_channel,
     schedule_all_thread_updates,
     send_thread_update,
     update_existing_message,
@@ -479,7 +480,9 @@ class SlackAutofixEntrypoint(
 
                 if legacy_description := root_cause.get("description"):
                     summary = legacy_description
-                elif explorer_description := root_cause.get("one_line_description"):
+                elif explorer_description := root_cause.get("cause") or root_cause.get(
+                    "one_line_description"
+                ):
                     summary = explorer_description
                 else:
                     summary = ""
@@ -937,7 +940,7 @@ def prepare_slack_thread_for_autofix_updates(
     """
     Use parameters to create a payload for the operator to populate the pre-autofix cache.
     This will allow for a future migration of the cache to post-autofix for subsequent updates.
-    Merges threads if an existing cache entry exists for this group.
+    Merges threads if an existing cache entry exists for this group, keeping the latest per channel.
     """
     logging_ctx = {
         "entrypoint_key": SlackAutofixEntrypoint.key,
@@ -963,8 +966,7 @@ def prepare_slack_thread_for_autofix_updates(
             )
             if existing_cache:
                 threads = existing_cache["payload"].get("threads", [])
-            if incoming_thread not in threads:
-                threads.append(incoming_thread)
+            threads = get_latest_thread_per_channel([*threads, incoming_thread])
 
             cache_result = SeerOperatorAutofixCache[
                 SlackAutofixCachePayload
