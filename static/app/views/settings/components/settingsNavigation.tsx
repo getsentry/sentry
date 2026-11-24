@@ -220,20 +220,8 @@ function SettingsOrganizationHeader() {
     return <SettingsOrganizationSelector />;
   }
 
-  return (
-    <SettingsHeaderLabel
-      icon={<OrganizationAvatar organization={organization} size={16} />}
-      label={organization.name}
-    />
-  );
-}
-
-/**
- * Same height, padding and icon spacing as the selector trigger (a `sm` button),
- * so the header doesn't shift between users with one organization and with
- * several. Keep in sync if the `sm` button padding changes.
- */
-function SettingsHeaderLabel({label, icon}: {icon: React.ReactNode; label: string}) {
+  // Same height, padding and icon spacing as the selector trigger, so the
+  // header doesn't shift between users with one organization and with several.
   return (
     <Flex
       align="center"
@@ -243,8 +231,10 @@ function SettingsHeaderLabel({label, icon}: {icon: React.ReactNode; label: strin
       paddingLeft="lg"
       paddingRight="lg"
     >
-      <Flex flexShrink={0}>{icon}</Flex>
-      <Text ellipsis>{label}</Text>
+      <Flex flexShrink={0}>
+        <OrganizationAvatar organization={organization} size={16} />
+      </Flex>
+      <Text ellipsis>{organization.name}</Text>
     </Flex>
   );
 }
