@@ -174,25 +174,15 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
     background: ${theme.tokens.background.primary};
   }
 
-  ${
-    theme.type === 'dark' &&
-    css`
-      /*this updates styles set by base.less to match our theme*/
-      body.theme-dark {
-        background: ${theme.tokens.background.primary};
-        color: ${theme.tokens.content.primary};
-      }
-      body.theme-system {
-        @media (prefers-color-scheme: dark) {
-          background: ${theme.tokens.background.primary};
-          color: ${theme.tokens.content.primary};
-        }
-      }
-      /*this updates styles set by shared-components.less to match our theme*/
-      .theme-dark .loading .loading-indicator {
-        background: transparent;
-      }
-    `
+  /* Override the fixed dark colors that base.css sets on these body classes */
+  body.theme-dark,
+  body.theme-system {
+    background: var(--scraps-background-primary);
+    color: var(--scraps-content-primary);
+  }
+  /* Override the dark background that shared-components.css sets */
+  .theme-dark .loading .loading-indicator {
+    background: transparent;
   }
 
   abbr {
