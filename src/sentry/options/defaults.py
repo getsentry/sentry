@@ -1756,6 +1756,42 @@ register(
     default=0.10,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Scheduled Seer impact assessments. See sentry.issues.impact.tasks.
+register(
+    "issues.impact.scheduled.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Opted-in scope: every active project in a listed org, plus each listed project.
+# Nothing runs for projects in neither list.
+register(
+    "issues.impact.scheduled.organization_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.impact.scheduled.project_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Max issues assessed per project per hourly run.
+register(
+    "issues.impact.scheduled.issues_per_project",
+    type=Int,
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Hard per-org daily dispatch ceiling across all of the org's projects (fixed UTC-day
+# window). 0 pauses dispatching.
+register(
+    "issues.impact.scheduled.max_dispatches_per_org_per_day",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Spread child run_auto_transition_issues_* tasks across this many seconds
 # after each schedule tick, to smooth burst load (DB/signals/queues).
 register(
