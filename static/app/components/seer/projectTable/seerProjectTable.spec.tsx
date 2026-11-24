@@ -508,7 +508,7 @@ describe('SeerProjectTable', () => {
 
     render(<SeerProjectTable />, {organization});
 
-    const rowSelect = await screen.findByRole('checkbox', {
+    const rowToggle = await screen.findByRole('checkbox', {
       name: 'Auto-iterate on PRs for project-slug',
     });
     await chooseRowPrIteration('project-slug', 'Off');
@@ -519,11 +519,11 @@ describe('SeerProjectTable', () => {
     await waitFor(() =>
       expect(getRowPrIterationSwitch('project-slug')).not.toBeChecked()
     );
-    expect(rowSelect).toBeInTheDocument();
+    expect(rowToggle).toBeInTheDocument();
 
     delay.release();
-    await waitFor(() => expect(rowSelect).toBeEnabled());
-    expect(rowSelect).toBeInTheDocument();
+    await waitFor(() => expect(rowToggle).toBeEnabled());
+    expect(rowToggle).toBeInTheDocument();
   });
 
   it('disables the bulk controls while a row is saving', async () => {
@@ -664,6 +664,7 @@ describe('SeerProjectTable', () => {
       );
     });
   });
+
   describe('empty state', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
