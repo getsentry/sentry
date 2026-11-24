@@ -22,6 +22,10 @@ from sentry.db.models import BoundedPositiveIntegerField
 from sentry.models.environment import Environment
 from sentry.monitors.constants import MAX_TIMEOUT, TIMEOUT, PermitCheckInStatus
 from sentry.monitors.consumers.monitor_consumer import StoreMonitorCheckInStrategyFactory
+from sentry.monitors.logic.missing_monitor import (
+    is_monitor_marked_missing,
+    mark_monitor_missing,
+)
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -84,6 +88,7 @@ class MonitorConsumerTest(TestCase):
         consumer: ProcessingStrategy[KafkaPayload] | None = None,
         expected_error: ProcessingErrorsException | ExpectNoProcessingError | None = None,
         expected_monitor_slug: str | None = None,
+        project_id: int | None = None,
         **overrides: Any,
     ) -> None:
         if ts is None:
@@ -108,7 +113,7 @@ class MonitorConsumerTest(TestCase):
         wrapper: CheckIn = {
             "message_type": "check_in",
             "start_time": ts.timestamp(),
-            "project_id": self.project.id,
+            "project_id": project_id or self.project.id,
             "payload": json.dumps(payload).encode(),
             "sdk": "test/1.0",
             "retention_days": 90,
@@ -616,6 +621,127 @@ class MonitorConsumerTest(TestCase):
         assert not Environment.objects.filter(
             organization_id=self.organization.id, name="never-seen"
         ).exists()
+
+    def test_missing_monitor_skips_lookups_once_marked(self) -> None:
+        Environment.get_or_create(project=self.project, name="production")
+        not_found = ProcessingErrorsException([{"type": ProcessingErrorType.MONITOR_NOT_FOUND}])
+        consumer_logger = "sentry.monitors.consumers.monitor_consumer"
+
+        def monitor_queries(ctx: CaptureQueriesContext) -> list[str]:
+            return [q["sql"] for q in ctx.captured_queries if 'FROM "sentry_monitor' in q["sql"]]
+
+        with (
+            CaptureQueriesContext(connections[router.db_for_write(Monitor)]) as first,
+            self.assertLogs(consumer_logger, level="INFO") as logs,
+        ):
+            self.send_checkin("my-missing-monitor", expected_error=not_found)
+
+        # Both lookups, then the check that no monitor appeared before the marker was set.
+        assert len(monitor_queries(first)) == 3
+        assert [r.getMessage() for r in logs.records] == [
+            "monitors.consumer.monitor_validation_failed"
+        ]
+
+        with (
+            CaptureQueriesContext(connections[router.db_for_write(Monitor)]) as second,
+            self.assertNoLogs(consumer_logger, level="INFO"),
+        ):
+            self.send_checkin("my-missing-monitor", expected_error=not_found)
+
+        assert monitor_queries(second) == []
+
+    def test_missing_monitor_accepted_after_create(self) -> None:
+        self.send_checkin(
+            "my-monitor",
+            expected_error=ProcessingErrorsException(
+                [{"type": ProcessingErrorType.MONITOR_NOT_FOUND}],
+            ),
+        )
+        assert is_monitor_marked_missing(self.project.id, "my-monitor")
+
+        self._create_monitor(slug="my-monitor")
+        self.send_checkin("my-monitor")
+
+        assert MonitorCheckIn.objects.get(guid=self.guid).status == CheckInStatus.OK
+
+    def test_missing_monitor_created_during_check_in_is_not_marked(self) -> None:
+        def create_monitor_then_mark(project_id: int, slug: str) -> None:
+            self._create_monitor(slug=slug)
+            mark_monitor_missing(project_id, slug)
+
+        with mock.patch(
+            "sentry.monitors.consumers.monitor_consumer.mark_monitor_missing",
+            side_effect=create_monitor_then_mark,
+        ):
+            self.send_checkin(
+                "my-monitor",
+                expected_error=ProcessingErrorsException(
+                    [{"type": ProcessingErrorType.MONITOR_NOT_FOUND}],
+                ),
+            )
+
+        assert not is_monitor_marked_missing(self.project.id, "my-monitor")
+        self.send_checkin("my-monitor")
+        assert MonitorCheckIn.objects.get(guid=self.guid).status == CheckInStatus.OK
+
+    def test_missing_monitor_upsert_creates_monitor(self) -> None:
+        self.send_checkin(
+            "my-monitor",
+            expected_error=ProcessingErrorsException(
+                [{"type": ProcessingErrorType.MONITOR_NOT_FOUND}],
+            ),
+        )
+        assert is_monitor_marked_missing(self.project.id, "my-monitor")
+
+        self.send_checkin(
+            "my-monitor",
+            monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+        )
+        monitor = Monitor.objects.get(project_id=self.project.id, slug="my-monitor")
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.monitor_environment.monitor_id == monitor.id
+
+        self.send_checkin("my-monitor")
+        assert MonitorCheckIn.objects.get(guid=self.guid).status == CheckInStatus.OK
+
+    def test_missing_monitor_accepted_after_slug_change(self) -> None:
+        monitor = self._create_monitor(slug="old-slug")
+        self.send_checkin(
+            "new-slug",
+            expected_error=ProcessingErrorsException(
+                [{"type": ProcessingErrorType.MONITOR_NOT_FOUND}],
+            ),
+        )
+        assert is_monitor_marked_missing(self.project.id, "new-slug")
+
+        monitor.update(slug="new-slug")
+        self.send_checkin("new-slug")
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.monitor_environment.monitor_id == monitor.id
+
+    def test_missing_monitor_marker_is_per_project(self) -> None:
+        other_project = self.create_project()
+        other_monitor = Monitor.objects.create(
+            organization_id=other_project.organization_id,
+            project_id=other_project.id,
+            slug="my-monitor",
+            config={
+                "schedule": "* * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "checkin_margin": 5,
+                "max_runtime": None,
+            },
+        )
+        not_found = ProcessingErrorsException([{"type": ProcessingErrorType.MONITOR_NOT_FOUND}])
+        self.send_checkin("my-monitor", expected_error=not_found)
+        assert is_monitor_marked_missing(self.project.id, "my-monitor")
+
+        self.send_checkin("my-monitor", project_id=other_project.id)
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.monitor_environment.monitor_id == other_monitor.id
+
+        self.send_checkin("my-monitor", expected_error=not_found)
 
     def test_check_in_update_with_reversed_dates(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")

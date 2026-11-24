@@ -40,6 +40,11 @@ from sentry.monitors.constants import MAX_MARGIN, MAX_TIMEOUT, PermitCheckInStat
 from sentry.monitors.logic.checkin_config import get_checkin_config_id
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
+from sentry.monitors.logic.missing_monitor import (
+    clear_monitor_missing,
+    is_monitor_marked_missing,
+    mark_monitor_missing,
+)
 from sentry.monitors.logic.monitor_environment import (
     monitor_has_newer_status_affecting_checkins,
     update_monitor_environment,
@@ -784,13 +789,17 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
     monitor = None
     # 01
     # Retrieve or upsert monitor for this check-in
-    existing_monitor_environment = MonitorEnvironment.objects.get_existing(
-        project, monitor_slug, environment
+    # An upsert always does the lookups, so it can create the monitor.
+    marked_missing = not monitor_config and is_monitor_marked_missing(project.id, monitor_slug)
+    existing_monitor_environment = (
+        None
+        if marked_missing
+        else MonitorEnvironment.objects.get_existing(project, monitor_slug, environment)
     )
     try:
         if existing_monitor_environment and not monitor_config:
             monitor = existing_monitor_environment.monitor
-        else:
+        elif not marked_missing:
             (monitor, non_fatal_processing_errors) = _ensure_monitor_with_config(
                 project,
                 monitor_slug,
@@ -844,10 +853,16 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
             tags={**metric_kwargs, "status": "failed_validation"},
         )
         span.set_attribute("result", "failed_validation")
-        logger.info(
-            "monitors.consumer.monitor_validation_failed",
-            extra={"guid": guid.hex, "project": project.id, "payload": params},
-        )
+        if not marked_missing:
+            logger.info(
+                "monitors.consumer.monitor_validation_failed",
+                extra={"guid": guid.hex, "project": project.id, "payload": params},
+            )
+            if not monitor_config:
+                mark_monitor_missing(project.id, monitor_slug)
+                # A monitor created since the lookup cleared the marker before it was set.
+                if Monitor.objects.filter(project_id=project.id, slug=monitor_slug).exists():
+                    clear_monitor_missing(project.id, monitor_slug)
         track_outcome(
             org_id=project.organization_id,
             project_id=project.id,

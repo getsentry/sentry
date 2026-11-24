@@ -7,6 +7,7 @@ import pytest
 from django.conf import settings
 from django.test.utils import override_settings
 
+from sentry.monitors.logic.missing_monitor import is_monitor_marked_missing, mark_monitor_missing
 from sentry.monitors.models import (
     CronMonitorDataSourceHandler,
     Monitor,
@@ -191,6 +192,49 @@ class MonitorTestCase(TestCase):
                     "max_runtime": None,
                 },
             )
+
+
+class MonitorMissingMarkerTestCase(TestCase):
+    def _create_monitor(self, slug: str) -> Monitor:
+        return Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            slug=slug,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+        )
+
+    def test_create_clears_marker(self) -> None:
+        mark_monitor_missing(self.project.id, "my-monitor")
+        mark_monitor_missing(self.project.id, "other-monitor")
+
+        self._create_monitor("my-monitor")
+
+        assert not is_monitor_marked_missing(self.project.id, "my-monitor")
+        assert is_monitor_marked_missing(self.project.id, "other-monitor")
+
+    def test_slug_change_clears_marker(self) -> None:
+        monitor = self._create_monitor("old-slug")
+        mark_monitor_missing(self.project.id, "new-slug")
+
+        monitor.update(slug="new-slug")
+
+        assert not is_monitor_marked_missing(self.project.id, "new-slug")
+
+    def test_organization_change_clears_marker(self) -> None:
+        monitor = self._create_monitor("my-monitor")
+        mark_monitor_missing(self.project.id, "my-monitor")
+
+        monitor.update(organization_id=self.create_organization().id)
+
+        assert not is_monitor_marked_missing(self.project.id, "my-monitor")
+
+    def test_other_update_keeps_marker(self) -> None:
+        monitor = self._create_monitor("my-monitor")
+        mark_monitor_missing(self.project.id, "my-monitor")
+
+        monitor.update(name="My Monitor")
+
+        assert is_monitor_marked_missing(self.project.id, "my-monitor")
 
 
 class MonitorEnvironmentTestCase(TestCase):

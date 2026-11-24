@@ -15,6 +15,7 @@ from sentry import audit_log
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
 from sentry.constants import ObjectStatus
 from sentry.models.projectteam import ProjectTeam
+from sentry.monitors.logic.missing_monitor import is_monitor_marked_missing, mark_monitor_missing
 from sentry.monitors.models import (
     Monitor,
     MonitorEnvironment,
@@ -458,6 +459,20 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
+
+    def test_clears_missing_marker(self) -> None:
+        mark_monitor_missing(self.project.id, "my-monitor")
+
+        self.get_success_response(
+            self.organization.slug,
+            project=self.project.slug,
+            name="My Monitor",
+            slug="my-monitor",
+            type="cron_job",
+            config={"schedule_type": "crontab", "schedule": "@daily"},
+        )
+
+        assert not is_monitor_marked_missing(self.project.id, "my-monitor")
 
     @patch("sentry.analytics.record")
     def test_simple(self, mock_record: MagicMock) -> None:
