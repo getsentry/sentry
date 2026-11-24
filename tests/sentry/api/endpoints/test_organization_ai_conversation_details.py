@@ -382,6 +382,27 @@ def test_parent_repair_stops_on_missing_parents_and_cycles() -> None:
     mock_distribution.assert_not_called()
 
 
+def test_related_lookup_records_zero_without_traces() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+
+    with (
+        patch.object(Spans, "run_table_query") as run_table_query,
+        patch(
+            "sentry.ai_monitoring.endpoints.organization_ai_conversation_details.metrics.distribution"
+        ) as mock_distribution,
+    ):
+        related_ids = endpoint._fetch_related_conversation_ids(
+            MagicMock(), uuid4().hex, [], MagicMock()
+        )
+
+    assert related_ids == []
+    run_table_query.assert_not_called()
+    assert mock_distribution.call_args_list == [
+        call("ai_monitoring.conversation_details.related_traces_scanned", 0),
+        call("ai_monitoring.conversation_details.related_conversations_returned", 0),
+    ]
+
+
 class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase):
     view = "sentry-api-0-organization-ai-conversation-details"
 
@@ -1582,6 +1603,96 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.data["projects"] == [
             {"id": self.project.id, "name": self.project.name, "slug": self.project.slug}
         ]
+        assert len(response.data["spans"]) == 1
+
+    def test_related_conversations_require_feature(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(conversation_id, now)
+
+        response = self.do_request(
+            conversation_id,
+            {
+                "project": [self.project.id],
+                "start": (now - timedelta(hours=1)).isoformat(),
+                "end": (now + timedelta(hours=1)).isoformat(),
+            },
+        )
+
+        assert response.status_code == 200
+        assert "relatedConversationIds" not in response.data
+
+    def test_returns_related_conversations_on_first_page(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        sub_conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+
+        for i in range(2):
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=10 - i),
+                op="gen_ai.chat",
+                operation_type="ai_client",
+                trace_id=trace_id,
+            )
+        self.store_ai_span(
+            conversation_id=sub_conversation_id,
+            timestamp=now - timedelta(seconds=5),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+        )
+        # A conversation in another trace is not related.
+        self._store_conversation_span(uuid4().hex, now)
+
+        query: dict[str, Any] = {
+            "project": [self.project.id],
+            "per_page": "1",
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+        with self.feature("organizations:gen-ai-related-conversations"):
+            response = self.do_request(conversation_id, query)
+            assert response.status_code == 200
+            assert response.data["relatedConversationIds"] == [sub_conversation_id]
+
+            links = parse_link_header(response.headers["Link"])
+            query["cursor"] = next(
+                link["cursor"] for link in links.values() if link["rel"] == "next"
+            )
+            response = self.do_request(conversation_id, query)
+            assert response.status_code == 200
+            assert "relatedConversationIds" not in response.data
+
+            # The link goes both ways: the sub-conversation finds its parent.
+            del query["cursor"]
+            response = self.do_request(sub_conversation_id, query)
+            assert response.status_code == 200
+            assert response.data["relatedConversationIds"] == [conversation_id]
+
+    def test_survives_a_failing_related_conversations_lookup(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(conversation_id, now)
+
+        with (
+            self.feature("organizations:gen-ai-related-conversations"),
+            patch.object(Spans, "run_table_query", side_effect=RuntimeError("boom")),
+        ):
+            response = self.do_request(
+                conversation_id,
+                {
+                    "project": [self.project.id],
+                    "start": (now - timedelta(hours=1)).isoformat(),
+                    "end": (now + timedelta(hours=1)).isoformat(),
+                },
+            )
+
+        assert response.status_code == 200
+        assert response.data["relatedConversationIds"] == []
         assert len(response.data["spans"]) == 1
 
     def test_returns_stored_title(self) -> None:
