@@ -46,6 +46,7 @@ describe('AccountAppearance', () => {
 
       expect(screen.getByText('Page Not Found')).toBeInTheDocument();
       expect(screen.queryByLabelText('Theme')).not.toBeInTheDocument();
+      expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
     });
 
     it('keeps the theme field in Account Details', async () => {
@@ -67,6 +68,13 @@ describe('AccountAppearance', () => {
       );
     });
 
+    it('shows the Light and Dark theme pickers', () => {
+      render(<AccountAppearance />, {organization});
+
+      expect(screen.getByRole('radiogroup', {name: 'Light'})).toBeInTheDocument();
+      expect(screen.getByRole('radiogroup', {name: 'Dark'})).toBeInTheDocument();
+    });
+
     it('saves the theme option', async () => {
       const mockUserUpdate = MockApiClient.addMockResponse({
         url: '/users/me/',
@@ -76,7 +84,7 @@ describe('AccountAppearance', () => {
       render(<AccountAppearance />, {organization});
 
       expect(screen.getByRole('heading', {name: 'Appearance'})).toBeInTheDocument();
-      await userEvent.click(screen.getByText('Light'));
+      await userEvent.click(screen.getByLabelText('Theme'));
       await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Dark'}));
 
       await waitFor(() => {

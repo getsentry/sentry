@@ -10,6 +10,7 @@ import '@sentry/scraps/theme.css';
 import {printConsoleBanner} from 'sentry/bootstrap/printConsoleBanner';
 import {NODE_ENV} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {GlobalStyles} from 'sentry/styles/global';
 
 const SentryComponentInspector =
@@ -48,6 +49,28 @@ export function ThemeAndStyleProvider({children}: Props) {
   useLayoutEffect(() => {
     document.documentElement.dataset.colorScheme = colorScheme;
   }, [colorScheme]);
+
+  const themeVariantDark = useStore(
+    ConfigStore,
+    state => state.user?.options.themeVariantDark
+  );
+  const hasThemeVariants = useStore(
+    OrganizationStore,
+    state => state.organization?.features.includes('theme-variants') ?? false
+  );
+  // theme.css only reads `ash` and `midnight`; without the attribute it uses the default dark theme.
+  const themeDark =
+    hasThemeVariants && themeVariantDark && themeVariantDark !== 'default'
+      ? themeVariantDark
+      : undefined;
+
+  useLayoutEffect(() => {
+    if (themeDark) {
+      document.documentElement.dataset.themeDark = themeDark;
+    } else {
+      delete document.documentElement.dataset.themeDark;
+    }
+  }, [themeDark]);
 
   const theme = colorMode === 'dark' ? darkTheme : lightTheme;
 

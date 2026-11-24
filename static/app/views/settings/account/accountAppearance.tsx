@@ -17,6 +17,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {THEME_OPTIONS, themeSchema} from './accountDetails';
+import {ThemeVariantPicker} from './themeVariantPicker';
 
 const appearanceSchema = z.object({theme: themeSchema});
 
@@ -66,6 +67,9 @@ function AccountAppearance() {
             </field.Layout.Row>
           )}
         </AutoSaveForm>
+      </FieldGroup>
+      <FieldGroup title={t('Themes')}>
+        <ThemeVariantPicker />
       </FieldGroup>
     </Fragment>
   );
