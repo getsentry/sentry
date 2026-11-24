@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Iterable, Iterator, Mapping, Sequence, Set
 from contextlib import closing
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, BinaryIO, NotRequired, TypedDict, TypeGuard, cast
+from typing import TYPE_CHECKING, Annotated, NotRequired, TypedDict, TypeGuard, cast
 
 import jsonschema
 import orjson
@@ -94,10 +94,9 @@ class _ReleaseRow(TypedDict):
 
 def upload_from_request(request: Request, project: Project) -> Response:
     fileobj = request.data.get("file")
-    # A plain form field arrives as a str, which zipfile would open as a server-side path.
     if not isinstance(fileobj, UploadedFile):
         return Response({"detail": "Missing uploaded file"}, status=400)
-    files = create_files_from_dif_zip(cast(BinaryIO, fileobj), project=project)
+    files = create_files_from_dif_zip(cast(UploadedFile, fileobj), project=project)
     return Response(serialize(files, request.user), status=201)
 
 

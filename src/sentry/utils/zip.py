@@ -26,10 +26,9 @@ def safe_extract_zip(f: IO[bytes] | zipfile.ZipFile, path: str) -> None:
     """Safely extract a given zip file to a path.  The zipfile must be an
     open file or a ``ZipFile``.  If the zip is unsafe an exception is raised.
     """
-    # zipfile.ZipFile opens str and PathLike arguments as local paths, which callers
-    # can't allow when the value may come from a request.
     if isinstance(f, (str, bytes, os.PathLike)):
         raise TypeError("safe_extract_zip requires an open file, not a path")
+
     with contextlib.ExitStack() as ctx:
         if not isinstance(f, zipfile.ZipFile):
             zf = ctx.enter_context(zipfile.ZipFile(f, "r"))
