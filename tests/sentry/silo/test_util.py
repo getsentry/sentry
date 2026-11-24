@@ -20,9 +20,11 @@ from sentry.silo.util import (
     decode_proxy_timeout,
     encode_proxy_timeout,
     encode_subnet_signature,
+    encode_webhook_delivery_context_signature,
     encode_webhook_delivery_signature,
     trim_leading_slashes,
     verify_subnet_signature,
+    verify_webhook_delivery_context_signature,
     verify_webhook_delivery_signature,
 )
 
@@ -201,3 +203,33 @@ class SiloUtilityTest(TestCase):
         assert not verify_webhook_delivery_signature(
             "/hook/", "Bearer token", b"{}", proxy_signature
         )
+
+    @override_settings(SENTRY_SUBNET_SECRET=secret)
+    def test_webhook_delivery_context_signature_covers_every_field(self) -> None:
+        signature = encode_webhook_delivery_context_signature("/hook/", "context", b"{}")
+        assert signature is not None
+        assert verify_webhook_delivery_context_signature("/hook/", "context", b"{}", signature)
+        assert not verify_webhook_delivery_context_signature("/other/", "context", b"{}", signature)
+        assert not verify_webhook_delivery_context_signature("/hook/", "other", b"{}", signature)
+        assert not verify_webhook_delivery_context_signature("/hook/", "context", b"[]", signature)
+        assert not verify_webhook_delivery_context_signature("/hook/", None, b"{}", signature)
+        assert not verify_webhook_delivery_context_signature("/hook/", "context", b"{}", None)
+
+    @override_settings(SENTRY_SUBNET_SECRET=secret)
+    def test_webhook_delivery_context_signature_is_not_a_delivery_signature(self) -> None:
+        # The same three fields signed as a delivery don't pass as a context, or the
+        # other way around.
+        delivery_signature = encode_webhook_delivery_signature("/hook/", "context", b"{}")
+        context_signature = encode_webhook_delivery_context_signature("/hook/", "context", b"{}")
+        assert delivery_signature is not None
+        assert context_signature is not None
+        assert delivery_signature != context_signature
+        assert not verify_webhook_delivery_context_signature(
+            "/hook/", "context", b"{}", delivery_signature
+        )
+        assert not verify_webhook_delivery_signature("/hook/", "context", b"{}", context_signature)
+
+    @override_settings(SENTRY_SUBNET_SECRET=None)
+    def test_webhook_delivery_context_signature_needs_a_secret(self) -> None:
+        assert encode_webhook_delivery_context_signature("/hook/", "context", b"{}") is None
+        assert not verify_webhook_delivery_context_signature("/hook/", "context", b"{}", "v1=abc")

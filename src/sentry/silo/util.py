@@ -17,9 +17,13 @@ PROXY_TIMEOUT_HEADER = "X-Sentry-Subnet-Timeout"
 PROXY_DIRECT_LOCATION_HEADER = "X-Sentry-Proxy-URL"
 PROXY_APIGATEWAY_HEADER = "X-Apigateway"
 WEBHOOK_DELIVERY_SIGNATURE_HEADER = "X-Sentry-Webhook-Delivery-Signature"
+WEBHOOK_DELIVERY_CONTEXT_HEADER = "X-Sentry-Webhook-Delivery-Context"
+WEBHOOK_DELIVERY_CONTEXT_SIGNATURE_HEADER = "X-Sentry-Webhook-Delivery-Context-Signature"
 # Delivery signatures use their own key, derived from the subnet secret with this label,
 # so no message can be both a valid delivery signature and a valid proxy signature.
 _WEBHOOK_DELIVERY_KEY_LABEL = b"sentry-webhook-delivery-signature-v1"
+# A third key, so a delivery context signature is not a delivery signature either.
+_WEBHOOK_DELIVERY_CONTEXT_KEY_LABEL = b"sentry-webhook-delivery-context-v1"
 
 INVALID_PROXY_HEADERS = {"Host", "X-Forwarded-Proto", "Content-Length", "Content-Encoding"}
 INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS | {
@@ -148,11 +152,15 @@ def verify_subnet_signature(
     )
 
 
-def _webhook_delivery_key() -> bytes | None:
+def _derived_subnet_key(label: bytes) -> bytes | None:
     secret = getattr(settings, "SENTRY_SUBNET_SECRET")
     if not secret:
         return None
-    return hmac.new(secret.encode("utf-8"), _WEBHOOK_DELIVERY_KEY_LABEL, sha256).digest()
+    return hmac.new(secret.encode("utf-8"), label, sha256).digest()
+
+
+def _webhook_delivery_key() -> bytes | None:
+    return _derived_subnet_key(_WEBHOOK_DELIVERY_KEY_LABEL)
 
 
 def _webhook_delivery_digest(key: bytes, path: str, authorization: str, request_body: bytes) -> str:
@@ -183,4 +191,37 @@ def verify_webhook_delivery_signature(
     if key is None or not authorization or not provided_signature:
         return False
     expected = _webhook_delivery_digest(key, path, authorization, request_body)
+    return hmac.compare_digest(expected.encode("utf-8"), provided_signature.encode("utf-8"))
+
+
+def _webhook_delivery_context_digest(
+    key: bytes, path: str, context: str, request_body: bytes
+) -> str:
+    # A path or an encoded context can't contain a newline and the body comes last, so
+    # the fields can't be re-split into different ones.
+    message = b"\n".join([path.encode("utf-8"), context.encode("utf-8"), request_body])
+    return "v1=" + hmac.new(key, message, sha256).hexdigest()
+
+
+def encode_webhook_delivery_context_signature(
+    path: str, context: str, request_body: bytes
+) -> str | None:
+    """Signs the routing context control attaches to a webhook it queues for a cell.
+
+    Covers the path, the encoded context and the body, so the context can't be moved
+    onto another request. The provider's own signature covers only the body.
+    """
+    key = _derived_subnet_key(_WEBHOOK_DELIVERY_CONTEXT_KEY_LABEL)
+    if key is None:
+        return None
+    return _webhook_delivery_context_digest(key, path, context, request_body)
+
+
+def verify_webhook_delivery_context_signature(
+    path: str, context: str | None, request_body: bytes, provided_signature: str | None
+) -> bool:
+    key = _derived_subnet_key(_WEBHOOK_DELIVERY_CONTEXT_KEY_LABEL)
+    if key is None or not context or not provided_signature:
+        return False
+    expected = _webhook_delivery_context_digest(key, path, context, request_body)
     return hmac.compare_digest(expected.encode("utf-8"), provided_signature.encode("utf-8"))

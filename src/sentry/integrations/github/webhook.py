@@ -6,16 +6,17 @@ import inspect
 import logging
 import time
 from abc import ABC
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, MutableMapping, Sequence
 from contextlib import nullcontext
 from datetime import timezone
-from typing import Any, Protocol
+from typing import Any, ClassVar, Protocol
 
 import orjson
 import sentry_sdk
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
+from django.db.models import QuerySet
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
@@ -34,6 +35,14 @@ from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.client import GitHubApiClient, GitHubBaseClient
+from sentry.integrations.github.delivery_context import (
+    DeliveryContextOutcome,
+    GitHubDeliveryContext,
+    delivery_context_fallback,
+    record_delivery_context_outcome,
+    resolve_delivery_context,
+    shadow_delivery_context_outcome,
+)
 from sentry.integrations.github.webhook_types import (
     GITHUB_WEBHOOK_TYPE_HEADER_KEY,
     GithubWebhookType,
@@ -233,10 +242,23 @@ class GitHubWebhook(SCMWebhook, ABC):
     # When subclassing, add your webhook event processor here.
     WEBHOOK_EVENT_PROCESSORS: tuple[WebhookProcessor, ...] = ()
 
+    USES_DELIVERY_CONTEXT: ClassVar[bool] = False
+    """
+    Whether a cell may run this handler on the routing context control signed onto
+    the delivery, instead of asking control for the integration. The processors
+    then get `integration=None`, so this is only for a handler whose processors do
+    not read the integration and that has no `_handle` of its own.
+    """
+
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         if not inspect.isabstract(cls) and not hasattr(cls, "EVENT_TYPE"):
             raise TypeError(f"{cls.__name__} must define EVENT_TYPE class attribute")
+        if cls.USES_DELIVERY_CONTEXT and cls._handle is not GitHubWebhook._handle:
+            raise TypeError(
+                f"{cls.__name__} overrides _handle, which needs an integration, "
+                "so it cannot set USES_DELIVERY_CONTEXT"
+            )
 
     @property
     def event_type(self) -> IntegrationWebhookEventType:
@@ -253,6 +275,25 @@ class GitHubWebhook(SCMWebhook, ABC):
         self,
         github_event: GithubWebhookType,
         integration: RpcIntegration,
+        event: Mapping[str, Any],
+        organization: Organization,
+        repo: Repository,
+        **kwargs: Any,
+    ) -> None:
+        self._run_processors(
+            github_event=github_event,
+            integration=integration,
+            event=event,
+            organization=organization,
+            repo=repo,
+            **kwargs,
+        )
+
+    def _run_processors(
+        self,
+        *,
+        github_event: GithubWebhookType,
+        integration: RpcIntegration | None,
         event: Mapping[str, Any],
         organization: Organization,
         repo: Repository,
@@ -285,6 +326,26 @@ class GitHubWebhook(SCMWebhook, ABC):
         github_event = kwargs["github_event"]
         github_delivery_id = kwargs.get("github_delivery_id")
         external_id = get_github_external_id(event=event, host=kwargs.get("host"))
+        delivery_context: GitHubDeliveryContext | None = None
+        if self.USES_DELIVERY_CONTEXT:
+            delivery_context = kwargs.get("delivery_context")
+
+        if delivery_context is not None and delivery_context.enforce and "repository" in event:
+            orgs, repos_qs = self._matching_repositories(event, delivery_context.organization_ids)
+            repos = list(repos_qs)
+            fallback = delivery_context_fallback(repos, delivery_context.integration_id)
+            record_delivery_context_outcome(fallback or DeliveryContextOutcome.USED, github_event)
+            if fallback is None:
+                self._handle_repositories(
+                    repos,
+                    orgs=orgs,
+                    event=event,
+                    github_event=github_event,
+                    github_delivery_id=github_delivery_id,
+                    integration=None,
+                )
+                return
+            # Nothing has been touched. Carry on as if there were no context.
 
         result = integration_service.organization_contexts(
             external_id=external_id, provider=self.provider
@@ -306,21 +367,29 @@ class GitHubWebhook(SCMWebhook, ABC):
                 },
             )
             metrics.incr("github.webhook.integration_does_not_exist")
+            if delivery_context is not None and not delivery_context.enforce:
+                # Control resolved an integration when it queued this.
+                record_delivery_context_outcome(
+                    DeliveryContextOutcome.SHADOW_MISMATCH, github_event
+                )
             return
 
         if "repository" in event:
-            orgs = {
-                org.id: org
-                for org in Organization.objects.filter(
-                    id__in=[install.organization_id for install in installs]
-                )
-            }
-            repos_qs = Repository.objects.filter(
-                organization_id__in=orgs.keys(),
-                provider=f"integrations:{self.provider}",
-                external_id=str(event["repository"]["id"]),
-            )
+            organization_ids = [install.organization_id for install in installs]
+            orgs, repos_qs = self._matching_repositories(event, organization_ids)
             repos = list(repos_qs)
+
+            if delivery_context is not None and not delivery_context.enforce:
+                record_delivery_context_outcome(
+                    shadow_delivery_context_outcome(
+                        delivery_context,
+                        integration_id=integration.id,
+                        organization_ids=organization_ids,
+                        local_organization_ids=orgs.keys(),
+                        repos=repos,
+                    ),
+                    github_event,
+                )
 
             if not repos:
                 provider = get_integration_repository_provider(integration)
@@ -353,11 +422,57 @@ class GitHubWebhook(SCMWebhook, ABC):
 
                 repos = list(repos_qs.all())
 
-            for repo in repos:
-                if repo.status == ObjectStatus.HIDDEN:
-                    continue
-                self.update_repo_data(repo, event)
-                with webhook_viewer_context(repo.organization_id):
+            self._handle_repositories(
+                repos,
+                orgs=orgs,
+                event=event,
+                github_event=github_event,
+                github_delivery_id=github_delivery_id,
+                integration=integration,
+            )
+
+    def _matching_repositories(
+        self, event: Mapping[str, Any], organization_ids: Collection[int]
+    ) -> tuple[dict[int, Organization], QuerySet[Repository]]:
+        """Which of the organizations this cell has, and their repositories the event
+        is about."""
+        orgs = {org.id: org for org in Organization.objects.filter(id__in=organization_ids)}
+        repos_qs = Repository.objects.filter(
+            organization_id__in=orgs.keys(),
+            provider=f"integrations:{self.provider}",
+            external_id=str(event["repository"]["id"]),
+        )
+        return orgs, repos_qs
+
+    def _handle_repositories(
+        self,
+        repos: Iterable[Repository],
+        *,
+        orgs: Mapping[int, Organization],
+        event: Mapping[str, Any],
+        github_event: GithubWebhookType,
+        github_delivery_id: str | None,
+        integration: RpcIntegration | None,
+    ) -> None:
+        """Run the handler for each repository. `integration` is None when the
+        organizations came from the delivery context rather than from control."""
+        for repo in repos:
+            if repo.status == ObjectStatus.HIDDEN:
+                continue
+            self.update_repo_data(repo, event)
+            with webhook_viewer_context(repo.organization_id):
+                if integration is None:
+                    # Only a USES_DELIVERY_CONTEXT handler gets here, and it has no
+                    # `_handle` of its own to skip.
+                    self._run_processors(
+                        github_event=github_event,
+                        integration=None,
+                        event=event,
+                        organization=orgs[repo.organization_id],
+                        repo=repo,
+                        github_delivery_id=github_delivery_id,
+                    )
+                else:
                     self._handle(
                         github_event=github_event,
                         integration=integration,
@@ -1368,6 +1483,8 @@ class PullRequestReviewThreadEventWebhook(GitHubWebhook):
 class CheckSuiteWebhook(GitHubWebhook):
     EVENT_TYPE = IntegrationWebhookEventType.CHECK_SUITE
     WEBHOOK_EVENT_PROCESSORS = (pr_metrics_handle_check_suite,)
+    # The one processor never reads the integration it is passed.
+    USES_DELIVERY_CONTEXT = True
 
 
 @all_silo_endpoint
@@ -1520,10 +1637,19 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
                 domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
                 provider_key=event_handler.provider,
             ).capture():
+                delivery_context = None
+                if event_handler.USES_DELIVERY_CONTEXT:
+                    delivery_context = resolve_delivery_context(
+                        request,
+                        external_id=get_github_external_id(event=event),
+                        github_event=github_event,
+                        github_delivery_id=github_delivery_id,
+                    )
                 event_handler(
                     event,
                     github_event=github_event,
                     github_delivery_id=github_delivery_id,
+                    delivery_context=delivery_context,
                 )
 
         # Publish the request to the unified SCM event stream, which normalizes the event

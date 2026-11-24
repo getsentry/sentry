@@ -19,6 +19,9 @@ from fixtures.github_enterprise import (
     PULL_REQUEST_OPENED_EVENT_EXAMPLE,
     PUSH_EVENT_EXAMPLE_INSTALLATION,
 )
+from sentry.integrations.github.delivery_context import GitHubDeliveryContext
+from sentry.integrations.github.webhook import CheckSuiteWebhook
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.github_enterprise.webhook import (
     GitHubEnterpriseCheckRunEventWebhook,
     GitHubEnterpriseCheckSuiteWebhook,
@@ -1307,3 +1310,57 @@ class IssueCommentEventWebhookTest(APITestCase):
 
         assert response.status_code == 204
         assert mock_call.call_count == 1
+
+
+class DeliveryContextTest(TestCase):
+    def test_no_handler_opts_in(self) -> None:
+        handlers = GitHubEnterpriseWebhookEndpoint._handlers.values()
+
+        assert CheckSuiteWebhook.USES_DELIVERY_CONTEXT
+        assert GitHubEnterpriseCheckSuiteWebhook in handlers
+        assert not any(handler.USES_DELIVERY_CONTEXT for handler in handlers)
+
+    def test_handler_ignores_a_context_it_is_handed(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="35.232.149.196:12345",
+            provider="github_enterprise",
+        )
+        self.create_repo(
+            self.project,
+            name="baxterthehacker/public-repo",
+            provider="integrations:github_enterprise",
+            external_id="35129377",
+            integration_id=integration.id,
+        )
+        processor = MagicMock()
+        service = MagicMock(wraps=integration_service)
+
+        with (
+            patch.object(
+                GitHubEnterpriseCheckSuiteWebhook, "WEBHOOK_EVENT_PROCESSORS", (processor,)
+            ),
+            patch("sentry.integrations.github.webhook.integration_service", service),
+        ):
+            GitHubEnterpriseCheckSuiteWebhook()(
+                {
+                    "action": "completed",
+                    "installation": {"id": 12345},
+                    "repository": {
+                        "id": 35129377,
+                        "full_name": "baxterthehacker/public-repo",
+                        "html_url": "https://35.232.149.196/baxterthehacker/public-repo",
+                    },
+                },
+                github_event=GithubWebhookType.CHECK_SUITE,
+                host="35.232.149.196",
+                delivery_context=GitHubDeliveryContext(
+                    integration_id=integration.id,
+                    organization_ids=frozenset({self.organization.id}),
+                    enforce=True,
+                ),
+            )
+
+        service.organization_contexts.assert_called_once()
+        processor.assert_called_once()
+        assert processor.call_args.kwargs["integration"].id == integration.id

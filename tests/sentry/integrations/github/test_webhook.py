@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
@@ -27,9 +28,16 @@ from sentry.analytics.events.pr_iteration_events import (
     AiAutofixPrIterationMissingPermissionsEvent,
 )
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.webhook_delivery_context import (
+    DeliveryContextUnsigned,
+    WebhookDeliveryContext,
+    sign_webhook_delivery_context,
+)
 from sentry.integrations.github.webhook import (
+    CheckRunEventWebhook,
     CheckSuiteWebhook,
     GitHubIntegrationsWebhookEndpoint,
+    GitHubWebhook,
     InstallationRepositoriesEventWebhook,
     _track_contributor_action_processor,
 )
@@ -61,8 +69,15 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.analytics import assert_analytics_events
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import (
+    assume_test_silo_mode,
+    cell_silo_test,
+    control_silo_test,
+    no_silo_test,
+)
 from sentry.types.activity import ActivityType
+from sentry.types.cell import get_local_cell
 from sentry.utils import json
 
 
@@ -2708,3 +2723,415 @@ class TrackContributorActionProcessorTest(TestCase):
         )
 
         mock_record.assert_not_called()
+
+
+CHECK_SUITE_COMPLETED_EVENT = json.dumps(
+    {
+        "action": "completed",
+        "check_suite": {
+            "id": 1,
+            "head_sha": "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
+            "status": "completed",
+            "conclusion": "success",
+            "app": {"slug": "ci"},
+            "latest_check_runs_count": 1,
+            "pull_requests": [],
+        },
+        "installation": {"id": 12345},
+        "repository": {
+            "id": 35129377,
+            "full_name": "baxterthehacker/public-repo",
+            "html_url": "https://github.com/baxterthehacker/public-repo",
+        },
+        "sender": {"id": 5, "login": "ci-bot", "type": "Bot"},
+    }
+)
+
+ENFORCE = {"github.webhook.delivery-context.mode": "enforce"}
+SHADOW = {"github.webhook.delivery-context.mode": "shadow"}
+
+
+class DeliveryContextTestMixin(APITestCase):
+    url = "/extensions/github/webhook/"
+    secret = "b3002c3e321d4b7880360d397db2ccfd"
+    delivery_id = "5f2b1c9e-6d1a-4c0b-9a51-1d3f0f6f2a10"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization, external_id="12345", provider="github"
+        )
+        self.repo = self.create_repo(
+            self.project,
+            name="baxterthehacker/public-repo",
+            provider="integrations:github",
+            external_id="35129377",
+            integration_id=self.integration.id,
+        )
+
+        self.processor = MagicMock()
+        # Wraps the name the handler calls through, not the service itself: control
+        # answers the cell's RPC through the same service object.
+        service = MagicMock(wraps=integration_service)
+        self.lookup = service.organization_contexts
+        self.enterContext(
+            patch.object(CheckSuiteWebhook, "WEBHOOK_EVENT_PROCESSORS", (self.processor,))
+        )
+        self.enterContext(
+            patch.object(CheckRunEventWebhook, "WEBHOOK_EVENT_PROCESSORS", (self.processor,))
+        )
+        self.enterContext(patch("sentry.integrations.github.webhook.integration_service", service))
+        self.produce = self.enterContext(
+            patch("sentry.integrations.github.webhook.produce_event_to_scm_stream")
+        )
+        self.metrics = self.enterContext(
+            patch("sentry.integrations.github.delivery_context.metrics")
+        )
+
+    def post(self, headers: dict[str, str] | None = None, github_event: str = "check_suite") -> Any:
+        signature = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            "sha256", CHECK_SUITE_COMPLETED_EVENT.encode("utf-8"), self.secret
+        )
+        return self.client.post(
+            path=self.url,
+            data=CHECK_SUITE_COMPLETED_EVENT,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT=github_event,
+            HTTP_X_HUB_SIGNATURE_256=f"sha256={signature}",
+            HTTP_X_GITHUB_DELIVERY=self.delivery_id,
+            **(headers or {}),
+        )
+
+    def context_headers(self, **overrides: Any) -> dict[str, str]:
+        """What control attaches to this delivery, with anything overridden."""
+        fields: dict[str, Any] = {
+            "provider": "github",
+            "external_id": "12345",
+            "integration_id": self.integration.id,
+            "organization_ids": [self.organization.id],
+            "cell_names": [get_local_cell().name],
+            "event_type": "check_suite",
+            "delivery_id": self.delivery_id,
+            "issued_at": int(time.time()),
+        }
+        signed = sign_webhook_delivery_context(
+            WebhookDeliveryContext.parse_obj({**fields, **overrides}),
+            path=self.url,
+            request_body=CHECK_SUITE_COMPLETED_EVENT.encode("utf-8"),
+        )
+        assert not isinstance(signed, DeliveryContextUnsigned)
+        encoded, signature = signed
+        return {
+            "HTTP_X_SENTRY_WEBHOOK_DELIVERY_CONTEXT": encoded,
+            "HTTP_X_SENTRY_WEBHOOK_DELIVERY_CONTEXT_SIGNATURE": signature,
+        }
+
+    def outcomes(self) -> list[str]:
+        return [call.kwargs["tags"]["outcome"] for call in self.metrics.incr.call_args_list]
+
+    def assert_handled_on_context(self) -> None:
+        self.lookup.assert_not_called()
+        self.processor.assert_called_once()
+        assert self.processor.call_args.kwargs["integration"] is None
+
+    def assert_handled_on_lookup(self) -> None:
+        self.lookup.assert_called_once()
+        self.processor.assert_called_once()
+        assert self.processor.call_args.kwargs["integration"].id == self.integration.id
+
+
+@cell_silo_test
+class CheckSuiteDeliveryContextTest(DeliveryContextTestMixin):
+    @override_options(ENFORCE)
+    def test_enforce_handles_the_delivery_without_the_lookup(self) -> None:
+        response = self.post(self.context_headers())
+
+        assert response.status_code == 204
+        self.assert_handled_on_context()
+        kwargs = self.processor.call_args.kwargs
+        assert kwargs["github_event"] == GithubWebhookType.CHECK_SUITE
+        assert kwargs["organization"] == self.organization
+        assert kwargs["repo"] == self.repo
+        assert kwargs["github_delivery_id"] == self.delivery_id
+        assert self.outcomes() == ["used"]
+        self.produce.assert_called_once()
+
+    def test_off_ignores_the_context(self) -> None:
+        response = self.post(self.context_headers())
+
+        assert response.status_code == 204
+        self.assert_handled_on_lookup()
+        self.metrics.incr.assert_not_called()
+
+    @override_options(ENFORCE)
+    def test_enforce_without_a_context_uses_the_lookup(self) -> None:
+        response = self.post()
+
+        assert response.status_code == 204
+        self.assert_handled_on_lookup()
+        assert self.outcomes() == ["absent"]
+
+    @override_options(ENFORCE)
+    def test_enforce_ignores_a_context_with_a_bad_signature(self) -> None:
+        headers = self.context_headers()
+        headers["HTTP_X_SENTRY_WEBHOOK_DELIVERY_CONTEXT_SIGNATURE"] = "v1=" + "0" * 64
+
+        self.post(headers)
+
+        self.assert_handled_on_lookup()
+        assert self.outcomes() == ["invalid_signature"]
+
+    @override_options(ENFORCE)
+    def test_enforce_ignores_a_context_without_a_signature(self) -> None:
+        headers = self.context_headers()
+        del headers["HTTP_X_SENTRY_WEBHOOK_DELIVERY_CONTEXT_SIGNATURE"]
+
+        self.post(headers)
+
+        self.assert_handled_on_lookup()
+        assert self.outcomes() == ["invalid_signature"]
+
+    @override_options(ENFORCE)
+    def test_enforce_ignores_a_context_for_another_installation(self) -> None:
+        self.post(self.context_headers(external_id="999"))
+
+        self.assert_handled_on_lookup()
+        assert self.outcomes() == ["identity_mismatch"]
+
+    @override_options(ENFORCE)
+    def test_enforce_ignores_a_context_for_another_provider(self) -> None:
+        self.post(self.context_headers(provider="github_enterprise"))
+
+        self.assert_handled_on_lookup()
+        assert self.outcomes() == ["identity_mismatch"]
+
+    @override_options(ENFORCE)
+    def test_enforce_ignores_a_context_for_another_event_type(self) -> None:
+        self.post(self.context_headers(event_type="check_run"))
+
+        self.assert_handled_on_lookup()
+        assert self.outcomes() == ["event_mismatch"]
+
+    @override_options(ENFORCE)
+    def test_enforce_ignores_a_context_for_another_delivery(self) -> None:
+        self.post(self.context_headers(delivery_id="another-delivery"))
+
+        self.assert_handled_on_lookup()
+        assert self.outcomes() == ["event_mismatch"]
+
+    @override_options(ENFORCE)
+    def test_enforce_ignores_an_expired_context(self) -> None:
+        self.post(self.context_headers(issued_at=int(time.time()) - 31))
+
+        self.assert_handled_on_lookup()
+        assert self.outcomes() == ["expired"]
+
+    @override_options({**ENFORCE, "github.webhook.delivery-context.max-age-seconds": 120})
+    def test_enforce_honors_the_max_age_option(self) -> None:
+        self.post(self.context_headers(issued_at=int(time.time()) - 60))
+
+        self.assert_handled_on_context()
+
+    @override_options(ENFORCE)
+    def test_enforce_ignores_a_context_from_the_future(self) -> None:
+        self.post(self.context_headers(issued_at=int(time.time()) + 60))
+
+        self.assert_handled_on_lookup()
+        assert self.outcomes() == ["from_future"]
+
+    @override_options(ENFORCE)
+    def test_enforce_ignores_a_context_queued_for_other_cells(self) -> None:
+        self.post(self.context_headers(cell_names=["another-cell"]))
+
+        self.assert_handled_on_lookup()
+        assert self.outcomes() == ["wrong_cell"]
+
+    @override_options(ENFORCE)
+    def test_enforce_ignores_a_context_on_a_handler_that_did_not_opt_in(self) -> None:
+        self.post(self.context_headers(event_type="check_run"), github_event="check_run")
+
+        self.assert_handled_on_lookup()
+        self.metrics.incr.assert_not_called()
+
+    @override_options(ENFORCE)
+    def test_enforce_falls_back_to_create_a_missing_repository(self) -> None:
+        self.repo.delete()
+
+        response = self.post(self.context_headers())
+
+        assert response.status_code == 204
+        self.assert_handled_on_lookup()
+        assert self.outcomes() == ["no_local_repo"]
+        created = Repository.objects.get(organization_id=self.organization.id)
+        assert created.external_id == "35129377"
+        assert created.integration_id == self.integration.id
+
+    @override_options(ENFORCE)
+    def test_enforce_handles_an_organization_pending_unlink(self) -> None:
+        # The row is still there until the scheduled deletion runs, and the lookup
+        # returns it whatever its status, so both paths handle the delivery.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(integration_id=self.integration.id).update(
+                status=ObjectStatus.PENDING_DELETION
+            )
+
+        self.post(self.context_headers())
+
+        self.assert_handled_on_context()
+
+    def test_lookup_handles_an_organization_pending_unlink(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(integration_id=self.integration.id).update(
+                status=ObjectStatus.PENDING_DELETION
+            )
+
+        self.post()
+
+        self.assert_handled_on_lookup()
+
+    @override_options(ENFORCE)
+    def test_enforce_falls_back_for_an_organization_that_unlinked_since(self) -> None:
+        # What the scheduled deletion leaves behind: no organization integration, and
+        # the repository kept but off the integration. The context predates it.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(integration_id=self.integration.id).delete()
+        self.repo.update(integration_id=None)
+
+        response = self.post(self.context_headers())
+
+        assert response.status_code == 204
+        assert self.outcomes() == ["repo_integration_mismatch"]
+        self.lookup.assert_called_once()
+        self.processor.assert_not_called()
+
+    @override_options(ENFORCE)
+    def test_enforce_falls_back_for_a_repository_on_another_integration(self) -> None:
+        other = self.create_integration(
+            organization=self.organization, external_id="67890", provider="github"
+        )
+        self.repo.update(integration_id=other.id)
+
+        self.post(self.context_headers())
+
+        # The lookup does not read the repository's integration, so it still runs.
+        self.assert_handled_on_lookup()
+        assert self.outcomes() == ["repo_integration_mismatch"]
+
+    @override_options(ENFORCE)
+    def test_enforce_skips_a_hidden_repository(self) -> None:
+        self.repo.update(status=ObjectStatus.HIDDEN)
+
+        response = self.post(self.context_headers())
+
+        assert response.status_code == 204
+        self.lookup.assert_not_called()
+        self.processor.assert_not_called()
+        assert self.outcomes() == ["used"]
+
+    @override_options(ENFORCE)
+    def test_enforce_applies_a_repository_rename(self) -> None:
+        self.repo.update(name="baxterthehacker/old-name")
+
+        self.post(self.context_headers())
+
+        self.assert_handled_on_context()
+        self.repo.refresh_from_db()
+        assert self.repo.name == "baxterthehacker/public-repo"
+
+    @override_options(ENFORCE)
+    def test_enforce_handles_each_local_organization(self) -> None:
+        other_org = self.create_organization()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.add_organization(other_org.id, self.user)
+        other_repo = self.create_repo(
+            self.create_project(organization=other_org),
+            name="baxterthehacker/public-repo",
+            provider="integrations:github",
+            external_id="35129377",
+            integration_id=self.integration.id,
+        )
+        # An organization held by another cell is in the context too.
+        elsewhere = 10**15
+
+        self.post(
+            self.context_headers(organization_ids=[self.organization.id, other_org.id, elsewhere])
+        )
+
+        self.lookup.assert_not_called()
+        assert {call.kwargs["repo"] for call in self.processor.call_args_list} == {
+            self.repo,
+            other_repo,
+        }
+
+    @override_options(SHADOW)
+    def test_shadow_uses_the_lookup_and_reports_agreement(self) -> None:
+        response = self.post(self.context_headers())
+
+        assert response.status_code == 204
+        self.assert_handled_on_lookup()
+        assert self.outcomes() == ["shadow_would_use"]
+
+    @override_options(SHADOW)
+    def test_shadow_compares_only_the_organizations_this_cell_has(self) -> None:
+        elsewhere = 10**15
+
+        self.post(self.context_headers(organization_ids=[self.organization.id, elsewhere]))
+
+        self.assert_handled_on_lookup()
+        assert self.outcomes() == ["shadow_would_use"]
+
+    @override_options(SHADOW)
+    def test_shadow_reports_a_different_organization_set(self) -> None:
+        self.post(self.context_headers(organization_ids=[10**15]))
+
+        self.assert_handled_on_lookup()
+        assert self.outcomes() == ["shadow_mismatch"]
+
+    @override_options(SHADOW)
+    def test_shadow_reports_a_different_integration(self) -> None:
+        self.post(self.context_headers(integration_id=self.integration.id + 1))
+
+        self.assert_handled_on_lookup()
+        assert self.outcomes() == ["shadow_mismatch"]
+
+    @override_options(SHADOW)
+    def test_shadow_reports_an_integration_the_lookup_cannot_find(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(integration_id=self.integration.id).delete()
+
+        self.post(self.context_headers())
+
+        self.lookup.assert_called_once()
+        self.processor.assert_not_called()
+        assert self.outcomes() == ["shadow_mismatch"]
+
+    @override_options(SHADOW)
+    def test_shadow_reports_when_enforce_would_fall_back(self) -> None:
+        self.repo.update(integration_id=None)
+
+        self.post(self.context_headers())
+
+        self.assert_handled_on_lookup()
+        assert self.outcomes() == ["shadow_repo_integration_mismatch"]
+
+
+@no_silo_test
+class CheckSuiteDeliveryContextMonolithTest(DeliveryContextTestMixin):
+    @override_options(ENFORCE)
+    def test_enforce_ignores_the_context_outside_a_cell(self) -> None:
+        response = self.post(self.context_headers())
+
+        assert response.status_code == 204
+        self.assert_handled_on_lookup()
+        self.metrics.incr.assert_not_called()
+
+
+def test_delivery_context_needs_the_base_handle() -> None:
+    with pytest.raises(TypeError, match="cannot set USES_DELIVERY_CONTEXT"):
+
+        class _Handler(GitHubWebhook):
+            EVENT_TYPE = CheckSuiteWebhook.EVENT_TYPE
+            USES_DELIVERY_CONTEXT = True
+
+            def _handle(self, *args: Any, **kwargs: Any) -> None:
+                pass
