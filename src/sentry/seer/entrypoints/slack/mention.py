@@ -48,6 +48,7 @@ _SLACK_LINK_RE = re.compile(r"<((?:https?|mailto):[^|>]+)(?:\|([^>]*))?>")
 
 # Bounds the extra DB lookups and keeps alert-heavy threads from flooding the context.
 _MAX_REFERENCED_ISSUES = 3
+_MAX_ISSUE_IDS_TO_LOOK_UP = 50
 
 
 def has_prompt_content(text: str) -> bool:
@@ -409,7 +410,8 @@ def build_referenced_issues_context(*, organization: Organization, issue_ids: Se
     Titles and other user-controlled text are left out on purpose; the agent
     can fetch the issue itself.
     """
-    issue_ids = list(issue_ids)[:_MAX_REFERENCED_ISSUES]
+    # Cap after the org filter, so issues from other orgs can't use up the budget.
+    issue_ids = list(issue_ids)[:_MAX_ISSUE_IDS_TO_LOOK_UP]
     if not issue_ids:
         return ""
 
@@ -424,6 +426,8 @@ def build_referenced_issues_context(*, organization: Organization, issue_ids: Se
         group = groups_by_id.get(issue_id)
         if group is None:
             continue
+        if len(lines) == _MAX_REFERENCED_ISSUES:
+            break
         group.project.set_cached_field_value("organization", organization)
         lines.append(
             f"- org: {organization.slug}, issue_id: {group.id}, "

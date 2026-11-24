@@ -606,6 +606,16 @@ class BuildReferencedIssuesContextTest(TestCase):
         )
         assert len(result.splitlines()) == 4
 
+    def test_other_org_issues_do_not_use_up_the_cap(self) -> None:
+        other_project = self.create_project(organization=self.create_organization())
+        other_groups = [self.create_group(project=other_project) for _ in range(3)]
+        group = self.create_group(project=self.project)
+        result = build_referenced_issues_context(
+            organization=self.organization,
+            issue_ids=[*(g.id for g in other_groups), group.id],
+        )
+        assert f"issue_id: {group.id}," in result
+
     def test_empty_when_nothing_resolves(self) -> None:
         other_group = self.create_group(
             project=self.create_project(organization=self.create_organization())
