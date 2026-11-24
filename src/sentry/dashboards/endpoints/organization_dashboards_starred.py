@@ -32,8 +32,8 @@ from sentry.models.organization import Organization
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["dashboard:read", "user_preference:read"],
-        "PUT": ["dashboard:write", "user_preference:write"],
+        "GET": ["user_preference:read"],
+        "PUT": ["user_preference:write"],
     }
 
     rejects_deprecated_scopes = True

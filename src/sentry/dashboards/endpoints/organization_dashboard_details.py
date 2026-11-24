@@ -316,7 +316,7 @@ class OrganizationDashboardFavoritePermission(OrganizationDashboardsPermission):
     # Favoriting only changes the requesting user's starred dashboards.
     scope_map = {
         **OrganizationDashboardsPermission.scope_map,
-        "PUT": ["dashboard:write", "user_preference:write"],
+        "PUT": ["user_preference:write"],
     }
 
 
