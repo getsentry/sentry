@@ -128,7 +128,6 @@ function GridList<T extends ListItemBase>({
         <ListScrollArea
           data-test-id="select-scroll-area"
           ref={setScrollElement}
-          height="100%"
           overflowY="auto"
           margin="xs 0"
         >

@@ -263,7 +263,6 @@ export function ListBox<T extends ListItemBase>({
         )}
         <ListScrollArea
           data-test-id="select-scroll-area"
-          height="100%"
           overflowY="auto"
           margin="xs 0"
           ref={refs}

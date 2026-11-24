@@ -37,6 +37,10 @@ export const ListWrap = styled('ul')`
  * inset, and the inset stays visible while the rows scroll.
  */
 export const ListScrollArea = styled(Container)`
+  /* Fill a container with a definite height, less the vertical margins, so the
+  margins do not overflow it. Without a definite height, this resolves to auto. */
+  height: calc(100% - 2 * ${p => p.theme.space.xs});
+
   &:has(> ${ListWrap}:empty) {
     margin: 0;
   }
