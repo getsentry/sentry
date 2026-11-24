@@ -561,3 +561,41 @@ export function getDuplicateOptionKeysInfo<Value extends SelectKey>(
   collect(items);
   return {duplicateOptionKeys: [...duplicates], hasSections, optionCount};
 }
+
+function getLabelLength<Value extends SelectKey>(option: SelectOption<Value>) {
+  if (option.textValue) {
+    return option.textValue.length;
+  }
+  return typeof option.label === 'string' ? option.label.length : 0;
+}
+
+function getLongestOption<Value extends SelectKey>(
+  options: Array<SelectOption<Value>>
+): SelectOption<Value> | undefined {
+  return options.reduce<SelectOption<Value> | undefined>(
+    (longest, option) =>
+      !longest || getLabelLength(option) > getLabelLength(longest) ? option : longest,
+    undefined
+  );
+}
+
+/**
+ * The items a virtualized menu is measured with, to fix its width before the
+ * full list renders: the longest option outside any section, and every section
+ * with only its longest option. Every section is kept, since its header can be
+ * wider than any option.
+ */
+export function getWidestItems<Value extends SelectKey>(
+  items: Array<SelectOptionOrSection<Value>>
+): Array<SelectOptionOrSection<Value>> {
+  const longestOption = getLongestOption(
+    items.flatMap(item => ('options' in item ? [] : [item]))
+  );
+  return items.flatMap<SelectOptionOrSection<Value>>(item => {
+    if ('options' in item) {
+      const longest = getLongestOption(item.options);
+      return [{...item, options: longest ? [longest] : []}];
+    }
+    return item === longestOption ? [item] : [];
+  });
+}

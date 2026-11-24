@@ -413,7 +413,57 @@ describe('CompositeSelect', () => {
   describe('virtualization', () => {
     stubScrollLayout();
 
-    it('wraps focus to the last option of a large region', async () => {
+    it.each([false, true])(
+      'wraps focus to the last option of a large region (virtualized: %s)',
+      async virtualized => {
+        const regionOptions = (region: string) =>
+          Array.from({length: 200}, (_, i) => ({
+            value: `${region}-${i}`,
+            label: `${region} ${i}`,
+          }));
+        render(
+          <CompositeSelect
+            trigger={props => (
+              <OverlayTrigger.Button {...props}>Open menu</OverlayTrigger.Button>
+            )}
+          >
+            <CompositeSelect.Region
+              label="First"
+              value={undefined}
+              onChange={() => {}}
+              virtualized={virtualized}
+              options={regionOptions('R1')}
+            />
+            <CompositeSelect.Region
+              label="Second"
+              value={undefined}
+              onChange={() => {}}
+              virtualized={virtualized}
+              options={regionOptions('R2')}
+            />
+          </CompositeSelect>,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Open menu'}));
+        await waitFor(() =>
+          expect(screen.getByRole('option', {name: 'R1 0'})).toHaveFocus()
+        );
+        await userEvent.keyboard('{ArrowUp}');
+
+        await waitFor(() =>
+          expect(screen.getByRole('option', {name: 'R2 199'})).toHaveFocus()
+        );
+
+        // Wrapping back down returns to the first option.
+        await userEvent.keyboard('{ArrowDown}');
+        await waitFor(() =>
+          expect(screen.getByRole('option', {name: 'R1 0'})).toHaveFocus()
+        );
+      }
+    );
+
+    it('scrolls to the last option of a virtualized region, not past the regions below', async () => {
       const regionOptions = (region: string) =>
         Array.from({length: 200}, (_, i) => ({
           value: `${region}-${i}`,
@@ -429,12 +479,14 @@ describe('CompositeSelect', () => {
             label="First"
             value={undefined}
             onChange={() => {}}
+            virtualized
             options={regionOptions('R1')}
           />
           <CompositeSelect.Region
             label="Second"
             value={undefined}
             onChange={() => {}}
+            virtualized
             options={regionOptions('R2')}
           />
         </CompositeSelect>,
@@ -445,11 +497,17 @@ describe('CompositeSelect', () => {
       await waitFor(() =>
         expect(screen.getByRole('option', {name: 'R1 0'})).toHaveFocus()
       );
-      await userEvent.keyboard('{ArrowUp}');
-
+      await userEvent.keyboard('{End}');
       await waitFor(() =>
-        expect(screen.getByRole('option', {name: 'R2 199'})).toHaveFocus()
+        expect(screen.getByRole('option', {name: 'R1 199'})).toHaveFocus()
       );
+
+      // The last option of the first region ends well before the end of the
+      // shared scroll element (49,900px in this layout), which is the end of
+      // the second region.
+      const regions = screen.getByTestId('composite-select-regions');
+      await waitFor(() => expect(regions.scrollTop).toBeGreaterThan(0));
+      expect(regions.scrollTop).toBeLessThan(200 * 40);
     });
 
     it('virtualizes a region in the element the regions scroll in', async () => {

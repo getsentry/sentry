@@ -38,6 +38,10 @@ export const ListWrap = styled('ul')`
  *
  * Change the inset by setting `--list-inset`, not `margin`, so the height below
  * stays in step with it.
+ *
+ * Render it with `data-list-scroll-area`. Other rules target it by that attribute
+ * rather than by component selector, which needs an Emotion compiler plugin that
+ * the published package build does not have.
  */
 export const ListScrollArea = styled(Container)`
   --list-inset: ${p => p.theme.space.xs};
@@ -46,7 +50,7 @@ export const ListScrollArea = styled(Container)`
   margins do not overflow it. Without a definite height, this resolves to auto. */
   height: calc(100% - 2 * var(--list-inset));
 
-  &:has(> ${ListWrap}:empty) {
+  &:has(> ul:empty) {
     --list-inset: 0px;
   }
 `;
@@ -73,7 +77,7 @@ export const ListSeparator = styled('div')`
   }
 
   /* Hide it after an empty list, such as a CompositeSelect region with no matches. */
-  ${ListScrollArea}:has(> ${ListWrap}:empty) + & {
+  [data-list-scroll-area]:has(> ul:empty) + & {
     display: none;
   }
 `;

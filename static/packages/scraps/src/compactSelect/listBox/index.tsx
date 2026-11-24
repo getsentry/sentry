@@ -262,11 +262,16 @@ export function ListBox<T extends ListItemBase>({
           <ListLabel {...labelProps}>{label}</ListLabel>
         )}
         <ListScrollArea
+          data-list-scroll-area
           data-test-id="select-scroll-area"
           overflowY="auto"
           ref={refs}
           className={className}
-          style={hasEverOverflowed ? {scrollbarGutter: 'stable'} : undefined}
+          // A virtualized list has more options than fit, so it reserves the
+          // gutter from the start, including while its width is measured.
+          style={
+            hasEverOverflowed || virtualized ? {scrollbarGutter: 'stable'} : undefined
+          }
         >
           <ListWrap
             {...mergedProps}

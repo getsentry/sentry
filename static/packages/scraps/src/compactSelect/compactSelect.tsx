@@ -18,7 +18,12 @@ import type {
   SelectOptionOrSectionWithKey,
   SelectSection,
 } from './types';
-import {getDuplicateOptionKeysInfo, getItemsWithKeys, shouldCloseOnSelect} from './utils';
+import {
+  getDuplicateOptionKeysInfo,
+  getItemsWithKeys,
+  getWidestItems,
+  shouldCloseOnSelect,
+} from './utils';
 
 export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 
@@ -102,8 +107,8 @@ export function CompactSelect<Value extends SelectKey>({
 
   const [measuredMenuWidth, setMeasuredMenuWidth] = useState<number>();
   const [hasMeasured, setHasMeasured] = useState(false);
-  const needsMeasuring =
-    !menuWidth && !hasMeasured && shouldVirtualize(options, virtualizeThreshold);
+  const virtualized = shouldVirtualize(options, virtualizeThreshold);
+  const needsMeasuring = !menuWidth && !hasMeasured && virtualized;
 
   const menuRef = useCallback(
     (element: HTMLDivElement | null) => {
@@ -120,29 +125,10 @@ export function CompactSelect<Value extends SelectKey>({
   const controlDisabled = disabled ?? options?.length === 0;
   const allItemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
 
-  const longestOptionItemsWithKey = useMemo(() => {
-    if (needsMeasuring) {
-      let longestOption: (typeof options)[number] | undefined;
-      let longestLength = -1;
-      for (const item of options) {
-        for (const option of 'options' in item ? item.options : [item]) {
-          const length = option.textValue
-            ? option.textValue.length
-            : typeof option.label === 'string'
-              ? option.label.length
-              : 0;
-          if (length > longestLength) {
-            // Measure an option in a section inside it, so the width includes
-            // the section's header.
-            longestOption = 'options' in item ? {...item, options: [option]} : option;
-            longestLength = length;
-          }
-        }
-      }
-      return longestOption ? getItemsWithKeys([longestOption]) : [];
-    }
-    return [];
-  }, [needsMeasuring, options]);
+  const longestOptionItemsWithKey = useMemo(
+    () => (needsMeasuring ? getItemsWithKeys(getWidestItems(options)) : []),
+    [needsMeasuring, options]
+  );
   const itemsWithKey = needsMeasuring ? longestOptionItemsWithKey : allItemsWithKey;
 
   const componentTitle = useMemo(
@@ -211,7 +197,9 @@ export function CompactSelect<Value extends SelectKey>({
         size={size}
         sizeLimit={sizeLimit}
         sizeLimitMessage={sizeLimitMessage}
-        virtualized={shouldVirtualize(itemsWithKey, virtualizeThreshold)}
+        // Set during the measuring pass too, so the measured list reserves the
+        // same scrollbar gutter as the virtualized list it stands in for.
+        virtualized={virtualized}
         aria-labelledby={triggerId}
       >
         {(item: SelectOptionOrSectionWithKey<Value>) => {

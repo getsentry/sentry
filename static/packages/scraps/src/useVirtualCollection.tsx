@@ -30,20 +30,26 @@ export const DEFAULT_VIRTUALIZE_THRESHOLD = 150;
 /**
  * Lists a collection's nodes in the order `useVirtualCollection` renders them:
  * each section is followed by its child nodes, so a long section is windowed
- * like any other run of rows instead of mounting all at once. Nodes in
- * `hiddenKeys` are left out, whether they are sections, their children or
- * top-level items.
+ * like any other run of rows instead of mounting all at once. Items in
+ * `hiddenKeys` are left out, and so is a section when all of its items are.
+ * Section keys are not looked up in `hiddenKeys`, since they can equal an
+ * item's key.
  */
 export function flattenSections<T>(
   nodes: Iterable<Node<T>>,
   hiddenKeys?: ReadonlySet<Key>
 ): Array<Node<T>> {
   const isVisible = (node: Node<T>) => !hiddenKeys?.has(node.key);
-  return [...nodes]
-    .filter(isVisible)
-    .flatMap(node =>
-      node.type === 'section' ? [node, ...[...node.childNodes].filter(isVisible)] : [node]
-    );
+  return [...nodes].flatMap(node => {
+    if (node.type !== 'section') {
+      return isVisible(node) ? [node] : [];
+    }
+    const children = [...node.childNodes];
+    const visibleChildren = children.filter(isVisible);
+    return children.length > 0 && visibleChildren.length === 0
+      ? []
+      : [node, ...visibleChildren];
+  });
 }
 
 /**
@@ -185,7 +191,7 @@ export interface UseVirtualCollectionOptions<T> {
    * keeps DOM focus and the keyboard keeps working.
    */
   focusedKey?: Key | null;
-  /** Keys of nodes to leave out, whether they are sections, their children or top-level items. */
+  /** Keys of items to leave out. A section is left out when all of its items are. */
   hiddenKeys?: ReadonlySet<Key>;
   /**
    * The element the rows and spacers render directly inside. Its offset in the
@@ -320,14 +326,30 @@ export function useVirtualCollection<T>({
     observeElementRect: observeViewportCappedRect,
   });
 
-  // Keyboard navigation can move focus to a row that is not mounted. Scroll it
-  // into view so it mounts; React Aria then focuses it. Pointer focus follows
-  // the hovered row, which is already visible, so scrolling would only fight it.
+  // Keyboard navigation can move focus to a row far out of view. Scroll to it,
+  // and React Aria then scrolls the mounted row fully into view. Pointer focus
+  // follows the hovered row, which is already visible, so scrolling would only
+  // fight it.
+  //
+  // This scrolls to an offset rather than with `scrollToIndex`, which assumes
+  // the list fills its scroll element: it scrolls to the scroll element's end
+  // for the last row, past any list below this one, and keeps scrolling back to
+  // that end for seconds afterwards whenever the content height changes.
   useEffect(() => {
     if (focusedIndex === -1 || getInteractionModality() === 'pointer') {
       return;
     }
-    virtualizer.scrollToIndex(focusedIndex, {align: 'auto'});
+    const item = virtualizer.measurementsCache[focusedIndex];
+    if (!item) {
+      return;
+    }
+    const viewportStart = virtualizer.scrollOffset ?? 0;
+    const viewportEnd = viewportStart + (virtualizer.scrollRect?.height ?? 0);
+    if (item.start < viewportStart) {
+      virtualizer.scrollToOffset(item.start, {align: 'start'});
+    } else if (item.end > viewportEnd) {
+      virtualizer.scrollToOffset(item.end, {align: 'end'});
+    }
   }, [focusedIndex, virtualizer]);
 
   const rows: Array<VirtualRow<T>> = enabled

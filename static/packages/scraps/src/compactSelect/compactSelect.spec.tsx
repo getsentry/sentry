@@ -20,6 +20,7 @@ import {lightTheme} from '@sentry/scraps/theme';
 import {stubScrollLayout} from '../../test/scrollLayout';
 
 import {ListBox} from './listBox';
+import {getWidestItems} from './utils';
 import {CompactSelect, getEscapedKey, type SelectOption} from './';
 
 describe('getEscapedKey', () => {
@@ -27,6 +28,38 @@ describe('getEscapedKey', () => {
     expect(getEscapedKey('environment-123')).toBe('environment-123');
     expect(getEscapedKey('release.version')).toBe('release\\.version');
     expect(getEscapedKey(123)).toBe('\\31 23');
+  });
+});
+
+describe('getWidestItems', () => {
+  it('keeps every section with its longest option, and the longest other option', () => {
+    expect(
+      getWidestItems([
+        {value: 'a', label: 'Short'},
+        {value: 'b', label: 'The longest loose option'},
+        {
+          key: 'sec-1',
+          label: 'Section 1',
+          options: [
+            {value: 'c', label: 'C'},
+            {value: 'd', label: 'Longer D'},
+          ],
+        },
+        {
+          key: 'sec-2',
+          label: 'A section title much longer than every option label',
+          options: [{value: 'e', label: 'E'}],
+        },
+      ])
+    ).toEqual([
+      {value: 'b', label: 'The longest loose option'},
+      {key: 'sec-1', label: 'Section 1', options: [{value: 'd', label: 'Longer D'}]},
+      {
+        key: 'sec-2',
+        label: 'A section title much longer than every option label',
+        options: [{value: 'e', label: 'E'}],
+      },
+    ]);
   });
 });
 
@@ -567,6 +600,67 @@ describe('CompactSelect', () => {
       // only Option Two should be available, Option One should be filtered out
       expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+    });
+
+    it('keeps a section whose key matches a hidden option', async () => {
+      render(
+        <CompactSelect
+          search={{placeholder: 'Search here…'}}
+          options={[
+            {
+              key: 'sec-1',
+              label: 'Section 1',
+              options: [
+                {value: 'sec-2', label: 'Option Named Sec 2'},
+                {value: 'other', label: 'Other Option'},
+              ],
+            },
+            {
+              key: 'sec-2',
+              label: 'Section 2',
+              options: [{value: 'target', label: 'Target Match'}],
+            },
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+      await userEvent.keyboard('Target');
+
+      expect(screen.getByRole('option', {name: 'Target Match'})).toBeInTheDocument();
+    });
+
+    it('keeps an auto-keyed section when an option with its key is over sizeLimit', async () => {
+      render(
+        <CompactSelect
+          sizeLimit={2}
+          options={[
+            {
+              label: 'Section 1',
+              options: [
+                {value: 'a', label: 'Option A'},
+                {value: 'b', label: 'Option B'},
+                {value: 'options-0', label: 'Option Overflowed'},
+              ],
+            },
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+
+      expect(screen.getByRole('option', {name: 'Option A'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Option B'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Option Overflowed'})
+      ).not.toBeInTheDocument();
     });
 
     it('selects the only matching option when Enter is pressed in the search input', async () => {
@@ -2107,6 +2201,20 @@ describe('CompactSelect', () => {
         ).not.toBeInTheDocument();
       }
     );
+
+    it('reserves the scrollbar gutter of a virtualized list box from the start', async () => {
+      render(<CompactSelect options={options} value={undefined} onChange={jest.fn()} />, {
+        wrapper: ThemeWrapper,
+      });
+
+      await userEvent.click(screen.getByRole('button'));
+
+      // The menu's width is measured from a few options that do not overflow,
+      // so the gutter must not wait for an overflow to be reserved.
+      expect(await screen.findByTestId('select-scroll-area')).toHaveStyle({
+        scrollbarGutter: 'stable',
+      });
+    });
 
     it('reserves no space for the section headers of a list box that hides them', async () => {
       function SectionedListBox({showSectionHeaders}: {showSectionHeaders: boolean}) {

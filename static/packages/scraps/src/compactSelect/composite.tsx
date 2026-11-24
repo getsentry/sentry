@@ -13,7 +13,7 @@ import type {ControlProps} from './control';
 import type {MultipleListProps, SingleListProps} from './list';
 import {List} from './list';
 import {SharedScrollElementContext} from './selectRows';
-import {EmptyMessage, ListScrollArea, ListWrap} from './styles';
+import {EmptyMessage} from './styles';
 import type {SelectKey, SelectOption} from './types';
 import {getItemsWithKeys} from './utils';
 
@@ -210,13 +210,13 @@ const RegionsWrap = styled('div')`
   definite height, its 100% height would make it a scroller of its own. A
   region's inset is padding, as margins would collapse with the separator's
   margins between regions. */
-  > ${ListScrollArea} {
+  > [data-list-scroll-area] {
     height: auto;
     overflow: visible;
     margin: 0;
   }
 
-  > ${ListScrollArea}:has(> ${ListWrap}:not(:empty)) {
+  > [data-list-scroll-area]:has(> ul:not(:empty)) {
     padding: ${p => p.theme.space.xs} 0;
   }
 `;
