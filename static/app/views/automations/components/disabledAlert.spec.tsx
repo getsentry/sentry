@@ -56,7 +56,7 @@ describe('DisabledAlert', () => {
         expect.anything(),
         expect.objectContaining({
           method: 'PUT',
-          data: {id: '123', name: automation.name, enabled: true},
+          data: {id: '123', name: automation.name, enabled: true, type: 'alert'},
         })
       );
     });

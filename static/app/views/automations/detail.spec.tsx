@@ -183,7 +183,7 @@ describe('AutomationDetail', () => {
       expect(updateRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/workflows/123/',
         expect.objectContaining({
-          data: {id: '123', name: 'Test Automation', enabled: false},
+          data: {id: '123', name: 'Test Automation', enabled: false, type: 'alert'},
         })
       );
     });

@@ -171,7 +171,12 @@ describe('EditAutomation', () => {
       expect(mockUpdateAutomation).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/workflows/${automation.id}/`,
         expect.objectContaining({
-          data: {id: automation.id, name: automation.name, enabled: !automation.enabled},
+          data: {
+            id: automation.id,
+            name: automation.name,
+            enabled: !automation.enabled,
+            type: 'alert',
+          },
         })
       );
     });
@@ -239,6 +244,7 @@ describe('EditAutomation', () => {
                 ]),
               }),
             ]),
+            type: 'alert',
           }),
         })
       );

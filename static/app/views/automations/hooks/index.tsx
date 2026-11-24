@@ -29,7 +29,7 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-// All user-facing alert pages only ask for "alert" workflows
+// All user-facing alert pages only read and write "alert" workflows
 const ALERT_AUTOMATION_TYPE: AutomationType = 'alert';
 
 export const automationsApiOptions = (
@@ -145,7 +145,7 @@ export function useCreateAutomation({
         getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
           path: {organizationIdOrSlug: org.slug},
         }),
-        {method: 'POST', data}
+        {method: 'POST', data: {...data, type: ALERT_AUTOMATION_TYPE}}
       ),
     onSuccess: _ => {
       queryClient.invalidateQueries({queryKey: automationsApiOptions(org).queryKey});
