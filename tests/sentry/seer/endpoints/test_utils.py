@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry.auth.access import from_user
 from sentry.seer.endpoints.utils import ResolvedSeerRun, authorize_seer_run, resolve_seer_run
-from sentry.seer.models.run import SeerRunMirrorStatus
+from sentry.seer.models.run import SeerAgentRun, SeerRunMirrorStatus
 from sentry.testutils.cases import TestCase
 
 
@@ -248,3 +248,19 @@ class AuthorizeSeerRunTest(TestCase):
         result = self._authorize(self.owner, write=True)
         assert isinstance(result, Response)
         assert result.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_issue_run_owner_without_write_scope_can_write(self) -> None:
+        self._issue_run(self.owner.id)
+
+        result = self._authorize(self.owner, write=True, scopes={"org:read", "event:read"})
+
+        assert isinstance(result, ResolvedSeerRun)
+
+    def test_ownerless_run_with_deleted_group_forbidden(self) -> None:
+        self._issue_run(None)
+        SeerAgentRun.objects.filter(run__seer_run_state_id=555).update(group_id=10**12)
+
+        for write in (False, True):
+            result = self._authorize(self.teammate, write=write)
+            assert isinstance(result, Response)
+            assert result.status_code == status.HTTP_403_FORBIDDEN

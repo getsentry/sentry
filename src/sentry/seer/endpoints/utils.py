@@ -172,21 +172,24 @@ def authorize_seer_run(
     if run is None:
         return _owner_mismatch_response() if write else resolved
 
+    is_owner = user_id is not None and run.user_id == user_id
     try:
-        group = run.agent.group
+        agent: SeerAgentRun | None = run.agent
     except SeerAgentRun.DoesNotExist:
-        group = None
+        agent = None
 
-    if group is not None:
-        allowed = (
-            access.has_any_project_scope(group.project, AUTOFIX_RUN_SCOPES)
-            if write
-            else access.has_project_access(group.project)
-        )
+    if agent is not None and agent.group_id is not None:
+        group = agent.group
+        if group is None:
+            allowed = is_owner
+        elif write:
+            allowed = is_owner or access.has_any_project_scope(group.project, AUTOFIX_RUN_SCOPES)
+        else:
+            allowed = is_owner or access.has_project_access(group.project)
     elif write:
-        allowed = user_id is not None and run.user_id == user_id
+        allowed = is_owner
     else:
-        allowed = run.user_id is None or run.user_id == user_id
+        allowed = run.user_id is None or is_owner
 
     return resolved if allowed else _owner_mismatch_response()
 
