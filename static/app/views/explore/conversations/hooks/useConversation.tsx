@@ -1,10 +1,8 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {
-  InfiniteQueryObserver,
   skipToken,
   useInfiniteQuery,
   useQueryClient,
-  type InfiniteData,
   type QueryClient,
 } from '@tanstack/react-query';
 
@@ -16,9 +14,8 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiFetchInfinite} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {InfiniteApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
@@ -147,10 +144,6 @@ export interface ConversationApiResponse {
   title: string | null;
 }
 
-export type ConversationInfiniteData = InfiniteData<
-  ApiResponse<ConversationApiResponse>,
-  ParsedHeader | undefined
->;
 
 interface UseConversationResult {
   canAutoFetchNextPage: boolean;
@@ -413,55 +406,40 @@ export function getConversationQueryOptions(
   );
 }
 
-// Fetches under a separate key because each cache update re-renders every span.
+// Writes all pages at once because each cache update re-renders every span.
 async function fetchRemainingPages(
   queryClient: QueryClient,
-  queryOptions: ReturnType<typeof getConversationQueryOptions>,
+  {queryKey, getNextPageParam}: ReturnType<typeof getConversationQueryOptions>,
   signal: AbortSignal
 ) {
-  const queryKey: InfiniteApiQueryKey = queryOptions.queryKey;
-  const getLoadedData = () =>
-    queryClient.getQueryData(queryKey) as ConversationInfiniteData | undefined;
-  const initialData = getLoadedData();
-  if (!initialData) {
+  const loadedData = queryClient.getQueryData(queryKey);
+  if (!loadedData) {
     return 0;
   }
 
-  const remainingKey = [...queryKey, {remainingPages: true}] as const;
-  queryClient.removeQueries({queryKey: remainingKey, exact: true});
-  const observer = new InfiniteQueryObserver(queryClient, {
-    ...queryOptions,
-    queryKey: remainingKey,
-    initialData,
-  });
-  const cancelFetch = () =>
-    void queryClient.cancelQueries({queryKey: remainingKey, exact: true});
-  signal.addEventListener('abort', cancelFetch);
-
-  let result = observer.getCurrentResult();
-  try {
-    while (
-      result.hasNextPage &&
-      !result.isFetchNextPageError &&
-      !signal.aborted &&
-      (result.data?.pages.length ?? 0) < MAX_PAGES
-    ) {
-      result = await observer.fetchNextPage();
+  const pages = [...loadedData.pages];
+  const pageParams = [...(loadedData.pageParams as Array<ParsedHeader | undefined>)];
+  let pageParam = getNextPageParam(pages.at(-1)!, pages, pageParams.at(-1), pageParams);
+  while (pageParam && !signal.aborted && pages.length < MAX_PAGES) {
+    const page = await apiFetchInfinite<ConversationApiResponse>({
+      queryKey,
+      pageParam,
+    }).catch(() => null);
+    if (!page) {
+      break;
     }
-  } finally {
-    signal.removeEventListener('abort', cancelFetch);
-    observer.destroy();
+    pages.push(page);
+    pageParams.push(pageParam);
+    pageParam = getNextPageParam(page, pages, pageParam, pageParams);
   }
 
   // An infinite scroll fetch that is still running would overwrite this update.
   await queryClient.cancelQueries({queryKey, exact: true});
-  const loadedPages = getLoadedData()?.pages.length ?? 0;
-  const fetchedPages = result.data?.pages.length ?? 0;
-  if (result.data && fetchedPages > loadedPages) {
-    queryClient.setQueryData(queryKey, result.data);
+  const latestPageCount = queryClient.getQueryData(queryKey)?.pages.length ?? 0;
+  if (pages.length > latestPageCount) {
+    queryClient.setQueryData(queryKey, {pages, pageParams});
   }
-  queryClient.removeQueries({queryKey: remainingKey, exact: true});
-  return Math.max(loadedPages, fetchedPages);
+  return Math.max(pages.length, latestPageCount);
 }
 
 export function useConversation(

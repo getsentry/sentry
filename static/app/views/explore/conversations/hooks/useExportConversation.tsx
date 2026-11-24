@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {InfiniteApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -28,12 +29,16 @@ import {
 import {
   buildConversationNodes,
   type ConversationApiResponse,
-  type ConversationInfiniteData,
   getConversationQueryOptions,
   type UseConversationsOptions,
 } from './useConversation';
 
 const MAX_EXPORT_SPANS = 50_000;
+
+type ConversationInfiniteData = InfiniteData<
+  ApiResponse<ConversationApiResponse>,
+  ParsedHeader | undefined
+>;
 
 interface ConversationExport {
   markdown: string;

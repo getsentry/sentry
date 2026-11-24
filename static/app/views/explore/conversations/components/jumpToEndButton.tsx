@@ -1,4 +1,11 @@
-import {Fragment, useEffect, useRef, useState, type RefObject} from 'react';
+import {
+  Fragment,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from 'react';
 import {IconArrow} from '@sentry/icons/arrow';
 import * as Sentry from '@sentry/react';
 
@@ -28,10 +35,10 @@ export function JumpToEndButton({
   const organization = useOrganization();
   const endRef = useRef<HTMLDivElement>(null);
   const [isAtEnd, setIsAtEnd] = useState(false);
-  const [isJumping, setIsJumping] = useState(false);
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
   // Pages render after the load resolves, so the scroll waits for this page count.
   const [scrollAtPageCount, setScrollAtPageCount] = useState<number | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const isJumping = abortController !== null;
 
   useEffect(() => {
     const end = endRef.current;
@@ -46,7 +53,7 @@ export function JumpToEndButton({
     return () => observer.disconnect();
   }, [scrollContainerRef]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (scrollAtPageCount === null || loadedPageCount < scrollAtPageCount) {
       return;
     }
@@ -57,30 +64,25 @@ export function JumpToEndButton({
   }, [loadedPageCount, scrollAtPageCount, scrollContainerRef]);
 
   useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!isJumping || !container) {
+    if (!abortController) {
       return;
     }
-    const cancel = () => abortControllerRef.current?.abort();
-    container.addEventListener('wheel', cancel, {passive: true});
-    container.addEventListener('touchmove', cancel, {passive: true});
-    return () => {
-      container.removeEventListener('wheel', cancel);
-      container.removeEventListener('touchmove', cancel);
-    };
-  }, [isJumping, scrollContainerRef]);
-
-  useEffect(() => () => abortControllerRef.current?.abort(), []);
+    const {signal} = abortController;
+    const cancel = () => abortController.abort();
+    const container = scrollContainerRef.current;
+    container?.addEventListener('wheel', cancel, {passive: true, signal});
+    container?.addEventListener('touchmove', cancel, {passive: true, signal});
+    return cancel;
+  }, [abortController, scrollContainerRef]);
 
   const handleClick = async () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+    if (abortController) {
+      abortController.abort();
       return;
     }
     trackAnalytics('conversations.detail.jump-to-end', {organization});
     const controller = new AbortController();
-    abortControllerRef.current = controller;
-    setIsJumping(true);
+    setAbortController(controller);
     try {
       const pageCount = await loadRemainingPages(controller.signal);
       if (!controller.signal.aborted) {
@@ -89,11 +91,10 @@ export function JumpToEndButton({
     } catch (error) {
       Sentry.captureException(error);
     }
-    abortControllerRef.current = null;
-    setIsJumping(false);
+    setAbortController(null);
   };
 
-  const isVisible = isJumping || scrollAtPageCount !== null || canLoadMore || !isAtEnd;
+  const isVisible = isJumping || canLoadMore || !isAtEnd;
 
   return (
     // A wrapper element would limit the sticky button to the wrapper's height.
@@ -113,9 +114,9 @@ export function JumpToEndButton({
               size="sm"
               icon={
                 isJumping ? (
-                  <LoadingIndicator size={14} />
+                  <LoadingIndicator size={14} style={{margin: 0}} />
                 ) : (
-                  <IconArrow direction="down" size="xs" />
+                  <IconArrow direction="down" />
                 )
               }
               onClick={handleClick}
