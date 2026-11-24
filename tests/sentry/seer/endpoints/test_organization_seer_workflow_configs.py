@@ -1536,7 +1536,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
     def test_scheduled_workflow_rejects_slack_channel(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
-            strategy="agentic_triage_v2",
+            strategy="scheduled_investigation",
             slackChannel={"integrationId": "123", "channelId": "C123"},
             status_code=400,
         )
@@ -1710,7 +1710,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
     def test_create_requires_service_account(self) -> None:
         response = self.client.post(
             f"/api/0/organizations/{self.organization.slug}/seer/workflows/configs/",
-            {"strategy": "agentic_triage_v2"},
+            {"strategy": "scheduled_investigation"},
             format="json",
         )
         assert response.status_code == 400

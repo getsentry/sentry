@@ -13,7 +13,9 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.groupenvironment import GroupEnvironment
+from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.services.eventstore.models import GroupEvent
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -718,7 +720,13 @@ class TestActivityWorkflowSelection(BaseWorkflowTest):
 
     def test_group_event_keeps_type_agnostic_detector_lookup(self) -> None:
         group, _, event = self.create_group_event()
-        hidden = self.create_workflow(type=Workflow.Type.SEER_INVESTIGATION)
+        config = Factories.create_seer_workflow_config(
+            self.organization,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            enabled=True,
+        )
+        hidden = config.backing_workflow
+        assert hidden is not None
         self.create_detector_workflow(detector=self.detector, workflow=hidden)
         with (
             self.feature("organizations:workflow-engine-activity-workflows"),
