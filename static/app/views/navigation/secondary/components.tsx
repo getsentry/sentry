@@ -326,15 +326,18 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
 
 function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
   const {layout} = usePrimaryNavigation();
+  const settingsV3 = useSettingsV3();
 
   // Same height and padding as a `sm` button, so titles line up with the
   // selector triggers some secondary navs (e.g. settings) render instead.
+  // Without settings-v3, mobile links have no body padding, so the title
+  // drops its own to stay aligned with them.
   return (
     <Flex
       align="center"
       height="32px"
       minWidth="0"
-      paddingLeft={layout === 'mobile' ? undefined : 'lg'}
+      paddingLeft={layout === 'mobile' && !settingsV3 ? undefined : 'lg'}
       paddingRight="lg"
     >
       <Text size="md" bold ellipsis>
