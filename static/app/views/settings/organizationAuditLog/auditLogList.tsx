@@ -247,7 +247,7 @@ type Props = {
   isLoading: boolean;
   onCursor: CursorHandler;
   onDateSelect: (data: ChangeData) => void;
-  onEventSelect: (value: string) => void;
+  onEventSelect: (value: string | undefined) => void;
   pageLinks: string | null;
   statsPeriod: string | null;
   end?: DateString;

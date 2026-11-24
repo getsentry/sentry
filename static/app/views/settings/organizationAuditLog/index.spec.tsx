@@ -3,7 +3,7 @@ import {AuditLogsApiEventNamesFixture} from 'sentry-fixture/auditLogsApiEventNam
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -151,5 +151,29 @@ describe('OrganizationAuditLog', () => {
         'edited the organization setting(s): accountRateLimit from 1000 to 0'
       )
     ).toBeInTheDocument();
+  });
+
+  it('clears the action filter', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/audit-logs/',
+      method: 'GET',
+      body: {rows: AuditLogsFixture(), options: AuditLogsApiEventNamesFixture()},
+    });
+
+    const {router} = render(<OrganizationAuditLog />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/audit-log/',
+          query: {event: 'project.edit'},
+        },
+        route: '/organizations/:orgId/audit-log/',
+      },
+    });
+
+    await userEvent.click(await screen.findByLabelText('Clear choices'));
+
+    await waitFor(() => {
+      expect(router.location.query.event).toBeUndefined();
+    });
   });
 });

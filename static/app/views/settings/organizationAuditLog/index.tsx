@@ -65,8 +65,9 @@ function OrganizationAuditLog() {
     setQueryParams({cursor: resultsCursor ?? null});
   };
 
-  const handleEventSelect = (value: string) => {
-    setQueryParams({event: value, cursor: null});
+  const handleEventSelect = (value: string | undefined) => {
+    // Clearing the filter sends undefined; nuqs only removes a param on null
+    setQueryParams({event: value ?? null, cursor: null});
   };
 
   const handleDateSelect = (changeData: ChangeData) => {
