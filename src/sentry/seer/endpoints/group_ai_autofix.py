@@ -391,7 +391,9 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         ],
         request=ExplorerAutofixRequestSerializer,
         responses={
-            202: inline_sentry_response_serializer("AutofixPostResponse", AutofixPostResponse),
+            202: inline_sentry_response_serializer(
+                "AutofixPostResponse", AutofixPostResponse | AutofixHandoffResponse
+            ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             402: inline_sentry_response_serializer(
@@ -408,8 +410,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
     def post(
         self, request: Request, group: Group
     ) -> (
-        Response[AutofixPostResponse]
-        | Response[AutofixHandoffResponse]
+        Response[AutofixPostResponse | AutofixHandoffResponse]
         | Response[None]
         | Response[DetailResponse]
         | Response[AutofixConflictResponse]
@@ -510,7 +511,9 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
 
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
-                return Response(handoff_result, status=status.HTTP_202_ACCEPTED)
+                return Response[AutofixPostResponse | AutofixHandoffResponse](
+                    handoff_result, status=status.HTTP_202_ACCEPTED
+                )
             case "open_pr":
                 if resolved_run_id is None:
                     return Response(

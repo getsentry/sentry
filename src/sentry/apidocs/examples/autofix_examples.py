@@ -11,6 +11,12 @@ AUTOFIX_POST_RESPONSE = [
         response_only=True,
         status_codes=["202"],
     ),
+    OpenApiExample(
+        name="Successful Coding Agent Handoff",
+        value={"successes": [{"repo_name": "owner/repo"}], "failures": []},
+        response_only=True,
+        status_codes=["202"],
+    ),
 ]
 
 AUTOFIX_GET_RESPONSE = [
