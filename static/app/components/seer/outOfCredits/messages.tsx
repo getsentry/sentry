@@ -284,7 +284,7 @@ const REFUSED_PR_MESSAGE: Record<
  */
 export function getRefusedPRMessage(
   state: Pick<RepoPRState, 'pr_number' | 'repo_name'> | undefined,
-  denialReason: SeerCreditDenialReason | null
+  denialReason: string | null | undefined
 ): string {
   const messages = REFUSED_PR_MESSAGE[normalizeDenialReason(denialReason)];
   if (!state) {
