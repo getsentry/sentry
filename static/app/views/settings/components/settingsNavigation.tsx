@@ -93,7 +93,7 @@ function SettingsNavigationHeader() {
     case 'org':
       return <SettingsOrganizationHeader />;
     case 'account':
-      return <SettingsStaticHeader label={getSettingsScopeTitle(scope)} />;
+      return <SettingsHeaderLabel label={getSettingsScopeTitle(scope)} />;
     default:
       return unreachable(scope);
   }
@@ -217,7 +217,7 @@ function SettingsOrganizationHeader() {
   }
 
   return (
-    <SettingsStaticHeader
+    <SettingsHeaderLabel
       icon={<OrganizationAvatar organization={organization} size={16} />}
       label={organization.name}
     />
@@ -228,7 +228,7 @@ function SettingsOrganizationHeader() {
  * Same height, padding and icon spacing as the selector trigger, so the header
  * content lines up across the account, organization and project scopes.
  */
-function SettingsStaticHeader({
+function SettingsHeaderLabel({
   label,
   icon,
 }: {
