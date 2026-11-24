@@ -32,6 +32,7 @@ class AuthProviderReplica(Model):
 
     default_role = BoundedPositiveIntegerField(default=50)
     default_global_access = models.BooleanField(default=True)
+    sso_session_duration = BoundedPositiveIntegerField(null=True)
 
     # This represents the time at which this model was created, NOT the date_added of the original auth provider
     # we are replicating from.
