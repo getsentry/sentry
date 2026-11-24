@@ -93,24 +93,10 @@ function SettingsNavigationHeader() {
     case 'org':
       return <SettingsOrganizationHeader />;
     case 'account':
-      return <SettingsAccountHeader />;
+      return <SettingsHeaderLabel bold label={getSettingsScopeTitle(scope)} />;
     default:
       return unreachable(scope);
   }
-}
-
-/**
- * Same height and padding as the selector trigger of the other scopes, so the
- * title lines up with their avatars.
- */
-function SettingsAccountHeader() {
-  return (
-    <Flex align="center" height="32px" minWidth="0" paddingLeft="lg" paddingRight="lg">
-      <Text ellipsis bold>
-        {getSettingsScopeTitle('account')}
-      </Text>
-    </Flex>
-  );
 }
 
 function SettingsProjectSelector() {
@@ -230,8 +216,28 @@ function SettingsOrganizationHeader() {
     return <SettingsOrganizationSelector />;
   }
 
-  // Same height, padding and icon spacing as the selector trigger, so the
-  // header doesn't shift between users with one organization and with several.
+  return (
+    <SettingsHeaderLabel
+      icon={<OrganizationAvatar organization={organization} size={16} />}
+      label={organization.name}
+    />
+  );
+}
+
+/**
+ * Same height, padding and icon spacing as the selector trigger (a `sm` button),
+ * so the header content lines up across the account, organization and project
+ * scopes. Keep in sync if the `sm` button padding changes.
+ */
+function SettingsHeaderLabel({
+  label,
+  icon,
+  bold,
+}: {
+  label: React.ReactNode;
+  bold?: boolean;
+  icon?: React.ReactNode;
+}) {
   return (
     <Flex
       align="center"
@@ -241,10 +247,10 @@ function SettingsOrganizationHeader() {
       paddingLeft="lg"
       paddingRight="lg"
     >
-      <Flex flexShrink={0}>
-        <OrganizationAvatar organization={organization} size={16} />
-      </Flex>
-      <Text ellipsis>{organization.name}</Text>
+      {icon ? <Flex flexShrink={0}>{icon}</Flex> : null}
+      <Text ellipsis bold={bold}>
+        {label}
+      </Text>
     </Flex>
   );
 }
