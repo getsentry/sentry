@@ -75,7 +75,7 @@ export function useDiscoverQuery({
   additionalQueryKey = [],
   options,
   ...props
-}: DiscoverQueryPropsWithThresholds & {
+}: DiscoverQueryProps & {
   additionalQueryKey?: readonly unknown[];
   options?: DiscoverQueryOptions;
 }) {

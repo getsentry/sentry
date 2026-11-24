@@ -7,8 +7,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/utils/useStarredSegment';
 
-import {STARRED_SEGMENT_TABLE_QUERY_KEY, StarredSegmentCell} from './starredSegmentCell';
+import {StarredSegmentCell} from './starredSegmentCell';
 
 const organization = OrganizationFixture();
 

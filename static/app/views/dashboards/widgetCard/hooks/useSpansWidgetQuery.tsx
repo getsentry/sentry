@@ -42,8 +42,8 @@ import {
   getValidAggregatesForRequest,
   hasNoValidAggregatesForRequest,
 } from 'sentry/views/explore/utils/conditionalAggregate';
-import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
+import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/utils/useStarredSegment';
 import {SpanFields} from 'sentry/views/insights/types';
 
 import {
