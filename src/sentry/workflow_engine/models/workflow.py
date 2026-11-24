@@ -15,13 +15,15 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.owner_base import OwnerModel
+from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
 from sentry.workflow_engine.models.data_condition_group import (
     DataConditionGroup,
     DataConditionGroupSnapshot,
 )
 from sentry.workflow_engine.processors.evaluations import DataConditionGroupEvaluation
-from sentry.workflow_engine.types import ConditionError, WorkflowEventData
+from sentry.workflow_engine.registry import workflow_settings_registry
+from sentry.workflow_engine.types import ConditionError, WorkflowEventData, WorkflowSettings
 
 from .json_config import JSONConfigBase
 
@@ -102,41 +104,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     DEFAULT_FREQUENCY = 30
 
-    config_schema: ClassVar[dict[str, Any]] = {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "title": "Workflow Schema",
-        "type": "object",
-        "properties": {
-            "frequency": {
-                "description": "How often the workflow should fire for a Group (minutes)",
-                "type": "integer",
-                "minimum": 0,
-            },
-        },
-        "additionalProperties": False,
-    }
-
-    seer_investigation_config_schema: ClassVar[dict[str, Any]] = {
-        **config_schema,
-        "title": "Seer Investigation Workflow Schema",
-        "properties": {
-            **config_schema["properties"],
-            "crons": {
-                "description": "Cron expressions for when the workflow runs, evaluated in timezone",
-                "type": "array",
-                "items": {"type": "string", "minLength": 1},
-                "minItems": 1,
-                # Cadence holds one cron per trigger for now.
-                "maxItems": 1,
-            },
-            "timezone": {
-                "description": "IANA timezone name the crons are evaluated in; UTC if unset",
-                "type": "string",
-                "minLength": 1,
-            },
-        },
-        "dependentRequired": {"timezone": ["crons"]},
-    }
+    config_schema: ClassVar[dict[str, Any]] = WorkflowSettings.config_schema
 
     __repr__ = sane_repr("organization_id")
 
@@ -153,10 +121,12 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             models.Index(fields=["type", "organization"], name="workflow_type_org_idx"),
         ]
 
-    def get_config_schema(self) -> dict[str, Any]:
-        if self.type == Workflow.Type.SEER_INVESTIGATION:
-            return self.seer_investigation_config_schema
-        return self.config_schema
+    @property
+    def settings(self) -> type[WorkflowSettings]:
+        try:
+            return workflow_settings_registry.get(self.type)
+        except NoRegistrationExistsError:
+            return WorkflowSettings
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name, "type": self.type}
