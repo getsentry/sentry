@@ -16,12 +16,13 @@ from sentry.investigations.services.breached_metrics import resolve_investigatio
 from sentry.investigations.services.orchestration import (
     agentic_breached_metric_source_key,
     create_agentic_breached_metric_investigation,
+    create_agentic_detector_investigation,
     create_agentic_manual_investigation,
     rebuild_orchestration_source,
 )
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
-from sentry.notebooks.models import Notebook, NotebookStatus
+from sentry.notebooks.models import Notebook, NotebookSourceType, NotebookStatus
 from sentry.notebooks.services.notebooks import NotebookValidationError
 from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.snuba.dataset import Dataset
@@ -353,3 +354,53 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
             InvestigationOrchestrationRun.objects.count(),
         ) == before
         dispatch.assert_not_called()
+
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
+    def test_detector_investigation_is_one_per_active_fingerprint(
+        self, dispatch: mock.Mock
+    ) -> None:
+        arguments: dict[str, Any] = dict(
+            organization=self.organization,
+            creator=self.creator,
+            title="Anomaly",
+            source={"type": "manual", "prompt": "Investigate the anomaly"},
+            detector_id=self.detector.id,
+            project_ids=[self.project.id],
+        )
+        with self.capture_on_commit_callbacks(execute=True):
+            first, created = create_agentic_detector_investigation(
+                fingerprint=["group-a"], **arguments
+            )
+        assert created
+        assert first.source_type == NotebookSourceType.DETECTOR
+        assert rebuild_orchestration_source(first) == first.orchestration_run.source
+
+        # A retry or a priority change carries the same fingerprint.
+        with self.capture_on_commit_callbacks(execute=True):
+            reused, created = create_agentic_detector_investigation(
+                fingerprint=["group-a"], **arguments
+            )
+        assert not created
+        assert reused.id == first.id
+
+        with self.capture_on_commit_callbacks(execute=True):
+            other, created = create_agentic_detector_investigation(
+                fingerprint=["group-b"], **arguments
+            )
+        assert created
+        assert other.id != first.id
+
+        first.update(status=NotebookStatus.ARCHIVED)
+        with self.capture_on_commit_callbacks(execute=True):
+            revision, created = create_agentic_detector_investigation(
+                fingerprint=["group-a"], **arguments
+            )
+        assert created
+        assert revision.source_key == first.source_key
+        assert revision.source_revision == 2
+
+        assert dispatch.call_args_list == [
+            mock.call(first.orchestration_run.id),
+            mock.call(other.orchestration_run.id),
+            mock.call(revision.orchestration_run.id),
+        ]

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from collections.abc import Set as AbstractSet
 from copy import deepcopy
 from dataclasses import dataclass
@@ -49,6 +49,7 @@ from sentry.notebooks.services.notebooks import (
     update_notebook_row,
 )
 from sentry.users.services.user.service import user_service
+from sentry.utils.hashlib import hash_values
 from sentry.viewer_context import ActorId, ActorType
 
 logger = logging.getLogger(__name__)
@@ -72,8 +73,10 @@ __all__ = [
     "AcceptedOrchestrationCommand",
     "accept_orchestration_command",
     "agentic_breached_metric_source_key",
+    "agentic_detector_source_key",
     "archive_investigation_with_orchestration",
     "create_agentic_breached_metric_investigation",
+    "create_agentic_detector_investigation",
     "create_agentic_manual_investigation",
     "get_orchestration_projection",
     "start_investigation",
@@ -561,6 +564,49 @@ def create_agentic_manual_investigation(
     )
 
 
+def agentic_detector_source_key(detector_id: int, fingerprint: Sequence[str]) -> str:
+    # Hashed: stateful fingerprints embed the group key, which has no length bound.
+    return f"{NotebookSourceType.DETECTOR}:{detector_id}:{hash_values(fingerprint)}"
+
+
+def create_agentic_detector_investigation(
+    *,
+    organization: Organization,
+    creator: ActorId,
+    title: str | None,
+    source: dict[str, Any],
+    detector_id: int,
+    fingerprint: Sequence[str],
+    project_ids: list[int],
+) -> tuple[Notebook, bool]:
+    """The active investigation for the detector's occurrence fingerprint, or a new one.
+
+    One fingerprint is one issue group, so retries and priority changes within it reuse the
+    active investigation. The bool is True when it was created.
+    """
+    _validate_creation_actor(organization=organization, creator=creator, project_ids=project_ids)
+    source_key = agentic_detector_source_key(detector_id, fingerprint)
+
+    def create(revision: int) -> Notebook:
+        investigation, _ = _create_agentic_investigation(
+            organization=organization,
+            creator=creator,
+            title=title,
+            source=source,
+            orchestration_source=_manual_orchestration_source(source),
+            project_ids=project_ids,
+            filters={},
+            source_type=NotebookSourceType.DETECTOR,
+            source_key=source_key,
+            source_revision=revision,
+        )
+        return investigation
+
+    return get_or_create_source_notebook(
+        organization=organization, source_key=source_key, create=create
+    )
+
+
 def _breached_metric_orchestration_source(source: dict[str, Any]) -> dict[str, Any]:
     """Build internal orchestration context from Sentry's canonical metric snapshot."""
 
@@ -612,7 +658,7 @@ def rebuild_orchestration_source(investigation: Notebook) -> dict[str, Any] | No
     None if Sentry can no longer read the monitor.
     """
 
-    if investigation.source_type == NotebookSourceType.MANUAL:
+    if investigation.source_type in (NotebookSourceType.MANUAL, NotebookSourceType.DETECTOR):
         return _manual_orchestration_source(investigation.source)
     source_ref = (
         int(investigation.source["ref"]["groupId"]),

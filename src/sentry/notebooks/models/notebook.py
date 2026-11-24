@@ -21,6 +21,8 @@ class NotebookStatus(models.TextChoices):
 class NotebookSourceType(models.TextChoices):
     MANUAL = "manual", "Manual"
     METRIC_OPEN_PERIOD = "metric_open_period", "Metric open period"
+    # A detector occurrence. The source carries a manual prompt; the key dedupes per fingerprint.
+    DETECTOR = "detector", "Detector"
 
 
 @cell_silo_model

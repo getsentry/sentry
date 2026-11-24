@@ -29,15 +29,21 @@ def record_investigation(outcome: str, detector_type: str, *, reason: str | None
     silo_mode=SiloMode.CELL,
 )
 def create_detector_investigation(
-    detector_id: int, service_account_id: int, title: str, source: dict[str, Any]
+    detector_id: int,
+    service_account_id: int,
+    title: str,
+    source: dict[str, Any],
+    fingerprint: list[str],
 ) -> None:
     """Start the Seer investigation for a detector trigger.
 
     The detector has already committed its state, so a transient failure must retry here
-    rather than be lost. A rejected service account can't succeed on retry and is skipped.
+    rather than be lost. Creation is keyed on the occurrence fingerprint, so a retry or a
+    priority change within the same issue group reuses the active investigation.
+    A rejected service account can't succeed on retry and is skipped.
     """
     # Imported here: investigations depend on workflow engine models.
-    from sentry.investigations.services import create_agentic_manual_investigation
+    from sentry.investigations.services import create_agentic_detector_investigation
     from sentry.notebooks.services.notebooks import NotebookValidationError
 
     detector = Detector.objects.select_related("project__organization").get_or_none(id=detector_id)
@@ -51,13 +57,14 @@ def create_detector_investigation(
 
     project = detector.project
     try:
-        create_agentic_manual_investigation(
+        _, created = create_agentic_detector_investigation(
             organization=project.organization,
             creator=ActorId(ActorType.SERVICE_ACCOUNT, service_account_id),
             title=title,
             source=source,
+            detector_id=detector.id,
+            fingerprint=fingerprint,
             project_ids=[project.id],
-            filters={},
         )
     except (PermissionDenied, NotebookValidationError):
         logger.exception(
@@ -65,5 +72,8 @@ def create_detector_investigation(
             extra={"detector_id": detector.id, "service_account_id": service_account_id},
         )
         record_investigation("skipped", detector.type, reason="creator_rejected")
+        return
+    if not created:
+        record_investigation("skipped", detector.type, reason="already_investigating")
         return
     record_investigation("started", detector.type)

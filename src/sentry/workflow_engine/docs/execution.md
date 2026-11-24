@@ -167,10 +167,12 @@ Supported outcome implementations register their `DetectorOutcomeHandler` class 
 `@detector_outcome_registry.add(DetectorOutcome.<KEY>)`. The closed, typed set of keys
 lives in `supported_outcomes.py`; the registry maps each key to its handler implementation.
 
-`DetectorOutcome.SEER_INVESTIGATION` starts a Seer investigation for each occurrence
-instead of creating an issue, and ignores status changes. The detector's config names the
-service account that creates it (`service_account_id`). Pair it with a detector that persists
-`DetectorState` so each occurrence is a transition; the anomaly detector does this.
+`DetectorOutcome.SEER_INVESTIGATION` starts a Seer investigation per occurrence fingerprint
+instead of creating an issue, and ignores status changes. Later occurrences with the same
+fingerprint, such as priority changes or task retries, reuse the active investigation; a new
+one starts only after it's archived. The detector's config names the service account that
+creates it (`service_account_id`). Pair it with a detector that persists `DetectorState` so
+each occurrence is a transition; the anomaly detector does this.
 
 Issue Platform ingestion creates or updates a group. The detector ID in occurrence
 evidence allows ingestion to create a
