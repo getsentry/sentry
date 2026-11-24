@@ -648,7 +648,8 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         mock_broadcast: MagicMock,
     ) -> None:
         """An automatic PR refused for credits is announced like a PR Seer couldn't open
-        for credits. A refusal without a known reason sends none."""
+        for credits. A refusal without a known reason sends none, even when Seer recorded a
+        reason on the run earlier."""
         seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
         state = run_state(
             blocks=[
@@ -661,6 +662,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
                 "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
             },
         )
+        state.credit_denial_reason = "daily_cap_exceeded"
 
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
 

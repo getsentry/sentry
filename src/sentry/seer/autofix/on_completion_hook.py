@@ -533,13 +533,10 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         seer_run: SeerRun | None,
         state: SeerRunState,
         failure_reason: str | None,
-        denial_reason: SeerCreditDenialReason | None = None,
     ) -> None:
-        """denial_reason is for a step Sentry refused for credits, which the run state doesn't
-        record. Without it, the reason is the one Seer recorded on the run."""
         entrypoint_payload: dict[str, object] = {}
         if failure_reason == OUT_OF_CREDITS:
-            entrypoint_payload["denial_reason"] = denial_reason or get_run_denial_reason(state)
+            entrypoint_payload["denial_reason"] = get_run_denial_reason(state)
         cls._announce_run_end(
             organization,
             SeerActionType.ERRORED,
@@ -558,22 +555,24 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         organization: Organization,
         run_id: int,
         group: Group,
-        state: SeerRunState,
         denial_reason: SeerCreditDenialReason | None,
     ) -> None:
         """Announces a step that Sentry's credit check refused to start like a run that ran out
-        of credits in Seer, so the run doesn't just stop with no word to anyone following it."""
+        of credits in Seer, so the run doesn't just stop with no word to anyone following it.
+        The reason is the refusal's own: the run state only records Seer's refusals."""
         seer_run = SeerRun.objects.get_or_none(
             organization_id=organization.id, seer_run_state_id=run_id
         )
-        cls._announce_failure(
+        cls._announce_run_end(
             organization,
-            run_id,
-            group,
-            seer_run,
-            state,
-            OUT_OF_CREDITS,
-            denial_reason=denial_reason,
+            SeerActionType.ERRORED,
+            {
+                "run_id": run_id,
+                "sentry_run_id": str(seer_run.uuid) if seer_run is not None else None,
+                "group_id": group.id,
+                "failure_reason": OUT_OF_CREDITS,
+            },
+            entrypoint_payload={"denial_reason": denial_reason},
         )
 
     @classmethod
@@ -983,7 +982,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     "denial_reason": e.denial_reason,
                 },
             )
-            cls._announce_credit_refusal(organization, run_id, group, state, e.denial_reason)
+            cls._announce_credit_refusal(organization, run_id, group, e.denial_reason)
 
     @classmethod
     def _push_changes(
@@ -1042,7 +1041,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     "denial_reason": e.denial_reason,
                 },
             )
-            cls._announce_credit_refusal(group.organization, run_id, group, state, e.denial_reason)
+            cls._announce_credit_refusal(group.organization, run_id, group, e.denial_reason)
             return False
         except Exception:
             logger.exception(
