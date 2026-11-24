@@ -15,6 +15,9 @@ class _HTMLTreeBuilder(HTMLParser):
         self._open: list[tuple[str, list[Any]]] = [("", self.root)]
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        # Unlike with `innerHTML`, scripts built with DOM APIs would run.
+        if tag == "script":
+            raise ValueError("Script elements are not supported")
         children: list[Any] = []
         self._open[-1][1].append([tag, {name: value or "" for name, value in attrs}, children])
         if tag not in VOID_ELEMENTS:

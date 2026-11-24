@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.feedback.lib.html_tree import html_to_tree
 
 
@@ -38,3 +40,17 @@ def test_textarea_drops_first_newline() -> None:
 
 def test_comments_are_ignored() -> None:
     assert html_to_tree("<p>a<!-- b --></p>") == [["p", {}, ["a"]]]
+
+
+@pytest.mark.parametrize(
+    "html",
+    [
+        "<script>alert(1)</script>",
+        "<SCRIPT src=x></SCRIPT>",
+        "<script/>",
+        "<div><svg><script>alert(1)</script></svg></div>",
+    ],
+)
+def test_script_elements_are_rejected(html: str) -> None:
+    with pytest.raises(ValueError, match="Script elements are not supported"):
+        html_to_tree(html)
