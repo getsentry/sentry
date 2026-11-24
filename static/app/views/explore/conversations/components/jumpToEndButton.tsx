@@ -10,26 +10,15 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-// The button hides when the end of the content is within this many pixels.
 const AT_END_MARGIN_PX = 64;
 
 interface JumpToEndButtonProps {
-  /** False when no page is left, a page failed to load, or the page limit is reached. */
   canLoadMore: boolean;
   loadRemainingPages: (signal: AbortSignal) => Promise<number>;
   loadedPageCount: number;
   scrollContainerRef: RefObject<HTMLElement | null>;
 }
 
-/**
- * Loads the conversation's remaining pages and scrolls to the end.
- *
- * The API returns spans oldest-first with no total, and the transcript and timeline
- * need every earlier span, so the view can't open the last page alone.
- *
- * Render this as the last child of the scroll container. Key it by conversation and
- * tab, because remounting cancels a running jump.
- */
 export function JumpToEndButton({
   canLoadMore,
   loadedPageCount,
@@ -61,14 +50,12 @@ export function JumpToEndButton({
     if (scrollAtPageCount === null || loadedPageCount < scrollAtPageCount) {
       return;
     }
-    // If a page failed to load, this scroll shows its Retry button.
     const container = scrollContainerRef.current;
     container?.scrollTo({top: container.scrollHeight});
     // oxlint-disable-next-line react/set-state-in-effect
     setScrollAtPageCount(null);
   }, [loadedPageCount, scrollAtPageCount, scrollContainerRef]);
 
-  // Cancel the jump when the user scrolls, so the view keeps their position.
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!isJumping || !container) {

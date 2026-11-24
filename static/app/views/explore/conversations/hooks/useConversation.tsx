@@ -161,10 +161,6 @@ interface UseConversationResult {
   isLoading: boolean;
   isNextPageError: boolean;
   loadNextPage: () => void;
-  /**
-   * Fetches the remaining pages up to `MAX_PAGES` and adds them in one cache update.
-   * Resolves with the number of loaded pages.
-   */
   loadRemainingPages: (signal: AbortSignal) => Promise<number>;
   loadedPageCount: number;
   nodeTraceMap: Map<string, string>;
@@ -417,11 +413,7 @@ export function getConversationQueryOptions(
   );
 }
 
-/**
- * Each cache update re-renders the whole conversation. To render once, this function
- * fetches the remaining pages under a separate query key, then writes them to the
- * conversation's key in one update.
- */
+// Fetches under a separate key because each cache update re-renders every span.
 async function fetchRemainingPages(
   queryClient: QueryClient,
   queryOptions: ReturnType<typeof getConversationQueryOptions>,
