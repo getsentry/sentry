@@ -88,6 +88,7 @@ class UsecaseId(Enum):
 
     ATTACHMENTS = "attachments"
     DEBUG_FILES = "debug_files"
+    ARTIFACT_BUNDLES = "artifact_bundles"
     PROFILE_ATTACHMENTS = "profile_attachments"
     # Deprecated: retained for migration compatibility only.
     # Use PREPROD_SIZE or PREPROD_SNAPSHOTS for new code.
@@ -105,7 +106,6 @@ class UsecaseId(Enum):
             case UsecaseId.DEBUG_FILES:
                 return ObjectstoreClientUsecase(
                     self.value,
-                    compression="zstd",
                     expiration_policy=TimeToIdle(
                         timedelta(
                             days=90 + options.get("system.debug-files-renewal-age-threshold-days")
@@ -116,6 +116,15 @@ class UsecaseId(Enum):
                 return ObjectstoreClientUsecase(
                     self.value,
                     expiration_policy=TimeToLive(timedelta(days=default_attachment_retention())),
+                )
+            case UsecaseId.ARTIFACT_BUNDLES:
+                from sentry.models.artifactbundle import artifact_bundle_retention
+
+                # Bundles are ZIP archives, which are already compressed.
+                return ObjectstoreClientUsecase(
+                    self.value,
+                    compression="none",
+                    expiration_policy=TimeToIdle(artifact_bundle_retention()),
                 )
             case UsecaseId.PREPROD | UsecaseId.PREPROD_SNAPSHOTS | UsecaseId.PREPROD_SIZE:
                 return ObjectstoreClientUsecase(
@@ -166,33 +175,38 @@ def _get_client() -> Client:
 _USECASES: dict[UsecaseId, ObjectstoreClientUsecase] = {}
 
 
-def get_session(usecase: UsecaseId, project: Project | int, *, org: int | None = None) -> Session:
-    """Return an Objectstore session scoped to a project.
+def get_session(
+    usecase: UsecaseId, project: Project | int | None, org: int | None = None
+) -> Session:
+    """Return an Objectstore session scoped to an organization and optionally a project.
 
-    There are two ways to construct a session:
-    - Project model: ``get_session(UsecaseId.ATTACHMENTS, project)``
-    - Project and org IDs: ``get_session(UsecaseId.ATTACHMENTS, project_id, org=org_id)``
+    Pass a project model, a project ID with its organization ID, or an organization ID alone::
 
-    When passing a project model, ``org`` is optional and must match the
-    project's organization. It is required when passing a project ID.
+        get_session(UsecaseId.ATTACHMENTS, project)
+        get_session(UsecaseId.ATTACHMENTS, project_id, org_id)
+        get_session(UsecaseId.ARTIFACT_BUNDLES, project=None, org=org_id)
+
+    An explicit organization ID must match the project model's organization.
     """
-    if isinstance(project, int):
+    if project is None:
+        if org is None:
+            raise ValueError("project or org is required")
+        scope = {"org": org}
+    elif isinstance(project, int):
         if org is None:
             raise TypeError("org is required when project is an ID")
-        project_id = project
-        org_id = org
+        scope = {"org": org, "project": project}
     else:
-        project_id = project.id
-        org_id = project.organization_id
-        if org is not None and org != org_id:
+        if org is not None and org != project.organization_id:
             raise ValueError("project does not belong to org")
+        scope = {"org": project.organization_id, "project": project.id}
 
     objectstore_usecase = _USECASES.get(usecase)
     if objectstore_usecase is None:
         objectstore_usecase = usecase.create()
         _USECASES[usecase] = objectstore_usecase
 
-    return _get_client().session(objectstore_usecase, org=org_id, project=project_id)
+    return _get_client().session(objectstore_usecase, **scope)
 
 
 _IS_SYMBOLICATOR_CONTAINER: bool | None = None

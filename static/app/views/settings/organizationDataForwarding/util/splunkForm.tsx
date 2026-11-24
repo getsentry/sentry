@@ -30,12 +30,7 @@ const splunkSchema = baseDataForwarderSchema.extend({
   source: z.string().min(1, t('Source is required')),
 });
 
-const splunkDefaults = {
-  instance_url: '',
-  token: '',
-  index: '',
-  source: '',
-};
+const splunkDefaults = {instance_url: '', token: '', index: '', source: ''};
 
 function buildSplunkConfig(
   fields: Omit<
@@ -181,10 +176,7 @@ export function SplunkSetupForm({
       />
       <ProjectConfigFields
         form={form}
-        fields={{
-          enroll_new_projects: 'enroll_new_projects',
-          project_ids: 'project_ids',
-        }}
+        fields={{enroll_new_projects: 'enroll_new_projects', project_ids: 'project_ids'}}
         disabled={disabled}
         projectOptions={projectOptions}
       />
@@ -248,10 +240,7 @@ export function SplunkEditForm({
       />
       <ProjectConfigFields
         form={form}
-        fields={{
-          enroll_new_projects: 'enroll_new_projects',
-          project_ids: 'project_ids',
-        }}
+        fields={{enroll_new_projects: 'enroll_new_projects', project_ids: 'project_ids'}}
         disabled={disabled}
         projectOptions={projectOptions}
       />

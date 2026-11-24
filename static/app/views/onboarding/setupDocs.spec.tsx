@@ -68,10 +68,7 @@ describe('Onboarding Setup Docs', () => {
 
   it('does not render Product Selection', async () => {
     const organization = OrganizationFixture();
-    const project = ProjectFixture({
-      slug: 'python',
-      platform: 'python',
-    });
+    const project = ProjectFixture({slug: 'python', platform: 'python'});
 
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
@@ -97,10 +94,7 @@ describe('Onboarding Setup Docs', () => {
 
   it('renders SDK version from the sentry release registry', async () => {
     const organization = OrganizationFixture();
-    const project = ProjectFixture({
-      slug: 'java',
-      platform: 'java',
-    });
+    const project = ProjectFixture({slug: 'java', platform: 'java'});
 
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
@@ -120,7 +114,7 @@ describe('Onboarding Setup Docs', () => {
 
   describe('renders Product Selection', () => {
     it('all products checked', async () => {
-      const organization = OrganizationFixture();
+      const organization = OrganizationFixture({features: ['session-replay']});
       const project = ProjectFixture({
         slug: 'javascript-react',
         platform: 'javascript-react',
@@ -129,16 +123,14 @@ describe('Onboarding Setup Docs', () => {
       ProjectsStore.init();
       ProjectsStore.loadInitialData([project]);
 
-      renderMockRequests({
-        project,
-        orgSlug: organization.slug,
-      });
+      renderMockRequests({project, orgSlug: organization.slug});
 
       render(
         <OnboardingContextProvider>
           <SetupDocs onComplete={() => {}} recentCreatedProject={project} />
         </OnboardingContextProvider>,
         {
+          organization,
           initialRouterConfig: {
             location: {
               pathname: `/onboarding/${organization.slug}/setup-docs/`,
@@ -174,10 +166,7 @@ describe('Onboarding Setup Docs', () => {
       ProjectsStore.init();
       ProjectsStore.loadInitialData([project]);
 
-      renderMockRequests({
-        project,
-        orgSlug: organization.slug,
-      });
+      renderMockRequests({project, orgSlug: organization.slug});
 
       render(
         <OnboardingContextProvider>
@@ -201,7 +190,7 @@ describe('Onboarding Setup Docs', () => {
     });
 
     it('only session replay checked', async () => {
-      const organization = OrganizationFixture();
+      const organization = OrganizationFixture({features: ['session-replay']});
       const project = ProjectFixture({
         slug: 'javascript-react',
         platform: 'javascript-react',
@@ -210,16 +199,14 @@ describe('Onboarding Setup Docs', () => {
       ProjectsStore.init();
       ProjectsStore.loadInitialData([project]);
 
-      renderMockRequests({
-        project,
-        orgSlug: organization.slug,
-      });
+      renderMockRequests({project, orgSlug: organization.slug});
 
       render(
         <OnboardingContextProvider>
           <SetupDocs onComplete={() => {}} recentCreatedProject={project} />
         </OnboardingContextProvider>,
         {
+          organization,
           initialRouterConfig: {
             location: {
               pathname: `/onboarding/${organization.slug}/setup-docs/`,
@@ -236,6 +223,54 @@ describe('Onboarding Setup Docs', () => {
       expect(codeBlocks[0]).not.toHaveTextContent(/Tracing/);
     });
 
+    it('leaves a disabled product from the URL out of the snippet', async () => {
+      const organization = OrganizationFixture({features: []});
+      const project = ProjectFixture({
+        slug: 'javascript-react',
+        platform: 'javascript-react',
+      });
+
+      ProjectsStore.init();
+      ProjectsStore.loadInitialData([project]);
+
+      renderMockRequests({project, orgSlug: organization.slug});
+
+      const {router} = render(
+        <OnboardingContextProvider>
+          <SetupDocs onComplete={() => {}} recentCreatedProject={project} />
+        </OnboardingContextProvider>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: `/onboarding/${organization.slug}/setup-docs/`,
+              query: {
+                product: [
+                  ProductSolution.METRICS,
+                  ProductSolution.PERFORMANCE_MONITORING,
+                ],
+              },
+            },
+            route: '/onboarding/:orgId/setup-docs/',
+          },
+        }
+      );
+
+      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      expect(codeBlocks[0]).toHaveTextContent(/Tracing/);
+      for (const codeBlock of codeBlocks) {
+        expect(codeBlock).not.toHaveTextContent('metrics.count(');
+      }
+      expect(
+        screen.getByRole('presentation', {name: 'Application Metrics'})
+      ).not.toBeChecked();
+      await waitFor(() =>
+        expect(router.location.query).toEqual({
+          product: ProductSolution.PERFORMANCE_MONITORING,
+        })
+      );
+    });
+
     it('only error monitoring checked', async () => {
       const organization = OrganizationFixture();
       const project = ProjectFixture({
@@ -246,10 +281,7 @@ describe('Onboarding Setup Docs', () => {
       ProjectsStore.init();
       ProjectsStore.loadInitialData([project]);
 
-      renderMockRequests({
-        project,
-        orgSlug: organization.slug,
-      });
+      renderMockRequests({project, orgSlug: organization.slug});
 
       render(
         <OnboardingContextProvider>
@@ -277,13 +309,8 @@ describe('Onboarding Setup Docs', () => {
 
   describe('JS Loader Script', () => {
     it('renders Loader Script setup', async () => {
-      const organization = OrganizationFixture({
-        features: ['session-replay'],
-      });
-      const project = ProjectFixture({
-        slug: 'javascript',
-        platform: 'javascript',
-      });
+      const organization = OrganizationFixture({features: ['session-replay']});
+      const project = ProjectFixture({slug: 'javascript', platform: 'javascript'});
 
       const updateLoaderMock = MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/keys/${PROJECT_KEY.id}/`,
@@ -294,10 +321,7 @@ describe('Onboarding Setup Docs', () => {
       ProjectsStore.init();
       ProjectsStore.loadInitialData([project]);
 
-      renderMockRequests({
-        project,
-        orgSlug: organization.slug,
-      });
+      renderMockRequests({project, orgSlug: organization.slug});
 
       render(
         <OnboardingContextProvider>
@@ -374,10 +398,7 @@ describe('Onboarding Setup Docs', () => {
   describe('special platforms', () => {
     it('renders platform other', async () => {
       const organization = OrganizationFixture();
-      const project = ProjectFixture({
-        slug: 'other',
-        platform: 'other',
-      });
+      const project = ProjectFixture({slug: 'other', platform: 'other'});
 
       ProjectsStore.init();
       ProjectsStore.loadInitialData([project]);
@@ -397,9 +418,7 @@ describe('Onboarding Setup Docs', () => {
   });
 
   it('syncs product toggles into onboarding context for SCM onboarding', async () => {
-    const organization = OrganizationFixture({
-      features: ['session-replay'],
-    });
+    const organization = OrganizationFixture({features: ['session-replay']});
     const project = ProjectFixture({
       slug: 'javascript-react',
       platform: 'javascript-react',

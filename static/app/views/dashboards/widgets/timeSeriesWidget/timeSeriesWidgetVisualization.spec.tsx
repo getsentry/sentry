@@ -1,5 +1,6 @@
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -13,7 +14,11 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
 import {Line} from './plottables/line';
-import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
+import {LOW_CONFIDENCE_OPACITY} from './settings';
+import {
+  LOW_CONFIDENCE_AREAS_NAME,
+  TimeSeriesWidgetVisualization,
+} from './timeSeriesWidgetVisualization';
 
 jest.mock('sentry/components/charts/baseChart', () => {
   const actual = jest.requireActual('sentry/components/charts/baseChart');
@@ -86,10 +91,7 @@ describe('TimeSeriesWidgetVisualization', () => {
 
     expect(annotationBand?.data).toEqual(
       sampleThroughputTimeSeries.values.map(({timestamp}, index) =>
-        expect.objectContaining({
-          start: timestamp,
-          items: index === 2 ? annotations : [],
-        })
+        expect.objectContaining({start: timestamp, items: index === 2 ? annotations : []})
       )
     );
     expect(series?.find(({name}) => name === 'Releases')).toBeUndefined();
@@ -148,5 +150,65 @@ describe('TimeSeriesWidgetVisualization', () => {
     expect(fromAnnotations).toBe(fromDroppedData);
     expect(fromAnnotations).toContain('Dropped Spans');
     expect(fromAnnotations).toContain('Releases');
+  });
+
+  describe('confidence', () => {
+    const lowConfidencePlottables = [
+      new Line(
+        TimeSeriesFixture({
+          values: [
+            {timestamp: 1729796400000, value: 10},
+            {timestamp: 1729798200000, value: 20, confidence: 'low'},
+            {timestamp: 1729800000000, value: 30},
+          ],
+        })
+      ),
+    ];
+
+    function lowConfidenceAreas() {
+      const {series} = jest.mocked(BaseChart).mock.calls.at(-1)![0];
+      return series?.find(({id}) => id === LOW_CONFIDENCE_AREAS_NAME);
+    }
+
+    function plottedLineOpacities() {
+      const {series} = jest.mocked(BaseChart).mock.calls.at(-1)![0];
+      return series?.map(item =>
+        'lineStyle' in item ? item.lineStyle?.opacity : undefined
+      );
+    }
+
+    it('does not mark low-confidence buckets by default', () => {
+      render(<TimeSeriesWidgetVisualization plottables={lowConfidencePlottables} />);
+
+      expect(plottedLineOpacities()).not.toContain(LOW_CONFIDENCE_OPACITY);
+    });
+
+    it('marks low-confidence buckets with showConfidence', () => {
+      render(
+        <TimeSeriesWidgetVisualization
+          plottables={lowConfidencePlottables}
+          showConfidence
+        />
+      );
+
+      expect(plottedLineOpacities()).toContain(LOW_CONFIDENCE_OPACITY);
+    });
+
+    it('does not hatch low-confidence buckets by default', () => {
+      render(<TimeSeriesWidgetVisualization plottables={lowConfidencePlottables} />);
+
+      expect(lowConfidenceAreas()).toBeUndefined();
+    });
+
+    it('hatches low-confidence buckets with showConfidence', () => {
+      render(
+        <TimeSeriesWidgetVisualization
+          plottables={lowConfidencePlottables}
+          showConfidence
+        />
+      );
+
+      expect(lowConfidenceAreas()).toBeDefined();
+    });
   });
 });

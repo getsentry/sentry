@@ -1,6 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {parseAsInteger, useQueryState} from 'nuqs';
 import {useStore} from 'zustand';
 import {useShallow} from 'zustand/react/shallow';
 
@@ -44,11 +45,8 @@ import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeInteger} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useEventWaiter} from 'sentry/utils/useEventWaiter';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreQuotaExceededAlert} from 'sentry/views/explore/components/exploreQuotaExceededAlert';
 import {
@@ -65,10 +63,7 @@ import {
 import {SetupLogsButton} from './setupLogsButton';
 import {StyledPageFilterBar} from './styles';
 
-type OnboardingProps = {
-  organization: Organization;
-  project: Project;
-};
+type OnboardingProps = {organization: Organization; project: Project};
 
 const AI_SETUP_PROMPT =
   'Please instrument Sentry logging. Include some examples following best practices.';
@@ -264,8 +259,10 @@ const STEP_TITLES: Record<StepType, string> = {
 function Onboarding({organization, project}: OnboardingProps) {
   const theme = useTheme();
   const api = useApi();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [guidedStep, setGuidedStep] = useQueryState(
+    'guidedStep',
+    parseAsInteger.withOptions({history: 'push'})
+  );
   const {isSelfHosted, urlPrefix} = useStore(
     ConfigStore,
     useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
@@ -358,7 +355,7 @@ function Onboarding({organization, project}: OnboardingProps) {
         <div>
           <LinkButton
             size="sm"
-            href="https://docs.sentry.io/product/explore/logs/getting-started/"
+            href="https://docs.sentry.io/product/logs/getting-started/"
             external
             onClick={() => {
               trackAnalytics('logs.onboarding_platform_docs_viewed', {
@@ -387,10 +384,7 @@ function Onboarding({organization, project}: OnboardingProps) {
     isPerformanceSelected: false,
     isProfilingSelected: false,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: [ProductSolution.LOGS],
     feedbackOptions: {},
     urlPrefix,
@@ -407,16 +401,8 @@ function Onboarding({organization, project}: OnboardingProps) {
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
       <GuidedSteps
-        initialStep={decodeInteger(location.query.guidedStep)}
-        onStepChange={step => {
-          navigate({
-            pathname: location.pathname,
-            query: {
-              ...location.query,
-              guidedStep: step,
-            },
-          });
-        }}
+        initialStep={guidedStep ?? undefined}
+        onStepChange={step => void setGuidedStep(step)}
       >
         {steps.map((step, index) => {
           const title = step.title ?? STEP_TITLES[step.type];

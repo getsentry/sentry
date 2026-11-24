@@ -20,16 +20,8 @@ describe('DashboardChatPanel', () => {
   it('shows conversation toggle and history', async () => {
     const timestamp = new Date().toISOString();
     const blocks: Block[] = [
-      {
-        id: '1',
-        message: {content: 'Hello', role: 'user'},
-        timestamp,
-      },
-      {
-        id: '2',
-        message: {content: 'Hi there', role: 'assistant'},
-        timestamp,
-      },
+      {id: '1', message: {content: 'Hello', role: 'user'}, timestamp},
+      {id: '2', message: {content: 'Hi there', role: 'assistant'}, timestamp},
     ];
 
     render(<DashboardChatPanel blocks={blocks} onSend={jest.fn()} isUpdating={false} />, {

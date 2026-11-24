@@ -157,11 +157,7 @@ function useTimelineZoom<E extends HTMLElement>({enabled = true, onSelect}: Opti
           animate="animate"
           exit="exit"
           transition={{duration: 0.2}}
-          variants={{
-            initial: {opacity: 0},
-            animate: {opacity: 1},
-            exit: {opacity: 0},
-          }}
+          variants={{initial: {opacity: 0}, animate: {opacity: 1}, exit: {opacity: 0}}}
         />
       )}
     </AnimatePresence>

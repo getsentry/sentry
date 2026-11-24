@@ -81,11 +81,7 @@ function getStreamGroupColumns({
   }
 
   if (withChart) {
-    columns.push({
-      key: 'graph',
-      width: 191,
-      visible: {[COLUMN_BREAKPOINTS.TREND]: true},
-    });
+    columns.push({key: 'graph', width: 191, visible: {[COLUMN_BREAKPOINTS.TREND]: true}});
   }
 
   if (withColumns.includes('event')) {

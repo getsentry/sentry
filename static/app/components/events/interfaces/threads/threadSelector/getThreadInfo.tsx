@@ -52,9 +52,7 @@ export function getThreadInfo(
   thread: Thread,
   exception?: Required<ExceptionType>
 ): ThreadInfo {
-  const threadInfo: ThreadInfo = {
-    state: getMappedThreadState(thread.state),
-  };
+  const threadInfo: ThreadInfo = {state: getMappedThreadState(thread.state)};
 
   let stacktrace = getThreadStacktrace(false, thread);
 

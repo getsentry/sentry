@@ -13,11 +13,7 @@ export const DIFF_COLORS = {
   added: 'hsl(166deg 58% 47% / 32%)',
 } as const;
 
-type Props = {
-  base: string;
-  target: string;
-  className?: string;
-};
+type Props = {base: string; target: string; className?: string};
 
 // this function splits the lines from diffLines into words that are diffed
 function getDisplayData(

@@ -6,9 +6,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {AutoSaveForm} from '@sentry/scraps/form';
 
-const testSchema = z.object({
-  testField: z.string(),
-});
+const testSchema = z.object({testField: z.string()});
 
 const transformedTestSchema = z.object({
   testField: z.string().transform(value => value.toUpperCase()),
@@ -26,9 +24,7 @@ describe('AutoSaveForm', () => {
             mutationOptions={{
               onMutate: variables => {
                 expectTypeOf(variables).toEqualTypeOf<{testField: string}>();
-                return {
-                  context: true,
-                };
+                return {context: true};
               },
               mutationFn: data => Promise.resolve(data.testField),
               onSuccess: data => {
@@ -66,9 +62,7 @@ describe('AutoSaveForm', () => {
             initialValue={serverState}
             mutationOptions={{
               mutationFn: (data: {testField: string}) => {
-                return Promise.resolve({
-                  testField: data.testField.toUpperCase(),
-                });
+                return Promise.resolve({testField: data.testField.toUpperCase()});
               },
               onSuccess: data => {
                 setServerState(data.testField);

@@ -15,13 +15,7 @@ describe('AssigneeSelector', () => {
     });
     const group = GroupFixture({
       assignedTo: {id: assignedUser.id, name: assignedUser.name, type: 'user'},
-      owners: [
-        {
-          type: 'suspectCommit',
-          owner: `user:${assignedUser.id}`,
-          date_added: '',
-        },
-      ],
+      owners: [{type: 'suspectCommit', owner: `user:${assignedUser.id}`, date_added: ''}],
     });
 
     render(
@@ -32,11 +26,7 @@ describe('AssigneeSelector', () => {
         handleAssigneeChange={jest.fn()}
         showLabel
       />,
-      {
-        organization: OrganizationFixture({
-          features: ['issue-priority-assignee-ui'],
-        }),
-      }
+      {organization: OrganizationFixture({features: ['issue-priority-assignee-ui']})}
     );
 
     await userEvent.hover(await screen.findByText(assignedUser.name));
@@ -55,13 +45,7 @@ describe('AssigneeSelector', () => {
     });
     const group = GroupFixture({
       assignedTo: {id: assignedUser.id, name: assignedUser.name, type: 'user'},
-      owners: [
-        {
-          type: 'suspectCommit',
-          owner: `user:${assignedUser.id}`,
-          date_added: '',
-        },
-      ],
+      owners: [{type: 'suspectCommit', owner: `user:${assignedUser.id}`, date_added: ''}],
     });
 
     render(

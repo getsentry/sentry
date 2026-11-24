@@ -12,6 +12,7 @@ import {
 import {toast} from '@sentry/scraps/toast';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {NON_GITHUB_PR_ITERATION_WARNING} from 'sentry/utils/seer/prIteration';
 
 import {SeerProjectTable} from './seerProjectTable';
 
@@ -39,12 +40,32 @@ describe('SeerProjectTable', () => {
   const organization = OrganizationFixture({access: ['org:write']});
   const project = ProjectFixture({id: '2', slug: 'project-slug'});
 
+  // Replaces the project's settings row; the latest mock wins.
+  function mockProjectSettings(overrides: Record<string, unknown>) {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/projects/`,
+      body: [
+        {
+          projectId: '2',
+          projectSlug: 'project-slug',
+          agent: 'seer',
+          integrationId: null,
+          stoppingPoint: 'root_cause',
+          autoCreatePr: null,
+          automationTuning: 'off',
+          scannerAutomation: false,
+          prIteration: true,
+          reposCount: 1,
+          ...overrides,
+        },
+      ],
+    });
+  }
+
   function mockBaseEndpoints() {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
-      body: {
-        integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}],
-      },
+      body: {integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}]},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/projects/`,
@@ -187,7 +208,39 @@ describe('SeerProjectTable', () => {
     expect(errorSpy).not.toHaveBeenCalled();
   });
 
+  it('disables PR iteration with a tooltip for a project with only GitLab repos', async () => {
+    mockProjectSettings({repoProviders: ['integrations:gitlab']});
+
+    render(<SeerProjectTable />, {organization});
+
+    const select = await screen.findByRole('textbox', {
+      name: 'Auto-iterate on PRs for project-slug',
+    });
+    expect(select).toBeDisabled();
+    // Shown as off, whatever is saved.
+    const row = within(getRow('project-slug'));
+    expect(row.getAllByText('Off').length).toBeGreaterThan(0);
+    await userEvent.hover(row.getByRole('img', {name: 'Disabled'}));
+    expect(await screen.findByText(NON_GITHUB_PR_ITERATION_WARNING)).toBeInTheDocument();
+  });
+
+  it('keeps PR iteration available for a project with a github.com repo', async () => {
+    mockProjectSettings({repoProviders: ['integrations:github', 'integrations:gitlab']});
+
+    render(<SeerProjectTable />, {organization});
+
+    const select = await screen.findByRole('textbox', {
+      name: 'Auto-iterate on PRs for project-slug',
+    });
+    expect(select).toBeEnabled();
+    expect(
+      within(getRow('project-slug')).queryByRole('img', {name: 'Disabled'})
+    ).not.toBeInTheDocument();
+  });
+
   it('saves the PR iteration dropdown for a project', async () => {
+    // The default mock row omits `repoProviders`, which also verifies the
+    // dropdown stays enabled until the backend sends that field.
     const settingsPut = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
       method: 'PUT',

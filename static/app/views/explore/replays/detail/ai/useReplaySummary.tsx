@@ -169,13 +169,8 @@ export function useReplaySummary(
         ),
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          data: {
-            num_segments: segmentCount,
-            temperature: ReplaySummaryTemp.MED,
-          },
+          headers: {'Content-Type': 'application/json'},
+          data: {num_segments: segmentCount, temperature: ReplaySummaryTemp.MED},
         }
       );
     },

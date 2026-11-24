@@ -35,9 +35,7 @@ describe('Organization Developer Settings', () => {
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [],
       });
-      render(<OrganizationDeveloperSettings />, {
-        organization: org,
-      });
+      render(<OrganizationDeveloperSettings />, {organization: org});
       await waitFor(() => {
         expect(
           screen.getByText('No internal integrations have been created yet.')
@@ -74,9 +72,7 @@ describe('Organization Developer Settings', () => {
     });
 
     it('internal integrations list is empty', async () => {
-      render(<OrganizationDeveloperSettings />, {
-        organization: org,
-      });
+      render(<OrganizationDeveloperSettings />, {organization: org});
       expect(
         await screen.findByText('No internal integrations have been created yet.')
       ).toBeInTheDocument();
@@ -167,19 +163,13 @@ describe('Organization Developer Settings', () => {
           question:
             'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on Sentry Integrations .',
         },
-        {
-          answer: 'https://example.com',
-          question: 'Link to your documentation page.',
-        },
+        {answer: 'https://example.com', question: 'Link to your documentation page.'},
         {
           answer: 'https://example.com',
           question:
             'Link to a video showing installation, setup and user flow for your submission.',
         },
-        {
-          answer: 'example@example.com',
-          question: 'Email address for user support.',
-        },
+        {answer: 'example@example.com', question: 'Email address for user support.'},
       ];
       await userEvent.click(
         screen.getByRole('textbox', {
@@ -221,14 +211,8 @@ describe('Organization Developer Settings', () => {
             question: 'Select what category best describes your integration.',
             answer: 'deployment',
           },
-          {
-            question: 'Link to your documentation page.',
-            answer: 'https://example.com',
-          },
-          {
-            question: 'Email address for user support.',
-            answer: 'example@example.com',
-          },
+          {question: 'Link to your documentation page.', answer: 'https://example.com'},
+          {question: 'Email address for user support.', answer: 'example@example.com'},
           {
             question:
               'Link to a video showing installation, setup and user flow for your submission.',
@@ -303,17 +287,13 @@ describe('Organization Developer Settings', () => {
     });
 
     it('allows deleting', async () => {
-      render(<OrganizationDeveloperSettings />, {
-        organization: org,
-      });
+      render(<OrganizationDeveloperSettings />, {organization: org});
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
       expect(deleteButton).toBeEnabled();
     });
 
     it('publish button does not exist', () => {
-      render(<OrganizationDeveloperSettings />, {
-        organization: org,
-      });
+      render(<OrganizationDeveloperSettings />, {organization: org});
       expect(screen.queryByText('Publish')).not.toBeInTheDocument();
     });
   });

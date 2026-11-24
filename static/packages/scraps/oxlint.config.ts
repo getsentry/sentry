@@ -12,6 +12,7 @@ const SCRAPS_PROCESS_MESSAGE =
 export default createPackageConfig(import.meta.dirname, {
   rules: {
     eqeqeq: ['error', 'always', {null: 'ignore'}],
+    'import/no-relative-parent-imports': 'off',
   },
   overrides: [
     {
@@ -54,14 +55,6 @@ export default createPackageConfig(import.meta.dirname, {
           },
         ],
       },
-    },
-    {
-      files: ['src/**/*.spec.{ts,tsx}', 'test/**/*.{ts,tsx,mjs}'],
-      rules: {'import/no-relative-parent-imports': 'off'},
-    },
-    {
-      files: ['src/{dateTime,duration,relativeTime,translation}/**/*.{ts,tsx}'],
-      rules: {'import/no-relative-parent-imports': 'off'},
     },
   ],
 });

@@ -47,11 +47,7 @@ export const IssueListCacheStore = {
 
   save(params: IssueListCacheParams, data: IssueListCache): void {
     store.setState({
-      entry: {
-        params,
-        cache: data,
-        expiration: Date.now() + CACHE_EXPIRATION,
-      },
+      entry: {params, cache: data, expiration: Date.now() + CACHE_EXPIRATION},
     });
   },
 

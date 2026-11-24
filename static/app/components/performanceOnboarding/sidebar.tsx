@@ -310,10 +310,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     isPerformanceSelected: true,
     isProfilingSelected: false,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
     feedbackOptions: {},
     urlPrefix,

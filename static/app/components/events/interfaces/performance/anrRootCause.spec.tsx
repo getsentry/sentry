@@ -10,12 +10,7 @@ import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceSta
 import {AnrRootCause} from './anrRootCause';
 
 jest.mock('sentry/views/performance/traceDetails/traceApi/useTrace', () => {
-  return {
-    useTrace: jest.fn(() => ({
-      data: [],
-      status: 'success',
-    })),
-  };
+  return {useTrace: jest.fn(() => ({data: [], status: 'success'}))};
 });
 
 const wrapper = ({children}: {children: React.ReactNode}) => (
@@ -181,11 +176,7 @@ describe('anrRootCause', () => {
       url: '/organizations/org-slug/sentry-app-components/',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/customers/org-slug/',
-      method: 'GET',
-      body: {},
-    });
+    MockApiClient.addMockResponse({url: '/customers/org-slug/', method: 'GET', body: {}});
   });
   it('displays stacktrace of the offending thread', () => {
     const event = makeEventWithThreads([

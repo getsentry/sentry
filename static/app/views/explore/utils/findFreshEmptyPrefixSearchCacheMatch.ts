@@ -52,13 +52,11 @@ export function findFreshEmptyPrefixSearchCacheMatch({
   return undefined;
 }
 
-function getPrefixSearchCacheKey(queryKey: unknown): PrefixSearchCacheKey | undefined {
-  if (!Array.isArray(queryKey) || queryKey.length < 2 || queryKey.length > 3) {
-    return undefined;
-  }
-
+function getPrefixSearchCacheKey(
+  queryKey: readonly unknown[]
+): PrefixSearchCacheKey | undefined {
   const parsed = safeParseQueryKey(queryKey);
-  if (!parsed || parsed.isInfinite) {
+  if (!parsed || parsed.infinite) {
     return undefined;
   }
 

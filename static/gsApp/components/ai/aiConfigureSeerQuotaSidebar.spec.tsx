@@ -87,9 +87,7 @@ describe('AiConfigureSeerQuotaSidebar', () => {
   });
 
   it('renders upsell card with enabled button when user has billing permissions', () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'] as any,
-    });
+    const organization = OrganizationFixture({access: ['org:billing'] as any});
     const subscription = SubscriptionFixture({organization, canSelfServe: true});
     act(() => SubscriptionStore.set(organization.slug, subscription));
 
@@ -113,9 +111,7 @@ describe('AiConfigureSeerQuotaSidebar', () => {
   });
 
   it('renders upsell card with disabled button when user lacks billing permissions', () => {
-    const organization = OrganizationFixture({
-      access: [],
-    });
+    const organization = OrganizationFixture({access: []});
     const subscription = SubscriptionFixture({organization, canSelfServe: false});
     act(() => SubscriptionStore.set(organization.slug, subscription));
 

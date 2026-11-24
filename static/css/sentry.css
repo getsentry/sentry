@@ -18,7 +18,8 @@
 /* App components */
 @import url('./shared-components.css');
 @import url('./layout.css');
-@import url('./fonts.css');
+@import url('@sentry/scraps/fonts.css');
+@import url('./icon-font.css');
 @import url('./misc.css');
 
 /* Page specific */

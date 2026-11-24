@@ -48,12 +48,7 @@ describe('useReleasesSeriesQuery', () => {
     });
 
     renderHookWithProviders(() =>
-      useReleasesSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useReleasesSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -94,9 +89,7 @@ describe('useReleasesSeriesQuery', () => {
         widget,
         organization,
         pageFilters,
-        dashboardFilters: {
-          release: ['2.0.0'],
-        },
+        dashboardFilters: {release: ['2.0.0']},
         enabled: true,
       })
     );
@@ -134,12 +127,7 @@ describe('useReleasesSeriesQuery', () => {
     });
 
     renderHookWithProviders(() =>
-      useReleasesSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useReleasesSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -176,22 +164,14 @@ describe('useReleasesSeriesQuery', () => {
     });
 
     renderHookWithProviders(() =>
-      useReleasesSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useReleasesSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/metrics/data/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            includeSeries: 1,
-            includeTotals: 1,
-          }),
+          query: expect.objectContaining({includeSeries: 1, includeTotals: 1}),
         })
       );
     });
@@ -229,12 +209,7 @@ describe('useReleasesTableQuery', () => {
     });
 
     renderHookWithProviders(() =>
-      useReleasesTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useReleasesTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -286,10 +261,7 @@ describe('useReleasesTableQuery', () => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/metrics/data/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            per_page: 50,
-            cursor: 'test-cursor',
-          }),
+          query: expect.objectContaining({per_page: 50, cursor: 'test-cursor'}),
         })
       );
     });
@@ -320,9 +292,7 @@ describe('useReleasesTableQuery', () => {
         widget,
         organization,
         pageFilters,
-        dashboardFilters: {
-          release: ['1.0.0'],
-        },
+        dashboardFilters: {release: ['1.0.0']},
         enabled: true,
       })
     );
@@ -360,12 +330,7 @@ describe('useReleasesTableQuery', () => {
     });
 
     renderHookWithProviders(() =>
-      useReleasesTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useReleasesTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -403,22 +368,13 @@ describe('useReleasesTableQuery', () => {
     });
 
     renderHookWithProviders(() =>
-      useReleasesTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useReleasesTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/metrics/data/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            per_page: 25,
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({per_page: 25})})
       );
     });
   });
@@ -445,22 +401,13 @@ describe('useReleasesTableQuery', () => {
     });
 
     renderHookWithProviders(() =>
-      useReleasesTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useReleasesTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/sessions/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            per_page: 6,
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({per_page: 6})})
       );
     });
   });

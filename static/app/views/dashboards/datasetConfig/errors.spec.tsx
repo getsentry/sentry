@@ -57,10 +57,7 @@ describe('ErrorsConfig', () => {
       expect(router.location.pathname).toBe(
         '/organizations/org-slug/dashboards/trace/abcd/'
       );
-      expect(router.location.query).toEqual({
-        source: 'dashboards',
-        statsPeriod: '14d',
-      });
+      expect(router.location.query).toEqual({source: 'dashboards', statsPeriod: '14d'});
     });
 
     it('links event ids to event details', async () => {

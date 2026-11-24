@@ -36,8 +36,9 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
-from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.data_condition import Condition, get_internal_condition_types
 from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
+from sentry.workflow_engine.types import DataConditionHandler
 
 InputData = dict[str, Any]
 ListInputData = list[InputData]
@@ -49,6 +50,7 @@ class ActionFilterInput(DataConditionGroupInput):
 
 
 class ActionFilterValidator(BaseDataConditionGroupValidator):
+    handler_group = DataConditionHandler.Group.ACTION_FILTER
     actions = serializers.ListField(child=serializers.DictField())
 
     def validate_actions(self, value: ListInputData) -> ListInputData:
@@ -94,6 +96,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
     triggers = BaseDataConditionGroupValidator(
         required=False,
+        handler_group=DataConditionHandler.Group.WORKFLOW_TRIGGER,
         help_text=WORKFLOW_TRIGGERS_HELP_TEXT,
     )
     action_filters = ActionFilterValidator(
@@ -319,6 +322,26 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                     raise serializers.ValidationError(
                         f"Action ID {action_id} does not belong to this workflow"
                     )
+
+        # Omitted groups are detached without passing through the group validator.
+        omitted_ids = valid_dcg_ids - {
+            int(action_filter["id"])
+            for action_filter in action_filters
+            if action_filter.get("id") is not None
+        }
+        internal_types = get_internal_condition_types()
+        if (
+            omitted_ids
+            and internal_types
+            and DataConditionGroup.objects.filter(
+                id__in=omitted_ids,
+                organization_id=workflow.organization_id,
+                conditions__type__in=internal_types,
+            ).exists()
+        ):
+            raise serializers.ValidationError(
+                "Internal condition groups cannot be configured through the API."
+            )
 
     def update_action_filters(self, action_filters: ListInputData) -> list[DataConditionGroup]:
         instance = self.context["workflow"]

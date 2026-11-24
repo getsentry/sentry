@@ -73,12 +73,7 @@ function confidenceMessage({
     if (isTopN) {
       return tct(
         '[maybeWarning]Estimated for top [topEvents] groups from [maybeTooltip:[matchingSpansCount]]',
-        {
-          maybeWarning,
-          topEvents,
-          maybeTooltip,
-          matchingSpansCount,
-        }
+        {maybeWarning, topEvents, maybeTooltip, matchingSpansCount}
       );
     }
 
@@ -161,24 +156,13 @@ function confidenceMessage({
       if (isTopN) {
         return tct(
           '[maybeWarning]Estimated for top [topEvents] groups from [maybeTooltip:[matchingSpansCount]] of [totalSpansCount]',
-          {
-            maybeWarning,
-            topEvents,
-            maybeTooltip,
-            matchingSpansCount,
-            totalSpansCount,
-          }
+          {maybeWarning, topEvents, maybeTooltip, matchingSpansCount, totalSpansCount}
         );
       }
 
       return tct(
         '[maybeWarning]Estimated from [maybeTooltip:[matchingSpansCount]] of [totalSpansCount]',
-        {
-          maybeWarning,
-          maybeTooltip,
-          matchingSpansCount,
-          totalSpansCount,
-        }
+        {maybeWarning, maybeTooltip, matchingSpansCount, totalSpansCount}
       );
     }
 
@@ -192,12 +176,7 @@ function confidenceMessage({
     if (isTopN) {
       return tct(
         '[maybeWarning]Estimated for top [topEvents] groups from [maybeTooltip:[matchingSpansCount]]',
-        {
-          maybeWarning,
-          maybeTooltip,
-          topEvents,
-          matchingSpansCount,
-        }
+        {maybeWarning, maybeTooltip, topEvents, matchingSpansCount}
       );
     }
 
@@ -255,13 +234,7 @@ function confidenceMessage({
 
     return tct(
       '[maybeWarning]Estimated from [maybeTooltip:[matchingSpansCount]] after scanning [scannedSpansCount] of [totalSpansCount]',
-      {
-        maybeWarning,
-        maybeTooltip,
-        matchingSpansCount,
-        scannedSpansCount,
-        totalSpansCount,
-      }
+      {maybeWarning, maybeTooltip, matchingSpansCount, scannedSpansCount, totalSpansCount}
     );
   }
 
@@ -285,24 +258,13 @@ function confidenceMessage({
   if (isTopN) {
     return tct(
       '[maybeWarning]Estimated for top [topEvents] groups from [maybeTooltip:[matchingSpansCount]] of [totalSpansCount]',
-      {
-        maybeWarning,
-        topEvents,
-        maybeTooltip,
-        matchingSpansCount,
-        totalSpansCount,
-      }
+      {maybeWarning, topEvents, maybeTooltip, matchingSpansCount, totalSpansCount}
     );
   }
 
   return tct(
     '[maybeWarning]Estimated from [maybeTooltip:[matchingSpansCount]] of [totalSpansCount]',
-    {
-      maybeWarning,
-      maybeTooltip,
-      matchingSpansCount,
-      totalSpansCount,
-    }
+    {maybeWarning, maybeTooltip, matchingSpansCount, totalSpansCount}
   );
 }
 

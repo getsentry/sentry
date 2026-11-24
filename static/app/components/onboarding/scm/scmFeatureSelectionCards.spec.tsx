@@ -70,9 +70,7 @@ describe('ScmFeatureSelectionCards', () => {
       />
     );
 
-    const errorMonitoringCard = screen.getByRole('checkbox', {
-      name: /Error monitoring/,
-    });
+    const errorMonitoringCard = screen.getByRole('checkbox', {name: /Error monitoring/});
     expect(errorMonitoringCard).toHaveAttribute('aria-disabled', 'true');
 
     await userEvent.tab();
@@ -112,12 +110,8 @@ describe('ScmFeatureSelectionCards', () => {
         availableFeatures={ALL_FEATURES}
         selectedFeatures={[ProductSolution.ERROR_MONITORING]}
         disabledProducts={{
-          [ProductSolution.SESSION_REPLAY]: {
-            reason: 'Not available on your plan',
-          },
-          [ProductSolution.PROFILING]: {
-            reason: 'Not available on your plan',
-          },
+          [ProductSolution.SESSION_REPLAY]: {reason: 'Not available on your plan'},
+          [ProductSolution.PROFILING]: {reason: 'Not available on your plan'},
         }}
         onToggleFeature={jest.fn()}
         featureMeta={FALLBACK_FEATURE_META}
@@ -150,9 +144,7 @@ describe('ScmFeatureSelectionCards', () => {
       />
     );
 
-    const errorMonitoringCard = screen.getByRole('checkbox', {
-      name: /Error monitoring/,
-    });
+    const errorMonitoringCard = screen.getByRole('checkbox', {name: /Error monitoring/});
     expect(errorMonitoringCard).toBeChecked();
   });
 

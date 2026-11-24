@@ -47,9 +47,7 @@ export function getIntervalLine(
         width: label ? 1 : 2,
       },
       symbol: ['none', 'none'],
-      tooltip: {
-        show: false,
-      },
+      tooltip: {show: false},
     },
     seriesName: 'Baseline',
   };
@@ -128,21 +126,11 @@ export function getIntervalLine(
     },
   };
   periodDividingLine.markLine = {
-    data: [
-      {
-        xAxis: divider,
-      },
-    ],
+    data: [{xAxis: divider}],
     label: {show: false},
-    lineStyle: {
-      color: theme.tokens.content.primary,
-      type: 'solid',
-      width: 2,
-    },
+    lineStyle: {color: theme.tokens.content.primary, type: 'solid', width: 2},
     symbol: ['none', 'none'],
-    tooltip: {
-      show: false,
-    },
+    tooltip: {show: false},
     silent: true,
   };
 
@@ -193,18 +181,8 @@ export function getIntervalLine(
       markLine: {},
       markArea: MarkArea({
         silent: true,
-        itemStyle: {
-          color: theme.colors.red400,
-          opacity: 0.2,
-        },
-        data: [
-          [
-            {
-              xAxis: divider,
-            },
-            {xAxis: regressionEnd},
-          ],
-        ],
+        itemStyle: {color: theme.colors.red400, opacity: 0.2},
+        data: [[{xAxis: divider}, {xAxis: regressionEnd}]],
       }),
       data: [],
     });
@@ -215,9 +193,7 @@ export function getIntervalLine(
       markLine:
         markLine({
           silent: true,
-          label: {
-            show: false,
-          },
+          label: {show: false},
           lineStyle: {color: theme.colors.green500, type: 'solid', width: 4},
           data: [
             // The line needs to be hard-coded to a pixel coordinate because
@@ -237,9 +213,7 @@ export function getIntervalLine(
       markLine:
         markLine({
           silent: true,
-          label: {
-            show: false,
-          },
+          label: {show: false},
           lineStyle: {color: theme.colors.red400, type: 'solid', width: 4},
           data: [
             // The line needs to be hard-coded to a pixel coordinate because

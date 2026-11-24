@@ -44,15 +44,16 @@ import {
 } from 'sentry/components/seer/autofixChatContext';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {
-  getOutOfCreditsPRsMessage,
+  getStoppedPRsMessage,
   OUT_OF_CREDITS_RETRY_TOOLTIP,
-  OUT_OF_CREDITS_STEP_MESSAGE,
+  getStoppedStepMessage,
 } from 'sentry/components/seer/outOfCredits/messages';
 import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {useOutOfCreditsRetry} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
+import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
 import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
@@ -270,9 +271,8 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   const {runState, isLoading, isPolling} = autofix;
   const {isBusy, sendMessage} = useAutofixChat();
   const isRefetching =
-    useIsFetching({
-      queryKey: explorerAutofixApiOptions(organization.slug, id).queryKey,
-    }) > 0;
+    useIsFetching({queryKey: explorerAutofixApiOptions(organization.slug, id).queryKey}) >
+    0;
 
   const sections = useMemo(() => getOrderedAutofixSections(runState), [runState]);
   const section = useMemo(() => findStepSection(sections, step), [sections, step]);
@@ -364,6 +364,7 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
           section={section}
           step={step}
           iterationOutOfCredits={iterationOutOfCredits}
+          iterationCreditDenialReason={codeChangesSection?.creditDenialReason}
         />
         {section?.status === 'error' && (
           <Flex>
@@ -423,12 +424,14 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
 interface AutofixRefBodyProps {
   isLoading: boolean;
   step: AutofixExplorerStep;
+  iterationCreditDenialReason?: SeerCreditDenialReason | null;
   iterationOutOfCredits?: boolean;
   section?: AutofixSection;
 }
 
 function AutofixRefBody({
   isLoading,
+  iterationCreditDenialReason,
   iterationOutOfCredits,
   section,
   step,
@@ -461,13 +464,13 @@ function AutofixRefBody({
     let outOfCreditsStatus: ReactNode = null;
     if (outOfCreditsPullRequests.length > 0) {
       outOfCreditsStatus = (
-        <Text variant="danger">
-          {getOutOfCreditsPRsMessage(outOfCreditsPullRequests)}
-        </Text>
+        <Text variant="danger">{getStoppedPRsMessage(outOfCreditsPullRequests)}</Text>
       );
     } else if (iterationOutOfCredits) {
       outOfCreditsStatus = (
-        <Text variant="danger">{OUT_OF_CREDITS_STEP_MESSAGE.pr_iteration}</Text>
+        <Text variant="danger">
+          {getStoppedStepMessage('pr_iteration', iterationCreditDenialReason)}
+        </Text>
       );
     }
 
@@ -601,7 +604,9 @@ function OutOfCreditsStepBody({
     <Stack gap="lg">
       <StoppedStepText blocks={getStoppedStepBlocks(section)} />
       {patchesByRepo.size > 0 && <CodeChangesBody patchesByRepo={patchesByRepo} />}
-      <Text variant="danger">{OUT_OF_CREDITS_STEP_MESSAGE[stoppedStep]}</Text>
+      <Text variant="danger">
+        {getStoppedStepMessage(stoppedStep, section.creditDenialReason)}
+      </Text>
     </Stack>
   );
 }

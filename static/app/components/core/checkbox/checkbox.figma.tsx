@@ -15,20 +15,13 @@ figma.connect(
   'https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/%F0%9F%90%A6-Components?node-id=3481-4211&m=draw&t=ITviPfKTjIMGFJOi-11',
   {
     props: {
-      size: figma.enum('size', {
-        sm: 'sm',
-        md: 'md',
-        xs: 'xs',
-      }),
+      size: figma.enum('size', {sm: 'sm', md: 'md', xs: 'xs'}),
       checked: figma.enum('checked', {
         true: true,
         false: false,
         indeterminate: 'indeterminate',
       }),
-      state: figma.enum('state', {
-        default: false,
-        disabled: true,
-      }),
+      state: figma.enum('state', {default: false, disabled: true}),
     },
     example: props => (
       <Checkbox size={props.size} checked={props.checked} disabled={props.state} />

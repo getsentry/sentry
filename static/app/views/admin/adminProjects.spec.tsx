@@ -23,10 +23,7 @@ describe('AdminProjects', () => {
 
     render(<AdminProjects />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/manage/projects/',
-          query: {status: 'deleted'},
-        },
+        location: {pathname: '/manage/projects/', query: {status: 'deleted'}},
       },
     });
 

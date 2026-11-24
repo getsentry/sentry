@@ -29,9 +29,7 @@ export function SeerActivityTriggerDetails({condition}: {condition: DataConditio
   const details =
     labels.length === 1
       ? tct("Seer reaches the '[stage]' stage", {stage: labels[0] ?? ''})
-      : tct('Seer reaches any of these stages: [stages]', {
-          stages: labels.join(', '),
-        });
+      : tct('Seer reaches any of these stages: [stages]', {stages: labels.join(', ')});
 
   return <span>{details}</span>;
 }

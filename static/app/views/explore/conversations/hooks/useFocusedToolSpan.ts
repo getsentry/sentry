@@ -13,7 +13,7 @@ interface UseFocusedToolSpanOptions {
 }
 
 /**
- * Hook to find and select a span by tool name when opening the conversation drawer.
+ * Hook to find and select a span by tool name when opening a conversation.
  * When focusedTool is provided, this hook finds the first execute_tool span with
  * a matching tool name and calls onSpanFound with its ID.
  */

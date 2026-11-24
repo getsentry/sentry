@@ -223,9 +223,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         base = super().serialize(obj, attrs, user)
 
         if self.stats_period:
-            extra: _MaybeStats = {
-                "stats": {self.stats_period: cast("list[tuple[int, int]]", attrs["stats"])}
-            }
+            extra: _MaybeStats = {"stats": {self.stats_period: attrs["stats"]}}
         else:
             extra = {}
 

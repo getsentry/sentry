@@ -1,12 +1,17 @@
 import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {
+  Flex,
+  Stack,
+  useResponsivePropValue,
+  type Responsive,
+} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -20,14 +25,21 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
-import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
+import {ClassifierActivity, getActivityLabelSizer} from './components/classifierActivity';
 import {ClassifierSearch} from './components/classifierSearch';
 import {ResultAttributeName} from './components/resultAttributeName';
+import {classifierListApiOptions} from './hooks/classifierApiOptions';
+import {
+  type ClassifierListStatsResult,
+  useClassifierListStats,
+} from './hooks/useClassifierListStats';
+import {CLASSIFIER_LIST_STATS_PERIOD} from './constants';
 import type {TelemetryClassifier} from './types';
 import {getClassifierDetailPath, getDatasetLabel, getNewClassifierPath} from './utils';
 
@@ -35,8 +47,11 @@ const CLASSIFIERS_PER_PAGE = 25;
 
 const searchParsers = {query: parseAsString.withDefault(''), cursor: parseAsString};
 
+const ACTIVITY_COLUMN_VISIBLE: Responsive<boolean> = {zero: false, '2xl': true};
+
 const CLASSIFIER_COLUMNS: TableColumnConfig[] = [
   {key: 'name', resizable: true, width: 'minmax(0, 1fr)'},
+  {key: 'activity', resizable: true, visible: ACTIVITY_COLUMN_VISIBLE, width: 200},
   {key: 'attribute', resizable: true, visible: {md: true}, width: 300},
   {key: 'data-type', visible: {sm: true}, width: 130},
 ];
@@ -77,7 +92,15 @@ function CreateClassifierMenu() {
   );
 }
 
-function ClassifierRow({classifier}: {classifier: TelemetryClassifier}) {
+function ClassifierRow({
+  activityLabelSizer,
+  classifier,
+  stats,
+}: {
+  activityLabelSizer: string;
+  classifier: TelemetryClassifier;
+  stats: ClassifierListStatsResult;
+}) {
   const organization = useOrganization();
   const project = useProjectFromId({project_id: classifier.projectId});
   const isDisabled = classifier.status === 'disabled';
@@ -107,6 +130,9 @@ function ClassifierRow({classifier}: {classifier: TelemetryClassifier}) {
         </Stack>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
+        <ClassifierActivity result={stats} labelSizer={activityLabelSizer} />
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
         <ResultAttributeName
           resultAttribute={classifier.resultAttribute}
           monospace
@@ -127,23 +153,22 @@ function ClassifiersTable() {
   const [{query, cursor}] = useQueryStates(searchParsers);
 
   const {data, isPending, isError, refetch} = useQuery({
-    ...apiOptions.as<TelemetryClassifier[]>()(
-      '/organizations/$organizationIdOrSlug/classifiers/',
-      {
-        path: isReady ? {organizationIdOrSlug: organization.slug} : skipToken,
-        query: {
-          project: selection.projects,
-          query: query || undefined,
-          cursor: cursor ?? undefined,
-          per_page: CLASSIFIERS_PER_PAGE,
-        },
-        staleTime: 0,
-      }
-    ),
+    ...classifierListApiOptions(organization.slug, {
+      project: selection.projects,
+      query: query || undefined,
+      cursor: cursor ?? undefined,
+      per_page: CLASSIFIERS_PER_PAGE,
+    }),
+    enabled: isReady,
     select: selectJsonWithHeaders,
   });
 
   const classifiers = data?.json ?? [];
+  const isActivityVisible = useResponsivePropValue(ACTIVITY_COLUMN_VISIBLE);
+  const getStats = useClassifierListStats(isActivityVisible ? classifiers : []);
+  const activityLabelSizer = getActivityLabelSizer(
+    classifiers.map(classifier => getStats(classifier).data)
+  );
 
   return (
     <div>
@@ -155,9 +180,12 @@ function ClassifiersTable() {
               {t('Classifier')}
             </SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell columnIndex={1}>
-              {t('Attribute')}
+              {t('Activity (%s)', CLASSIFIER_LIST_STATS_PERIOD)}
             </SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell columnIndex={2}>
+              {t('Attribute')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnIndex={3}>
               {t('Data type')}
             </SimpleTable.HeaderCell>
           </SimpleTable.HeaderRow>
@@ -176,7 +204,12 @@ function ClassifiersTable() {
           </SimpleTable.Empty>
         ) : (
           classifiers.map(classifier => (
-            <ClassifierRow key={classifier.id} classifier={classifier} />
+            <ClassifierRow
+              key={classifier.id}
+              classifier={classifier}
+              stats={getStats(classifier)}
+              activityLabelSizer={activityLabelSizer}
+            />
           ))
         )}
       </SimpleTable>

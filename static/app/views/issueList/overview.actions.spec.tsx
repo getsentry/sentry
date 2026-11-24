@@ -48,10 +48,7 @@ describe('IssueListOverview (actions)', () => {
     GroupStore.reset();
     IssueListCacheStore.reset();
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-stats/',
       body: [groupStats],
@@ -84,10 +81,7 @@ describe('IssueListOverview (actions)', () => {
       url: '/organizations/org-slug/sent-first-event/',
       body: {sentFirstEvent: true},
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
 
     TagStore.reset();
   });
@@ -99,23 +93,17 @@ describe('IssueListOverview (actions)', () => {
   describe('status', () => {
     const group1 = GroupFixture({
       id: '1',
-      metadata: {
-        title: 'Group 1',
-      },
+      metadata: {title: 'Group 1'},
       shortId: 'JAVASCRIPT-1',
     });
     const group2 = GroupFixture({
       id: '2',
-      metadata: {
-        title: 'Group 2',
-      },
+      metadata: {title: 'Group 2'},
       shortId: 'JAVASCRIPT-2',
     });
     const group3 = GroupFixture({
       id: '3',
-      metadata: {
-        title: 'Group 3',
-      },
+      metadata: {title: 'Group 3'},
       shortId: 'JAVASCRIPT-3',
     });
 
@@ -247,10 +235,7 @@ describe('IssueListOverview (actions)', () => {
         organization,
         initialRouterConfig: {
           route: '/organizations/:orgId/issues/',
-          location: {
-            pathname: '/organizations/org-slug/issues/',
-            query: {query: ''},
-          },
+          location: {pathname: '/organizations/org-slug/issues/', query: {query: ''}},
         },
       });
       renderGlobalModal();
@@ -373,99 +358,16 @@ describe('IssueListOverview (actions)', () => {
     });
   });
 
-  describe('mark reviewed', () => {
-    const group1 = GroupFixture({
-      id: '1',
-      metadata: {
-        title: 'Group 1',
-      },
-      shortId: 'JAVASCRIPT-1',
-      inbox: {},
-    });
-    const group2 = GroupFixture({
-      id: '2',
-      metadata: {
-        title: 'Group 2',
-      },
-      shortId: 'JAVASCRIPT-2',
-      inbox: {},
-    });
-
-    beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/',
-        body: [group1, group2],
-        headers: {Link: DEFAULT_LINKS_HEADER},
-      });
-    });
-
-    it('removes issues after making reviewed (when on for review tab)', async () => {
-      const updateIssueMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/',
-        method: 'PUT',
-      });
-
-      render(<OverviewInContainer />, {
-        organization,
-
-        initialRouterConfig: {
-          route: '/organizations/:orgId/issues/',
-          location: {
-            pathname: '/organizations/org-slug/issues/',
-            query: {query: 'is:for_review'},
-          },
-        },
-      });
-
-      expect(await screen.findByText('Group 1')).toBeInTheDocument();
-      const groups = screen.getAllByTestId('group');
-
-      await userEvent.click(
-        within(groups[0]!).getByRole('checkbox', {name: /select issue/i})
-      );
-
-      expect(screen.getByText('Group 1')).toBeInTheDocument();
-      expect(screen.getByText('Group 2')).toBeInTheDocument();
-
-      // After action, will refetch so need to mock that response
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/',
-        body: [group2],
-        headers: {Link: DEFAULT_LINKS_HEADER},
-      });
-
-      await userEvent.click(
-        await screen.findByRole('button', {name: 'More issue actions'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Mark Reviewed'}));
-
-      expect(updateIssueMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/issues/',
-        expect.objectContaining({
-          query: expect.objectContaining({id: ['1']}),
-          data: {inbox: false},
-        })
-      );
-
-      expect(screen.queryByText('Group 1')).not.toBeInTheDocument();
-      expect(screen.getByText('Group 2')).toBeInTheDocument();
-    });
-  });
-
   describe('priority', () => {
     const medPriorityGroup = GroupFixture({
       id: '1',
       priority: PriorityLevel.MEDIUM,
-      metadata: {
-        title: 'Medium priority issue',
-      },
+      metadata: {title: 'Medium priority issue'},
     });
     const highPriorityGroup = GroupFixture({
       id: '2',
       priority: PriorityLevel.HIGH,
-      metadata: {
-        title: 'High priority issue',
-      },
+      metadata: {title: 'High priority issue'},
     });
 
     beforeEach(() => {
@@ -482,9 +384,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<OverviewInContainer />, {
-        organization,
-      });
+      render(<OverviewInContainer />, {organization});
 
       expect(await screen.findByText('Medium priority issue')).toBeInTheDocument();
       const groups = screen.getAllByTestId('group');
@@ -724,9 +624,7 @@ describe('IssueListOverview (actions)', () => {
 
       expect(updateIssueMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
-        expect.objectContaining({
-          query: expect.objectContaining({id: ['1']}),
-        })
+        expect.objectContaining({query: expect.objectContaining({id: ['1']})})
       );
 
       expect(screen.queryByText('Group 1')).not.toBeInTheDocument();

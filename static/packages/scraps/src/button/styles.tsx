@@ -88,12 +88,8 @@ function getBaseStyles(p: ButtonStyleProps): StrictCSSObject {
     background: 'none',
 
     cursor: 'pointer',
-    '&[disabled], &[aria-disabled="true"]': {
-      cursor: 'not-allowed',
-    },
-    '&[aria-busy="true"]': {
-      cursor: 'progress',
-    },
+    '&[disabled], &[aria-disabled="true"]': {cursor: 'not-allowed'},
+    '&[aria-busy="true"]': {cursor: 'progress'},
   };
 }
 
@@ -212,31 +208,21 @@ function getChonkyStyles(p: ButtonStyleProps, tokens: ChonkyTokens): StrictCSSOb
       transition: `transform ${p.theme.motion.snap.fast}`,
     },
 
-    '&[aria-busy="true"] > span:last-child': {
-      overflow: 'visible',
-    },
+    '&[aria-busy="true"] > span:last-child': {overflow: 'visible'},
 
     '&:hover': {
       '--button-lift': `calc(${p.size.lift} + 1px)`,
       color: p.disabled || p.busy ? undefined : tokens.content,
     },
 
-    '&:active, &[aria-expanded="true"], &[aria-checked="true"]': {
-      '--button-lift': '0px',
-    },
+    '&:active, &[aria-expanded="true"], &[aria-checked="true"]': {'--button-lift': '0px'},
 
     '&[aria-expanded="true"], &[aria-checked="true"]': {
-      '&::after': {
-        transition: 'none',
-      },
-      '> span:last-child': {
-        transition: 'none',
-      },
+      '&::after': {transition: 'none'},
+      '> span:last-child': {transition: 'none'},
     },
 
-    '&:disabled, &[aria-disabled="true"], &[aria-busy="true"]': {
-      '--button-lift': '0px',
-    },
+    '&:disabled, &[aria-disabled="true"], &[aria-busy="true"]': {'--button-lift': '0px'},
   };
 }
 
@@ -263,9 +249,7 @@ function getTransparentStyles(p: ButtonStyleProps): StrictCSSObject {
     // No flex layout and no `overflow: hidden`. Call sites rely on this, for
     // example to let an avatar stack overflow a `zero` button. The button
     // layout snapshots pin it.
-    '> span:last-child': {
-      transform: 'translateY(0px)',
-    },
+    '> span:last-child': {transform: 'translateY(0px)'},
 
     '&:hover': {
       backgroundColor: p.disabled || p.busy ? 'inherit' : p.theme.colors.gray100,
@@ -294,13 +278,9 @@ function getLinkStyles(p: ButtonStyleProps): StrictCSSObject {
     '&:focus-visible': p.theme.focusRing(),
 
     // Like transparent, no flex layout and no `overflow: hidden`.
-    '> span:last-child': {
-      color: 'inherit',
-    },
+    '> span:last-child': {color: 'inherit'},
 
-    '&:active': {
-      backgroundColor: 'inherit',
-    },
+    '&:active': {backgroundColor: 'inherit'},
   };
 }
 

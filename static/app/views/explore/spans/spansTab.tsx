@@ -84,12 +84,14 @@ interface SpansTabOnboardingProps {
   datePageFilterProps: DatePageFilterProps;
   organization: Organization;
   project: Project;
+  onFirstTraceReady?: () => void;
 }
 
 function SpansTabOnboardingInner({
   datePageFilterProps,
   organization,
   project,
+  onFirstTraceReady,
 }: SpansTabOnboardingProps) {
   const selectedProjects = useSelectedProjectsForLLMContext();
 
@@ -113,9 +115,17 @@ function SpansTabOnboardingInner({
       <OnboardingContentSection>
         <ExploreQuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
         {organization.features.includes('agent-handoff-empty-states-tracing') ? (
-          <TracingEmptyState project={project} organization={organization} />
+          <TracingEmptyState
+            project={project}
+            organization={organization}
+            onFirstTraceReady={onFirstTraceReady}
+          />
         ) : (
-          <Onboarding project={project} organization={organization} />
+          <Onboarding
+            project={project}
+            organization={organization}
+            onFirstTraceReady={onFirstTraceReady}
+          />
         )}
       </OnboardingContentSection>
     </Layout.Body>
@@ -248,28 +258,19 @@ function SpanTabContentSectionInner({
     query,
     limit: SPANS_TABLE_LIMIT,
     enabled: isReady && queryType === 'aggregate',
-    queryExtras: {
-      caseInsensitive,
-      ...crossEventQueries,
-    },
+    queryExtras: {caseInsensitive, ...crossEventQueries},
   });
   const spansTableResult = useExploreSpansTable({
     query,
     limit: SPANS_TABLE_LIMIT,
     enabled: isReady && queryType === 'samples',
-    queryExtras: {
-      caseInsensitive,
-      ...crossEventQueries,
-    },
+    queryExtras: {caseInsensitive, ...crossEventQueries},
   });
   const tracesTableQuery = useQuery({
     ...useExploreTracesTableApiOptions({
       query,
       limit: SPANS_TABLE_LIMIT,
-      queryExtras: {
-        caseInsensitive,
-        ...crossEventQueries,
-      },
+      queryExtras: {caseInsensitive, ...crossEventQueries},
     }),
     select: selectJsonWithHeaders,
     enabled: isReady && queryType === 'traces',
@@ -283,10 +284,7 @@ function SpanTabContentSectionInner({
     useExploreTimeseries({
       query,
       enabled: isReady,
-      queryExtras: {
-        caseInsensitive,
-        ...crossEventQueries,
-      },
+      queryExtras: {caseInsensitive, ...crossEventQueries},
     });
 
   useAnalytics({

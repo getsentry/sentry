@@ -64,7 +64,7 @@ interface BaseDropdownMenuProps
   /**
    * Reference to the container element that the portal should be rendered into.
    */
-  portalContainerRef?: React.RefObject<HTMLElement | null>;
+  portalContainerRef?: React.RefObject<Element | DocumentFragment | null>;
   /**
    * Tag name for the outer wrap, defaults to `div`
    */
@@ -173,13 +173,7 @@ function DropdownMenu({
   // Avoids the menu from focusing before Floating UI has placed it in the correct position
   const resolvedMenuProps = {...menuProps, autoFocus: false as const};
 
-  const {buttonProps} = useButton(
-    {
-      isDisabled,
-      ...menuTriggerProps,
-    },
-    triggerRef
-  );
+  const {buttonProps} = useButton({isDisabled, ...menuTriggerProps}, triggerRef);
 
   function renderMenu() {
     if (!isOpen) {

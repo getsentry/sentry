@@ -18,10 +18,7 @@ import {ChartType} from './types';
  */
 export type WidgetQueryTimeSeries = [timeSeries: TimeSeries, widgetQueryIndex: number];
 
-type ChartData = {
-  timeSeries: WidgetQueryTimeSeries[];
-  widget: Widget;
-};
+type ChartData = {timeSeries: WidgetQueryTimeSeries[]; widget: Widget};
 
 export const makeDashboardsWidgetCharts = (
   theme: Theme
@@ -41,10 +38,7 @@ export const makeDashboardsWidgetCharts = (
         (defined(thresholds.max_values?.max1) || defined(thresholds.max_values?.max2))
       ) {
         extraPlottables.push(
-          new Thresholds({
-            thresholds,
-            dataType: flatTimeSeries[0]?.meta?.valueType,
-          })
+          new Thresholds({thresholds, dataType: flatTimeSeries[0]?.meta?.valueType})
         );
       }
 
