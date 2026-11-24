@@ -1,17 +1,19 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import timedelta
 from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core import mail
-from django.db import router
+from django.db import router, transaction
 from django.utils import timezone
 from rest_framework.serializers import ValidationError
 
 from sentry import roles
 from sentry.auth import manager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.options.organization_option import OrganizationOption
@@ -610,3 +612,161 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             AssertionError, match="Cannot save placeholder organization member for an invited user"
         ):
             placeholder_om.save()
+
+
+class OrganizationMemberAsyncReplicationTest(TestCase):
+    """With the option on, member writes replicate async unless control needs them now."""
+
+    OPTION = "hybridcloud.outbox.organization_member_async_replication.enabled"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.org = self.create_organization(owner=self.create_user())
+        self.member = self.create_member(
+            organization=self.org, user=self.create_user(), role="member"
+        )
+
+    def _run[T](self, fn: Callable[[], T]) -> T:
+        with self.captureOnCommitCallbacks(execute=True):
+            return fn()
+
+    def _pending(self, member_id: int) -> bool:
+        """Whether the member's outbox row is still waiting to drain."""
+        return CellOutbox.objects.filter(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=self.org.id,
+            category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE,
+            object_identifier=member_id,
+        ).exists()
+
+    def test_option_off_keeps_sync(self) -> None:
+        self._run(lambda: self.member.update(role="admin"))
+        assert not self._pending(self.member.id)
+
+    def test_existing_member_write_is_async(self) -> None:
+        with self.options({self.OPTION: True}):
+            self._run(lambda: self.member.update(role="admin"))
+        assert self._pending(self.member.id)
+
+    def test_new_member_with_user_is_sync(self) -> None:
+        user = self.create_user()
+        with self.options({self.OPTION: True}):
+            member = self._run(
+                lambda: OrganizationMember.objects.create(
+                    organization=self.org, user_id=user.id, role="member"
+                )
+            )
+        assert not self._pending(member.id)
+
+    def test_new_invite_is_async(self) -> None:
+        with self.options({self.OPTION: True}):
+            for role in ("member", "owner"):
+                invite = self._run(
+                    lambda: OrganizationMember.objects.create(
+                        organization=self.org, email=f"{role}-invite@example.com", role=role
+                    )
+                )
+                assert self._pending(invite.id)
+
+    def test_explicit_flush_wins(self) -> None:
+        def save_synced() -> None:
+            with outbox_context(
+                transaction.atomic(router.db_for_write(OrganizationMember)), flush=True
+            ):
+                self.member.update(role="admin")
+
+        with self.options({self.OPTION: True}):
+            self._run(save_synced)
+            assert not self._pending(self.member.id)
+            self._run(lambda: self.member.update(role="member"))
+            assert self._pending(self.member.id)
+
+    def test_explicit_flush_false_context_still_wins(self) -> None:
+        user = self.create_user()
+
+        def create_unflushed() -> OrganizationMember:
+            with outbox_context(flush=False):
+                return OrganizationMember.objects.create(
+                    organization=self.org, user_id=user.id, role="member"
+                )
+
+        with self.options({self.OPTION: True}):
+            member = self._run(create_unflushed)
+        assert self._pending(member.id)
+
+    def test_delete_stays_async(self) -> None:
+        member_id = self.member.id
+        with self.options({self.OPTION: True}):
+            self._run(self.member.delete)
+        assert self._pending(member_id)
+
+    def test_accept_and_remove_user_are_sync(self) -> None:
+        from sentry.organizations.services.organization.impl import (
+            DatabaseBackedOrganizationService,
+        )
+
+        service = DatabaseBackedOrganizationService()
+        invite = self.create_member(organization=self.org, email="accept@example.com")
+        user = self.create_user()
+        with self.options({self.OPTION: True}):
+            self._run(
+                lambda: service.set_user_for_organization_member(
+                    organization_member_id=invite.id,
+                    organization_id=self.org.id,
+                    user_id=user.id,
+                )
+            )
+            assert not self._pending(invite.id)
+            self._run(lambda: service.remove_user(organization_id=self.org.id, user_id=user.id))
+            assert not self._pending(invite.id)
+
+    def test_merge_users_promoting_to_owner_is_sync(self) -> None:
+        from sentry.organizations.services.organization.impl import (
+            DatabaseBackedOrganizationService,
+        )
+
+        service = DatabaseBackedOrganizationService()
+        owner = self.create_user()
+        self.create_member(organization=self.org, user=owner, role="owner")
+        to_user_id = self.member.user_id
+        assert to_user_id is not None
+        with self.options({self.OPTION: True}):
+            self._run(
+                lambda: service.merge_users(
+                    organization_id=self.org.id,
+                    from_user_id=owner.id,
+                    to_user_id=to_user_id,
+                )
+            )
+        assert not self._pending(self.member.id)
+
+    def test_update_organization_member_rpc_owner_change_is_sync(self) -> None:
+        from sentry.organizations.services.organization.impl import (
+            DatabaseBackedOrganizationService,
+        )
+
+        service = DatabaseBackedOrganizationService()
+
+        def update(role: str) -> None:
+            service.update_organization_member(
+                organization_id=self.org.id, member_id=self.member.id, attrs={"role": role}
+            )
+
+        with self.options({self.OPTION: True}):
+            self._run(lambda: update("manager"))
+            assert self._pending(self.member.id)
+            self._run(lambda: update("owner"))
+            assert not self._pending(self.member.id)
+        self.member.refresh_from_db()
+        assert self.member.role == "owner"
+
+    def test_sync_write_drains_async_rows_in_the_same_shard(self) -> None:
+        user = self.create_user()
+        with self.options({self.OPTION: True}):
+            with self.captureOnCommitCallbacks(execute=True):
+                with transaction.atomic(router.db_for_write(OrganizationMember)):
+                    self.member.update(role="admin")  # async
+                    OrganizationMember.objects.create(  # sync
+                        organization=self.org, user_id=user.id, role="member"
+                    )
+        assert not self._pending(self.member.id)

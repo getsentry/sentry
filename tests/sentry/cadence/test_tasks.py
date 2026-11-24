@@ -46,9 +46,9 @@ def test_every_trigger_type_has_a_handler() -> None:
 
 
 @pytest.mark.parametrize("task", [cadence_tick, cadence_sweep, cadence_sweep_worker])
-def test_cadence_alias_is_registered_while_issues_remains_primary(task: Task[[], None]) -> None:
-    assert task.namespace is issues_tasks
-    assert cadence_tasks.contains(task.name)
+def test_issues_alias_is_registered_while_cadence_is_primary(task: Task[[], None]) -> None:
+    assert task.namespace is cadence_tasks
+    assert issues_tasks.contains(task.name)
 
 
 class CadenceTickTestCase(TestCase):

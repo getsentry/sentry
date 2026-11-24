@@ -81,4 +81,6 @@ export const frontendConfig: IssueCategoryConfigMapping = {
     issueSummary: {enabled: true},
     autofix: true,
   },
+  // Rage clicks get the replay's first trace, not one for the click, and it often wasn't sampled.
+  [IssueType.REPLAY_RAGE_CLICK]: {trace: {enabled: false}},
 };

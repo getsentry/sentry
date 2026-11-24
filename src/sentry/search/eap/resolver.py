@@ -842,6 +842,9 @@ class SearchResolver:
 
         # TODO: Handle different units properly
         value = term.value.value
+        # aggregate timestamp filters parse as datetimes but compare against epoch seconds.
+        if isinstance(value, datetime):
+            value = value.timestamp()
 
         if term.operator in constants.OPERATOR_MAP:
             operator = constants.AGGREGATION_OPERATOR_MAP[term.operator]

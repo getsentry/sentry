@@ -577,33 +577,9 @@ export type TagWithTopValues = {
 };
 
 /**
- * Inbox, issue owners and Activity
+ * Issue owners and Activity
  */
 type Annotation = {displayName: string; url: string};
-
-type InboxReasonDetails = {
-  count?: number | null;
-  until?: string | null;
-  user_count?: number | null;
-  user_window?: number | null;
-  window?: number | null;
-};
-
-const enum GroupInboxReason {
-  NEW = 0,
-  UNIGNORED = 1,
-  REGRESSION = 2,
-  MANUAL = 3,
-  REPROCESSED = 4,
-  ESCALATING = 5,
-  ONGOING = 6,
-}
-
-export type InboxDetails = {
-  date_added?: string;
-  reason?: GroupInboxReason;
-  reason_details?: InboxReasonDetails | null;
-};
 
 export type SuggestedOwnerReason =
   | 'suspectCommit'
@@ -1238,12 +1214,6 @@ export interface TeamParticipant extends Team {
 }
 
 /**
- * The payload sent when marking reviewed
- */
-export interface MarkReviewed {
-  inbox: false;
-}
-/**
  * The payload sent when updating a group's status
  */
 
@@ -1338,7 +1308,6 @@ export interface BaseGroup {
   type: EventOrGroupType;
   userReportCount: number;
   derivedData?: GroupDerivedData;
-  inbox?: InboxDetails | null | false;
   integrationIssues?: ExternalIssue[];
   latestEvent?: Event;
   latestEventHasAttachments?: boolean;

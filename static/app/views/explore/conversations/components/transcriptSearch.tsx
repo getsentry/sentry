@@ -66,7 +66,7 @@ export function TranscriptSearch({
       padding="sm"
       background="primary"
       borderBottom="primary"
-      style={{zIndex: 1}}
+      style={{zIndex: theme.zIndex.initial}}
     >
       <Global
         styles={css`

@@ -1,6 +1,11 @@
 import {AgenticProgressRunFixture} from 'sentry-fixture/agenticProgressRun';
 
-import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  renderHookWithProviders,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {useAgenticProgress} from './useAgenticProgress';
 
@@ -29,5 +34,70 @@ describe('useAgenticProgress', () => {
     });
 
     expect(result.current.fetchStatus).toBe('idle');
+  });
+
+  describe('polling', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('keeps polling while the run accepts updates', async () => {
+      const request = MockApiClient.addMockResponse({url: endpoint, body: run});
+
+      renderHookWithProviders(() => useAgenticProgress({runId: run.runId}), {
+        organization: {slug: 'org-slug'},
+      });
+
+      await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+      await act(() => jest.advanceTimersByTimeAsync(5000));
+      expect(request).toHaveBeenCalledTimes(2);
+    });
+
+    it('stops polling once the run is finished', async () => {
+      const request = MockApiClient.addMockResponse({
+        url: endpoint,
+        body: AgenticProgressRunFixture({runStatus: 'completed', continueUpdates: false}),
+      });
+
+      renderHookWithProviders(() => useAgenticProgress({runId: run.runId}), {
+        organization: {slug: 'org-slug'},
+      });
+
+      await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+      await act(() => jest.advanceTimersByTimeAsync(15000));
+      expect(request).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops polling once the run has expired', async () => {
+      const activeRequest = MockApiClient.addMockResponse({url: endpoint, body: run});
+
+      renderHookWithProviders(() => useAgenticProgress({runId: run.runId}), {
+        organization: {slug: 'org-slug'},
+      });
+
+      await waitFor(() => expect(activeRequest).toHaveBeenCalledTimes(1));
+
+      MockApiClient.clearMockResponses();
+      const expiredRequest = MockApiClient.addMockResponse({
+        url: endpoint,
+        statusCode: 404,
+        body: {detail: 'Onboarding run not found'},
+      });
+
+      await act(() => jest.advanceTimersByTimeAsync(5000));
+      expect(expiredRequest).toHaveBeenCalledTimes(1);
+
+      await act(() => jest.advanceTimersByTimeAsync(15000));
+      expect(expiredRequest).toHaveBeenCalledTimes(1);
+    });
   });
 });

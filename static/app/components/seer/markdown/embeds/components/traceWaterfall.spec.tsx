@@ -41,7 +41,7 @@ describe('traceWaterfall embed', () => {
 
     expect(
       await screen.findByText(
-        /We were unable to find any spans for this trace/,
+        /We couldn't find any spans for this trace/,
         {},
         {timeout: 10_000}
       )

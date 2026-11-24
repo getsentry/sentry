@@ -247,7 +247,7 @@ type Props = {
   isLoading: boolean;
   onCursor: CursorHandler;
   onDateSelect: (data: ChangeData) => void;
-  onEventSelect: (value: string) => void;
+  onEventSelect: (value: string | null) => void;
   pageLinks: string | null;
   statsPeriod: string | null;
   end?: DateString;
@@ -331,8 +331,8 @@ export function AuditLogList({
         value={eventType ?? null}
         placeholder={t('Select Action: ')}
         options={getEventOptions(eventTypes) ?? []}
-        onChange={(options: any) => {
-          onEventSelect(options?.value);
+        onChange={(option: {value: string} | null) => {
+          onEventSelect(option?.value ?? null);
         }}
       />
     </Grid>

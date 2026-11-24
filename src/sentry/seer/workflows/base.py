@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Annotated, Any, Literal, NewType, Protocol
+from typing import Annotated, Any, ClassVar, Literal, NewType, Protocol
 
 from django.db import router, transaction
 from django.db.models import QuerySet
 from django.utils import timezone
+from jsonschema import ValidationError as JSONSchemaValidationError
 from pydantic import BaseModel, Field, ValidationError
 
 from sentry.constants import ObjectStatus
@@ -35,10 +36,15 @@ from sentry.service_accounts.models import (
 )
 from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.utils import json
-from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.models import Action, Workflow
 from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
+
+# How an action reaches its workflow: workflow -> action filter group -> action.
+ACTION_WORKFLOW_ID = (
+    "dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow_id"
+)
 
 
 class WorkflowUpdateError(ValueError):
@@ -189,6 +195,10 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
     # What a firing hands to the automation's action; recorded in the run's snapshot.
     inputs_type: type[Inputs]
     settings_type: type[BaseModel]
+    # Whether the automation's investigation action takes a prompt or a skill, which is then
+    # required. Seeded defaults start with ``seeded_action_settings``.
+    takes_action_settings: ClassVar[bool] = False
+    seeded_action_settings: ClassVar[Mapping[str, Any] | None] = None
     scoped_by: Literal["projects", "monitors"]
 
     def projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
@@ -384,11 +394,21 @@ class ConfigUpdate:
             self.config.filters = filters.dict()
             self.mark("filters")
 
-    def _backing_workflow(self) -> Workflow:
-        workflow = self.config.backing_workflow
-        if workflow is None:
-            raise WorkflowUpdateError("The automation has no backing workflow")
-        return workflow
+    def set_action_settings(self, action_settings: Mapping[str, Any]) -> None:
+        """Replace the investigation action's prompt or skill, which the action's schema checks."""
+        if not self.definition.takes_action_settings:
+            raise WorkflowUpdateError(f"{self.definition.strategy} automations take no settings")
+        if not action_settings:
+            raise WorkflowUpdateError("Set a prompt or a skill")
+        action = self._investigation_action()
+        data = dict(action_settings)
+        if action.data != data:
+            action.data = data
+            try:
+                action.save(update_fields=["data", "date_updated"])
+            except JSONSchemaValidationError as e:
+                raise WorkflowUpdateError(e.message) from e
+            self.mark_related_changed()
 
     def set_extras(self, extras: SeerWorkflowConfigExtras) -> None:
         self.definition.validate_settings(extras)
@@ -434,6 +454,20 @@ class ConfigUpdate:
         self.mark_related_changed()
         return True
 
+    def set_scope(self, selection: ScopeSelection) -> None:
+        """Replace which projects the automation covers, in the form its trigger takes.
+
+        Callers must authorize the change; this only checks that the selection belongs to
+        the workflow's organization.
+        """
+        self.definition.set_scope(self, selection)
+
+    def _backing_workflow(self) -> Workflow:
+        workflow = self.config.backing_workflow
+        if workflow is None:
+            raise WorkflowUpdateError("The automation has no backing workflow")
+        return workflow
+
     def _service_account_replica(self) -> ServiceAccountReplica:
         if self.config.service_account_id is None:
             raise WorkflowUpdateError("The automation doesn't have a service account")
@@ -454,10 +488,11 @@ class ConfigUpdate:
             raise WorkflowUpdateError("The automation's service account can't be found")
         return replica
 
-    def set_scope(self, selection: ScopeSelection) -> None:
-        """Replace which projects the automation covers, in the form its trigger takes.
-
-        Callers must authorize the change; this only checks that the selection belongs to
-        the workflow's organization.
-        """
-        self.definition.set_scope(self, selection)
+    def _investigation_action(self) -> Action:
+        try:
+            return Action.objects.get(
+                type=Action.Type.SEER_INVESTIGATION,
+                **{ACTION_WORKFLOW_ID: self._backing_workflow().id},
+            )
+        except Action.DoesNotExist as e:
+            raise WorkflowUpdateError("The automation has no investigation action") from e
