@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.notebooks.models import NotebookSourceType
 from sentry.workflow_engine.handlers.detector_outcome.base import DetectorOutcomeHandler
 from sentry.workflow_engine.handlers.detector_outcome.supported_outcomes import (
     DetectorOutcome,
@@ -11,8 +12,9 @@ from sentry.workflow_engine.handlers.detector_outcome.supported_outcomes import 
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.tasks.seer_investigation import (
+    SkipReason,
     create_detector_investigation,
-    record_investigation,
+    record_investigation_skipped,
 )
 
 # The detector config key naming the service account that creates investigations.
@@ -43,13 +45,14 @@ class SeerInvestigationOutcomeHandler(DetectorOutcomeHandler):
 
         service_account_id = detector.config.get(SERVICE_ACCOUNT_CONFIG_KEY)
         if service_account_id is None:
-            record_investigation("skipped", detector.type, reason="no_service_account")
+            record_investigation_skipped(detector.type, SkipReason.NO_SERVICE_ACCOUNT)
             return
 
         create_detector_investigation.delay(
             detector_id=detector.id,
+            detector_type=detector.type,
             service_account_id=service_account_id,
-            title=occurrence.issue_title[:255],
+            title=occurrence.issue_title,
             source=_investigation_source(detector, evaluation, occurrence),
             fingerprint=list(occurrence.fingerprint),
         )
@@ -67,7 +70,7 @@ def _investigation_source(
     lines.extend(f"{evidence.name}: {evidence.value}" for evidence in occurrence.evidence_display)
     lines.append("Decide whether this needs action and, if it does, find the cause.")
     return {
-        "type": "manual",
+        "type": NotebookSourceType.MANUAL,
         "prompt": "\n".join(line for line in lines if line),
         "seed": {
             "detectorId": detector.id,

@@ -1,4 +1,5 @@
 import logging
+from enum import StrEnum
 from typing import Any
 
 from rest_framework.exceptions import PermissionDenied
@@ -14,11 +15,27 @@ from sentry.workflow_engine.models import Detector
 logger = logging.getLogger(__name__)
 
 
-def record_investigation(outcome: str, detector_type: str, *, reason: str | None = None) -> None:
-    tags = {"detector_type": detector_type}
-    if reason is not None:
-        tags["reason"] = reason
-    metrics.incr(f"workflow_engine.seer_investigation.{outcome}", tags=tags, sample_rate=1)
+class SkipReason(StrEnum):
+    NO_SERVICE_ACCOUNT = "no_service_account"
+    DETECTOR_MISSING = "detector_missing"
+    CREATOR_REJECTED = "creator_rejected"
+    ALREADY_INVESTIGATING = "already_investigating"
+
+
+def record_investigation_started(detector_type: str) -> None:
+    metrics.incr(
+        "workflow_engine.seer_investigation.started",
+        tags={"detector_type": detector_type},
+        sample_rate=1,
+    )
+
+
+def record_investigation_skipped(detector_type: str, reason: SkipReason) -> None:
+    metrics.incr(
+        "workflow_engine.seer_investigation.skipped",
+        tags={"detector_type": detector_type, "reason": reason},
+        sample_rate=1,
+    )
 
 
 @instrumented_task(
@@ -30,6 +47,7 @@ def record_investigation(outcome: str, detector_type: str, *, reason: str | None
 )
 def create_detector_investigation(
     detector_id: int,
+    detector_type: str,
     service_account_id: int,
     title: str,
     source: dict[str, Any],
@@ -44,23 +62,24 @@ def create_detector_investigation(
     """
     # Imported here: investigations depend on workflow engine models.
     from sentry.investigations.services import create_agentic_detector_investigation
-    from sentry.notebooks.services.notebooks import NotebookValidationError
+    from sentry.notebooks.services.notebooks import (
+        MAX_NOTEBOOK_TITLE_LENGTH,
+        NotebookValidationError,
+    )
 
-    detector = Detector.objects.select_related("project__organization").get_or_none(id=detector_id)
-    if detector is None or detector.project is None:
-        metrics.incr(
-            "workflow_engine.seer_investigation.skipped",
-            tags={"reason": "detector_missing"},
-            sample_rate=1,
-        )
+    detector = Detector.objects.select_related("project__organization").get_or_none(
+        id=detector_id, project__isnull=False
+    )
+    if detector is None:
+        record_investigation_skipped(detector_type, SkipReason.DETECTOR_MISSING)
         return
 
-    project = detector.project
+    project = detector.linked_project
     try:
         _, created = create_agentic_detector_investigation(
             organization=project.organization,
             creator=ActorId(ActorType.SERVICE_ACCOUNT, service_account_id),
-            title=title,
+            title=title[:MAX_NOTEBOOK_TITLE_LENGTH],
             source=source,
             detector_id=detector.id,
             fingerprint=fingerprint,
@@ -71,9 +90,9 @@ def create_detector_investigation(
             "workflow_engine.seer_investigation.creator_rejected",
             extra={"detector_id": detector.id, "service_account_id": service_account_id},
         )
-        record_investigation("skipped", detector.type, reason="creator_rejected")
+        record_investigation_skipped(detector_type, SkipReason.CREATOR_REJECTED)
         return
     if not created:
-        record_investigation("skipped", detector.type, reason="already_investigating")
+        record_investigation_skipped(detector_type, SkipReason.ALREADY_INVESTIGATING)
         return
-    record_investigation("started", detector.type)
+    record_investigation_started(detector_type)
