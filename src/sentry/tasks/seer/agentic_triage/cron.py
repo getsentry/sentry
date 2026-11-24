@@ -379,8 +379,7 @@ def run_agentic_triage_for_org(
         )
         return None
 
-    # Manual project runs scope to a single project, whose tweaks feed the run
-    # options; cron and org-wide manual runs have no single project.
+    # A run scoped to a single project picks up that project's tweaks.
     single_project_id = project_ids[0] if project_ids and len(project_ids) == 1 else None
     resolved_options = build_run_options(
         organization_id=organization.id,
@@ -611,14 +610,14 @@ def build_run_options(
 
         manual overrides (`manual_overrides`)
         > project tweaks (the project's `sentry:seer_nightshift_tweaks` option,
-          applied when `project_id` is given — used by manual project runs)
+          applied when `project_id` is given)
         > per-org overrides (the `seer.night_shift.org_tweaks` option, keyed by
           `organization_id`)
         > global defaults
 
-    Cron runs pass only `organization_id` (no project, no manual overrides);
-    manual project runs additionally pass `project_id` + at least
-    `source="manual"`. Unknown keys are ignored."""
+    Cron runs pass only `organization_id`; the admin trigger also passes
+    manual overrides with at least `source="manual"`. Unknown keys are
+    ignored."""
     layered: dict[str, Any] = {}
     org_tweaks = get_agentic_triage_org_tweaks(organization_id)
     if org_tweaks is not None:
