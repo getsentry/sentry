@@ -212,8 +212,8 @@ const commonTheme = {
 const font = {
   ...typography.font,
   family: {
-    sans: "Rubik, 'Rubik Arial', 'Avenir Next', sans-serif",
-    mono: "'Roboto Mono', 'Roboto Mono Andale', 'Roboto Mono Courier', Monaco, Consolas, 'Courier New', monospace",
+    sans: "Rubik, 'scraps-fallback-sans', 'Avenir Next', sans-serif",
+    mono: "'Roboto Mono', 'scraps-fallback-mono', Monaco, Consolas, 'Courier New', monospace",
   },
 } as const;
 

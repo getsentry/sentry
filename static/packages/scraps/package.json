@@ -7,10 +7,15 @@
     "directory": "static/packages/scraps"
   },
   "files": [
-    "dist"
+    "dist",
+    "fonts.css",
+    "fonts/*.woff2",
+    "fonts/OFL.txt"
   ],
   "type": "module",
   "exports": {
+    "./fonts.css": "./fonts.css",
+    "./fonts/*.woff2": "./fonts/*.woff2",
     "./code/inlineCode": {
       "types": "./dist/code/inlineCode.d.ts",
       "import": "./dist/code/inlineCode.js"
