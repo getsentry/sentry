@@ -10,8 +10,8 @@ import type {Organization} from 'sentry/types/organization';
 import {displayPlanName} from 'getsentry/utils/billing';
 
 import {DiscoverBackground} from './illustrations/discoverBackground';
-import PageUpsellOverlay from './pageUpsellOverlay';
-import PlanFeature from './planFeature';
+import {PageUpsellOverlay} from './pageUpsellOverlay';
+import {PlanFeature} from './planFeature';
 
 type Props = React.PropsWithChildren<{features: string[]; organization: Organization}>;
 

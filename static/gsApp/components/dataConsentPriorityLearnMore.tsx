@@ -13,12 +13,13 @@ import {getOrganizationAge} from 'sentry/utils/getOrganizationAge';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openDataConsentModal} from 'getsentry/actionCreators/modal';
-import {withSubscription} from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-function DataConsentPriorityLearnMore({subscription}: {subscription?: Subscription}) {
+export function DataConsentPriorityLearnMore() {
   const organization = useOrganization();
+  const subscription = useSubscription();
   const hasBillingAccess = organization.access.includes('org:billing');
   const {isLoading, isError, isPromptDismissed, dismissPrompt} = usePrompt({
     feature: 'data_consent_priority',
@@ -45,6 +46,10 @@ function DataConsentPriorityLearnMore({subscription}: {subscription?: Subscripti
       trackGetsentryAnalytics('data_consent_priority.viewed', {organization});
     }
   }, [hideDataConsentBanner, organization]);
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback />;
+  }
 
   if (hideDataConsentBanner) {
     return null;
@@ -79,8 +84,6 @@ function DataConsentPriorityLearnMore({subscription}: {subscription?: Subscripti
     </LearnMoreWrapper>
   );
 }
-
-export default withSubscription(DataConsentPriorityLearnMore);
 
 const LearnMoreWrapper = styled('div')`
   position: relative;

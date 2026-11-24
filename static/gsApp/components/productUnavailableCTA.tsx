@@ -9,8 +9,8 @@ import type {Organization} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
-import {withSubscription} from 'getsentry/components/withSubscription';
 import {useAM2UpsellModal} from 'getsentry/hooks/useAM2UpsellModal';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {Subscription} from 'getsentry/types';
 import {hasPerformance} from 'getsentry/utils/billing';
 import type {ProductUnavailableUpsellAlert} from 'getsentry/utils/trackGetsentryAnalytics';
@@ -178,13 +178,13 @@ function UpdatePlanAlert({
   );
 }
 
-function ProductUnavailableCTAContainer({
-  organization,
-  subscription,
-}: {
-  organization: Organization;
-  subscription: Subscription;
-}) {
+export function ProductUnavailableCTA({organization}: {organization: Organization}) {
+  const subscription = useSubscription({organization});
+
+  if (!subscription) {
+    return null;
+  }
+
   const hasSessionReplay = organization.features.includes('session-replay');
   if (hasSessionReplay) {
     return null;
@@ -213,10 +213,6 @@ function ProductUnavailableCTAContainer({
     </RequestUpdateAlert>
   );
 }
-
-export const ProductUnavailableCTA = withSubscription(ProductUnavailableCTAContainer, {
-  noLoader: true,
-});
 
 const AlertWithCustomMargin = styled(Alert)`
   margin: -${p => p.theme.space['2xl']} -${p => p.theme.space['3xl']}

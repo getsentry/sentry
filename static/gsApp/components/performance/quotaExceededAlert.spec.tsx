@@ -6,6 +6,8 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
+
 import {QuotaExceededAlert} from './quotaExceededAlert';
 
 describe('Renders QuotaExceededAlert correctly for spans', () => {
@@ -58,17 +60,15 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
       },
     });
 
-    render(
-      <QuotaExceededAlert
-        subscription={getSubscription({
-          logsUsageExceeded: false,
-          spansUsageExceeded: true,
-        })}
-        traceItemDataset="spans"
-        referrer="trace-view"
-      />,
-      {organization, initialRouterConfig}
+    SubscriptionStore.set(
+      organization.slug,
+      getSubscription({logsUsageExceeded: false, spansUsageExceeded: true})
     );
+
+    render(<QuotaExceededAlert traceItemDataset="spans" referrer="trace-view" />, {
+      organization,
+      initialRouterConfig,
+    });
 
     expect(await screen.findByText(/You['\u2019]ve exceeded your/i)).toBeInTheDocument();
 
@@ -101,17 +101,15 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
       },
     });
 
-    render(
-      <QuotaExceededAlert
-        subscription={getSubscription({
-          logsUsageExceeded: true,
-          spansUsageExceeded: false,
-        })}
-        traceItemDataset="logs"
-        referrer="trace-view"
-      />,
-      {organization, initialRouterConfig}
+    SubscriptionStore.set(
+      organization.slug,
+      getSubscription({logsUsageExceeded: true, spansUsageExceeded: false})
     );
+
+    render(<QuotaExceededAlert traceItemDataset="logs" referrer="trace-view" />, {
+      organization,
+      initialRouterConfig,
+    });
 
     expect(await screen.findByText(/You['\u2019]ve exceeded your/i)).toBeInTheDocument();
 

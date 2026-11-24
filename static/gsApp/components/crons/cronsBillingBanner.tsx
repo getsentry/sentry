@@ -12,8 +12,8 @@ import {
   CronsBannerOnDemandCTA,
   CronsBannerUpgradeCTA,
 } from 'getsentry/components/crons/cronsBannerUpgradeCTA';
-import {withSubscription} from 'getsentry/components/withSubscription';
 import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {
   BillingConfig,
   MonitorCountResponse,
@@ -24,7 +24,6 @@ import {displayBudgetName, getTrialDaysLeft, isTrial} from 'getsentry/utils/bill
 
 interface Props {
   organization: Organization;
-  subscription: Subscription;
 }
 
 interface CronsPricingInfo {
@@ -39,11 +38,9 @@ function getCronsPricingInfo(config?: BillingConfig): CronsPricingInfo {
   return {onDemandPrice: bucket?.onDemandPrice, reserved: bucket?.events};
 }
 
-/** @internal exported for tests only */
-export function CronsBillingBanner({organization, subscription}: Props) {
+export function CronsBillingBanner({organization}: Props) {
+  const subscription = useSubscription({organization});
   const hasBillingAccess = organization.access.includes('org:billing');
-  const trialDaysLeft = getTrialDaysLeft(subscription);
-  const daysSinceTrial = getDaysSinceDate(subscription.lastTrialEnd ?? '');
 
   const {data: billingConfig} = useBillingConfig({organization});
   const {onDemandPrice, reserved} = getCronsPricingInfo(billingConfig);
@@ -55,9 +52,19 @@ export function CronsBillingBanner({organization, subscription}: Props) {
     )
   );
 
-  if (!data || isPending || !subscription.canSelfServe || !onDemandPrice || !reserved) {
+  if (
+    !subscription ||
+    !data ||
+    isPending ||
+    !subscription.canSelfServe ||
+    !onDemandPrice ||
+    !reserved
+  ) {
     return null;
   }
+
+  const trialDaysLeft = getTrialDaysLeft(subscription);
+  const daysSinceTrial = getDaysSinceDate(subscription.lastTrialEnd ?? '');
 
   // Show alert for when we have disabled all monitors due to insufficient PAYG
   if (
@@ -203,8 +210,6 @@ function InsufficentOnDemandMonitorsDisabledBanner({
     </Alert.Container>
   );
 }
-
-export default withSubscription(CronsBillingBanner, {noLoader: true});
 
 const NoBorderRadiusAlert = styled(Alert)`
   border-radius: 0;

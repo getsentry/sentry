@@ -27,7 +27,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 import {LearnMoreButton} from 'getsentry/components/features/learnMoreButton';
-import PlanFeature from 'getsentry/components/features/planFeature';
+import {PlanFeature} from 'getsentry/components/features/planFeature';
 import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
 import {AllocationTargetTypes} from 'getsentry/constants';
 import {useSubscription} from 'getsentry/hooks/useSubscription';

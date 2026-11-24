@@ -11,9 +11,10 @@ import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import {withSubscription} from 'getsentry/components/withSubscription';
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
 import {useAM2ProfilingUpsellModal} from 'getsentry/hooks/useAM2ProfilingUpsellModal';
 import {useAM2UpsellModal} from 'getsentry/hooks/useAM2UpsellModal';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {Subscription} from 'getsentry/types';
 
 import {
@@ -122,18 +123,25 @@ function getDisabledProducts({
   return disabledProducts;
 }
 
-type Props = {subscription: Subscription} & Omit<
-  ProductSelectionProps,
-  'disabledProducts'
->;
+type Props = Omit<ProductSelectionProps, 'disabledProducts'>;
 
-function ProductSelectionAvailabilityContainer({
+export function ProductSelectionAvailability(props: Props) {
+  const subscription = useSubscription({organization: props.organization});
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback organization={props.organization} />;
+  }
+
+  return <ProductSelectionAvailabilityContent {...props} subscription={subscription} />;
+}
+
+function ProductSelectionAvailabilityContent({
   organization,
   subscription,
   platform,
   onChange,
   onLoad,
-}: Props) {
+}: Props & {subscription: Subscription}) {
   // Disable requests for session replay upsell modal if the organization already has session replay
   const hasSessionReplay = organization.features.includes('session-replay');
   const sessionReplayUpsellModal = useAM2UpsellModal({
@@ -173,7 +181,3 @@ function ProductSelectionAvailabilityContainer({
     />
   );
 }
-
-export const ProductSelectionAvailability = withSubscription(
-  ProductSelectionAvailabilityContainer
-);

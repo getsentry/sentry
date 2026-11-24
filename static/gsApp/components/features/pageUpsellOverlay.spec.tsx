@@ -5,7 +5,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import PageUpsellOverlay from 'getsentry/components/features/pageUpsellOverlay';
+import {PageUpsellOverlay} from 'getsentry/components/features/pageUpsellOverlay';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 describe('PageUpsellOverlay', () => {

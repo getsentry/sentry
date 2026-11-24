@@ -11,7 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import {LearnMoreButton} from 'getsentry/components/features/learnMoreButton';
-import PlanFeature from 'getsentry/components/features/planFeature';
+import {PlanFeature} from 'getsentry/components/features/planFeature';
 import {displayPlanName} from 'getsentry/utils/billing';
 
 const FEATURE = 'custom-symbol-sources';

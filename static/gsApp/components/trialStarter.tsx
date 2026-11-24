@@ -4,7 +4,8 @@ import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import type {Organization} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
 
-import {withSubscription} from 'getsentry/components/withSubscription';
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
@@ -20,9 +21,7 @@ type Props = {
   children: (args: ChildProps) => React.ReactNode;
   organization: Organization;
   source: string;
-  subscription: Subscription;
   onTrialFailed?: (err: Error) => void;
-  // Can't use default prop typings because of HoC wrappers.
   onTrialStarted?: () => void;
   requestData?: Record<string, unknown>;
 };
@@ -32,6 +31,7 @@ function TrialStarter(props: Props) {
   const [trialStarting, setTrialStarting] = useState(false);
   const [trialStarted, setTrialStarted] = useState(false);
   const [trialFailed, setTrialFailed] = useState(false);
+  const subscription = useSubscription({organization: props.organization});
 
   const handleStartTrial = async () => {
     const {organization, source, requestData} = props;
@@ -69,9 +69,11 @@ function TrialStarter(props: Props) {
     localStorage.removeItem('sidebar-new-seen:customizable-dashboards');
   };
 
-  const {subscription, children} = props;
+  if (!subscription) {
+    return <SubscriptionLoadingFallback organization={props.organization} />;
+  }
 
-  return children({
+  return props.children({
     startTrial: handleStartTrial,
     trialStarting,
     trialStarted,
@@ -84,4 +86,4 @@ function TrialStarter(props: Props) {
 // cancel the in-flight requests to reload the organization details after the
 // trial has been started. Otherwise if this component is unmounted as a result
 // of starting the trial.
-export default withSubscription(TrialStarter);
+export {TrialStarter};

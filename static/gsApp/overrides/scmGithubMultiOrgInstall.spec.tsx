@@ -47,17 +47,17 @@ describe('ScmGithubMultiOrgInstall', () => {
   function renderComponent({
     hasFeature = false,
     installations = makeInstallations(),
-    withSubscription = true,
+    seedSubscription = true,
   }: {
     hasFeature?: boolean;
     installations?: ReturnType<typeof makeInstallations>;
-    withSubscription?: boolean;
+    seedSubscription?: boolean;
   } = {}) {
     const organization = OrganizationFixture({
       features: hasFeature ? ['integrations-scm-multi-org'] : [],
     });
 
-    if (withSubscription) {
+    if (seedSubscription) {
       const subscription = SubscriptionFixture({organization});
       SubscriptionStore.set(organization.slug, subscription);
 

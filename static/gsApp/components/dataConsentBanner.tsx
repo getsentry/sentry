@@ -16,8 +16,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
 import {openDataConsentModal} from 'getsentry/actionCreators/modal';
-import {withSubscription} from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 
 const titles = {
   issues: t('Help make Sentry less noisy and more precise'),
@@ -25,16 +24,11 @@ const titles = {
   grouping: t('Help Sentry improve grouping quality'),
 };
 
-function DataConsentBanner({
-  source,
-  subscription,
-}: {
-  source: string;
-  subscription: Subscription;
-}) {
+export function DataConsentBanner({source}: {source: string}) {
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const bannerTitle = titles[source];
   const organization = useOrganization();
+  const subscription = useSubscription();
   const {projects} = useProjects();
   const hasBillingAccess = organization.access.includes('org:billing');
 
@@ -46,6 +40,10 @@ function DataConsentBanner({
     feature: 'data_consent_banner',
     organization,
   });
+
+  if (!subscription) {
+    return null;
+  }
 
   const organizationAge = getOrganizationAge(organization);
 
@@ -118,8 +116,6 @@ function DataConsentBanner({
     </DataConsentBannerWrapper>
   );
 }
-
-export default withSubscription(DataConsentBanner, {noLoader: true});
 
 const DataConsentBannerWrapper = styled('div')`
   position: relative;

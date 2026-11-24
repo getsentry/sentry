@@ -9,7 +9,7 @@ import type {TimeRangeItem} from 'sentry/components/timeRangeSelector/types';
 import {DEFAULT_RELATIVE_PERIODS, MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 
-import UpsellProvider from 'getsentry/components/upsellProvider';
+import {UpsellProvider} from 'getsentry/components/upsellProvider';
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 
 const PREMIUM_PERIODS = ['90d'];

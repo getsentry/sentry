@@ -9,7 +9,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import {PerformanceBackground} from './illustrations/performanceBackground';
-import PageUpsellOverlay from './pageUpsellOverlay';
+import {PageUpsellOverlay} from './pageUpsellOverlay';
 
 type Props = React.PropsWithChildren<{features: string[]; organization: Organization}>;
 

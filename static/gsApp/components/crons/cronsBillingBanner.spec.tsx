@@ -8,6 +8,7 @@ import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {CronsBillingBanner} from 'getsentry/components/crons/cronsBillingBanner';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 describe('CronsBillingBanner', () => {
   beforeEach(() => {
@@ -41,9 +42,9 @@ describe('CronsBillingBanner', () => {
       body: {enabledMonitorCount: 5, disabledMonitorCount: 0},
     });
 
-    const {rerender} = render(
-      <CronsBillingBanner organization={organization} subscription={subscription} />
-    );
+    SubscriptionStore.set(organization.slug, subscription);
+
+    const {rerender} = render(<CronsBillingBanner organization={organization} />);
     expect(mockApiCall).toHaveBeenCalled();
     expect(
       await screen.findByText(
@@ -52,12 +53,7 @@ describe('CronsBillingBanner', () => {
     ).toBeInTheDocument();
 
     const organizationWithBillingAccess = OrganizationFixture({access: ['org:billing']});
-    rerender(
-      <CronsBillingBanner
-        organization={organizationWithBillingAccess}
-        subscription={subscription}
-      />
-    );
+    rerender(<CronsBillingBanner organization={organizationWithBillingAccess} />);
     expect(
       await screen.findByText(
         "Your organization's free business trial ends in 5 days. To continue monitoring your cron jobs, make sure your on-demand budget is set to a minimum of $3.12."
@@ -76,9 +72,9 @@ describe('CronsBillingBanner', () => {
       body: {enabledMonitorCount: 5, disabledMonitorCount: 0},
     });
 
-    const {rerender} = render(
-      <CronsBillingBanner organization={organization} subscription={subscription} />
-    );
+    SubscriptionStore.set(organization.slug, subscription);
+
+    const {rerender} = render(<CronsBillingBanner organization={organization} />);
 
     expect(mockApiCall).toHaveBeenCalled();
     expect(
@@ -88,12 +84,7 @@ describe('CronsBillingBanner', () => {
     ).toBeInTheDocument();
 
     const organizationWithBillingAccess = OrganizationFixture({access: ['org:billing']});
-    rerender(
-      <CronsBillingBanner
-        organization={organizationWithBillingAccess}
-        subscription={subscription}
-      />
-    );
+    rerender(<CronsBillingBanner organization={organizationWithBillingAccess} />);
     expect(
       await screen.findByText(
         'Your free business trial has ended. One cron job monitor is included in your current plan. If you want to monitor more than one cron job, please increase your on-demand budget.'
@@ -114,9 +105,9 @@ describe('CronsBillingBanner', () => {
       body: {enabledMonitorCount: 0, disabledMonitorCount: 0, overQuotaMonitorCount: 5},
     });
 
-    const {rerender} = render(
-      <CronsBillingBanner organization={organization} subscription={subscription} />
-    );
+    SubscriptionStore.set(organization.slug, subscription);
+
+    const {rerender} = render(<CronsBillingBanner organization={organization} />);
 
     expect(mockApiCall).toHaveBeenCalled();
     expect(
@@ -126,12 +117,7 @@ describe('CronsBillingBanner', () => {
     ).toBeInTheDocument();
 
     const organizationWithBillingAccess = OrganizationFixture({access: ['org:billing']});
-    rerender(
-      <CronsBillingBanner
-        organization={organizationWithBillingAccess}
-        subscription={subscription}
-      />
-    );
+    rerender(<CronsBillingBanner organization={organizationWithBillingAccess} />);
     expect(
       await screen.findByText(
         "Your organization doesn't have sufficient on-demand budget to cover your active cron job monitors. To continue monitoring your jobs, increase your on-demand budget or reduce your active monitors."

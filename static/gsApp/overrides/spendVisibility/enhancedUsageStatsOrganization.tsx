@@ -32,7 +32,8 @@ import {
   getPaginationPageLink,
 } from 'sentry/views/organizationStats/utils';
 
-import {withSubscription} from 'getsentry/components/withSubscription';
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {type Subscription} from 'getsentry/types';
 import {SPIKE_PROTECTION_OPTION_DISABLED} from 'getsentry/views/spikeProtection/constants';
 import {SpikeProtectionRangeLimitation} from 'getsentry/views/spikeProtection/spikeProtectionCallouts';
@@ -207,10 +208,22 @@ function getSpikeDetails({
 
 interface EnhancedUsageStatsOrganizationProps extends UsageStatsOrganizationProps {
   isSingleProject: boolean;
-  subscription: Subscription;
   chartTransform?: string;
   spikeCursor?: string;
 }
+
+export function EnhancedUsageStatsOrganization(
+  props: EnhancedUsageStatsOrganizationProps
+) {
+  const subscription = useSubscription({organization: props.organization});
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback organization={props.organization} />;
+  }
+
+  return <EnhancedUsageStatsOrganizationContent {...props} subscription={subscription} />;
+}
+
 /**
  * Client-side pagination is used for the Spike table because we have spikes from
  * two sources: (1) calculated dynamically from the usage data, (2) from the
@@ -218,7 +231,7 @@ interface EnhancedUsageStatsOrganizationProps extends UsageStatsOrganizationProp
  *
  * TODO(cathy): Remove (1) after 90d and paginate the remaining endpoint.
  */
-function EnhancedUsageStatsOrganization({
+function EnhancedUsageStatsOrganizationContent({
   organization,
   subscription,
   projectIds,
@@ -231,7 +244,7 @@ function EnhancedUsageStatsOrganization({
   clientDiscard,
   handleChangeState,
   chartTransform,
-}: EnhancedUsageStatsOrganizationProps) {
+}: EnhancedUsageStatsOrganizationProps & {subscription: Subscription}) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === `${projectIds[0]}`);
   const endpointQueryDatetime = getEndpointQueryDatetime(dataDatetime);
@@ -468,5 +481,3 @@ const DroppedFromSpikesStat = styled('div')`
   color: ${p => p.theme.tokens.content.success};
   font-size: ${p => p.theme.font.size.md};
 `;
-
-export default withSubscription(EnhancedUsageStatsOrganization);

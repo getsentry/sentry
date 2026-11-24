@@ -4,21 +4,18 @@ import {Button, type ButtonProps} from '@sentry/scraps/button';
 
 import type {Organization} from 'sentry/types/organization';
 
-import UpsellProvider from 'getsentry/components/upsellProvider';
-import type {Subscription} from 'getsentry/types';
+import {UpsellProvider} from 'getsentry/components/upsellProvider';
 
 interface Props
   extends
     Omit<ButtonProps, 'aria-label'>,
     Pick<React.ComponentProps<typeof UpsellProvider>, 'source' | 'extraAnalyticsParams'> {
   organization?: Organization;
-  subscription?: Subscription;
 }
 
 export function UpsellButton({
   source,
   extraAnalyticsParams,
-  subscription,
   organization,
   ...rest
 }: Props) {
@@ -28,7 +25,6 @@ export function UpsellButton({
       organization={organization}
       triggerMemberRequests
       extraAnalyticsParams={extraAnalyticsParams}
-      subscription={subscription}
     >
       {({onClick, defaultButtonText}) => (
         <Button onClick={onClick} icon={<IconBusiness />} {...rest}>

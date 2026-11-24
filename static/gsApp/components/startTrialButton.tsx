@@ -9,7 +9,7 @@ import {toast} from '@sentry/scraps/toast';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import TrialStarter from 'getsentry/components/trialStarter';
+import {TrialStarter} from 'getsentry/components/trialStarter';
 
 type StartTrialButtonProps = React.PropsWithChildren<{
   organization: Organization;

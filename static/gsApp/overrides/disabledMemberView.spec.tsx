@@ -1,15 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import DisabledMemberView from 'getsentry/overrides/disabledMemberView';
+import {DisabledMemberView} from 'getsentry/overrides/disabledMemberView';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 describe('DisabledMemberView', () => {
   it('click triggers request member', async () => {
-    const {routerProps} = initializeOrg();
     const organization = OrganizationFixture();
     const sub = SubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, sub);
@@ -28,7 +26,12 @@ describe('DisabledMemberView', () => {
       method: 'POST',
     });
 
-    render(<DisabledMemberView {...routerProps} params={{orgId: organization.slug}} />);
+    render(<DisabledMemberView />, {
+      initialRouterConfig: {
+        location: {pathname: `/organizations/${organization.slug}/disabled-member/`},
+        route: '/organizations/:orgId/disabled-member/',
+      },
+    });
 
     await screen.findByText('Request Upgrade');
     await userEvent.click(screen.getByText('Request Upgrade'));

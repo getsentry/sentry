@@ -2,13 +2,19 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {tct} from 'sentry/locale';
 
-import {withSubscription} from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {displayPlanName} from 'getsentry/utils/billing';
 
-type Props = {children: React.ReactNode; subscription: Subscription};
+type Props = {children: React.ReactNode};
 
-function DisabledMemberTooltip({subscription, children}: Props) {
+export function DisabledMemberTooltip({children}: Props) {
+  const subscription = useSubscription();
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback />;
+  }
+
   // only disabling members for plans with exactly 1 member
   const title = tct('Only 1 member allowed with [planName] Plan', {
     planName: displayPlanName(subscription.planDetails),
@@ -16,4 +22,3 @@ function DisabledMemberTooltip({subscription, children}: Props) {
 
   return <Tooltip title={title}>{children}</Tooltip>;
 }
-export default withSubscription(DisabledMemberTooltip);
