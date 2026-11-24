@@ -169,6 +169,24 @@ export function getStoppedChatMessage(denialReason: string | null | undefined): 
   return STOPPED_CHAT_MESSAGE[normalizeDenialReason(denialReason)];
 }
 
+const STOPPED_FEEDBACK_MESSAGE: Record<SeerCreditDenialReason, string> = {
+  not_enough_credits: t(
+    "This feedback couldn't finish because your organization ran out of credits"
+  ),
+  daily_cap_exceeded: t(
+    "This feedback couldn't finish because your organization hit its daily usage limit"
+  ),
+};
+
+/**
+ * Tooltip for PR feedback whose iteration or push stopped for credits.
+ */
+export function getStoppedFeedbackMessage(
+  denialReason: string | null | undefined
+): string {
+  return STOPPED_FEEDBACK_MESSAGE[normalizeDenialReason(denialReason)];
+}
+
 /**
  * Tooltip for a retry that stays disabled until the organization can afford it.
  */
