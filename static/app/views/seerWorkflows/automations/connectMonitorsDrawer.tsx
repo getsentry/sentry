@@ -70,59 +70,17 @@ function MetricMonitors({
   const {selection} = usePageFilters();
   const [query, setQuery] = useState('');
   const [lastBreachSort, setLastBreachSort] = useState<SortDirection>('desc');
-
-  return (
-    <Stack gap="lg">
-      <Flex gap="md" align="start">
-        <ProjectPageFilter storageNamespace="seerAutomationDrawer" />
-        <Container flexGrow={1} minWidth={0}>
-          <DetectorSearch
-            initialQuery={query}
-            excludeKeys={['type']}
-            onSearch={setQuery}
-          />
-        </Container>
-      </Flex>
-      {/* Keyed so pagination restarts when the filters change */}
-      <MonitorList
-        key={`${selection.projects.join(',')}|${query}|${lastBreachSort}`}
-        connectedIds={connectedIds}
-        toggleConnected={toggleConnected}
-        projectIds={selection.projects}
-        query={query}
-        lastBreachSort={{
-          direction: lastBreachSort,
-          onSort: () => setLastBreachSort(lastBreachSort === 'desc' ? 'asc' : 'desc'),
-        }}
-      />
-    </Stack>
-  );
-}
-
-function MonitorList({
-  connectedIds,
-  toggleConnected,
-  projectIds,
-  query,
-  lastBreachSort,
-}: {
-  connectedIds: string[];
-  lastBreachSort: {direction: SortDirection; onSort: () => void};
-  projectIds: number[];
-  query: string;
-  toggleConnected: (monitorId: string) => void;
-}) {
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
   const organization = useOrganization();
   const {projects} = useProjects();
   const getPaginationCaption = useGetPaginationCaption();
-  const [cursor, setCursor] = useState<string | undefined>(undefined);
 
   const {data, isPending, isError} = useQuery({
     ...detectorListApiOptions(organization, {
       query: query ? `type:metric_issue ${query}` : 'type:metric_issue',
-      projects: projectIds,
+      projects: selection.projects,
       limit: MONITORS_PER_PAGE,
-      sortBy: lastBreachSort.direction === 'desc' ? '-latestGroup' : 'latestGroup',
+      sortBy: lastBreachSort === 'desc' ? '-latestGroup' : 'latestGroup',
       cursor,
     }),
     select: selectJsonWithHeaders,
@@ -130,58 +88,82 @@ function MonitorList({
   const monitors = data?.json.filter(monitor => monitor.type === 'metric_issue') ?? [];
 
   return (
-    <Container containerType="inline-size">
-      <MonitorTable
-        monitors={monitors}
-        isError={isError}
-        lastBreachSort={lastBreachSort}
-        pendingRows={isPending ? MONITORS_PER_PAGE : 0}
-        emptyMessage={t('No metric monitors match your search')}
-        renderAction={monitor => {
-          const isConnected = connectedIds.includes(monitor.id);
-          const canConnect = canConnectAutomationToDetector({
-            organization,
-            detector: monitor,
-            project: projects.find(project => project.id === monitor.projectId),
-          });
-          return (
-            <Button
-              size="sm"
-              variant={isConnected ? 'secondary' : 'primary'}
-              aria-label={
-                isConnected
-                  ? t('Disconnect %s', monitor.name)
-                  : t('Connect %s', monitor.name)
-              }
-              disabled={!canConnect}
-              tooltipProps={{
-                title: canConnect
-                  ? undefined
-                  : t(
-                      "You don't have permission to change this monitor's alert connections."
-                    ),
-              }}
-              onClick={() => toggleConnected(monitor.id)}
-            >
-              {isConnected ? t('Disconnect') : t('Connect')}
-            </Button>
-          );
-        }}
-      />
-      <Pagination
-        onCursor={setCursor}
-        {...getPaginationProps(data?.headers.Link)}
-        caption={
-          data
-            ? getPaginationCaption({
-                cursor,
-                limit: MONITORS_PER_PAGE,
-                pageLength: monitors.length,
-                total: data.headers['X-Hits'] ?? 0,
-              })
-            : undefined
-        }
-      />
-    </Container>
+    <Stack gap="lg">
+      <Flex gap="md" align="start">
+        <ProjectPageFilter
+          storageNamespace="seerAutomationDrawer"
+          onChange={() => setCursor(undefined)}
+        />
+        <Container flexGrow={1} minWidth={0}>
+          <DetectorSearch
+            initialQuery={query}
+            excludeKeys={['type']}
+            onSearch={nextQuery => {
+              setQuery(nextQuery);
+              setCursor(undefined);
+            }}
+          />
+        </Container>
+      </Flex>
+      <Container containerType="inline-size">
+        <MonitorTable
+          monitors={monitors}
+          isError={isError}
+          lastBreachSort={{
+            direction: lastBreachSort,
+            onSort: () => {
+              setLastBreachSort(lastBreachSort === 'desc' ? 'asc' : 'desc');
+              setCursor(undefined);
+            },
+          }}
+          pendingRows={isPending ? MONITORS_PER_PAGE : 0}
+          emptyMessage={t('No metric monitors match your search')}
+          renderAction={monitor => {
+            const isConnected = connectedIds.includes(monitor.id);
+            const canConnect = canConnectAutomationToDetector({
+              organization,
+              detector: monitor,
+              project: projects.find(project => project.id === monitor.projectId),
+            });
+            return (
+              <Button
+                size="sm"
+                variant={isConnected ? 'secondary' : 'primary'}
+                aria-label={
+                  isConnected
+                    ? t('Disconnect %s', monitor.name)
+                    : t('Connect %s', monitor.name)
+                }
+                disabled={!canConnect}
+                tooltipProps={{
+                  title: canConnect
+                    ? undefined
+                    : t(
+                        "You don't have permission to change this monitor's alert connections."
+                      ),
+                }}
+                onClick={() => toggleConnected(monitor.id)}
+              >
+                {isConnected ? t('Disconnect') : t('Connect')}
+              </Button>
+            );
+          }}
+        />
+        <Pagination
+          onCursor={setCursor}
+          {...getPaginationProps(data?.headers.Link)}
+          caption={
+            data
+              ? getPaginationCaption({
+                  cursor,
+                  limit: MONITORS_PER_PAGE,
+                  pageLength: monitors.length,
+                  total: data.headers['X-Hits'] ?? 0,
+                })
+              : undefined
+          }
+        />
+      </Container>
+    </Stack>
   );
 }
