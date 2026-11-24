@@ -25,7 +25,7 @@ export function GroupBySection({query, index}: Props) {
   const updateGroupBys = useUpdateQueryAtIndex(index);
 
   const enabledOptions = useGroupByFields({
-    groupBys: [],
+    groupBys: query.groupBys,
     numberTags,
     stringTags,
     booleanTags,

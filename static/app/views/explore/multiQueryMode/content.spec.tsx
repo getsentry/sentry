@@ -470,6 +470,38 @@ describe('MultiQueryModeContent', () => {
     ]);
   });
 
+  it('can remove a group by from the URL that is missing from the attribute list', async () => {
+    function Component() {
+      const [query] = useReadQueriesFromLocation();
+      return (
+        <>
+          <output>{query?.groupBys.join(',')}</output>
+          <MultiQueryModeContent />
+        </>
+      );
+    }
+
+    render(<Component />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/compare',
+          query: {
+            queries: JSON.stringify({
+              groupBys: ['span.op', 'custom.release'],
+              yAxes: ['count(span.duration)'],
+            }),
+          },
+        },
+      },
+    });
+
+    const section = screen.getByTestId('section-group-by-0');
+    await userEvent.click(within(section).getByRole('button'));
+    await userEvent.click(within(section).getByRole('option', {name: 'custom.release'}));
+    expect(screen.getByText('span.op', {selector: 'output'})).toBeInTheDocument();
+  });
+
   it('allows changing a query', async () => {
     let queries: any;
     function Component() {
