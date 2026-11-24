@@ -17,7 +17,7 @@ html {
 }
 
 body {
-  font-family: var(--legacy-font-family-base);
+  font-family: 'Rubik', 'Rubik Arial', 'Avenir Next', 'Helvetica Neue', sans-serif;
   margin: 0;
   font-size: 87.5%;
   line-height: 1.4;
@@ -375,7 +375,9 @@ code,
 kbd,
 pre,
 samp {
-  font-family: var(--legacy-font-family-monospace);
+  font-family:
+    'Roboto Mono', 'Roboto Mono Andale', 'Roboto Mono Courier', Menlo, Monaco, Consolas,
+    'Courier New', monospace;
   font-size: 1em;
 }
 
@@ -420,7 +422,7 @@ code {
 pre {
   display: block;
   padding: calc((var(--legacy-line-height-computed) - 1px) / 2);
-  font-size: calc(var(--legacy-font-size-base) - 1px); /* 14px to 13px */
+  font-size: 13px;
   line-height: var(--legacy-line-height-base);
   word-break: break-all;
   white-space: pre-wrap;

@@ -35,8 +35,7 @@ pnpm --dir static/packages/scraps pack --pack-destination .artifacts
 ```
 
 The `prepack` hook builds JavaScript and declarations with
-[Rslib](./rslib.config.mjs), including from a clean checkout. Only `dist`, the
-package manifest, README, and license ship.
+[Rslib](./rslib.config.mjs), including from a clean checkout. The package ships `dist`, the font stylesheet and WOFF2 assets, the manifest, README, and licenses.
 
 The `exports` field in [package.json](./package.json) defines the published API.
 Import from its explicit subpaths, including `@sentry/scraps/code/inlineCode`
@@ -49,7 +48,13 @@ entry point. App stories cover more components than this API. Published consumer
 have no fallback to app components.
 
 Consumers provide Emotion's `ThemeProvider` with `lightTheme` or `darkTheme`.
-The package does not include application providers, global CSS, or fonts.
+Load Rubik, Roboto Mono, and their metric-adjusted fallbacks in your app stylesheet.
+
+```css
+@import '@sentry/scraps/fonts.css';
+```
+
+Individual WOFF2 files are available under `@sentry/scraps/fonts/*.woff2`.
 
 ## Date and duration formatting
 

@@ -9,11 +9,11 @@ Sentry ships variable WOFF2 subsets of [Rubik and Roboto Mono from Google Fonts]
 
 ## Browser layout and fallbacks
 
-[The shared font stylesheet](../css/fonts.css) defines the Unicode subsets and uses `font-display: swap` for both families. The [visual snapshot renderer](../../tests/js/sentry-test/snapshots/snapshot.ts) loads these same rules and embeds the local WOFF2 files.
+[The shared font stylesheet](../fonts.css) defines the Unicode subsets and uses `font-display: swap` for both families. The [visual snapshot renderer](../../../../tests/js/sentry-test/snapshots/snapshot.ts) loads these same rules and embeds the local WOFF2 files.
 
 Both families use a 0.935em ascent, a 0.23em descent, and a zero line gap. Roboto Mono is scaled to Rubik’s 0.7em cap height, which brings the x-heights within 0.0002em. When changing `size-adjust`, divide the target ascent and descent by the scale factor to compute the overrides.
 
-Keep the calibrated fallback names ahead of the raw system fonts in [the Scraps theme](../packages/scraps/src/theme/theme.tsx) and [legacy stacks](../css/variables.css). Adjusted Andale Mono and Courier New match Roboto Mono’s line metrics and cell advance. Adjusted Arial matches Rubik’s line metrics and approximates the width of representative Latin UI text. Individual glyph shapes still change at swap. Proportional widths and wrapping can also change.
+Keep the calibrated fallback names ahead of the raw system fonts in [the Scraps theme](../src/theme/theme.tsx) and [legacy stacks](../../../css/base.css). Adjusted Andale Mono and Courier New match Roboto Mono’s line metrics and cell advance. Adjusted Arial matches Rubik’s line metrics and approximates the width of representative Latin UI text. Individual glyph shapes still change at swap. Proportional widths and wrapping can also change.
 
 ## Rebuilding the assets
 

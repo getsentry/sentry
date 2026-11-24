@@ -16,14 +16,20 @@ import type {
 } from 'sentry-test/snapshots/snapshot-image-metadata';
 
 const PROJECT_ROOT = path.resolve(__dirname, '../../../..');
-const FONTS_DIR = path.join(PROJECT_ROOT, 'static/fonts');
-const FONT_CSS = readFileSync(
-  path.join(PROJECT_ROOT, 'static/css/fonts.css'),
-  'utf8'
-).replaceAll(/sentry-fonts\/([\w-]+\.woff2)/g, (_match, filename: string) => {
-  const font = readFileSync(path.join(FONTS_DIR, filename));
-  return `data:font/woff2;base64,${font.toString('base64')}`;
-});
+const fontsCssPath = path.join(PROJECT_ROOT, 'static/packages/scraps/fonts.css');
+const FONTS_DIR = path.join(path.dirname(fontsCssPath), 'fonts');
+const FONT_CSS = [
+  readFileSync(fontsCssPath, 'utf8'),
+  readFileSync(path.join(PROJECT_ROOT, 'static/css/icon-font.css'), 'utf8'),
+]
+  .join('\n')
+  .replaceAll(
+    /(?:\.\/fonts|@sentry\/scraps\/fonts)\/([\w-]+\.woff2)/g,
+    (_match, filename: string) => {
+      const font = readFileSync(path.join(FONTS_DIR, filename));
+      return `data:font/woff2;base64,${font.toString('base64')}`;
+    }
+  );
 
 function renderToHTML(
   element: ReactElement,

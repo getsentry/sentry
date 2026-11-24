@@ -24,7 +24,7 @@ legend {
   width: 100%;
   padding: 0;
   margin-bottom: var(--legacy-line-height-computed);
-  font-size: calc(var(--legacy-font-size-base) * 1.5);
+  font-size: 21px;
   line-height: inherit;
   color: var(--legacy-legend-color);
   border: 0;
@@ -111,7 +111,7 @@ select[size] {
 output {
   display: block;
   padding-top: calc(var(--legacy-padding-base-vertical) + 1px);
-  font-size: var(--legacy-font-size-base);
+  font-size: 14px;
   line-height: var(--legacy-line-height-base);
   color: var(--legacy-input-color);
 }
@@ -146,7 +146,7 @@ output {
   /* Make inputs at least the height of their button counterpart (base line-height + padding + border) */
   height: var(--legacy-input-height-base);
   padding: var(--legacy-padding-base-vertical) var(--legacy-padding-base-horizontal);
-  font-size: var(--legacy-font-size-base);
+  font-size: 14px;
   line-height: var(--legacy-line-height-base);
   color: var(--legacy-input-color);
   background-color: var(--legacy-input-bg);

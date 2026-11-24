@@ -306,7 +306,9 @@ pre.plain {
   }
 
   .loading-message {
-    font-family: var(--legacy-font-family-code);
+    font-family:
+      'Roboto Mono', 'Roboto Mono Andale', 'Roboto Mono Courier', Consolas, 'Courier New',
+      monospace;
     text-align: center;
     font-weight: bold;
 

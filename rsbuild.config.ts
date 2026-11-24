@@ -108,13 +108,16 @@ const sentryDjangoAppPath = path.join(import.meta.dirname, 'src/sentry/static/se
 const distPath = path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(import.meta.dirname, 'static');
 const legacyCssPath = path.join(staticPrefix, 'css');
+const scrapsPath = path.join(staticPrefix, 'packages', 'scraps');
+const scrapsFontsCss = path.join(scrapsPath, 'fonts.css');
+const extractedCssPaths = [legacyCssPath, scrapsFontsCss];
 
 // sentry.css is emitted to entrypoints/ (entrypoints-hashed/ in SaaS), so the
 // fonts and images it references must step up to reach assets/. The layer
 // keeps these separate from the same files imported from JS, which need the
 // runtime public path.
 const legacyCssAssetRule: RuleSetRule = {
-  issuer: {and: [legacyCssPath, /\.css$/]},
+  issuer: {and: [{or: extractedCssPaths}, /\.css$/]},
   layer: 'legacy-css-assets',
   generator: {publicPath: '../'},
 };
@@ -382,10 +385,10 @@ const appConfig: Configuration = {
           {loader: path.resolve(import.meta.dirname, './build-utils/peggy-loader.ts')},
         ],
       },
-      {test: /\.css$/, include: [legacyCssPath], type: 'css/auto'},
+      {test: /\.css$/, include: extractedCssPaths, type: 'css/auto'},
       {
         test: /\.css$/,
-        exclude: [legacyCssPath],
+        exclude: extractedCssPaths,
         type: 'css/auto',
         // Inject a <style> tag, like style-loader did
         parser: {exportType: 'style'},
@@ -481,10 +484,11 @@ const appConfig: Configuration = {
     alias: {
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
-      'sentry-fonts': path.join(staticPrefix, 'fonts'),
+      '@sentry/scraps/fonts.css$': scrapsFontsCss,
+      '@sentry/scraps/fonts': path.join(scrapsPath, 'fonts'),
 
       '@sentry/scraps': [
-        path.join(staticPrefix, 'packages', 'scraps', 'src'),
+        path.join(scrapsPath, 'src'),
         path.join(staticPrefix, 'app', 'components', 'core'),
       ],
 

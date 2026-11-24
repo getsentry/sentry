@@ -1,0 +1,43 @@
+/* Sentry icon font */
+
+@font-face {
+  font-family: 'sentry-simple';
+  src: url('@sentry/scraps/fonts/sentry-simple.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  /* Icon glyphs have no meaningful fallback, so hide them until the font loads */
+  font-display: block;
+}
+
+[class^='icon-'],
+[class*=' icon-'],
+.icon {
+  font-family: 'sentry-simple';
+  speak: none;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+
+  /* Better Font Rendering =========== */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Font based icons still in uses in Django rendered views. */
+.icon-sentry-logo:before {
+  content: '\e61a';
+}
+.icon-sentry-logo-full:before {
+  content: '\e623';
+}
+.icon-exclamation:before {
+  content: '\e615';
+}
+.icon-arrow-left:before {
+  content: '\e60e';
+}
+.icon-arrow-right:before {
+  content: '\e611';
+}
