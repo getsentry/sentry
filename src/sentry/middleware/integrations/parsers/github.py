@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Mapping
 from typing import Any
 
@@ -8,7 +9,13 @@ import orjson
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 
+from sentry.constants import ObjectStatus
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
+from sentry.hybridcloud.webhook_delivery_context import (
+    DeliveryContextUnsigned,
+    WebhookDeliveryContext,
+    sign_webhook_delivery_context,
+)
 from sentry.integrations.github.check_payloads import references_own_repo_pull_request
 from sentry.integrations.github.webhook import (
     GitHubIntegrationsWebhookEndpoint,
@@ -23,11 +30,28 @@ from sentry.integrations.github.webhook_types import (
 )
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.options.rollout import in_random_rollout
 from sentry.silo.base import control_silo_function
+from sentry.silo.util import (
+    WEBHOOK_DELIVERY_CONTEXT_HEADER,
+    WEBHOOK_DELIVERY_CONTEXT_SIGNATURE_HEADER,
+)
+from sentry.types.cell import Cell
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+DELIVERY_CONTEXT_EMIT_RATE_OPTION = "github.webhook.delivery-context.emit-rate"
+
+# The events whose cell handler can act on a delivery context. Read off the handlers
+# so that control signs one for exactly the events a cell would use it on.
+DELIVERY_CONTEXT_EVENTS = frozenset(
+    event_type.value
+    for event_type, handler in GitHubIntegrationsWebhookEndpoint._handlers.items()
+    if handler.USES_DELIVERY_CONTEXT
+)
 
 
 def _bounded_action_tag(action: Any, action_filter: ActionFilter) -> str:
@@ -67,6 +91,12 @@ class GithubRequestParser(BaseRequestParser):
     webhook_endpoint: Any = GitHubIntegrationsWebhookEndpoint
     """Overridden in GithubEnterpriseRequestParser"""
 
+    _emits_delivery_context = False
+    """Decided once per request, before the routing lookups, so that a webhook that
+    gets no context keeps the routing query it had."""
+    _linked_organization_ids: frozenset[int] | None = None
+    _delivery_context_issued_at: int | None = None
+
     def _get_external_id(self, event: Mapping[str, Any]) -> str | None:
         """Overridden in GithubEnterpriseRequestParser"""
         return get_github_external_id(event)
@@ -83,6 +113,80 @@ class GithubRequestParser(BaseRequestParser):
         self, parsed_event: Mapping[str, Any], request: HttpRequest
     ) -> bool:
         return request.META.get(GITHUB_WEBHOOK_TYPE_HEADER) in _CONTROL_ONLY_EVENTS
+
+    def _should_emit_delivery_context(self, github_event: str | None) -> bool:
+        """Whether this webhook is queued with a delivery context for the cell.
+
+        GitHub.com only. GitHub Enterprise installations are keyed by host, and the
+        customer holds the secret that signs the body the context is checked against.
+        """
+        return (
+            self.provider == IntegrationProviderSlug.GITHUB.value
+            and github_event in DELIVERY_CONTEXT_EVENTS
+            and in_random_rollout(DELIVERY_CONTEXT_EMIT_RATE_OPTION)
+        )
+
+    def get_active_organization_ids(self, integration_id: int) -> list[int]:
+        if not self._emits_delivery_context:
+            return super().get_active_organization_ids(integration_id)
+
+        # Routing wants the active links and the context wants every link, which is
+        # what the cell handler would get from control. One query serves both. The
+        # context is dated from before the read, so its age never understates it.
+        self._delivery_context_issued_at = int(time.time())
+        links = list(
+            OrganizationIntegration.objects.filter(integration_id=integration_id).values_list(
+                "organization_id", "status"
+            )
+        )
+        self._linked_organization_ids = frozenset(organization_id for organization_id, _ in links)
+        return [
+            organization_id for organization_id, status in links if status == ObjectStatus.ACTIVE
+        ]
+
+    def _delivery_context_headers(
+        self, integration: Integration, cells: list[Cell], github_event: str | None
+    ) -> dict[str, str | None]:
+        """The headers that carry the delivery context to the cell.
+
+        Both names are always returned, set to None when there is no context to send,
+        so that a copy the caller sent is never stored and replayed to the cell.
+        """
+        headers: dict[str, str | None] = {
+            WEBHOOK_DELIVERY_CONTEXT_HEADER: None,
+            WEBHOOK_DELIVERY_CONTEXT_SIGNATURE_HEADER: None,
+        }
+        if self._linked_organization_ids is None or self._delivery_context_issued_at is None:
+            return headers
+
+        signed = sign_webhook_delivery_context(
+            WebhookDeliveryContext(
+                provider=self.provider,
+                external_id=integration.external_id,
+                integration_id=integration.id,
+                organization_ids=self._linked_organization_ids,
+                cell_names=frozenset(cell.name for cell in cells),
+                event_type=github_event,
+                delivery_id=self.request.headers.get("X-GitHub-Delivery"),
+                issued_at=self._delivery_context_issued_at,
+            ),
+            path=self.request.get_full_path(),
+            request_body=self.request.body,
+        )
+        if isinstance(signed, DeliveryContextUnsigned):
+            # The cell resolves the integration through control, as it always has.
+            metrics.incr(
+                "github.webhook.delivery_context.emit",
+                tags={"outcome": signed.value},
+                sample_rate=1.0,
+            )
+            return headers
+
+        encoded, signature = signed
+        headers[WEBHOOK_DELIVERY_CONTEXT_HEADER] = encoded
+        headers[WEBHOOK_DELIVERY_CONTEXT_SIGNATURE_HEADER] = signature
+        metrics.incr("github.webhook.delivery_context.emit", tags={"outcome": "signed"})
+        return headers
 
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
@@ -194,6 +298,8 @@ class GithubRequestParser(BaseRequestParser):
         if shed_response is not None:
             return shed_response
 
+        self._emits_delivery_context = self._should_emit_delivery_context(github_event)
+
         try:
             integration = self.integration_for_request()
             if not integration:
@@ -222,6 +328,7 @@ class GithubRequestParser(BaseRequestParser):
             cells=cells,
             mailbox=self.get_mailbox(integration, event),
             integration_id=integration.id,
+            header_overrides=self._delivery_context_headers(integration, cells, github_event),
         )
 
         return response

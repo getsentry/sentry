@@ -4,8 +4,10 @@ from typing import Any, cast
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import orjson
 import pytest
 import responses
+from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 
 from fixtures.github import (
@@ -28,6 +30,7 @@ from sentry.analytics.events.pr_iteration_events import (
     AiAutofixPrIterationMissingPermissionsEvent,
 )
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.webhook_delivery_context import (
     DeliveryContextUnsigned,
     WebhookDeliveryContext,
@@ -69,6 +72,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.analytics import assert_analytics_events
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import (
     assume_test_silo_mode,
@@ -3124,6 +3128,167 @@ class CheckSuiteDeliveryContextMonolithTest(DeliveryContextTestMixin):
         assert response.status_code == 204
         self.assert_handled_on_lookup()
         self.metrics.incr.assert_not_called()
+
+
+# Control only forwards a completed check_suite that names a pull request based in
+# the repository it is for.
+CHECK_SUITE_WITH_PULL_REQUEST_EVENT = json.dumps(
+    {
+        **json.loads(CHECK_SUITE_COMPLETED_EVENT),
+        "check_suite": {
+            **json.loads(CHECK_SUITE_COMPLETED_EVENT)["check_suite"],
+            "pull_requests": [{"number": 7, "base": {"repo": {"id": 35129377}}}],
+        },
+    }
+)
+
+
+@cell_silo_test
+class CheckSuiteQueueToCellTest(DeliveryContextTestMixin):
+    """Control queues a check_suite webhook with a delivery context, and the cell is
+    handed exactly what was queued, as the delivery task would hand it over."""
+
+    def queue(self) -> WebhookPayload:
+        body = CHECK_SUITE_WITH_PULL_REQUEST_EVENT.encode("utf-8")
+        signature = GitHubIntegrationsWebhookEndpoint.compute_signature("sha256", body, self.secret)
+        request = RequestFactory().post(
+            self.url,
+            data=body,
+            content_type="application/json",
+            headers={
+                "X-GitHub-Event": "check_suite",
+                "X-GitHub-Delivery": self.delivery_id,
+                "X-Hub-Signature-256": f"sha256={signature}",
+            },
+        )
+
+        def passthrough(request: HttpRequest) -> HttpResponse:
+            return HttpResponse(status=200)
+
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            override_options({"github.webhook.delivery-context.emit-rate": 1.0}),
+            # Queued only. Each test delivers it itself.
+            patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain"),
+        ):
+            response = GithubRequestParser(
+                request=request, response_handler=passthrough
+            ).get_response()
+            assert response.status_code == 202
+            return WebhookPayload.objects.get()
+
+    def deliver(self, payload: WebhookPayload) -> Any:
+        headers = {
+            f"HTTP_{name.upper().replace('-', '_')}": value
+            for name, value in orjson.loads(payload.request_headers).items()
+            if name.lower() not in ("content-type", "content-length", "cookie")
+        }
+        return self.client.post(
+            path=payload.request_path,
+            data=payload.request_body,
+            content_type="application/json",
+            **headers,
+        )
+
+    @override_options(ENFORCE)
+    def test_cell_handles_what_control_queued(self) -> None:
+        response = self.deliver(self.queue())
+
+        assert response.status_code == 204
+        self.assert_handled_on_context()
+        assert self.outcomes() == ["used"]
+
+    @override_options(SHADOW)
+    def test_shadow_agrees_with_what_control_queued(self) -> None:
+        response = self.deliver(self.queue())
+
+        assert response.status_code == 204
+        self.assert_handled_on_lookup()
+        assert self.outcomes() == ["shadow_would_use"]
+
+    @override_options(ENFORCE)
+    def test_unlink_that_completes_after_queueing_is_left_to_the_lookup(self) -> None:
+        payload = self.queue()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(integration_id=self.integration.id).delete()
+        self.repo.update(integration_id=None)
+
+        response = self.deliver(payload)
+
+        assert response.status_code == 204
+        assert self.outcomes() == ["repo_integration_mismatch"]
+        self.lookup.assert_called_once()
+        self.processor.assert_not_called()
+
+    @override_options(ENFORCE)
+    def test_delivery_inside_the_max_age_uses_the_context(self) -> None:
+        with freeze_time("2023-11-14T22:13:20Z"):
+            payload = self.queue()
+
+        with freeze_time("2023-11-14T22:13:49Z"):
+            self.deliver(payload)
+
+        self.assert_handled_on_context()
+
+    @override_options(ENFORCE)
+    def test_retried_delivery_past_the_max_age_uses_the_lookup(self) -> None:
+        with freeze_time("2023-11-14T22:13:20Z"):
+            payload = self.queue()
+
+        with freeze_time("2023-11-14T22:13:51Z"):
+            self.deliver(payload)
+
+        self.assert_handled_on_lookup()
+        assert self.outcomes() == ["expired"]
+
+    def _link_another_organization(self, status: int) -> Repository:
+        other_org = self.create_organization()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            link = self.integration.add_organization(other_org.id, self.user)
+            assert link is not None
+            link.update(status=status)
+        return self.create_repo(
+            self.create_project(organization=other_org),
+            name="baxterthehacker/public-repo",
+            provider="integrations:github",
+            external_id="35129377",
+            integration_id=self.integration.id,
+        )
+
+    @override_options(ENFORCE)
+    def test_context_covers_a_disabled_link_as_the_lookup_does(self) -> None:
+        disabled_repo = self._link_another_organization(ObjectStatus.DISABLED)
+
+        self.deliver(self.queue())
+
+        self.lookup.assert_not_called()
+        assert {call.kwargs["repo"] for call in self.processor.call_args_list} == {
+            self.repo,
+            disabled_repo,
+        }
+
+    def test_lookup_covers_a_disabled_link(self) -> None:
+        disabled_repo = self._link_another_organization(ObjectStatus.DISABLED)
+
+        self.deliver(self.queue())
+
+        self.lookup.assert_called_once()
+        assert {call.kwargs["repo"] for call in self.processor.call_args_list} == {
+            self.repo,
+            disabled_repo,
+        }
+
+    @override_options(ENFORCE)
+    def test_organization_linked_after_queueing_is_missed_inside_the_max_age(self) -> None:
+        # The one place the context and the lookup differ: the lookup would include an
+        # organization linked since the webhook arrived. The max age bounds how long.
+        payload = self.queue()
+        self._link_another_organization(ObjectStatus.ACTIVE)
+
+        self.deliver(payload)
+
+        self.assert_handled_on_context()
+        assert self.processor.call_args.kwargs["repo"] == self.repo
 
 
 def test_delivery_context_needs_the_base_handle() -> None:
