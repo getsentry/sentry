@@ -1,17 +1,28 @@
 import {Fragment, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
+import {Button} from '@sentry/scraps/button';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tn} from 'sentry/locale';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps, useGetPaginationCaption} from 'sentry/utils/pagination';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {ConnectedMonitorsList} from 'sentry/views/automations/components/connectedMonitorsList';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {canConnectAutomationToDetector} from 'sentry/views/automations/utils/permissions';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
+import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
+
+import {MonitorTable} from './monitorTable';
+
+const MONITORS_PER_PAGE = 10;
 
 type Props = {initialMonitorIds: string[]; onChange: (monitorIds: string[]) => void};
 
@@ -19,10 +30,10 @@ export function ConnectMonitorsDrawer({initialMonitorIds, onChange}: Props) {
   // The drawer renders outside the form, so it keeps its own copy of the selection
   const [monitorIds, setMonitorIds] = useState(initialMonitorIds);
 
-  const toggleMonitor = ({detector}: {detector: Detector}) => {
-    const next = monitorIds.includes(detector.id)
-      ? monitorIds.filter(id => id !== detector.id)
-      : [...monitorIds, detector.id];
+  const toggleMonitor = (monitorId: string) => {
+    const next = monitorIds.includes(monitorId)
+      ? monitorIds.filter(id => id !== monitorId)
+      : [...monitorIds, monitorId];
     setMonitorIds(next);
     onChange(next);
   };
@@ -54,7 +65,7 @@ function MetricMonitors({
   toggleConnected,
 }: {
   connectedIds: string[];
-  toggleConnected: (params: {detector: Detector}) => void;
+  toggleConnected: (monitorId: string) => void;
 }) {
   const {selection} = usePageFilters();
   const [query, setQuery] = useState('');
@@ -92,20 +103,77 @@ function MonitorList({
   connectedIds: string[];
   projectIds: number[];
   query: string;
-  toggleConnected: (params: {detector: Detector}) => void;
+  toggleConnected: (monitorId: string) => void;
 }) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const getPaginationCaption = useGetPaginationCaption();
   const [cursor, setCursor] = useState<string | undefined>(undefined);
 
+  const {data, isPending, isError} = useQuery({
+    ...detectorListApiOptions(organization, {
+      query: new MutableSearch(['type:metric_issue', query]).formatString(),
+      projects: projectIds,
+      limit: MONITORS_PER_PAGE,
+      sortBy: '-latestGroup',
+      cursor,
+    }),
+    select: selectJsonWithHeaders,
+  });
+  const monitors = data?.json.filter(monitor => monitor.type === 'metric_issue') ?? [];
+
   return (
-    <ConnectedMonitorsList
-      connectedDetectorIds={new Set(connectedIds)}
-      toggleConnected={toggleConnected}
-      emptyMessage={t('No metric monitors match your search')}
-      cursor={cursor}
-      onCursor={setCursor}
-      query={new MutableSearch(['type:metric_issue', query]).formatString()}
-      projectIds={projectIds}
-      openInNewTab
-    />
+    <Container containerType="inline-size">
+      <MonitorTable
+        monitors={monitors}
+        isError={isError}
+        pendingRows={isPending ? MONITORS_PER_PAGE : 0}
+        emptyMessage={t('No metric monitors match your search')}
+        renderAction={monitor => {
+          const isConnected = connectedIds.includes(monitor.id);
+          const canConnect = canConnectAutomationToDetector({
+            organization,
+            detector: monitor,
+            project: projects.find(project => project.id === monitor.projectId),
+          });
+          return (
+            <Button
+              size="sm"
+              variant={isConnected ? 'secondary' : 'primary'}
+              aria-label={
+                isConnected
+                  ? t('Disconnect %s', monitor.name)
+                  : t('Connect %s', monitor.name)
+              }
+              disabled={!canConnect}
+              tooltipProps={{
+                title: canConnect
+                  ? undefined
+                  : t(
+                      "You don't have permission to change this monitor's alert connections."
+                    ),
+              }}
+              onClick={() => toggleConnected(monitor.id)}
+            >
+              {isConnected ? t('Disconnect') : t('Connect')}
+            </Button>
+          );
+        }}
+      />
+      <Pagination
+        onCursor={setCursor}
+        {...getPaginationProps(data?.headers.Link)}
+        caption={
+          data
+            ? getPaginationCaption({
+                cursor,
+                limit: MONITORS_PER_PAGE,
+                pageLength: monitors.length,
+                total: data.headers['X-Hits'] ?? 0,
+              })
+            : undefined
+        }
+      />
+    </Container>
   );
 }

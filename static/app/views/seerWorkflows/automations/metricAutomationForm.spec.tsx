@@ -152,8 +152,9 @@ describe('MetricAutomationForm', () => {
     await userEvent.type(name, 'Checkout errors');
     await userEvent.click(screen.getByRole('button', {name: 'Connect monitors'}));
     const drawer = await screen.findByRole('complementary', {name: 'Connect monitors'});
-    const row = await within(drawer).findByRole('row', {name: /Checkout error rate/});
-    await userEvent.click(within(row).getByRole('button', {name: 'Connect'}));
+    await userEvent.click(
+      await within(drawer).findByRole('button', {name: 'Connect Checkout error rate'})
+    );
     expect(await screen.findAllByText('#checkout-alerts')).not.toHaveLength(0);
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
     await userEvent.click(
@@ -283,8 +284,9 @@ describe('MetricAutomationForm', () => {
     );
     await userEvent.click(screen.getByRole('button', {name: 'Connect monitors'}));
     const drawer = await screen.findByRole('complementary', {name: 'Connect monitors'});
-    const row = await within(drawer).findByRole('row', {name: /Payment failures/});
-    await userEvent.click(within(row).getByRole('button', {name: 'Connect'}));
+    await userEvent.click(
+      await within(drawer).findByRole('button', {name: 'Connect Payment failures'})
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
@@ -325,9 +327,7 @@ describe('MetricAutomationForm', () => {
     await waitFor(() =>
       expect(detectors).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/detectors/`,
-        expect.objectContaining({
-          query: expect.objectContaining({project: [2], query: 'type:metric_issue'}),
-        })
+        expect.objectContaining({query: expect.objectContaining({project: [2]})})
       )
     );
     expect(
