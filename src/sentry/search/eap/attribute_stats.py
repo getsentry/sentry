@@ -39,6 +39,7 @@ from sentry.utils.snuba_rpc import attribute_names_rpc, table_rpc
 
 logger = logging.getLogger(__name__)
 
+# Matches the maxsize of the Snuba connection pool, so concurrent queries don't overflow it.
 MAX_QUERY_WORKERS = 10
 
 DATASET_CLASSES: dict[str, type[RPCBase]] = {
@@ -106,6 +107,7 @@ def stored_keys(
     # The resolver matches by name alone, so the type comes from the bucket the key was listed in.
     proto_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP[attribute_type]
     context = TRACE_ITEM_TYPE_DEFINITIONS[item_type].contexts.get(listed_key)
+    # Listed proxies are computed rather than stored; a user attribute can share a context's name.
     if (
         context is not None
         and not context.secondary_alias
