@@ -15,6 +15,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useAutofixCreatePrGate} from 'sentry/components/events/autofix/useAutofixCreatePrGate';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
+import {useOpenSingleRunChat} from 'sentry/components/events/autofix/v3/useToggleSingleRunChat';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
@@ -22,7 +23,11 @@ import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useOpenSeerLink} from './openSeerButton';
-import {type ActionableSectionKey, useNextAction} from './overviewActions';
+import {
+  opensSingleRunChat,
+  useNextAction,
+  type ActionableSectionKey,
+} from './overviewActions';
 import type {OverviewRun, ProjectConfig} from './types';
 
 export function OverviewCardAction({
@@ -40,6 +45,8 @@ export function OverviewCardAction({
 
   const {autofix, config, isDispatched, trigger} = useNextAction({run, sectionKey});
   const {to: openSeerTo, trackOpen} = useOpenSeerLink(run, sectionKey);
+  const openSingleRunChat = useOpenSingleRunChat();
+  const opensChat = opensSingleRunChat(run, sectionKey);
 
   const repoEligibility = projectConfig
     ? {
@@ -166,11 +173,11 @@ export function OverviewCardAction({
           <Button
             size="sm"
             variant="secondary"
-            icon={<config.Icon />}
-            onClick={trigger}
+            icon={opensChat ? <IconSeer /> : <config.Icon />}
+            onClick={opensChat ? () => openSingleRunChat(run.seerRunId) : trigger}
             disabled={isCreatePrGatePending}
           >
-            {config.label}
+            {opensChat ? t('Open Autofix') : config.label}
           </Button>
         </Tooltip>
       )}

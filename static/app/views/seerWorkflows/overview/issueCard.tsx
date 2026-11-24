@@ -169,7 +169,7 @@ function OverviewAction({
           aria-busy
           icon={<ButtonSpinner size={14} />}
         >
-          {getProcessingLabel(sectionKey)}
+          {getProcessingLabel(sectionKey, run)}
         </Button>
         <OpenSeerButton run={run} section={sectionKey} size="sm" />
       </ActionButtonBar>

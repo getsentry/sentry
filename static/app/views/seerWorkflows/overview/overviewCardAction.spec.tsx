@@ -6,10 +6,21 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 
+import {getProcessingLabel} from './overviewActions';
 import {OverviewCardAction} from './overviewCardAction';
 import type {OverviewRun, OverviewRunIssue, ProjectConfig} from './types';
 
 jest.mock('sentry/utils/analytics');
+
+const mockOpenSeerExplorer = jest.fn();
+jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => ({
+  ...jest.requireActual('sentry/views/seerExplorer/useSeerExplorerContext'),
+  useSeerExplorerContext: () => ({openSeerExplorer: mockOpenSeerExplorer}),
+}));
+jest.mock('sentry/views/seerExplorer/seerExplorerChatStateContext', () => ({
+  ...jest.requireActual('sentry/views/seerExplorer/seerExplorerChatStateContext'),
+  useSeerExplorerChatDispatch: () => jest.fn(),
+}));
 
 describe('OverviewCardAction', () => {
   const organization = OrganizationFixture();
@@ -115,6 +126,37 @@ describe('OverviewCardAction', () => {
       );
     }
   );
+
+  it('opens the run chat instead of creating a plan for a single run', async () => {
+    const postRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/2/autofix/',
+      method: 'POST',
+      body: {},
+    });
+
+    render(
+      <OverviewCardAction
+        run={runFixture({isSingleRun: true})}
+        sectionKey="needs_investigation"
+      />,
+      {organization}
+    );
+
+    expect(screen.queryByRole('button', {name: 'Create Plan'})).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Open Autofix'}));
+
+    expect(mockOpenSeerExplorer).toHaveBeenCalledWith({runId: 'run-1'});
+    expect(postRequest).not.toHaveBeenCalled();
+  });
+
+  it('does not label a busy single run as creating a plan', () => {
+    expect(
+      getProcessingLabel('needs_investigation', runFixture({isSingleRun: true}))
+    ).toBe('Working…');
+    expect(getProcessingLabel('needs_investigation', runFixture())).toBe(
+      'Creating Plan…'
+    );
+  });
 
   it('routes a Draft PR card to grant permissions when write access is missing', async () => {
     MockApiClient.addMockResponse({
