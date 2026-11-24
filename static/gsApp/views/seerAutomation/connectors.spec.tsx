@@ -2,10 +2,12 @@ import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {IntegrationProviderFixture} from 'sentry-fixture/integrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import SeerConnectors from 'getsentry/views/seerAutomation/connectors';
 
 describe('SeerConnectors', () => {
@@ -47,6 +49,7 @@ describe('SeerConnectors', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}));
   });
 
   it('redirects when the org lacks the seer-infra-telemetry feature', async () => {

@@ -1,11 +1,14 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import SeerAutomationProjects from 'getsentry/views/seerAutomation/projects';
 
 describe('SeerAutomationProjects', () => {
   function mockEndpoints(organization: ReturnType<typeof OrganizationFixture>) {
+    SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}));
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/projects/`,
       body: [],
