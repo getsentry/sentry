@@ -5,6 +5,7 @@ import {
   SeerSelectionProvider,
   usePublishSeerSelection,
 } from 'sentry/views/seerExplorer/contexts/seerSelection';
+import * as seerExplorerUtils from 'sentry/views/seerExplorer/utils';
 
 import {SeerSelectionToggle} from './seerSelectionToggle';
 
@@ -29,6 +30,28 @@ const ONE_MONITOR: SeerSelection = {itemType: 'monitor', count: 1, items: [{id: 
 const FOUR_ALERTS: SeerSelection = {itemType: 'alert', count: 4, items: [{id: 'a1'}]};
 
 describe('SeerSelectionToggle', () => {
+  beforeEach(() => {
+    jest.spyOn(seerExplorerUtils, 'usePageRouteString').mockReturnValue('/issues/');
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('renders nothing on a page whose page context leaves the selection out', () => {
+    jest
+      .spyOn(seerExplorerUtils, 'usePageRouteString')
+      .mockReturnValue('/settings/account/details/');
+    render(
+      <SeerSelectionProvider>
+        <Publisher selection={THREE_ISSUES} />
+        <SeerSelectionToggle />
+      </SeerSelectionProvider>
+    );
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
   it('renders nothing without a selection', () => {
     render(
       <SeerSelectionProvider>

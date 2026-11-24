@@ -15,6 +15,7 @@ import {
   useIssueSelectionActions,
 } from 'sentry/views/issueList/issueSelectionContext';
 import {SeerSelectionToggle} from 'sentry/views/seerExplorer/components/seerSelectionToggle';
+import * as seerExplorerUtils from 'sentry/views/seerExplorer/utils';
 
 import type {LLMContextSnapshot} from './llmContextTypes';
 import {
@@ -63,6 +64,14 @@ function IssueSelectionButtons() {
 }
 
 describe('Seer table selection', () => {
+  beforeEach(() => {
+    jest.spyOn(seerExplorerUtils, 'usePageRouteString').mockReturnValue('/issues/');
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('reports rows selected in a ListItemCheckboxProvider that opts in', async () => {
     render(
       <SeerSelectionProvider>

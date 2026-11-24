@@ -8,15 +8,19 @@ import {
   getSeerSelectionLabel,
   useSeerSelection,
 } from 'sentry/views/seerExplorer/contexts/seerSelection';
+import {hasStructuredPageContext} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
+import {usePageRouteString} from 'sentry/views/seerExplorer/utils';
 
 /**
  * Shows the table selection Seer receives with the page context, and turns it
- * on or off. Renders nothing while no rows are selected.
+ * on or off. Renders nothing while no rows are selected, or on pages whose page
+ * context can't carry the selection.
  */
 export function SeerSelectionToggle() {
   const {selection, isIncluded, setIncluded} = useSeerSelection();
+  const route = usePageRouteString();
 
-  if (!selection) {
+  if (!selection || !hasStructuredPageContext(route)) {
     return null;
   }
 

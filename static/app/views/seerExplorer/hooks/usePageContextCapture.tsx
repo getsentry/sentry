@@ -75,6 +75,14 @@ const PAGE_CONTEXT_READY_NODES = new Map<string, LLMContextNodeType[]>([
   ['/seer/investigations/:investigationId/', ['investigation']],
 ]);
 
+/**
+ * Whether the route sends the structured snapshot as page context. Only that
+ * snapshot carries a table selection; other routes send an ASCII rendering.
+ */
+export function hasStructuredPageContext(route: string): boolean {
+  return STRUCTURED_CONTEXT_ROUTES.has(route);
+}
+
 type CapturedPageContext = {
   /** Whether `screenshot` is the structured snapshot rather than an ASCII rendering. */
   isStructured: boolean;
@@ -110,7 +118,7 @@ export function usePageContextCapture() {
 
       // Send structured LLMContext JSON on allowlisted pages; fall back to a
       // coarse ASCII screenshot everywhere else.
-      if (snapshot && allowStructured && STRUCTURED_CONTEXT_ROUTES.has(route)) {
+      if (snapshot && allowStructured && hasStructuredPageContext(route)) {
         try {
           return {snapshot, screenshot: JSON.stringify(snapshot), isStructured: true};
         } catch (e) {

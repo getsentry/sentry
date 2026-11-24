@@ -970,6 +970,27 @@ describe('useSeerExplorer', () => {
       );
     });
 
+    it('sends no selection on a page without structured page context', async () => {
+      jest
+        .spyOn(seerExplorerUtils, 'usePageReferrer')
+        .mockReturnValue({getPageReferrer: () => '/settings/account/details/'});
+      const postMock = mockChat();
+      const {result} = renderHookWithProviders(useExplorerWithSelection, {
+        organization,
+        additionalWrapper: SeerSelectionProvider,
+      });
+      await waitFor(() => expect(result.current.selection.selection).not.toBeNull());
+
+      act(() => {
+        result.current.explorer.sendMessage('what is on this page?');
+      });
+
+      await waitFor(() => expect(postMock).toHaveBeenCalled());
+      const pageContext = postMock.mock.calls[0][1].data.on_page_context;
+      expect(() => JSON.parse(pageContext)).toThrow();
+      expect(pageContext).not.toContain('selectedCount');
+    });
+
     it('leaves the selection out when it is turned off', async () => {
       const postMock = mockChat();
       const {result} = renderHookWithProviders(useExplorerWithSelection, {

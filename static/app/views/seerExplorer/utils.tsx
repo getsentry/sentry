@@ -454,13 +454,21 @@ export function getToolsStringFromBlock(block: Block): string[] {
 }
 
 /**
+ * The route string (normalized path) of the current page, e.g. /issues/:groupId/.
+ * Use usePageReferrer for a stable getter, e.g. in effects and callbacks.
+ */
+export function usePageRouteString(): string {
+  const matches = useMatches();
+  return getRouteStringFromRoutes({matches});
+}
+
+/**
  * Returns a callback to get the route string (normalized path) of the current page for analytics, e.g. /issues/:groupId/.
  * This callback is stable to avoid triggering analytics and re-renders when the location changes.
  */
 export function usePageReferrer(): {getPageReferrer: () => string} {
   // Track the normalized path of the current page (e.g. /issues/:groupId/) for analytics.
-  const matches = useMatches();
-  const routeString = getRouteStringFromRoutes({matches});
+  const routeString = usePageRouteString();
   const routeStringRef = useRef(routeString);
 
   useEffect(() => {
