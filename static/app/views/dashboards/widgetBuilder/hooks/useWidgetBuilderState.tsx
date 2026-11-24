@@ -127,7 +127,7 @@ type WidgetAction =
   | {
       payload: Column[];
       type: typeof BuilderStateAction.SET_FIELDS;
-      selectedAggregate?: number | undefined;
+      selectedAggregate?: number;
     }
   | {
       payload: Column[];
@@ -162,8 +162,7 @@ type WidgetAction =
   | {
       payload: Column[];
       type: typeof BuilderStateAction.SET_CATEGORICAL_AGGREGATE;
-      // Present when the radio selection moves with the fields; undefined clears it.
-      selectedAggregate?: number | undefined;
+      selectedAggregate?: number;
     }
   | {
       payload: number; // index of the field to delete within the visible fields list
@@ -892,7 +891,7 @@ export function useWidgetBuilderState(): {
         }
         case BuilderStateAction.SET_FIELDS: {
           setFields(action.payload, options);
-          if ('selectedAggregate' in action) {
+          if (action.selectedAggregate !== undefined) {
             setSelectedAggregate(action.selectedAggregate, options);
           }
           const remainingKindFields = action.payload.filter(
@@ -1229,7 +1228,7 @@ export function useWidgetBuilderState(): {
             const existingXAxisFields =
               fields?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
             setFields([...existingXAxisFields, ...action.payload], options);
-            if ('selectedAggregate' in action) {
+            if (action.selectedAggregate !== undefined) {
               setSelectedAggregate(action.selectedAggregate, options);
             }
 
@@ -1254,7 +1253,6 @@ export function useWidgetBuilderState(): {
               existingXAxisFields
             );
             if (
-              'selectedAggregate' in action &&
               action.selectedAggregate !== undefined &&
               action.payload[action.selectedAggregate]
             ) {

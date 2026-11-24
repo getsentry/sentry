@@ -3246,61 +3246,80 @@ describe('Visualize', () => {
       });
     });
 
-    it('keeps the big number selection on the same row when a row above it is hidden', async () => {
+    it('keeps the big number selection on the same row when a hidden row is shown', async () => {
       const {router} = renderUnifiedQuery({
         displayType: DisplayType.BIG_NUMBER,
-        field: [SUM_ALPHA, SUM_BETA, `equation|${SUM_ALPHA} * 2`],
+        field: [SUM_BETA, `equation|${SUM_ALPHA} * 2`],
         selectedAggregate: '1',
       });
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Hide series A'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Show series B'}));
 
       await waitFor(() => {
         expect(decodeList(router.location.query.field)).toEqual([
           SUM_BETA,
+          SUM_ALPHA,
           `equation|${SUM_ALPHA} * 2`,
         ]);
       });
-      expect(router.location.query.selectedAggregate).toBe('0');
+      expect(router.location.query.selectedAggregate).toBe('2');
     });
 
-    it('clears the big number selection when the selected row is hidden', async () => {
-      const {router} = renderUnifiedQuery({
+    it('does not offer hide where only the selected series shows', async () => {
+      renderUnifiedQuery({
         displayType: DisplayType.BIG_NUMBER,
-        field: [SUM_ALPHA, SUM_BETA, `equation|${SUM_ALPHA} * 2`],
-        selectedAggregate: '0',
+        field: [SUM_ALPHA, `equation|${SUM_ALPHA} * 2`],
       });
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Hide series A'}));
+      expect(await screen.findByLabelText('Row A')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Hide series A'})
+      ).not.toBeInTheDocument();
 
-      await waitFor(() => {
-        expect(decodeList(router.location.query.field)).toEqual([
-          SUM_BETA,
-          `equation|${SUM_ALPHA} * 2`,
-        ]);
-      });
-      expect(router.location.query).not.toHaveProperty('selectedAggregate');
+      // The delete button still explains why it is disabled
+      await userEvent.hover(screen.getAllByRole('button', {name: 'Remove field'})[0]!);
+      expect(
+        await screen.findByText('This series is used in an equation.')
+      ).toBeInTheDocument();
     });
 
-    it('keeps the categorical bar sort on the displayed series when a row above it is hidden', async () => {
+    it('keeps the categorical bar sort on the displayed series when a hidden row is shown', async () => {
       const {router} = renderUnifiedQuery({
         displayType: DisplayType.CATEGORICAL_BAR,
-        field: ['metric.name', SUM_ALPHA, SUM_BETA, `equation|${SUM_ALPHA} * 2`],
+        field: ['metric.name', SUM_BETA, `equation|${SUM_ALPHA} * 2`],
         selectedAggregate: '1',
-        sort: [`-${SUM_BETA}`],
+        sort: ['-equation[0]'],
       });
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Hide series A'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Show series B'}));
 
       await waitFor(() => {
         expect(decodeList(router.location.query.field)).toEqual([
           'metric.name',
           SUM_BETA,
+          SUM_ALPHA,
           `equation|${SUM_ALPHA} * 2`,
         ]);
       });
-      expect(router.location.query.selectedAggregate).toBe('0');
-      expect(decodeList(router.location.query.sort)).toEqual([`-${SUM_BETA}`]);
+      expect(router.location.query.selectedAggregate).toBe('2');
+      expect(decodeList(router.location.query.sort)).toEqual(['-equation[0]']);
+    });
+
+    it('shows a disabled transformation button on hidden rows', async () => {
+      unifiedOrganization.features.push('explore-interpolation-and-smoothing');
+      renderUnified([SUM_ALPHA, `equation|${SUM_BETA} * 2`]);
+
+      const hiddenRow = await screen.findByTestId('hidden-metric-row');
+      expect(
+        within(hiddenRow).getByRole('button', {name: 'Add Transformation'})
+      ).toHaveAttribute('aria-disabled', 'true');
+
+      const buttons = screen.getAllByRole('button', {name: 'Add Transformation'});
+      expect(buttons.some(button => !hiddenRow.contains(button))).toBe(true);
+      expect(buttons.find(button => !hiddenRow.contains(button))).toHaveAttribute(
+        'aria-disabled',
+        'false'
+      );
     });
 
     it('shows a hidden series again', async () => {

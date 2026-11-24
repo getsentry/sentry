@@ -140,6 +140,9 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
   // Heat maps store their single "Visualize" aggregate in state.fields and use
   // radio selection, mirroring Big Number.
   const isHeatmapWidget = state.displayType === DisplayType.HEATMAP;
+  // These display types show one selected series, so hiding one changes nothing.
+  const hasRadioSelection =
+    isBigNumberWidget || isCategoricalBarWidget || isHeatmapWidget;
 
   // Behind the flag, aggregates and equations share one list with no mode toggle.
   const isUnifiedTraceMetrics =
@@ -509,6 +512,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
             }}
             onShow={() => unifiedRows.show(row)}
             showDisabledReason={hasMaxMetrics ? maxMetricsTooltip : undefined}
+            transformationDataset={transformationDataset}
           />
         )) ?? [])
       : [];
@@ -707,7 +711,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                         label={rowLabel}
                         disabled={disableTransactionWidget}
                         onToggle={
-                          isReferencedByEquation
+                          isReferencedByEquation && !hasRadioSelection
                             ? () => unifiedRows.hide(index)
                             : undefined
                         }
@@ -1067,9 +1071,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                                       }
                                       disabledReason={
                                         isReferencedByEquation
-                                          ? t(
-                                              'This series is used in an equation. Hide it instead of deleting it.'
-                                            )
+                                          ? t('This series is used in an equation.')
                                           : undefined
                                       }
                                       onClick={() => {

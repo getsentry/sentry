@@ -119,9 +119,8 @@ export function useUnifiedTraceMetricRows({
         ),
       }),
       ...(selected &&
-        nextSelected !== selectedAggregate && {
-          selectedAggregate: nextSelected === -1 ? undefined : nextSelected,
-        }),
+        nextSelected !== -1 &&
+        nextSelected !== selectedAggregate && {selectedAggregate: nextSelected}),
     });
   };
 

@@ -1,4 +1,5 @@
-import {Fragment, type ReactNode} from 'react';
+import {type ComponentProps, Fragment, type ReactNode} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -17,6 +18,7 @@ import {
   getTraceMetricFunctionParts,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {AddTransformationButton} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {RATE_AGGREGATES} from 'sentry/views/explore/metrics/constants';
 import {MetricFilterBar} from 'sentry/views/explore/metrics/metricToolbar/filter';
 
@@ -105,6 +107,12 @@ interface HiddenTraceMetricRowProps {
    * Disables the show toggle, e.g. at the metrics cap.
    */
   showDisabledReason?: string;
+  /**
+   * Transformations are kept but editing is disabled for hidden rows.
+   */
+  transformationDataset?: ComponentProps<
+    typeof AddTransformationButton
+  >['traceItemDataset'];
 }
 
 /**
@@ -117,7 +125,9 @@ export function HiddenTraceMetricRow({
   onFieldChange,
   onShow,
   showDisabledReason,
+  transformationDataset,
 }: HiddenTraceMetricRowProps) {
+  const theme = useTheme();
   return (
     <HiddenRow gap="xs" width="100%" data-test-id="hidden-metric-row">
       {indent && <DragHandleSpacer />}
@@ -147,7 +157,19 @@ export function HiddenTraceMetricRow({
           </TraceMetricRow>
         </FieldBar>
         <FieldExtras compact>
-          <Flex alignSelf="start">
+          <Flex gap="md" alignSelf="start">
+            {transformationDataset && (
+              <Flex align="center" height={theme.form.md.height}>
+                <AddTransformationButton
+                  iconOnly
+                  disabled
+                  analyticsSource="dashboards"
+                  traceItemDataset={transformationDataset}
+                  transformations={[]}
+                  onChange={() => {}}
+                />
+              </Flex>
+            )}
             <DeleteFieldButton
               disabled
               disabledReason={t(
