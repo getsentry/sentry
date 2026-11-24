@@ -22,8 +22,8 @@ import {baseTheme} from '@sentry/scraps/theme';
  *   Each character is wrapped in a <span> whose text content is the real
  *   character (holds its original width, invisible via `color: transparent`).
  *   An absolutely positioned child keeps the original font's baseline and
- *   centers a smaller monospace `::after` over the character. The glyph fits
- *   within that character's width without affecting the underlying layout.
+ *   centers a monospace `::after` over the character. The glyph can compress
+ *   to fit the character's width without affecting the underlying layout.
  *
  * Accessibility:
  *   The real character is always the span's text content — assistive tech
@@ -138,7 +138,6 @@ const STAGGER_MS = 8;
 const FADE_LEAD_MS = 120;
 const MAX_DURATION_MS = 1280;
 const CYCLE_DURATION_MS = 160;
-const MONO_GLYPH_ADVANCE_EM = 0.6;
 
 const ATTR = 'data-scraps-decode';
 const ATTR_SEL = `[${ATTR}]`;
@@ -171,24 +170,15 @@ export const streamingAnimationStyles = css`
   }
   ${ATTR_SEL}.visible {
     opacity: var(--go, 1);
-
-    @starting-style {
-      opacity: 0;
-    }
-  }
-  [data-streaming] ${ATTR_SEL}:not(code *) {
-    --glyph-font-size: 0.85em;
   }
   [data-streaming-hidden] {
     opacity: 0;
   }
   ${ATTR_SEL} > span {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    text-align: left;
-    direction: ltr;
+    inset: 0 0 auto;
+    display: flex;
+    justify-content: center;
     line-height: normal;
     container-type: inline-size;
     pointer-events: none;
@@ -198,21 +188,11 @@ export const streamingAnimationStyles = css`
     animation: var(--da, ${DECODE_ANIMATIONS[0]?.name}) ${CYCLE_DURATION_MS}ms steps(1)
       infinite;
     animation-delay: var(--dd, 0ms);
-    display: inline-block;
-    width: 1ch;
-    position: relative;
-    left: 50%;
-    transform: translateX(-50%);
     color: var(--glyph-color, CanvasText);
-    font: inherit;
+    /* The shared stylesheet is built once, and the mono font is the same in every theme. */
     font-family: ${baseTheme.font.family.mono};
-    /* shortcut: fallback assumes a 0.6em mono advance; update if the mono font changes. */
-    font-size: min(var(--glyph-font-size, 1em), calc(100cqi / ${MONO_GLYPH_ADVANCE_EM}));
-
-    @supports (transform: scaleX(calc(1px / 1px))) {
-      font-size: var(--glyph-font-size, 1em);
-      transform: translateX(-50%) scaleX(min(1, calc(100cqi / 1ch)));
-    }
+    font-size: var(--glyph-font-size, 1em);
+    transform: scaleX(min(1, calc(100cqi / 1ch)));
   }
 `;
 
