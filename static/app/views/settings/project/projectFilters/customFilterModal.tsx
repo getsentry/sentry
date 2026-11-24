@@ -47,6 +47,7 @@ import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 
 // Condition types accepted by the custom inbound filters API. The values match
 // the `type` field on the backend serializer exactly. `CONDITIONS` below
@@ -134,6 +135,10 @@ type DataTypeOption = {label: string; value: FilterDataType};
 // The modal edits the conditions as one text. See `ConditionEditor` for how the
 // text translates.
 type FilterFormValues = {conditions: string; dataType: FilterDataType; name: string};
+
+// Where a draft passed to the modal comes from, which decides how the modal
+// introduces it.
+type FilterDraftSource = 'event' | 'release';
 
 type DataTypeSpec = {
   label: string;
@@ -828,7 +833,8 @@ function ObfuscatedErrorWarning({project}: {project: Project}) {
 function getModalDescription(
   legacyCondition: CustomInboundFilterCondition | undefined,
   isReadOnly: boolean,
-  isEventDraft: boolean
+  draftSource: FilterDraftSource | undefined,
+  project: Project
 ): string {
   if (legacyCondition) {
     const {label} = getCondition(legacyCondition.type);
@@ -839,9 +845,15 @@ function getModalDescription(
           label
         );
   }
-  if (isEventDraft) {
+  if (draftSource === 'event') {
     return t(
       'The conditions below come from the event you were looking at. Remove the ones you do not want, and widen the rest with another operator or a * wildcard where one exact value is too narrow. Sentry drops data that meets every condition.'
+    );
+  }
+  if (draftSource === 'release') {
+    return t(
+      'The condition below matches the release you were looking at, in %s. To cover more releases, widen it with another operator, like greater than, or a * wildcard. Sentry drops data that meets every condition.',
+      project.slug
     );
   }
   return isReadOnly
@@ -960,6 +972,17 @@ export function getFilterDraftFromEvent(event: Event): FilterFormValues {
   };
 }
 
+// A draft filter that drops every data type from one release of the project. It
+// matches the raw version exactly, which is what Relay compares against, so the
+// user widens it in the modal if they want more releases.
+export function getFilterDraftFromRelease(version: string): FilterFormValues {
+  return {
+    name: t('Release %s', formatVersion(version)).slice(0, 256),
+    dataType: 'all',
+    conditions: conditionsToQuery([conditionFromLiterals('release', [version])]),
+  };
+}
+
 function CustomFilterModal({
   Header,
   Body,
@@ -969,8 +992,11 @@ function CustomFilterModal({
   filter,
   initialValues,
   readOnlyReason,
+  draftSource,
 }: ModalRenderProps & {
   project: Project;
+  // Where `initialValues` come from. Ignored when `filter` is set.
+  draftSource?: FilterDraftSource;
   // The filter to edit. Absent when the modal creates one.
   filter?: CustomInboundFilter;
   // Starting values of a new filter. Ignored when `filter` is set.
@@ -1106,7 +1132,8 @@ function CustomFilterModal({
             {getModalDescription(
               legacyCondition,
               isReadOnly,
-              initialValues !== undefined && !filter
+              filter ? undefined : draftSource,
+              project
             )}
           </Text>
         </Stack>
@@ -1267,6 +1294,7 @@ function CustomFilterModal({
 // change it.
 export function openCustomFilterModal(options: {
   project: Project;
+  draftSource?: FilterDraftSource;
   filter?: CustomInboundFilter;
   initialValues?: FilterFormValues;
   readOnlyReason?: string;

@@ -23,7 +23,6 @@ import {toast} from '@sentry/scraps/toast';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {openReprocessEventModal} from 'sentry/actionCreators/modal';
-import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {ArchiveActions} from 'sentry/components/actions/archive';
@@ -63,6 +62,7 @@ import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
+import {getCustomFilterEntryPoint} from 'sentry/views/settings/project/projectFilters/customFilterEntryPoint';
 
 import {SeerCommandPaletteActions} from './seerCommandPaletteActions';
 import {ShareIssueModal} from './shareModal';
@@ -190,7 +190,11 @@ export function GroupResolutionActions({
 async function openCustomFilterModalFromEvent(project: Project, event: Event) {
   const {getFilterDraftFromEvent, openCustomFilterModal} =
     await import('sentry/views/settings/project/projectFilters/customFilterModal');
-  openCustomFilterModal({project, initialValues: getFilterDraftFromEvent(event)});
+  openCustomFilterModal({
+    project,
+    initialValues: getFilterDraftFromEvent(event),
+    draftSource: 'event',
+  });
 }
 
 export function GroupActions({
@@ -364,29 +368,12 @@ export function GroupActions({
   };
 
   // The "Add Inbound Filter" menu item drafts a filter from the fields of the
-  // error event on screen, so it needs one. `inbound-filters-v2` and
-  // `inbound-filters-v2-ui` also gate the filters table in project settings.
-  // `inbound-filters-in-product-flows` gates the places outside project settings
-  // that open the filter modal, like this menu item.
+  // error event on screen, so it needs one.
+  const inboundFilterEntryPoint = getCustomFilterEntryPoint(organization, project);
   const canAddInboundFilter =
-    organization.features.includes('inbound-filters-v2') &&
-    organization.features.includes('inbound-filters-v2-ui') &&
-    organization.features.includes('inbound-filters-in-product-flows') &&
+    inboundFilterEntryPoint.isVisible &&
     (event?.type === EventOrGroupType.ERROR || event?.type === EventOrGroupType.DEFAULT);
-  const hasFilterWriteAccess = hasEveryAccess(['project:write'], {organization, project});
-  // The API refuses writes without the plan feature, so say so up front instead
-  // of letting the modal fail on save. The "Delete and discard future events"
-  // menu item shows its plan limit the same way.
-  let addInboundFilterDisabledReason: string | undefined;
-  if (!project.features.includes('custom-inbound-filters')) {
-    addInboundFilterDisabledReason = t(
-      'Your plan does not include custom inbound filters'
-    );
-  } else if (!hasFilterWriteAccess) {
-    addInboundFilterDisabledReason = t(
-      'You need project write access to add custom inbound filters'
-    );
-  }
+  const addInboundFilterDisabledReason = inboundFilterEntryPoint.disabledReason;
 
   const onAddInboundFilter = () => {
     if (!event) {
