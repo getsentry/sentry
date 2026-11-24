@@ -30,7 +30,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.processors.workflow_fire_history import get_last_fired_dates
 
-# The values of Action.Type and DataConditionGroup.Type.
+# Action and logic types exposed in public workflow responses.
 ActionTypeName = Literal[
     "slack",
     "slack_staging",
@@ -48,7 +48,6 @@ ActionTypeName = Literal[
     "plugin",
     "webhook",
     "seer_investigation",
-    "add_to_inbox",
 ]
 LogicTypeName = Literal["any", "any-short", "all", "none"]
 

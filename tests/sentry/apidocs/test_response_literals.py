@@ -45,7 +45,7 @@ def _labels(choices: Any) -> set[str]:
             | _labels(OrganizationAvatar.AVATAR_TYPES)
             | _labels(TeamAvatar.AVATAR_TYPES),
         ),
-        (ActionTypeName, {t.value for t in Action.Type}),
+        (ActionTypeName, {t.value for t in Action.Type if t != Action.Type.ADD_TO_INBOX}),
         (LogicTypeName, {t.value for t in DataConditionGroup.Type}),
         (DataSourceTypeName, set(data_source_type_registry.registrations)),
     ],
