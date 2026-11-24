@@ -670,6 +670,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         {
           name: LOW_CONFIDENCE_AREAS_NAME,
           color: theme.tokens.background.tertiary,
+          fadeColor: theme.tokens.background.primary,
           // The first plottable's type always gets the left axis
           dataType: props.plottables[0]?.dataType ?? FALLBACK_TYPE,
         }

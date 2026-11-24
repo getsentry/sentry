@@ -1,4 +1,9 @@
-import type {CustomSeriesOption, CustomSeriesRenderItem} from 'echarts';
+import type {
+  CustomSeriesOption,
+  CustomSeriesRenderItem,
+  CustomSeriesRenderItemAPI,
+  CustomSeriesRenderItemParams,
+} from 'echarts';
 
 import type {CartesianCoordSys} from 'sentry/components/charts/bands/bandShapes';
 import {defined} from 'sentry/utils/defined';
@@ -12,8 +17,7 @@ import type {
 
 type HatchAreasConfig = {
   /**
-   * Hatch color. Areas are hatched over a transparent fill, so the data and grid
-   * lines show through the gaps between stripes
+   * Color of the stripes drawn behind the data, which mark empty space
    */
   color: string;
   /**
@@ -22,6 +26,12 @@ type HatchAreasConfig = {
    * axis the chart already has
    */
   dataType: PlottableTimeSeriesValueType;
+  /**
+   * Color of the stripes drawn over the data, in the gaps between the stripes
+   * behind it. They're translucent, so a background color fades the data
+   * without changing its hue
+   */
+  fadeColor: string;
   /**
    * Identifies the plottable. It becomes the ECharts series ID and name, so it
    * must be unique among the chart's plottables
@@ -38,9 +48,13 @@ type HatchAreasPlottingOptions = {
 };
 
 /**
- * Hatched areas that span the full height of the plot over stretches of time, drawn
- * over the data. Unlike time series plottables, it has no data of its own,
- * so it never takes up a Y axis, a legend item, or a tooltip row.
+ * Hatched areas that span the full height of the plot over stretches of time.
+ * One set of stripes goes behind the data and a second set goes over it, in the
+ * gaps of the first, so the hatch runs unbroken across empty space and data
+ * alike. Canvas patterns are anchored to the chart's origin, so the stripes line
+ * up across areas, bars, and gaps without any offsets. Unlike time series
+ * plottables, it has no data of its own, so it never takes up a Y axis, a legend
+ * item, or a tooltip row.
  */
 export class HatchAreas implements Plottable {
   ranges: readonly TimeRange[];
@@ -93,30 +107,54 @@ export class HatchAreas implements Plottable {
           .filter(({start, end}) => start < end)
       : this.ranges;
 
+    const series = {
+      name: this.name,
+      type: 'custom',
+      data: ranges.map(({start, end}) => [start, end]),
+      // Mapping only `x` keeps the timestamps out of the Y axis extent
+      encode: {x: [0, 1]},
+      clip: true,
+      silent: true,
+      animation: false,
+      legendHoverLink: false,
+      tooltip: {show: false},
+    } satisfies CustomSeriesOption;
+
     return [
       {
-        id: this.name,
-        name: this.name,
-        type: 'custom',
-        data: ranges.map(({start, end}) => [start, end]),
-        // Mapping only `x` keeps the timestamps out of the Y axis extent
-        encode: {x: [0, 1]},
-        renderItem: this.renderItem,
-        // Over line, area, and bar series, which default to 2
-        z: 3,
-        clip: true,
-        silent: true,
-        animation: false,
-        legendHoverLink: false,
-        tooltip: {show: false},
+        ...series,
+        id: `${this.name}-background`,
+        renderItem: this.renderBackground,
+        // Under line, area, and bar series, which default to 2
+        z: 1,
       },
+      {...series, id: this.name, renderItem: this.renderForeground, z: 3},
     ];
   }
+
+  private renderBackground: CustomSeriesRenderItem = (params, api) =>
+    this.renderStripes(params, api, {
+      color: this.config.color,
+      dashArrayY: [2, 2],
+      opacity: 1,
+    });
+
+  // Starting with an empty dash shifts these stripes into the background's gaps
+  private renderForeground: CustomSeriesRenderItem = (params, api) =>
+    this.renderStripes(params, api, {
+      color: this.config.fadeColor,
+      dashArrayY: [0, 2, 2, 0],
+      opacity: FADE_OPACITY,
+    });
 
   // A custom series rather than a `markArea`, because only custom series render
   // a `decal`, which ECharts redraws at the device pixel ratio so the stripes
   // stay crisp
-  private renderItem: CustomSeriesRenderItem = (params, api) => {
+  private renderStripes(
+    params: CustomSeriesRenderItemParams,
+    api: CustomSeriesRenderItemAPI,
+    stripes: {color: string; dashArrayY: number[]; opacity: number}
+  ) {
     const [left] = api.coord([api.value(0), 0]);
     const [right] = api.coord([api.value(1), 0]);
     if (!defined(left) || !defined(right)) {
@@ -126,21 +164,24 @@ export class HatchAreas implements Plottable {
     const {y, height} = params.coordSys as CartesianCoordSys;
 
     return {
-      type: 'rect',
+      type: 'rect' as const,
       silent: true,
       shape: {x: left, y, width: right - left, height},
       style: {
         // A decal only draws over a fill
         fill: 'transparent',
+        opacity: stripes.opacity,
         decal: {
           symbol: 'rect',
           symbolSize: 1,
           dashArrayX: [1, 0],
-          dashArrayY: [2, 2],
+          dashArrayY: stripes.dashArrayY,
           rotation: -Math.PI / 4,
-          color: this.config.color,
+          color: stripes.color,
         },
       },
     };
-  };
+  }
 }
+
+const FADE_OPACITY = 0.6;

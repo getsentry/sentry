@@ -3,7 +3,12 @@ import type {CustomSeriesRenderItemAPI, CustomSeriesRenderItemParams} from 'echa
 import {HatchAreas} from './hatchAreas';
 
 describe('HatchAreas', () => {
-  const config = {name: 'areas', color: '#f0f0f2', dataType: 'number' as const};
+  const config = {
+    name: 'areas',
+    color: '#f0f0f2',
+    dataType: 'number' as const,
+    fadeColor: '#ffffff',
+  };
 
   it('clips areas to the bounds it is plotted with', () => {
     const areas = new HatchAreas(
@@ -27,37 +32,55 @@ describe('HatchAreas', () => {
     expect(new HatchAreas([], config).isEmpty).toBe(true);
   });
 
-  it('draws a hatched area across the full plot height over the data', () => {
-    const [series] = new HatchAreas([{start: 1_000, end: 3_000}], config).toSeries();
+  it('draws stripes behind the data and fading stripes over it', () => {
+    const series = new HatchAreas([{start: 1_000, end: 3_000}], config).toSeries();
 
-    expect(series).toEqual(
-      expect.objectContaining({
-        data: [[1_000, 3_000]],
-        encode: {x: [0, 1]},
-        silent: true,
-        tooltip: {show: false},
-        z: 3,
-      })
-    );
+    expect(series.map(({z}) => z)).toEqual([1, 3]);
+    for (const item of series) {
+      expect(item).toEqual(
+        expect.objectContaining({
+          data: [[1_000, 3_000]],
+          encode: {x: [0, 1]},
+          silent: true,
+          tooltip: {show: false},
+        })
+      );
+    }
 
     const values = [1_000, 3_000];
-    const element = series!.renderItem!(
-      {
-        dataIndex: 0,
-        coordSys: {type: 'cartesian2d', x: 0, y: 10, width: 500, height: 200},
-      } as unknown as CustomSeriesRenderItemParams,
-      {
-        value: (dimension: number) => values[dimension],
-        coord: ([time]: number[]) => [(time ?? 0) / 10, 0],
-      } as unknown as CustomSeriesRenderItemAPI
+    const [background, foreground] = series.map(item =>
+      item.renderItem!(
+        {
+          dataIndex: 0,
+          coordSys: {type: 'cartesian2d', x: 0, y: 10, width: 500, height: 200},
+        } as unknown as CustomSeriesRenderItemParams,
+        {
+          value: (dimension: number) => values[dimension],
+          coord: ([time]: number[]) => [(time ?? 0) / 10, 0],
+        } as unknown as CustomSeriesRenderItemAPI
+      )
     );
 
-    expect(element).toEqual(
+    for (const element of [background, foreground]) {
+      expect(element).toEqual(
+        expect.objectContaining({
+          type: 'rect',
+          shape: {x: 100, y: 10, width: 200, height: 200},
+        })
+      );
+    }
+    expect(background).toEqual(
       expect.objectContaining({
-        type: 'rect',
-        shape: {x: 100, y: 10, width: 200, height: 200},
         style: expect.objectContaining({
-          decal: expect.objectContaining({color: '#f0f0f2'}),
+          decal: expect.objectContaining({color: '#f0f0f2', dashArrayY: [2, 2]}),
+        }),
+      })
+    );
+    expect(foreground).toEqual(
+      expect.objectContaining({
+        style: expect.objectContaining({
+          opacity: 0.6,
+          decal: expect.objectContaining({color: '#ffffff', dashArrayY: [0, 2, 2, 0]}),
         }),
       })
     );
