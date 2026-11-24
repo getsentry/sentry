@@ -38,7 +38,16 @@ import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetect
 import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
-type DetectorLinkProps = {detector: Detector; className?: string; openInNewTab?: boolean};
+type DetectorLinkProps = {
+  detector: Detector;
+  className?: string;
+  openInNewTab?: boolean;
+  /**
+   * Query for the details link. Defaults to the current page's time and
+   * environment filters.
+   */
+  query?: Record<string, string>;
+};
 
 function formatConditionType(condition: MetricCondition) {
   switch (condition.type) {
@@ -245,7 +254,12 @@ function Details({detector}: {detector: Detector}) {
   }
 }
 
-export function DetectorLink({detector, className, openInNewTab}: DetectorLinkProps) {
+export function DetectorLink({
+  detector,
+  className,
+  openInNewTab,
+  query: queryOverride,
+}: DetectorLinkProps) {
   const org = useOrganization();
   const project = useProjectFromId({project_id: detector.projectId ?? undefined});
   const location = useLocation();
@@ -258,7 +272,8 @@ export function DetectorLink({detector, className, openInNewTab}: DetectorLinkPr
       : detector.name;
 
   // Preserve page filters when navigating to detector details
-  const query = pick(location.query, ['start', 'end', 'statsPeriod', 'environment']);
+  const query =
+    queryOverride ?? pick(location.query, ['start', 'end', 'statsPeriod', 'environment']);
 
   const detectorLink =
     detector.type === 'issue_stream'

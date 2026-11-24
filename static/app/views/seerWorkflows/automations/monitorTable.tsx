@@ -26,6 +26,8 @@ import {MetricDetectorDetailsDetect} from 'sentry/views/detectors/components/det
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {AUTO_REFRESH_INTERVAL} from 'sentry/views/seerWorkflows/utils';
 
+import {useMonitorDetailsQuery} from './hooks/useMonitorDetailsQuery';
+
 const MAX_VISIBLE_TARGETS = 2;
 
 const COLUMNS: TableColumnConfig[] = [
@@ -167,6 +169,11 @@ function LastBreach({monitor}: {monitor: MetricDetector}) {
   );
 }
 
+function MonitorLink({monitor}: {monitor: MetricDetector}) {
+  const query = useMonitorDetailsQuery(monitor);
+  return <DetectorLink detector={monitor} query={query} openInNewTab />;
+}
+
 type Props = {
   monitors: MetricDetector[];
   renderAction: (monitor: MetricDetector) => React.ReactNode;
@@ -231,7 +238,7 @@ export function MonitorTable({
                 containerDisplayMode="block"
                 style={{minWidth: 0}}
               >
-                <DetectorLink detector={monitor} openInNewTab />
+                <MonitorLink monitor={monitor} />
               </Hovercard>
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>

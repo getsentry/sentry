@@ -40,6 +40,7 @@ import {
 } from 'sentry/views/seerWorkflows/utils';
 
 import {useFetchConfigs} from './hooks/configs';
+import {useMonitorDetailsQuery} from './hooks/useMonitorDetailsQuery';
 import {useMonitorsById} from './hooks/useMonitorsById';
 
 /**
@@ -221,12 +222,10 @@ function AutomationCard({
                       const id = String(monitorId);
                       return (
                         <Container key={id}>
-                          <MonitorLink
-                            to={makeMonitorDetailsPathname(organization.slug, id)}
-                            onClick={event => event.stopPropagation()}
-                          >
-                            {monitorsById?.get(id)?.name ?? id}
-                          </MonitorLink>
+                          <MonitorTooltipLink
+                            monitorId={id}
+                            monitor={monitorsById?.get(id)}
+                          />
                         </Container>
                       );
                     })}
@@ -294,6 +293,26 @@ function AutomationCard({
         </CardStack>
       </CardLink>
     </Container>
+  );
+}
+
+function MonitorTooltipLink({
+  monitorId,
+  monitor,
+}: {
+  monitorId: string;
+  monitor: Detector | undefined;
+}) {
+  const organization = useOrganization();
+  const query = useMonitorDetailsQuery(monitor);
+
+  return (
+    <MonitorLink
+      to={{pathname: makeMonitorDetailsPathname(organization.slug, monitorId), query}}
+      onClick={event => event.stopPropagation()}
+    >
+      {monitor?.name ?? monitorId}
+    </MonitorLink>
   );
 }
 
