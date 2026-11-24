@@ -81,7 +81,7 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
 function Banner({children}: {children: React.ReactNode}) {
   return (
     <Container
-      border="primary"
+      borderColor="primary"
       margin="md 0"
       padding="xl"
       position="relative"

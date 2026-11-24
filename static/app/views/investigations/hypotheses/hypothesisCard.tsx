@@ -235,9 +235,9 @@ const HypothesisDescription = styled(Text)`
 
 /**
  * The card border carries the verdict, which is why it is CSS rather than the
- * `border` prop: `getBorder` only ever emits `1px solid`, and a hypothesis that
- * has not been established needs a broken edge. The colors still come from
- * border tokens.
+ * border props: they only draw solid borders, and a hypothesis that has not
+ * been established needs a broken edge. The colors still come from border
+ * tokens.
  *
  * Both variants are driven by data attributes because `Stack` forwards props it
  * does not recognize to the DOM, where a bare `isPrimary` would land as an

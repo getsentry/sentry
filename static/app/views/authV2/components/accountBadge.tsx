@@ -23,7 +23,7 @@ export function AccountBadge({
       align="center"
       justify="between"
       gap="lg"
-      border="secondary"
+      borderColor="secondary"
       radius="md"
       padding="lg"
     >

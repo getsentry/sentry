@@ -139,7 +139,7 @@ function NightShiftForm() {
 
   return (
     <form.AppForm form={form}>
-      <Container background="secondary" border="primary" radius="md" padding="lg">
+      <Container background="secondary" borderColor="primary" radius="md" padding="lg">
         <Stack gap="lg" align="stretch">
           <Heading as="h3">Trigger Night Shift Run</Heading>
           <Text as="p" variant="muted">
@@ -260,7 +260,7 @@ function AutofixRetryForm() {
 
   return (
     <form.AppForm form={form}>
-      <Container background="secondary" border="primary" radius="md" padding="lg">
+      <Container background="secondary" borderColor="primary" radius="md" padding="lg">
         <Stack gap="lg" align="stretch">
           <Heading as="h3">Retry Autofix Runs</Heading>
           <Text as="p" variant="muted">
@@ -365,7 +365,7 @@ function SingleRunForm() {
 
   return (
     <form.AppForm form={form}>
-      <Container background="secondary" border="primary" radius="md" padding="lg">
+      <Container background="secondary" borderColor="primary" radius="md" padding="lg">
         <Stack gap="lg" align="stretch">
           <Heading as="h3">[Temporary, for testing] Start Single-Run Autofix</Heading>
           <Text as="p" variant="muted">

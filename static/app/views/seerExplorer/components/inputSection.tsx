@@ -192,7 +192,7 @@ export function InputSection({
         exit={{opacity: 0, y: 10}}
         transition={{duration: 0.12, delay: 0.1, ease: 'easeOut'}}
       >
-        <Container borderTop="primary" padding="md" background="secondary">
+        <Container borderTopColor="primary" padding="md" background="secondary">
           <Flex justify="between" align="center">
             <Flex align="center" gap="md" paddingLeft="md">
               <Text size="md" bold>
@@ -237,7 +237,7 @@ export function InputSection({
         exit={{opacity: 0, y: 10}}
         transition={{duration: 0.12, delay: 0.1, ease: 'easeOut'}}
       >
-        <Container borderTop="primary" padding="md" background="secondary">
+        <Container borderTopColor="primary" padding="md" background="secondary">
           <Flex justify="between" align="center">
             <Flex align="center" gap="md" paddingLeft="md">
               <Text size="md" bold>
@@ -276,7 +276,7 @@ export function InputSection({
       <Stack gap="lg" padding="lg xl">
         {notice}
         {/* The editor and its toolbar read as one field, so the focus ring wraps both. */}
-        <ComposerFrame border="primary" radius="lg">
+        <ComposerFrame borderColor="primary" radius="lg">
           <StyledComposer
             isWarningPlaceholder={interruptState === 'completed'}
             ref={composerRef}
@@ -300,7 +300,7 @@ export function InputSection({
             align="center"
             gap="md"
             padding="xs"
-            borderTop="primary"
+            borderTopColor="primary"
             background="primary"
             radius="0 0 lg lg"
           >

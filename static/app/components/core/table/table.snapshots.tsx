@@ -23,7 +23,7 @@ function ExampleTable({columns}: {columns: TableColumnConfig[]}) {
               <Table.Row key={row}>
                 {columns.map(column => (
                   <Table.Cell key={column.key}>
-                    <Container padding="md" borderBottom="secondary">
+                    <Container padding="md" borderBottomColor="secondary">
                       {column.key} {row}
                     </Container>
                   </Table.Cell>

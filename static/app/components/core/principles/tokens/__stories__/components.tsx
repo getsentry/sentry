@@ -51,15 +51,15 @@ export function Space() {
           as="div"
           width={value}
           height="16px"
-          borderLeft="accent.vibrant"
-          borderRight="accent.vibrant"
+          borderLeftColor="accent.vibrant"
+          borderRightColor="accent.vibrant"
           style={{boxSizing: 'border-box'}}
         >
           <Container
             as="div"
             width="100%"
             height="1px"
-            borderTop="accent.vibrant"
+            borderTopColor="accent.vibrant"
             style={{boxSizing: 'border-box'}}
           />
         </Flex>
@@ -83,7 +83,7 @@ export function Radius() {
             height: '48px',
             background: theme.tokens.background.transparent.accent.muted,
           }}
-          border="accent.vibrant"
+          borderColor="accent.vibrant"
           radius={token}
         />
       )}
@@ -174,8 +174,8 @@ export function LineHeight() {
           justify="center"
           as="div"
           height={typeof value === 'number' ? `${value * 16}px` : value}
-          borderTop="accent.vibrant"
-          borderBottom="accent.vibrant"
+          borderTopColor="accent.vibrant"
+          borderBottomColor="accent.vibrant"
           style={{boxSizing: 'border-box'}}
         >
           <Text size="md" density={token} variant="accent">
@@ -224,7 +224,7 @@ export function ShadowOffset() {
             background: theme.tokens.background.primary,
             boxShadow: value,
           }}
-          border="accent.vibrant"
+          borderColor="accent.vibrant"
           radius="xs"
         />
       )}
@@ -271,7 +271,7 @@ export function BackgroundColors() {
             height: '48px',
             background: value,
           }}
-          border="secondary"
+          borderColor="secondary"
           radius="sm"
         />
       )}
@@ -418,7 +418,7 @@ export function ShadowColors() {
             background: theme.tokens.background.overlay,
             boxShadow: value,
           }}
-          border="primary"
+          borderColor="primary"
           radius="md"
         />
       )}

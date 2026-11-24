@@ -7,6 +7,7 @@ import type {CSS} from '@sentry/scraps/cssTypes';
 import type {
   BackgroundToken,
   BorderVariant,
+  BorderWidthToken,
   RadiusSize,
   SpaceSize,
 } from '@sentry/scraps/theme';
@@ -14,7 +15,7 @@ import type {
 import {
   ContainerQueryProvider,
   getBackground,
-  getBorder,
+  getBorderStyles,
   getMargin,
   getRadius,
   getSpacing,
@@ -85,13 +86,24 @@ interface ContainerLayoutProps {
   maxHeight?: Responsive<CSS['maxHeight']>;
 
   /**
-   * Border color on all sides. Renders a 1px solid border.
+   * Draws a solid border on all sides in this color, as a path into
+   * `tokens.border`. The width defaults to 1px; set `borderWidth` to change it.
+   * `none` removes the border.
    */
-  border?: Responsive<BorderVariant>;
-  borderTop?: Responsive<BorderVariant>;
-  borderBottom?: Responsive<BorderVariant>;
-  borderLeft?: Responsive<BorderVariant>;
-  borderRight?: Responsive<BorderVariant>;
+  borderColor?: Responsive<BorderVariant>;
+  /**
+   * Draws a solid border on one side in this color. Its width comes from
+   * `borderWidth`, 1px by default. `none` removes that side.
+   */
+  borderTopColor?: Responsive<BorderVariant>;
+  borderBottomColor?: Responsive<BorderVariant>;
+  borderLeftColor?: Responsive<BorderVariant>;
+  borderRightColor?: Responsive<BorderVariant>;
+  /**
+   * Width of the drawn border sides, as a key of `theme.border`. Set alone, it
+   * draws a border on all sides in the `primary` color.
+   */
+  borderWidth?: Responsive<BorderWidthToken>;
 
   // Grid Item Properties
   area?: Responsive<CSS['gridArea']>;
@@ -213,11 +225,12 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'area',
   'as',
   'background',
-  'border',
-  'borderTop',
-  'borderBottom',
-  'borderLeft',
-  'borderRight',
+  'borderColor',
+  'borderTopColor',
+  'borderBottomColor',
+  'borderLeftColor',
+  'borderRightColor',
+  'borderWidth',
   'bottom',
   'column',
   'contain',
@@ -372,11 +385,7 @@ export const Container = styled(
   ${p => rc('align-self', p.alignSelf, p.theme)};
   ${p => rc('justify-self', p.justifySelf, p.theme)};
 
-  ${p => rc('border', p.border, p.theme, getBorder)};
-  ${p => rc('border-top', p.borderTop, p.theme, getBorder)};
-  ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
-  ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
-  ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
+  ${p => getBorderStyles(p, p.theme)};
 
   ${p => rc('visibility', p.visibility, p.theme)};
   ${p => rc('white-space', p.whiteSpace, p.theme)};

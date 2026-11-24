@@ -27,7 +27,7 @@ export function StatsHeader({organization, activeTab}: Props) {
         )}
       />
       {(showSeerTab || showTeamInsightsTabs) && (
-        <Container borderBottom="primary" marginBottom="xl">
+        <Container borderBottomColor="primary" marginBottom="xl">
           <LinkTabs value={activeTab}>
             {({TabList}) => (
               <TabList>

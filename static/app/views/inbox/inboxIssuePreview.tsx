@@ -97,7 +97,7 @@ export function InboxIssuePreview({groupId}: InboxIssuePreviewProps) {
         <Tabs value={tab} onChange={setTab}>
           {({TabList, TabPanels}) => (
             <Fragment>
-              <Container padding="0 2xl" borderBottom="primary">
+              <Container padding="0 2xl" borderBottomColor="primary">
                 <TabList>
                   <TabList.Item key="overview">{t('Overview')}</TabList.Item>
                   <TabList.Item key="telemetry">{t('Telemetry')}</TabList.Item>
@@ -214,8 +214,8 @@ function InboxIssueOverview({group, project, event}: InboxIssueSectionProps) {
           as="aside"
           aria-label={t('Issue overview')}
           padding="xl 2xl"
-          borderLeft={{zero: 'none', xl: 'primary'}}
-          borderTop={{zero: 'primary', xl: 'none'}}
+          borderLeftColor={{zero: 'none', xl: 'primary'}}
+          borderTopColor={{zero: 'primary', xl: 'none'}}
           minWidth={0}
         >
           <InboxIssueSidebar group={group} project={project} event={event} />

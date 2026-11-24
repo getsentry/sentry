@@ -71,7 +71,7 @@ export function AnnotationsPanel({items, kinds, section}: AnnotationsPanelProps)
           <Text variant="muted">{t('No severe annotations in this time range')}</Text>
         )}
       </AnnotationsSection>
-      <Separator orientation="horizontal" border="primary" />
+      <Separator orientation="horizontal" borderColor="primary" />
       <Stack
         ref={activityRef}
         as="section"

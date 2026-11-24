@@ -101,6 +101,12 @@ export type BorderVariant = BorderToken | 'none';
  */
 export type BackgroundToken = TokenPath<(typeof lightTheme)['tokens']['background']>;
 
+/**
+ * Every border width token, as a key of `theme.border`. Derived from the
+ * theme, so a new border width token is available without changing this type.
+ */
+export type BorderWidthToken = keyof (typeof lightTheme)['border'];
+
 // Component Variants (should be moved locally, aligned to SemanticVariant)
 
 /**

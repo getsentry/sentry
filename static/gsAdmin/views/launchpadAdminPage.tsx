@@ -324,7 +324,12 @@ export function LaunchpadAdminPage() {
 
         <Grid columns={{zero: '1fr', xl: '1fr 1fr'}} gap="xl">
           <form onSubmit={handleFetchInfoSubmit}>
-            <Container background="secondary" border="primary" radius="md" padding="lg">
+            <Container
+              background="secondary"
+              borderColor="primary"
+              radius="md"
+              padding="lg"
+            >
               <Stack gap="md">
                 <Heading as="h3">Fetch Artifact Info</Heading>
                 <Text as="p" variant="muted">
@@ -356,7 +361,12 @@ export function LaunchpadAdminPage() {
           </form>
 
           <form onSubmit={handleDeleteSubmit}>
-            <Container background="secondary" border="primary" radius="md" padding="lg">
+            <Container
+              background="secondary"
+              borderColor="primary"
+              radius="md"
+              padding="lg"
+            >
               <Stack gap="md">
                 <Heading as="h3">Delete Artifact Data</Heading>
                 <Text as="p" variant="muted">
@@ -387,7 +397,12 @@ export function LaunchpadAdminPage() {
           </form>
 
           <form onSubmit={handleRerunSubmit}>
-            <Container background="secondary" border="primary" radius="md" padding="lg">
+            <Container
+              background="secondary"
+              borderColor="primary"
+              radius="md"
+              padding="lg"
+            >
               <Stack gap="md">
                 <Heading as="h3">Batch Rerun Analyses</Heading>
                 <Text as="p" variant="muted">
@@ -419,7 +434,12 @@ export function LaunchpadAdminPage() {
           </form>
 
           <form onSubmit={handleBatchDeleteSubmit}>
-            <Container background="secondary" border="primary" radius="md" padding="lg">
+            <Container
+              background="secondary"
+              borderColor="primary"
+              radius="md"
+              padding="lg"
+            >
               <Stack gap="md">
                 <Heading as="h3">Batch Delete Artifacts</Heading>
                 <Text as="p" variant="muted">
@@ -450,7 +470,12 @@ export function LaunchpadAdminPage() {
           </form>
 
           <form onSubmit={handleDownloadSubmit}>
-            <Container background="secondary" border="primary" radius="md" padding="lg">
+            <Container
+              background="secondary"
+              borderColor="primary"
+              radius="md"
+              padding="lg"
+            >
               <Stack gap="md">
                 <Heading as="h3">Download Build</Heading>
                 <Text as="p" variant="muted">
@@ -482,14 +507,19 @@ export function LaunchpadAdminPage() {
         </Grid>
 
         {fetchedArtifactInfo && (
-          <Container background="secondary" border="primary" radius="md" padding="lg">
+          <Container
+            background="secondary"
+            borderColor="primary"
+            radius="md"
+            padding="lg"
+          >
             <Stack gap="md">
               {fetchedArtifactInfo.artifact_info?.project?.organization_slug &&
                 fetchedArtifactInfo.artifact_info?.project?.slug &&
                 fetchedArtifactInfo.artifact_info?.id && (
                   <Container
                     background="tertiary"
-                    border="primary"
+                    borderColor="primary"
                     radius="sm"
                     padding="md"
                   >
@@ -517,7 +547,7 @@ export function LaunchpadAdminPage() {
               </Flex>
               <Container
                 background="primary"
-                border="primary"
+                borderColor="primary"
                 radius="md"
                 padding="md"
                 maxHeight="400px"

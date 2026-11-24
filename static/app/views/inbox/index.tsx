@@ -238,7 +238,7 @@ function InboxContent() {
         style={{width: `${storedSize}px`}}
         minWidth={0}
         minHeight={0}
-        borderRight="primary"
+        borderRightColor="primary"
       >
         <InboxList
           filters={filters}

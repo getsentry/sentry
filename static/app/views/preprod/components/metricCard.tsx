@@ -30,7 +30,7 @@ export function MetricCard(props: MetricCardProps) {
       radius="lg"
       padding="xl"
       gap="xs"
-      border="primary"
+      borderColor="primary"
       flex="1"
       style={style}
       minWidth="300px"

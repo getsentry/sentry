@@ -5,6 +5,7 @@ import type {
   BackgroundToken,
   BorderToken,
   BorderVariant,
+  BorderWidthToken,
   ButtonVariant,
   ContentVariant,
   GraphicsVariant,
@@ -87,6 +88,7 @@ it('preserves the variant unions and constrains tracked button variants', () => 
     | 'transparent.warning.muted'
     | 'transparent.success.muted'
   >();
+  expectTypeOf<BorderWidthToken>().toEqualTypeOf<'0' | 'md' | 'lg' | 'xl' | '2xl'>();
   expectTypeOf<TagVariant>().toEqualTypeOf<
     'muted' | 'info' | 'success' | 'warning' | 'danger' | 'promotion'
   >();

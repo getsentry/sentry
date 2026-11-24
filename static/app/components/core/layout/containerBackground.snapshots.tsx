@@ -41,7 +41,7 @@ describe('Container', () => {
             radius="md"
             minWidth="96px"
             background={color}
-            border="primary"
+            borderColor="primary"
           >
             <Text size="sm">{color}</Text>
           </Container>

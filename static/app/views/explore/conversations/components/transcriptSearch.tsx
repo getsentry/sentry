@@ -65,7 +65,7 @@ export function TranscriptSearch({
       top="0"
       padding="sm"
       background="primary"
-      borderBottom="primary"
+      borderBottomColor="primary"
       style={{zIndex: 1}}
     >
       <Global

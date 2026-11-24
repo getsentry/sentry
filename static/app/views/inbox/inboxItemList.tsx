@@ -133,7 +133,7 @@ function InboxItemRow({
   });
 
   return (
-    <Container position="relative" padding="xl" borderBottom="primary">
+    <Container position="relative" padding="xl" borderBottomColor="primary">
       {props => (
         <ItemRow {...props} data-inbox-item data-selected={isSelected}>
           <InteractionStateLayer />

@@ -6,11 +6,17 @@ import {act, render, renderHook, screen} from '@testing-library/react';
 
 import {Container} from '@sentry/scraps/layout';
 import {darkTheme, lightTheme, lightTheme as theme} from '@sentry/scraps/theme';
-import type {BackgroundToken, BorderToken, BreakpointSize} from '@sentry/scraps/theme';
+import type {
+  BackgroundToken,
+  BorderToken,
+  BorderWidthToken,
+  BreakpointSize,
+} from '@sentry/scraps/theme';
 
 import {
   getBackground,
   getBorder,
+  getBorderWidth,
   rc,
   useActiveBreakpoint,
   useContainerBreakpoint,
@@ -201,6 +207,20 @@ describe('getBackground', () => {
 
   it('returns undefined when omitted', () => {
     expect(getBackground(undefined, undefined, theme)).toBeUndefined();
+  });
+});
+
+describe('getBorderWidth', () => {
+  it('resolves every border width token', () => {
+    const entries = Object.entries(theme.border) as Array<[BorderWidthToken, string]>;
+    for (const [token, value] of entries) {
+      expect(getBorderWidth(token, undefined, theme)).toBe(value);
+    }
+    expect(entries).toHaveLength(5);
+  });
+
+  it('returns undefined when omitted', () => {
+    expect(getBorderWidth(undefined, undefined, theme)).toBeUndefined();
   });
 });
 

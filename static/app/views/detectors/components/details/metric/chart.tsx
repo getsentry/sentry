@@ -556,7 +556,7 @@ function ChartContainer({
   overflow?: 'hidden';
 }) {
   return (
-    <Container border="secondary" radius="md" overflow={overflow}>
+    <Container borderColor="secondary" radius="md" overflow={overflow}>
       {children}
     </Container>
   );
@@ -574,7 +574,7 @@ function ChartFooter({
   isAnomalyThresholdCutOff?: boolean;
 }) {
   return (
-    <Flex justify="between" align="center" padding="lg" borderTop="secondary">
+    <Flex justify="between" align="center" padding="lg" borderTopColor="secondary">
       {isAnomalyThresholdCutOff ? (
         <Flex align="center" gap="xs">
           <IconInfo size="xs" variant="muted" />

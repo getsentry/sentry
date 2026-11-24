@@ -227,7 +227,7 @@ export function MetadataDivider() {
       width="1px"
       height="14px"
       flexShrink={0}
-      borderLeft="primary"
+      borderLeftColor="primary"
       aria-hidden
       data-test-id="metadata-divider"
     />

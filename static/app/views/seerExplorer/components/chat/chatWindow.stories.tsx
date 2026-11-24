@@ -161,7 +161,7 @@ function ChatWindow({session, hasEnoughCredits, initialQuery, wallet}: ChatWindo
           >
             <PictureInPictureProvider>
               <SeerExplorerSessionsProvider>
-                <Container height="720px" width="480px" border="primary" radius="md">
+                <Container height="720px" width="480px" borderColor="primary" radius="md">
                   <SeerExplorerContent
                     getPageReferrer={() => '/issues/'}
                     onClose={() => {}}

@@ -122,7 +122,7 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
 
   return (
     <AnalyticsArea name="issue_inbox" overrideParent>
-      <Container padding="xs 2xl" borderBottom="secondary">
+      <Container padding="xs 2xl" borderBottomColor="secondary">
         <Flex align="center" justify="between" flex="1" gap="md">
           {group && project ? (
             <IssueIdBreadcrumb group={group} project={project} />
@@ -269,7 +269,7 @@ function IssuePreviewContent() {
       <Flex
         paddingTop="sm"
         paddingBottom="lg"
-        borderBottom="secondary"
+        borderBottomColor="secondary"
         justify="between"
         align="center"
         wrap="wrap"
@@ -328,7 +328,7 @@ function IssuePreviewContent() {
               </ErrorBoundary>
             </Container>
           )}
-          <Container borderTop="secondary" paddingTop="xl">
+          <Container borderTopColor="secondary" paddingTop="xl">
             <IssuePreviewTimeline
               key={group.id}
               group={group}

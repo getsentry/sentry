@@ -180,7 +180,7 @@ function Content({children, ...props}: DisclosureContentProps) {
       <Container
         ref={panelRef}
         {...panelProps}
-        border="primary"
+        borderColor="primary"
         radius={OUTLINE_RADIUS[context.size]}
         padding={OUTLINE_PADDING[context.size]}
         width="100%"

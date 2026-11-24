@@ -126,7 +126,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
       return (
         <Container
           padding="xl"
-          border="primary"
+          borderColor="primary"
           radius="md"
           marginTop="2xl"
           marginBottom="2xl"
@@ -140,7 +140,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
       return (
         <Container
           padding="xl"
-          border="primary"
+          borderColor="primary"
           radius="md"
           marginTop="2xl"
           marginBottom="2xl"
@@ -180,7 +180,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
       return (
         <Container
           padding="xl"
-          border="primary"
+          borderColor="primary"
           radius="md"
           marginTop="2xl"
           marginBottom="2xl"
@@ -219,7 +219,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
     return (
       <Container
         padding="xl"
-        border="primary"
+        borderColor="primary"
         radius="md"
         marginTop="2xl"
         marginBottom="2xl"

@@ -86,7 +86,7 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
           gap="lg"
           width="100%"
           paddingTop="lg"
-          borderTop="secondary"
+          borderTopColor="secondary"
         >
           <Stack gap="2xs">
             <Text size="xs" bold>

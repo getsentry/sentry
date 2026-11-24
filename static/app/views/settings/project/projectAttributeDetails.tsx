@@ -127,7 +127,7 @@ function AttributeMetadata({attribute}: {attribute: Attribute}) {
   const {context} = attribute;
 
   return (
-    <Container border="primary" radius="md" padding="lg">
+    <Container borderColor="primary" radius="md" padding="lg">
       <Stack gap="lg">
         <Heading as="h3">{t('Metadata')}</Heading>
         <DescriptionList gap="md lg">

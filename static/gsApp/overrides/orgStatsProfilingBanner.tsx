@@ -11,7 +11,7 @@ export function OrgStatsProfilingBanner() {
   return (
     <Grid
       columns={{zero: '1fr', '3xl': 'repeat(2, 1fr)', '4xl': 'repeat(3, 1fr)'}}
-      border="primary"
+      borderColor="primary"
       radius="md"
       marginBottom="xl"
     >
@@ -19,7 +19,7 @@ export function OrgStatsProfilingBanner() {
         column={{zero: 'span 1', '3xl': 'span 2', '4xl': 'span 1'}}
         padding="xl"
         background="secondary"
-        borderBottom={{zero: 'primary', '4xl': 'none'}}
+        borderBottomColor={{zero: 'primary', '4xl': 'none'}}
       >
         <h6>{t('Profiling has a new billing model!')}</h6>
         <span>
@@ -32,9 +32,9 @@ export function OrgStatsProfilingBanner() {
       </Container>
       <Container
         padding="xl"
-        borderBottom={{zero: 'primary', '3xl': 'none'}}
-        borderRight={{zero: 'none', '3xl': 'primary'}}
-        borderLeft={{zero: 'none', '4xl': 'primary'}}
+        borderBottomColor={{zero: 'primary', '3xl': 'none'}}
+        borderRightColor={{zero: 'none', '3xl': 'primary'}}
+        borderLeftColor={{zero: 'none', '4xl': 'primary'}}
       >
         <h6>{t('UI Profile Hours')}</h6>
         <span>

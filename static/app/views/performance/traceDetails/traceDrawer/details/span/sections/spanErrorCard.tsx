@@ -19,7 +19,7 @@ export function SpanErrorCard({icon, title, message, className}: SpanErrorCardPr
         gap="md"
         padding="md xl lg md"
         background="primary"
-        border="primary"
+        borderColor="primary"
         radius="md"
       >
         <Flex align="center" justify="center">

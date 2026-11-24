@@ -160,7 +160,7 @@ function TraceAiConversationsContent({
     : null;
 
   return (
-    <Container flex="1" minHeight="0" border="primary" radius="md" overflow="hidden">
+    <Container flex="1" minHeight="0" borderColor="primary" radius="md" overflow="hidden">
       <Stack height="100%">
         <Stack minHeight="0" flex="1">
           {tabsRootProps => (
@@ -173,7 +173,7 @@ function TraceAiConversationsContent({
                     align="center"
                     gap="md"
                     padding="0 lg"
-                    borderBottom="primary"
+                    borderBottomColor="primary"
                   >
                     <Flex align="center" gap="md" minWidth="0" flex="1">
                       {(activeSubTab === 'timeline'
@@ -275,7 +275,7 @@ function TraceConversationHeader({
   nodes: AITraceSpanNode[];
 }) {
   return (
-    <Container padding="md lg" borderBottom="primary">
+    <Container padding="md lg" borderBottomColor="primary">
       <ConversationAggregatesBar
         nodes={nodes}
         conversationId={conversationId}

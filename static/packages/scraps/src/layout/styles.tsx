@@ -14,6 +14,7 @@ import type {
   BackgroundToken,
   BorderToken,
   BorderVariant,
+  BorderWidthToken,
   BreakpointSize,
   ContainerBreakpointSize,
   RadiusSize,
@@ -264,6 +265,97 @@ export function getBorder(
     .split(' ')
     .map(b => `1px solid ${borderValue(b as BorderToken, theme)}`)
     .join(' ');
+}
+
+export function getBorderWidth(
+  borderWidth: BorderWidthToken | undefined,
+  _breakpoint: ResponsiveBreakpoint | undefined,
+  theme: Theme
+): string | undefined {
+  if (borderWidth === undefined) {
+    return undefined;
+  }
+
+  return theme.border[borderWidth];
+}
+
+function getBorderStyle(
+  border: BorderVariant | undefined,
+  _breakpoint: ResponsiveBreakpoint | undefined,
+  _theme: Theme
+): string | undefined {
+  if (border === undefined) {
+    return undefined;
+  }
+  return border === 'none' ? 'none' : 'solid';
+}
+
+function getBorderColor(
+  border: BorderVariant | undefined,
+  _breakpoint: ResponsiveBreakpoint | undefined,
+  theme: Theme
+): string | undefined {
+  if (border === undefined || border === 'none') {
+    return undefined;
+  }
+  return borderValue(border, theme);
+}
+
+interface BorderProps {
+  borderBottomColor?: Responsive<BorderVariant>;
+  borderColor?: Responsive<BorderVariant>;
+  borderLeftColor?: Responsive<BorderVariant>;
+  borderRightColor?: Responsive<BorderVariant>;
+  borderTopColor?: Responsive<BorderVariant>;
+  borderWidth?: Responsive<BorderWidthToken>;
+}
+
+const BORDER_SIDES = [
+  ['top', 'borderTopColor'],
+  ['bottom', 'borderBottomColor'],
+  ['left', 'borderLeftColor'],
+  ['right', 'borderRightColor'],
+] as const;
+
+/**
+ * Resolves the border props into CSS. `borderColor` draws all sides, a side
+ * color draws one side, and `borderWidth` sets the width of the drawn sides.
+ * The width defaults to 1px, and `borderWidth` alone draws all sides in the
+ * `primary` color.
+ */
+export function getBorderStyles(props: BorderProps, theme: Theme): string | undefined {
+  const sides = BORDER_SIDES.filter(([, prop]) => props[prop] !== undefined);
+  const drawsAllSides =
+    props.borderColor !== undefined ||
+    (props.borderWidth !== undefined && sides.length === 0);
+
+  if (!drawsAllSides && sides.length === 0) {
+    return undefined;
+  }
+
+  const declarations: Array<string | undefined> = [];
+
+  if (drawsAllSides) {
+    declarations.push(
+      `border-style: solid; border-color: ${theme.tokens.border.primary};`,
+      rc('border-style', props.borderColor, theme, getBorderStyle),
+      rc('border-color', props.borderColor, theme, getBorderColor)
+    );
+  }
+
+  for (const [side, prop] of sides) {
+    declarations.push(
+      rc(`border-${side}-style`, props[prop], theme, getBorderStyle),
+      rc(`border-${side}-color`, props[prop], theme, getBorderColor)
+    );
+  }
+
+  declarations.push(
+    `border-width: ${theme.border.md};`,
+    rc('border-width', props.borderWidth, theme, getBorderWidth)
+  );
+
+  return declarations.filter(Boolean).join('');
 }
 
 export function getRadius(

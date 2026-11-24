@@ -42,7 +42,7 @@ export type RepoLockedConnectFormProps = ModalRenderProps & {
 function PathsPlaceholder() {
   return (
     <Container
-      border="secondary"
+      borderColor="secondary"
       radius="md"
       padding="2xl"
       style={{borderStyle: 'dashed'}}

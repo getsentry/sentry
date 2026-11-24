@@ -115,7 +115,7 @@ function OnboardingSkipModal({
           {t('Select an option to skip')}
         </Heading>
         <Stack
-          border="primary"
+          borderColor="primary"
           radius="md"
           overflow="hidden"
           role="group"
@@ -125,7 +125,7 @@ function OnboardingSkipModal({
             <Container
               key={option.value}
               position="relative"
-              borderBottom={index < reasons.length - 1 ? 'primary' : undefined}
+              borderBottomColor={index < reasons.length - 1 ? 'primary' : undefined}
             >
               <Container
                 position="absolute"

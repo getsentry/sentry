@@ -527,7 +527,12 @@ function Chart({
   const chartRemountKey = `${isAttributeBreakdown ? 'attribute-breakdown' : 'zoom'}|${period}|${start}|${end}|${query}|${chartType}|${chartInterval}|${topEvents}|${groupBys.join(',')}`;
 
   return (
-    <ChartWrapper ref={chartWrapperRef} border="primary" radius="md" background="primary">
+    <ChartWrapper
+      ref={chartWrapperRef}
+      borderColor="primary"
+      radius="md"
+      background="primary"
+    >
       <Widget
         Title={Title}
         TitleBadges={TitleBadges}

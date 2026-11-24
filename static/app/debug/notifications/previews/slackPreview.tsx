@@ -42,7 +42,7 @@ export function SlackPreview({
         </LinkButton>
       }
     >
-      <Container border="primary" radius="md">
+      <Container borderColor="primary" radius="md">
         <SlackMessageContainer columns="auto 1fr" gap="0 lg" padding="xl">
           <SentrySlackAppIcon />
           <Flex gap="md" align="end">

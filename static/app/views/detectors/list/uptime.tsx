@@ -50,7 +50,7 @@ function VisualizationCell({detector}: {detector: UptimeDetector}) {
     <SimpleTable.RowCell
       column="-3 / -1"
       padding="lg 0"
-      borderLeft="secondary"
+      borderLeftColor="secondary"
       height="100%"
     >
       <Flex width="100%" height="100%" ref={elementRef} align="center">
@@ -90,7 +90,7 @@ export default function UptimeDetectorsList() {
             <SimpleTable.RowCell
               column="-3 / -1"
               padding="lg 0"
-              borderLeft="secondary"
+              borderLeftColor="secondary"
               height="100%"
             >
               <CheckInPlaceholder />

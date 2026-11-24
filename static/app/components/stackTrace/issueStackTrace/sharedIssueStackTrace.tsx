@@ -238,7 +238,7 @@ function SharedIssueStackTraceContent({
             exceptions.length
           )}
         </Text>
-        <Separator orientation="horizontal" border="primary" />
+        <Separator orientation="horizontal" borderColor="primary" />
         {exceptions.map((exc, idx) => {
           if (
             exc.mechanism?.parent_id !== undefined &&

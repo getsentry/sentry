@@ -114,7 +114,7 @@ export function SourceMapIssueDetails({
     <Container
       role="main"
       position="relative"
-      border="primary"
+      borderColor="primary"
       background="primary"
       radius="md"
     >
