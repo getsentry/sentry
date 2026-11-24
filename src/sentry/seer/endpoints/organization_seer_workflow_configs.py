@@ -29,8 +29,11 @@ from sentry.auth.principal import acting_user_id
 from sentry.cadence.api import ScheduledTriggerType, get_schedules
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS, ObjectStatus
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.sdk_client import SlackInstallationUnavailable
-from sentry.integrations.slack.utils.channel import get_slack_channel_id, get_slack_channel_name
+from sentry.integrations.slack.utils.channel import (
+    SlackInstallationUnavailable,
+    get_slack_channel_id,
+    get_slack_channel_name,
+)
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.project import Project
