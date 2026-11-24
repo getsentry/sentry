@@ -13,6 +13,7 @@ import unescape from 'lodash/unescape';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {useRenderToString} from '@sentry/scraps/renderToString';
+import {Text} from '@sentry/scraps/text';
 
 import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
 import {BAND_Y_AXIS, type BandBucket} from 'sentry/components/charts/bands/bandShapes';
@@ -44,7 +45,6 @@ import type {
   ReactEchartsRef,
 } from 'sentry/types/echarts';
 import {escape} from 'sentry/utils';
-import {toArray} from 'sentry/utils/array/toArray';
 import {getUserTimezone} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
@@ -253,9 +253,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const theme = useTheme();
   const renderToString = useRenderToString();
-  // `renderToString` flushes a React root, so it can't run during render.
-  // Render the icon on the first low-confidence tooltip and reuse it after.
-  const warningIconRef = useRef('');
   const navigate = useNavigate();
   const location = useLocation();
   const hasReleaseBubbles =
@@ -392,18 +389,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       }
     }
 
-    const hasLowConfidence = toArray(deDupedParams).some(param =>
-      isLowConfidenceDataPoint(param.data)
-    );
-    if (hasLowConfidence && !warningIconRef.current) {
-      // Sits the icon on the text's centre line without growing the line box,
-      // so rows keep their height when a bucket becomes low confidence
-      warningIconRef.current = renderToString(
-        <IconWarning size="xs" aria-hidden style={{verticalAlign: '-0.125em'}} />
-      );
-    }
-    const warningIcon = hasLowConfidence ? warningIconRef.current : '';
-
     return getFormatter({
       isGroupedByDate: true,
       showTimeInTooltip: true,
@@ -462,19 +447,42 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
         const fieldType = correspondingPlottable?.dataType ?? FALLBACK_TYPE;
 
-        const formattedValue = escape(
-          formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined)
+        const formattedValue = formatTooltipValue(
+          value,
+          fieldType,
+          unitForType[fieldType] ?? undefined
         );
 
         if (isLowConfidenceDataPoint(valueFormatterParams.data)) {
-          return `<span style="white-space: nowrap">${warningIcon}<span style="margin-left: ${theme.space.xs}">${formattedValue}</span></span>`;
+          return renderToString(
+            // Trimming the text box, or laying the icon out in a flex row, moves
+            // the value's baseline and makes the row taller than its neighbours
+            <Text variant="inherit" wrap="nowrap" trim={false}>
+              <IconWarning size="xs" aria-hidden style={{verticalAlign: '-0.125em'}} />{' '}
+              {formattedValue}
+            </Text>
+          );
         }
 
-        return formattedValue;
+        return escape(formattedValue);
       },
       renderHeader: seriesParams =>
         seriesParams.some(param => isLowConfidenceDataPoint(param.data))
-          ? `<div class="tooltip-header">${warningIcon}${escape(t('Low confidence'))}</div>`
+          ? renderToString(
+              <Flex
+                className="tooltip-header"
+                align="center"
+                gap="sm"
+                background="secondary"
+                borderBottom="secondary"
+                padding="md xl"
+              >
+                <IconWarning size="xs" variant="muted" aria-hidden />
+                <Text size="sm" variant="muted">
+                  {t('Low confidence')}
+                </Text>
+              </Flex>
+            )
           : '',
       renderSeriesDetails: props.renderTooltipSeriesDetails,
       limit: props.tooltipLimit,

@@ -874,19 +874,10 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     color: ${p.theme.tokens.content.primary};
   }
   .tooltip-header {
-    display: flex;
-    align-items: center;
-    gap: ${p.theme.space.sm};
-    color: ${p.theme.tokens.content.secondary};
-    background: ${p.theme.tokens.background.secondary};
-    border-bottom: solid 1px ${p.theme.tokens.border.secondary};
     /* The header is the only tooltip section with a background, so it has to
        follow the ECharts container's corners */
     border-top-left-radius: inherit;
     border-top-right-radius: inherit;
-    font-family: ${p.theme.font.family.sans};
-    font-size: ${p.theme.font.size.sm};
-    padding: ${p.theme.space.md} ${p.theme.space.xl};
   }
   .tooltip-series {
     border-bottom: none;
