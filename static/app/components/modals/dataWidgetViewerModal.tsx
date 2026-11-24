@@ -684,7 +684,7 @@ function DataWidgetViewerModal(props: Props) {
             value={selectedQueryIndex}
             options={queryOptions}
             dropdownIndicator={widget.queries.length < 2 ? null : undefined}
-            onChange={(option: SelectValue<number>) => {
+            onChange={option => {
               navigate(
                 {
                   pathname: location.pathname,
