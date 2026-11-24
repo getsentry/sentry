@@ -227,10 +227,10 @@ def resolve_seer_organization(
     organization_ids = [oi.organization_id for oi in ois]
     logging_ctx["organization_ids"] = organization_ids
 
-    # A workspace can be connected to dozens of organizations, and each one checked below costs a
-    # cross-silo call from CONTROL. Narrowing to the user's memberships first keeps the call count
-    # proportional to the user rather than the workspace, so routing stays inside the task deadline.
-    member_organization_ids = {org.id for org in user_service.get_organizations(user_id=user.id)}
+    # Each org checked below costs an RPC from CONTROL, so only check the user's active orgs.
+    member_organization_ids = {
+        org.id for org in user_service.get_organizations(user_id=user.id, only_visible=True)
+    }
     candidate_organization_ids = [
         organization_id
         for organization_id in organization_ids
