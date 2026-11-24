@@ -5,6 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {SortDirection} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -68,6 +69,7 @@ function MetricMonitors({
 }) {
   const {selection} = usePageFilters();
   const [query, setQuery] = useState('');
+  const [lastBreachSort, setLastBreachSort] = useState<SortDirection>('desc');
 
   return (
     <Stack gap="lg">
@@ -83,11 +85,15 @@ function MetricMonitors({
       </Flex>
       {/* Keyed so pagination restarts when the filters change */}
       <MonitorList
-        key={`${selection.projects.join(',')}|${query}`}
+        key={`${selection.projects.join(',')}|${query}|${lastBreachSort}`}
         connectedIds={connectedIds}
         toggleConnected={toggleConnected}
         projectIds={selection.projects}
         query={query}
+        lastBreachSort={{
+          direction: lastBreachSort,
+          onSort: () => setLastBreachSort(lastBreachSort === 'desc' ? 'asc' : 'desc'),
+        }}
       />
     </Stack>
   );
@@ -98,8 +104,10 @@ function MonitorList({
   toggleConnected,
   projectIds,
   query,
+  lastBreachSort,
 }: {
   connectedIds: string[];
+  lastBreachSort: {direction: SortDirection; onSort: () => void};
   projectIds: number[];
   query: string;
   toggleConnected: (monitorId: string) => void;
@@ -114,7 +122,7 @@ function MonitorList({
       query: query ? `type:metric_issue ${query}` : 'type:metric_issue',
       projects: projectIds,
       limit: MONITORS_PER_PAGE,
-      sortBy: '-latestGroup',
+      sortBy: lastBreachSort.direction === 'desc' ? '-latestGroup' : 'latestGroup',
       cursor,
     }),
     select: selectJsonWithHeaders,
@@ -126,6 +134,7 @@ function MonitorList({
       <MonitorTable
         monitors={monitors}
         isError={isError}
+        lastBreachSort={lastBreachSort}
         pendingRows={isPending ? MONITORS_PER_PAGE : 0}
         emptyMessage={t('No metric monitors match your search')}
         renderAction={monitor => {

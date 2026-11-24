@@ -338,6 +338,38 @@ describe('MetricAutomationForm', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('sorts the connect drawer by last breach', async () => {
+    const newestFirst = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/`,
+      body: [MetricDetectorFixture({id: '1', name: 'Checkout error rate'})],
+      match: [MockApiClient.matchQuery({sortBy: '-latestGroup'})],
+    });
+    const oldestFirst = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/`,
+      body: [MetricDetectorFixture({id: '2', name: 'Payment failures', projectId: '2'})],
+      match: [MockApiClient.matchQuery({sortBy: 'latestGroup'})],
+    });
+    render(<NewAutomationPage />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/seer/automations/new/'},
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Connect monitors'}));
+    const drawer = await screen.findByRole('complementary', {name: 'Connect monitors'});
+    expect(
+      await within(drawer).findByRole('row', {name: /Checkout error rate/})
+    ).toBeInTheDocument();
+    expect(newestFirst).toHaveBeenCalled();
+
+    await userEvent.click(within(drawer).getByRole('button', {name: 'Last breach'}));
+    expect(
+      await within(drawer).findByRole('row', {name: /Payment failures/})
+    ).toBeInTheDocument();
+    expect(oldestFirst).toHaveBeenCalled();
+  });
+
   it('closes the connect drawer when leaving the page', async () => {
     const {router} = render(<NewAutomationPage />, {
       organization,
