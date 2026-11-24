@@ -3322,6 +3322,25 @@ describe('Visualize', () => {
       );
     });
 
+    it('does not offer the field option on hidden rows', async () => {
+      renderUnifiedQuery({
+        displayType: DisplayType.TABLE,
+        field: [SUM_ALPHA, `equation|${SUM_BETA} * 2`],
+      });
+
+      const hiddenRow = await screen.findByTestId('hidden-metric-row');
+      await userEvent.click(within(hiddenRow).getByRole('button', {name: 'beta_metric'}));
+      expect(
+        await screen.findByRole('option', {name: 'beta_metric'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'field'})).not.toBeInTheDocument();
+      await userEvent.keyboard('{Escape}');
+
+      // Visible columns keep it
+      await userEvent.click(screen.getByRole('button', {name: 'alpha_metric'}));
+      expect(await screen.findByRole('option', {name: 'field'})).toBeInTheDocument();
+    });
+
     it('shows a hidden series again', async () => {
       const {router} = renderUnified([`equation|${SUM_BETA} * 2`]);
 
