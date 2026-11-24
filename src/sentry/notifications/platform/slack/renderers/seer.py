@@ -64,6 +64,8 @@ class AutofixStageConfig(TypedDict):
     completed_text: str
 
 
+SEER_AUTO_RELOAD_MODAL_FRAGMENT = "open-seer-auto-reload-modal"
+
 MAX_STEPS = 10
 MAX_CHANGES = 5
 MAX_PRS = 3
@@ -233,6 +235,9 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         except Organization.DoesNotExist:
             return SlackRenderable(blocks=blocks, text=message)
 
+        fragment = SEER_AUTO_RELOAD_MODAL_FRAGMENT
+        if data.denial_reason:
+            fragment += f":{data.denial_reason}"
         blocks.append(
             ActionsBlock(
                 elements=[
@@ -241,7 +246,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                         style="primary",
                         url=link_decorator.decorate_url(
                             organization.absolute_url(
-                                f"/settings/{organization.slug}/billing/overview/"
+                                f"/settings/{organization.slug}/billing/overview/",
+                                fragment=fragment,
                             )
                         ),
                         action_id=encode_action_id(
