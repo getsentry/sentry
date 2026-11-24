@@ -1339,6 +1339,30 @@ describe('SeerExplorerContent', () => {
       expect(screen.getByText('Looking at the slowest checkout spans.')).toBeVisible();
     });
 
+    it('says the run stopped at the daily usage limit', async () => {
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({
+          ...defaultHookReturn,
+          runId: 123,
+          sessionData: {
+            blocks: stoppedBlocks,
+            status: 'error',
+            updated_at: '2024-01-01T00:00:20Z',
+            failure_reason: 'out_of_credits',
+            credit_denial_reason: 'daily_cap_exceeded',
+          },
+        });
+
+      renderContent();
+
+      expect(
+        await screen.findByText(
+          'Seer stopped because your organization hit its daily usage limit.'
+        )
+      ).toBeInTheDocument();
+    });
+
     it("leaves Seer's error block alone for other failures", async () => {
       jest
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')

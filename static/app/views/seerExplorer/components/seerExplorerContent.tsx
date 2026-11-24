@@ -41,6 +41,7 @@ import {
 import {
   seerCreditCheckApiOptions,
   useSeerCreditCheck,
+  type SeerCreditDenialReason,
 } from 'sentry/utils/seer/useSeerCreditCheck';
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -398,9 +399,12 @@ export function SeerExplorerContent({
       <Container data-test-id="seer-explorer-out-of-credits">
         <SeerOutOfCreditsCta
           reason="agent-chat"
+          // Single runs skip the credit check, so the reason comes from the stop itself.
           denialReason={
             isSingleRunReply
-              ? (refusedForCredits?.creditDenialReason ?? null)
+              ? refusedForCredits
+                ? (refusedForCredits.creditDenialReason ?? null)
+                : (sessionData?.credit_denial_reason ?? null)
               : denialReason
           }
         />
@@ -950,6 +954,7 @@ export function SeerExplorerContent({
                   (isAwaitingUserInput && pendingInput?.input_type === 'connect_scm')
                 }
                 outOfCredits={isRunOutOfCredits}
+                creditDenialReason={sessionData?.credit_denial_reason ?? null}
                 pendingInput={pendingInput}
                 readOnly={readOnly}
               />
@@ -1055,6 +1060,8 @@ export function SeerExplorerContent({
 
 interface SeerExplorerTranscriptProps {
   blocks: Block[];
+  /** Why billing refused credit, when `outOfCredits` is set. */
+  creditDenialReason: SeerCreditDenialReason | null;
   getPageReferrer: () => string;
   interactionPending: boolean;
   /** The run stopped because the organization ran out of Seer credits. */
@@ -1071,6 +1078,7 @@ interface SeerExplorerTranscriptProps {
  */
 const SeerExplorerTranscript = memo(function SeerExplorerTranscript({
   blocks,
+  creditDenialReason,
   getPageReferrer,
   interactionPending,
   outOfCredits,
@@ -1107,6 +1115,7 @@ const SeerExplorerTranscript = memo(function SeerExplorerTranscript({
         interactionPending={interactionPending}
         // The run stopped at its end, so only the last response explains why.
         outOfCredits={outOfCredits && segmentIndex === segments.length - 1}
+        creditDenialReason={creditDenialReason}
         pendingInput={pendingInput}
         readOnly={readOnly}
         showThinking
