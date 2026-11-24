@@ -5,12 +5,13 @@ import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 
 /**
- * No case here carries an avatar, and none should until the harness loads the
- * app's global stylesheet. `Avatar` sizes itself through `.avatar` in
- * `shared-components.less`, which supplies the `position: relative` its
- * absolutely positioned SVG needs; the harness injects only fonts and
- * extracted emotion, so the avatar escapes its box and renders enormous. It
- * also wants a `QueryClientProvider`, which the harness does not give either.
+ * No case here renders an avatar, and none should until the snapshot renderer
+ * loads the app's global stylesheet. `Avatar` gets the `position: relative`
+ * its absolutely positioned SVG needs from `.avatar` in
+ * `shared-components.less`. The renderer injects only fonts and extracted
+ * Emotion styles, so the avatar overflows its box and renders far too large.
+ * `Avatar` also needs a `QueryClientProvider`, which the renderer does not
+ * provide.
  */
 
 const props: EntityHeaderProps = {
@@ -195,20 +196,20 @@ describe('EntityHeader', () => {
     );
   });
 
-  // Past `maxVisible` the entries collapse into "+N more"; the rest wrap onto
-  // further lines rather than overflow a narrow header, under a label that
-  // stays on the first line. The harness renders on the server, where there is
-  // no container to measure, so `maxVisible` resolves to its `zero` value at
-  // every width.
+  // Entries past `maxVisible` collapse into "+N more". The visible entries
+  // wrap onto more lines rather than overflow a narrow header, and the label
+  // stays on the first line. The snapshot renderer runs on the server, where
+  // there is no container to measure, so `maxVisible` resolves to its `zero`
+  // value at every width.
   it.snapshot.each([480, 900])(
     'metadata list at %s',
     () => <ToolsHeader maxVisible={{zero: 6, md: 8}} />,
     viewport => ({viewport, tags: {area: 'core'}})
   );
 
-  // What "+N more" expands to. The harness cannot click, so a list with no
-  // `maxVisible` draws the same entries; beside the collapsed case at the same
-  // width, only the added lines may differ.
+  // What "+N more" expands to. The snapshot renderer cannot click, so a list
+  // with no `maxVisible` stands in for the expanded state. Compared with the
+  // collapsed case at the same width, only the added lines should differ.
   it.snapshot('metadata list expanded', () => <ToolsHeader />, {
     viewport: 480,
     tags: {area: 'core'},
@@ -278,7 +279,7 @@ describe('EntityHeader', () => {
     {viewport: 240, tags: {area: 'core'}}
   );
 
-  // The harness does not freeze time, so the relative date is anchored to the
+  // The snapshot renderer does not freeze time, so the relative date is anchored to the
   // render rather than fixed: it always reads "5min ago". The provider pins
   // the absolute one's timezone and clock.
   it.snapshot(

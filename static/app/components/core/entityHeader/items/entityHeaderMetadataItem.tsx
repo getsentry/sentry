@@ -31,24 +31,24 @@ import {EntityHeaderText, toLinkDestination} from './entityHeaderText';
 
 interface EntityHeaderMetadataItemShared {
   /**
-   * What the property is — "Started at", "Browser". Always exposed to
-   * assistive technology, as text, in a link's name or as a list's name, so
-   * the value is never announced unexplained; `mode` decides whether it is
-   * drawn.
+   * What the property is, such as "Started at" or "Browser". Assistive
+   * technology always gets it, as hidden text, in a link's name or as a list's
+   * name, so a value is never announced without its key. `mode` decides
+   * whether it is visible.
    */
   label: string;
   /**
    * A 16px graphic before the value. Always decorative, so it is hidden from
-   * assistive technology. A node rather than data: there is no fixed set of
-   * things a property can be about.
+   * assistive technology. It takes a node rather than data, because a
+   * property can be about anything.
    */
   leadingGraphic?:
     | React.ReactElement<SVGIconProps>
     | React.ReactElement<React.ComponentProps<typeof PlatformIcon>>
     | React.ReactElement<React.ComponentProps<typeof UserAvatar>>;
   /**
-   * `compact` leaves naming the property to the graphic beside it and keeps
-   * `label` for screen readers only; `full` draws it too.
+   * `compact` keeps `label` for screen readers only, and leaves the graphic
+   * beside the value to identify the property. `full` also draws `label`.
    *
    * @default 'compact'
    */
@@ -63,7 +63,8 @@ interface EntityHeaderMetadataValueQualifiers {
    */
   secondary?: {label: string; value: string};
   /**
-   * Explains the value on hover or focus, underlined to signal it.
+   * Explains the value on hover or focus. The value is underlined when it has
+   * one.
    */
   tooltip?: React.ReactNode;
 }
@@ -73,11 +74,12 @@ type EntityHeaderMetadataValueProps = EntityHeaderMetadataItemShared &
     | (EntityHeaderMetadataValueQualifiers & {
         type: 'text';
         /**
-         * Data, not a node, so the header draws every value the same way.
+         * A string rather than a node, so the header draws every value the same
+         * way.
          */
         value: string;
         /**
-         * Colours the value, to call out a problem or a state.
+         * Colors the value to call out a problem or a state.
          */
         variant?: EntityHeaderTextVariant;
       })
@@ -97,8 +99,8 @@ type EntityHeaderMetadataValueProps = EntityHeaderMetadataItemShared &
          * @default 'absolute'
          */
         format?: 'absolute' | 'relative';
-        // Banned outright, so an object declared before it is passed, which
-        // skips the excess property check, cannot carry them in.
+        // Typed as `never` so an object declared before it is passed, which
+        // skips the excess property check, cannot include them.
         secondary?: never;
         tooltip?: never;
         value?: never;
@@ -107,22 +109,21 @@ type EntityHeaderMetadataValueProps = EntityHeaderMetadataItemShared &
     | (EntityHeaderMetadataValueQualifiers & {
         type: 'link';
         /**
-         * Text, not a node: the link is named from it and `label` together, so
-         * a links list reads "Release 8.42.0".
+         * A string rather than a node, because the link's name combines
+         * `label` and `value`, so a links list reads "Release 8.42.0".
          */
         value: string;
       } & LinkDestination)
   );
 
 /**
- * A text, date or link value whose `label` may be left out, as a list's entries
- * may be.
+ * A text, date or link value with an optional `label`, as used by list
+ * entries.
  */
 type MetadataValueData = DistributedOmit<EntityHeaderMetadataValueProps, 'label'> & {
   /**
-   * Optional here: an entry the list's own label already explains, such as a
-   * tool under "Tools", need not repeat it. Without one, a link is named by
-   * its value alone.
+   * Optional, because the list's label can already explain an entry, such as
+   * a tool under "Tools". Without a label, a link is named by its value alone.
    */
   label?: string;
 };
@@ -135,15 +136,15 @@ export type EntityHeaderMetadataListEntry = MetadataValueData & {key: string};
 
 interface EntityHeaderMetadataListOptions {
   /**
-   * Shown in this order, so filter and sort them before passing them: the
-   * cut to `maxVisible` keeps the first ones.
+   * Shown in the order passed. `maxVisible` keeps the first entries, so
+   * filter and sort them before passing them.
    */
   items: EntityHeaderMetadataListEntry[];
   type: 'list';
   /**
-   * Entries past this collapse behind "+N more", which reveals them in place.
-   * Omitted, every entry is shown. Responsive: plain keys resolve
-   * against the header's width, `screen:` keys against the viewport.
+   * Entries past this count collapse behind "+N more", which reveals them in
+   * place. When omitted, every entry is shown. Plain responsive keys resolve
+   * against the header's width, and `screen:` keys against the viewport.
    */
   maxVisible?: Responsive<number>;
 }
@@ -152,17 +153,17 @@ type EntityHeaderMetadataListProps = EntityHeaderMetadataItemShared &
   EntityHeaderMetadataListOptions;
 
 /**
- * A list takes no `tooltip`, `secondary` or `variant` of its own: each entry
- * carries its own.
+ * A list takes no `tooltip`, `secondary` or `variant`. Each entry sets its
+ * own.
  */
 export type EntityHeaderMetadataItemProps =
   | EntityHeaderMetadataValueProps
   | EntityHeaderMetadataListProps;
 
 /**
- * A value that draws: its text is not blank, its qualifier is text or gone,
- * and a date is already parsed, so renderers neither check it nor parse a
- * string again.
+ * A value that renders. Its text is not blank, its `secondary` has a
+ * non-blank value or is absent, and a date is already parsed, so renderers
+ * don't check or parse it again.
  */
 type ResolvedMetadataValue =
   | Exclude<MetadataValueData, {type: 'date'}>
@@ -181,10 +182,10 @@ function isDrawableValue(value: unknown): value is string {
 }
 
 /**
- * A value that draws nothing usually comes from mapping over data with a
- * missing name. It is left out like a `null` item. A date is parsed with the
- * parser that both renderers use, so one it cannot read is left out rather
- * than drawn as "Invalid date", and the parsed instant is what they draw.
+ * An empty value usually comes from mapping over data with a missing name, and
+ * is left out like a `null` item. A date is parsed with the same parser both
+ * date renderers use. A date it cannot read is left out rather than drawn as
+ * "Invalid date", and the renderers draw the parsed date.
  */
 function resolveMetadataValue(entry: MetadataValueData): ResolvedMetadataValue | null {
   if (entry.type === 'date') {
@@ -201,8 +202,8 @@ function resolveMetadataValue(entry: MetadataValueData): ResolvedMetadataValue |
 }
 
 /**
- * The item as it draws, or `null` if it draws nothing. A list keeps only the
- * entries that draw, and draws nothing without one.
+ * Returns the item as it renders, or `null` if it renders nothing. A list
+ * keeps only the entries that render, and renders nothing when none do.
  */
 export function resolveMetadataItem(
   item: EntityHeaderMetadataItemProps
@@ -258,14 +259,14 @@ interface MetadataItemFrameProps {
   ref?: React.Ref<HTMLDivElement>;
   tabIndex?: number;
   /**
-   * Drawn after the content: the pipe that ends a property in the row.
+   * Drawn after the content, such as the pipe that ends a property in the row.
    */
   trailing?: React.ReactNode;
 }
 
-// One named list item rather than a `dt`/`dd` pair: as a description list,
-// VoiceOver narrated the pairing — "term", "selectable list item", "end of
-// term" — before it ever reached the value.
+// A list item rather than a `dt`/`dd` pair. As a description list, VoiceOver
+// read "term", "selectable list item" and "end of term" before it reached the
+// value.
 function MetadataItemFrame({children, ref, tabIndex, trailing}: MetadataItemFrameProps) {
   return (
     <Flex
@@ -360,7 +361,8 @@ function MetadataDisplayValue({value: props}: {value: ResolvedMetadataValue}) {
 
 function MetadataValue({value: props}: {value: ResolvedMetadataValue}) {
   const {label, mode = 'compact', secondary} = props;
-  // A link names itself from `label`; text and dates need the label beside it.
+  // A link's name already includes `label`, so a compact link draws no
+  // separate label. Text and dates always need one.
   const needsOwnLabel = Boolean(label) && (props.type !== 'link' || mode === 'full');
   const secondaryLabel = secondary
     ? label
@@ -411,9 +413,9 @@ function MetadataValue({value: props}: {value: ResolvedMetadataValue}) {
 interface MetadataEntryProps {
   entry: ResolvedMetadataValue;
   /**
-   * Set on a list's first visible entry, which starts the property: it
-   * carries the list's graphic and label. The graphic keeps its fixed box,
-   * while the label shares the space with the entry's text.
+   * Set on a list's first visible entry, which carries the list's graphic and
+   * label. The graphic keeps its fixed box, and the label shares the remaining
+   * space with the entry's text.
    */
   leadGraphic?: React.ReactNode;
   leadLabel?: React.ReactNode;
@@ -463,13 +465,13 @@ function MetadataList({
 }: ResolvedMetadataListProps & {trailing: React.ReactNode}) {
   const {t} = useTranslation();
   const cut = useResponsivePropValue(maxVisible) ?? items.length;
-  // Where the list was cut when "+N more" was pressed; null while collapsed.
-  // Kept rather than re-read from `cut`, so a later resize neither collapses
-  // the list again nor moves focus.
+  // The index of the first hidden entry when "+N more" was pressed, or null
+  // while collapsed. Stored rather than read from `cut`, so a later resize
+  // doesn't collapse the list again or move focus.
   const [revealedFrom, setRevealedFrom] = useState<number | null>(null);
   // Set by the click that reveals the rest and cleared by the first focus, so
   // a later change to `items` that moves another entry to `revealedFrom`
-  // cannot pull focus back into the header.
+  // cannot move focus back into the header.
   const pendingFocusRef = useRef(false);
   const focusIfPending = useCallback((element: HTMLElement | null) => {
     if (element && pendingFocusRef.current) {
@@ -480,12 +482,14 @@ function MetadataList({
   const isCollapsed = revealedFrom === null && cut < items.length;
   const shown = isCollapsed ? items.slice(0, cut) : items;
 
-  // The list's graphic and label travel with its first drawn item, so they
-  // wrap with it: the first entry, or "+N more" when every entry collapses.
+  // The list's graphic and label render inside its first item, so they wrap
+  // with it. That item is the first entry, or "+N more" when every entry is
+  // collapsed.
   const leadGraphic = leadingGraphic ? (
     <MetadataGraphic>{leadingGraphic}</MetadataGraphic>
   ) : undefined;
-  // The nested list's name already speaks the label.
+  // Hidden from assistive technology, because the nested list's name already
+  // includes the label.
   const leadLabel =
     mode === 'full' ? (
       <Text size="md" density="comfortable" ellipsis variant="muted" aria-hidden>
@@ -513,7 +517,7 @@ function MetadataList({
             leadLabel={index === 0 ? leadLabel : undefined}
             trailing={!isCollapsed && index === shown.length - 1 ? trailing : undefined}
             // "+N more" unmounts as it reveals the rest, so focus moves to
-            // the first revealed entry rather than falling to the page.
+            // the first revealed entry rather than resetting to the page.
             ref={index === revealedFrom ? focusIfPending : undefined}
             tabIndex={index === revealedFrom ? -1 : undefined}
           />
