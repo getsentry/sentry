@@ -443,9 +443,15 @@ ACTIVE_GENERIC_FILTERS: Sequence[tuple[str, Callable[[], RuleCondition | None]]]
 ]
 
 
-# Browser SDKs report the OS of the device running the browser, so a web app opened
-# in a console browser reports a console OS without using a console SDK.
-_BROWSER_SDK_NAMES = ["sentry.javascript.*"]
+# Game engine SDKs that report the console OS without a console-specific SDK name.
+_GAME_ENGINE_SDK_NAMES = [
+    "sentry.dotnet.unity",
+    "sentry.native.unity",
+    "sentry.unity",
+    "sentry.unity.lite",
+    "sentry.unreal",
+    "sentry.native.unreal",
+]
 
 
 @dataclass(frozen=True)
@@ -460,10 +466,6 @@ class _ConsolePlatformFilter:
         return f"console-platform-{self.platform}"
 
     def condition(self) -> RuleCondition:
-        not_browser: NotCondition = {
-            "op": "not",
-            "inner": {"op": "glob", "name": "event.sdk.name", "value": _BROWSER_SDK_NAMES},
-        }
         return {
             "op": "or",
             "inner": [
@@ -472,16 +474,15 @@ class _ConsolePlatformFilter:
                     "op": "and",
                     "inner": [
                         {"op": "glob", "name": "event.contexts.os.name", "value": self.os_names},
-                        not_browser,
+                        {"op": "glob", "name": "event.sdk.name", "value": _GAME_ENGINE_SDK_NAMES},
                     ],
                 },
             ],
         }
 
 
-# Drops events from console platforms that the organization has no access to. The OS
-# name catches engine SDKs, such as Unity, that report the console OS without a
-# console-specific SDK name.
+# Drops events from console platforms that the organization has no access to, matched
+# by console SDK name, or by console OS name from a game engine SDK.
 CONSOLE_PLATFORM_FILTERS: Sequence[_ConsolePlatformFilter] = [
     _ConsolePlatformFilter(
         platform="playstation",

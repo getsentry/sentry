@@ -1485,7 +1485,12 @@ def test_console_platform_filter_conditions_are_valid(
             "playstation",
             id="ps_orbis_os",
         ),
-        pytest.param({"event.contexts.os.name": "PS5"}, "playstation", id="ps5_os_no_sdk"),
+        pytest.param(
+            {"event.sdk.name": "sentry.native.unreal", "event.contexts.os.name": "PS5"},
+            "playstation",
+            id="ps5_unreal_os",
+        ),
+        pytest.param({"event.contexts.os.name": "PS5"}, None, id="ps5_os_no_sdk"),
         pytest.param({"event.sdk.name": "sentry.native.xbox.unreal"}, "xbox", id="xbox_unreal"),
         pytest.param({"event.sdk.name": "sentry.native.xbox"}, "xbox", id="xbox_native"),
         pytest.param(
@@ -1524,6 +1529,11 @@ def test_console_platform_filter_conditions_are_valid(
             id="windows_gdk",
         ),
         pytest.param({"event.sdk.name": "sentry.native.unreal"}, None, id="unreal_desktop"),
+        pytest.param(
+            {"event.sdk.name": "sentry.native", "event.contexts.os.name": "Xbox"},
+            None,
+            id="native_on_xbox",
+        ),
         pytest.param(
             {"event.sdk.name": "sentry.native", "event.contexts.os.name": "Linux"}, None, id="linux"
         ),
