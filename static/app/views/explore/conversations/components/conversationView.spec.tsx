@@ -230,7 +230,6 @@ describe('ConversationViewContent', () => {
       load: async () => {
         await userEvent.click(screen.getByRole('button', {name: 'Jump to end'}));
         await waitFor(() => expect(Element.prototype.scrollTo).toHaveBeenCalled());
-        act(() => triggerIntersection?.(true));
       },
     },
   ])(
@@ -404,12 +403,12 @@ describe('ConversationViewContent', () => {
     it('stops loading pages when the user scrolls', async () => {
       MockApiClient.clearMockResponses();
       mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'page-2'});
-      const secondPage = mockConversation([], {
+      const secondPage = mockConversation([CONVERSATION_BODY[1]!], {
         cursor: 'page-2',
         nextCursor: 'page-3',
         asyncDelay: 10,
       });
-      const thirdPage = mockConversation([CONVERSATION_BODY[1]!], {cursor: 'page-3'});
+      const thirdPage = mockConversation([], {cursor: 'page-3'});
       renderView();
       await screen.findByText('First answer');
 
@@ -421,6 +420,7 @@ describe('ConversationViewContent', () => {
       ).toBeInTheDocument();
       expect(secondPage).toHaveBeenCalledTimes(1);
       expect(thirdPage).not.toHaveBeenCalled();
+      expect(screen.queryByText('Second answer')).not.toBeInTheDocument();
     });
 
     it('is hidden at the end of a fully loaded conversation', async () => {

@@ -412,20 +412,23 @@ async function fetchRemainingPages(
   {queryKey, getNextPageParam}: ReturnType<typeof getConversationQueryOptions>,
   signal: AbortSignal
 ) {
+  const getLoadedPageCount = () => queryClient.getQueryData(queryKey)?.pages.length ?? 0;
   const loadedData = queryClient.getQueryData(queryKey);
   if (!loadedData) {
-    return 0;
+    return {hasFailedPage: false, pageCount: 0};
   }
 
   const pages = [...loadedData.pages];
   const pageParams = [...(loadedData.pageParams as Array<ParsedHeader | undefined>)];
   let pageParam = getNextPageParam(pages.at(-1)!, pages, pageParams.at(-1), pageParams);
+  let hasFailedPage = false;
   while (pageParam && !signal.aborted && pages.length < MAX_PAGES) {
     const page = await apiFetchInfinite<ConversationApiResponse>({
       queryKey,
       pageParam,
     }).catch(() => null);
     if (!page) {
+      hasFailedPage = true;
       break;
     }
     pages.push(page);
@@ -433,13 +436,17 @@ async function fetchRemainingPages(
     pageParam = getNextPageParam(page, pages, pageParam, pageParams);
   }
 
+  if (signal.aborted) {
+    return {hasFailedPage: false, pageCount: getLoadedPageCount()};
+  }
+
   // An infinite scroll fetch that is still running would overwrite this update.
   await queryClient.cancelQueries({queryKey, exact: true});
-  const latestPageCount = queryClient.getQueryData(queryKey)?.pages.length ?? 0;
+  const latestPageCount = getLoadedPageCount();
   if (pages.length > latestPageCount) {
     queryClient.setQueryData(queryKey, {pages, pageParams});
   }
-  return Math.max(pages.length, latestPageCount);
+  return {hasFailedPage, pageCount: Math.max(pages.length, latestPageCount)};
 }
 
 export function useConversation(
@@ -476,8 +483,18 @@ export function useConversation(
     }
   }, [fetchNextPage, hasNextPage, isFetching]);
 
-  const loadRemainingPages = (signal: AbortSignal) =>
-    fetchRemainingPages(queryClient, queryOptions, signal);
+  const loadRemainingPages = async (signal: AbortSignal) => {
+    const {hasFailedPage, pageCount: loadedPages} = await fetchRemainingPages(
+      queryClient,
+      queryOptions,
+      signal
+    );
+    if (hasFailedPage) {
+      // Only a failure on the live query shows the Retry button.
+      void fetchNextPage({cancelRefetch: false});
+    }
+    return loadedPages;
+  };
 
   const autoFetchAll = conversation.autoFetchAll ?? true;
   const canAutoFetchNextPage = Boolean(
