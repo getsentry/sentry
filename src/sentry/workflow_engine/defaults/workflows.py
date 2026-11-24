@@ -33,10 +33,15 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 DEFAULT_WORKFLOW_LABEL = "Send a notification for high priority issues"
 PULL_REQUEST_WORKFLOW_LABEL = "Send a notification when pull requests are ready"
+INBOX_WORKFLOW_LABEL = "Add issue activity to Inbox"
 
 
 def ensure_inbox_workflow(org: Organization) -> Workflow:
-    """Return the organization's managed Inbox workflow, provisioning its graph on first use."""
+    """Return the organization's managed Inbox workflow, provisioning its graph on first use.
+
+    Raises Workflow.MultipleObjectsReturned if multiple Inbox workflows in the organization
+    carry the default marker and are not being deleted.
+    """
     database = router.db_for_write(Workflow)
     defaults = Workflow.objects.using(database).filter(
         organization=org,
@@ -58,7 +63,7 @@ def ensure_inbox_workflow(org: Organization) -> Workflow:
         workflow = Workflow.objects.create(
             organization=org,
             type=Workflow.Type.INBOX,
-            name="Add issue activity to Inbox",
+            name=INBOX_WORKFLOW_LABEL,
             config={"frequency": 0, "default_key": Workflow.INBOX_DEFAULT_KEY},
             when_condition_group=trigger_group,
         )

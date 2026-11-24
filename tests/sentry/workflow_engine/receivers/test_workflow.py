@@ -2,11 +2,24 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.db import router, transaction
+from jsonschema import ValidationError
 
 from sentry.constants import ObjectStatus
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.caches.workflow import get_activity_workflows_by_organization
 from sentry.workflow_engine.models import Workflow
+
+
+class WorkflowConfigValidationTests(TestCase):
+    def test_alert_rejects_inbox_default_key(self) -> None:
+        with pytest.raises(ValidationError, match="default_key"):
+            self.create_workflow(
+                type=Workflow.Type.ALERT, config={"default_key": Workflow.INBOX_DEFAULT_KEY}
+            )
+
+    def test_inbox_rejects_unknown_default_key(self) -> None:
+        with pytest.raises(ValidationError, match=Workflow.INBOX_DEFAULT_KEY):
+            self.create_workflow(type=Workflow.Type.INBOX, config={"default_key": "unknown"})
 
 
 class WorkflowReceiverTests(TestCase):

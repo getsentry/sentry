@@ -192,6 +192,7 @@ This allows workflows to target a product-specific detector or the broader issue
 | `when_condition_group` | Optional trigger group evaluated before action filters                                                                                 |
 | `environment`          | `NULL` for all environments or one specific environment                                                                                |
 | `config.frequency`     | Repeat suppression interval in minutes                                                                                                 |
+| `config.default_key`   | Internal Inbox marker. `inbox_default` identifies the organization's managed default across renames.                                   |
 | `enabled`              | Whether the workflow is eligible to run                                                                                                |
 
 ### `WorkflowDataConditionGroup`
