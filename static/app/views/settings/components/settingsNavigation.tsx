@@ -93,24 +93,24 @@ function SettingsNavigationHeader() {
     case 'org':
       return <SettingsOrganizationHeader />;
     case 'account':
-      // Same height and padding as the selector trigger of the other scopes, so
-      // the title lines up with their avatars.
-      return (
-        <Flex
-          align="center"
-          height="32px"
-          minWidth="0"
-          paddingLeft="lg"
-          paddingRight="lg"
-        >
-          <Text ellipsis bold>
-            {getSettingsScopeTitle(scope)}
-          </Text>
-        </Flex>
-      );
+      return <SettingsAccountHeader />;
     default:
       return unreachable(scope);
   }
+}
+
+/**
+ * Same height and padding as the selector trigger of the other scopes, so the
+ * title lines up with their avatars.
+ */
+function SettingsAccountHeader() {
+  return (
+    <Flex align="center" height="32px" minWidth="0" paddingLeft="lg" paddingRight="lg">
+      <Text ellipsis bold>
+        {getSettingsScopeTitle('account')}
+      </Text>
+    </Flex>
+  );
 }
 
 function SettingsProjectSelector() {
