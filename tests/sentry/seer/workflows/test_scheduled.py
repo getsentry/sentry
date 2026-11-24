@@ -13,8 +13,11 @@ from sentry.cadence.registry import trigger_type_registry
 from sentry.cadence.tasks import cadence_tick
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
+    SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
+    SeerWorkflowRunSource,
+    SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.scheduled import (
@@ -122,11 +125,23 @@ class RecordScheduledAutomationRunTest(TestCase):
             target_ids=[config_id],
         )
 
-    def test_enabled_execution_keeps_schedule_without_starting_a_run(self) -> None:
+    def test_records_a_cron_run_that_completes(self) -> None:
         self.run_task()
 
-        assert self.runs() == []
+        (run,) = self.runs()
+        assert run.source == SeerWorkflowRunSource.CRON
+        assert run.trigger_key == trigger_key_for(SCHEDULED_FOR)
+        assert run.status == SeerWorkflowRunStatus.COMPLETE
+        assert list(
+            SeerWorkflowRunExecution.objects.filter(run=run).values_list("status", flat=True)
+        ) == [SeerWorkflowExecutionStatus.COMPLETE]
         assert self.is_scheduled()
+
+    def test_repeated_firing_records_one_run(self) -> None:
+        self.run_task()
+        self.run_task()
+
+        assert len(self.runs()) == 1
 
     def test_execution_disabled_keeps_schedule_without_admitting_a_run(self) -> None:
         with self.feature({SCHEDULED_EXECUTION_FEATURE: False}):

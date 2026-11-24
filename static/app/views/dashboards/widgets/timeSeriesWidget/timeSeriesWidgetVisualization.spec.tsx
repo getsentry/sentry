@@ -15,7 +15,10 @@ import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
 import {Line} from './plottables/line';
 import {LOW_CONFIDENCE_OPACITY} from './settings';
-import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
+import {
+  LOW_CONFIDENCE_AREAS_NAME,
+  TimeSeriesWidgetVisualization,
+} from './timeSeriesWidgetVisualization';
 
 jest.mock('sentry/components/charts/baseChart', () => {
   const actual = jest.requireActual('sentry/components/charts/baseChart');
@@ -162,6 +165,11 @@ describe('TimeSeriesWidgetVisualization', () => {
       ),
     ];
 
+    function lowConfidenceAreas() {
+      const {series} = jest.mocked(BaseChart).mock.calls.at(-1)![0];
+      return series?.find(({id}) => id === LOW_CONFIDENCE_AREAS_NAME);
+    }
+
     function plottedLineOpacities() {
       const {series} = jest.mocked(BaseChart).mock.calls.at(-1)![0];
       return series?.map(item =>
@@ -184,6 +192,23 @@ describe('TimeSeriesWidgetVisualization', () => {
       );
 
       expect(plottedLineOpacities()).toContain(LOW_CONFIDENCE_OPACITY);
+    });
+
+    it('does not hatch low-confidence buckets by default', () => {
+      render(<TimeSeriesWidgetVisualization plottables={lowConfidencePlottables} />);
+
+      expect(lowConfidenceAreas()).toBeUndefined();
+    });
+
+    it('hatches low-confidence buckets with showConfidence', () => {
+      render(
+        <TimeSeriesWidgetVisualization
+          plottables={lowConfidencePlottables}
+          showConfidence
+        />
+      );
+
+      expect(lowConfidenceAreas()).toBeDefined();
     });
 
     function renderTooltipAt(timestamp: number) {

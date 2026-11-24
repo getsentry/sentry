@@ -2246,9 +2246,6 @@
     "@sentry/scraps/no-dom-coupling": {"count": 1},
     "@sentry/scraps/prefer-primitives": {"count": 3}
   },
-  "views/performance/traceDetails/traceDrawer/details/span/sections/httpErrorCard.tsx": {
-    "@sentry/scraps/prefer-primitives": {"count": 3}
-  },
   "views/performance/traceDetails/traceDrawer/details/styles.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 3},
     "@sentry/scraps/prefer-primitives": {"count": 4}

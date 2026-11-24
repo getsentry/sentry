@@ -141,6 +141,70 @@ describe('spansWidgetQueries', () => {
     );
   });
 
+  it('reports the ungrouped total for grouped breakdown widgets', async () => {
+    widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      legendType: 'breakdown',
+      limit: 3,
+      queries: [
+        {
+          name: '',
+          aggregates: ['count()'],
+          fields: ['transaction', 'count()'],
+          columns: ['transaction'],
+          conditions: '',
+          orderby: '-count()',
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
+    });
+    const groupedTableMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{transaction: 'a', 'count()': 10}], meta: {fields: {}}},
+      match: [
+        (_url: string, options: Record<string, any>) =>
+          options.query.field.includes('transaction'),
+      ],
+    });
+    const totalMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count()': 42}], meta: {fields: {}}},
+      match: [
+        (_url: string, options: Record<string, any>) =>
+          !options.query.field.includes('transaction'),
+      ],
+    });
+    const onDataFetched = jest.fn();
+
+    render(
+      <SpansWidgetQueries
+        widget={widget}
+        dashboardFilters={{}}
+        onDataFetched={onDataFetched}
+      >
+        {() => <div />}
+      </SpansWidgetQueries>,
+      {organization}
+    );
+
+    await waitFor(() =>
+      expect(onDataFetched).toHaveBeenCalledWith(
+        expect.objectContaining({breakdownTotal: 42})
+      )
+    );
+    expect(groupedTableMock).toHaveBeenCalled();
+    expect(totalMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({field: 'count()', per_page: 1}),
+      })
+    );
+  });
+
   it('triggers a normal mode request for charts', async () => {
     widget = WidgetFixture({
       queries: [
