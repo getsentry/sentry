@@ -303,3 +303,159 @@ class CreateOrganizationTimeseriesAnnotationEndpointTest(APITestCase):
             ),
             status_code=400,
         )
+
+
+@with_feature("organizations:timeseries-annotations")
+class UpdateOrganizationTimeseriesAnnotationEndpointTest(APITestCase):
+    endpoint = "sentry-api-0-organization-timeseries-annotations"
+    method = "put"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+
+    def _range(self, **kwargs: object) -> TimeseriesAnnotation:
+        values = dict(
+            organization_id=self.organization.id,
+            interval_type=IntervalType.RANGE,
+            annotation_type=AnnotationType.SENTRY_OUTAGE,
+            description="outage",
+            start_timestamp=before_now(days=2),
+            end_timestamp=None,
+            severity=Severity.LOW,
+            tags={"region": "us"},
+            created_by_label="statuspage",
+        )
+        values.update(kwargs)
+        return TimeseriesAnnotation.objects.create(**values)
+
+    def test_updates_the_matching_range(self) -> None:
+        annotation = self._range()
+        other = self._range(tags={"region": "eu"})
+        end = before_now(days=1)
+        response = self.get_success_response(
+            self.organization.slug,
+            filters={"id": annotation.id, "tags": {"region": "us"}},
+            description="resolved",
+            severity="high",
+            endTimestamp=end.isoformat(),
+        )
+        annotation.refresh_from_db()
+        other.refresh_from_db()
+        assert annotation.description == "resolved"
+        assert annotation.severity == Severity.HIGH
+        assert annotation.end_timestamp is not None
+        assert annotation.interval_type == IntervalType.RANGE
+        assert annotation.updated_by_id == self.user.id
+        assert annotation.updated_by_label is None
+        assert annotation.created_by_label == "statuspage"
+        assert other.description == "outage"
+        assert response.data["id"] == str(annotation.id)
+        assert response.data["severity"] == "high"
+        assert response.data["endTimestamp"] is not None
+
+    def test_tags_filter_selects_one_range(self) -> None:
+        annotation = self._range(tags={"region": "us", "source": "statuspage"})
+        self.get_success_response(
+            self.organization.slug,
+            filters={"tags": {"region": "us"}},
+            description="us resolved",
+        )
+        annotation.refresh_from_db()
+        assert annotation.description == "us resolved"
+        assert annotation.end_timestamp is None
+        assert annotation.severity == Severity.LOW
+
+    def test_null_end_reopens_range(self) -> None:
+        annotation = self._range(end_timestamp=before_now(days=1))
+        self.get_success_response(
+            self.organization.slug,
+            filters={"id": annotation.id},
+            endTimestamp=None,
+        )
+        annotation.refresh_from_db()
+        assert annotation.end_timestamp is None
+        assert annotation.description == "outage"
+
+    def test_no_match_is_404(self) -> None:
+        annotation = self._range()
+        self.get_error_response(
+            self.organization.slug,
+            filters={"id": annotation.id, "tags": {"region": "eu"}},
+            description="nope",
+            status_code=404,
+        )
+        annotation.refresh_from_db()
+        assert annotation.description == "outage"
+
+    def test_two_matches_is_409(self) -> None:
+        self._range(tags={"region": "us"})
+        self._range(tags={"region": "us", "source": "statuspage"})
+        self.get_error_response(
+            self.organization.slug,
+            filters={"tags": {"region": "us"}},
+            description="nope",
+            status_code=409,
+        )
+        assert not TimeseriesAnnotation.objects.filter(description="nope").exists()
+
+    def test_point_is_not_updated(self) -> None:
+        point = self._range(interval_type=IntervalType.POINT, tags={"region": "us"})
+        self.get_error_response(
+            self.organization.slug,
+            filters={"id": point.id},
+            description="nope",
+            status_code=404,
+        )
+        point.refresh_from_db()
+        assert point.description == "outage"
+
+    def test_other_organization_is_404(self) -> None:
+        other = self.create_organization()
+        annotation = self._range(organization_id=other.id)
+        self.get_error_response(
+            self.organization.slug,
+            filters={"id": annotation.id},
+            description="nope",
+            status_code=404,
+        )
+        annotation.refresh_from_db()
+        assert annotation.description == "outage"
+
+    def test_inaccessible_project_is_404(self) -> None:
+        other_user = self.create_user()
+        private_project = self.create_project(organization=self.organization, teams=[])
+        self.create_team_membership(
+            self.create_team(organization=self.organization), user=other_user
+        )
+        hidden = self._range(project_id=private_project.id)
+        self.get_error_response(
+            self.organization.slug,
+            filters={"id": hidden.id},
+            description="nope",
+            status_code=404,
+        )
+        hidden.refresh_from_db()
+        assert hidden.description == "outage"
+
+    def test_end_before_start_is_400(self) -> None:
+        annotation = self._range(start_timestamp=before_now(days=1))
+        self.get_error_response(
+            self.organization.slug,
+            filters={"id": annotation.id},
+            endTimestamp=before_now(days=2).isoformat(),
+            status_code=400,
+        )
+        annotation.refresh_from_db()
+        assert annotation.end_timestamp is None
+
+    def test_empty_filters_is_400(self) -> None:
+        self.get_error_response(
+            self.organization.slug, filters={}, description="nope", status_code=400
+        )
+
+    def test_no_changes_is_400(self) -> None:
+        annotation = self._range()
+        self.get_error_response(
+            self.organization.slug, filters={"id": annotation.id}, status_code=400
+        )
