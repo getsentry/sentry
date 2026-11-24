@@ -63,6 +63,9 @@ def _validate_payload(
 
 
 class OpenWorkflowNotebook(StrictCamelSnakeValidator[None]):
+    previous_run_id = serializers.UUIDField(
+        required=False, help_text="Current owner when replacing a notebook workflow."
+    )
     notebook_id = serializers.IntegerField(
         min_value=1,
         required=False,
@@ -124,6 +127,11 @@ class StepsWrite(StrictCamelSnakeValidator[None]):
 
 
 class FinalizerWrite(StrictCamelSnakeValidator[None]):
+    writer_run_id = serializers.IntegerField(
+        min_value=1,
+        max_value=2**63 - 1,
+        help_text="Writer attempt that completed this notebook revision.",
+    )
     revision = serializers.RegexField(
         "^[a-f0-9]{64}$", help_text="Content revision returned by the final notebook read."
     )
@@ -248,6 +256,7 @@ class OrganizationNotebookWorkflowEndpoint(OrganizationNotebooksBaseEndpoint):
                     organization,
                     workflow_run_id,
                     destination=destination,
+                    previous_run_id=values.get("previous_run_id"),
                     creator=get_creator_reference(request),
                     title=values["title"],
                     project_ids=values["project_ids"],
@@ -277,7 +286,13 @@ class OrganizationNotebookWorkflowEndpoint(OrganizationNotebooksBaseEndpoint):
         values = _validate_payload(
             FinalizerWrite, request.data, context={"workflow_run_id": binding.run_id}
         )
-        deliver_finalizer(binding, values["revision"], values["section"], values["result"])
+        deliver_finalizer(
+            binding,
+            values["writer_run_id"],
+            values["revision"],
+            values["section"],
+            values["result"],
+        )
         return Response(status=204)
 
 

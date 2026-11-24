@@ -104,6 +104,10 @@ class Notebook(DefaultFieldsModel):
     )
 
     title = models.CharField(max_length=255)
+    # The Sentry launch attempt, until Seer commits the workflow and its notebook binding.
+    workflow_launch: models.Field[dict[str, Any] | None, dict[str, Any] | None] = models.JSONField(
+        null=True
+    )
     workflow_evidence_scope = models.CharField(
         max_length=16,
         choices=WorkflowEvidenceScope.choices,

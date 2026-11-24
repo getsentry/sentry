@@ -222,10 +222,15 @@ class WorkflowProducerRun(NotebookProducerRun):
         self.wake_writer()
         return key
 
-    def queue_recheck(self, action_request: NotebookActionRequest, actor_id: int) -> UUID:
-        return self.queue_follow_up(
-            {"type": "recheck_action_requests", "payload": {"key": action_request.key}}, actor_id
-        )
+    def queue_recheck(self, action_request: NotebookActionRequest, actor_id: int) -> UUID | None:
+        try:
+            return self.queue_follow_up(
+                {"type": "recheck_action_requests", "payload": {"key": action_request.key}},
+                actor_id,
+            )
+        except ApplyFailed:
+            # Recording the stale values succeeds even when a follow-up is unavailable.
+            return None
 
     def follow_up_failed(self, action_request: NotebookActionRequest) -> bool:
         return (
@@ -333,7 +338,16 @@ class OrchestrationProducer(NotebookProducer):
                     }
                 )
             workflows = WorkflowRun.objects.filter(organization_id=notebook.organization_id)
-            run = (workflows.select_for_update() if lock else workflows).get(uuid=binding.run_id)
+            run = (workflows.select_for_update() if lock else workflows).get_or_none(
+                uuid=binding.run_id
+            )
+            if run is None:
+                raise ApplyFailed(
+                    {
+                        "detail": "The underlying investigation has expired.",
+                        "code": ApplyErrorCode.NOT_RETRYABLE,
+                    }
+                )
             return WorkflowProducerRun(notebook, run)
         runs = InvestigationOrchestrationRun.objects.all()
         if lock:

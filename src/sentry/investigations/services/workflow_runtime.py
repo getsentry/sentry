@@ -20,11 +20,23 @@ from sentry.investigations.services.orchestration import (
 from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook, NotebookSourceType, NotebookWorkflowRun
 from sentry.notebooks.services import NotebookSourceNotFound, NotebookValidationError
-from sentry.notebooks.services.action_requests import sync_snapshot_action_requests
 from sentry.notebooks.services.workflow import open_workflow_notebook
 from sentry.viewer_context import ActorId, ActorType
 
 PAUSED_RECOVERY_INTERVAL = timedelta(hours=1)
+
+
+def public_workflow_launch(notebook: Notebook) -> dict[str, str] | None:
+    attempt = notebook.workflow_launch
+    if not attempt:
+        return None
+    status = attempt["status"]
+    if status == "starting" and timezone.now() - datetime.fromisoformat(
+        attempt["startedAt"]
+    ) >= timedelta(seconds=30):
+        # The request may have died between committing the draft and contacting Seer.
+        status = "unconfirmed"
+    return {"status": status, "detail": attempt.get("detail", "")}
 
 
 def metric_workflow_request_id(notebook_id: int) -> UUID:
@@ -168,7 +180,6 @@ def create_run(
             if definition.get("notebook"):
                 if destination is None:
                     raise serializers.ValidationError("Missing notebook destination.")
-                previous_binding = None
                 target = None
                 if destination.get("notebookId") is not None:
                     target = (
@@ -182,14 +193,6 @@ def create_run(
                         if destination.get("previousRunId"):
                             raise StaleWorkflow("The notebook is no longer active.")
                         raise serializers.ValidationError("Unknown notebook.")
-                    if previous := destination.get("previousRunId"):
-                        previous_binding = (
-                            NotebookWorkflowRun.objects.filter(notebook=target)
-                            .order_by("-id")
-                            .first()
-                        )
-                        if previous_binding is None or previous_binding.run_id != UUID(previous):
-                            raise StaleWorkflow("Another run has already taken over this notebook.")
                 try:
                     new_breach_notebook = False
                     if source is not None:
@@ -204,6 +207,9 @@ def create_run(
                         organization,
                         run.uuid,
                         destination=target,
+                        previous_run_id=UUID(destination["previousRunId"])
+                        if destination.get("previousRunId")
+                        else None,
                         generate_placeholder_title=new_breach_notebook
                         or (
                             target is not None
@@ -225,14 +231,8 @@ def create_run(
                     ) from exc
                 except NotebookValidationError as exc:
                     raise serializers.ValidationError(exc.errors) from exc
-                if previous_binding:
-                    sync_snapshot_action_requests(notebook, [], workflow_run=previous_binding)
-                if previous_binding and not previous_binding.preserve_title:
-                    # Carry title ownership across a retry. A user rename sets preserve_title
-                    # on the original binding, including during an unfinished first attempt.
-                    NotebookWorkflowRun.objects.filter(
-                        organization=organization, run_id=run.uuid
-                    ).update(preserve_title=False)
+                if notebook.workflow_launch:
+                    notebook.update(workflow_launch=None)
                 run.checkpoint = {**checkpoint, "notebook_id": notebook.id}
                 run.save(update_fields=["checkpoint"])
             save_nodes(run, nodes)

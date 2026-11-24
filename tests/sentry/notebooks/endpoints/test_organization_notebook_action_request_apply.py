@@ -211,6 +211,57 @@ class OrganizationNotebookActionRequestApplyTest(APITestCase):
         assert response.status_code == 200, response.data
         assert self.snuba_query().time_window == 900
 
+    def test_stopped_workflow_records_stale_settings_without_a_recheck(self) -> None:
+        run = WorkflowRun.objects.create(
+            organization=self.organization,
+            uuid=uuid4(),
+            request_id=uuid4(),
+            user_id=self.user.id,
+            checkpoint={"status": "failed"},
+            definition={},
+        )
+        binding = NotebookWorkflowRun.objects.create(
+            organization=self.organization, notebook=self.notebook, run_id=run.uuid
+        )
+        self.notebook.update(source={"snapshot": {"monitor": {"id": str(self.detector.id)}}})
+        action = self.suggest(
+            workflow_run=binding,
+            before={"timeWindowSeconds": 600},
+            changes={"timeWindowSeconds": 900},
+        )
+        assert self.apply(action).status_code == 409
+        action.refresh_from_db()
+        assert action.error is not None
+        assert action.error["current"] == {"timeWindowSeconds": 300}
+        assert action.followup_request_id is None
+
+    def test_expired_workflow_does_not_interrupt_other_notebook_actions(self) -> None:
+        expired = self.create_notebook(
+            organization=self.organization,
+            created_by=self.user,
+            source={"snapshot": {"monitor": {"id": str(self.detector.id)}}},
+        )
+        binding = NotebookWorkflowRun.objects.create(
+            organization=self.organization, notebook=expired, run_id=uuid4()
+        )
+        stale = self.suggest(workflow_run=binding)
+        stale.update(notebook=expired)
+        individual = self.client.post(self.apply_url(stale.id, expired.id), format="json")
+        assert individual.status_code == 409
+        assert "expired" in individual.data["detail"]
+        live = self.suggest()
+        complete_action_requests(
+            NotebookActionRequest.objects.filter(pk__in=[stale.pk, live.pk]).order_by(
+                "-notebook_id"
+            ),
+            applied_by=self.user.id,
+            details={},
+        )
+        live.refresh_from_db()
+        stale.refresh_from_db()
+        assert live.state == NotebookActionRequestState.APPLIED
+        assert stale.state == NotebookActionRequestState.SUGGESTED
+
     def test_applies_a_threshold_change(self) -> None:
         action_request = self.suggest(
             before={"highThreshold": 500}, changes={"highThreshold": 800.0}

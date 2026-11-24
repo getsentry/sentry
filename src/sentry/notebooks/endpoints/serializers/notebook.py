@@ -187,6 +187,7 @@ class SerializedNotebookDetails(NotebookSerializerResponse):
 
 class NotebookDetailsSerializerResponse(SerializedNotebookDetails):
     workflowReport: NotRequired[dict[str, JsonValue]]
+    workflowLaunch: NotRequired[dict[str, str]]
 
 
 @register(Notebook)
@@ -234,7 +235,7 @@ class NotebookSerializer(Serializer):
     ) -> NotebookSerializerResponse:
         source = obj.source
         creator = obj.creator_actor
-        return {
+        result: NotebookSerializerResponse = {
             "id": str(obj.id),
             "title": obj.title,
             "summary": obj.summary,
@@ -257,12 +258,10 @@ class NotebookSerializer(Serializer):
             "isFavorited": attrs["is_favorited"],
             "titleGeneration": {"status": obj.title_generation_status},
             "orchestration": attrs["orchestration"],
-            **(
-                {"workflowStatus": workflow_status}
-                if (workflow_status := getattr(obj, "workflow_run_status", None))
-                else {}
-            ),
         }
+        if workflow_status := getattr(obj, "workflow_run_status", None):
+            result["workflowStatus"] = workflow_status
+        return result
 
 
 class NotebookDetailsSerializer(NotebookSerializer):
