@@ -41,4 +41,3 @@ class RpcRepositoryRename(RpcModel):
     expected_config_name: str | None
     name: str
     url: str
-
