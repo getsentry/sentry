@@ -249,7 +249,9 @@ describe('Composer', () => {
     const textbox = getEditor();
     await userEvent.type(textbox, '@');
     expect(await screen.findByRole('option', {name: 'Person0'})).toBeVisible();
-    expect(screen.queryByRole('option', {name: 'Person49'})).not.toBeInTheDocument();
+    // The list keeps its first, last and widest options mounted, so check one in
+    // the middle.
+    expect(screen.queryByRole('option', {name: 'Person25'})).not.toBeInTheDocument();
 
     await userEvent.keyboard('Person49');
     await screen.findByRole('option', {name: 'Person49'});
