@@ -32,7 +32,11 @@ import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/traceDeta
 export type EventAgentRun =
   | {type: 'none'}
   /**
-   * The trace is still being fetched, so it is not known yet whether there is an agent run.
+   * Looking for an AI span active at the time of the error. Most errors have none.
+   */
+  | {type: 'checking'}
+  /**
+   * An AI span was active, so the trace is being fetched to find the agent run.
    */
   | {type: 'loading'}
   /**
@@ -169,7 +173,10 @@ export function useEventAgentRun(event: Event, {enabled}: {enabled: boolean}) {
   });
 
   return useMemo((): EventAgentRun => {
-    if (activeAiSpan.isLoading || trace.isLoading) {
+    if (activeAiSpan.isLoading) {
+      return {type: 'checking'};
+    }
+    if (trace.isLoading) {
       return {type: 'loading'};
     }
     if (!trace.data) {

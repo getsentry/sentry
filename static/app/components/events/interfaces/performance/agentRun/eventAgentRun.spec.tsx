@@ -181,7 +181,7 @@ describe('useEventAgentRun', () => {
     expect(result.current).toEqual({type: 'none'});
     expect(traceRequest).not.toHaveBeenCalled();
   });
-  it('reports loading until the trace is fetched', async () => {
+  it('reports checking until it knows whether there is an agent run', async () => {
     mockActiveAiSpan([{id: 'tool-span'}]);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace/${traceId}/`,
@@ -193,7 +193,7 @@ describe('useEventAgentRun', () => {
       {organization}
     );
 
-    expect(result.current).toEqual({type: 'loading'});
+    expect(result.current).toEqual({type: 'checking'});
     await waitFor(() => expect(result.current.type).toBe('inside'));
   });
 });
