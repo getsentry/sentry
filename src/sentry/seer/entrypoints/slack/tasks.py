@@ -218,7 +218,14 @@ def process_mention_for_slack(
 
         referenced_issues = build_referenced_issues_context(
             organization=organization,
-            issue_ids=extract_alert_issue_ids(messages, bot_user_id=bot_user_id),
+            issue_ids=list(
+                dict.fromkeys(
+                    [
+                        *extract_alert_issue_ids(messages, bot_user_id=bot_user_id),
+                        *linked_result.issue_ids,
+                    ]
+                )
+            ),
         )
 
         seer_reply_ts = _find_seer_reply_ts(
@@ -233,7 +240,11 @@ def process_mention_for_slack(
                 messages, bot_user_id=bot_user_id, seer_reply_ts=seer_reply_ts, omit_ts=omit_ts
             )
             if thread_context:
-                thread_context = f"Messages in this Slack thread, oldest first:\n{thread_context}"
+                thread_context = (
+                    "Messages in this Slack thread, oldest first. Each message starts "
+                    "a line with its author; its continuation lines are indented:\n"
+                    f"{thread_context}"
+                )
             parts = [p for p in (referenced_issues, linked_result.block, thread_context) if p]
             return "\n\n".join(parts) if parts else None
 
@@ -389,6 +400,7 @@ def _count_linked_users(
 
 class _LinkedMessagesResult(NamedTuple):
     block: str
+    issue_ids: list[int]
     unresolved_channel_ids: list[str]
     private_channel_ids: list[str]
 
@@ -417,7 +429,9 @@ def _resolve_linked_messages(
     domain_name = entrypoint.integration.metadata.get("domain_name")
     links = extract_slack_message_links(text, domain_name=domain_name)
     if not links:
-        return _LinkedMessagesResult(block="", unresolved_channel_ids=[], private_channel_ids=[])
+        return _LinkedMessagesResult(
+            block="", issue_ids=[], unresolved_channel_ids=[], private_channel_ids=[]
+        )
 
     msgs_to_include: list[tuple[SlackMessageLink, list[Mapping[str, Any]]]] = []
     unresolved: set[str] = set()
@@ -487,6 +501,10 @@ def _resolve_linked_messages(
             msgs_to_include,
             bot_user_id=bot_user_id,
             seer_reply_ts=seer_reply_ts,
+        ),
+        issue_ids=extract_alert_issue_ids(
+            [msg for _, link_messages in msgs_to_include for msg in link_messages],
+            bot_user_id=bot_user_id,
         ),
         unresolved_channel_ids=list(unresolved),
         private_channel_ids=list(private_channels),

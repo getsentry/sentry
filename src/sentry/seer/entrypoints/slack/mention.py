@@ -352,9 +352,9 @@ def _slack_mrkdwn_to_text(text: str, bot_user_id: str | None) -> str:
     return html.unescape(text)
 
 
-def _alert_issue_ids(msg: Mapping[str, Any]) -> list[int]:
-    """Group ids that Sentry wrote into the ``block_id`` of an issue alert's blocks."""
-    issue_ids: list[int] = []
+def _block_id_payloads(msg: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """The JSON objects Sentry wrote into the ``block_id`` of a message's blocks."""
+    payloads: list[dict[str, Any]] = []
     for block in msg.get("blocks") or []:
         block_id = block.get("block_id") if isinstance(block, dict) else None
         if not isinstance(block_id, str) or not block_id.startswith("{"):
@@ -363,10 +363,23 @@ def _alert_issue_ids(msg: Mapping[str, Any]) -> list[int]:
             payload = orjson.loads(block_id)
         except orjson.JSONDecodeError:
             continue
-        issue_id = payload.get("issue") if isinstance(payload, dict) else None
-        if isinstance(issue_id, int):
-            issue_ids.append(issue_id)
-    return issue_ids
+        if isinstance(payload, dict):
+            payloads.append(payload)
+    return payloads
+
+
+def _alert_issue_ids(msg: Mapping[str, Any]) -> list[int]:
+    """Group ids from a message's ``block_id`` metadata, from issue alerts and Autofix updates."""
+    return [
+        issue_id
+        for payload in _block_id_payloads(msg)
+        if isinstance(issue_id := payload.get("issue"), int)
+    ]
+
+
+def _is_autofix_update(msg: Mapping[str, Any]) -> bool:
+    # Autofix updates carry ``run_id`` next to ``issue``; issue alerts never do.
+    return any("run_id" in payload for payload in _block_id_payloads(msg))
 
 
 def _is_own_message(msg: Mapping[str, Any], bot_user_id: str | None) -> bool:
@@ -421,7 +434,8 @@ def build_referenced_issues_context(*, organization: Organization, issue_ids: Se
         return ""
 
     header = (
-        "Sentry issues referenced by alerts in this Slack thread. Sentry resolved these "
+        "Sentry issues referenced by alerts in this Slack thread or in messages linked "
+        "from it. Sentry resolved these "
         "from the alert metadata, not from the message text, and all of them are in the "
         f"connected organization ({organization.slug}):"
     )
@@ -437,11 +451,17 @@ def build_thread_context(
 ) -> str:
     """Build a context string from thread history for Seer Agent.
 
-    Messages posted by our Slack app (``bot_user_id``) are Sentry issue alerts,
-    recognized by their alert metadata, Seer's own earlier replies, whose
-    timestamps are in ``seer_reply_ts``, or other Sentry notifications such as
-    metric alerts. Messages whose timestamps are in ``omit_ts`` are left out,
-    such as replies a continued run already holds in its history.
+    Messages posted by our Slack app (``bot_user_id``) are Seer Autofix
+    updates or Sentry issue alerts, both recognized by their ``block_id``
+    metadata, or Seer's own earlier replies, whose timestamps are in
+    ``seer_reply_ts``. Any other app message gets a neutral label: once the
+    reply caches expire it may still be an earlier reply. Messages whose
+    timestamps are in ``omit_ts`` are left out, such as replies a continued
+    run already holds in its history.
+
+    Each message starts its own line with its label, and its continuation
+    lines are indented, so a message body can't start a line that looks like
+    another message.
     """
     if not messages:
         return ""
@@ -451,17 +471,20 @@ def build_thread_context(
         if msg.get("ts") in omit_ts:
             continue
         if _is_own_message(msg, bot_user_id):
-            if _alert_issue_ids(msg):
+            if _is_autofix_update(msg):
+                author = "Seer Autofix update"
+            elif _alert_issue_ids(msg):
                 author = "Sentry alert"
             elif msg.get("ts") in seer_reply_ts:
                 author = "Sentry (you), earlier reply"
             else:
-                author = "Sentry notification"
+                author = "Sentry app message (may be one of your earlier replies)"
         else:
             author = f"User <@{msg.get('user', 'unknown')}>"
 
         if text := _extract_message_text(msg):
-            parts.append(f"{author}: {_slack_mrkdwn_to_text(text, bot_user_id)}")
+            body = _slack_mrkdwn_to_text(text, bot_user_id).replace("\n", "\n  ")
+            parts.append(f"{author}: {body}")
 
     return "\n".join(parts)
 

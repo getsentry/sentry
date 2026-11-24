@@ -379,7 +379,7 @@ class ProcessMentionForSlackTest(TestCase):
 
         call_kwargs = mock_operator.trigger_agent.call_args[1]
         for context in (call_kwargs["on_page_context"], call_kwargs["continue_on_page_context"](1)):
-            assert context.startswith("Sentry issues referenced by alerts in this Slack thread.")
+            assert context.startswith("Sentry issues referenced by alerts in this Slack thread")
             assert f"issue_id: {group.id}, short_id: {group.qualified_short_id}" in context
             assert f"issue_id: {other_org_group.id}" not in context
             assert "Sentry alert: alert body" in context
@@ -718,6 +718,7 @@ class LinkedMessagesContextTest(TestCase):
         self.mock_entrypoint.slack_user_id = TASK_KWARGS["slack_user_id"]
         self.mock_entrypoint.integration.metadata = {"domain_name": "acme.slack.com"}
         self.mock_entrypoint.integration.external_id = "T0TEAM"
+        self.mock_entrypoint.integration.id = TASK_KWARGS["integration_id"]
 
         # Default: every channel is public unless the test overrides this.
         self.mock_entrypoint.install.get_conversations_info.side_effect = (
@@ -780,7 +781,6 @@ class LinkedMessagesContextTest(TestCase):
             return []
 
         self._build_mocks(thread_history_side_effect=history)
-        self.mock_entrypoint.integration.id = TASK_KWARGS["integration_id"]
         SlackSeerAgentMessageCache.set(
             integration_id=TASK_KWARGS["integration_id"],
             channel_id="C9999LINKED",
@@ -792,6 +792,35 @@ class LinkedMessagesContextTest(TestCase):
 
         on_page_context = self.mock_operator.trigger_agent.call_args[1]["on_page_context"]
         assert "Sentry (you), earlier reply: earlier answer" in on_page_context
+
+    def test_linked_alert_adds_its_issue_to_referenced_issues(self) -> None:
+        group = self.create_group(project=self.project)
+
+        def history(*, channel_id: str, thread_ts: str, **kwargs: object) -> list[dict[str, Any]]:
+            if channel_id == "C9999LINKED":
+                return [
+                    {
+                        "user": "U0BOT",
+                        "blocks": [
+                            {
+                                "type": "section",
+                                "block_id": f'{{"issue": {group.id}}}',
+                                "text": {"type": "mrkdwn", "text": "alert body"},
+                            }
+                        ],
+                        "ts": "1700000000.222222",
+                    }
+                ]
+            return []
+
+        self._build_mocks(thread_history_side_effect=history)
+
+        self._run(text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>", thread_ts=None)
+
+        on_page_context = self.mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        assert on_page_context.startswith("Sentry issues referenced by alerts")
+        assert f"issue_id: {group.id}, short_id: {group.qualified_short_id}" in on_page_context
+        assert "Sentry alert: alert body" in on_page_context
 
     def test_threaded_permalink_fetches_only_the_linked_reply(self) -> None:
         """A permalink into a thread reply must NOT pull the whole thread —
