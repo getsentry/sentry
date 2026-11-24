@@ -1,5 +1,7 @@
 from django.db import router, transaction
 
+from sentry.hybridcloud.models.outbox import ControlOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
@@ -127,6 +129,25 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
             == orgmember_mapping.invite_status
             == InviteStatus.REQUESTED_TO_BE_INVITED.value
         )
+
+    def test_upsert_leaves_user_update_outboxes_pending(self) -> None:
+        user = self.create_user()
+
+        organizationmember_mapping_service.upsert_mapping(
+            organization_id=self.organization.id,
+            organizationmember_id=111111,
+            mapping=RpcOrganizationMemberMappingUpdate(
+                role=self.organization.default_role,
+                user_id=user.id,
+                email=None,
+                inviter_id=None,
+                invite_status=None,
+            ),
+        )
+
+        assert ControlOutbox.objects.filter(
+            category=OutboxCategory.USER_UPDATE, object_identifier=user.id
+        ).exists()
 
     def test_create_mapping_updates_org_members(self) -> None:
         assert self.user.is_active
