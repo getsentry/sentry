@@ -32,56 +32,46 @@ describe('HatchAreas', () => {
     expect(new HatchAreas([], config).isEmpty).toBe(true);
   });
 
-  it('draws stripes behind the data, and a wash with stripes over it', () => {
-    const series = new HatchAreas([{start: 1_000, end: 3_000}], config).toSeries();
+  it('draws a wash with stripes over the data', () => {
+    const [series] = new HatchAreas([{start: 1_000, end: 3_000}], config).toSeries();
 
-    expect(series.map(({z}) => z)).toEqual([1, 4]);
-    for (const item of series) {
-      expect(item).toEqual(
-        expect.objectContaining({
-          data: [[1_000, 3_000]],
-          encode: {x: [0, 1]},
-          silent: true,
-          tooltip: {show: false},
-        })
-      );
-    }
-
-    const values = [1_000, 3_000];
-    const [background, foreground] = series.map(item =>
-      item.renderItem!(
-        {
-          dataIndex: 0,
-          coordSys: {type: 'cartesian2d', x: 0, y: 10, width: 500, height: 200},
-        } as unknown as CustomSeriesRenderItemParams,
-        {
-          value: (dimension: number) => values[dimension],
-          coord: ([time]: number[]) => [(time ?? 0) / 10, 0],
-        } as unknown as CustomSeriesRenderItemAPI
-      )
-    );
-
-    expect(background).toEqual(
+    expect(series).toEqual(
       expect.objectContaining({
-        type: 'rect',
-        shape: {x: 100, y: 10, width: 200, height: 200},
-        style: expect.objectContaining({
-          decal: expect.objectContaining({color: '#f0f0f2', dashArrayY: [2, 2]}),
-        }),
+        data: [[1_000, 3_000]],
+        encode: {x: [0, 1]},
+        silent: true,
+        tooltip: {show: false},
+        z: 4,
       })
     );
-    expect(foreground).toEqual({
+
+    const values = [1_000, 3_000];
+    const item = series!.renderItem!(
+      {
+        dataIndex: 0,
+        coordSys: {type: 'cartesian2d', x: 0, y: 10, width: 500, height: 200},
+      } as unknown as CustomSeriesRenderItemParams,
+      {
+        value: (dimension: number) => values[dimension],
+        coord: ([time]: number[]) => [(time ?? 0) / 10, 0],
+      } as unknown as CustomSeriesRenderItemAPI
+    );
+
+    const shape = {x: 100, y: 10, width: 200, height: 200};
+    expect(item).toEqual({
       type: 'group',
       children: [
         expect.objectContaining({
           type: 'rect',
-          shape: {x: 100, y: 10, width: 200, height: 200},
+          shape,
           style: {fill: '#ffffff', opacity: 0.5},
         }),
         expect.objectContaining({
+          type: 'rect',
+          shape,
           style: expect.objectContaining({
-            opacity: 0.4,
-            decal: expect.objectContaining({color: '#ffffff', dashArrayY: [0, 2, 2, 0]}),
+            opacity: 0.6,
+            decal: expect.objectContaining({color: '#f0f0f2', dashArrayY: [2, 2]}),
           }),
         }),
       ],
