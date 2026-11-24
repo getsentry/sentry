@@ -63,7 +63,8 @@ export const ListSeparator = styled('div')`
     display: none;
   }
 
-  ul:empty + & {
+  /* Hide it after an empty list, such as a CompositeSelect region with no matches. */
+  ${ListScrollArea}:has(> ${ListWrap}:empty) + & {
     display: none;
   }
 `;
