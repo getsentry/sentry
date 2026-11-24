@@ -477,10 +477,19 @@ class OrganizationServiceAccountDetailsEndpoint(ServiceAccountScopedEndpointBase
             serialize(service_account, request.user, serializer=ServiceAccountSerializer())
         )
         service_account_id = service_account.id
-        deactivated_tokens = service_account.deactivate()
-        if deactivated_tokens is None:
-            # Deleted by another request after convert_args loaded it.
-            raise ResourceDoesNotExist
+        with transaction.atomic(using=router.db_for_write(ServiceAccount)):
+            # Token create takes this lock too, so the list below is exactly the set of
+            # tokens that deactivate() turns off.
+            if (
+                ServiceAccount.objects.select_for_update()
+                .filter(id=service_account_id, is_active=True)
+                .first()  # noqa: S035
+                is None
+            ):
+                # Deleted by another request after convert_args loaded it.
+                raise ResourceDoesNotExist
+            deactivated_tokens = service_account.lock_active_tokens()
+            service_account.deactivate()
         self.create_audit_entry(
             request,
             organization=organization,

@@ -64,7 +64,7 @@ class ResolveServiceAccountTest(TestCase):
     @with_feature("organizations:service-accounts")
     def test_deleted_account_returns_none(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
-            assert self.service_account.deactivate() is not None
+            assert self.service_account.deactivate()
 
         assert resolve_service_account(self.service_account.id, self.organization.id) is None
         with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):

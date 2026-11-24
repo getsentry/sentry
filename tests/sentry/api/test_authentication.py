@@ -531,7 +531,7 @@ class TestServiceAccountTokenAuthentication(TestCase):
 
     def test_deleted_account_fails(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
-            assert self.service_account.deactivate() is not None
+            assert self.service_account.deactivate()
         self.assert_fails_in_both_silos(self.request())
 
     def test_without_feature_fails(self) -> None:
