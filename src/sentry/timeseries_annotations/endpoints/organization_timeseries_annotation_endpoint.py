@@ -15,15 +15,17 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.exceptions import ConflictError, ResourceDoesNotExist
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.auth.principal import resolve_actor
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.timeseries_annotations.endpoints.serializers import (
     TimeseriesAnnotationPostSerializer,
+    TimeseriesAnnotationPutSerializer,
     TimeseriesAnnotationSerializer,
 )
 from sentry.timeseries_annotations.models import (
@@ -39,6 +41,7 @@ from sentry.timeseries_annotations.producers.sdk_config_change import (
 from sentry.timeseries_annotations.service import (
     TimeseriesAnnotationData,
     create_timeseries_annotation,
+    update_timeseries_annotation,
 )
 from sentry.viewer_context import ActorId, ActorType
 
@@ -48,7 +51,8 @@ logger = logging.getLogger(__name__)
 class TimeseriesAnnotationPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:write", "org:admin"],
+        "PUT": ["org:write", "org:admin"],
     }
 
 
@@ -59,6 +63,7 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (TimeseriesAnnotationPermission,)
 
@@ -199,6 +204,60 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
         )
         return Response(
             serialize(annotation, request.user, TimeseriesAnnotationSerializer()), status=201
+        )
+
+    def put(self, request: Request, organization: Organization) -> Response:
+        """
+        Update one range annotation selected by id and/or tags.
+        """
+        if not features.has(
+            "organizations:timeseries-annotations", organization, actor=request.user
+        ):
+            raise ResourceDoesNotExist
+
+        serializer = TimeseriesAnnotationPutSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        data = serializer.validated_data
+
+        queryset = self._accessible_ranges(request, organization)
+        filters = data["filters"]
+        if "id" in filters:
+            queryset = queryset.filter(id=filters["id"])
+        if "tags" in filters:
+            queryset = queryset.filter(tags__contains=filters["tags"])
+
+        matches = list(queryset[:2])
+        if not matches:
+            raise ResourceDoesNotExist
+        if len(matches) > 1:
+            raise ConflictError(detail="filters matched more than one annotation")
+
+        try:
+            annotation = update_timeseries_annotation(
+                matches[0],
+                updated_by=_creating_actor(request),
+                description=data.get("description"),
+                severity=data.get("severity"),
+                end_timestamp=data.get("endTimestamp"),
+                set_end_timestamp="endTimestamp" in data,
+            )
+        except ValueError:
+            return Response(
+                {"detail": "endTimestamp must be at or after startTimestamp"}, status=400
+            )
+        return Response(serialize(annotation, request.user, TimeseriesAnnotationSerializer()))
+
+    def _accessible_ranges(
+        self, request: Request, organization: Organization
+    ) -> BaseQuerySet[TimeseriesAnnotation]:
+        # A caller may select by id or tags, but must not update a project they cannot see.
+        # Org-wide rows stay visible, as on GET.
+        project_ids = [project.id for project in self.get_projects(request, organization)]
+        return (
+            TimeseriesAnnotation.objects.within_retention(organization)
+            .filter(organization_id=organization.id, interval_type=IntervalType.RANGE)
+            .filter(Q(project_id__in=project_ids) | Q(project_id__isnull=True))
         )
 
 
