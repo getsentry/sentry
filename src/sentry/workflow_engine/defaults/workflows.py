@@ -14,6 +14,7 @@ from sentry.workflow_engine.defaults.detectors import (
     _ensure_detector,
     ensure_default_all_projects_detector,
 )
+from sentry.workflow_engine.handlers.condition.activity_type_in_handler import WorkflowActivityKind
 from sentry.workflow_engine.handlers.condition.seer_activity_trigger_handler import (
     SeerActivityTriggerStage,
 )
@@ -32,6 +33,48 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 DEFAULT_WORKFLOW_LABEL = "Send a notification for high priority issues"
 PULL_REQUEST_WORKFLOW_LABEL = "Send a notification when pull requests are ready"
+
+
+def ensure_inbox_workflow(org: Organization) -> Workflow:
+    """Return the organization's managed Inbox workflow, provisioning its graph on first use."""
+    database = router.db_for_write(Workflow)
+    defaults = Workflow.objects.using(database).filter(
+        organization=org,
+        type=Workflow.Type.INBOX,
+        config__default_key=Workflow.INBOX_DEFAULT_KEY,
+    )
+    if existing := defaults.get_or_none():
+        return existing
+
+    with transaction.atomic(database):
+        # Lock the parent because the default workflow may not exist yet.
+        Organization.objects.select_for_update(no_key=True).using(database).get(id=org.id)
+        if existing := defaults.get_or_none():
+            return existing
+
+        trigger_group = DataConditionGroup.objects.create(
+            organization=org, logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        )
+        workflow = Workflow.objects.create(
+            organization=org,
+            type=Workflow.Type.INBOX,
+            name="Add issue activity to Inbox",
+            config={"frequency": 0, "default_key": Workflow.INBOX_DEFAULT_KEY},
+            when_condition_group=trigger_group,
+        )
+        DataCondition.objects.create(
+            condition_group=trigger_group,
+            type=Condition.ACTIVITY_TYPE_IN,
+            comparison=[WorkflowActivityKind.ISSUE_ASSIGNED, WorkflowActivityKind.ISSUE_MENTIONED],
+            condition_result=True,
+        )
+        action_group = DataConditionGroup.objects.create(
+            organization=org, logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        )
+        action = Action.objects.create(type=Action.Type.ADD_TO_INBOX, config={}, data={})
+        DataConditionGroupAction.objects.create(condition_group=action_group, action=action)
+        WorkflowDataConditionGroup.objects.create(workflow=workflow, condition_group=action_group)
+        return workflow
 
 
 def connect_workflows_to_issue_stream(

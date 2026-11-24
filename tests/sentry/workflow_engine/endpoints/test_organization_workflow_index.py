@@ -855,6 +855,12 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             status_code=400,
         )
 
+    def test_create_rejects_inbox_default_key(self) -> None:
+        response = self._assert_create_rejected_without_writes(
+            {"config": {"frequency": 0, "defaultKey": Workflow.INBOX_DEFAULT_KEY}}, status_code=400
+        )
+        assert "config" in response.data
+
     def test_create_rejects_internal_trigger(self) -> None:
         handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
         with mock.patch.object(handler, "is_internal", True):
