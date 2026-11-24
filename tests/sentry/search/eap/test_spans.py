@@ -517,6 +517,39 @@ class SearchResolverQueryTest(TestCase):
                 )
             )
 
+    def test_max_timestamp_relative_aggregate_query(self) -> None:
+        with freeze_time("2018-12-11 10:20:00"):
+            where, having, _ = self.resolver.resolve_query("max(timestamp):-24h")
+        assert where is None
+        assert having == AggregationFilter(
+            comparison_filter=AggregationComparisonFilter(
+                aggregation=AttributeAggregation(
+                    aggregate=Function.FUNCTION_MAX,
+                    key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+                    label="max(timestamp)",
+                    extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+                ),
+                op=AggregationComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
+                val=datetime.fromisoformat("2018-12-10 10:20:00+00:00").timestamp(),
+            )
+        )
+
+    def test_max_timestamp_absolute_aggregate_query(self) -> None:
+        where, having, _ = self.resolver.resolve_query("max(timestamp):>2018-12-10T10:20:00+00:00")
+        assert where is None
+        assert having == AggregationFilter(
+            comparison_filter=AggregationComparisonFilter(
+                aggregation=AttributeAggregation(
+                    aggregate=Function.FUNCTION_MAX,
+                    key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+                    label="max(timestamp)",
+                    extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+                ),
+                op=AggregationComparisonFilter.OP_GREATER_THAN,
+                val=datetime.fromisoformat("2018-12-10 10:20:00+00:00").timestamp(),
+            )
+        )
+
     def test_simple_negation_aggregate_query(self) -> None:
         operators = [
             ("", AggregationComparisonFilter.OP_NOT_EQUALS),

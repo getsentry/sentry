@@ -315,7 +315,7 @@ function IssuePreviewContent() {
             />
           )}
           {summary && <IssuePreviewSummary summary={summary} />}
-          {event && hasEventStackTrace(event, group) && (
+          {event && hasEventStackTrace(event, group, organization) && (
             <Container key={event.id}>
               <ErrorBoundary mini>
                 <EventStackTrace

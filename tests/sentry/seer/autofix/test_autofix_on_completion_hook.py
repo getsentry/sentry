@@ -82,6 +82,7 @@ from sentry.seer.autofix.single_run import (
 )
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.credits import OUT_OF_CREDITS
 from sentry.seer.milestones import reconcile_milestones
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
 from sentry.seer.models.run import SeerRun, SeerRunMilestone, SeerRunMilestoneType
@@ -1614,6 +1615,28 @@ class TestPrIterationCompletionHook(TestCase):
         ) == OutOfCreditsMarker(stranded_action=StrandedAction.PUSH)
         mock_push.assert_not_called()
 
+    @patch(f"{COMPLETION_PATH}.trigger_push_changes")
+    def test_a_seer_push_that_hit_the_daily_limit_records_the_reason(
+        self, mock_push: MagicMock
+    ) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        state = self._unsynced()
+        repo_state = state.repo_pr_states["test-repo"]
+        repo_state.pr_creation_status = "error"
+        # Seer reports every credit refusal as out_of_credits; the denial reason says which.
+        repo_state.pr_creation_error_code = OUT_OF_CREDITS
+        repo_state.credit_denial_reason = "daily_cap_exceeded"
+
+        continue_pr_iteration(
+            self.organization, self.group, 123, state, AutofixReferrer.ON_COMPLETION_HOOK
+        )
+
+        assert get_out_of_credits(
+            run_id=123, organization_id=self.organization.id
+        ) == OutOfCreditsMarker(
+            stranded_action=StrandedAction.PUSH, denial_reason="daily_cap_exceeded"
+        )
+
     @patch(COMMENT_TASK_DELAY)
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
     def test_a_seer_push_that_ran_out_of_credits_comments_on_the_pr(
@@ -1623,7 +1646,7 @@ class TestPrIterationCompletionHook(TestCase):
         state = self._unsynced()
         repo_state = state.repo_pr_states["test-repo"]
         repo_state.pr_creation_status = "error"
-        repo_state.pr_creation_error_code = "out_of_credits"
+        repo_state.pr_creation_error_code = OUT_OF_CREDITS
         repo_state.credit_denial_reason = "daily_cap_exceeded"
 
         continue_pr_iteration(
@@ -1777,6 +1800,24 @@ class TestFailedRunCompletionHook(TestCase):
             run_id=123, organization_id=self.organization.id
         ) == OutOfCreditsMarker(stranded_action=None)
 
+    @patch(f"{HOOK_PATH}.fetch_run_status")
+    def test_a_seer_iteration_that_hit_the_daily_limit_records_the_reason(
+        self, mock_fetch: MagicMock
+    ) -> None:
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123, user_id=self.user.id
+        )
+        # Seer reports every credit refusal as out_of_credits; the denial reason says which.
+        state = self._errored([pr_iteration_memory_block()], failure_reason=OUT_OF_CREDITS)
+        state.credit_denial_reason = "daily_cap_exceeded"
+        mock_fetch.return_value = state
+
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        assert get_out_of_credits(
+            run_id=123, organization_id=self.organization.id
+        ) == OutOfCreditsMarker(stranded_action=None, denial_reason="daily_cap_exceeded")
+
     @patch(COMMENT_TASK_DELAY)
     @patch(f"{HOOK_PATH}.fetch_run_status")
     def test_a_seer_iteration_that_ran_out_of_credits_comments_on_the_pr(
@@ -1785,7 +1826,7 @@ class TestFailedRunCompletionHook(TestCase):
         self.create_seer_run(
             organization=self.organization, seer_run_state_id=123, user_id=self.user.id
         )
-        state = self._errored([pr_iteration_memory_block()], failure_reason="out_of_credits")
+        state = self._errored([pr_iteration_memory_block()], failure_reason=OUT_OF_CREDITS)
         state.credit_denial_reason = "not_enough_credits"
         mock_fetch.return_value = state
 

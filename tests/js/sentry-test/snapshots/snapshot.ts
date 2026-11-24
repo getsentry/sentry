@@ -1,5 +1,5 @@
 /* eslint-disable import/no-nodejs-modules */
-import {existsSync, mkdirSync} from 'node:fs';
+import {existsSync, mkdirSync, readFileSync} from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -16,24 +16,14 @@ import type {
 } from 'sentry-test/snapshots/snapshot-image-metadata';
 
 const PROJECT_ROOT = path.resolve(__dirname, '../../../..');
-const FONTS_DIR = path.resolve(PROJECT_ROOT, 'static/fonts');
-
-function getFontFaceCSS(): string {
-  return `
-    @font-face {
-      font-family: 'Rubik';
-      font-style: normal;
-      font-weight: 400 600;
-      src: url('file://${FONTS_DIR}/rubik-variable.woff2') format('woff2');
-    }
-    @font-face {
-      font-family: 'Roboto Mono';
-      font-style: normal;
-      font-weight: 425 600;
-      src: url('file://${FONTS_DIR}/roboto-mono-variable.woff2') format('woff2');
-    }
-  `;
-}
+const FONTS_DIR = path.join(PROJECT_ROOT, 'static/fonts');
+const FONT_CSS = readFileSync(
+  path.join(PROJECT_ROOT, 'static/css/fonts.css'),
+  'utf8'
+).replaceAll(/sentry-fonts\/([\w-]+\.woff2)/g, (_match, filename: string) => {
+  const font = readFileSync(path.join(FONTS_DIR, filename));
+  return `data:font/woff2;base64,${font.toString('base64')}`;
+});
 
 function renderToHTML(
   element: ReactElement,
@@ -52,7 +42,7 @@ function renderToHTML(
 <html>
 <head>
   <meta charset="utf-8" />
-  <style>${getFontFaceCSS()}</style>
+  <style>${FONT_CSS}</style>
   ${styleTags}
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; animation: none !important; transition: none !important; }

@@ -47,6 +47,7 @@ from sentry.users.api.parsers.display_preference import (
     DEFAULT_ISSUE_EVENT_CHOICES,
     STACKTRACE_ORDER_CHOICES,
     THEME_CHOICES,
+    THEME_VARIANT_DARK_CHOICES,
     TIMEZONE_CHOICES,
     DisplayPreferencesData,
     write_display_preferences,
@@ -161,6 +162,7 @@ class UserOptionsSerializer(serializers.Serializer[UserOption]):
     timezone = serializers.ChoiceField(choices=TIMEZONE_CHOICES, required=False)
     clock24Hours = serializers.BooleanField(required=False)
     theme = serializers.ChoiceField(choices=THEME_CHOICES, required=False)
+    themeVariantDark = serializers.ChoiceField(choices=THEME_VARIANT_DARK_CHOICES, required=False)
     defaultIssueEvent = serializers.ChoiceField(choices=DEFAULT_ISSUE_EVENT_CHOICES, required=False)
     prefersIssueDetailsStreamlinedUI = serializers.BooleanField(required=False)
 
@@ -372,6 +374,7 @@ class UserDetailsEndpoint(UserEndpoint):
         :param string timezone: timezone option
         :param clock_24_hours boolean: use 24 hour clock
         :param string theme: UI theme, either "light", "dark", or "system"
+        :param string themeVariantDark: Palette used in dark mode
         :param string default_issue_event: Event displayed by default, "recommended", "latest" or "oldest"
         :auth: required
         """
