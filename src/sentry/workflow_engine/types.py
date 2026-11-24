@@ -117,15 +117,16 @@ class DetectorInvestigation:
     """
     A detector finding to investigate with Seer instead of opening an issue.
 
-    `fingerprint` keys the investigation like an Issue Platform group: results with the same
-    fingerprint reuse the active investigation. `evidence_display` holds the name and value
-    pairs shown in the investigation prompt; `evidence_data` is passed to the investigation
-    as structured seed data.
+    `id` identifies the trigger and keys the investigation: each trigger gets its own, and
+    results with the same `id` (task retries) reuse it. Set it with the detector handler's
+    `get_occurrence_id`, the id the platform gives an occurrence. `evidence_display` holds
+    the name and value pairs shown in the investigation prompt; `evidence_data` is passed to
+    the investigation as structured seed data.
     """
 
+    id: str
     title: str
     subtitle: str
-    fingerprint: Sequence[str]
     detection_time: datetime
     environment: str | None = None
     evidence_display: Sequence[tuple[str, str]] = ()

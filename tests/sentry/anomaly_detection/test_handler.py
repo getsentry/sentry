@@ -190,26 +190,18 @@ class TestAnomalyDetectionDetectorHandler(TestCase):
         assert Notebook.objects.count() == 1
         self.produce.assert_not_called()
 
-    def test_reopen_reuses_the_active_investigation(self) -> None:
-        self.open(self.decision(MINUTE))
+    def test_reopen_starts_its_own_investigation(self) -> None:
+        first = self.open(self.decision(MINUTE))
         self.resolve(self.decision(MINUTE + timedelta(minutes=1), resolved=True))
-        self.open(self.decision(MINUTE + timedelta(minutes=2)))
+        reopened = self.open(self.decision(MINUTE + timedelta(minutes=2)))
 
-        assert Notebook.objects.count() == 1
-
-    def test_reopen_after_archiving_starts_a_new_investigation(self) -> None:
-        self.open(self.decision(MINUTE))
-        self.resolve(self.decision(MINUTE + timedelta(minutes=1), resolved=True))
-        Notebook.objects.update(status=NotebookStatus.ARCHIVED)
-        self.open(self.decision(MINUTE + timedelta(minutes=2)))
-
-        assert Notebook.objects.filter(status=NotebookStatus.ACTIVE).count() == 1
-        assert Notebook.objects.count() == 2
+        assert reopened.id != first.id
+        # The first investigation is still active; the reopen doesn't wait for it.
+        assert Notebook.objects.filter(status=NotebookStatus.ACTIVE).count() == 2
 
     def test_replayed_reopen_does_not_start_another_investigation(self) -> None:
         self.open(self.decision(MINUTE))
         self.resolve(self.decision(MINUTE + timedelta(minutes=1), resolved=True))
-        Notebook.objects.update(status=NotebookStatus.ARCHIVED)
         self.open(self.decision(MINUTE + timedelta(minutes=2)))
 
         # A retry before the checkpoint commit republishes the same minutes.

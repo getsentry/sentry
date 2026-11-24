@@ -60,8 +60,8 @@ class AnomalyDetectionDetectorHandler(BaseDetectorHandler[MinuteDecisions, Detec
     the evaluator's decision is the priority. `DetectorState` is the authority on which
     groups are open: this handler turns decisions into transitions against it, per-group
     dedupe skips replayed minutes, and the evaluator's open set only ever closes groups.
-    Each open starts a Seer investigation, created by the service account in the detector's
-    config; a reopen reuses the group's investigation until it's archived.
+    Each open, reopens included, starts its own Seer investigation, created by the service
+    account in the detector's config.
     """
 
     on_complete = DetectorOutcome.SEER_INVESTIGATION.dispatch
@@ -128,7 +128,11 @@ class AnomalyDetectionDetectorHandler(BaseDetectorHandler[MinuteDecisions, Detec
                 decision = packet.decisions[AnomalyGroupKey(group_key)]
                 evaluations[group_key] = DetectorEvaluation.create_issue(
                     group_key, priority
-                ).with_result(_investigation(decision, self.get_issue_fingerprint(group_key)))
+                ).with_result(
+                    # The platform's occurrence id for this open: replaying the minute
+                    # yields the same id, so it can't start a second investigation.
+                    _investigation(decision, self.get_occurrence_id(group_key, str(minute)))
+                )
 
         self.state_manager.commit_state_updates()
         return DetectorEvaluations(evaluations=evaluations, tainted=False)
@@ -140,7 +144,7 @@ class AnomalyDetectionDetectorHandler(BaseDetectorHandler[MinuteDecisions, Detec
         raise NotImplementedError("Anomalies start investigations and never create occurrences")
 
 
-def _investigation(decision: AnomalyDecision, fingerprint: list[str]) -> DetectorInvestigation:
+def _investigation(decision: AnomalyDecision, investigation_id: str) -> DetectorInvestigation:
     evidence = decision.evidence
     display: list[tuple[str, object]] = [
         ("Signal", evidence["signal"]),
@@ -153,9 +157,9 @@ def _investigation(decision: AnomalyDecision, fingerprint: list[str]) -> Detecto
     if "expected" in evidence:
         display.append(("Expected", evidence["expected"]))
     return DetectorInvestigation(
+        id=investigation_id,
         title=decision.title,
         subtitle="Anomaly detected",
-        fingerprint=fingerprint,
         detection_time=decision.timestamp.replace(tzinfo=UTC),
         environment=decision.env or None,
         evidence_display=[(name, str(value)) for name, value in display],
