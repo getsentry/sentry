@@ -388,7 +388,7 @@ export function GroupActions({
       'You need project write access to add custom inbound filters'
     );
   }
-  const canWriteInboundFilter = addInboundFilterDisabledReason === undefined;
+  const isInboundFilterAllowed = addInboundFilterDisabledReason === undefined;
 
   const onAddInboundFilter = () => {
     if (!event) {
@@ -576,10 +576,7 @@ export function GroupActions({
                 }
               />
             )}
-            {/* The palette can't show a disabled action with a reason, so hide it
-                when the plan or permissions rule it out. The "More Actions" menu
-                still shows the reason. */}
-            {canAddInboundFilter && canWriteInboundFilter && (
+            {canAddInboundFilter && isInboundFilterAllowed && (
               <CMDKAction
                 display={{label: t('Add Inbound Filter'), icon: <IconFilter />}}
                 keywords={['inbound', 'filter', 'drop', 'custom filter', 'data filter']}
@@ -691,7 +688,7 @@ export function GroupActions({
               key: 'add-inbound-filter',
               label: t('Add Inbound Filter'),
               hidden: !canAddInboundFilter,
-              disabled: addInboundFilterDisabledReason !== undefined,
+              disabled: !isInboundFilterAllowed,
               details: addInboundFilterDisabledReason,
               onAction: onAddInboundFilter,
             },

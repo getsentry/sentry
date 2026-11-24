@@ -15,7 +15,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-// The command palette virtualizes its list, which renders nothing in jsdom.
 jest.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: ({count}: {count: number}) => {
     const virtualItems = Array.from({length: count}, (_, index) => ({
@@ -445,15 +444,10 @@ describe('GroupActions', () => {
           url: `/projects/${filterOrg.slug}/${project.slug}/events/${event.id}/owners/`,
           body: {owners: [], rule: null, rules: []},
         });
-        MockApiClient.addMockResponse({
-          url: `/organizations/${filterOrg.slug}/users/`,
-          body: [],
-        });
       });
 
       async function openCommandPalette() {
         await userEvent.keyboard('{Control>}k{/Control}');
-        // The palette module is imported lazily on first open.
         await screen.findByRole('searchbox', {name: 'Search commands'}, {timeout: 5000});
       }
 
@@ -474,9 +468,6 @@ describe('GroupActions', () => {
           await screen.findByRole('option', {name: 'Add Inbound Filter'})
         );
 
-        // The menu item test above checks every drafted condition. Both entry
-        // points share one handler, so one condition shows the draft came
-        // from the event.
         expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
         expect(screen.getByRole('row', {name: 'error_type:Error'})).toBeInTheDocument();
       });
