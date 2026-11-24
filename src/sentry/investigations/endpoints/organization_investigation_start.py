@@ -14,6 +14,8 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.investigations.endpoints.validators import InvestigationStartValidator
 from sentry.investigations.services import start_investigation
+from sentry.issues.action_log import action_context_scope
+from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebooksBaseEndpoint,
@@ -73,15 +75,18 @@ class OrganizationInvestigationStartEndpoint(OrganizationNotebooksBaseEndpoint):
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
         values = validator.validated_data
         try:
-            investigation, created = start_investigation(
-                organization=organization,
-                creator=lambda: request_creator_actor(request),
-                title=values.get("title"),
-                source=values["source"],
-                project_ids=values.get("project_ids", []),
-                accessible_project_ids=organization_project_ids(organization),
-                filters=values.get("filters", {}),
-            )
+            with action_context_scope(
+                source=resolve_action_source(request), actor=resolve_action_actor(request)
+            ):
+                investigation, created = start_investigation(
+                    organization=organization,
+                    creator=lambda: request_creator_actor(request),
+                    title=values.get("title"),
+                    source=values["source"],
+                    project_ids=values.get("project_ids", []),
+                    accessible_project_ids=organization_project_ids(organization),
+                    filters=values.get("filters", {}),
+                )
         except Exception as error:
             response = service_error(error)
             if response is not None:

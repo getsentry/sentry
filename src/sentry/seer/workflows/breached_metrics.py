@@ -16,6 +16,7 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.investigations.services import create_agentic_breached_metric_investigation
 from sentry.investigations.services.breached_metrics import resolve_breached_metric_sources
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.organization import Organization
@@ -254,14 +255,16 @@ class MetricAlertDefinition(AutomationDefinition[MetricBreachInputs]):
                         code="service_account_unavailable",
                         message="The automation has no service account.",
                     )
-                notebook, _ = create_agentic_breached_metric_investigation(
-                    organization=group.organization,
-                    creator=ActorId(ActorType.SERVICE_ACCOUNT, config.service_account_id),
-                    title=None,
-                    resolved_source=source,
-                    project_ids=[source.project_id],
-                    filters={},
-                )
+                # Automations run as a service account, which the action log records as the system.
+                with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
+                    notebook, _ = create_agentic_breached_metric_investigation(
+                        organization=group.organization,
+                        creator=ActorId(ActorType.SERVICE_ACCOUNT, config.service_account_id),
+                        title=None,
+                        resolved_source=source,
+                        project_ids=[source.project_id],
+                        filters={},
+                    )
                 SeerWorkflowOutputLink.objects.get_or_create(execution=execution, notebook=notebook)
         except Exception:
             logger.exception(

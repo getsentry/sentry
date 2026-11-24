@@ -7,8 +7,8 @@ from django.db.models import QuerySet
 
 from sentry.constants import ObjectStatus
 from sentry.investigations.services.actor_access import actor_can_investigate
-from sentry.issues.action_log import ActionSource, publish_action
-from sentry.issues.action_log.types import InvestigationLinkedAction
+from sentry.issues.action_log import ActionSource, publish_action, publish_action_from_context
+from sentry.issues.action_log.types import InvestigationLinkedAction, InvestigationStartedAction
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.notebooks.access import issue_links_enabled
@@ -20,6 +20,28 @@ logger = logging.getLogger(__name__)
 def issue_link_idempotency_key(notebook_id: int) -> str:
     """One entry per investigation and group, however many runs link the group."""
     return f"investigation:{notebook_id}"
+
+
+def investigation_started_idempotency_key(notebook_id: int) -> str:
+    """One entry per investigation on the group it started from."""
+    return f"investigation_started:{notebook_id}"
+
+
+def record_investigation_started(
+    *, investigation: Notebook, group_id: int, project_id: int
+) -> None:
+    """Record on the issue's action log that an investigation started from it.
+
+    Attribution comes from the caller's action_context_scope.
+    """
+    if not issue_links_enabled(investigation.organization):
+        return
+    publish_action_from_context(
+        InvestigationStartedAction(notebook_id=investigation.id),
+        group_id=group_id,
+        project=Project.objects.get_from_cache(id=project_id),
+        idempotency_key=investigation_started_idempotency_key(investigation.id),
+    )
 
 
 def _linkable_projects(notebook: Notebook) -> QuerySet[Project]:

@@ -11,6 +11,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.investigations.models import InvestigationOrchestrationRun
+from sentry.issues.action_log.types import GroupActionActor, InvestigationStartedAction
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.notebooks.models import Notebook, NotebookSourceType
 from sentry.seer.anomaly_detection.types import (
@@ -22,6 +23,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -220,6 +222,29 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         assert (
             mock.call("investigations.started", 1, attributes=mock.ANY)
             not in metrics_count.mock_calls
+        )
+
+    @with_feature("organizations:investigations-issue-links")
+    def test_launching_records_the_start_on_the_metric_issue(self) -> None:
+        group, open_period = self.create_metric_open_period()
+        launch_payload = {
+            "source": {
+                "type": "metric_open_period",
+                "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
+            }
+        }
+
+        with capture_action_log() as action_log:
+            launched = self.client.post(self.start_url, launch_payload, format="json")
+            reused = self.client.post(self.start_url, launch_payload, format="json")
+
+        assert launched.status_code == 201, launched.data
+        assert reused.status_code == 200, reused.data
+        action_log.assert_logged(
+            InvestigationStartedAction,
+            group_id=group.id,
+            actor=GroupActionActor.user(self.user.id),
+            notebook_id=int(launched.data["id"]),
         )
 
     def test_metric_open_period_launches_agentic_and_candidates_report_its_run(self) -> None:

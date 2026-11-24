@@ -7,6 +7,7 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.models.orchestration import InvestigationOrchestrationStatus
+from sentry.issues.action_log.types import ActionSource
 from sentry.locks import locks
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
@@ -88,6 +89,7 @@ class SlackInvestigationEntrypoint(
     SeerInvestigationEntrypoint[SlackInvestigationCachePayload],
 ):
     key = SeerEntrypointKey.SLACK
+    action_source = ActionSource.SLACK
 
     def __init__(
         self,

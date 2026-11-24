@@ -190,6 +190,11 @@ class GroupActivitySchemaTest(TestCase):
                 "hypothesis_statement": "Payment retries exhaust the pool",
                 "reason": "Its timeouts start with the deploy.",
             },
+            GroupActionType.INVESTIGATION_STARTED: {
+                "notebook_id": self.create_notebook(
+                    organization=self.organization, title="Checkout errors"
+                ).id,
+            },
         }
 
     def assert_valid(self, item: Any) -> None:

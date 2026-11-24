@@ -731,14 +731,17 @@ class SeerInvestigationOperator[CachePayloadT]:
                 {"organization_id": organization.id, "project_id": resolved_source.project_id}
             )
             try:
-                investigation, created = create_agentic_breached_metric_investigation(
-                    organization=organization,
-                    creator=ActorId(ActorType.USER, user_id),
-                    title=None,
-                    resolved_source=resolved_source,
-                    project_ids=[resolved_source.project_id],
-                    filters={},
-                )
+                with action_context_scope(
+                    self.entrypoint.action_source, GroupActionActor.user(user_id)
+                ):
+                    investigation, created = create_agentic_breached_metric_investigation(
+                        organization=organization,
+                        creator=ActorId(ActorType.USER, user_id),
+                        title=None,
+                        resolved_source=resolved_source,
+                        project_ids=[resolved_source.project_id],
+                        filters={},
+                    )
             except Exception as e:
                 with SeerOperatorEventLifecycleMetric(
                     interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_INVESTIGATION,

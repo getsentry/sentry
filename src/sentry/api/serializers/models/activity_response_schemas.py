@@ -202,6 +202,18 @@ def _data_overrides(resolve: Callable[[Any], dict[str, Any]]) -> dict[str, dict[
     commit_data = _object({"commit": commit})
     pull_request_data = _object({"pullRequest": pull_request})
     fingerprints = {"type": "array", "items": {"type": "string"}, "description": "Fingerprints"}
+    investigation = _object(
+        {
+            "id": {"type": "string", "description": "ID of the investigation"},
+            "title": {"type": "string", "description": "Investigation title"},
+            "status": {
+                "type": "string",
+                "enum": ["active", "archived"],
+                "description": "Whether the investigation is archived",
+            },
+        },
+        required=("id", "title", "status"),
+    )
     return {
         "note": _object(
             {
@@ -305,18 +317,7 @@ def _data_overrides(resolve: Callable[[Any], dict[str, Any]]) -> dict[str, dict[
         "investigation_linked": _object(
             {
                 "investigation": _nullable(
-                    _object(
-                        {
-                            "id": {"type": "string", "description": "ID of the investigation"},
-                            "title": {"type": "string", "description": "Investigation title"},
-                            "status": {
-                                "type": "string",
-                                "enum": ["active", "archived"],
-                                "description": "Whether the investigation is archived",
-                            },
-                        },
-                        required=("id", "title", "status"),
-                    ),
+                    investigation,
                     "The investigation that linked the issue, or null once it's deleted",
                 ),
                 "hypothesisId": {"type": "string", "description": "ID of the hypothesis"},
@@ -331,6 +332,15 @@ def _data_overrides(resolve: Callable[[Any], dict[str, Any]]) -> dict[str, dict[
                 },
             },
             required=("investigation", "hypothesisId", "hypothesisStatement", "reason"),
+        ),
+        "investigation_started": _object(
+            {
+                "investigation": _nullable(
+                    investigation,
+                    "The investigation that started from the issue, or null once it's deleted",
+                ),
+            },
+            required=("investigation",),
         ),
     }
 

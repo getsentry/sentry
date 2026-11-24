@@ -19,6 +19,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.investigations.models import InvestigationOrchestrationStatus
+from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, InvestigationStartedAction
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.project import Project
 from sentry.notebooks.models import Notebook, NotebookSourceType
@@ -50,6 +51,7 @@ from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.viewer_context import ActorId, ActorType
@@ -607,6 +609,31 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         execution.refresh_from_db()
         assert run.status == SeerWorkflowRunStatus.COMPLETE
         assert execution.status == SeerWorkflowExecutionStatus.COMPLETE
+
+    @with_feature(
+        [
+            "organizations:investigations",
+            "organizations:investigations-issue-links",
+            "organizations:service-accounts",
+        ]
+    )
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
+    def test_breach_records_the_investigation_on_the_issue(self, dispatch: mock.Mock) -> None:
+        self.attach_service_account()
+        event = self.breach_event(detector_id=self.detector.id)
+
+        with capture_action_log() as action_log:
+            self.process_breach_workflow(event)
+            self.process_breach_workflow(event)
+
+        notebook = Notebook.objects.get()
+        action_log.assert_logged(
+            InvestigationStartedAction,
+            group_id=self.group.id,
+            source=ActionSource.SYSTEM,
+            actor=SYSTEM_ACTOR,
+            notebook_id=notebook.id,
+        )
 
     @with_feature(["organizations:investigations", "organizations:service-accounts"])
     def test_breach_completes_at_once_when_the_linked_investigation_already_finished(

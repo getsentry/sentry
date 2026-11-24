@@ -2,6 +2,7 @@ from enum import StrEnum
 from typing import Any, Literal, Protocol, TypedDict
 
 from sentry.investigations.models import InvestigationOrchestrationRun
+from sentry.issues.action_log.types import ActionSource
 from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -174,6 +175,8 @@ class SeerInvestigationEntrypoint[CachePayloadT](Protocol):
     """
 
     key: SeerEntrypointKey
+    # Recorded as the source of the start on the issue's action log.
+    action_source: ActionSource
 
     @staticmethod
     def has_access(organization: Organization) -> bool:

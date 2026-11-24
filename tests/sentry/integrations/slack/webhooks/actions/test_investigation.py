@@ -16,6 +16,11 @@ from sentry.integrations.slack.webhooks.actions.investigation import (
     MissingInvestigationAction,
     _get_investigation_source,
 )
+from sentry.issues.action_log.types import (
+    ActionSource,
+    GroupActionActor,
+    InvestigationStartedAction,
+)
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.notebooks.models import Notebook
@@ -34,6 +39,7 @@ from sentry.seer.entrypoints.slack.investigation import (
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.workflow_engine.models.data_condition import Condition
@@ -355,6 +361,21 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert len(started_calls) == 1
         assert self.mock_update.call_count == 1
         assert self.mock_post_message.call_count == 1
+
+    @with_feature([*FEATURES, "organizations:investigations-issue-links"])
+    def test_records_the_start_on_the_metric_issue(self) -> None:
+        with capture_action_log() as action_log:
+            self.click()
+            self.click()
+
+        (investigation,) = self.investigations()
+        action_log.assert_logged(
+            InvestigationStartedAction,
+            group_id=self.metric_group.id,
+            source=ActionSource.SLACK,
+            actor=GroupActionActor.user(self.user.id),
+            notebook_id=investigation.id,
+        )
 
     @with_feature(FEATURES)
     def test_slack_error_during_update_still_creates_investigation(self) -> None:
