@@ -6,8 +6,7 @@ approve sign-in, share the approval link and code it prints with the user. Let t
 keep running while the user approves in their browser. Follow the setup instructions the
 CLI prints after sign-in succeeds.
 
-Replace HANDOFF_CODE with the handoff code, run the command for your shell once, and then
-follow the instructions it prints.
+Replace HANDOFF_CODE with the handoff code and run the command for your shell once.
 
 {{ unix_installer }}
 
