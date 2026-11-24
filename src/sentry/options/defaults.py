@@ -3014,6 +3014,12 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# 2FA logins don't wait for cells to clear their cached user; the scheduled outbox drain does it.
+register(
+    "hybridcloud.outbox.authenticator_mark_used_async.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Break glass controls
 register(
     "hybrid_cloud.rpc.disabled-service-methods",

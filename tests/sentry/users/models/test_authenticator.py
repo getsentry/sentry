@@ -6,7 +6,10 @@ from fido2.utils import sha256
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import create_credential_object
+from sentry.hybridcloud.models.outbox import ControlOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.testutils.cases import TestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.authenticator import Authenticator, AuthenticatorConfig
@@ -40,6 +43,27 @@ class AuthenticatorTest(TestCase):
             user2.id: False,
             9999: False,
         }
+
+    def test_mark_used_option_leaves_outbox_pending(self) -> None:
+        user = self.create_user()
+        self.create_organization(owner=user)
+        interface = TotpInterface()
+        with outbox_runner():
+            interface.enroll(user)
+        authenticator = interface.authenticator
+        assert authenticator is not None
+        pending = ControlOutbox.objects.filter(
+            category=OutboxCategory.USER_UPDATE, object_identifier=user.id
+        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            authenticator.mark_used()
+        assert not pending.exists()
+
+        option = "hybridcloud.outbox.authenticator_mark_used_async.enabled"
+        with self.options({option: True}), self.captureOnCommitCallbacks(execute=True):
+            authenticator.mark_used()
+        assert pending.exists()
 
 
 @django_db_all
