@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import zlib
 from typing import Any, NoReturn, cast
@@ -26,9 +27,9 @@ RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_
 
 logger = logging.getLogger(__name__)
 
-# Matches the SDK's `max_value_length` (100,000 characters), which capped how much of the
-# message the old `logger.exception` error event carried in its frame vars.
-INVALID_RECORDING_LOG_PAYLOAD_BYTES = 50_000
+# Enough to tell what sits in the header slot (a zlib stream, JSON, or garbage) without logging
+# recording contents. The hash correlates reports of the same payload.
+INVALID_RECORDING_LOG_PREFIX_BYTES = 64
 
 
 class DropSilently(Exception):
@@ -200,7 +201,8 @@ def _report_invalid_recording(recording: ReplayRecording, reason: str) -> None:
             "key_id": recording.get("key_id"),
             "replay_id": recording["replay_id"],
             "payload_size": len(payload),
-            "payload_prefix": payload[:INVALID_RECORDING_LOG_PAYLOAD_BYTES].hex(),
+            "payload_prefix": payload[:INVALID_RECORDING_LOG_PREFIX_BYTES].hex(),
+            "payload_sha256": hashlib.sha256(payload).hexdigest(),
             **_replay_event_attributes(cast(bytes | None, recording.get("replay_event"))),
         },
     )
