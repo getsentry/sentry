@@ -86,6 +86,8 @@ export interface BaseSelectProps<
   loadingMessage?: () => React.ReactNode;
   maxMenuHeight?: number;
   maxMenuWidth?: number | string;
+  /** Align the menu with the start or end edge of the control. Defaults to start. */
+  menuAlign?: 'start' | 'end';
   /** Content after the options, outside the scroll container. */
   menuFooter?: React.ReactNode;
   menuPortalTarget?: HTMLElement | null;
@@ -161,6 +163,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     searchable = true,
     styles,
     size = 'md',
+    menuAlign = 'start',
     virtualized = false,
     components,
     blurInputOnSelect = !multiple,
@@ -215,7 +218,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       }
       props.onOpenChange?.(open);
     },
-    position: 'bottom-start',
+    position: `bottom-${menuAlign}`,
     offset: MENU_GAP,
     strategy: menuPortalTarget ? 'fixed' : 'absolute',
     type: 'listbox',

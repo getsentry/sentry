@@ -1,6 +1,7 @@
 import type * as React from 'react';
 import {createRef, Fragment, useState} from 'react';
 import {ThemeProvider} from '@emotion/react';
+import {useFloating} from '@floating-ui/react-dom';
 import {act, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {expectTypeOf} from 'expect-type';
@@ -15,10 +16,36 @@ import {Select} from './select';
 import type {ControlProps} from './select';
 import type {SelectComponents, SelectHandle, SelectValue, StylesConfig} from './types';
 
+jest.mock('@floating-ui/react-dom', () => {
+  const floating = jest.requireActual('@floating-ui/react-dom');
+  return {...floating, useFloating: jest.fn(floating.useFloating)};
+});
+
 const options = [
   {value: 'apple', label: 'Apple', details: 'Fruit'},
   {value: 'cherry', label: 'Cherry', details: 'Fruit'},
 ];
+
+it.each([
+  {menuAlign: undefined, placement: 'bottom-start'},
+  {menuAlign: 'end', placement: 'bottom-end'},
+] as const)('opens the options at $placement', async ({menuAlign, placement}) => {
+  render(
+    <Select
+      aria-label="Fruit"
+      options={options}
+      value={null}
+      menuAlign={menuAlign}
+      onChange={() => {}}
+    />,
+    {wrapper: ThemeWrapper}
+  );
+
+  await userEvent.click(screen.getByRole('combobox', {name: 'Fruit'}));
+
+  expect(screen.getByRole('listbox')).toBeInTheDocument();
+  expect(useFloating).toHaveBeenLastCalledWith(expect.objectContaining({placement}));
+});
 
 function FruitValue({option}: {option: (typeof options)[number]}) {
   return <Text>Selected {option.label}</Text>;
