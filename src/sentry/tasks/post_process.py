@@ -29,7 +29,6 @@ from sentry.killswitches import (
     killswitch_matches_context,
     value_matches,
 )
-from sentry.options.rollout import in_random_rollout
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import publish_replay_event
 from sentry.signals import event_processed, issue_unignored
@@ -555,9 +554,7 @@ def _get_event_link_probe(job: PostProcessJob) -> EventLinkProbe | None:
 
     probe = None
     # A reprocessed event is linked unconditionally, so there is nothing to ask.
-    if not job["is_reprocessed"] and in_random_rollout(
-        "post_process.consolidated-link-probe.rollout-rate"
-    ):
+    if not job["is_reprocessed"]:
         probe = _probe_event_links(job["event"])
 
     job["event_link_probe"] = probe
