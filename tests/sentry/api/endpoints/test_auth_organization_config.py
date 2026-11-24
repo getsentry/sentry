@@ -1,14 +1,17 @@
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 
 from django.test import override_settings
 from django.urls import reverse
 
 from sentry.auth.exceptions import ProviderNotRegistered
+from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.utils.auth import SsoSession
 from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
@@ -235,6 +238,36 @@ class AuthOrganizationConfigEndpointTest(APITestCase):
         response = self.get_success_response(organization.slug)
 
         assert response.data["memberAuthenticated"] is True
+
+    def test_authenticated_member_sso_session_duration(self) -> None:
+        owner = self.create_user(email="owner@example.com")
+        organization = self.create_organization(owner=owner, name="Acme", slug="acme")
+        user = self.create_user(email="user@example.com")
+        self.create_member(
+            organization=organization, user=user, flags=OrganizationMember.flags["sso:linked"]
+        )
+        auth_provider = self.create_auth_provider(
+            organization_id=organization.id,
+            provider="dummy",
+            sso_session_duration=int(timedelta(days=14).total_seconds()),
+        )
+        self.create_auth_identity(auth_provider=auth_provider, user_id=user.id, ident=user.email)
+        self.login_as(user)
+
+        # Older than the default duration, but not than the organization's
+        sso_session = SsoSession(
+            organization.id, datetime.now(tz=timezone.utc) - timedelta(days=10)
+        )
+        self.session[sso_session.session_key] = sso_session.to_dict()
+        self.save_session()
+
+        response = self.get_success_response(organization.slug)
+        assert response.data["memberAuthenticated"] is True
+
+        auth_provider.update(sso_session_duration=int(timedelta(days=1).total_seconds()))
+
+        response = self.get_success_response(organization.slug)
+        assert response.data["memberAuthenticated"] is False
 
     def test_join_requests_disabled(self) -> None:
         organization = self.create_organization(name="Acme", slug="acme")

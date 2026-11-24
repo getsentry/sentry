@@ -49,6 +49,10 @@ class AuthProvider(ReplicatedControlModel):
     default_role = BoundedPositiveIntegerField(default=50)
     default_global_access = models.BooleanField(default=True)
 
+    # How long a member's SSO session lasts before they have to sign in with the
+    # provider again, in seconds. Null uses the instance default, `SSO_EXPIRY_TIME`.
+    sso_session_duration = BoundedPositiveIntegerField(null=True)
+
     def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         from sentry.auth.services.auth.serial import serialize_auth_provider
         from sentry.hybridcloud.services.replica.service import cell_replica_service

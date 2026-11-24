@@ -64,6 +64,23 @@ def _sso_expiry_from_env(seconds: str | None) -> timedelta:
 SSO_EXPIRY_TIME = _sso_expiry_from_env(settings.SENTRY_SSO_EXPIRY_SECONDS)
 
 
+def get_sso_session_duration(
+    auth_provider_duration: int | None, requires_refresh: bool
+) -> timedelta | None:
+    """
+    How long an SSO session lasts, given the auth provider's `sso_session_duration` and its
+    provider's `requires_refresh`.
+
+    None is no limit. `check_auth` refreshes the identities of providers that require it, and
+    a member loses access when the refresh is rejected, or hasn't succeeded for a week.
+    """
+    if auth_provider_duration is not None:
+        return timedelta(seconds=auth_provider_duration)
+    if requires_refresh and options.get("auth.sso-session.no-limit-with-refresh"):
+        return None
+    return SSO_EXPIRY_TIME
+
+
 class SsoSession:
     """
     The value returned from to_dict is stored in the django session cookie, with the org id being the key.
@@ -93,8 +110,11 @@ class SsoSession:
             datetime.fromtimestamp(session_value[cls.SSO_LOGIN_TIMESTAMP], tz=timezone.utc),
         )
 
-    def is_sso_authtime_fresh(self) -> bool:
-        expired_time_cutoff = datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME
+    def is_sso_authtime_fresh(self, session_duration: timedelta | None) -> bool:
+        if session_duration is None:
+            return True
+
+        expired_time_cutoff = datetime.now(tz=timezone.utc) - session_duration
 
         return self.authenticated_at_time > expired_time_cutoff
 
@@ -271,9 +291,18 @@ def mark_sso_complete(request: HttpRequest, organization_id: int) -> None:
     request.session.modified = True
 
 
-def has_completed_sso(request: HttpRequest, organization_id: int) -> bool:
+def has_completed_sso(
+    request: HttpRequest,
+    organization_id: int,
+    session_duration: timedelta | None = SSO_EXPIRY_TIME,
+) -> bool:
     """
-    look for the org id under the sso session key, and check that the timestamp isn't past our expiry limit
+    Look for the org id under the sso session key, and check that the timestamp isn't older than
+    `session_duration`. None is no limit.
+
+    Checks of a member's access to an organization pass the access's `sso_session_duration`,
+    which is the organization's. Superuser and staff checks use the default, so that an
+    organization's duration doesn't change them.
     """
     if DISABLE_SSO_CHECK_FOR_LOCAL_DEV:
         return True
@@ -290,7 +319,7 @@ def has_completed_sso(request: HttpRequest, organization_id: int) -> bool:
         organization_id, sso_session_in_request
     )
 
-    if not django_session_value.is_sso_authtime_fresh():
+    if not django_session_value.is_sso_authtime_fresh(session_duration):
         metrics.incr("sso.session-timed-out")
         return False
 

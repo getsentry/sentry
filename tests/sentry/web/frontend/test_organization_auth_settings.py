@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import cast
 from unittest.mock import MagicMock, patch
 
@@ -39,8 +40,38 @@ from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_o
 from sentry.users.models.user import User
 from sentry.web.frontend.organization_auth_settings import (
     auth_provider_settings_form,
+    format_sso_session_duration,
     get_scim_url,
+    sso_session_duration_choices,
 )
+
+
+def test_format_sso_session_duration() -> None:
+    assert format_sso_session_duration(None) == "no limit"
+    assert format_sso_session_duration(timedelta(days=1)) == "1 day"
+    assert format_sso_session_duration(timedelta(days=14)) == "14 days"
+    assert format_sso_session_duration(timedelta(hours=20)) == "20 hours"
+    assert format_sso_session_duration(timedelta(minutes=90)) == "90 minutes"
+    assert format_sso_session_duration(timedelta(seconds=45)) == "45 seconds"
+
+
+def test_sso_session_duration_choices() -> None:
+    assert sso_session_duration_choices(None, timedelta(days=7)) == [
+        ("", "Default (7 days)"),
+        ("86400", "1 day"),
+        ("172800", "2 days"),
+        ("604800", "7 days"),
+        ("1209600", "14 days"),
+    ]
+
+
+def test_sso_session_duration_choices_keep_the_current_duration() -> None:
+    assert ("259200", "3 days") in sso_session_duration_choices(259200, timedelta(days=7))
+    assert sso_session_duration_choices(86400, None) == sso_session_duration_choices(None, None)
+
+
+def test_sso_session_duration_choices_without_default_limit() -> None:
+    assert sso_session_duration_choices(None, None)[0] == ("", "Default (no limit)")
 
 
 @control_silo_test
@@ -585,6 +616,180 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert not AuditLogEntry.objects.filter(
             organization_id=organization.id, event=audit_log.get_event_id("SSO_EDIT")
         ).exists()
+
+    def test_edit_sso_settings__session_duration(self) -> None:
+        organization, auth_provider = self.create_org_and_auth_provider()
+        self.create_om_and_link_sso(organization)
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+        self.login_as(self.user, organization_id=organization.id)
+
+        with (
+            self.feature(["organizations:sso-basic", "organizations:sso-session-duration"]),
+            outbox_runner(),
+        ):
+            resp = self.client.post(
+                path,
+                {
+                    "op": "settings",
+                    "require_link": True,
+                    "default_role": "member",
+                    "sso_session_duration": "1209600",
+                },
+            )
+
+        assert resp.status_code == 200
+        assert resp.context["form"].is_valid()
+
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+        assert auth_provider.sso_session_duration == 1209600
+        assert not auth_provider.flags.allow_unlinked
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            auth_provider_replica = AuthProviderReplica.objects.get(organization_id=organization.id)
+            assert auth_provider_replica.sso_session_duration == 1209600
+
+        result = AuditLogEntry.objects.filter(
+            organization_id=organization.id,
+            target_object=auth_provider.id,
+            event=audit_log.get_event_id("SSO_EDIT"),
+            actor=self.user,
+        ).get()
+        assert result.data == {"sso_session_duration": "to 14 days"}
+
+    def test_edit_sso_settings__session_duration_reset_to_default(self) -> None:
+        organization, auth_provider = self.create_org_and_auth_provider()
+        auth_provider.update(sso_session_duration=86400)
+        self.create_om_and_link_sso(organization)
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+        self.login_as(self.user, organization_id=organization.id)
+
+        with (
+            self.feature(["organizations:sso-basic", "organizations:sso-session-duration"]),
+            outbox_runner(),
+        ):
+            resp = self.client.post(
+                path,
+                {
+                    "op": "settings",
+                    "require_link": True,
+                    "default_role": "member",
+                    "sso_session_duration": "",
+                },
+            )
+
+        assert resp.status_code == 200
+
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+        assert auth_provider.sso_session_duration is None
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            auth_provider_replica = AuthProviderReplica.objects.get(organization_id=organization.id)
+            assert auth_provider_replica.sso_session_duration is None
+
+        result = AuditLogEntry.objects.filter(
+            organization_id=organization.id,
+            target_object=auth_provider.id,
+            event=audit_log.get_event_id("SSO_EDIT"),
+            actor=self.user,
+        ).get()
+        assert result.data == {"sso_session_duration": "to the default"}
+
+    def test_edit_sso_settings__session_duration_no_change(self) -> None:
+        organization, auth_provider = self.create_org_and_auth_provider()
+        auth_provider.update(sso_session_duration=86400)
+        self.create_om_and_link_sso(organization)
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+        self.login_as(self.user, organization_id=organization.id)
+
+        with self.feature(["organizations:sso-basic", "organizations:sso-session-duration"]):
+            resp = self.client.post(
+                path,
+                {
+                    "op": "settings",
+                    "require_link": True,
+                    "default_role": "member",
+                    "sso_session_duration": "86400",
+                },
+            )
+
+        assert resp.status_code == 200
+
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+        assert auth_provider.sso_session_duration == 86400
+        assert not AuditLogEntry.objects.filter(
+            organization_id=organization.id, event=audit_log.get_event_id("SSO_EDIT")
+        ).exists()
+
+    def test_edit_sso_settings__session_duration_invalid(self) -> None:
+        organization, auth_provider = self.create_org_and_auth_provider()
+        self.create_om_and_link_sso(organization)
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+        self.login_as(self.user, organization_id=organization.id)
+
+        with self.feature(["organizations:sso-basic", "organizations:sso-session-duration"]):
+            resp = self.client.post(
+                path,
+                {
+                    "op": "settings",
+                    "require_link": False,
+                    "default_role": "member",
+                    # Not one of the choices
+                    "sso_session_duration": "31536000",
+                },
+            )
+
+        assert resp.status_code == 200
+        assert "sso_session_duration" in resp.context["form"].errors
+
+        # Nothing is saved for an invalid form
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+        assert auth_provider.sso_session_duration is None
+        assert not auth_provider.flags.allow_unlinked
+        assert not AuditLogEntry.objects.filter(
+            organization_id=organization.id, event=audit_log.get_event_id("SSO_EDIT")
+        ).exists()
+
+    def test_edit_sso_settings__session_duration_without_feature(self) -> None:
+        organization, auth_provider = self.create_org_and_auth_provider()
+        auth_provider.update(sso_session_duration=86400)
+        self.create_om_and_link_sso(organization)
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+        self.login_as(self.user, organization_id=organization.id)
+
+        with self.feature("organizations:sso-basic"):
+            resp = self.client.get(path)
+            assert resp.status_code == 200
+            assert "sso_session_duration" not in resp.context["form"].fields
+
+            resp = self.client.post(
+                path,
+                {
+                    "op": "settings",
+                    "require_link": True,
+                    "default_role": "member",
+                    "sso_session_duration": "1209600",
+                },
+            )
+
+        assert resp.status_code == 200
+
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+        assert auth_provider.sso_session_duration == 86400
+
+    def test_sso_settings__session_duration_is_rendered(self) -> None:
+        organization, auth_provider = self.create_org_and_auth_provider()
+        auth_provider.update(sso_session_duration=1209600)
+        self.create_om_and_link_sso(organization)
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+        self.login_as(self.user, organization_id=organization.id)
+
+        with self.feature(["organizations:sso-basic", "organizations:sso-session-duration"]):
+            resp = self.client.get(path)
+
+        assert resp.status_code == 200
+        assert resp.context["form"].initial["sso_session_duration"] == 1209600
+        self.assertContains(resp, '<option value="">Default (7 days)</option>', html=True)
+        self.assertContains(resp, '<option value="1209600" selected>14 days</option>', html=True)
 
     def test_edit_sso_settings__scim(self) -> None:
         organization, auth_provider = self.create_org_and_auth_provider()

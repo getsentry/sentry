@@ -320,6 +320,7 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
             config=auth_provider.config,
             default_role=auth_provider.default_role,
             default_global_access=auth_provider.default_global_access,
+            sso_session_duration=auth_provider.sso_session_duration,
             allow_unlinked=auth_provider.flags.allow_unlinked,
             scim_enabled=auth_provider.flags.scim_enabled,
         )

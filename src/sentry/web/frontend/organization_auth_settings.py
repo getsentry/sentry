@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 
 from django import forms
 from django.contrib import messages
@@ -23,6 +24,7 @@ from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.plugins.base.response import DeferredResponse
 from sentry.tasks.auth.auth import email_missing_links_control
+from sentry.utils.auth import get_sso_session_duration
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import ControlSiloOrganizationView, control_silo_view
 
@@ -35,6 +37,45 @@ OK_REMINDERS_SENT = _(
 )
 
 logger = logging.getLogger("sentry.saml_setup_error")
+
+# The durations an SSO session can be set to last. A session can't outlive the user's
+# login session, which lasts `SESSION_COOKIE_AGE`, 14 days by default.
+SSO_SESSION_DURATIONS = (
+    timedelta(days=1),
+    timedelta(days=2),
+    timedelta(days=7),
+    timedelta(days=14),
+)
+
+
+def format_sso_session_duration(duration: timedelta | None) -> str:
+    if duration is None:
+        return "no limit"
+
+    seconds = int(duration.total_seconds())
+    for unit, unit_seconds in (("day", 86400), ("hour", 3600), ("minute", 60)):
+        if seconds % unit_seconds == 0:
+            count = seconds // unit_seconds
+            return f"{count} {unit}" if count == 1 else f"{count} {unit}s"
+    return f"{seconds} seconds"
+
+
+def sso_session_duration_choices(
+    current: int | None, default: timedelta | None
+) -> list[tuple[str, str]]:
+    """
+    The choices for the session duration field. `current` is the auth provider's
+    `sso_session_duration`, which keeps its choice when it isn't one of `SSO_SESSION_DURATIONS`.
+    `default` is how long a session lasts without one.
+    """
+    durations = {int(duration.total_seconds()) for duration in SSO_SESSION_DURATIONS}
+    if current is not None:
+        durations.add(current)
+
+    return [("", f"Default ({format_sso_session_duration(default)})")] + [
+        (str(seconds), format_sso_session_duration(timedelta(seconds=seconds)))
+        for seconds in sorted(durations)
+    ]
 
 
 def auth_provider_settings_form(
@@ -55,6 +96,21 @@ def auth_provider_settings_form(
 
         member_role = roles.get(org_member.role)
         role_choices = [(r.id, r.name) for r in roles.get_all() if member_role.can_manage(r)]
+
+    can_set_session_duration = features.has(
+        "organizations:sso-session-duration", organization, actor=request.user
+    )
+    default_session_duration = get_sso_session_duration(None, provider.requires_refresh)
+    session_duration_help = _(
+        "How long members stay signed in to this organization before they have to sign in "
+        "with %(provider)s again."
+    )
+    if default_session_duration is None:
+        session_duration_help = _(
+            "How long members stay signed in to this organization before they have to sign in "
+            "with %(provider)s again. Without a limit, Sentry checks each member's "
+            "%(provider)s account daily and removes their access when it is no longer valid."
+        )
 
     class AuthProviderSettingsForm(forms.Form):
         disabled = provider.is_partner
@@ -87,6 +143,22 @@ def auth_provider_settings_form(
             disabled=disabled,
         )
 
+        sso_session_duration = (
+            forms.TypedChoiceField(
+                label=_("Session Duration"),
+                choices=sso_session_duration_choices(
+                    auth_provider.sso_session_duration, default_session_duration
+                ),
+                coerce=int,
+                empty_value=None,
+                help_text=session_duration_help % {"provider": provider.name},
+                required=False,
+                disabled=disabled,
+            )
+            if can_set_session_duration
+            else None
+        )
+
         # Generic SAML2 providers (including Active Directory / Azure Entra and
         # Jumpcloud) already render the certificate in their configure view.
         if provider.is_saml and not isinstance(provider, GenericSAML2Provider):
@@ -104,6 +176,9 @@ def auth_provider_settings_form(
     }
     if provider.can_use_scim(organization.id, request.user):
         initial["enable_scim"] = bool(auth_provider.flags.scim_enabled)
+
+    if can_set_session_duration:
+        initial["sso_session_duration"] = auth_provider.sso_session_duration
 
     if provider.is_saml and not isinstance(provider, GenericSAML2Provider):
         initial_idp = auth_provider.config.get("idp", {})
@@ -143,6 +218,24 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
             event=audit_log.get_event_id("SSO_DISABLE"),
             data=auth_provider.get_audit_log_data(),
         )
+
+    def _update_sso_session_duration(
+        self,
+        organization: RpcOrganization,
+        auth_provider: RpcAuthProvider,
+        sso_session_duration: int | None,
+    ) -> None:
+        if sso_session_duration == auth_provider.sso_session_duration:
+            return
+
+        auth_provider_model = AuthProvider.objects.get_or_none(
+            id=auth_provider.id, organization_id=organization.id
+        )
+        if auth_provider_model is None:
+            return
+
+        auth_provider_model.update(sso_session_duration=sso_session_duration)
+        auth_provider.sso_session_duration = sso_session_duration
 
     def handle_existing_provider(
         self, request: HttpRequest, organization: RpcOrganization, auth_provider: RpcAuthProvider
@@ -188,6 +281,11 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
                 organization_id=organization.id, default_role=form.cleaned_data["default_role"]
             )
 
+            if "sso_session_duration" in form.cleaned_data:
+                self._update_sso_session_duration(
+                    organization, auth_provider, form.cleaned_data["sso_session_duration"]
+                )
+
             if form.initial != form.cleaned_data:
                 changed_data = {}
                 for key, value in form.cleaned_data.items():
@@ -208,6 +306,12 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
                             )
                             changed_data["x509cert"] = f"to {value}"
                     elif form.initial.get(key) != value:
+                        if key == "sso_session_duration":
+                            value = (
+                                "the default"
+                                if value is None
+                                else format_sso_session_duration(timedelta(seconds=value))
+                            )
                         changed_data[key] = f"to {value}"
 
                 self.create_audit_entry(
