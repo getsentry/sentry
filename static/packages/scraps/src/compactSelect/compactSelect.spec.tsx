@@ -2250,6 +2250,43 @@ describe('CompactSelect', () => {
       }
     );
 
+    it.each([
+      ['list box', undefined, 'option'],
+      ['grid', 'grid', 'row'],
+    ] as const)(
+      'moves focus by typeahead to an option of a %s whose value is a section key',
+      async (_, mode, optionRole) => {
+        const collidingSections = Array.from({length: 10}, (__, s) => ({
+          key: s === 9 ? 'target' : `s${s}`,
+          label: `Section ${s}`,
+          options: Array.from({length: 20}, (___, i) => ({
+            value: s === 9 && i === 15 ? 'target' : `${s}-${i}`,
+            label: s === 9 && i === 15 ? 'Zebra' : `Option ${s}-${i}`,
+          })),
+        }));
+        render(
+          <CompactSelect
+            mode={mode}
+            menuWidth={300}
+            options={collidingSections}
+            value={undefined}
+            onChange={jest.fn()}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button'));
+        await waitFor(() =>
+          expect(screen.getByRole(optionRole, {name: 'Option 0-0'})).toHaveFocus()
+        );
+        await userEvent.keyboard('Zeb');
+
+        await waitFor(() =>
+          expect(screen.getByRole(optionRole, {name: 'Zebra'})).toHaveFocus()
+        );
+      }
+    );
+
     it('reserves the scrollbar gutter of a virtualized list box from the start', async () => {
       const gutterWhenMeasured: string[] = [];
       jest

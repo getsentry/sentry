@@ -275,14 +275,24 @@ export function useVirtualCollection<T>({
   pinnedKeys = [],
 }: UseVirtualCollectionOptions<T>): VirtualCollection<T> {
   const nodes = flattenSections(collection, hiddenKeys);
+  // Focus and pins name items. Sections are left out, since a section's key
+  // can equal an item's.
+  const itemIndexes = new Map(
+    nodes.flatMap((node, index) =>
+      node.type === 'section' ? [] : [[node.key, index] as const]
+    )
+  );
   const focusedIndex =
     enabled && focusedKey !== null && focusedKey !== undefined
-      ? nodes.findIndex(node => node.key === focusedKey)
+      ? (itemIndexes.get(focusedKey) ?? -1)
       : -1;
-  const pinnedKeySet = new Set(enabled ? pinnedKeys : []);
-  const pinnedIndexes = nodes.flatMap((node, index) =>
-    pinnedKeySet.has(node.key) ? [index] : []
-  );
+  const pinnedIndexes = enabled
+    ? pinnedKeys.flatMap(key => {
+        const index =
+          key === null || key === undefined ? undefined : itemIndexes.get(key);
+        return index === undefined ? [] : [index];
+      })
+    : [];
   const sectionIndexes = getSectionIndexes(nodes);
   const scrollMargin = useListOffset({enabled, listRef, scrollRef});
 
