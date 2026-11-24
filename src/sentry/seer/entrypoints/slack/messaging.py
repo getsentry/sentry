@@ -67,6 +67,7 @@ def get_latest_thread_per_channel(
     threads: Sequence[SlackThreadDetails],
 ) -> list[SlackThreadDetails]:
     # Every alert adds a thread, so an often-alerting issue would fan one update out to thousands.
+    # Possible bad UX: older alert threads in the same channel stop getting Autofix updates.
     return list({thread["channel_id"]: thread for thread in threads}.values())
 
 
