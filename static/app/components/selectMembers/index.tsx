@@ -131,11 +131,6 @@ function SelectMembers({
         ...styles?.menu?.(provided, state),
         width: 320,
       }),
-      menuList: (provided, state) => ({
-        ...provided,
-        ...styles?.menuList?.(provided, state),
-        '.option > div': {paddingBlock: 4},
-      }),
       input: (provided, state) => ({
         ...provided,
         ...styles?.input?.(provided, state),
