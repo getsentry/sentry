@@ -25,14 +25,11 @@ def test_with_user_ip() -> None:
     assert out["user"]["ip_address"] == "192.168.0.1"
 
 
+# Sentry's normalizer never infers IPs from client_ip, so unresolved {{auto}} markers are dropped.
 def test_with_user_auto_ip() -> None:
     inp = {"user": {"ip_address": "{{auto}}"}}
     out = validate_and_normalize(inp, client_ip="127.0.0.1")
-    assert out["user"]["ip_address"] == "{{auto}}"
-
-    inp = {"user": {"ip_address": "{{auto}}"}}
-    out = validate_and_normalize(inp, client_ip="127.0.0.1")
-    assert out["user"]["ip_address"] == "{{auto}}"
+    assert "user" not in out
 
 
 @django_db_all
@@ -55,7 +52,7 @@ def test_without_any_values() -> None:
 def test_with_http_auto_ip() -> None:
     inp = {"request": {"url": "http://example.com/", "env": {"REMOTE_ADDR": "{{auto}}"}}}
     out = validate_and_normalize(inp, client_ip="127.0.0.1")
-    assert out["request"]["env"]["REMOTE_ADDR"] == "{{auto}}"
+    assert "env" not in out["request"]
 
 
 def test_with_all_auto_ip() -> None:
@@ -64,5 +61,5 @@ def test_with_all_auto_ip() -> None:
         "request": {"url": "http://example.com/", "env": {"REMOTE_ADDR": "{{auto}}"}},
     }
     out = validate_and_normalize(inp, client_ip="127.0.0.1")
-    assert out["request"]["env"]["REMOTE_ADDR"] == "{{auto}}"
-    assert out["user"]["ip_address"] == "{{auto}}"
+    assert "env" not in out["request"]
+    assert "user" not in out

@@ -304,25 +304,6 @@ export const getDefaultWidgets = (organization: Organization) => {
 
   const errorsWidgets: WidgetTemplate[] = [
     {
-      id: 'issue-for-review',
-      title: t('Issues For Review'),
-      description: t('Most recently seen unresolved issues for review.'),
-      displayType: DisplayType.TABLE,
-      widgetType: WidgetType.ISSUE,
-      interval: '5m',
-      isCustomizable: true,
-      queries: [
-        {
-          name: '',
-          conditions: 'is:unresolved is:for_review',
-          fields: ['issue', 'assignee', 'events', 'title'],
-          aggregates: [],
-          columns: ['issue', 'assignee', 'events', 'title'],
-          orderby: 'date',
-        },
-      ],
-    },
-    {
       id: 'top-unhandled',
       title: t('Top Unhandled Error Types'),
       description: t('Most frequently encountered unhandled errors.'),

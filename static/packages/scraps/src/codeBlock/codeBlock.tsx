@@ -246,6 +246,7 @@ const Wrapper = styled('div')<{
   ${p => codeBlockStyles(p.theme)};
 
   position: relative;
+  isolation: isolate;
   height: 100%;
   min-width: 0;
   background: var(--prism-block-background);

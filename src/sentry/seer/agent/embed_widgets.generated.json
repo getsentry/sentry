@@ -1382,8 +1382,7 @@
           "end": "2026-08-25T16:39:02Z"
         }
       }
-    ],
-    "featureFlag": "organizations:gen-ai-conversations"
+    ]
   },
   {
     "name": "conversationsQuery",
@@ -1445,8 +1444,7 @@
           "title": "Conversations using tools"
         }
       }
-    ],
-    "featureFlag": "organizations:gen-ai-conversations"
+    ]
   },
   {
     "name": "replaysQuery",

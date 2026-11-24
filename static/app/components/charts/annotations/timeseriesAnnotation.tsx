@@ -28,7 +28,7 @@ type TimeseriesAnnotationSeverity = 'low' | 'medium' | 'high';
 
 /**
  * An external event that could explain a change in telemetry data, as
- * returned by `/organizations/{org}/annotations/`.
+ * returned by `/organizations/{org}/timeseries-annotations/`.
  */
 export interface TimeseriesAnnotation {
   annotationType: TimeseriesAnnotationType;

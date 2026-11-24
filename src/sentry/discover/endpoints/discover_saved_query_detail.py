@@ -201,12 +201,22 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
+class DiscoverSavedQueryVisitPermission(DiscoverSavedQueryPermission):
+    # Anyone who can read a saved query can record a visit to it. A visit only updates
+    # metadata (visit count and last visited times), not the query itself.
+    scope_map = {
+        **DiscoverSavedQueryPermission.scope_map,
+        "POST": DiscoverSavedQueryPermission.scope_map["GET"],
+    }
+
+
 @extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class DiscoverSavedQueryVisitEndpoint(DiscoverSavedQueryBase):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
+    permission_classes = (DiscoverSavedQueryVisitPermission,)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has("organizations:discover-query", organization, actor=request.user)

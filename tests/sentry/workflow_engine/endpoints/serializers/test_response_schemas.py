@@ -36,7 +36,7 @@ def _keyword_nodes(schema: dict[str, Any] | bool) -> Iterator[dict[str, Any]]:
                 yield from _keyword_nodes(prop)
         elif name in ("items", "if", "then") and isinstance(value, dict):
             yield from _keyword_nodes(value)
-        elif name == "allOf":
+        elif name in ("allOf", "oneOf"):
             for branch in value:
                 yield from _keyword_nodes(branch)
 
