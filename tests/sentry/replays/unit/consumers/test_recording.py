@@ -327,7 +327,7 @@ def test_parse_recording_event_with_replay_event() -> None:
 
 
 def test_parse_recording_event_missing_payload() -> None:
-    """Test that missing payload causes InvalidRecording"""
+    """Test that missing payload causes DropSilently"""
     message = {
         "type": "replay_recording_not_chunked",
         "org_id": 123,
@@ -338,13 +338,13 @@ def test_parse_recording_event_missing_payload() -> None:
         "payload": b'{"segment_id": 42}',  # Missing newline separator
         "version": 0,
     }
-    with pytest.raises(InvalidRecording):
+    with pytest.raises(DropSilently):
         parse_recording_event(msgpack.packb(message))
 
 
 @django_db_all
 def test_parse_recording_event_invalid_compression() -> None:
-    """Test that invalid compression in payload causes InvalidRecording"""
+    """Test that invalid compression in payload causes DropSilently"""
     message = {
         "type": "replay_recording_not_chunked",
         "org_id": 123,
@@ -355,12 +355,12 @@ def test_parse_recording_event_invalid_compression() -> None:
         "payload": json.dumps({"segment_id": 42}).encode() + b"\ninvalid",
         "version": 0,
     }
-    with pytest.raises(InvalidRecording):
+    with pytest.raises(DropSilently):
         parse_recording_event(msgpack.packb(message))
 
 
 def test_parse_recording_event_invalid_headers() -> None:
-    """Test that invalid headers in payload causes InvalidRecording"""
+    """Test that invalid headers in payload causes DropSilently"""
     message = {
         "type": "replay_recording_not_chunked",
         "org_id": 123,
@@ -371,7 +371,7 @@ def test_parse_recording_event_invalid_headers() -> None:
         "payload": json.dumps({"hello": "world"}).encode() + b"\n" + zlib.compress(b"t"),
         "version": 0,
     }
-    with pytest.raises(InvalidRecording):
+    with pytest.raises(DropSilently):
         parse_recording_event(msgpack.packb(message))
 
 

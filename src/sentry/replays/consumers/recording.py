@@ -26,6 +26,10 @@ RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_
 
 logger = logging.getLogger(__name__)
 
+# Matches the SDK's `max_value_length` (100,000 characters), which capped how much of the
+# message the old `logger.exception` error event carried in its frame vars.
+INVALID_RECORDING_LOG_PAYLOAD_BYTES = 50_000
+
 
 class DropSilently(Exception):
     pass
@@ -54,8 +58,6 @@ def process_message(message: bytes) -> ProcessedEvent | None:
         )
     except DropSilently:
         return None
-    except InvalidRecording:
-        return None
     except Exception:
         logger.exception("Failed to process replay recording message.")
         return None
@@ -71,7 +73,7 @@ def parse_recording_event(message: bytes) -> Event:
         )
     except InvalidRecording as exc:
         _report_invalid_recording(recording, exc.reason)
-        raise
+        raise DropSilently() from exc
 
     replay_event_json = recording.get("replay_event")
     if replay_event_json:
@@ -190,7 +192,7 @@ def _report_invalid_recording(recording: ReplayRecording, reason: str) -> None:
 
     payload = cast(bytes, recording["payload"])
     sdk_logger.warning(
-        "Dropped an invalid recording segment.",
+        "replays.consumer.recording.invalid",
         attributes={
             "reason": reason,
             "org_id": recording["org_id"],
@@ -198,9 +200,7 @@ def _report_invalid_recording(recording: ReplayRecording, reason: str) -> None:
             "key_id": recording.get("key_id"),
             "replay_id": recording["replay_id"],
             "payload_size": len(payload),
-            # Enough to tell what sits in the header slot, such as a zlib stream (78 9c),
-            # without logging recording contents.
-            "payload_prefix": payload[:8].hex(),
+            "payload_prefix": payload[:INVALID_RECORDING_LOG_PAYLOAD_BYTES].hex(),
             **_replay_event_attributes(cast(bytes | None, recording.get("replay_event"))),
         },
     )
