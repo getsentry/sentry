@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 from collections.abc import Collection, Iterable, Mapping
 from dataclasses import dataclass
+from datetime import timedelta
 from functools import cached_property
 from typing import Any
 
@@ -63,6 +64,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.auth import SSO_EXPIRY_TIME, get_sso_session_duration
 from sentry.viewer_context import SuperuserAccess, set_viewer_context_superuser
 
 __all__ = (
@@ -119,6 +121,13 @@ class Access(abc.ABC):
     @abc.abstractmethod
     def requires_sso(self) -> bool:
         pass
+
+    @property
+    def sso_session_duration(self) -> timedelta:
+        """
+        How long an SSO session lasts for the organization, for `has_completed_sso`.
+        """
+        return SSO_EXPIRY_TIME
 
     @property
     @abc.abstractmethod
@@ -299,6 +308,7 @@ class DbAccess(Access):
 
     sso_is_valid: bool = False
     requires_sso: bool = False
+    sso_session_duration: timedelta = SSO_EXPIRY_TIME
     has_open_membership: bool = False
 
     # if has_global_access is True, then any project
@@ -529,6 +539,10 @@ class RpcBackedAccess(Access):
     @property
     def requires_sso(self) -> bool:
         return self.auth_state.sso_state.is_required
+
+    @property
+    def sso_session_duration(self) -> timedelta:
+        return get_sso_session_duration(self.auth_state.sso_state.session_duration)
 
     @property
     def has_open_membership(self) -> bool:
@@ -783,6 +797,7 @@ class OrganizationMemberAccess(DbAccess):
             _member=member,
             sso_is_valid=sso_state.is_valid,
             requires_sso=sso_state.is_required,
+            sso_session_duration=get_sso_session_duration(sso_state.session_duration),
             has_global_access=has_global_access,
             scopes=frozenset(scopes),
             permissions=frozenset(permissions),
@@ -1352,6 +1367,7 @@ def from_request(
             scopes=superuser_scopes,
             sso_is_valid=sso_state.is_valid,
             requires_sso=sso_state.is_required,
+            sso_session_duration=get_sso_session_duration(sso_state.session_duration),
             permissions=access_service.get_permissions_for_user(request.user.id),
         )
 

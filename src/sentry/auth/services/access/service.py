@@ -94,7 +94,11 @@ class AccessService(abc.ABC):
                     auth_provider=auth_provider, auth_identity=auth_identity, member=member
                 )
 
-        return RpcMemberSsoState(is_required=requires_sso, is_valid=sso_is_valid)
+        return RpcMemberSsoState(
+            is_required=requires_sso,
+            is_valid=sso_is_valid,
+            session_duration=auth_provider.sso_session_duration,
+        )
 
     def get_user_auth_state(
         self,

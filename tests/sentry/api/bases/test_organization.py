@@ -92,6 +92,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.users.services.user.service import user_service
+from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
 from sentry.utils.security.orgauthtoken_token import hash_token
 from sentry.viewer_context import (
     Actor,
@@ -774,6 +775,61 @@ class DetermineAccessHydrationTest(TestCase):
 
         get_org.assert_not_called()
         assert request.access.has_scope("org:read")
+
+
+@all_silo_test
+class DetermineAccessSsoSessionTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user()
+        self.org = self.create_organization()
+        self.auth_provider = self.create_auth_provider(
+            organization_id=self.org.id, provider="dummy"
+        )
+        self.create_auth_identity(auth_provider=self.auth_provider, user=self.user)
+        self.create_member(
+            user=self.user,
+            organization=self.org,
+            role="member",
+            flags=OrganizationMember.flags["sso:linked"],
+        )
+        self.request = drf_request_from_request(self.make_request(user=self.user))
+
+    def set_sso_session_age(self, age: timedelta) -> None:
+        sso_session = SsoSession(self.org.id, timezone.now() - age)
+        self.request.session[sso_session.session_key] = sso_session.to_dict()
+
+    def set_sso_session_duration(self, duration: timedelta) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.auth_provider.update(sso_session_duration=int(duration.total_seconds()))
+
+    def test_default_session_duration(self) -> None:
+        self.set_sso_session_age(SSO_EXPIRY_TIME - timedelta(hours=1))
+        OrganizationPermission().determine_access(self.request, self.org)
+
+        self.set_sso_session_age(SSO_EXPIRY_TIME + timedelta(hours=1))
+        with pytest.raises(SsoRequired):
+            OrganizationPermission().determine_access(self.request, self.org)
+
+    def test_longer_session_duration(self) -> None:
+        self.set_sso_session_duration(timedelta(days=14))
+
+        self.set_sso_session_age(timedelta(days=13))
+        OrganizationPermission().determine_access(self.request, self.org)
+
+        self.set_sso_session_age(timedelta(days=15))
+        with pytest.raises(SsoRequired):
+            OrganizationPermission().determine_access(self.request, self.org)
+
+    def test_shorter_session_duration(self) -> None:
+        self.set_sso_session_duration(timedelta(days=1))
+
+        self.set_sso_session_age(timedelta(hours=23))
+        OrganizationPermission().determine_access(self.request, self.org)
+
+        self.set_sso_session_age(timedelta(hours=25))
+        with pytest.raises(SsoRequired):
+            OrganizationPermission().determine_access(self.request, self.org)
 
 
 @all_silo_test

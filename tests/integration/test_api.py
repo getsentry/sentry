@@ -27,10 +27,10 @@ class AuthenticationTest(AuthProviderTestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         group_id = event.group_id
         with assume_test_silo_mode(SiloMode.CONTROL):
-            auth_provider = AuthProvider.objects.create(
+            self.auth_provider = AuthProvider.objects.create(
                 organization_id=self.organization.id, provider="dummy", flags=0
             )
-            AuthIdentity.objects.create(auth_provider=auth_provider, user=self.user)
+            AuthIdentity.objects.create(auth_provider=self.auth_provider, user=self.user)
         self.login_as(self.user)
 
         self.paths = (
@@ -68,6 +68,31 @@ class AuthenticationTest(AuthProviderTestCase):
         self.session[sso_session_expired.session_key] = sso_session_expired.to_dict()
 
         self.save_session()
+        self._test_paths_with_status(401)
+
+    def test_sso_with_longer_session_duration(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.auth_provider.update(sso_session_duration=int(timedelta(days=14).total_seconds()))
+
+        sso_session = SsoSession(
+            self.organization.id,
+            datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME - timedelta(hours=1),
+        )
+        self.session[sso_session.session_key] = sso_session.to_dict()
+        self.save_session()
+
+        self._test_paths_with_status(200)
+
+    def test_sso_with_shorter_session_duration(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.auth_provider.update(sso_session_duration=int(timedelta(days=1).total_seconds()))
+
+        sso_session = SsoSession(
+            self.organization.id, datetime.now(tz=timezone.utc) - timedelta(days=2)
+        )
+        self.session[sso_session.session_key] = sso_session.to_dict()
+        self.save_session()
+
         self._test_paths_with_status(401)
 
     def test_sso_redirect_url_internal(self) -> None:

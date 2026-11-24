@@ -50,6 +50,7 @@ from sentry.testutils.silo import (
 )
 from sentry.types.superuser import SuperuserAccess
 from sentry.users.models.user import User
+from sentry.utils.auth import SSO_EXPIRY_TIME
 
 
 def silo_from_user(
@@ -427,6 +428,26 @@ class FromUserTest(AccessFactoryTestCase):
             for result in results:
                 assert result.sso_is_valid
                 assert result.requires_sso
+
+    def test_sso_session_duration(self) -> None:
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        ap = self.create_auth_provider(organization=organization, provider="dummy")
+        self.create_auth_identity(auth_provider=ap, user=user)
+        request = self.make_request(user=user)
+
+        results = [self.from_user(user, organization), self.from_request(request, organization)]
+        for result in results:
+            assert result.requires_sso
+            assert result.sso_session_duration == SSO_EXPIRY_TIME
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            ap.update(sso_session_duration=int(timedelta(days=14).total_seconds()))
+
+        results = [self.from_user(user, organization), self.from_request(request, organization)]
+        for result in results:
+            assert result.requires_sso
+            assert result.sso_session_duration == timedelta(days=14)
 
     def test_unlinked_sso_with_owner_from_team(self) -> None:
         organization = self.create_organization()

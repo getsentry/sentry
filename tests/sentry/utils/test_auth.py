@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 
 import pytest
@@ -12,10 +12,13 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
 from sentry.utils.auth import (
+    SSO_EXPIRY_TIME,
     EmailAuthBackend,
     SsoSession,
     construct_link_with_query,
     get_login_redirect,
+    get_sso_session_duration,
+    has_completed_sso,
     is_valid_relative_redirect,
     login,
 )
@@ -298,3 +301,47 @@ def test_construct_link_with_query() -> None:
 )
 def test_is_valid_relative_redirect(url: object, expected: bool) -> None:
     assert is_valid_relative_redirect(url) is expected
+
+
+def test_get_sso_session_duration() -> None:
+    assert get_sso_session_duration(None) == SSO_EXPIRY_TIME
+    assert get_sso_session_duration(86400) == timedelta(days=1)
+
+
+class HasCompletedSsoTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.request = self.make_request(user=self.user)
+
+    def set_sso_session_age(self, age: timedelta) -> None:
+        sso_session = SsoSession(self.organization.id, datetime.now(tz=timezone.utc) - age)
+        self.request.session[sso_session.session_key] = sso_session.to_dict()
+
+    def test_no_sso_session(self) -> None:
+        assert not has_completed_sso(self.request, self.organization.id)
+
+    def test_other_organizations_sso_session(self) -> None:
+        self.set_sso_session_age(timedelta(hours=1))
+
+        assert not has_completed_sso(self.request, self.create_organization().id)
+
+    def test_default_duration(self) -> None:
+        self.set_sso_session_age(SSO_EXPIRY_TIME - timedelta(hours=1))
+        assert has_completed_sso(self.request, self.organization.id)
+
+        self.set_sso_session_age(SSO_EXPIRY_TIME + timedelta(hours=1))
+        assert not has_completed_sso(self.request, self.organization.id)
+
+    def test_longer_duration(self) -> None:
+        self.set_sso_session_age(timedelta(days=13))
+        assert has_completed_sso(self.request, self.organization.id, timedelta(days=14))
+
+        self.set_sso_session_age(timedelta(days=15))
+        assert not has_completed_sso(self.request, self.organization.id, timedelta(days=14))
+
+    def test_shorter_duration(self) -> None:
+        self.set_sso_session_age(timedelta(hours=23))
+        assert has_completed_sso(self.request, self.organization.id, timedelta(days=1))
+
+        self.set_sso_session_age(timedelta(hours=25))
+        assert not has_completed_sso(self.request, self.organization.id, timedelta(days=1))

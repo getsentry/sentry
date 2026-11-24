@@ -85,7 +85,10 @@ class AuthOrganizationConfigEndpoint(Endpoint):
             and (
                 not organization_access.requires_sso
                 or (
-                    organization_access.sso_is_valid and has_completed_sso(request, organization.id)
+                    organization_access.sso_is_valid
+                    and has_completed_sso(
+                        request, organization.id, organization_access.sso_session_duration
+                    )
                 )
             )
         )

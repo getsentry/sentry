@@ -738,7 +738,9 @@ class AbstractOrganizationView(BaseView, abc.ABC):
             return False
         if not request.access.requires_sso:
             return False
-        if not auth.has_completed_sso(request, organization.id):
+        if not auth.has_completed_sso(
+            request, organization.id, request.access.sso_session_duration
+        ):
             return True
         if not request.access.sso_is_valid:
             return True

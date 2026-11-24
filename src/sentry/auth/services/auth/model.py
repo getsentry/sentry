@@ -51,6 +51,8 @@ class RpcApiToken(RpcModel):
 class RpcMemberSsoState(RpcModel):
     is_required: bool = False
     is_valid: bool = False
+    # The auth provider's `sso_session_duration`
+    session_duration: int | None = None
 
 
 class RpcAuthState(RpcModel):

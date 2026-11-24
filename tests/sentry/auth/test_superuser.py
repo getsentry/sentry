@@ -41,7 +41,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
 from sentry.utils import json
-from sentry.utils.auth import mark_sso_complete
+from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession, mark_sso_complete
 
 UNSET = object()
 
@@ -143,6 +143,26 @@ class SuperuserTestCase(TestCase):
         superuser = Superuser(request, org_id=1)
         superuser.set_logged_in(user)
         assert superuser.is_active is True
+
+    def test_sso_ignores_the_organizations_session_duration(self) -> None:
+        organization = self.create_organization()
+        self.create_auth_provider(
+            organization_id=organization.id,
+            provider="dummy",
+            sso_session_duration=int(timedelta(days=14).total_seconds()),
+        )
+        request = self.make_request(user=self.superuser)
+        user = request.user
+        assert isinstance(user, User)
+
+        sso_session = SsoSession(
+            organization.id, timezone.now() - SSO_EXPIRY_TIME - timedelta(hours=1)
+        )
+        request.session[sso_session.session_key] = sso_session.to_dict()
+
+        superuser = Superuser(request, org_id=organization.id)
+        superuser.set_logged_in(user)
+        assert superuser.is_active is False
 
     def test_valid_data(self) -> None:
         request = self.build_request()
