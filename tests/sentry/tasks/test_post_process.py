@@ -250,11 +250,11 @@ class EventLinkProbeTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
-        self.event = event.for_group(require_group(event))
+        self.group_event = event.for_group(require_group(event))
         self.other_event_id = "b" * 32
 
     def job(self, is_reprocessed: bool = False) -> PostProcessJob:
-        return {"event": self.event, "is_reprocessed": is_reprocessed}
+        return {"event": self.group_event, "is_reprocessed": is_reprocessed}
 
     def create_attachment(self, event_id: str, group_id: int | None) -> EventAttachment:
         return EventAttachment.objects.create(
@@ -288,7 +288,7 @@ class EventLinkProbeTest(TestCase):
 
     @override_options(CONSOLIDATED_LINK_PROBE)
     def test_finds_pending_attachment(self) -> None:
-        create_pending_attachment(self.project.id, self.event.event_id)
+        create_pending_attachment(self.project.id, self.group_event.event_id)
 
         assert _get_event_link_probe(self.job()) == EventLinkProbe(
             has_pending_attachments=True,
@@ -298,7 +298,7 @@ class EventLinkProbeTest(TestCase):
 
     @override_options(CONSOLIDATED_LINK_PROBE)
     def test_finds_attachment_without_group(self) -> None:
-        self.create_attachment(self.event.event_id, group_id=None)
+        self.create_attachment(self.group_event.event_id, group_id=None)
 
         assert _get_event_link_probe(self.job()) == EventLinkProbe(
             has_pending_attachments=False,
@@ -309,7 +309,7 @@ class EventLinkProbeTest(TestCase):
     @override_options(CONSOLIDATED_LINK_PROBE)
     def test_finds_attachment_in_a_different_group(self) -> None:
         other_group = self.create_group(project=self.project)
-        self.create_attachment(self.event.event_id, group_id=other_group.id)
+        self.create_attachment(self.group_event.event_id, group_id=other_group.id)
 
         assert _get_event_link_probe(self.job()) == EventLinkProbe(
             has_pending_attachments=False,
@@ -319,7 +319,7 @@ class EventLinkProbeTest(TestCase):
 
     @override_options(CONSOLIDATED_LINK_PROBE)
     def test_finds_user_report_without_group(self) -> None:
-        self.create_user_report(self.event.event_id, group_id=None)
+        self.create_user_report(self.group_event.event_id, group_id=None)
 
         assert _get_event_link_probe(self.job()) == EventLinkProbe(
             has_pending_attachments=False,
@@ -329,8 +329,8 @@ class EventLinkProbeTest(TestCase):
 
     @override_options(CONSOLIDATED_LINK_PROBE)
     def test_ignores_rows_that_are_already_linked(self) -> None:
-        self.create_attachment(self.event.event_id, group_id=self.event.group_id)
-        self.create_user_report(self.event.event_id, group_id=self.event.group_id)
+        self.create_attachment(self.group_event.event_id, group_id=self.group_event.group_id)
+        self.create_user_report(self.group_event.event_id, group_id=self.group_event.group_id)
 
         assert _get_event_link_probe(self.job()) == EventLinkProbe(
             has_pending_attachments=False,
@@ -408,13 +408,12 @@ class EventLinkProbeTest(TestCase):
     def test_tables_in_different_databases_are_not_probed(self) -> None:
         with (
             CaptureQueriesContext(connections[router.db_for_read(EventAttachment)]) as queries,
-            patch.object(
-                post_process_module.router,
-                "db_for_read",
+            patch(
+                "sentry.tasks.post_process.router.db_for_read",
                 side_effect=lambda model, **hints: model._meta.db_table,
             ),
         ):
-            assert _probe_event_links(self.event) is None
+            assert _probe_event_links(self.group_event) is None
 
         assert link_probe_table_statements(queries) == []
 
