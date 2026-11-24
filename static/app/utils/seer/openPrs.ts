@@ -4,7 +4,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerAutofixStoppingPoint} from './types';
 
 export const OPEN_PRS_TOOLTIP = t(
-  "When Seer spots an issue it can fix, it'll open a PR. You can still run Seer manually when this is off."
+  'When Seer finds a fix, it opens a PR. You can still ask Seer to open a PR when this is off.'
 );
 
 export function useShowOpenPrs() {
