@@ -191,7 +191,6 @@ function TeamRow({
             team={team}
             member={member}
             onChangeTeamRole={newRole => onChangeTeamRole(team.slug, newRole)}
-            keepMenuInViewport
             menuPortalTarget={document.body}
           />
         </Container>

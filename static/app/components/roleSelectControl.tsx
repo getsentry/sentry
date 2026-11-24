@@ -20,16 +20,9 @@ type Props = DistributedOmit<SingleSelectProps, 'multiple' | 'value' | 'options'
   disableUnallowed: boolean;
   roles: BaseRole[];
   value: string | null;
-  /** Allows role descriptions to wrap within the available menu width. */
-  keepMenuInViewport?: boolean;
 };
 
-export function RoleSelectControl({
-  roles,
-  disableUnallowed,
-  keepMenuInViewport,
-  ...props
-}: Props) {
+export function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
   const organization = useOrganization();
   const isMemberInvite =
     organization.allowMemberInvite && organization.access?.includes('member:invite');
@@ -49,7 +42,7 @@ export function RoleSelectControl({
               display="inline-block"
               // A capped menu sets the width, so let details wrap to fit it.
               width={props.maxMenuWidth === undefined ? '20rem' : undefined}
-              maxWidth={keepMenuInViewport ? '100%' : undefined}
+              maxWidth="100%"
             >
               {r.desc}
             </Container>

@@ -50,7 +50,6 @@ export function TeamMembersRow({
             team={team}
             member={member}
             onChangeTeamRole={newRole => updateMemberRole({memberId: member.id, newRole})}
-            keepMenuInViewport
             menuPortalTarget={document.body}
           />
         </Container>
