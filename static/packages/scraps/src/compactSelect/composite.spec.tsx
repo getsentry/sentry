@@ -483,7 +483,7 @@ describe('CompositeSelect', () => {
       const large = await screen.findByRole('listbox', {name: 'Large'});
       expect(within(large).getByRole('option', {name: 'Option 0'})).toBeInTheDocument();
       expect(
-        within(large).queryByRole('option', {name: 'Option 499'})
+        within(large).queryByRole('option', {name: 'Option 250'})
       ).not.toBeInTheDocument();
 
       // The regions scroll together, not in their own scroll areas. userEvent
@@ -494,7 +494,7 @@ describe('CompositeSelect', () => {
 
       await waitFor(() =>
         expect(
-          within(large).queryByRole('option', {name: 'Option 0'})
+          within(large).queryByRole('option', {name: 'Option 1'})
         ).not.toBeInTheDocument()
       );
       // The small region is not virtualized, so its option stays.

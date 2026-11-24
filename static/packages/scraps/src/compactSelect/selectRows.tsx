@@ -1,7 +1,7 @@
 import type * as React from 'react';
 import {createContext, useContext} from 'react';
 import type {ListState} from '@react-stately/list';
-import type {Key, Node, SelectionMode} from '@react-types/shared';
+import type {Key, Node} from '@react-types/shared';
 
 import {SectionHeader, SectionLabel} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
@@ -52,7 +52,6 @@ interface SelectOptionRow<T extends ListItemBase> {
 }
 
 interface SelectRowsProps<T extends ListItemBase> {
-  focusedKey: Key | null;
   hiddenOptions: ReadonlySet<Key>;
   /** The visible top-level nodes of the list's collection. */
   listItems: Array<Node<T>>;
@@ -70,7 +69,7 @@ interface SelectRowsProps<T extends ListItemBase> {
    * again to look for it.
    */
   scrollElement: HTMLElement | null;
-  selectionMode: SelectionMode;
+  selectionManager: ListState<T>['selectionManager'];
   showSectionHeaders: boolean;
   size: FormSize;
   virtualized: boolean;
@@ -86,14 +85,13 @@ interface SelectRowsProps<T extends ListItemBase> {
  * option that did not change is not re-rendered.
  */
 export function SelectRows<T extends ListItemBase>({
-  focusedKey,
   hiddenOptions,
   listItems,
   listRef,
   renderOption,
   renderSection,
   scrollElement,
-  selectionMode,
+  selectionManager,
   showSectionHeaders,
   size,
   virtualized,
@@ -102,19 +100,29 @@ export function SelectRows<T extends ListItemBase>({
     ? getVisibleOptionPositions(listItems, hiddenOptions)
     : undefined;
 
-  // The overlay sizes its width to the rows. Keep the visible option with the
-  // longest label mounted, so a virtualized list does not change width as other
-  // options scroll into view.
-  const widestKey = virtualized
-    ? getWidestKey(flattenSections(listItems, hiddenOptions))
-    : undefined;
+  const options = virtualized
+    ? flattenSections(listItems, hiddenOptions).filter(node => node.type !== 'section')
+    : [];
+  const focusableOptions = options.filter(node => !selectionManager.isDisabled(node.key));
+  const pinnedKeys = [
+    // The overlay sizes its width to the rows. Keep the visible option with the
+    // longest label mounted, so a virtualized list does not change width as
+    // other options scroll into view.
+    getWidestKey(options),
+    // Opening the menu, leaving the search and moving focus between the lists
+    // of a CompositeSelect find these options in the DOM.
+    options.find(node => selectionManager.isSelected(node.key))?.key,
+    focusableOptions[0]?.key,
+    focusableOptions.at(-1)?.key,
+  ];
 
   const sharedScrollElement = useContext(SharedScrollElementContext);
   const scrollRef = {current: sharedScrollElement ?? scrollElement};
 
   const getSectionLayout = (section: Node<T>): SectionRowLayout => {
     const toggleAllButton =
-      selectionMode === 'multiple' && Boolean(section.value?.showToggleAllButton);
+      selectionManager.selectionMode === 'multiple' &&
+      Boolean(section.value?.showToggleAllButton);
     return {
       // Only the sections below the first are separated from the rows above.
       separator: showSectionHeaders && section.key !== listItems[0]?.key,
@@ -138,11 +146,11 @@ export function SelectRows<T extends ListItemBase>({
       const header = layout.header ? estimateRowHeight(node, undefined, size, 0) : 0;
       return separator + header;
     },
-    focusedKey,
+    focusedKey: selectionManager.focusedKey,
     listRef,
     scrollRef,
     size,
-    widestKey,
+    pinnedKeys,
   });
 
   return (

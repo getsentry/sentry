@@ -97,7 +97,7 @@ export function useDropdownMenuRowLayout({
     focusedKey,
     sectionRowSpace,
     size,
-    widestKey,
+    pinnedKeys: [widestKey],
   });
 
   // A virtualized menu only mounts some of its rows, so its natural width would

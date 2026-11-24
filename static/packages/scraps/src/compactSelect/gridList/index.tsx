@@ -146,8 +146,7 @@ function GridList<T extends ListItemBase>({
               virtualized={!!virtualized}
               size={size}
               scrollElement={scrollElement}
-              focusedKey={listState.selectionManager.focusedKey}
-              selectionMode={listState.selectionManager.selectionMode}
+              selectionManager={listState.selectionManager}
               showSectionHeaders
               renderOption={({node, position, rowProps}) => (
                 <GridListOption

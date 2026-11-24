@@ -285,8 +285,7 @@ export function ListBox<T extends ListItemBase>({
                 virtualized={!!virtualized}
                 size={size}
                 scrollElement={scrollElement}
-                focusedKey={listState.selectionManager.focusedKey}
-                selectionMode={listState.selectionManager.selectionMode}
+                selectionManager={listState.selectionManager}
                 showSectionHeaders={showSectionHeaders}
                 renderOption={({node, position, rowProps}) => (
                   <ListBoxOption

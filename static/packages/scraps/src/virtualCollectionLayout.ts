@@ -31,28 +31,28 @@ export function getSectionIndexes<T>(
 interface MountedIndexesOptions {
   /** Index of the focused row, or -1. */
   focusedIndex: number;
+  /** Indexes of rows to keep mounted wherever the list is scrolled. */
+  pinnedIndexes: readonly number[];
   /** Per node, the index of its section row. See `getSectionIndexes`. */
   sectionIndexes: ReadonlyArray<number | undefined>;
-  /** Index of the row to keep mounted for the menu's width, or -1. */
-  widestIndex: number;
   /** The rows in or near the viewport. */
   windowIndexes: readonly number[];
 }
 
 /**
  * The rows to mount: those in the window, plus the focused row so it keeps DOM
- * focus when scrolled out of view, the widest row so a list that sizes to its
- * content does not widen while scrolling, and the section row of every mounted
- * row, since the section's element wraps its children. Sorted by index.
+ * focus when scrolled out of view, the pinned rows, and the section row of
+ * every mounted row, since the section's element wraps its children. Sorted by
+ * index.
  */
 export function getMountedIndexes({
   windowIndexes,
   focusedIndex,
-  widestIndex,
+  pinnedIndexes,
   sectionIndexes,
 }: MountedIndexesOptions): number[] {
   const indexes = new Set(windowIndexes);
-  for (const index of [focusedIndex, widestIndex]) {
+  for (const index of [focusedIndex, ...pinnedIndexes]) {
     if (index !== -1) {
       indexes.add(index);
     }

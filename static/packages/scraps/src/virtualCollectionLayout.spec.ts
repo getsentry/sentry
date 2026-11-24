@@ -47,7 +47,7 @@ describe('getSectionIndexes', () => {
 });
 
 describe('getMountedIndexes', () => {
-  const none = {focusedIndex: -1, widestIndex: -1, sectionIndexes: []};
+  const none = {focusedIndex: -1, pinnedIndexes: [], sectionIndexes: []};
 
   it('mounts only the window when there is nothing else to keep', () => {
     expect(getMountedIndexes({...none, windowIndexes: [4, 5, 6]})).toEqual([4, 5, 6]);
@@ -59,10 +59,10 @@ describe('getMountedIndexes', () => {
     ).toEqual([0, 40, 41]);
   });
 
-  it('keeps the widest row mounted when it is outside the window', () => {
+  it('keeps the pinned rows mounted when they are outside the window', () => {
     expect(
-      getMountedIndexes({...none, widestIndex: 90, windowIndexes: [40, 41]})
-    ).toEqual([40, 41, 90]);
+      getMountedIndexes({...none, pinnedIndexes: [90, 2], windowIndexes: [40, 41]})
+    ).toEqual([2, 40, 41, 90]);
   });
 
   it('does not repeat a row that is already in the window', () => {
@@ -70,7 +70,7 @@ describe('getMountedIndexes', () => {
       getMountedIndexes({
         ...none,
         focusedIndex: 41,
-        widestIndex: 41,
+        pinnedIndexes: [41],
         windowIndexes: [40, 41],
       })
     ).toEqual([40, 41]);
@@ -80,7 +80,7 @@ describe('getMountedIndexes', () => {
     expect(
       getMountedIndexes({
         focusedIndex: -1,
-        widestIndex: -1,
+        pinnedIndexes: [],
         sectionIndexes: getSectionIndexes(sectioned),
         windowIndexes: [4, 5],
       })
@@ -91,7 +91,7 @@ describe('getMountedIndexes', () => {
     expect(
       getMountedIndexes({
         focusedIndex: 1,
-        widestIndex: -1,
+        pinnedIndexes: [],
         sectionIndexes: getSectionIndexes(sectioned),
         windowIndexes: [4, 5],
       })

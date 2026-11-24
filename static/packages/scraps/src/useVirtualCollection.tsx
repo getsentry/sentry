@@ -47,7 +47,7 @@ export function flattenSections<T>(
 }
 
 /**
- * Key of the item with the longest label, to pass as `widestKey`. Sections are
+ * Key of the item with the longest label, to pin with `pinnedKeys`. Sections are
  * skipped.
  */
 export function getWidestKey<T>(nodes: ReadonlyArray<Node<T>>): Key | undefined {
@@ -195,6 +195,14 @@ export interface UseVirtualCollectionOptions<T> {
    */
   listRef?: React.RefObject<HTMLElement | null>;
   /**
+   * Rows to keep mounted wherever the list is scrolled. Pin the row with the
+   * longest label, so a list that sizes its width to its content is as wide as
+   * that row from the start instead of widening as wider rows scroll into
+   * view. Pin rows that code finds in the DOM, such as the first option, so
+   * it finds them while they are scrolled out of view.
+   */
+  pinnedKeys?: ReadonlyArray<Key | null | undefined>;
+  /**
    * Space (px) above each row in a section except the first, if the rows are
    * spaced that way. The virtualizer measures a row's border box, so the space
    * must be padding on the row's own element for mounted rows to keep it. A
@@ -209,13 +217,6 @@ export interface UseVirtualCollectionOptions<T> {
    * changes height. Pass it with a custom `estimateSize` too.
    */
   size?: FormSize;
-  /**
-   * A row to keep mounted wherever the list is scrolled, such as the one with
-   * the longest label. A list that sizes its width to its content is then as
-   * wide as that row from the start, instead of widening as wider rows scroll
-   * into view.
-   */
-  widestKey?: Key | null;
 }
 
 /** The result of `useVirtualCollection`. Render it with `VirtualRows`. */
@@ -265,29 +266,29 @@ export function useVirtualCollection<T>({
   listRef,
   sectionRowSpace = 0,
   size = 'md',
-  widestKey,
+  pinnedKeys = [],
 }: UseVirtualCollectionOptions<T>): VirtualCollection<T> {
   const nodes = flattenSections(collection, hiddenKeys);
   const focusedIndex =
     enabled && focusedKey !== null && focusedKey !== undefined
       ? nodes.findIndex(node => node.key === focusedKey)
       : -1;
-  const widestIndex =
-    enabled && widestKey !== null && widestKey !== undefined
-      ? nodes.findIndex(node => node.key === widestKey)
-      : -1;
+  const pinnedKeySet = new Set(enabled ? pinnedKeys : []);
+  const pinnedIndexes = nodes.flatMap((node, index) =>
+    pinnedKeySet.has(node.key) ? [index] : []
+  );
   const sectionIndexes = getSectionIndexes(nodes);
   const scrollMargin = useListOffset({enabled, listRef, scrollRef});
 
   // Keep the focused row mounted when it scrolls out of view. If it unmounted,
   // DOM focus would fall back to the body and keyboard navigation would stop.
-  // Also keep the widest row and the section row of every mounted row, since
+  // Also keep the pinned rows and the section row of every mounted row, since
   // the section's element wraps its children.
   const rangeExtractor = (range: Range) =>
     getMountedIndexes({
       windowIndexes: defaultRangeExtractor(range),
       focusedIndex,
-      widestIndex,
+      pinnedIndexes,
       sectionIndexes,
     });
 

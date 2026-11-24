@@ -2180,9 +2180,7 @@ describe('CompactSelect', () => {
         const sectionA = await screen.findByRole(sectionRole, {name: 'Section A'});
         expect(within(sectionA).getByRole(optionRole, {name: 'A 0'})).toBeInTheDocument();
         expect(screen.getAllByRole(optionRole).length).toBeLessThan(500);
-        expect(
-          screen.queryByRole(sectionRole, {name: 'Section B'})
-        ).not.toBeInTheDocument();
+        expect(screen.queryByRole(optionRole, {name: 'B 100'})).not.toBeInTheDocument();
 
         await waitFor(() =>
           expect(screen.getByRole(optionRole, {name: 'A 0'})).toHaveFocus()
