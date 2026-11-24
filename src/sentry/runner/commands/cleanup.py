@@ -1316,11 +1316,17 @@ def cleanup_pending_files(
     Remove the storage paths of writes that never produced a blob row.
 
     A pending row is deleted in the same transaction that inserts the blob
-    row, so every row still here points at a path without a blob. The cutoff
+    row, so every row still here should point at a path without a blob. The
+    storage delete cannot be undone, so that is checked again per row: a path
+    a blob still uses is kept and only its pending row is dropped. The cutoff
     matches `cleanup_unused_files`: a write younger than that may still be
     in progress.
+
+    A row that fails is reported and left for the next run, so one path the
+    storage refuses to delete does not hold up the rows after it.
     """
     from sentry.models.files.utils import get_storage
+    from sentry.utils import metrics
 
     if os.environ.get("SENTRY_CLEANUP_SILENT", None):
         from sentry.utils.query import RangeQuerySetWrapper
@@ -1332,8 +1338,24 @@ def cleanup_pending_files(
     queryset = pending_model.objects.filter(created__lte=cutoff)
 
     for pending in RangeQuerySetWrapper(queryset):
-        storage.delete(pending.path)
-        pending.delete()
+        try:
+            # `checksum` is the unique index on the blob table, `path` has none.
+            if blob_model.objects.filter(checksum=pending.checksum, path=pending.path).exists():
+                logger.warning(
+                    "cleanup.fileblob_pending.path_in_use",
+                    extra={"model": pending_model.__name__, "pending_id": pending.id},
+                )
+            else:
+                storage.delete(pending.path)
+            pending.delete()
+        except Exception:
+            capture_exception(tags={"model": pending_model.__name__})
+            metrics.incr(
+                "cleanup.error",
+                instance=pending_model.__name__,
+                tags={"model": pending_model.__name__, "type": "fileblob_pending_cleanup"},
+                sample_rate=1.0,
+            )
 
 
 @continue_on_error("specialized_cleanup_notification_messages")

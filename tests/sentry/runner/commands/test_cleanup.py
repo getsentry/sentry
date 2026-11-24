@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import os
 from datetime import timedelta
 from io import BytesIO
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import click
 import pytest
+from django.core.files.base import ContentFile
 from django.db import DatabaseError
 
 from sentry.ai_monitoring.models import AIConversationMetadata
@@ -376,26 +378,69 @@ class UptimeResponseCaptureCleanupTest(TestCase):
 
 
 class PendingFileBlobCleanupTest(TestCase):
-    def _run(self) -> Any:
-        with patch("sentry.models.files.utils.get_storage") as get_storage:
+    def _run(self, storage: Mock) -> None:
+        with (
+            patch("sentry.models.files.utils.get_storage", return_value=storage),
+            patch.dict(os.environ, {"SENTRY_CLEANUP_SILENT": "1"}),
+        ):
             cleanup_pending_files(FileBlob, FileBlobPending)
-        return get_storage.return_value
 
     def test_deletes_file_of_unfinished_write(self) -> None:
-        pending = FileBlobPending.objects.create(path="ab/cdef/0123", created=before_now(days=2))
+        pending = self.create_file_blob_pending(path="ab/cdef/0123", created=before_now(days=2))
+        storage = Mock()
 
-        storage = self._run()
+        self._run(storage)
 
         storage.delete.assert_called_once_with("ab/cdef/0123")
         assert not FileBlobPending.objects.filter(id=pending.id).exists()
 
     def test_keeps_write_that_may_still_be_in_progress(self) -> None:
-        pending = FileBlobPending.objects.create(path="ab/cdef/0123", created=before_now(hours=1))
+        pending = self.create_file_blob_pending(path="ab/cdef/0123", created=before_now(hours=1))
+        storage = Mock()
 
-        storage = self._run()
+        self._run(storage)
 
         storage.delete.assert_not_called()
         assert FileBlobPending.objects.filter(id=pending.id).exists()
+
+    def test_keeps_file_a_blob_still_uses(self) -> None:
+        blob = FileBlob.from_file(ContentFile(b"foo bar"))
+        pending = self.create_file_blob_pending(
+            path=blob.path, checksum=blob.checksum, created=before_now(days=2)
+        )
+        storage = Mock()
+
+        self._run(storage)
+
+        storage.delete.assert_not_called()
+        assert not FileBlobPending.objects.filter(id=pending.id).exists()
+
+    def test_deletes_file_another_upload_of_the_same_content_left_behind(self) -> None:
+        blob = FileBlob.from_file(ContentFile(b"foo bar"))
+        pending = self.create_file_blob_pending(
+            path="ab/cdef/0123", checksum=blob.checksum, created=before_now(days=2)
+        )
+        storage = Mock()
+
+        self._run(storage)
+
+        storage.delete.assert_called_once_with("ab/cdef/0123")
+        assert not FileBlobPending.objects.filter(id=pending.id).exists()
+
+    def test_failed_delete_does_not_block_later_rows(self) -> None:
+        failing = self.create_file_blob_pending(path="ab/cdef/0123", created=before_now(days=2))
+        later = self.create_file_blob_pending(path="ab/cdef/4567", created=before_now(days=2))
+        storage = Mock()
+        storage.delete.side_effect = [OSError("access denied"), None]
+
+        self._run(storage)
+
+        assert [call.args[0] for call in storage.delete.call_args_list] == [
+            "ab/cdef/0123",
+            "ab/cdef/4567",
+        ]
+        assert FileBlobPending.objects.filter(id=failing.id).exists()
+        assert not FileBlobPending.objects.filter(id=later.id).exists()
 
 
 class SeerRunCleanupTest(TestCase):

@@ -37,6 +37,7 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 ("path", models.TextField(unique=True)),
+                ("checksum", models.CharField(max_length=40)),
                 (
                     "created",
                     models.DateTimeField(db_index=True, default=django.utils.timezone.now),
@@ -56,6 +57,7 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 ("path", models.TextField(unique=True)),
+                ("checksum", models.CharField(max_length=40)),
                 (
                     "created",
                     models.DateTimeField(db_index=True, default=django.utils.timezone.now),

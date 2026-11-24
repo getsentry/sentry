@@ -18,6 +18,9 @@ class AbstractFileBlobPending(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     path = models.TextField(unique=True)
+    # The checksum of the blob the write was meant to produce. `path` is not
+    # indexed on the blob table, so `sentry cleanup` finds the blob through it.
+    checksum = models.CharField(max_length=40)
     created = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
