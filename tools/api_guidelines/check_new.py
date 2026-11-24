@@ -12,6 +12,8 @@ from tools.api_guidelines.signature import BaselineSignature
 from tools.flake8_plugin import ApiInputViolation
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
+# the comment step in .github/workflows/pre-commit.yml reads it from NEW_API_FINDINGS_PATH
+FINDINGS_PATH = Path(".artifacts/new-api-findings.json")
 
 Finding = tuple[str, ApiInputViolation]
 
@@ -107,10 +109,30 @@ def format_finding(path: str, violation: ApiInputViolation) -> str:
     return f"::warning {properties}::{_escape_data(message)}"
 
 
+def write_findings(file: Path, new: list[Finding]) -> None:
+    """Writes the new findings as JSON for the step that comments them on the PR
+    `file` where to write them
+    `new` the new findings
+    """
+    rows: list[dict[str, object]] = []
+    for path, violation in new:
+        rows.append(
+            {
+                "path": path,
+                "line": violation.line,
+                "rule": violation.rule,
+                "summary": RULES[violation.rule].summary,
+            }
+        )
+    file.parent.mkdir(parents=True, exist_ok=True)
+    file.write_text(json.dumps(rows))
+
+
 def main(root: Path = _REPO_ROOT) -> int:
-    """Prints the new findings in CHANGED_FILES
+    """Prints the new findings in CHANGED_FILES and writes them to FINDINGS_PATH
     `root` the checkout to scan
-    Returns 0 every time, since the check is report-only
+    Returns 1 only when exceptions.json can't be read, so the PR comment says the check couldn't
+    run. The workflow step's continue-on-error keeps that from blocking the PR
     """
     paths = changed_paths(os.environ.get("CHANGED_FILES"))
     if not paths:
@@ -120,7 +142,7 @@ def main(root: Path = _REPO_ROOT) -> int:
         counts = baselined_counts(root / EXCEPTIONS_PATH)
     except (OSError, ValueError, KeyError, TypeError) as error:
         print(f"Couldn't read {EXCEPTIONS_PATH} ({error}), so no files were checked")
-        return 0
+        return 1
 
     new, unparsed = find_new(root, paths, counts)
     for path in unparsed:
@@ -129,6 +151,7 @@ def main(root: Path = _REPO_ROOT) -> int:
     for path, violation in new:
         print(format_finding(path, violation))
     print(f"{len(new)} new API findings in {len(paths)} checked files")
+    write_findings(root / FINDINGS_PATH, new)
     return 0
 
 
