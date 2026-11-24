@@ -41,7 +41,9 @@ from sentry.seer.entrypoints.slack.entrypoint import (
 from sentry.seer.entrypoints.slack.mention import (
     SlackMessageLink,
     build_linked_messages_context,
+    build_referenced_issues_context,
     build_thread_context,
+    extract_alert_issue_ids,
     extract_prompt,
     extract_slack_message_links,
     find_message_in_attachments,
@@ -201,19 +203,33 @@ def process_mention_for_slack(
             text=text,
             entrypoint=entrypoint,
             attachments=attachments,
+            bot_user_id=bot_user_id,
         )
 
         # Only fetch thread context when actually in a thread.
         messages: list[dict[str, Any]] = []
-        thread_context: str | None = None
         if thread_ts:
             messages = entrypoint.install.get_thread_history(
                 channel_id=channel_id, thread_ts=thread_ts
             )
-            thread_context = build_thread_context(messages) or None
 
-        parts = [p for p in (linked_result.block, thread_context) if p]
-        on_page_context = "\n\n".join(parts) if parts else None
+        referenced_issues = build_referenced_issues_context(
+            organization=organization,
+            issue_ids=extract_alert_issue_ids(messages, bot_user_id=bot_user_id),
+        )
+
+        def _join_context(*, include_own_replies: bool) -> str | None:
+            thread_context = build_thread_context(
+                messages, bot_user_id=bot_user_id, include_own_replies=include_own_replies
+            )
+            if thread_context:
+                thread_context = f"Messages in this Slack thread, oldest first:\n{thread_context}"
+            parts = [p for p in (referenced_issues, linked_result.block, thread_context) if p]
+            return "\n\n".join(parts) if parts else None
+
+        on_page_context = _join_context(include_own_replies=True)
+        # A continued run already holds Seer's earlier replies in its history.
+        continue_on_page_context = _join_context(include_own_replies=False)
 
         if linked_result.unresolved_channel_ids or linked_result.private_channel_ids:
             _send_inaccessible_links_prompt(
@@ -229,6 +245,7 @@ def process_mention_for_slack(
             user=user,
             prompt=prompt,
             on_page_context=on_page_context,
+            continue_on_page_context=continue_on_page_context,
             category_key="slack_thread",
             category_value=f"{channel_id}:{entrypoint.thread_ts}",
         )
@@ -349,6 +366,7 @@ def _resolve_linked_messages(
     text: str,
     entrypoint: SlackAgentEntrypoint,
     attachments: Sequence[Mapping[str, Any]] | None = None,
+    bot_user_id: str | None = None,
 ) -> _LinkedMessagesResult:
     """Fetch the single linked message for any Slack permalinks in ``text`` and
     render them as a Seer context block.
@@ -423,7 +441,7 @@ def _resolve_linked_messages(
     )
 
     return _LinkedMessagesResult(
-        block=build_linked_messages_context(msgs_to_include),
+        block=build_linked_messages_context(msgs_to_include, bot_user_id=bot_user_id),
         unresolved_channel_ids=list(unresolved),
         private_channel_ids=list(private_channels),
     )

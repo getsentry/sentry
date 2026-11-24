@@ -283,9 +283,17 @@ class ProcessMentionForSlackTest(TestCase):
             thread_ts="1234567890.000001",
         )
         call_kwargs = mock_operator.trigger_agent.call_args[1]
-        assert call_kwargs["on_page_context"] is not None
-        assert "<@U111>: help me debug this" in call_kwargs["on_page_context"]
-        assert "<@U222>: sure, what's the error?" in call_kwargs["on_page_context"]
+        on_page_context = call_kwargs["on_page_context"]
+        assert on_page_context is not None
+        assert "User <@U111>: help me debug this" in on_page_context
+        assert "User <@U222>: sure, what's the error?" in on_page_context
+        assert "Sentry (you), earlier reply: let me take a look" in on_page_context
+        assert "User <@U1234567890>: @Sentry What is causing this issue?" in on_page_context
+
+        continue_on_page_context = call_kwargs["continue_on_page_context"]
+        assert "User <@U111>: help me debug this" in continue_on_page_context
+        assert "let me take a look" not in continue_on_page_context
+        assert "I'm on it" not in continue_on_page_context
 
         mock_count_linked.assert_called_once()
         assert mock_count_linked.call_args.kwargs["slack_user_ids"] == {
@@ -312,6 +320,52 @@ class ProcessMentionForSlackTest(TestCase):
                 conversation_type=SlackSeerAgentConversation.DIRECT_MESSAGE,
             ),
         )
+
+    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users", return_value=0)
+    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
+    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
+    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
+    def test_alert_thread_lists_referenced_issues_from_the_org(
+        self,
+        mock_resolve_user: MagicMock,
+        mock_agent_cls: MagicMock,
+        mock_operator_cls: MagicMock,
+        mock_count_linked: MagicMock,
+    ) -> None:
+        group = self.create_group(project=self.project)
+        other_org_group = self.create_group(
+            project=self.create_project(organization=self.create_organization())
+        )
+        mock_resolve_user.return_value = MagicMock(id=self.user.id, username="alice")
+        mock_operator_cls.has_access.return_value = True
+        mock_entrypoint = MagicMock()
+        mock_entrypoint.thread_ts = "1234567890.123456"
+        mock_entrypoint.install.get_thread_history.return_value = [
+            {
+                "user": "U0BOT",
+                "blocks": [
+                    {
+                        "type": "section",
+                        "block_id": f'{{"issue": {issue_id}}}',
+                        "text": {"type": "mrkdwn", "text": "alert body"},
+                    }
+                ],
+            }
+            for issue_id in (group.id, other_org_group.id)
+        ] + [{"user": "U1234567890", "text": "<@U0BOT> What is causing this issue?"}]
+        mock_agent_cls.return_value = mock_entrypoint
+        mock_operator = MagicMock()
+        mock_operator.trigger_agent.return_value = 1
+        mock_operator_cls.return_value = mock_operator
+
+        self._run_task()
+
+        call_kwargs = mock_operator.trigger_agent.call_args[1]
+        for context in (call_kwargs["on_page_context"], call_kwargs["continue_on_page_context"]):
+            assert context.startswith("Sentry issues referenced by alerts in this Slack thread.")
+            assert f"issue_id: {group.id}, short_id: {group.qualified_short_id}" in context
+            assert f"issue_id: {other_org_group.id}" not in context
+            assert "Sentry alert: alert body" in context
 
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")

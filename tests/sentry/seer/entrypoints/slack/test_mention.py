@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from typing import Any
 
+import orjson
 from slack_sdk.models.blocks import (
     ContextBlock,
     DividerBlock,
@@ -11,6 +12,7 @@ from slack_sdk.models.blocks import (
 )
 from slack_sdk.models.blocks.block_elements import RichTextElementParts, RichTextSectionElement
 
+from sentry.issues.grouptype import FeedbackGroup
 from sentry.seer.entrypoints.slack.mention import (
     IssueLink,
     SlackMessageLink,
@@ -19,10 +21,13 @@ from sentry.seer.entrypoints.slack.mention import (
     _extract_text_from_attachments,
     _extract_text_from_blocks,
     build_linked_messages_context,
+    build_referenced_issues_context,
     build_thread_context,
+    extract_alert_issue_ids,
     extract_issue_links,
     extract_prompt,
     extract_slack_message_links,
+    extract_thread_text,
     find_message_in_attachments,
 )
 from sentry.testutils.cases import TestCase
@@ -257,7 +262,7 @@ class BuildThreadContextTest(TestCase):
     def test_single_message(self) -> None:
         messages = [{"user": "U123", "text": "hello world", "ts": "1234567890.000001"}]
         result = build_thread_context(messages)
-        assert result == "<@U123>: hello world"
+        assert result == "User <@U123>: hello world"
 
     def test_multiple_messages(self) -> None:
         messages = [
@@ -265,7 +270,7 @@ class BuildThreadContextTest(TestCase):
             {"user": "U456", "text": "second message", "ts": "1234567890.000002"},
         ]
         result = build_thread_context(messages)
-        assert result == "<@U123>: first message\n<@U456>: second message"
+        assert result == "User <@U123>: first message\nUser <@U456>: second message"
 
     def test_empty_messages(self) -> None:
         assert build_thread_context([]) == ""
@@ -277,14 +282,14 @@ class BuildThreadContextTest(TestCase):
             {"user": "U789", "text": "world", "ts": "1234567890.000003"},
         ]
         result = build_thread_context(messages)
-        assert result == "<@U123>: hello\n<@U789>: world"
+        assert result == "User <@U123>: hello\nUser <@U789>: world"
 
     def test_missing_user_defaults_to_unknown(self) -> None:
         messages = [{"text": "orphan message", "ts": "1234567890.000001"}]
         result = build_thread_context(messages)
-        assert result == "<@unknown>: orphan message"
+        assert result == "User <@unknown>: orphan message"
 
-    def test_preserves_urls_in_text(self) -> None:
+    def test_converts_slack_links_to_markdown(self) -> None:
         messages = [
             {
                 "user": "U123",
@@ -293,7 +298,7 @@ class BuildThreadContextTest(TestCase):
             }
         ]
         result = build_thread_context(messages)
-        assert "<https://sentry.io/organizations/test-org/issues/123/|ISSUE-123>" in result
+        assert "[ISSUE-123](https://sentry.io/organizations/test-org/issues/123/)" in result
 
     def test_prefers_blocks_over_text(self) -> None:
         messages = [
@@ -305,7 +310,7 @@ class BuildThreadContextTest(TestCase):
             }
         ]
         result = build_thread_context(messages)
-        assert result == "<@U123>: rich block content"
+        assert result == "User <@U123>: rich block content"
         assert "fallback text" not in result
 
     def test_falls_back_to_text_when_blocks_empty(self) -> None:
@@ -318,7 +323,7 @@ class BuildThreadContextTest(TestCase):
             }
         ]
         result = build_thread_context(messages)
-        assert result == "<@U123>: fallback text"
+        assert result == "User <@U123>: fallback text"
 
     def test_falls_back_to_text_when_blocks_have_no_text(self) -> None:
         messages = [
@@ -330,7 +335,7 @@ class BuildThreadContextTest(TestCase):
             }
         ]
         result = build_thread_context(messages)
-        assert result == "<@U123>: fallback text"
+        assert result == "User <@U123>: fallback text"
 
     def test_extracts_links_from_rich_text_blocks(self) -> None:
         messages = [
@@ -374,7 +379,7 @@ class BuildThreadContextTest(TestCase):
             },
         ]
         result = build_thread_context(messages)
-        assert result == "<@U123>: alert from blocks\n<@U456>: plain text reply"
+        assert result == "User <@U123>: alert from blocks\nUser <@U456>: plain text reply"
 
     def test_markdown_block_in_seer_response(self) -> None:
         messages = [
@@ -386,7 +391,7 @@ class BuildThreadContextTest(TestCase):
             }
         ]
         result = build_thread_context(messages)
-        assert result == "<@UBOT>: Here is the Seer analysis..."
+        assert result == "User <@UBOT>: Here is the Seer analysis..."
 
     def test_extracts_attachments_when_no_blocks_or_text(self) -> None:
         messages = [
@@ -403,9 +408,9 @@ class BuildThreadContextTest(TestCase):
             }
         ]
         result = build_thread_context(messages)
-        assert "<@UBOT>:" in result
+        assert "User <@UBOT>:" in result
         assert (
-            "<https://sentry.io/organizations/test-org/issues/456/|ValueError: invalid input>"
+            "[ValueError: invalid input](https://sentry.io/organizations/test-org/issues/456/)"
             in result
         )
         assert "invalid literal for int()" in result
@@ -420,7 +425,7 @@ class BuildThreadContextTest(TestCase):
             }
         ]
         result = build_thread_context(messages)
-        assert "<@U123>:" in result
+        assert "User <@U123>:" in result
         assert "top level message" in result
         assert "attachment body" in result
 
@@ -434,7 +439,145 @@ class BuildThreadContextTest(TestCase):
             }
         ]
         result = build_thread_context(messages)
-        assert result == "<@UBOT>: attachment body"
+        assert result == "User <@UBOT>: attachment body"
+
+
+def _alert_message(issue_id: int, *, user: str = BOT_USER_ID) -> dict[str, Any]:
+    return {
+        "user": user,
+        "text": "fallback",
+        "blocks": [
+            {
+                "type": "section",
+                "block_id": orjson.dumps({"issue": issue_id, "workflow": 7}).decode(),
+                "text": {"type": "mrkdwn", "text": "*New Issue*"},
+            },
+            {"type": "context", "elements": [{"type": "mrkdwn", "text": "Short ID: PROJ-1"}]},
+        ],
+        "ts": "1234567890.000001",
+    }
+
+
+class BuildThreadContextRolesTest(TestCase):
+    def test_labels_alerts_own_replies_and_users(self) -> None:
+        messages = [
+            _alert_message(123),
+            {"user": "U123", "text": f"<@{BOT_USER_ID}> what is this?", "ts": "2"},
+            {"user": BOT_USER_ID, "text": "It looks like a timeout.", "ts": "3"},
+        ]
+        result = build_thread_context(messages, bot_user_id=BOT_USER_ID)
+        assert result.splitlines() == [
+            "Sentry alert: *New Issue*",
+            "Short ID: PROJ-1",
+            "User <@U123>: @Sentry what is this?",
+            "Sentry (you), earlier reply: It looks like a timeout.",
+        ]
+
+    def test_drops_own_replies_but_keeps_alerts(self) -> None:
+        messages = [
+            _alert_message(123),
+            {"user": BOT_USER_ID, "text": "It looks like a timeout.", "ts": "3"},
+            {"user": "U123", "text": "are you sure?", "ts": "4"},
+        ]
+        result = build_thread_context(messages, bot_user_id=BOT_USER_ID, include_own_replies=False)
+        assert "Sentry alert:" in result
+        assert "User <@U123>: are you sure?" in result
+        assert "timeout" not in result
+
+    def test_other_users_with_alert_block_id_are_users(self) -> None:
+        result = build_thread_context([_alert_message(123, user="U999")], bot_user_id=BOT_USER_ID)
+        assert result.startswith("User <@U999>:")
+
+    def test_converts_slack_mrkdwn(self) -> None:
+        messages = [
+            {
+                "user": "U123",
+                "text": (
+                    "Tom &amp; Jerry &lt;3 <https://example.com/a?b=1&amp;c=2|the page> "
+                    "<https://example.com/bare> <mailto:user@example.com|user@example.com>"
+                ),
+                "ts": "1",
+            }
+        ]
+        result = build_thread_context(messages, bot_user_id=BOT_USER_ID)
+        assert result == (
+            "User <@U123>: Tom & Jerry <3 [the page](https://example.com/a?b=1&c=2) "
+            "https://example.com/bare user@example.com"
+        )
+
+
+class ExtractThreadTextTest(TestCase):
+    def test_keeps_raw_slack_link_syntax(self) -> None:
+        messages = [
+            {"user": "U1", "text": "see <https://example.com/a?b=1&amp;c=2|page>"},
+            {"user": "U2", "text": ""},
+            {"user": BOT_USER_ID, "text": "reply"},
+        ]
+        assert extract_thread_text(messages) == (
+            "see <https://example.com/a?b=1&amp;c=2|page>\nreply"
+        )
+
+
+class ExtractAlertIssueIdsTest(TestCase):
+    def test_reads_issue_ids_from_own_messages(self) -> None:
+        messages = [
+            _alert_message(1),
+            _alert_message(2, user="U999"),
+            _alert_message(1),
+            _alert_message(3),
+            {"user": BOT_USER_ID, "blocks": [{"type": "section", "block_id": "{not json"}]},
+            {"user": BOT_USER_ID, "blocks": [{"type": "section", "block_id": '{"issue": "4"}'}]},
+        ]
+        assert extract_alert_issue_ids(messages, bot_user_id=BOT_USER_ID) == [1, 3]
+
+    def test_needs_bot_user_id(self) -> None:
+        assert extract_alert_issue_ids([_alert_message(1)], bot_user_id=None) == []
+
+
+class BuildReferencedIssuesContextTest(TestCase):
+    def test_lists_only_identifiers_of_issues_in_the_org(self) -> None:
+        project = self.create_project(organization=self.organization, slug="backend")
+        group = self.create_group(project=project, message="secret title")
+        feedback_group = self.create_group(project=project, type=FeedbackGroup.type_id)
+        other_org = self.create_organization()
+        other_group = self.create_group(project=self.create_project(organization=other_org))
+
+        result = build_referenced_issues_context(
+            organization=self.organization,
+            issue_ids=[other_group.id, group.id, feedback_group.id],
+        )
+
+        lines = result.splitlines()
+        assert "resolved these from the alert metadata" in lines[0]
+        assert lines[1:] == [
+            f"- org: {self.organization.slug}, issue_id: {group.id}, "
+            f"short_id: {group.qualified_short_id}, project: backend, category: error, "
+            f"url: {group.get_absolute_url()}",
+            f"- org: {self.organization.slug}, issue_id: {feedback_group.id}, "
+            f"short_id: {feedback_group.qualified_short_id}, project: backend, "
+            f"category: feedback, url: {feedback_group.get_absolute_url()}",
+        ]
+        assert "secret title" not in result
+        assert f"issue_id: {other_group.id}," not in result
+
+    def test_caps_issue_count(self) -> None:
+        groups = [self.create_group(project=self.project) for _ in range(5)]
+        result = build_referenced_issues_context(
+            organization=self.organization, issue_ids=[g.id for g in groups]
+        )
+        assert len(result.splitlines()) == 4
+
+    def test_empty_when_nothing_resolves(self) -> None:
+        other_group = self.create_group(
+            project=self.create_project(organization=self.create_organization())
+        )
+        assert (
+            build_referenced_issues_context(
+                organization=self.organization, issue_ids=[other_group.id]
+            )
+            == ""
+        )
+        assert build_referenced_issues_context(organization=self.organization, issue_ids=[]) == ""
 
 
 class ExtractAttachmentTextTest(TestCase):
@@ -646,7 +789,7 @@ class BuildLinkedMessagesContextTest(TestCase):
         result = build_linked_messages_context(
             [(link, [{"user": "U1", "text": "body", "ts": "1700000000.111111"}])]
         )
-        assert result == "User linked a Slack message in <#C0123456>:\n<@U1>: body"
+        assert result == "User linked a Slack message in <#C0123456>:\nUser <@U1>: body"
 
     def test_skips_blocks_with_empty_messages(self) -> None:
         link_a = SlackMessageLink(channel_id="C0AAA", ts="1700000000.111111")
