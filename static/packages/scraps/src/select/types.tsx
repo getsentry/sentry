@@ -7,7 +7,6 @@ export type {SelectValue} from '@sentry/scraps/menu';
 
 /** Content components receive public option data, without implementation props. */
 export interface SelectComponents<Option extends SelectValue<any> = SelectValue<any>> {
-  Indicators?: React.ComponentType<{children: React.ReactNode}> | null;
   MultiValueLabel?: React.ComponentType<{children: React.ReactNode; option: Option}>;
   OptionLabel?: React.ComponentType<{option: Option}>;
   Value?: React.ComponentType<{option: Option}>;

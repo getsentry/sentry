@@ -42,27 +42,16 @@ function FruitMultiValueLabel({
   );
 }
 
-function FruitIndicators({children}: {children: React.ReactNode}) {
-  return (
-    <Fragment>
-      <Text>Fruit indicators</Text>
-      {children}
-    </Fragment>
-  );
-}
-
 describe('selection types', () => {
   it('checks option types and required props for content components', () => {
     type Option = (typeof options)[number];
     type ValueComponent = NonNullable<SelectComponents<Option>['Value']>;
     type OptionLabel = NonNullable<SelectComponents<Option>['OptionLabel']>;
     type MultiValueLabel = NonNullable<SelectComponents<Option>['MultiValueLabel']>;
-    type Indicators = NonNullable<SelectComponents<Option>['Indicators']>;
 
     expectTypeOf<typeof FruitValue>().toMatchTypeOf<ValueComponent>();
     expectTypeOf<typeof FruitOptionLabel>().toMatchTypeOf<OptionLabel>();
     expectTypeOf<typeof FruitMultiValueLabel>().toMatchTypeOf<MultiValueLabel>();
-    expectTypeOf<typeof FruitIndicators>().toMatchTypeOf<Indicators>();
     expectTypeOf<
       (props: {option: SelectValue<number>}) => React.ReactNode
     >().not.toMatchTypeOf<ValueComponent>();
@@ -72,9 +61,6 @@ describe('selection types', () => {
     expectTypeOf<
       (props: {children: React.ReactNode; option: SelectValue<number>}) => React.ReactNode
     >().not.toMatchTypeOf<MultiValueLabel>();
-    expectTypeOf<
-      (props: {children: React.ReactNode; required: string}) => React.ReactNode
-    >().not.toMatchTypeOf<Indicators>();
     expectTypeOf<'Input' | 'Control' | 'Option'>().not.toMatchTypeOf<
       keyof SelectComponents<Option>
     >();
@@ -448,7 +434,7 @@ it('clears all selected items in a multi-select by default', async () => {
   expect(onChange).toHaveBeenCalledWith([], expect.anything());
 });
 
-it('customizes indicators while retaining the clear control', async () => {
+it('shows trailing items alongside the clear button', async () => {
   const onChange = jest.fn();
   render(
     <Select
@@ -456,17 +442,17 @@ it('customizes indicators while retaining the clear control', async () => {
       options={options}
       value="apple"
       onChange={onChange}
-      components={{Indicators: FruitIndicators}}
+      trailingItems={<Text>Saved</Text>}
     />,
     {wrapper: ThemeWrapper}
   );
 
-  expect(screen.getByText('Fruit indicators')).toBeInTheDocument();
+  expect(screen.getByText('Saved')).toBeInTheDocument();
   await userEvent.click(screen.getByLabelText('Clear choices'));
   expect(onChange).toHaveBeenCalledWith(null, expect.anything());
 });
 
-it('can hide indicators without disabling option selection', async () => {
+it('keeps option selection and clearing available when the chevron is hidden', async () => {
   const onChange = jest.fn();
   render(
     <Select
@@ -475,12 +461,13 @@ it('can hide indicators without disabling option selection', async () => {
       options={options}
       value="apple"
       onChange={onChange}
-      components={{Indicators: null}}
+      dropdownIndicator={null}
     />,
     {wrapper: ThemeWrapper}
   );
 
-  expect(screen.queryByLabelText('Clear choices')).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', {name: 'Clear choices'}));
+  expect(onChange).toHaveBeenCalledWith(null, expect.anything());
   await userEvent.click(screen.getByRole('combobox', {name: 'Fruit'}));
   await userEvent.click(screen.getByRole('option', {name: 'Cherry'}));
   expect(onChange).toHaveBeenCalledWith(options[1], expect.anything());

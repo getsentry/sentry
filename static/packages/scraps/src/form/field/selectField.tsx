@@ -5,7 +5,6 @@ import {Container} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import type {
   BaseSelectProps,
-  SelectComponents,
   SelectSelectionProps,
   SelectValue,
 } from '@sentry/scraps/select';
@@ -15,11 +14,10 @@ import {BaseField, type BaseFieldProps} from './baseField';
 // Base props shared by all select variants
 type BaseSelectFieldProps<TValue, TOption extends SelectValue<TValue>> = Omit<
   BaseSelectProps<TValue, TOption>,
-  'onBlur' | 'disabled' | 'ref' | 'inputRef' | 'components' | 'id' | 'options'
+  'onBlur' | 'disabled' | 'ref' | 'inputRef' | 'id' | 'options'
 > &
   BaseFieldProps<HTMLInputElement> & {
     options: ReadonlyArray<TOption & SelectValue<TValue>>;
-    components?: Omit<SelectComponents<TOption>, 'Indicators'>;
   };
 
 export type SelectFieldProps<

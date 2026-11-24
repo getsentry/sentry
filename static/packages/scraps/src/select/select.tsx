@@ -579,9 +579,10 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     isDisabled: Boolean(disabled || option.disabled),
     isSelected: selected.includes(option),
   });
-  const {Value, MultiValueLabel, Indicators, OptionLabel} = components ?? {};
-  const indicatorContent = (
-    <Fragment>
+  const {Value, MultiValueLabel, OptionLabel} = components ?? {};
+  const showClearButton = clearable && selected.length > 0 && !disabled;
+  const indicators = (
+    <Flex align="center" gap="xs" css={selectStyles.indicators}>
       <Grid
         flow="column"
         autoColumns="minmax(24px, max-content)"
@@ -595,7 +596,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
         `}
       >
         {trailingItems}
-        {clearable && selected.length > 0 && !disabled && (
+        {showClearButton && (
           <Button
             size="zero"
             variant="transparent"
@@ -620,7 +621,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
           {dropdownIndicator ?? <IconChevron direction="down" size="xs" />}
         </Flex>
       )}
-    </Fragment>
+    </Flex>
   );
   const baseMenuStyle: CSSObject = {...selectStyles.menu, maxWidth: props.maxMenuWidth};
   const menuStyle = styles?.menu?.(baseMenuStyle, {}) ?? baseMenuStyle;
@@ -888,11 +889,11 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
             css={styles?.input?.(selectStyles.input, {}) ?? selectStyles.input}
           />
         </div>
-        {Indicators !== null && (
-          <Flex align="center" gap="xs" css={selectStyles.indicators}>
-            {Indicators ? <Indicators>{indicatorContent}</Indicators> : indicatorContent}
-          </Flex>
-        )}
+        {(dropdownIndicator !== null ||
+          showClearButton ||
+          isLoading ||
+          (trailingItems != null && typeof trailingItems !== 'boolean')) &&
+          indicators}
       </div>
       {name &&
         !disabled &&

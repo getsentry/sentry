@@ -170,7 +170,7 @@ export class SelectField<
                 multiple={multiple}
                 trailingItems={
                   <Fragment>
-                    {!hideControlState && props.components?.Indicators === undefined && (
+                    {!hideControlState && (
                       <FormFieldControlState model={model} name={name} />
                     )}
                     {props.trailingItems}
