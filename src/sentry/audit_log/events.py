@@ -138,8 +138,10 @@ class ProjectEditAuditLogEvent(AuditLogEvent):
             return "renamed project slug from {old_slug} to {new_slug}".format(
                 **audit_log_entry.data
             )
+        # Historical entries may contain the raw token.
         items_string = " ".join(
-            f"in {key} to {value}" for (key, value) in audit_log_entry.data.items()
+            f"in {key} to {'[Filtered]' if key == 'sentry:token' else value}"
+            for key, value in audit_log_entry.data.items()
         )
         return "edited project settings " + items_string
 
@@ -206,6 +208,15 @@ def render_project_action(audit_log_entry: AuditLogEntry, action: str) -> str:
     if slug:
         message += f" for project {slug}"
     return message
+
+
+class ProjectAcceptTransferAuditLogEvent(AuditLogEvent):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
+        data = audit_log_entry.data
+        # Entries written before June 2025 only stored the project's slug.
+        if "project_slug" not in data:
+            return f"accepted transfer of project {data.get('slug')}"
+        return super().render(audit_log_entry)
 
 
 class ProjectEnableAuditLogEvent(AuditLogEvent):
@@ -383,7 +394,31 @@ class InternalIntegrationDisabledAuditLogEvent(AuditLogEvent):
 
     def render(self, audit_log_entry: AuditLogEntry) -> str:
         integration_name = audit_log_entry.data.get("name") or ""
-        return f"disabled internal integration {integration_name}".format(**audit_log_entry.data)
+        return f"disabled internal integration {integration_name}"
+
+
+class InternalIntegrationTokenAuditLogEvent(AuditLogEvent):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
+        # Legacy entries stored the app under sentry_app_slug instead of sentry_app.
+        data = audit_log_entry.data
+        return (self.template or "").format(**{"sentry_app": data.get("sentry_app_slug"), **data})
+
+
+class AutofixSettingsEditAuditLogEvent(AuditLogEvent):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
+        # Single-project edits before November 2026 didn't store project_count.
+        return (self.template or "").format(**{"project_count": 1, **audit_log_entry.data})
+
+
+class DetectorWorkflowAuditLogEvent(AuditLogEvent):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
+        # Entries written before January 2026 stored IDs instead of names.
+        data = audit_log_entry.data
+        legacy = {
+            "detector_name": data.get("detector_id"),
+            "workflow_name": data.get("workflow_id"),
+        }
+        return (self.template or "").format(**{**legacy, **data})
 
 
 class MonitorAddAuditLogEvent(AuditLogEvent):

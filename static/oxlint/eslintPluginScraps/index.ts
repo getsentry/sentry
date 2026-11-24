@@ -5,9 +5,7 @@ import {rules} from './src/rules/index.ts';
 export {rules};
 
 const scrapsPlugin = definePlugin({
-  meta: {
-    name: '@sentry-internal/eslint-plugin-scraps',
-  },
+  meta: {name: '@sentry-internal/eslint-plugin-scraps'},
   rules,
 });
 

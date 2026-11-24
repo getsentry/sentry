@@ -1,9 +1,10 @@
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.utils.providers import get_provider_string
 from sentry.users.models.user import User
@@ -11,16 +12,20 @@ from sentry.users.services.user import RpcUser
 
 
 class ExternalActorResponseOptional(TypedDict, total=False):
-    externalId: str
-    userId: str
-    teamId: str
+    externalId: Annotated[str, ApiDescription("ID of the user or team in the provider")]
+    userId: Annotated[str, ApiDescription("ID of the Sentry user. Only set for user mappings")]
+    teamId: Annotated[str, ApiDescription("ID of the Sentry team. Only set for team mappings")]
 
 
 class ExternalActorResponse(ExternalActorResponseOptional):
-    id: str
-    provider: str
-    externalName: str
-    integrationId: str
+    id: Annotated[str, ApiDescription("ID of the external actor mapping")]
+    provider: Annotated[
+        str, ApiDescription("Provider of the external actor, such as github or slack")
+    ]
+    externalName: Annotated[
+        str, ApiDescription("Name of the user or team in the provider, such as @octocat")
+    ]
+    integrationId: Annotated[str, ApiDescription("ID of the integration the mapping belongs to")]
 
 
 @register(ExternalActor)

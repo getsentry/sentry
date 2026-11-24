@@ -140,11 +140,7 @@ function InnerSpendLimitSettings({
             });
             const singularName =
               categoryInfo?.shortenedUnitName ??
-              getSingularCategoryName({
-                plan: activePlan,
-                category,
-                capitalize: false,
-              });
+              getSingularCategoryName({plan: activePlan, category, capitalize: false});
             const currentBudget = onDemandBudgets.budgets[category] ?? 0;
             const hasPerCategory = categoryInfo?.hasPerCategory;
             const productName = categoryInfo?.productName ?? pluralName;
@@ -161,10 +157,7 @@ function InnerSpendLimitSettings({
             return (
               <Grid
                 key={category}
-                columns={{
-                  zero: 'minmax(0, 1fr)',
-                  lg: 'minmax(0, 3fr) minmax(0, 2fr)',
-                }}
+                columns={{zero: 'minmax(0, 1fr)', lg: 'minmax(0, 3fr) minmax(0, 2fr)'}}
                 align={{zero: 'start', lg: 'center'}}
                 gap={{zero: 'xs', lg: 'lg'}}
                 padding={index === 0 ? '0 0 lg' : 'lg 0'}
@@ -237,10 +230,7 @@ function InnerSpendLimitSettings({
             return (
               <Grid
                 key={apiName}
-                columns={{
-                  zero: 'minmax(0, 1fr)',
-                  lg: 'minmax(0, 3fr) minmax(0, 2fr)',
-                }}
+                columns={{zero: 'minmax(0, 1fr)', lg: 'minmax(0, 3fr) minmax(0, 2fr)'}}
                 align={{zero: 'start', lg: 'center'}}
                 gap={{zero: 'xs', lg: 'lg'}}
                 padding={index === 0 && baseCategories.length === 0 ? '0 0 xl' : 'xl 0'}

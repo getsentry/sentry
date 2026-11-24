@@ -93,7 +93,7 @@ TRACE_LOGS = {
             "severity_number": 9,
             "severity": "INFO",
             "timestamp": "2026-09-01T12:00:00+00:00",
-            "timestamp_precise": 1.756728000123e18,
+            "timestamp_precise": 1756728000123000000,
             "message": "Payment processed",
         }
     ],

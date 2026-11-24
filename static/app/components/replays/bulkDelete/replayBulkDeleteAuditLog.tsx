@@ -4,6 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {replayBulkDeleteAuditLogApiOptions} from './replayBulkDeleteAuditLogApiOptions';
@@ -29,7 +30,7 @@ export function ReplayBulkDeleteAuditLog({projectSlug}: Props) {
   return (
     <Fragment>
       <ReplayBulkDeleteAuditLogTable rows={rows} error={error} isPending={isPending} />
-      <Pagination pageLinks={pageLinks} />
+      <Pagination {...getPaginationProps(pageLinks)} />
     </Fragment>
   );
 }

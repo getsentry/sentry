@@ -2,7 +2,6 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
-import * as qs from 'query-string';
 
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -15,6 +14,7 @@ import type {EventView} from 'sentry/utils/discover/eventView';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {encodeSort} from 'sentry/utils/queryString';
+import * as qs from 'sentry/utils/url/qs';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -35,9 +35,7 @@ import {useWidgetDefinitions} from 'sentry/views/performance/landing/widgets/wid
 import {LineChartListWidget} from 'sentry/views/performance/landing/widgets/widgets/lineChartListWidget';
 import {MobileReleaseComparisonListWidget} from 'sentry/views/performance/landing/widgets/widgets/mobileReleaseComparisonListWidget';
 import {PerformanceScoreListWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreListWidget';
-import {PerformanceScoreWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreWidget';
 import {SingleFieldAreaWidget} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
-import {StackedAreaChartListWidget} from 'sentry/views/performance/landing/widgets/widgets/stackedAreaChartListWidget';
 
 import type {ChartRowProps} from './widgetChartRow';
 
@@ -140,12 +138,8 @@ export function WidgetContainer(props: Props) {
       return <SingleFieldAreaWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.LINE_LIST:
       return <LineChartListWidget {...passedProps} {...widgetProps} />;
-    case GenericPerformanceWidgetDataType.STACKED_AREA:
-      return <StackedAreaChartListWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.PERFORMANCE_SCORE_LIST:
       return <PerformanceScoreListWidget {...passedProps} {...widgetProps} />;
-    case GenericPerformanceWidgetDataType.PERFORMANCE_SCORE:
-      return <PerformanceScoreWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_TTID:
     case GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_COLD_START:
     case GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_WARM_START:
@@ -189,10 +183,7 @@ function WidgetInteractiveTitle({
     if (useEap) {
       menuOptions.push({label: t('Open in Explore'), value: 'open_in_explore'});
     } else {
-      menuOptions.push({
-        label: t('Open in Explore'),
-        value: 'open_in_discover',
-      });
+      menuOptions.push({label: t('Open in Explore'), value: 'open_in_discover'});
     }
   }
 
@@ -204,10 +195,7 @@ function WidgetInteractiveTitle({
         getExploreUrl({
           selection: eventView.getPageFilters(),
           organization,
-          visualize: yAxis?.map(y => ({
-            chartType: ChartType.LINE,
-            yAxes: [y],
-          })),
+          visualize: yAxis?.map(y => ({chartType: ChartType.LINE, yAxes: [y]})),
           mode: Mode.AGGREGATE,
           title: eventView.name,
           query: eventView.getQueryWithAdditionalConditions(),

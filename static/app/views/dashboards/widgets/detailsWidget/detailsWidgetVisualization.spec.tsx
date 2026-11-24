@@ -37,15 +37,7 @@ describe('DetailsWidgetVisualization', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [
-          {
-            project: project.slug,
-            span_id: '123',
-            'span.domain': 'sentry.io',
-          },
-        ],
-      },
+      body: {data: [{project: project.slug, span_id: '123', 'span.domain': 'sentry.io'}]},
       match: [
         MockApiClient.matchQuery({
           referrer: 'api.dashboards.details-widget.domain-status',
@@ -55,7 +47,6 @@ describe('DetailsWidgetVisualization', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
   });
 

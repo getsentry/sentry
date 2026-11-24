@@ -92,6 +92,7 @@
   },
   "bracketSpacing": false,
   "bracketSameLine": false,
+  "objectWrap": "collapse",
   "printWidth": 90,
   "semi": true,
   "singleQuote": true,
@@ -104,7 +105,9 @@
     ".devenv/bin/**/*",
     "src/**/templates/**/*.html",
     "**/*.min.js",
+    "**/*.generated.*",
     "tests/**/fixtures/**/*",
+    "tests/**/snapshots_golden/**/*.json",
     "tests/relay_integration/**/*",
     "!tests/js/**/*",
     "fixtures/**/*",
@@ -116,6 +119,7 @@
     ".vscode/**",
     "static/app/data/world.json",
     "tests/sentry/grouping/**/*.json",
-    "pyproject.toml"
+    "pyproject.toml",
+    "static/packages/api/**/*"
   ]
 }

@@ -108,6 +108,7 @@ function UpdateDetectorApply({
   finishing,
   message,
   onApply,
+  onLinkClick,
   onRecheck,
   rechecking,
 }: ActionKindApplyProps<InvestigationUpdateDetectorAction>) {
@@ -135,6 +136,7 @@ function UpdateDetectorApply({
           variant="primary"
           icon={<IconSiren />}
           to={makeMonitorDetailsPathname(organization.slug, action.detectorId)}
+          onClick={() => onLinkClick('view_monitor')}
         >
           {t('View monitor')}
         </LinkButton>

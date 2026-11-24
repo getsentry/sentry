@@ -3,6 +3,7 @@ from typing import Any
 from django.test import override_settings
 from django.urls import reverse
 
+from sentry import audit_log
 from sentry.api.endpoints.organization_explore_formulas import sync_prebuilt_formulas
 from sentry.explore.models import (
     ExploreSavedFormula,
@@ -11,10 +12,12 @@ from sentry.explore.models import (
 )
 from sentry.models.organization import Organization
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
@@ -93,12 +96,19 @@ class TestFormulaDetails(BaseFormulaTest):
 
     def test_delete_explore_formula(self) -> None:
         formula = self.create_formula()
-        with self.feature(self.feature_flags):
+        audit_data = formula.get_audit_log_data()
+        with self.feature(self.feature_flags), outbox_runner():
             response = self.client.delete(
                 reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id])
             )
             assert response.status_code == 204, response.content
         assert ExploreSavedFormula.objects.filter(id=formula.id).first() is None
+        assert_org_audit_log_exists(
+            organization=self.org,
+            event=audit_log.get_event_id("FORMULA_REMOVE"),
+            target_object=audit_data["id"],
+            data=audit_data,
+        )
 
     def test_delete_explore_prebuilt(self) -> None:
         sync_prebuilt_formulas(self.org)
@@ -124,12 +134,19 @@ class TestFormulaDetails(BaseFormulaTest):
         self.formula_object["formula"] = "count() + count()"
         self.formula_object["description"] = "test description"
         self.formula_object["dataset"] = "logs"
-        with self.feature(self.feature_flags):
+        with self.feature(self.feature_flags), outbox_runner():
             response = self.client.put(
                 reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id]),
                 data=self.formula_object,
             )
             assert response.status_code == 200, response.content
+        formula.refresh_from_db()
+        assert_org_audit_log_exists(
+            organization=self.org,
+            event=audit_log.get_event_id("FORMULA_EDIT"),
+            target_object=formula.id,
+            data=formula.get_audit_log_data(),
+        )
         assert response.data["name"] == "formula.hello"
         assert response.data["updatedBy"]["email"] == self.user.email
         assert response.data["formula"] == "count() + count()"
@@ -524,7 +541,7 @@ class TestFormulas(BaseFormulaTest):
 
     def test_create_explore_formula(self) -> None:
         data = self.formula_object
-        with self.feature(self.feature_flags):
+        with self.feature(self.feature_flags), outbox_runner():
             response = self.client.post(
                 self.url,
                 data=data,
@@ -532,6 +549,12 @@ class TestFormulas(BaseFormulaTest):
             assert response.status_code == 201, response.content
         formula_id = response.data["id"]
         formula = ExploreSavedFormula.objects.get(id=formula_id)
+        assert_org_audit_log_exists(
+            organization=self.org,
+            event=audit_log.get_event_id("FORMULA_ADD"),
+            target_object=formula.id,
+            data=formula.get_audit_log_data(),
+        )
         assert formula.name == data["name"]
         assert formula.formula == data["formula"]
         assert formula.unit is None

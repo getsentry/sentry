@@ -195,6 +195,7 @@ class BaseRequestParser(ABC):
         mailbox: MailboxName | None = None,  # TODO(getsentry): make required
         integration_id: int | None = None,
         identifier: int | str | None = None,  # TODO(getsentry): remove
+        header_overrides: Mapping[str, str | None] | None = None,
     ) -> HttpResponseBase:
         """
         Used to create webhookpayloads for provided cells to handle the webhooks asynchronously.
@@ -224,6 +225,7 @@ class BaseRequestParser(ABC):
                 mailbox=target.in_cell(cell.name),
                 integration_id=integration_id,
                 request=self.request,
+                header_overrides=header_overrides,
             )
             for cell in cells
         ]

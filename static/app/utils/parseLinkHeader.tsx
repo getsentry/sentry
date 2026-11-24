@@ -22,11 +22,7 @@ export function parseLinkHeader(header: string | null): Result {
     const [, href, rel, results, cursor] = match;
     const hasResults = results === 'true' ? true : results === 'false' ? false : null;
 
-    links[rel!] = {
-      href: href!,
-      results: hasResults,
-      cursor: cursor!,
-    };
+    links[rel!] = {href: href!, results: hasResults, cursor: cursor!};
   });
 
   return links;

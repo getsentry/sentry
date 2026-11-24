@@ -1,7 +1,10 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
@@ -11,9 +14,9 @@ import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
+import {PeekingBug} from 'sentry/components/peekingBug/peekingBug';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -37,7 +40,10 @@ export function FeatureFlagOnboardingLayout({
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
 
   const {steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
@@ -55,21 +61,14 @@ export function FeatureFlagOnboardingLayout({
       isPerformanceSelected: false,
       isProfilingSelected: false,
       isReplaySelected: false,
-      sourcePackageRegistries: {
-        isLoading: isLoadingRegistry,
-        data: registryData,
-      },
+      sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
       platformOptions: selectedOptions,
       isSelfHosted,
       urlPrefix,
-      featureFlagOptions: {
-        integration,
-      },
+      featureFlagOptions: {integration},
     };
 
-    return {
-      steps: [...doc.install(docParams), ...doc.configure(docParams)],
-    };
+    return {steps: [...doc.install(docParams), ...doc.configure(docParams)]};
   }, [
     docsConfig,
     dsn,
@@ -108,12 +107,16 @@ export function FeatureFlagOnboardingLayout({
                 }
               />
             ))}
-            <StyledLinkButton
-              to={`/organizations/${organization.slug}/issues/`}
-              variant="primary"
-            >
-              {t('Take me to Issues')}
-            </StyledLinkButton>
+            <Container alignSelf="start">
+              <PeekingBug>
+                <LinkButton
+                  to={`/organizations/${organization.slug}/issues/`}
+                  variant="primary"
+                >
+                  {t('Take me to Issues')}
+                </LinkButton>
+              </PeekingBug>
+            </Container>
           </Steps>
           <Divider />
           <OnboardingAdditionalFeatures organization={organization} />
@@ -127,10 +130,6 @@ const Steps = styled('div')`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-`;
-
-const StyledLinkButton = styled(LinkButton)`
-  align-self: flex-start;
 `;
 
 const Wrapper = styled('div')`

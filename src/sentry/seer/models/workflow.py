@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Any, Literal
 
 from django.db import models
@@ -19,8 +20,8 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 class SeerWorkflowStrategy(models.TextChoices):
     AGENTIC_TRIAGE = "agentic_triage"
     DUPLICATE_MONITORS = "duplicate_monitors"
-    AGENTIC_TRIAGE_V2 = "agentic_triage_v2"
     BREACHED_METRIC_INVESTIGATION = "breached_metric_investigation"
+    SCHEDULED_INVESTIGATION = "scheduled_investigation"
 
 
 # Strategies with one config per organization, found or created by get_or_create_for_strategy.
@@ -31,23 +32,31 @@ SEER_LEGACY_WORKFLOW_STRATEGIES = frozenset(
 
 # Strategies with any number of configs per organization. Each config is looked up by its id.
 SEER_CONFIGURABLE_WORKFLOW_STRATEGIES = frozenset(
-    {SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION}
+    {
+        SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+        SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+    }
 )
 
 # Soft bound on configs per organization. Actual count could go over a bit from concurrent writes.
 MAX_WORKFLOW_CONFIGS_PER_ORG = 50
 
 
+class SeerSkill(StrEnum):
+    """A prompt Seer maintains, which an investigation can run instead of a user's prompt."""
+
+    AGENTIC_TRIAGE = "agentic_triage"
+
+
 class SeerWorkflowConfigExtras(BaseModel):
     # The default strategy that seeded this config; unset for user-created configs.
     seeded_default: SeerWorkflowStrategy | None = None
-    # Optional user-supplied name
-    name: str | None = None
-    # The user who created this config; unset for seeded defaults and non-user callers.
-    created_by: int | None = None
     # The user who most recently updated this config through the API, or "bot" for
     # non-user callers. Unset until the first update.
     updated_by: int | Literal["bot"] | None = None
+    # Settings for the automation's trigger and action, in the shapes those classes declare.
+    trigger_settings: dict[str, Any] | None = None
+    action_settings: dict[str, Any] | None = None
 
 
 class SeerWorkflowFilters(BaseModel):
@@ -88,6 +97,8 @@ class SeerWorkflowConfig(DefaultFieldsModel):
         null=True,
     )
     strategy = models.CharField(max_length=256, choices=SeerWorkflowStrategy.choices)
+    # Deprecated and being removed: automations read and write their enabled state, name and
+    # creator on `backing_workflow`.
     enabled = models.BooleanField(default=False)
     schedule = models.CharField(
         max_length=256, choices=SeerWorkflowSchedule.choices, default=SeerWorkflowSchedule.DAILY
@@ -151,30 +162,18 @@ class SeerWorkflowConfigProject(DefaultFieldsModel):
     __repr__ = sane_repr("config_id", "project_id")
 
 
-@cell_silo_model
-class SeerWorkflowTriggerBinding(DefaultFieldsModel):
-    """Connect a WFE Action to an automation; a config may have multiple bindings."""
-
-    __relocation_scope__ = RelocationScope.Excluded
-
-    workflow_config = FlexibleForeignKey("seer.SeerWorkflowConfig", on_delete=models.CASCADE)
-    trigger_action = models.OneToOneField(
-        "workflow_engine.Action", on_delete=models.CASCADE, related_name="seer_workflow_binding"
-    )
-
-    class Meta:
-        app_label = "seer"
-        db_table = "seer_workflowtriggerbinding"
-
-    __repr__ = sane_repr("workflow_config_id", "trigger_action_id")
-
-
 class SeerWorkflowRunStatus(models.TextChoices):
     QUEUED = "queued"
     RUNNING = "running"
     COMPLETE = "complete"
     FAILED = "failed"
     REJECTED = "rejected"
+
+
+class SeerWorkflowRunSource(models.TextChoices):
+    CRON = "cron"
+    MANUAL = "manual"
+    EVENT = "event"
 
 
 class SeerWorkflowExecutionStatus(models.TextChoices):
@@ -242,6 +241,8 @@ class SeerWorkflowRun(DefaultFieldsModel):
     trigger_key = models.CharField(max_length=256, null=True, db_column="schedule_id")
     # Null for historical runs that have not adopted the shared lifecycle.
     status = models.CharField(max_length=256, choices=SeerWorkflowRunStatus.choices, null=True)
+    # Null for historical runs recorded before sources were tracked.
+    source = models.CharField(max_length=256, choices=SeerWorkflowRunSource.choices, null=True)
     date_completed = models.DateTimeField(null=True)
     # Shape: SeerWorkflowRunExtras.
     extras = models.JSONField(db_default={}, default=dict)

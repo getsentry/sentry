@@ -21,6 +21,7 @@ import {
   TWENTY_FOUR_HOURS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -39,8 +40,8 @@ import {
 } from 'sentry/views/explore/releases/utils/sessionTerm';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
-import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
-import ProjectBaseSessionsChart from './charts/projectBaseSessionsChart';
+import {ProjectBaseEventsChart} from './charts/projectBaseEventsChart';
+import {ProjectBaseSessionsChart} from './charts/projectBaseSessionsChart';
 import {ProjectErrorsBasicChart} from './charts/projectErrorsBasicChart';
 import {DisplayModes} from './displayModes';
 import {
@@ -75,6 +76,7 @@ export function ProjectCharts({
   query,
 }: Props) {
   const api = useApi();
+  const {selection} = usePageFilters();
   const theme = useTheme();
   const navigate = useNavigate();
   const [totalValues, setTotalValues] = useState<number | null>(null);
@@ -122,7 +124,6 @@ export function ProjectCharts({
   })();
 
   const displayModes = ((): Array<SelectValue<string>> => {
-    const hasPerformance = organization.features.includes('performance-view');
     const noPerformanceTooltip = t(
       'This view is only available with Performance Monitoring.'
     );
@@ -147,37 +148,27 @@ export function ProjectCharts({
         value: DisplayModes.APDEX,
         label: t('Apdex'),
         disabled:
-          otherActiveDisplayModes.includes(DisplayModes.APDEX) ||
-          !hasPerformance ||
-          !hasTransactions,
-        tooltip:
-          hasPerformance && hasTransactions
-            ? getTermHelp(organization, PerformanceTerm.APDEX)
-            : noPerformanceTooltip,
+          otherActiveDisplayModes.includes(DisplayModes.APDEX) || !hasTransactions,
+        tooltip: hasTransactions
+          ? getTermHelp(organization, PerformanceTerm.APDEX)
+          : noPerformanceTooltip,
       },
       {
         value: DisplayModes.FAILURE_RATE,
         label: t('Failure Rate'),
         disabled:
-          otherActiveDisplayModes.includes(DisplayModes.FAILURE_RATE) ||
-          !hasPerformance ||
-          !hasTransactions,
-        tooltip:
-          hasPerformance && hasTransactions
-            ? getTermHelp(organization, PerformanceTerm.FAILURE_RATE)
-            : noPerformanceTooltip,
+          otherActiveDisplayModes.includes(DisplayModes.FAILURE_RATE) || !hasTransactions,
+        tooltip: hasTransactions
+          ? getTermHelp(organization, PerformanceTerm.FAILURE_RATE)
+          : noPerformanceTooltip,
       },
       {
         value: DisplayModes.TPM,
         label: t('Transactions Per Minute'),
-        disabled:
-          otherActiveDisplayModes.includes(DisplayModes.TPM) ||
-          !hasPerformance ||
-          !hasTransactions,
-        tooltip:
-          hasPerformance && hasTransactions
-            ? getTermHelp(organization, PerformanceTerm.TPM)
-            : noPerformanceTooltip,
+        disabled: otherActiveDisplayModes.includes(DisplayModes.TPM) || !hasTransactions,
+        tooltip: hasTransactions
+          ? getTermHelp(organization, PerformanceTerm.TPM)
+          : noPerformanceTooltip,
       },
       {
         value: DisplayModes.ERRORS,
@@ -194,10 +185,8 @@ export function ProjectCharts({
         value: DisplayModes.TRANSACTIONS,
         label: t('Number of Transactions'),
         disabled:
-          otherActiveDisplayModes.includes(DisplayModes.TRANSACTIONS) ||
-          !hasPerformance ||
-          !hasTransactions,
-        tooltip: hasPerformance && hasTransactions ? undefined : noPerformanceTooltip,
+          otherActiveDisplayModes.includes(DisplayModes.TRANSACTIONS) || !hasTransactions,
+        tooltip: hasTransactions ? undefined : noPerformanceTooltip,
       },
     ];
 
@@ -285,10 +274,7 @@ export function ProjectCharts({
       chart_index: chartIndex,
     });
 
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, [chartId]: value},
-    });
+    navigate({pathname: location.pathname, query: {...location.query, [chartId]: value}});
   };
 
   // Keep this handler referentially stable. It is passed as `onTotalValuesChange`
@@ -320,6 +306,7 @@ export function ProjectCharts({
                 yAxis="apdex(span.duration,300)"
                 field={['apdex(span.duration,300)']}
                 api={api}
+                selection={selection}
                 location={location}
                 organization={organization}
                 onTotalValuesChange={handleTotalValuesChange}
@@ -340,6 +327,7 @@ export function ProjectCharts({
                 yAxis="failure_rate()"
                 field={['failure_rate()']}
                 api={api}
+                selection={selection}
                 location={location}
                 organization={organization}
                 onTotalValuesChange={handleTotalValuesChange}
@@ -360,6 +348,7 @@ export function ProjectCharts({
                 yAxis="tpm()"
                 field={['tpm()']}
                 api={api}
+                selection={selection}
                 location={location}
                 organization={organization}
                 onTotalValuesChange={handleTotalValuesChange}
@@ -381,6 +370,7 @@ export function ProjectCharts({
                   yAxis="count()"
                   field={['count()']}
                   api={api}
+                  selection={selection}
                   location={location}
                   organization={organization}
                   onTotalValuesChange={handleTotalValuesChange}
@@ -409,6 +399,7 @@ export function ProjectCharts({
                 yAxis="count()"
                 field={['count()']}
                 api={api}
+                selection={selection}
                 location={location}
                 organization={organization}
                 onTotalValuesChange={handleTotalValuesChange}

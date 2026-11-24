@@ -1,13 +1,16 @@
-# Claim Your Private Sentry Guide
+# Sentry for Agents
 
-Read the fragment after # in the original guide URL from the conversation. It is a
-private, single-use handoff code. Keep it out of HTTP request URLs, logs, and conversation output.
-Fetching this page does not claim it.
+The user started this handoff in Sentry and gave you a one-time handoff code. The command
+below installs or updates the Sentry CLI and starts sign-in. If the CLI asks the user to
+approve sign-in, share the approval link and code it prints with the user. Let the command
+keep running while the user approves in their browser. Follow the setup instructions the
+CLI prints after sign-in succeeds.
 
-Replace HANDOFF_CODE with that fragment and run this explicit claim command. Follow
-the Markdown returned by the command:
+Replace HANDOFF_CODE with the handoff code and run the command for your shell once.
 
-{{ claim_command }}
+{{ unix_installer }}
 
-If the original URL has no handoff code, ask the user to generate a private prompt in
-Sentry. If the claim response is lost or the code is unavailable, request a new prompt.
+{{ windows_installer }}
+
+If the user didn't give you a handoff code, ask them to copy the prompt from Sentry again.
+If setup fails, follow the CLI's recovery guidance.

@@ -29,7 +29,7 @@ class Stage(StrEnum):
     """Stages that can be progressed during agentic onboarding."""
 
     CONNECT_MCP = "connect_mcp"
-    """Connect the setup agent to the user's Sentry account through MCP."""
+    """Connect the setup agent to the user's Sentry account through the CLI or MCP."""
 
     ANALYZE_PROJECT = "analyze_project"
     """Inspect the application and identify its platform, SDK, and setup needs."""
@@ -72,7 +72,7 @@ class StageStatus(StrEnum):
     """The agent explicitly determined that an optional stage does not apply."""
 
     BYPASSED = "bypassed"
-    """The backend inferred that progress advanced without a stage update."""
+    """Progress advanced before the stage finished. A later completion replaces this."""
 
     FAILED = "failed"
     """The agent reported that the stage could not complete."""
@@ -110,6 +110,16 @@ class VerificationErrorExtra(StageExtra):
         return type(self)(issue_ids=_merge_unique(self.issue_ids, incoming.issue_ids))
 
 
+ConnectionMethod = Literal["cli", "mcp"]
+
+
+class ConnectExtra(StageExtra):
+    method: ConnectionMethod
+
+    def merge(self, incoming: Self) -> Self:
+        return self
+
+
 ExtraT = TypeVar("ExtraT", bound=StageExtra)
 ItemT = TypeVar("ItemT")
 
@@ -131,7 +141,7 @@ class PersistedStageState(BaseModel):
 class PersistedOnboardingRun(BaseModel):
     run_id: StrictStr
     channel_id: StrictStr
-    token_hash: StrictStr
+    token_hash: StrictStr | None
     client_run_id: StrictStr
     user_id: StrictInt
     organization_id: StrictInt
@@ -255,7 +265,7 @@ class StageDefinition(Generic[ExtraT]):
 
 # Tuple order is the onboarding order and therefore part of the persisted schema.
 STAGE_DEFINITIONS: tuple[StageDefinition[Any], ...] = (
-    StageDefinition(Stage.CONNECT_MCP),
+    StageDefinition(Stage.CONNECT_MCP, extra_type=ConnectExtra),
     StageDefinition(Stage.ANALYZE_PROJECT),
     StageDefinition(
         Stage.CREATE_PROJECT,
@@ -274,6 +284,12 @@ STAGE_DEFINITIONS: tuple[StageDefinition[Any], ...] = (
 
 STAGE_DEFINITION_BY_STAGE = {definition.stage: definition for definition in STAGE_DEFINITIONS}
 STAGE_INDEX = {definition.stage: index for index, definition in enumerate(STAGE_DEFINITIONS)}
+
+
+@overload
+def get_stage_definition(
+    stage: Literal[Stage.CONNECT_MCP],
+) -> StageDefinition[ConnectExtra]: ...
 
 
 @overload
@@ -372,8 +388,8 @@ class OnboardingRun:
     channel_id: str
     """Stable Conduit channel shared by every snapshot for this run."""
 
-    token_hash: str
-    """HMAC of the short handoff token accepted from the onboarding tool."""
+    token_hash: str | None
+    """HMAC of the reporting code when one has been issued."""
 
     client_run_id: str
     """Browser-generated identifier used to make registration resumable."""
@@ -600,7 +616,13 @@ def apply_update(run: OnboardingRun, update: ProgressUpdate[Any], now: datetime)
         StageStatus.SKIPPED,
         StageStatus.BYPASSED,
     }
-    if current.status in frozen_statuses and update.status is not current.status:
+    # A bypass is only inferred from a later stage's update. Agents may overlap stages, so an
+    # explicit completion that arrives afterwards replaces it.
+    completes_bypassed = (
+        current.status is StageStatus.BYPASSED and update.status is StageStatus.COMPLETED
+    )
+    is_frozen = current.status in frozen_statuses and not completes_bypassed
+    if is_frozen and update.status is not current.status:
         merged_extra = stage_definition.merge_extra(current.extra, update_extra)
         if merged_extra == current.extra:
             return run
@@ -613,7 +635,7 @@ def apply_update(run: OnboardingRun, update: ProgressUpdate[Any], now: datetime)
             sequence=run.sequence + 1,
         )
 
-    if current.status not in frozen_statuses:
+    if not is_frozen:
         stages[update.stage] = StageState(
             stage=update.stage,
             status=update.status,

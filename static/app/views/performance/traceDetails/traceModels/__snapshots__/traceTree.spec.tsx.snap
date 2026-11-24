@@ -39,7 +39,5 @@ exports[`TraceTree eap trace correctly renders eap-transactions toggle state 3`]
 "
 eap trace root
   span.op - span.description (eap-transaction)
-    span.op - span.description (eap-transaction)
-      span.op - span.description (eap-transaction)
 "
 `;

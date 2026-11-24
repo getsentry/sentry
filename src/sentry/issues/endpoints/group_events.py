@@ -117,7 +117,7 @@ class GroupEventsEndpoint(GroupEndpoint):
         self, request: Request, group: Group
     ) -> Response[list[SimpleEventSerializerResponse]] | Response[DetailResponse]:
         """
-        Return a list of error events bound to an issue
+        Return a list of events bound to an issue.
         """
 
         try:

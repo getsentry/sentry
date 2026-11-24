@@ -9,7 +9,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {Confirm} from './confirm';
+import {Confirm} from '@sentry/scraps/confirm';
 
 describe('Confirm', () => {
   beforeEach(() => {
@@ -151,9 +151,7 @@ describe('Confirm', () => {
 
       await screen.findByRole('dialog');
 
-      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}), {
-        delay: null,
-      });
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}), {delay: null});
 
       // Should keep modal in view until the promise is resolved
       expect(onConfirmAsync).toHaveBeenCalled();
@@ -188,9 +186,7 @@ describe('Confirm', () => {
 
       await screen.findByRole('dialog');
 
-      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}), {
-        delay: null,
-      });
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}), {delay: null});
 
       // Should keep modal in view until the promise is resolved
       expect(onConfirmAsync).toHaveBeenCalled();

@@ -17,10 +17,7 @@ describe('AcceptProjectTransfer', () => {
     getMock = MockApiClient.addMockResponse({
       url: '/accept-transfer/',
       method: 'GET',
-      body: {
-        project: ProjectFixture(),
-        organizations: [OrganizationFixture()],
-      },
+      body: {project: ProjectFixture(), organizations: [OrganizationFixture()]},
     });
 
     postMock = MockApiClient.addMockResponse({
@@ -52,10 +49,7 @@ describe('AcceptProjectTransfer', () => {
     getMock = MockApiClient.addMockResponse({
       url: '/accept-transfer/',
       method: 'GET',
-      body: {
-        project: ProjectFixture(),
-        organizations: [OrganizationFixture()],
-      },
+      body: {project: ProjectFixture(), organizations: [OrganizationFixture()]},
       match: [(_url, options) => options.host === 'http://us.sentry.io'],
     });
     render(<AcceptProjectTransfer />);
@@ -75,10 +69,7 @@ describe('AcceptProjectTransfer', () => {
     getMock = MockApiClient.addMockResponse({
       url: '/accept-transfer/',
       method: 'GET',
-      body: {
-        project: ProjectFixture(),
-        organizations: [OrganizationFixture()],
-      },
+      body: {project: ProjectFixture(), organizations: [OrganizationFixture()]},
       match: [(_url, options) => options.host === 'http://us.sentry.io'],
     });
     render(<AcceptProjectTransfer />);
@@ -87,10 +78,30 @@ describe('AcceptProjectTransfer', () => {
 
     expect(postMock).toHaveBeenCalledWith(
       endpoint,
-      expect.objectContaining({
-        method: 'POST',
-        host: 'http://us.sentry.io',
-      })
+      expect.objectContaining({method: 'POST', host: 'http://us.sentry.io'})
     );
   });
+
+  it.each([
+    ['a single data param', 'signed-data', 'signed-data'],
+    ['a repeated data param', ['signed-data', 'other-data'], undefined],
+  ])(
+    'submits the transfer data from the URL when given %s',
+    async (_, data, expected) => {
+      render(<AcceptProjectTransfer />, {
+        initialRouterConfig: {location: {pathname: '/accept-transfer/', query: {data}}},
+      });
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Transfer Project'})
+      );
+
+      expect(postMock).toHaveBeenCalledWith(
+        endpoint,
+        expect.objectContaining({
+          data: {data: expected, organization: OrganizationFixture().slug},
+        })
+      );
+    }
+  );
 });

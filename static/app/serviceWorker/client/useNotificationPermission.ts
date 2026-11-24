@@ -1,7 +1,9 @@
 import {useSyncExternalStore} from 'react';
 import * as Sentry from '@sentry/react';
 
-const supportsNotifications = 'Notification' in window;
+// Some browsers (e.g. Edge/Chrome on iOS) expose a `Notification` key on
+// `window` whose value is `undefined`, so check the value rather than the key.
+const supportsNotifications = typeof window.Notification === 'function';
 const supportsPermissions = 'permissions' in navigator;
 
 const listeners = new Set<() => void>();

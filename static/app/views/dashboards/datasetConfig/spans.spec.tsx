@@ -21,9 +21,7 @@ describe('SpansConfig', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    organization = OrganizationFixture({
-      features: ['performance-view'],
-    });
+    organization = OrganizationFixture();
   });
 
   it('returns all of the EAP aggregations as primary options', () => {
@@ -52,13 +50,7 @@ describe('SpansConfig', () => {
 
     expect(options[`field:${combinator}`]).toEqual({
       label: combinator,
-      value: {
-        kind: 'field',
-        meta: {
-          dataType: 'number',
-          name: combinator,
-        },
-      },
+      value: {kind: 'field', meta: {dataType: 'number', name: combinator}},
     });
   });
 
@@ -100,7 +92,7 @@ describe('SpansConfig', () => {
       ],
     });
 
-    const org = OrganizationFixture({features: ['performance-view']});
+    const org = OrganizationFixture();
     const renderer = SpansConfig.getCustomFieldRenderer!(
       field,
       {},
@@ -116,10 +108,7 @@ describe('SpansConfig', () => {
           location,
           navigate: jest.fn(),
           theme,
-          eventView: new EventView({
-            ...baseEventViewOptions,
-            fields: [{field}],
-          }),
+          eventView: new EventView({...baseEventViewOptions, fields: [{field}]}),
         }
       ) as React.ReactElement<any, any>
     );
@@ -131,5 +120,40 @@ describe('SpansConfig', () => {
     expect(href).toContain('gen_ai.tool.name%3A%22Web%20Search%22');
     expect(href).toContain('gen_ai.operation.type%3Atool');
     expect(href).toContain('span.status%3A%5Binternal_error%2Cerror%5D');
+  });
+
+  it('adds the http.request.method filter to the transaction summary link', () => {
+    const location = LocationFixture();
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          name: '',
+          fields: ['http.request.method', 'transaction', 'count()'],
+          columns: ['http.request.method', 'transaction'],
+          fieldAliases: [],
+          aggregates: ['count()'],
+          conditions: '',
+          orderby: '-count()',
+        },
+      ],
+    });
+
+    const renderer = SpansConfig.getCustomFieldRenderer!(
+      'transaction',
+      {},
+      widget,
+      organization,
+      undefined
+    );
+    render(
+      renderer(
+        {transaction: '/api/0/users/', 'http.request.method': 'POST'},
+        {organization, location, navigate: jest.fn(), theme, projects: []}
+      ) as React.ReactElement<any, any>
+    );
+
+    const href = screen.getByRole('link', {name: '/api/0/users/'}).getAttribute('href')!;
+    expect(href).toContain('http.request.method%3APOST');
   });
 });

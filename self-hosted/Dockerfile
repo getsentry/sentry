@@ -70,7 +70,7 @@ RUN set -x \
 
 COPY . .
 RUN : \
-    && python3 -m tools.fast_editable --path . \
+    && uv pip install --python /.venv/bin/python --no-deps -e . \
     && python3 -m compileall -q src/ \
     && python3 -m sentry.build.dump_cli_commands > /sentry-commands.txt
 

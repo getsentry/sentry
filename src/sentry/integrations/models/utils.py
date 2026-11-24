@@ -10,8 +10,6 @@ if TYPE_CHECKING:
     )
     from sentry.integrations.models.integration import Integration
     from sentry.integrations.services.integration.model import RpcIntegration
-    from sentry.sentry_apps.models.sentry_app import SentryApp
-    from sentry.sentry_apps.services.app.model import RpcSentryApp
 
 
 def get_provider(instance: Integration | RpcIntegration) -> IntegrationProvider:
@@ -33,7 +31,3 @@ def get_installation(
 
 def has_feature(instance: Integration | RpcIntegration, feature: IntegrationFeatures) -> bool:
     return feature in instance.get_provider().features
-
-
-def get_redis_key(sentryapp: SentryApp | RpcSentryApp, org_id: int) -> str:
-    return f"sentry-app-error:{sentryapp.id}:{org_id}"

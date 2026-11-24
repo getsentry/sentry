@@ -6,7 +6,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
-// oxlint-disable-next-line import/no-relative-parent-imports -- Avoid the input barrel's InputGroup.TextArea cycle.
+// Avoid a circular dependency through InputGroup.TextArea.
 import {inputStyles, type InputStylesProps} from '../input/inputStyles';
 
 export interface TextAreaProps

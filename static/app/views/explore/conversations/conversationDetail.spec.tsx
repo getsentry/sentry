@@ -11,11 +11,14 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import type {ConversationStats} from './hooks/useConversation';
 import ConversationDetailPage from './conversationDetail';
 import {CONVERSATIONS_SIDEBAR_LABEL} from './settings';
+
+jest.mock('sentry/utils/analytics');
 
 const CONVERSATION_ID = 'conv-1';
 
@@ -101,10 +104,7 @@ function mockApis(
     url: '/organizations/org-slug/trace-items/attributes/',
     body: [],
   });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/projects/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
   return request;
 }
 
@@ -160,20 +160,39 @@ describe('ConversationDetailPage span default selection', () => {
     await waitFor(() => expect(detailPane()).toBeInTheDocument());
   });
 
-  it('shows the export transcript button only on the transcript tab', async () => {
+  it('tracks switching between the transcript and timeline tabs', async () => {
+    renderPage();
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Timeline'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.detail.tab-switch',
+      expect.objectContaining({fromTab: 'transcript', toTab: 'timeline'})
+    );
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Transcript'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.detail.tab-switch',
+      expect.objectContaining({fromTab: 'timeline', toTab: 'transcript'})
+    );
+  });
+
+  it('shows the export and expand all buttons only on the transcript tab', async () => {
     renderPage();
 
     // The transcript tab exposes the export control once messages have loaded.
     expect(
       await screen.findByRole('button', {name: 'Export transcript'})
     ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Expand all'})).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: 'Timeline'}));
 
-    // The timeline tab has no transcript to export.
+    // The timeline tab has no transcript to export or expand.
     expect(
       screen.queryByRole('button', {name: 'Export transcript'})
     ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Expand all'})).not.toBeInTheDocument();
   });
 
   it('downloads the full conversation transcript as a markdown file', async () => {
@@ -219,6 +238,89 @@ describe('ConversationDetailPage span default selection', () => {
   });
 });
 
+// The SDK recorded the LLM calls but not their messages.
+const UNCAPTURED_CONVERSATION_BODY = [
+  spanFixture({
+    span_id: 'span-a',
+    'span.name': 'classify email',
+    'precise.start_ts': 1000,
+    'precise.finish_ts': 1000.5,
+    'gen_ai.usage.input_tokens': 120,
+  }),
+];
+
+describe('ConversationDetailPage default tab', () => {
+  beforeEach(() => {
+    Element.prototype.scrollTo = jest.fn();
+    Element.prototype.scrollIntoView = jest.fn();
+    MockApiClient.clearMockResponses();
+    act(() => {
+      PageFiltersStore.reset();
+      PageFiltersStore.init();
+    });
+  });
+
+  it('opens the transcript when messages were captured', async () => {
+    mockApis();
+    renderPage();
+
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Transcript'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+  });
+
+  it('opens the timeline when no messages were captured', async () => {
+    mockApis(null, UNCAPTURED_CONVERSATION_BODY);
+    renderPage();
+
+    // No tab is shown while the first page decides the default
+    expect(screen.queryByRole('tab', {name: 'Transcript'})).not.toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(screen.getByRole('tab', {name: 'Timeline'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
+    );
+    expect(screen.queryByText('<not reported>')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Export transcript'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps an explicit transcript tab when no messages were captured', async () => {
+    mockApis(null, UNCAPTURED_CONVERSATION_BODY);
+    renderPage([], {tab: 'transcript'});
+
+    expect((await screen.findAllByText('<not reported>')).length).toBeGreaterThan(0);
+    expect(screen.getByRole('tab', {name: 'Transcript'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+  });
+
+  it('tracks leaving the default timeline tab', async () => {
+    mockApis(null, UNCAPTURED_CONVERSATION_BODY);
+    renderPage();
+
+    await waitFor(() =>
+      expect(screen.getByRole('tab', {name: 'Timeline'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
+    );
+    await userEvent.click(screen.getByRole('tab', {name: 'Transcript'}));
+
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.detail.tab-switch',
+      expect.objectContaining({fromTab: 'timeline', toTab: 'transcript'})
+    );
+    expect((await screen.findAllByText('<not reported>')).length).toBeGreaterThan(0);
+  });
+});
+
 describe('ConversationDetailPage breadcrumbs', () => {
   beforeEach(() => {
     // jsdom implements neither scroll API the view relies on.
@@ -235,12 +337,20 @@ describe('ConversationDetailPage breadcrumbs', () => {
   it('renders the parent link, conversation id heading, and copy action', async () => {
     renderPage();
 
-    const topBar = screen.getByRole('banner');
+    // The page renders outside a <main> here, so the EntityHeader's <header>
+    // is a banner too; the TopBar is the one holding the breadcrumbs.
+    const topBar = await waitFor(() => {
+      const banner = screen
+        .getAllByRole('banner')
+        .find(element =>
+          within(element).queryByRole('button', {name: 'Copy conversation ID'})
+        );
+      expect(banner).toBeDefined();
+      return banner!;
+    });
 
     expect(
-      await within(topBar).findByRole('link', {
-        name: CONVERSATIONS_SIDEBAR_LABEL,
-      })
+      await within(topBar).findByRole('link', {name: CONVERSATIONS_SIDEBAR_LABEL})
     ).toBeInTheDocument();
     // The conversation id is the top-bar identifier, owned by the TopBar title
     // slot, alongside the copy affordance.
@@ -268,20 +378,33 @@ describe('ConversationDetailPage title', () => {
     renderPage();
 
     expect(
-      await screen.findByRole('heading', {name: 'Trip planning assistant'})
+      await screen.findByRole('heading', {name: 'Conversation, Trip planning assistant'})
     ).toBeInTheDocument();
   });
 
-  it('falls back to the conversation id heading when there is no title', async () => {
+  it('calls a conversation without a title untitled', async () => {
     mockApis();
     renderPage();
 
-    // Once loaded, the summary heading shows the id (no title available).
     expect(
-      await screen.findByRole('heading', {name: new RegExp(CONVERSATION_ID)})
+      await screen.findByRole('heading', {name: 'Conversation, Untitled conversation'})
     ).toBeInTheDocument();
   });
 });
+
+/**
+ * The stats row item labelled `label`, once the header has loaded.
+ */
+function findStat(label: string) {
+  return waitFor(() => {
+    const list = screen.getByRole('list', {name: 'Conversation stats'});
+    const stat = within(list)
+      .getAllByRole('listitem')
+      .find(item => within(item).queryByText(label));
+    expect(stat).toBeDefined();
+    return stat!;
+  });
+}
 
 describe('ConversationDetailPage summary stats', () => {
   beforeEach(() => {
@@ -315,8 +438,8 @@ describe('ConversationDetailPage summary stats', () => {
     });
     renderPage();
 
-    const tokenCount = await screen.findByText('200');
-    await userEvent.hover(tokenCount.parentElement!);
+    const tokenCount = within(await findStat('Tokens')).getByText('200');
+    await userEvent.hover(tokenCount);
 
     expect(await screen.findAllByText('200')).toHaveLength(2);
     expect(screen.getByText('100')).toBeInTheDocument();
@@ -359,9 +482,9 @@ describe('ConversationDetailPage summary stats', () => {
     });
     renderPage();
 
-    const tokenCount = await screen.findByText('550');
+    const tokenCount = within(await findStat('Tokens')).getByText('550');
     expect(tokenCount).not.toHaveAttribute('title');
-    await userEvent.hover(tokenCount.parentElement!);
+    await userEvent.hover(tokenCount);
 
     const modelAlpha = await screen.findByText('model-alpha');
     expect(screen.getAllByText('model-alpha')).toHaveLength(1);
@@ -406,8 +529,7 @@ describe('ConversationDetailPage summary stats', () => {
     });
     renderPage();
 
-    const llmCallsStat = (await screen.findByText('LLM Calls')).parentElement!;
-    const llmCalls = await within(llmCallsStat).findByText('3');
+    const llmCalls = within(await findStat('LLM Calls')).getByText('3');
     expect(llmCalls).not.toHaveAttribute('title');
     await userEvent.hover(llmCalls);
 
@@ -426,8 +548,7 @@ describe('ConversationDetailPage summary stats', () => {
     await userEvent.unhover(llmCalls);
     await waitForElementToBeRemoved(callsAlpha);
 
-    const costStat = screen.getByText('Cost').parentElement!;
-    const cost = within(costStat).getByText('$0.07');
+    const cost = within(await findStat('Cost')).getByText('$0.07');
     expect(cost).not.toHaveAttribute('title');
     await userEvent.hover(cost);
 
@@ -445,36 +566,55 @@ describe('ConversationDetailPage summary stats', () => {
     mockApis();
     renderPage();
 
-    const costStat = (await screen.findByText('Cost')).parentElement!;
-    await userEvent.hover(await within(costStat).findByText('—'));
+    const costStat = await findStat('Cost');
+    // An empty value is read "No data" in place of its dash.
+    await userEvent.hover(within(costStat).getByText('No data'));
 
     expect(await screen.findByText(/No cost recorded/)).toBeInTheDocument();
+  });
+
+  it('explains a negative cost', async () => {
+    mockApis(null, CONVERSATION_BODY, {totalCost: -0.5});
+    renderPage();
+
+    await userEvent.hover(within(await findStat('Cost')).getByText('$-0.5'));
+
+    expect(
+      await screen.findByText(/Negative costs indicate an error/)
+    ).toBeInTheDocument();
   });
 
   it('does not show empty metric breakdown tooltips', async () => {
     mockApis(null, CONVERSATION_BODY, {llmCalls: 0});
     renderPage();
 
-    const llmCallsStat = (await screen.findByText('LLM Calls')).parentElement!;
-    const llmCalls = await within(llmCallsStat).findByText('0');
-    expect(llmCalls).toHaveAttribute('title', '0');
-
+    const llmCalls = within(await findStat('LLM Calls')).getByText('0');
     await userEvent.hover(llmCalls);
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     await userEvent.unhover(llmCalls);
 
-    const tokensStat = screen.getByText('Tokens').parentElement!;
-    await userEvent.hover(within(tokensStat).getByText('0'));
+    await userEvent.hover(within(await findStat('Tokens')).getByText('0'));
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  it('orders the stats', async () => {
+    mockApis();
+    renderPage();
+
+    await findStat('Errors');
+    const list = screen.getByRole('list', {name: 'Conversation stats'});
+    const items = within(list).getAllByRole('listitem');
+    expect(items).toHaveLength(5);
+    ['LLM Calls', 'Tokens', 'Cost', 'Traces', 'Errors'].forEach((label, index) =>
+      expect(items[index]).toHaveTextContent(new RegExp(`^${label}`))
+    );
   });
 
   it('uses conversation-wide errors even when loaded spans have no errors', async () => {
     mockApis(null, CONVERSATION_BODY, {errors: 7});
     renderPage();
 
-    expect(await screen.findByTestId('conversation-error-icon')).toBeInTheDocument();
-    const errorsStat = screen.getByText('Errors').parentElement!;
-    const errorsLink = within(errorsStat).getByRole('link', {name: '7'});
+    const errorsLink = within(await findStat('Errors')).getByRole('link', {name: '7'});
     const url = new URL(errorsLink.getAttribute('href')!, 'https://sentry.io');
     expect(url.searchParams.get('query')).toBe(
       `gen_ai.conversation.id:"${CONVERSATION_ID}" has:span.status !span.status:[ok,cancelled,unknown]`
@@ -486,23 +626,108 @@ describe('ConversationDetailPage summary stats', () => {
     renderPage();
 
     // The conversation opens with the 1000s span, not the 2000s one that follows.
-    expect(await screen.findByText('Jan 1, 1970 12:16 AM UTC')).toBeInTheDocument();
+    expect(await screen.findByText('Jan 1, 1970 12:16:40 AM UTC')).toBeInTheDocument();
   });
 
-  it('uses the server tool ordering and errors without loaded tool spans', async () => {
+  it('lists errored tools first whatever order the API returns', async () => {
     mockApis(null, CONVERSATION_BODY, {
       errors: 1,
       errorToolNames: ['zeta_tool'],
-      toolNames: ['zeta_tool', 'alpha_tool'],
+      toolNames: ['alpha_tool', 'zeta_tool'],
     });
     renderPage();
 
-    expect(await screen.findByText('Tools:')).toBeInTheDocument();
-
+    const tools = await screen.findByRole('list', {name: 'Tools'});
+    const names = within(tools)
+      .getAllByText(/^(alpha|zeta)_tool$/)
+      .map(tool => tool.textContent);
     // Alphabetically alpha_tool would lead, but the errored zeta_tool outranks it.
-    const tags = screen.getAllByText(/^(alpha|zeta)_tool$/);
-    const names = tags.map(tag => tag.textContent);
-    expect(names.indexOf('zeta_tool')).toBeLessThan(names.indexOf('alpha_tool'));
+    expect(names).toEqual(['zeta_tool', 'alpha_tool']);
+  });
+
+  it('shows four tools and reveals the rest on demand', async () => {
+    mockApis(null, CONVERSATION_BODY, {
+      toolNames: ['tool_a', 'tool_b', 'tool_c', 'tool_d', 'tool_e', 'tool_f'],
+    });
+    renderPage();
+
+    const tools = await screen.findByRole('list', {name: 'Tools'});
+    expect(within(tools).getAllByText(/^tool_/)).toHaveLength(4);
+    expect(within(tools).queryByText('tool_e')).not.toBeInTheDocument();
+
+    await userEvent.click(within(tools).getByRole('button', {name: '+2 more'}));
+
+    expect(within(tools).getAllByText(/^tool_/)).toHaveLength(6);
+    expect(within(tools).getByText('tool_f')).toBeInTheDocument();
+  });
+
+  it('shows the user when the spans carry one', async () => {
+    mockApis(null, [
+      spanFixture({...CONVERSATION_BODY[0], 'user.email': 'user@example.com'}),
+    ]);
+    renderPage();
+
+    const details = await screen.findByRole('list', {name: 'Conversation details'});
+    // Named for the field by its hidden label, then again by its tooltip.
+    expect(await within(details).findByText('User email')).toBeInTheDocument();
+    await userEvent.hover(within(details).getByText('user@example.com'));
+    expect(await screen.findAllByText('User email')).toHaveLength(2);
+  });
+
+  it('names the user ID as the source when it is all the spans carry', async () => {
+    mockApis(null, [spanFixture({...CONVERSATION_BODY[0], 'user.id': '12345'})]);
+    renderPage();
+
+    const details = await screen.findByRole('list', {name: 'Conversation details'});
+    expect(await within(details).findByText('User ID')).toBeInTheDocument();
+    await userEvent.hover(within(details).getByText('12345'));
+    expect(await screen.findAllByText('User ID')).toHaveLength(2);
+  });
+
+  it('shows a real user ID over a scrubbed email', async () => {
+    mockApis(null, [
+      spanFixture({
+        ...CONVERSATION_BODY[0],
+        'user.email': '[Filtered]',
+        'user.id': '12345',
+        meta: {
+          'user.email': {meta: {value: {'': {len: 16, rem: [['strip-fields', 's']]}}}},
+        },
+      }),
+    ]);
+    renderPage();
+
+    const details = await screen.findByRole('list', {name: 'Conversation details'});
+    expect(await within(details).findByText('12345')).toBeInTheDocument();
+    expect(within(details).queryByText('[Filtered]')).not.toBeInTheDocument();
+  });
+
+  it('explains a user every field of which was scrubbed', async () => {
+    mockApis(null, [
+      spanFixture({
+        ...CONVERSATION_BODY[0],
+        'user.email': '[Filtered]',
+        meta: {
+          'user.email': {meta: {value: {'': {len: 16, rem: [['strip-fields', 's']]}}}},
+        },
+      }),
+    ]);
+    renderPage();
+
+    const details = await screen.findByRole('list', {name: 'Conversation details'});
+    await userEvent.hover(await within(details).findByText('[Filtered]'));
+    expect(
+      await screen.findByText('User email replaced by data scrubbing.')
+    ).toBeInTheDocument();
+  });
+
+  it('leaves out the user when the spans carry none', async () => {
+    mockApis();
+    renderPage();
+
+    const details = await screen.findByRole('list', {name: 'Conversation details'});
+    await within(details).findByText('Jan 1, 1970 12:16:40 AM UTC');
+    expect(within(details).queryByText('User')).not.toBeInTheDocument();
   });
 
   it('does not count a linked issue on an ok span as a summary error', async () => {
@@ -529,12 +754,54 @@ describe('ConversationDetailPage summary stats', () => {
     ]);
     renderPage();
 
-    // Wait for the conversation to load before asserting the icon's absence.
-    expect(await screen.findByText('First answer')).toBeInTheDocument();
-    expect(screen.queryByTestId('conversation-error-icon')).not.toBeInTheDocument();
-    const errorsStat = screen.getByText('Errors').parentElement!;
+    const errorsStat = await findStat('Errors');
     expect(within(errorsStat).getByText('0')).toBeInTheDocument();
     expect(within(errorsStat).queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('links a single trace straight to the trace view', async () => {
+    mockApis();
+    renderPage();
+
+    const tracesLink = within(await findStat('Traces')).getByRole('link', {name: '1'});
+    expect(tracesLink).toHaveAttribute(
+      'href',
+      expect.stringContaining('/explore/traces/trace/trace-1/?node=span-span-a')
+    );
+  });
+
+  it('links several traces to every trace in the conversation', async () => {
+    mockApis(null, [
+      CONVERSATION_BODY[0]!,
+      spanFixture({...CONVERSATION_BODY[1], trace: 'trace-2'}),
+    ]);
+    renderPage();
+
+    const tracesLink = within(await findStat('Traces')).getByRole('link', {name: '2'});
+    const url = new URL(tracesLink.getAttribute('href')!, 'https://sentry.io');
+    expect(url.searchParams.get('query')).toBe(
+      `gen_ai.conversation.id:"${CONVERSATION_ID}"`
+    );
+  });
+
+  it('marks the trace count as partial while more spans are to load', async () => {
+    mockApis(null, CONVERSATION_BODY, {}, {nextCursor: 'next'});
+    renderPage();
+
+    const tracesLink = within(await findStat('Traces')).getByRole('link', {name: '1+'});
+    const url = new URL(tracesLink.getAttribute('href')!, 'https://sentry.io');
+    expect(url.searchParams.get('query')).toBe(
+      `gen_ai.conversation.id:"${CONVERSATION_ID}"`
+    );
+  });
+
+  it('shows no traces without a link', async () => {
+    mockApis(null, []);
+    renderPage();
+
+    const tracesStat = await findStat('Traces');
+    expect(within(tracesStat).getByText('0')).toBeInTheDocument();
+    expect(within(tracesStat).queryByRole('link')).not.toBeInTheDocument();
   });
 });
 
@@ -565,10 +832,7 @@ describe('ConversationDetailPage time window', () => {
       body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
     });
 
-    renderPage([], {
-      start: '2026-09-24T08:06:04.000Z',
-      end: '2026-09-25T10:29:16.000Z',
-    });
+    renderPage([], {start: '2026-09-24T08:06:04.000Z', end: '2026-09-25T10:29:16.000Z'});
 
     await waitFor(() => expect(conversationRequest).toHaveBeenCalled());
     for (const [, options] of conversationRequest.mock.calls) {
@@ -593,10 +857,7 @@ describe('ConversationDetailPage time window', () => {
         body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
       });
 
-      renderPage([], {
-        start: '2026-09-24T08:06:04',
-        end: '2026-09-25T10:29:16',
-      });
+      renderPage([], {start: '2026-09-24T08:06:04', end: '2026-09-25T10:29:16'});
 
       await waitFor(() => expect(conversationRequest).toHaveBeenCalled());
       for (const [, options] of conversationRequest.mock.calls) {

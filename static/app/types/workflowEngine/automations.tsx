@@ -7,6 +7,8 @@ import type {Detector} from './detectors';
 export type NewAutomationAction = Omit<Action, 'id'>;
 export type NewAutomationDataCondition = Omit<DataCondition, 'id'>;
 
+export type AutomationType = 'alert' | 'inbox';
+
 export interface NewAutomationDataConditionGroup extends Omit<
   DataConditionGroup,
   'actions' | 'conditions' | 'id'
@@ -36,6 +38,7 @@ export interface Automation extends Readonly<AutomationBase> {
   readonly id: string;
   readonly lastTriggered: string;
   readonly triggers: DataConditionGroup | null;
+  readonly type: AutomationType;
 }
 
 interface AlertPreviewResult {
@@ -58,7 +61,4 @@ export interface AutomationFireHistory {
 /**
  * Warning information about the status of actions in an automation.
  */
-export type StatusWarning = {
-  color: 'danger' | 'warning';
-  message: string;
-};
+export type StatusWarning = {color: 'danger' | 'warning'; message: string};

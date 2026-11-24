@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import re
 from typing import Any
 
@@ -107,10 +106,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
         fingerprint = self._fingerprint(span)
         span_id = span.get("span_id", None)
         if self.stored_problems.get(fingerprint):
-            logging.info(
-                "Multiple occurrences detected for fingerprint",
-                extra={"detector": self.settings_key},
-            )
+            self.duplicate_fingerprint_count += 1
             return
         if fingerprint and span_id:
             evidence_data = {

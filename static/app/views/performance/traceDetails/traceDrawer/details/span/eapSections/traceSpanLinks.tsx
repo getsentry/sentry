@@ -1,4 +1,3 @@
-import {SEARCH_SENTRY__LINK__TYPE} from '@sentry/conventions/attributes/search';
 import type {Location} from 'history';
 import countBy from 'lodash/countBy';
 
@@ -22,7 +21,10 @@ import {
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
-import {getSpanLinkType} from 'sentry/views/performance/traceDetails/getSpanLinkType';
+import {
+  getSpanLinkType,
+  isSpanLinkTypeAttribute,
+} from 'sentry/views/performance/traceDetails/getSpanLinkType';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
@@ -79,10 +81,7 @@ export function TraceSpanLinks({
   const navigate = useNavigate();
 
   function closeSpanDetailsDrawer() {
-    traceDispatch({
-      type: 'minimize drawer',
-      payload: true,
-    });
+    traceDispatch({type: 'minimize drawer', payload: true});
   }
 
   // All links share one attribute tree, so each link's fields get its group name as
@@ -93,12 +92,7 @@ export function TraceSpanLinks({
   const traceIdRenderer = getFieldRenderer('trace', {});
   const spanIdRenderer = getFieldRenderer('span_id', {});
 
-  const renderBaggage = {
-    organization,
-    location,
-    navigate,
-    theme,
-  };
+  const renderBaggage = {organization, location, navigate, theme};
 
   const linksAsAttributes: TraceItemResponseAttribute[] = getNamedLinks(links).flatMap(
     ({link, groupName: prefix}) => {
@@ -160,22 +154,14 @@ export function TraceSpanLinks({
       };
 
       return [
-        {
-          name: `${prefix}.trace_id`,
-          type: 'str',
-          value: link.traceId,
-        },
-        {
-          name: `${prefix}.span_id`,
-          type: 'str',
-          value: link.itemId,
-        },
+        {name: `${prefix}.trace_id`, type: 'str', value: link.traceId},
+        {name: `${prefix}.span_id`, type: 'str', value: link.itemId},
         ...(link.sampled === undefined
           ? []
           : [{name: `${prefix}.sampled`, type: 'bool' as const, value: link.sampled}]),
         // The link type is the group name already.
         ...(link.attributes || [])
-          .filter(attribute => attribute.name !== SEARCH_SENTRY__LINK__TYPE)
+          .filter(attribute => !isSpanLinkTypeAttribute(attribute.name))
           .map(attribute => ({
             ...attribute,
             name: `${prefix}.attributes.${attribute.name}`,
@@ -200,15 +186,8 @@ export function TraceSpanLinks({
       <AttributesTree
         attributes={linksAsAttributes}
         columnCount={1}
-        config={{
-          disableActions: true,
-        }}
-        rendererExtra={{
-          theme,
-          location,
-          navigate,
-          organization,
-        }}
+        config={{disableActions: true}}
+        rendererExtra={{theme, location, navigate, organization}}
         renderers={customRenderers}
       />
     </FoldSection>

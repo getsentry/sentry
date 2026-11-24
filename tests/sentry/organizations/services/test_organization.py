@@ -13,11 +13,18 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
-from sentry.models.team import TeamStatus
+from sentry.models.team import Team, TeamStatus
+from sentry.onboarding.agentic_progress.service import get_onboarding_progress_service
 from sentry.organizations.services.organization import RpcOrganizationMappingFlags
+from sentry.organizations.services.organization.serial import (
+    serialize_rpc_organization,
+    serialize_rpc_team,
+)
 from sentry.organizations.services.organization.service import organization_service
+from sentry.projects.services.project.serial import serialize_project
 from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 
 
@@ -29,7 +36,96 @@ def count_organization_reads(queries: CaptureQueriesContext) -> int:
 
 
 @all_silo_test
+class OrganizationResourceSerializationTest(TestCase):
+    def test_resources_match_model_serializers_without_model_loading(self) -> None:
+        org = self.create_organization()
+        projects = [
+            self.create_project(
+                organization=org,
+                platform="python",
+                first_event=before_now(days=1),
+                external_id="external-project",
+            ),
+            self.create_project(organization=org, status=ObjectStatus.PENDING_DELETION),
+        ]
+        teams = [
+            self.create_team(organization=org),
+            self.create_team(organization=org, status=TeamStatus.PENDING_DELETION),
+        ]
+        other_org = self.create_organization()
+        self.create_project(organization=other_org)
+        self.create_team(organization=other_org)
+
+        with assume_test_silo_mode_of(Project):
+            Project.objects.filter(id=projects[0].id).update(slug="")
+            projects[0].slug = ""
+
+        with (
+            assume_test_silo_mode_of(Project),
+            self.assertNumQueries(2, using=router.db_for_read(Project)),
+            mock.patch.object(Project, "from_db", side_effect=AssertionError("Project loaded")),
+            mock.patch.object(Team, "from_db", side_effect=AssertionError("Team loaded")),
+        ):
+            result = serialize_rpc_organization(org)
+
+        assert {p.id: p.dict() for p in result.projects} == {
+            p.id: serialize_project(p).dict() for p in projects
+        }
+        assert {t.id: t.dict() for t in result.teams} == {
+            t.id: serialize_rpc_team(t).dict() for t in teams
+        }
+
+    def test_only_requested_collections_are_queried(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        team = self.create_team(organization=org)
+        for include_projects, include_teams, query_count in (
+            (True, False, 1),
+            (False, True, 1),
+            (False, False, 0),
+        ):
+            with (
+                self.subTest(include_projects=include_projects, include_teams=include_teams),
+                assume_test_silo_mode_of(Project),
+                self.assertNumQueries(query_count, using=router.db_for_read(Project)),
+            ):
+                result = serialize_rpc_organization(
+                    org, include_projects=include_projects, include_teams=include_teams
+                )
+            assert [p.id for p in result.projects] == [project.id] * bool(include_projects)
+            assert [t.id for t in result.teams] == [team.id] * bool(include_teams)
+
+
+@all_silo_test
 class ActiveOrganizationResourcesTest(TestCase):
+    def test_onboarding_reporting_code(self) -> None:
+        org = self.create_organization(owner=self.user)
+        service = get_onboarding_progress_service()
+        run, _ = service.create_or_resume(
+            user_id=self.user.id, organization_id=org.id, client_run_id="browser"
+        )
+        assert organization_service.has_active_onboarding_run(
+            organization_id=org.id, user_id=self.user.id, run_id=run.run_id
+        )
+        issued = organization_service.issue_onboarding_reporting_code(
+            organization_id=org.id, user_id=self.user.id, run_id=run.run_id
+        )
+        assert issued is not None
+        assert issued.code not in repr(issued)
+        retried = organization_service.issue_onboarding_reporting_code(
+            organization_id=org.id, user_id=self.user.id, run_id=run.run_id
+        )
+        assert retried == issued
+        assert (
+            organization_service.issue_onboarding_reporting_code(
+                organization_id=org.id, user_id=self.create_user().id, run_id=run.run_id
+            )
+            is None
+        )
+        assert not organization_service.has_active_onboarding_run(
+            organization_id=self.create_organization().id, user_id=self.user.id, run_id=run.run_id
+        )
+
     def test_active_resource_ids(self) -> None:
         org = self.create_organization()
         other_org = self.create_organization()

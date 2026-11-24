@@ -21,6 +21,7 @@ import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
 export type EventBreakpointChartData = {
   evidenceData: BreakpointEvidenceData;
   percentileData: EventsStatsData | EventsStatsSeries<'p95()'>;
+  resolvedAt?: number | null;
 };
 
 export type BreakpointEvidenceData = Pick<
@@ -59,7 +60,7 @@ function toEventsStatsData(
 }
 
 export function getBreakpointChartOptionsFromData(
-  {percentileData, evidenceData}: EventBreakpointChartData,
+  {percentileData, evidenceData, resolvedAt}: EventBreakpointChartData,
   chartType: ChartType,
   theme: Theme
 ) {
@@ -69,6 +70,9 @@ export function getBreakpointChartOptionsFromData(
       ? 'function.duration'
       : 'transaction.duration';
   const breakpointMs = evidenceData.breakpoint ? evidenceData.breakpoint * 1000 : 0;
+
+  const resolvedMs =
+    resolvedAt && resolvedAt * 1000 > breakpointMs ? resolvedAt * 1000 : undefined;
 
   const transformedSeries = transformEventStats(
     transformedPercentileData,
@@ -81,7 +85,8 @@ export function getBreakpointChartOptionsFromData(
     0.5,
     true,
     evidenceData,
-    true
+    true,
+    resolvedMs
   );
 
   const series = [...transformedSeries, ...intervalSeries];
@@ -96,19 +101,9 @@ export function getBreakpointChartOptionsFromData(
   const durationUnit = getDurationUnit(series);
 
   const chartOptions = {
-    axisPointer: {
-      link: [
-        {
-          xAxisIndex: [0, 1],
-          yAxisIndex: [0, 1],
-        },
-      ],
-    },
+    axisPointer: {link: [{xAxisIndex: [0, 1], yAxisIndex: [0, 1]}]},
     colors: [theme.colors.gray800, theme.colors.gray800],
-    grid: {
-      top: '40px',
-      bottom: '0px',
-    },
+    grid: {top: '40px', bottom: '0px'},
     legend,
     toolBox: {show: false},
     tooltip: {
@@ -131,20 +126,17 @@ export function getBreakpointChartOptionsFromData(
       selectedMode: false,
       dimension: 0,
       pieces: [
-        {
-          gte: 0,
-          lt: breakpointMs,
-          color: theme.colors.gray800,
-        },
+        {gte: 0, lt: breakpointMs, color: theme.colors.gray800},
         {
           gte: breakpointMs,
+          ...(resolvedMs === undefined ? {} : {lt: resolvedMs}),
           color: theme.colors.red400,
         },
+        ...(resolvedMs === undefined
+          ? []
+          : [{gte: resolvedMs, color: theme.colors.gray800}]),
       ],
     }),
   } satisfies BaseChartProps;
-  return {
-    series,
-    chartOptions,
-  };
+  return {series, chartOptions};
 }

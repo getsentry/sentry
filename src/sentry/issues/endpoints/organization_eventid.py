@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import extend_schema
@@ -14,7 +14,13 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import EventSerializerResponse
-from sentry.apidocs.constants import RESPONSE_NOT_FOUND
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
@@ -29,11 +35,11 @@ from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 
 class EventIdLookupResponse(TypedDict):
-    organizationSlug: str
-    projectSlug: str
-    groupId: str
-    eventId: str
-    event: EventSerializerResponse
+    organizationSlug: Annotated[str, ApiDescription("Slug of the organization")]
+    projectSlug: Annotated[str, ApiDescription("Slug of the event's project")]
+    groupId: Annotated[str, ApiDescription("ID of the event's issue")]
+    eventId: Annotated[str, ApiDescription("ID of the event")]
+    event: Annotated[EventSerializerResponse, ApiDescription("The event")]
 
 
 @cell_silo_endpoint
@@ -62,6 +68,9 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
         request=None,
         responses={
             200: inline_sentry_response_serializer("EventIdLookupResponse", EventIdLookupResponse),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
         examples=OrganizationExamples.EVENT_EXAMPLES,
@@ -70,7 +79,8 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization, event_id: str
     ) -> Response[EventIdLookupResponse] | Response[DetailResponse]:
         """
-        This resolves an event ID to the project slug and internal issue ID and internal event ID.
+        Resolve an event ID to its project slug, issue ID, and event details. Only projects the
+        caller can access are searched.
         """
         if event_id and not is_event_id(event_id):
             return Response({"detail": INVALID_ID_DETAILS.format("Event ID")}, status=400)

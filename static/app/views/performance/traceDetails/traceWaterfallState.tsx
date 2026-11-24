@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
@@ -6,6 +6,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
 import type {TraceQueryResult} from './traceApi/useTrace';
@@ -36,7 +37,11 @@ function TraceError({trace}: TraceWaterfallStateProps) {
   return (
     <LoadingContainer animate error>
       <ErrorTitle>{t('Woof, we failed to load your trace')}</ErrorTitle>
-      <div>{getTraceErrorMessage(trace.error?.status)}</div>
+      <div>
+        {getTraceErrorMessage(
+          trace.error instanceof RequestError ? trace.error.status : undefined
+        )}
+      </div>
     </LoadingContainer>
   );
 }
@@ -70,7 +75,15 @@ function getTraceErrorMessage(status: number | undefined) {
   }
 }
 
-function TraceEmpty() {
+interface TraceEmptyProps {
+  /**
+   * Explain why traces opened from Logs or Application Metrics can be missing spans.
+   * Only the full trace page needs this.
+   */
+  showCrossEventHelp?: boolean;
+}
+
+function TraceEmpty({showCrossEventHelp = false}: TraceEmptyProps) {
   const traceQueryParams = useTraceQueryParams();
   const timestamp = traceQueryParams.timestamp;
   // Frozen at mount so the message doesn't flip while the user is looking at it.
@@ -82,7 +95,7 @@ function TraceEmpty() {
   const message =
     timestamp && timestamp * 1000 >= now - TEN_MINUTES_IN_MS ? (
       t("We're still processing this trace. Please try refreshing after a minute")
-    ) : (
+    ) : showCrossEventHelp ? (
       <div>
         <Text as="p">
           {t(
@@ -95,12 +108,18 @@ function TraceEmpty() {
             'Find similar traces in Explore using [crossEventQueryingLink: Cross Event Querying].',
             {
               crossEventQueryingLink: (
-                <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/#cross-event-querying-beta" />
+                <ExternalLink href="https://docs.sentry.io/product/trace-explorer/#cross-event-querying" />
               ),
             }
           )}
         </Text>
       </div>
+    ) : (
+      <Fragment>
+        {t("We couldn't find any spans for this trace.")}
+        <br />
+        {t('It may not have been sampled.')}
+      </Fragment>
     );
 
   return (

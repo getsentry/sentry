@@ -10,8 +10,6 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
-FEATURE_NAMES = ("organizations:performance-view",)
-
 
 @no_silo_test
 class PerformanceVitalDetailsTest(AcceptanceTestCase, SnubaTestCase):
@@ -39,10 +37,9 @@ class PerformanceVitalDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.store_event(data=event, project_id=self.project.id)
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
-        with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path)
-            self.page.wait_until_loaded()
+        self.browser.get(self.path)
+        self.page.wait_until_loaded()
 
-            self.browser.wait_until_not(
-                '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
-            )
+        self.browser.wait_until_not(
+            '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
+        )

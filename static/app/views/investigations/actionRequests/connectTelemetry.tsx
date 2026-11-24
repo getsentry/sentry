@@ -56,6 +56,7 @@ function ConnectTelemetryApply({
   finishing,
   message,
   onApply,
+  onLinkClick,
   onRecheck,
   rechecking,
 }: ActionKindApplyProps<InvestigationConnectTelemetryAction>) {
@@ -108,6 +109,7 @@ function ConnectTelemetryApply({
             openInNewTab
             disabled={!actionRequest.canApply}
             aria-describedby={actionRequest.canApply ? undefined : messageId}
+            onClick={() => onLinkClick('connect_integration')}
           >
             {t('Connect %s', name)}
             <NewTabNote />
@@ -121,7 +123,12 @@ function ConnectTelemetryApply({
       );
     case 'applied':
       return (
-        <LinkButton icon={<IconSettings />} to={to} openInNewTab>
+        <LinkButton
+          icon={<IconSettings />}
+          to={to}
+          openInNewTab
+          onClick={() => onLinkClick('view_integration')}
+        >
           {t('View integration')}
           <NewTabNote />
         </LinkButton>

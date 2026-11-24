@@ -35,6 +35,7 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+import {isHeatMapAggregate} from 'sentry/views/explore/utils/heatMapAggregate';
 import {SpanFields} from 'sentry/views/insights/types';
 
 import {canShareChart} from './sharedChartAggregates';
@@ -47,7 +48,7 @@ const SPANS_BREAKDOWN_QUERY_KEY = 'breakdownQuery';
 const SPANS_FIELD_KEY = 'field';
 const SPANS_SORT_KEY = 'sort';
 const SPANS_AGGREGATE_FIELD_KEY = 'aggregateField';
-export const SPANS_AGGREGATE_CURSOR = 'aggregateCursor';
+const SPANS_AGGREGATE_CURSOR = 'aggregateCursor';
 const SPANS_GROUP_BY_KEY = 'groupBy';
 const SPANS_VISUALIZATION_KEY = 'visualize';
 const SPANS_AGGREGATE_SORT_KEY = 'aggregateSort';
@@ -85,18 +86,9 @@ export function isDefaultSpansFields(values: SpansQueryValues): boolean {
   return getFields(values[SPANS_FIELD_KEY]) === null;
 }
 
-interface SpansQueryParamsOptions {
-  /**
-   * Plots the y axes listed together in one entry on the same chart when they
-   * can share it, instead of giving each its own chart.
-   */
-  multiAggregateCharts?: boolean;
-}
-
 export function getReadableSpansQueryParams(
   values: SpansQueryValues,
-  fieldsOverride?: string[],
-  options?: SpansQueryParamsOptions
+  fieldsOverride?: string[]
 ): ReadableQueryParams {
   const extrapolate = (values[SPANS_EXTRAPOLATE_KEY] ?? '1') === '1';
   const mode = values[SPANS_MODE_KEY] ?? defaultMode();
@@ -109,7 +101,7 @@ export function getReadableSpansQueryParams(
   const sortBys = getSortBys(values[SPANS_SORT_KEY], fields) ?? defaultSortBys(fields);
 
   const aggregateCursor = values[SPANS_AGGREGATE_CURSOR] ?? defaultCursor();
-  const aggregateFields = getSpansAggregateFields(values, options);
+  const aggregateFields = getSpansAggregateFields(values);
   const aggregateSortBys =
     getAggregateSortBys(values[SPANS_AGGREGATE_SORT_KEY], aggregateFields) ??
     defaultAggregateSortBys(aggregateFields);
@@ -144,13 +136,11 @@ export function getReadableSpansQueryParams(
 /** @internal used in tests */
 export function getReadableQueryParamsFromLocation(
   location: Location,
-  fieldsOverride?: string[],
-  options?: SpansQueryParamsOptions
+  fieldsOverride?: string[]
 ): ReadableQueryParams {
   return getReadableSpansQueryParams(
     loadQueryParamsFromLocation(SPANS_QUERY_PARSERS, location),
-    fieldsOverride,
-    options
+    fieldsOverride
   );
 }
 
@@ -222,21 +212,11 @@ function defaultFields(): string[] {
 
 function defaultSortBys(fields: string[]): Sort[] {
   if (fields.includes('timestamp')) {
-    return [
-      {
-        field: 'timestamp',
-        kind: 'desc' as const,
-      },
-    ];
+    return [{field: 'timestamp', kind: 'desc' as const}];
   }
 
   if (fields.length) {
-    return [
-      {
-        field: fields[0]!,
-        kind: 'desc' as const,
-      },
-    ];
+    return [{field: fields[0]!, kind: 'desc' as const}];
   }
 
   return [];
@@ -250,13 +230,8 @@ export function defaultVisualizes(): [Visualize] {
   return [new VisualizeFunction(DEFAULT_VISUALIZATION)];
 }
 
-function getSpansAggregateFields(
-  values: SpansQueryValues,
-  options?: SpansQueryParamsOptions
-): AggregateField[] {
-  const parseOptions = options?.multiAggregateCharts
-    ? {groupYAxes: canShareChart}
-    : undefined;
+function getSpansAggregateFields(values: SpansQueryValues): AggregateField[] {
+  const parseOptions = {groupYAxes: canShareChart};
   const aggregateFields = getAggregateFields(
     values[SPANS_AGGREGATE_FIELD_KEY],
     parseOptions
@@ -296,24 +271,14 @@ function getSpansAggregateFields(
 
 function defaultAggregateSortBys(aggregateFields: AggregateField[]): Sort[] {
   for (const aggregateField of aggregateFields) {
-    if (isVisualize(aggregateField)) {
-      return [
-        {
-          field: aggregateField.yAxis,
-          kind: 'desc' as const,
-        },
-      ];
+    if (isVisualize(aggregateField) && !isHeatMapAggregate(aggregateField.yAxis)) {
+      return [{field: aggregateField.yAxis, kind: 'desc' as const}];
     }
   }
 
   for (const aggregateField of aggregateFields) {
     if (isGroupBy(aggregateField)) {
-      return [
-        {
-          field: aggregateField.groupBy,
-          kind: 'desc' as const,
-        },
-      ];
+      return [{field: aggregateField.groupBy, kind: 'desc' as const}];
     }
   }
 

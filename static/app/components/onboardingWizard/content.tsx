@@ -8,16 +8,15 @@ import partition from 'lodash/partition';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack, type GridProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
 import {ProgressRing} from 'sentry/components/progressRing';
 import {t, tct} from 'sentry/locale';
-import {DemoWalkthroughStore} from 'sentry/stores/demoWalkthroughStore';
 import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -58,10 +57,7 @@ function groupTasksByCompletion(tasks: OnboardingTask[]) {
   const [completedTasks, incompletedTasks] = partition(tasks, task =>
     findCompleteTasks(task)
   );
-  return {
-    completedTasks,
-    incompletedTasks,
-  };
+  return {completedTasks, incompletedTasks};
 }
 
 interface TaskCardProps {
@@ -69,6 +65,7 @@ interface TaskCardProps {
   title: React.ReactNode;
   actions?: React.ReactNode;
   className?: string;
+  columns?: GridProps['columns'];
   description?: React.ReactNode;
   onClick?: (e: React.MouseEvent) => void;
 }
@@ -80,9 +77,15 @@ function TaskCard({
   actions,
   onClick,
   className,
+  columns = '22px minmax(0, 1fr) max-content',
 }: TaskCardProps) {
   return (
     <TaskCardWrapper
+      position="relative"
+      columns={columns}
+      gap="lg"
+      radius="md"
+      padding="md"
       role={onClick ? 'button' : undefined}
       onClick={onClick}
       className={className}
@@ -95,7 +98,7 @@ function TaskCard({
         {title}
         {description && <p>{description}</p>}
       </TaskCardDescription>
-      <Grid align="start" gap="md" autoColumns="20px" flow="column">
+      <Grid align="start" gap="md" autoColumns="max-content" flow="column">
         {actions}
       </Grid>
     </TaskCardWrapper>
@@ -209,8 +212,6 @@ function Task({task, hidePanel}: TaskProps) {
           tours?.[DemoTour.RELEASES]?.startTour();
         } else if (task.task === OnboardingTaskKey.ISSUE_GUIDE) {
           tours?.[DemoTour.ISSUES]?.startTour();
-        } else {
-          DemoWalkthroughStore.activateGuideAnchor(task.task);
         }
       }
 
@@ -252,11 +253,7 @@ function Task({task, hidePanel}: TaskProps) {
     });
 
     mutateOnboardingTasks.mutate([
-      {
-        task: task.task,
-        status: 'skipped',
-        completionSeen: true,
-      },
+      {task: task.task, status: 'skipped', completionSeen: true},
     ]);
   };
 
@@ -278,7 +275,8 @@ function Task({task, hidePanel}: TaskProps) {
           opacity: 50%;
         `}
       >
-        <TaskListCard
+        <TaskCard
+          columns="subgrid"
           icon={<TaskStatusIcon status={task.status} tooltipText={iconTooltipText} />}
           description={task.description}
           title={<strong>{<s>{task.title}</s>}</strong>}
@@ -289,7 +287,8 @@ function Task({task, hidePanel}: TaskProps) {
 
   return (
     <TaskWrapper>
-      <TaskListCard
+      <TaskCard
+        columns="subgrid"
         onClick={handleClick}
         icon={
           task.skippable ? (
@@ -309,7 +308,7 @@ function Task({task, hidePanel}: TaskProps) {
         description={task.description}
         title={<strong>{task.title}</strong>}
         actions={
-          <Flex justify="center" align="center" width="20px" height="100%">
+          <Flex justify="center" align="center" width="24px" height="100%">
             <IconChevron direction="right" size="xs" variant="muted" />
           </Flex>
         }
@@ -436,10 +435,7 @@ function TaskGroup({
       return;
     }
 
-    trackAnalytics('quick_start.task_group_completed', {
-      organization,
-      group,
-    });
+    trackAnalytics('quick_start.task_group_completed', {organization, group});
 
     setTaskGroupComplete(true);
   }, [
@@ -518,7 +514,7 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
   );
 
   return (
-    <Stack overscrollBehavior="none" data-test-id="quick-start-content">
+    <Stack overscrollBehavior="none" gap="md" data-test-id="quick-start-content">
       <TaskGroup
         title={t('Getting Started')}
         tasks={sortedGettingStartedTasks}
@@ -558,8 +554,6 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
 }
 
 const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
-  padding-left: ${p => p.theme.space.md};
-
   p {
     color: ${p =>
       p.hasProgress ? p.theme.tokens.content.accent : p.theme.tokens.content.secondary};
@@ -592,14 +586,8 @@ const TaskWrapper = styled('li')`
   }
 `;
 
-const TaskCardWrapper = styled('div')`
-  position: relative;
-  display: grid;
-  grid-template-columns: 22px minmax(0, 1fr) max-content;
-  gap: ${p => p.theme.space.lg};
+const TaskCardWrapper = styled(Grid)`
   cursor: ${p => (p.onClick ? 'pointer' : 'default')};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space.md} 0;
   p {
     margin: 0;
     font-size: ${p => p.theme.font.size.sm};
@@ -611,15 +599,6 @@ const TaskCardWrapper = styled('div')`
     button {
       visibility: visible;
     }
-  }
-`;
-
-const TaskListCard = styled(TaskCard)`
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-
-  > div:first-of-type {
-    margin-left: ${p => p.theme.space.md};
   }
 `;
 

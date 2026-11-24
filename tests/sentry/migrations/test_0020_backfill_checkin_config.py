@@ -69,5 +69,7 @@ class BackfillCheckinConfigTest(TestMigrations):
         assert MonitorCheckInConfig.objects.get(id=b.checkin_config_id).config == self.config_b
 
         assert no_config.checkin_config_id is None
+        # tearDown migrates forward, and checkin_config is NOT NULL from 0027.
+        no_config.delete()
         assert already_set.checkin_config_id == self.existing_config.id
         assert MonitorCheckInConfig.objects.count() == 3

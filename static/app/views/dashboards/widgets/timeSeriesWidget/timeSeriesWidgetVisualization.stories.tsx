@@ -8,7 +8,9 @@ import {parseAsString, useQueryState} from 'nuqs';
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Heading} from '@sentry/scraps/text';
 
+import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
 import {ConfigStore} from 'sentry/stores/configStore';
 import * as Storybook from 'sentry/stories';
 import type {DateString} from 'sentry/types/core';
@@ -43,10 +45,7 @@ const sampleDurationTimeSeriesP50: TimeSeries = {
   ...sampleDurationTimeSeries,
   yAxis: 'p50(span.duration)',
   values: sampleDurationTimeSeries.values.map(datum => {
-    return {
-      ...datum,
-      value: datum.value ? datum.value * 0.3 + 30 * Math.random() : null,
-    };
+    return {...datum, value: datum.value ? datum.value * 0.3 + 30 * Math.random() : null};
   }),
 };
 
@@ -54,9 +53,25 @@ const sampleDurationTimeSeriesP75: TimeSeries = {
   ...sampleDurationTimeSeries,
   yAxis: 'p75(span.duration)',
   values: sampleDurationTimeSeries.values.map(datum => {
+    return {...datum, value: datum.value ? datum.value * 0.1 + 30 * Math.random() : null};
+  }),
+};
+
+const sampleDurationTimeSeriesP90: TimeSeries = {
+  ...sampleDurationTimeSeries,
+  yAxis: 'p90(span.duration)',
+  values: sampleDurationTimeSeries.values.map(datum => {
+    return {...datum, value: datum.value ? datum.value * 0.7 + 30 * Math.random() : null};
+  }),
+};
+
+const sampleDurationTimeSeriesP95: TimeSeries = {
+  ...sampleDurationTimeSeries,
+  yAxis: 'p95(span.duration)',
+  values: sampleDurationTimeSeries.values.map(datum => {
     return {
       ...datum,
-      value: datum.value ? datum.value * 0.1 + 30 * Math.random() : null,
+      value: datum.value ? datum.value * 0.85 + 30 * Math.random() : null,
     };
   }),
 };
@@ -75,6 +90,48 @@ const releases = [
     ).toISOString(),
   },
 ].filter(hasTimestamp);
+
+const releaseAnnotations: AnnotationItem[] = releases.map(({timestamp, version}) => ({
+  id: `release:${version}`,
+  kind: 'release',
+  start: new Date(timestamp).getTime(),
+  title: version,
+}));
+
+const flagAnnotations: AnnotationItem[] = [
+  {flag: 'new-checkout', index: 2},
+  {flag: 'search-v2', index: 12},
+].map(({flag, index}) => ({
+  id: `flag:${flag}`,
+  kind: 'flag',
+  start: new Date(sampleThroughputTimeSeries.values.at(index)!.timestamp).getTime(),
+  title: flag,
+}));
+
+const changeAnnotations: AnnotationItem[] = (
+  [
+    [8, 'high', 'sentry_outage', 'Delayed event ingestion in the US region', 12],
+    [14, 'low', 'sdk_update', 'Upgraded @sentry/browser to 10.0.0'],
+    [
+      30,
+      'high',
+      'infrastructure_change',
+      'Moved span ingestion to a new Kafka cluster',
+      'ongoing',
+    ],
+  ] as const
+).map(([index, severity, annotationType, title, endIndex]) => ({
+  id: `change:${index}`,
+  kind: 'timeseriesAnnotation',
+  start: sampleThroughputTimeSeries.values.at(index)!.timestamp,
+  end:
+    typeof endIndex === 'number'
+      ? sampleThroughputTimeSeries.values.at(endIndex)!.timestamp
+      : endIndex,
+  title,
+  annotationType,
+  severity,
+}));
 
 export default Storybook.story('TimeSeriesWidgetVisualization', story => {
   story('Getting Started', () => {
@@ -503,10 +560,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
       const previousUser = ConfigStore.get('user');
       ConfigStore.set('user', {
         ...previousUser,
-        options: {
-          ...previousUser?.options,
-          timezone: simulatedTimezone,
-        },
+        options: {...previousUser?.options, timezone: simulatedTimezone},
       });
 
       return () => {
@@ -789,16 +843,135 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Bars(incompleteDurationTimeSeries, {
-                  stack: 'all',
-                }),
-                new Bars(incompleteDurationP50TimeSeries, {
-                  stack: 'all',
-                }),
+                new Bars(incompleteDurationTimeSeries, {stack: 'all'}),
+                new Bars(incompleteDurationP50TimeSeries, {stack: 'all'}),
               ]}
             />
           </MediumWidget>
         </Storybook.SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('Low Confidence Data', () => {
+    const lowConfidenceDuration = withLowConfidenceIntervals(sampleDurationTimeSeries, [
+      [20, 25],
+    ]);
+
+    const twoIntervals: LowConfidenceInterval[] = [
+      [10, 15],
+      [30, 33],
+    ];
+    const twoIntervalsDurations = [
+      sampleDurationTimeSeries,
+      sampleDurationTimeSeriesP95,
+      sampleDurationTimeSeriesP90,
+      sampleDurationTimeSeriesP75,
+      sampleDurationTimeSeriesP50,
+    ].map(timeSeries => withLowConfidenceIntervals(timeSeries, twoIntervals));
+
+    const fiveIntervals: LowConfidenceInterval[] = [
+      [3, 5],
+      [10, 12],
+      [18, 22],
+      [28, 30],
+      [38, 41],
+    ];
+
+    // 47 of 49 points, just over 95% of the chart
+    const mostlyLowConfidence: LowConfidenceInterval[] = [[2, 48]];
+
+    return (
+      <Fragment>
+        <p>
+          Data points with <code>confidence: 'low'</code> are estimated from too few
+          samples to be reliable. With <code>showConfidence</code>,{' '}
+          <code>TimeSeriesWidgetVisualization</code> draws them differently from
+          high-confidence data, hatches the chart background behind any stretch of time
+          where a visible series has low confidence data, and the tooltip labels them.
+        </p>
+
+        <Heading as="h3" size="md">
+          Single series, one low-confidence interval
+        </Heading>
+        <Storybook.Grid columns={3}>
+          <GridWidget>
+            <TimeSeriesWidgetVisualization
+              showConfidence
+              plottables={[new Line(lowConfidenceDuration)]}
+            />
+          </GridWidget>
+          <GridWidget>
+            <TimeSeriesWidgetVisualization
+              showConfidence
+              plottables={[new Area(lowConfidenceDuration)]}
+            />
+          </GridWidget>
+          <GridWidget>
+            <TimeSeriesWidgetVisualization
+              showConfidence
+              plottables={[new Bars(lowConfidenceDuration)]}
+            />
+          </GridWidget>
+        </Storybook.Grid>
+
+        <Heading as="h3" size="md">
+          Five series, two low-confidence intervals
+        </Heading>
+        <Storybook.Grid columns={3}>
+          <GridWidget>
+            <TimeSeriesWidgetVisualization
+              showConfidence
+              plottables={twoIntervalsDurations.map(timeSeries => new Line(timeSeries))}
+            />
+          </GridWidget>
+          <GridWidget>
+            <TimeSeriesWidgetVisualization
+              showConfidence
+              plottables={twoIntervalsDurations.map(timeSeries => new Area(timeSeries))}
+            />
+          </GridWidget>
+          <GridWidget>
+            <TimeSeriesWidgetVisualization
+              showConfidence
+              plottables={twoIntervalsDurations.map(
+                timeSeries => new Bars(timeSeries, {stack: 'all'})
+              )}
+            />
+          </GridWidget>
+        </Storybook.Grid>
+
+        <Heading as="h3" size="md">
+          Multiple lines, five low-confidence intervals
+        </Heading>
+        <LargeWidget>
+          <TimeSeriesWidgetVisualization
+            showConfidence
+            plottables={[
+              sampleDurationTimeSeries,
+              sampleDurationTimeSeriesP75,
+              sampleDurationTimeSeriesP50,
+            ].map(
+              timeSeries =>
+                new Line(withLowConfidenceIntervals(timeSeries, fiveIntervals))
+            )}
+          />
+        </LargeWidget>
+
+        <Heading as="h3" size="md">
+          Multiple bars, more than 95% low confidence
+        </Heading>
+        <LargeWidget>
+          <TimeSeriesWidgetVisualization
+            showConfidence
+            plottables={[sampleDurationTimeSeries, sampleDurationTimeSeriesP50].map(
+              timeSeries =>
+                new Bars(withLowConfidenceIntervals(timeSeries, mostlyLowConfidence), {
+                  stack: 'all',
+                })
+            )}
+          />
+        </LargeWidget>
       </Fragment>
     );
   });
@@ -901,10 +1074,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
           onClick={() => {
             const sample = shuffle(shiftedSpanSamples.data).find(
               shuffledSample => shuffledSample.id !== sampleId
-            ) as {
-              id: string;
-              timestamp: string;
-            };
+            ) as {id: string; timestamp: string};
 
             setSampleId(sample.id);
           }}
@@ -1084,28 +1254,16 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
                   ...sampleDurationTimeSeries,
                   yAxis: 'span.duration()',
                   groupBy: [
-                    {
-                      key: 'release',
-                      value: 'proj@v0.6.2',
-                    },
-                    {
-                      key: 'env',
-                      value: 'production',
-                    },
+                    {key: 'release', value: 'proj@v0.6.2'},
+                    {key: 'env', value: 'production'},
                   ],
                 }),
                 new Line({
                   ...sampleDurationTimeSeriesP50,
                   yAxis: 'span.duration()',
                   groupBy: [
-                    {
-                      key: 'release',
-                      value: 'proj@v0.6.1',
-                    },
-                    {
-                      key: 'env',
-                      value: 'production',
-                    },
+                    {key: 'release', value: 'proj@v0.6.1'},
+                    {key: 'env', value: 'production'},
                   ],
                 }),
               ]}
@@ -1132,14 +1290,18 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
           inside of the flyout.
         </p>
 
+        <p>
+          Releases and flag changes can also be passed as <code>annotations</code>, which
+          draws a band that marks each of the chart's time buckets that has annotations,
+          so it lines up with the other bands under the plot, like dropped data. Its
+          tooltip counts each kind of annotation in the bucket.
+        </p>
+
         <Storybook.SideBySide>
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Line({
-                  ...sampleThroughputTimeSeries,
-                  yAxis: 'error_rate()',
-                }),
+                new Line({...sampleThroughputTimeSeries, yAxis: 'error_rate()'}),
               ]}
               releases={releases}
             />
@@ -1148,10 +1310,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Line({
-                  ...sampleThroughputTimeSeries,
-                  yAxis: 'error_rate()',
-                }),
+                new Line({...sampleThroughputTimeSeries, yAxis: 'error_rate()'}),
               ]}
               showReleaseAs="bubble"
               releases={releases}
@@ -1170,7 +1329,41 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
               showReleaseAs="bubble"
             />
           </MediumWidget>
+
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line(sampleThroughputTimeSeries),
+                new Line(sampleDurationTimeSeries),
+                new Line(sampleDurationTimeSeriesP50),
+              ]}
+              annotations={[...releaseAnnotations, ...flagAnnotations]}
+            />
+          </MediumWidget>
         </Storybook.SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('Annotation Markers', () => {
+    return (
+      <Fragment>
+        <p>
+          Severe <code>annotations</code> also get a marker on the plot: a dotted vertical
+          line with a circle on top, at the center of their time bucket. Severe
+          annotations in the same bucket share one marker. A severe annotation that covers
+          a range of time also gets a solid line along the top of the plot, up to the
+          bucket it ends in, or to the right edge when it's ongoing. Hovering a marker
+          shows the annotations it stands for. Every annotation, severe or not, still
+          counts toward the band under the plot.
+        </p>
+
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization
+            plottables={[new Bars(sampleThroughputTimeSeries)]}
+            annotations={[...releaseAnnotations, ...changeAnnotations]}
+          />
+        </MediumWidget>
       </Fragment>
     );
   });
@@ -1302,6 +1495,12 @@ const MediumWidget = styled('div')`
   height: 250px;
 `;
 
+const GridWidget = styled('div')`
+  position: relative;
+  min-width: 0;
+  height: 250px;
+`;
+
 const SmallWidget = styled('div')`
   position: relative;
   width: 360px;
@@ -1338,11 +1537,7 @@ function hasTimestamp(release: Partial<Release>): release is Release {
   return Boolean(release?.timestamp);
 }
 
-const NULL_META: TimeSeriesMeta = {
-  valueType: 'number',
-  valueUnit: null,
-  interval: 0,
-};
+const NULL_META: TimeSeriesMeta = {valueType: 'number', valueUnit: null, interval: 0};
 
 // Base timestamp: Jan 15, 2025 00:00 UTC
 const TICK_STORY_BASE = Date.UTC(2025, 0, 15, 0, 0, 0);
@@ -1422,3 +1617,22 @@ const X_AXIS_TICK_TEST_CASES: Array<{endMs: number; label: string; startMs: numb
     endMs: Date.UTC(2025, 0, 10, 0, 0, 0),
   },
 ];
+
+/**
+ * Inclusive start and end indexes of a run of low-confidence data points.
+ */
+type LowConfidenceInterval = [start: number, end: number];
+
+function withLowConfidenceIntervals(
+  timeSeries: TimeSeries,
+  intervals: LowConfidenceInterval[]
+): TimeSeries {
+  return {
+    ...timeSeries,
+    values: timeSeries.values.map((value, index) =>
+      intervals.some(([start, end]) => index >= start && index <= end)
+        ? {...value, confidence: 'low'}
+        : value
+    ),
+  };
+}

@@ -42,6 +42,13 @@ class MessageBuilderTest(TestCase):
             "text/html",
         )
 
+    def test_subject_removes_control_characters(self) -> None:
+        msg = MessageBuilder(subject="Error: a\x00b\x1bc\x7fd", body="hello world")
+
+        [out] = msg.get_built_messages(["foo@example.com"])
+
+        assert out.subject == "Error: abcd"
+
     def test_inline_css(self) -> None:
         msg = MessageBuilder(
             subject="Test",

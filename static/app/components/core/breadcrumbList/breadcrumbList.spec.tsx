@@ -110,9 +110,7 @@ describe('BreadcrumbList container-query collapse', () => {
     // The trigger names both its purpose and the current selection.
     // findBy lets CompactSelect's deferred mount-time state update flush in act.
     expect(
-      await screen.findByRole('button', {
-        name: 'Switch javascript',
-      })
+      await screen.findByRole('button', {name: 'Switch javascript'})
     ).toBeInTheDocument();
   });
 
@@ -208,12 +206,15 @@ describe('BreadcrumbList.Current', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders trailing actions on their own', () => {
+  it('renders a button trailing action', () => {
     render(
-      <BreadcrumbList.TrailingActions
-        actions={{
-          type: 'button',
-          element: <Button size="zero" aria-label="View full details" />,
+      <BreadcrumbList.Current
+        item={{
+          label: '1.2.3',
+          trailingActions: {
+            type: 'button',
+            element: <Button size="zero" aria-label="View full details" />,
+          },
         }}
       />
     );
@@ -221,10 +222,11 @@ describe('BreadcrumbList.Current', () => {
     expect(screen.getByRole('button', {name: 'View full details'})).toBeInTheDocument();
   });
 
-  it('renders nothing when every trailing action is null', () => {
-    const {container} = render(<BreadcrumbList.TrailingActions actions={[null]} />);
+  it('renders no trailing actions when every entry is null', () => {
+    render(<BreadcrumbList.Current item={{label: 'Logs', trailingActions: [null]}} />);
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByText('Logs')).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('hides the leading graphic from assistive technology', () => {
@@ -276,11 +278,7 @@ describe('BreadcrumbList rich page-title items', () => {
         item={{
           type: 'page-title',
           label: 'JAVASCRIPT-2X9',
-          trailingActions: {
-            type: 'copy',
-            text: 'JAVASCRIPT-2X9',
-            label: 'Copy Short-ID',
-          },
+          trailingActions: {type: 'copy', text: 'JAVASCRIPT-2X9', label: 'Copy Short-ID'},
         }}
       />
     );
@@ -315,11 +313,7 @@ describe('BreadcrumbList rich page-title items', () => {
           type: 'page-title',
           label: 'JAVASCRIPT-2X9',
           trailingActions: [
-            {
-              type: 'copy',
-              text: 'JAVASCRIPT-2X9',
-              label: 'Copy Short-ID',
-            },
+            {type: 'copy', text: 'JAVASCRIPT-2X9', label: 'Copy Short-ID'},
             isPublic
               ? {
                   type: 'menu',

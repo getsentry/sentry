@@ -2,6 +2,7 @@ import {z} from 'zod';
 
 import {isFilePatch, type FilePatch} from 'sentry/components/events/autofix/types';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
+import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
 
 /**
  * Where the Seer Explorer sidebar docks. `auto` picks right/bottom based on
@@ -29,6 +30,10 @@ const explorerFilePatchSchema = z.object({
 const repoPRStateSchema = z.object({
   branch_name: z.string().nullable(),
   commit_sha: z.string().nullable(),
+  credit_denial_reason: zLooseEnum([
+    'not_enough_credits',
+    'daily_cap_exceeded',
+  ]).nullish(),
   pr_creation_error: z.string().nullable(),
   pr_creation_error_code: z.string().nullish(),
   pr_creation_status: zLooseEnum(['creating', 'completed', 'error']).nullable(),
@@ -247,8 +252,14 @@ export type PendingUserInput = {
     | 'file_change_approval'
     | 'agent_write_approval'
     | 'ask_user_question'
-    | 'reauth_monitoring_provider';
+    | 'reauth_monitoring_provider'
+    | 'connect_scm';
 };
+
+export interface ConnectScmData {
+  failure_reason: string;
+  repo_name: string;
+}
 
 export interface ReauthMonitoringProviderData {
   auth_method: 'oauth' | 'pat';
@@ -258,16 +269,47 @@ export interface ReauthMonitoringProviderData {
 
 export type SeerExplorerRunId = number | string;
 
+/**
+ * Why a run ended with `status: 'error'`, when Seer knows. `out_of_credits`
+ * runs keep the blocks they produced before stopping.
+ */
+export type ExplorerFailureReason = 'timeout' | 'stalled' | 'out_of_credits';
+
+/**
+ * Seer's id prefix for the assistant block it appends when a run fails, whose
+ * content is its plain-text error message.
+ */
+const SEER_ERROR_BLOCK_ID_PREFIX = 'error-';
+
+export function isSeerErrorBlock(block: Block): boolean {
+  return (
+    block.message.role === 'assistant' && block.id.startsWith(SEER_ERROR_BLOCK_ID_PREFIX)
+  );
+}
+
+/**
+ * A PR create or push that failed because the organization ran out of Seer
+ * credits.
+ */
+export function isOutOfCreditsPRState(state: RepoPRState): boolean {
+  return (
+    state.pr_creation_status === 'error' &&
+    state.pr_creation_error_code === 'out_of_credits'
+  );
+}
+
 export type SeerExplorerResponse = {
   session: {
     status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
     updated_at: string;
     blocks?: Block[];
-    failure_reason?: 'timeout' | 'stalled' | null;
+    credit_denial_reason?: SeerCreditDenialReason | null;
+    failure_reason?: ExplorerFailureReason | null;
     owner_user_id?: number | null;
     pending_user_input?: PendingUserInput | null;
     repo_pr_states?: Record<string, RepoPRState>;
   } | null;
+  feature_id?: string | null;
   sentry_run_id?: string | null;
 };
 

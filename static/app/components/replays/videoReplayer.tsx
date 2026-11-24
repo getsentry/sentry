@@ -104,11 +104,7 @@ export class VideoReplayer {
     this._startTimestamp = start;
     this._trackList = [];
     this._videoApiPrefix = videoApiPrefix;
-    this._callbacks = {
-      onFinished,
-      onLoaded,
-      onBuffer,
-    };
+    this._callbacks = {onFinished, onLoaded, onBuffer};
     this._videos = new Map<any, HTMLVideoElement>();
     this._videoListeners = new Map<number, TeardownVideo>();
     this._maxVideoElements = Math.max(
@@ -710,9 +706,7 @@ export class VideoReplayer {
     // edge case where we have a gap between start of replay and first segment
     // wait until timer reaches the first segment before starting
     if (segmentIndex === undefined && previousSegmentIndex === -1) {
-      await this.loadSegment(nextSegmentIndex, {
-        segmentOffsetMs: 0,
-      });
+      await this.loadSegment(nextSegmentIndex, {segmentOffsetMs: 0});
     }
     // It's possible video and segment don't exist, e.g. if we seek to a gap
     // between two replays. In this case, we load the previous segment index
@@ -811,10 +805,7 @@ export class VideoReplayer {
     this.pauseReplay(videoOffsetMs);
 
     // Preload videos before and after this index
-    this.preloadVideos({
-      low: index - PRELOAD_BUFFER,
-      high: index + PRELOAD_BUFFER,
-    });
+    this.preloadVideos({low: index - PRELOAD_BUFFER, high: index + PRELOAD_BUFFER});
 
     // Pause the old video
     const currentVideo = this.getVideo(index);

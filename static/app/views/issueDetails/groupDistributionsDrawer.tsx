@@ -1,8 +1,7 @@
+import {DrawerHeader} from '@sentry/scraps/drawer';
+
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {
-  EventDrawerContainer,
-  EventDrawerHeader,
-} from 'sentry/components/events/eventDrawer';
+import {EventDrawerContainer} from 'sentry/components/events/eventDrawer';
 import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -13,10 +12,7 @@ import {TagsDistributionDrawer} from './groupDistributions/tagsDistributionDrawe
 import {DrawerTab} from './groupDistributions/types';
 import {useDrawerTab} from './groupDistributions/useDrawerTab';
 
-type Props = {
-  group: Group;
-  includeFeatureFlagsTab: boolean;
-};
+type Props = {group: Group; includeFeatureFlagsTab: boolean};
 
 /**
  * Shared tags and feature flags distributions drawer used by issue details.
@@ -31,9 +27,9 @@ export function GroupDistributionsDrawer({group, includeFeatureFlagsTab}: Props)
   return (
     <AnalyticsArea name="distributions_drawer">
       <EventDrawerContainer>
-        <EventDrawerHeader>
-          <GroupDistributionCrumbs project={project} group={group} tab={tab} />
-        </EventDrawerHeader>
+        <DrawerHeader>
+          <GroupDistributionCrumbs group={group} project={project} tab={tab} />
+        </DrawerHeader>
         {tab === DrawerTab.TAGS ? (
           <TagsDistributionDrawer
             organization={organization}

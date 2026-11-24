@@ -37,13 +37,6 @@
 //
 //   c. The <Main /> component is rendered. See step 4 for more details.
 //
-//   d. Run global init-queue tasks. These are essentially functions registered
-//      in the `window.__onSentryInit` array from outside of the app. This is
-//      specifically for old-style pages rendered as django templates, but
-//      still need React frontend components.
-//
-//      This also includes exporting some globals into the window.
-//
 // 4. Once the app is fully initialized we begin rendering React components. To
 //    understand the rendering tree from this point forward it's best to follow
 //    the component tree from <Main />

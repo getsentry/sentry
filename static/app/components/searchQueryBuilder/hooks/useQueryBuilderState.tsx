@@ -63,9 +63,7 @@ type QueryBuilderState = {
 
 type ClearAction = {type: 'CLEAR'};
 
-type CommitQueryAction = {
-  type: 'COMMIT_QUERY';
-};
+type CommitQueryAction = {type: 'COMMIT_QUERY'};
 
 type UpdateQueryAction = {
   query: string;
@@ -77,10 +75,7 @@ type UpdateQueryAction = {
 
 type ResetFocusOverrideAction = {type: 'RESET_FOCUS_OVERRIDE'};
 
-type DeleteTokenAction = {
-  token: ParseResultToken;
-  type: 'DELETE_TOKEN';
-};
+type DeleteTokenAction = {token: ParseResultToken; type: 'DELETE_TOKEN'};
 
 type DeleteTokensAction = {
   tokens: ParseResultToken[];
@@ -583,12 +578,7 @@ function wrapTokensWithParentheses(
     };
   }
 
-  return {
-    ...state,
-    query: newQuery,
-    committedQuery: newQuery,
-    focusOverride,
-  };
+  return {...state, query: newQuery, committedQuery: newQuery, focusOverride};
 }
 
 // Ensures that the replaced token is separated from the rest of the query
@@ -868,11 +858,7 @@ export function multiSelectTokenValue(
 function updateAggregateArgs(
   state: QueryBuilderState,
   action: UpdateAggregateArgsAction,
-  {
-    getFieldDefinition,
-  }: {
-    getFieldDefinition: FieldDefinitionGetter;
-  }
+  {getFieldDefinition}: {getFieldDefinition: FieldDefinitionGetter}
 ): QueryBuilderState {
   const fieldDefinition = getFieldDefinition(getKeyName(action.token.key));
   const focusOverride =
@@ -925,11 +911,7 @@ function updateFilterKey(
     return state;
   }
 
-  return {
-    ...state,
-    query: newQuery,
-    committedQuery: newQuery,
-  };
+  return {...state, query: newQuery, committedQuery: newQuery};
 }
 
 function countWords(text: string): number {
@@ -1095,12 +1077,7 @@ function updateFreeTextAndReplaceText(
   // Only update the committed query if we aren't in the middle of creating a filter
   const committedQuery = action.shouldCommitQuery ? query : state.committedQuery;
 
-  return {
-    ...newState,
-    query,
-    committedQuery,
-    focusOverride,
-  };
+  return {...newState, query, committedQuery, focusOverride};
 }
 
 function updateLogicOperator(
@@ -1112,11 +1089,7 @@ function updateLogicOperator(
     return state;
   }
 
-  return {
-    ...state,
-    query: newQuery,
-    committedQuery: newQuery,
-  };
+  return {...state, query: newQuery, committedQuery: newQuery};
 }
 
 export function useQueryBuilderState({
@@ -1161,9 +1134,7 @@ export function useQueryBuilderState({
 
             query: '',
             committedQuery: '',
-            focusOverride: {
-              itemKey: `${Token.FREE_TEXT}:0`,
-            },
+            focusOverride: {itemKey: `${Token.FREE_TEXT}:0`},
           };
         case 'COMMIT_QUERY':
           if (state.query === state.committedQuery) {
@@ -1195,18 +1166,10 @@ export function useQueryBuilderState({
             ? replacedState.focusOverride
             : (action.focusOverride ?? null);
 
-          return {
-            ...state,
-            query,
-            committedQuery,
-            focusOverride,
-          };
+          return {...state, query, committedQuery, focusOverride};
         }
         case 'RESET_FOCUS_OVERRIDE':
-          return {
-            ...state,
-            focusOverride: null,
-          };
+          return {...state, focusOverride: null};
         case 'DELETE_TOKEN': {
           return {
             ...replaceTokensWithText(state, {
@@ -1330,8 +1293,5 @@ export function useQueryBuilderState({
     }
   }, [setDisplayAskSeerFeedback, state.clearAskSeerFeedback]);
 
-  return {
-    state,
-    dispatch,
-  };
+  return {state, dispatch};
 }

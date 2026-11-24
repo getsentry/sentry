@@ -1,6 +1,6 @@
 import logging
 import zlib
-from typing import cast
+from typing import NoReturn, cast
 
 import sentry_sdk
 from sentry_kafka_schemas.codecs import Codec, ValidationError
@@ -18,7 +18,7 @@ from sentry.replays.usecases.ingest import (
     track_recording_metadata,
 )
 from sentry.replays.usecases.ingest.types import ProcessorContext
-from sentry.services.filestore.gcs import REPLAY_GCS_RETRYABLE_ERRORS
+from sentry.services.filestore.gcs import is_replay_gcs_retryable_error
 from sentry.utils import json, metrics
 
 RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
@@ -56,7 +56,9 @@ def process_message(message: bytes) -> ProcessedEvent | None:
 def parse_recording_event(message: bytes) -> Event:
     recording = parse_request_message(message)
     segment_id, payload = parse_headers(cast(bytes, recording["payload"]), recording["replay_id"])
-    compressed, decompressed = decompress_segment(payload)
+    compressed, decompressed = decompress_segment(
+        payload, max_size=options.get("replay.consumer.max-segment-decompressed-size")
+    )
 
     replay_event_json = recording.get("replay_event")
     if replay_event_json:
@@ -110,15 +112,45 @@ def parse_request_message(message: bytes) -> ReplayRecording:
 
 
 @traces.trace
-def decompress_segment(segment: bytes) -> tuple[bytes, bytes]:
+def decompress_segment(segment: bytes, max_size: int) -> tuple[bytes, bytes]:
+    """Return the compressed and decompressed forms of a recording segment.
+
+    Decompression is bounded by `max_size` bytes. Stored segments are inflated again on every
+    read, so a segment with an implausible compression ratio is a durable, repeatable cost on
+    the read path -- we drop it here rather than persist it.
+    """
     try:
-        return (segment, zlib.decompress(segment))
+        # Ask for one byte past the limit so an oversized segment is detectable without ever
+        # materializing more than `max_size + 1` bytes.
+        decompressor = zlib.decompressobj()
+        decompressed = decompressor.decompress(segment, max_size + 1)
+
+        # The incremental API returns partial output where `zlib.decompress` raised on a
+        # truncated stream. Normalize so malformed bodies take the branch below.
+        if not decompressor.eof and not decompressor.unconsumed_tail:
+            raise zlib.error("incomplete or truncated stream")
     except zlib.error:
         if segment and segment[0] == ord("["):
+            if len(segment) > max_size:
+                _drop_oversized_segment(len(segment), max_size)
             return (zlib.compress(segment), segment)
         else:
             logger.exception("Invalid recording body.")
             raise DropSilently()
+
+    if len(decompressed) > max_size:
+        _drop_oversized_segment(len(segment), max_size)
+
+    return (segment, decompressed)
+
+
+def _drop_oversized_segment(compressed_size: int, max_size: int) -> NoReturn:
+    metrics.incr("replays.consumer.recording.oversized_segment")
+    logger.warning(
+        "Dropped a recording segment which decompressed past the size limit.",
+        extra={"compressed_size": compressed_size, "max_size": max_size},
+    )
+    raise DropSilently()
 
 
 @traces.trace
@@ -140,10 +172,10 @@ def commit_message(message: ProcessedEvent, context: ProcessorContext) -> None:
         commit_recording_message(message, context)
         track_recording_metadata(message)
         return None
-    except REPLAY_GCS_RETRYABLE_ERRORS:
-        raise
     except DropEvent:
         return None
-    except Exception:
+    except Exception as e:
+        if is_replay_gcs_retryable_error(e):
+            raise
         logger.exception("Failed to commit replay recording message.")
         return None

@@ -67,22 +67,11 @@ describe('BreadcrumbsDataSection', () => {
   it('can switch between display time formats', async () => {
     const singleCrumbEvent = EventFixture({
       entries: [
-        {
-          type: EntryType.BREADCRUMBS,
-          data: {
-            values: [MOCK_BREADCRUMBS[0]],
-          },
-        },
+        {type: EntryType.BREADCRUMBS, data: {values: [MOCK_BREADCRUMBS[0]]}},
         MOCK_EXCEPTION_ENTRY,
       ],
     });
-    render(
-      <BreadcrumbsDataSection
-        event={singleCrumbEvent}
-        group={MOCK_DATA_SECTION_PROPS.group}
-        project={MOCK_DATA_SECTION_PROPS.project}
-      />
-    );
+    render(<BreadcrumbsDataSection event={singleCrumbEvent} />);
 
     // From virtual crumb
     expect(screen.getByText('May 21, 2019 6:01:48.762 PM UTC')).toBeInTheDocument();
@@ -120,9 +109,7 @@ describe('BreadcrumbsDataSection', () => {
     expect(
       screen.getByRole('complementary', {name: 'breadcrumb drawer'})
     ).toBeInTheDocument();
-    const drawerControl = screen.getByRole('textbox', {
-      name: 'Search All Breadcrumbs',
-    });
+    const drawerControl = screen.getByRole('textbox', {name: 'Search All Breadcrumbs'});
     expect(drawerControl).toBeInTheDocument();
     expect(drawerControl).toHaveFocus();
   });

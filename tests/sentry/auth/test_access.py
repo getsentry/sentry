@@ -3,6 +3,7 @@ from datetime import timedelta
 from typing import cast
 from unittest.mock import Mock, patch
 
+import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpRequest
 from django.test import override_settings
@@ -11,7 +12,7 @@ from rest_framework.request import Request
 
 from sentry.api.permissions import SentryPermission
 from sentry.auth import access
-from sentry.auth.access import Access, NoAccess
+from sentry.auth.access import Access, NoAccess, has_member_scope
 from sentry.auth.principal import set_request_principal
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.scope_declaration import (
@@ -1027,6 +1028,30 @@ class FromSentryAppTest(AccessFactoryTestCase):
         assert result.has_scope("team:write") is True
         assert result.has_scope("team:admin") is False
 
+    def _org_read_app_access(self) -> Access:
+        app = self.create_sentry_app(name="OrgReadApp", organization=self.org)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            app.update(scope_list=["org:read"])
+        self.create_sentry_app_installation(organization=self.org, slug=app.slug, user=self.user)
+        return self.from_request(self.make_request(user=app.proxy_user), self.org)
+
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_deprecated_scope_not_translated_without_granular_scopes(self) -> None:
+        result = self._org_read_app_access()
+        assert result.scopes == frozenset({"org:read"})
+        assert not result.has_scope("dashboard:write")
+        assert not result.has_scope("saved_query:write")
+        assert not result.has_scope("user_preference:write")
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_deprecated_scope_translated_with_granular_scopes(self) -> None:
+        result = self._org_read_app_access()
+        assert result.has_scope("org:read")
+        assert result.has_scope("dashboard:write")
+        assert result.has_scope("saved_query:write")
+        assert result.has_scope("user_preference:write")
+
 
 @all_silo_test
 class RpcGlobalAccessTest(TestCase):
@@ -1533,3 +1558,20 @@ class SystemAccessTest(TestCase):
         assert not result.has_team_membership(team)
         assert result.has_scope("project:read")
         assert result.has_team_access(team)
+
+
+@pytest.mark.parametrize(
+    ("scopes", "member_scope", "expected"),
+    [
+        (["member:admin"], "member:admin", True),
+        (["membership:admin"], "member:admin", True),
+        (["membership:invite"], "member:invite", True),
+        (["membership:invite"], "member:admin", False),
+        (["membership:write"], "member:write", True),
+        (["member:write"], "member:admin", False),
+    ],
+)
+def test_has_member_scope(scopes: list[str], member_scope: str, expected: bool) -> None:
+    token_access = Mock(spec=Access)
+    token_access.has_scope.side_effect = lambda scope: scope in scopes
+    assert has_member_scope(token_access, member_scope) is expected

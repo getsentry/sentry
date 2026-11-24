@@ -32,6 +32,7 @@ import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {toArray} from 'sentry/utils/array/toArray';
 import {defined} from 'sentry/utils/defined';
 import {getShortEventId} from 'sentry/utils/events';
@@ -134,9 +135,7 @@ export type RenderFunctionBaggage = {
   unit?: string;
 };
 
-type RenderFunctionOptions = {
-  enableOnClick?: boolean;
-};
+type RenderFunctionOptions = {enableOnClick?: boolean};
 
 type FieldFormatterRenderFunction = (
   field: string,
@@ -149,9 +148,7 @@ export type FieldFormatterRenderFunctionPartial = (
   baggage: RenderFunctionBaggage
 ) => React.ReactNode;
 
-type FieldFormatter = {
-  renderFunc: FieldFormatterRenderFunction;
-};
+type FieldFormatter = {renderFunc: FieldFormatterRenderFunction};
 
 type FieldFormatters = Record<FieldFormatterType, FieldFormatter>;
 
@@ -214,10 +211,14 @@ export const FIELD_FORMATTERS: FieldFormatters = {
               value: (
                 <FieldDateTime
                   date={data[field]}
-                  year
-                  seconds
-                  timeZone
-                  utc={decodeScalar(baggage?.location?.query?.utc) === 'true'}
+                  year="always"
+                  precision="second"
+                  showTimezone
+                  timezone={
+                    decodeScalar(baggage?.location?.query?.utc) === 'true'
+                      ? 'UTC'
+                      : undefined
+                  }
                 />
               ),
               fixed: 'timestamp',
@@ -358,9 +359,7 @@ type SpecialFieldRenderFunc = (
   baggage: RenderFunctionBaggage
 ) => React.ReactNode;
 
-type SpecialField = {
-  renderFunc: SpecialFieldRenderFunc;
-};
+type SpecialField = {renderFunc: SpecialFieldRenderFunc};
 
 const RightAlignedContainer = styled('span')`
   margin-left: auto;
@@ -394,6 +393,36 @@ function renderAIOutputMessages(rawOutputMessages: unknown) {
  * "Special fields" either do not map 1:1 to an single column in the event database,
  * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
+function performanceScoreRenderer(field: string): SpecialField {
+  return {
+    renderFunc: data => {
+      const score = data[field];
+      if (typeof score !== 'number') {
+        return <RightAlignedContainer>{emptyValue}</RightAlignedContainer>;
+      }
+      return (
+        <RightAlignedContainer>
+          <PerformanceBadge score={Math.round(score * 100)} />
+        </RightAlignedContainer>
+      );
+    },
+  };
+}
+
+function opportunityScoreRenderer(field: string): SpecialField {
+  return {
+    renderFunc: data => {
+      const score = data[field];
+      if (typeof score !== 'number') {
+        return <Container>{emptyValue}</Container>;
+      }
+      return (
+        <RightAlignedContainer>{Math.round(score * 10000) / 100}</RightAlignedContainer>
+      );
+    },
+  };
+}
+
 const SPECIAL_FIELDS: Record<string, SpecialField> = {
   // This is a custom renderer for a field outside discover
   // TODO - refactor code and remove from this file or add ability to query for attachments in Discover
@@ -419,7 +448,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           label: attachment.name,
           onAction: () =>
             window.open(
-              `/api/0/projects/${organization.slug}/${projectSlug}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`
+              resolveHostname(
+                `/api/0/projects/${organization.slug}/${projectSlug}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`
+              )
             ),
         }));
 
@@ -465,7 +496,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
               minidump
                 ? () => {
                     window.open(
-                      `/api/0/projects/${organization.slug}/${projectSlug}/events/${minidump.event_id}/attachments/${minidump.id}/?download=1`
+                      resolveHostname(
+                        `/api/0/projects/${organization.slug}/${projectSlug}/events/${minidump.event_id}/attachments/${minidump.id}/?download=1`
+                      )
                     );
                   }
                 : undefined
@@ -616,9 +649,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         );
       }
 
-      const target = {
-        pathname: `/organizations/${organization.slug}/issues/${issueID}/`,
-      };
+      const target = {pathname: `/organizations/${organization.slug}/issues/${issueID}/`};
 
       return (
         <QuickContextHoverWrapper
@@ -686,13 +717,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     renderFunc: data => {
       if (data.user?.split) {
         const [key, value] = data.user.split(':');
-        const userObj = {
-          id: '',
-          name: '',
-          email: '',
-          username: '',
-          ip_address: '',
-        };
+        const userObj = {id: '', name: '', email: '', username: '', ip_address: ''};
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         userObj[key] = value;
 
@@ -829,7 +854,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return (
         <Container>
           <Tooltip title={timestamp}>
-            <FieldDateTime date={date} seconds year timeZone />
+            <FieldDateTime date={date} year="always" precision="second" showTimezone />
           </Tooltip>
         </Container>
       );
@@ -839,7 +864,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     renderFunc: data => (
       <Container>
         {getDynamicText({
-          value: <FieldDateTime date={data['timestamp.to_hour']} year timeZone />,
+          value: (
+            <FieldDateTime date={data['timestamp.to_hour']} year="always" showTimezone />
+          ),
           fixed: 'timestamp.to_hour',
         })}
       </Container>
@@ -849,7 +876,15 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     renderFunc: data => (
       <Container>
         {getDynamicText({
-          value: <FieldDateTime date={data['timestamp.to_day']} dateOnly year utc />,
+          value: (
+            <FieldDateTime
+              date={data['timestamp.to_day']}
+              showTimezone={false}
+              year="always"
+              mode="date"
+              timezone="UTC"
+            />
+          ),
           fixed: 'timestamp.to_day',
         })}
       </Container>
@@ -866,30 +901,15 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       </Container>
     ),
   },
-  'performance_score(measurements.score.total)': {
-    renderFunc: data => {
-      const score = data['performance_score(measurements.score.total)'];
-      if (typeof score !== 'number') {
-        return <RightAlignedContainer>{emptyValue}</RightAlignedContainer>;
-      }
-      return (
-        <RightAlignedContainer>
-          <PerformanceBadge score={Math.round(score * 100)} />
-        </RightAlignedContainer>
-      );
-    },
-  },
-  'opportunity_score(measurements.score.total)': {
-    renderFunc: data => {
-      const score = data['opportunity_score(measurements.score.total)'];
-      if (typeof score !== 'number') {
-        return <Container>{emptyValue}</Container>;
-      }
-      return (
-        <RightAlignedContainer>{Math.round(score * 10000) / 100}</RightAlignedContainer>
-      );
-    },
-  },
+  // The spans form takes the total score measurement, the trace metrics form no argument
+  'performance_score(measurements.score.total)': performanceScoreRenderer(
+    'performance_score(measurements.score.total)'
+  ),
+  'performance_score()': performanceScoreRenderer('performance_score()'),
+  'opportunity_score(measurements.score.total)': opportunityScoreRenderer(
+    'opportunity_score(measurements.score.total)'
+  ),
+  'opportunity_score()': opportunityScoreRenderer('opportunity_score()'),
   'browser.name': {
     renderFunc: data => {
       const browserName = data['browser.name'];
@@ -1225,10 +1245,7 @@ export const spanOperationRelativeBreakdownRenderer = (
                   });
                   navigate({
                     pathname: location.pathname,
-                    query: {
-                      ...location.query,
-                      ...filterToLocationQuery(filter),
-                    },
+                    query: {...location.query, ...filterToLocationQuery(filter)},
                   });
                 }}
               />
@@ -1273,10 +1290,7 @@ const StyledTooltip = styled(Tooltip)`
 `;
 
 function renderReplayIdAsLink(replayId: string, {organization}: RenderFunctionBaggage) {
-  const target = makeReplaysPathname({
-    path: `/${replayId}/`,
-    organization,
-  });
+  const target = makeReplaysPathname({path: `/${replayId}/`, organization});
 
   return (
     <Container>

@@ -68,6 +68,13 @@ granular_scopes = [
     "user_preference:read",
     "user_preference:write",
 ]
+# Accepted by endpoints, but no role grants them yet.
+ungranted_scopes = [
+    "membership:read",
+    "membership:write",
+    "membership:invite",
+    "membership:admin",
+]
 non_default_owner_scopes = [
     "org:ci",
     "org:tokens",
@@ -76,6 +83,7 @@ non_default_owner_scopes = [
     "profile",
     "project:distribution",
     *granular_scopes,
+    *ungranted_scopes,
 ]
 default_owner_scopes = frozenset(
     filter(lambda scope: scope not in non_default_owner_scopes, settings.SENTRY_SCOPES)
@@ -95,8 +103,6 @@ class OrganizationSummarySerializerTest(TestCase):
             "change-alerts",
             "crash-rate-alerts",
             "custom-symbol-sources",
-            "dashboards-basic",
-            "dashboards-edit",
             "data-forwarding",
             "discover-basic",
             "discover-query",
@@ -117,6 +123,7 @@ class OrganizationSummarySerializerTest(TestCase):
             "integrations-vercel",
             "invite-members",
             "open-membership",
+            "performance-view",
             "relay",
             "session-replay-ui",
             "shared-issues",

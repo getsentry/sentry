@@ -67,8 +67,7 @@ const makeClosableHeader = (closeModal: () => void) => {
         {...props}
         as="header"
         css={(theme: Theme) => css`
-          margin: -${theme.space['3xl']} -${theme.space.xl}
-            ${theme.space['2xl']} -${theme.space['2xl']};
+          margin: -${theme.space['3xl']} -${theme.space['2xl']} ${theme.space['2xl']};
 
           @container (min-width: ${theme.container['3xl']}) {
             margin-right: -${theme.space['3xl']};

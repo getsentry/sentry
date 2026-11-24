@@ -3,6 +3,7 @@ from enum import StrEnum
 from functools import cached_property
 from typing import Any
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.services.integration.model import (
     RpcIntegration,
@@ -13,10 +14,20 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTarget,
 )
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 
 
 class NotificationTargetError(Exception):
     pass
+
+
+class NotificationTargetIntegrationNotFoundError(
+    NotificationTargetError, IntegrationConfigurationError
+):
+    """
+    The integration was uninstalled after the target was created. Providers map
+    IntegrationConfigurationError to a halt, since a retry can't succeed and we can't fix it.
+    """
 
 
 INTEGRATION_PROVIDER_KEYS = [
@@ -59,7 +70,13 @@ class PreparedIntegrationNotificationTarget[IntegrationInstallationT: Integratio
     def integration(self) -> RpcIntegration:
         integration = integration_service.get_integration(integration_id=self.target.integration_id)
         if integration is None:
-            raise NotificationTargetError(f"Integration {self.target.integration_id} not found")
+            raise NotificationTargetIntegrationNotFoundError(
+                f"Integration {self.target.integration_id} not found"
+            )
+        if integration.status != ObjectStatus.ACTIVE:
+            raise IntegrationConfigurationError(
+                f"Integration {self.target.integration_id} is not active"
+            )
         return integration
 
     @cached_property
@@ -70,8 +87,14 @@ class PreparedIntegrationNotificationTarget[IntegrationInstallationT: Integratio
         )
 
         if organization_integration is None:
-            raise NotificationTargetError(
+            raise NotificationTargetIntegrationNotFoundError(
                 f"Organization integration for integration {self.target.integration_id} and organization {self.target.organization_id} not found"
+            )
+        # A downgrade grace period ends by disabling only the org integration, so the shared
+        # integration row can still be active.
+        if organization_integration.status != ObjectStatus.ACTIVE:
+            raise IntegrationConfigurationError(
+                f"Organization integration for integration {self.target.integration_id} and organization {self.target.organization_id} is not active"
             )
         return organization_integration
 

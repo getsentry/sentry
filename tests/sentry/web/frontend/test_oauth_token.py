@@ -4,20 +4,31 @@ from datetime import timedelta
 from functools import cached_property
 from typing import TYPE_CHECKING
 from unittest import mock
+from unittest.mock import patch
 
 import pytest
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 
+from sentry.analytics.events.oauth_setup_code import OAuthSetupCodeRedeemedEvent
+from sentry.hybridcloud.models import ApiTokenReplica
+from sentry.hybridcloud.models.outbox import ControlOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apidevicecode import ApiDeviceCode
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apisetupcode import ApiSetupCode
 from sentry.models.apitoken import ApiToken
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import (
+    assert_analytics_events_recorded,
+    assert_not_analytics_event,
+)
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 if TYPE_CHECKING:
@@ -114,6 +125,43 @@ class OAuthTokenCodeTest(TestCase):
         assert isinstance(data["expires_in"], int)
         assert data["token_type"] == "Bearer"
         assert "no-store" in resp["Cache-Control"]
+
+    def test_outbox_flush_failure_returns_token(self) -> None:
+        """A failed replication flush still returns the committed token."""
+        self.login_as(self.user)
+
+        with patch.object(
+            ApiToken, "handle_async_replication", side_effect=Exception("replication failed")
+        ) as mock_replication:
+            resp = self.client.post(
+                self.path,
+                {
+                    "grant_type": "authorization_code",
+                    "redirect_uri": self.application.get_default_redirect_uri(),
+                    "code": self.grant.code,
+                    "client_id": self.application.client_id,
+                    "client_secret": self.client_secret,
+                },
+            )
+
+        mock_replication.assert_called()
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+        token = ApiToken.objects.get(token=data["access_token"])
+        assert not ApiGrant.objects.filter(id=self.grant.id).exists()
+        assert ControlOutbox.objects.filter(
+            category=OutboxCategory.API_TOKEN_UPDATE, object_identifier=token.id
+        ).exists()
+
+        # Committed but not yet replicated.
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
+
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
 
     def test_basic_auth_invalid_base64_character(self) -> None:
         self.login_as(self.user)
@@ -479,7 +527,7 @@ class OAuthTokenCodeTest(TestCase):
             redirect_uri="https://example.com",
             scope_list=["openid"],
         )
-        with self.options({"codecov.signing_secret": "signing_secret"}):
+        with self.settings(SENTRY_CODECOV_SIGNING_SECRET="signing_secret"):
             resp = self.client.post(
                 self.path,
                 {
@@ -512,7 +560,7 @@ class OAuthTokenCodeTest(TestCase):
             redirect_uri="https://example.com",
             scope_list=["openid", "profile", "email"],
         )
-        with self.options({"codecov.signing_secret": "signing_secret"}):
+        with self.settings(SENTRY_CODECOV_SIGNING_SECRET="signing_secret"):
             resp = self.client.post(
                 self.path,
                 {
@@ -536,6 +584,27 @@ class OAuthTokenCodeTest(TestCase):
             assert data["user"]["id"] == str(token.user_id)
 
             assert data["id_token"].count(".") == 2
+
+    def test_valid_params_id_token_without_signing_secret(self) -> None:
+        self.login_as(self.user)
+        open_id_grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
+            scope_list=["openid"],
+        )
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": open_id_grant.code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+        assert "id_token" not in json.loads(resp.content)
 
 
 @control_silo_test
@@ -648,6 +717,48 @@ class OAuthTokenRefreshTokenTest(TestCase):
         assert token2.token != self.token.token
         assert token2.refresh_token != self.token.refresh_token
         assert token2.refresh_token
+
+    def test_outbox_flush_failure_returns_rotated_token(self) -> None:
+        self.login_as(self.user)
+        with outbox_runner():
+            pass
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert ApiTokenReplica.objects.get(apitoken_id=self.token.id).token == self.token.token
+
+        with patch.object(
+            ApiToken, "handle_async_replication", side_effect=Exception("replication failed")
+        ) as mock_replication:
+            resp = self.client.post(
+                self.path,
+                {
+                    "grant_type": "refresh_token",
+                    "client_id": self.application.client_id,
+                    "refresh_token": self.token.refresh_token,
+                    "client_secret": self.client_secret,
+                },
+            )
+
+        mock_replication.assert_called()
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+        token = ApiToken.objects.get(id=self.token.id)
+        assert token.token != self.token.token
+        assert data["access_token"] == token.token
+        assert data["refresh_token"] == token.refresh_token
+        assert ControlOutbox.objects.filter(
+            category=OutboxCategory.API_TOKEN_UPDATE, object_identifier=token.id
+        ).exists()
+
+        # At this point, the token change has been committed, but the outbox
+        # has not been processed, so the replica should still hold the old token.
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert ApiTokenReplica.objects.get(apitoken_id=token.id).token == self.token.token
+
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert ApiTokenReplica.objects.get(apitoken_id=token.id).token == token.token
 
     def test_inactive_application_rejects_token_refresh(self) -> None:
         """Test that inactive applications cannot refresh tokens.
@@ -1417,6 +1528,45 @@ class OAuthTokenDeviceCodeTest(TestCase):
         assert token.user == self.user
         assert token.application == self.application
 
+    def test_outbox_flush_failure_returns_token(self) -> None:
+        """A failed replication flush still returns the committed token."""
+        self.device_code.status = self.DeviceCodeStatus.APPROVED
+        self.device_code.user = self.user
+        self.device_code.save()
+
+        with patch.object(
+            ApiToken, "handle_async_replication", side_effect=Exception("replication failed")
+        ) as mock_replication:
+            resp = self.client.post(
+                self.path,
+                {
+                    "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                    "device_code": self.device_code.device_code,
+                    "client_id": self.application.client_id,
+                    "client_secret": self.client_secret,
+                },
+            )
+
+        mock_replication.assert_called()
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+        token = ApiToken.objects.get(token=data["access_token"])
+        assert not ApiDeviceCode.objects.filter(id=self.device_code.id).exists()
+        assert ControlOutbox.objects.filter(
+            category=OutboxCategory.API_TOKEN_UPDATE, object_identifier=token.id
+        ).exists()
+
+        # At this point, the token change has been committed, but the outbox
+        # has not been processed, so there should be no replica.
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
+
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
+
     def test_success_with_organization(self) -> None:
         """Approved device code with org should include organization_id."""
         organization = self.create_organization(owner=self.user)
@@ -2064,7 +2214,8 @@ class OAuthTokenSetupCodeTest(TestCase):
             data["setup_code"] = code
         return self.client.post(self.path, data)
 
-    def test_exchanges_code_for_token(self) -> None:
+    @patch("sentry.analytics.record")
+    def test_exchanges_code_for_token(self, mock_record: mock.MagicMock) -> None:
         resp = self.exchange(self.code)
         assert resp.status_code == 200
         data = json.loads(resp.content)
@@ -2076,6 +2227,18 @@ class OAuthTokenSetupCodeTest(TestCase):
         assert "organization_id" not in data
         assert token.user_id == self.user.id
         assert not ApiSetupCode.objects.exists()
+        assert_analytics_events_recorded(
+            mock_record,
+            [
+                OAuthSetupCodeRedeemedEvent(
+                    user_id=self.user.id,
+                    organization_id=None,
+                    application_id=self.application.id,
+                    setup_code_id=self.setup_code.id,
+                    outcome="exchanged",
+                )
+            ],
+        )
 
     def test_code_is_single_use(self) -> None:
         assert self.exchange(self.code).status_code == 200
@@ -2084,13 +2247,26 @@ class OAuthTokenSetupCodeTest(TestCase):
         assert json.loads(resp.content) == {"error": "invalid_grant"}
         assert ApiToken.objects.filter(application=self.application).count() == 1
 
-    def test_expired_code_is_rejected_and_consumed(self) -> None:
+    @patch("sentry.analytics.record")
+    def test_expired_code_is_rejected_and_consumed(self, mock_record: mock.MagicMock) -> None:
         self.setup_code.update(expires_at=timezone.now() - timedelta(seconds=1))
         resp = self.exchange(self.code)
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_grant"}
         assert not ApiSetupCode.objects.exists()
         assert not ApiToken.objects.filter(application=self.application).exists()
+        assert_analytics_events_recorded(
+            mock_record,
+            [
+                OAuthSetupCodeRedeemedEvent(
+                    user_id=self.user.id,
+                    organization_id=None,
+                    application_id=self.application.id,
+                    setup_code_id=self.setup_code.id,
+                    outcome="expired",
+                )
+            ],
+        )
 
     def test_organization_scoped_code(self) -> None:
         organization = self.create_organization(owner=self.user)
@@ -2149,11 +2325,13 @@ class OAuthTokenSetupCodeTest(TestCase):
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_request"}
 
-    def test_invalid_setup_code(self) -> None:
+    @patch("sentry.analytics.record")
+    def test_invalid_setup_code(self, mock_record: mock.MagicMock) -> None:
         resp = self.exchange("sntryc_invalid")
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_grant"}
         assert ApiSetupCode.objects.exists()
+        assert_not_analytics_event(mock_record, OAuthSetupCodeRedeemedEvent)
 
     def test_wrong_application(self) -> None:
         other_application = ApiApplication.objects.create(

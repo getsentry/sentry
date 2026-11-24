@@ -1,3 +1,5 @@
+import {useStackedLayout} from '@sentry/scraps/form';
+
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 
 import {ControlState} from './controlState';
@@ -19,16 +21,18 @@ import type {FieldGroupProps} from './types';
 export function FieldGroup({
   className,
   disabled = false,
-  inline = true,
+  inline: inlineProp = true,
   visible = true,
   ...rest
 }: FieldGroupProps) {
-  const props = {
-    inline,
-    disabled,
-    visible,
-    ...rest,
-  };
+  // Inline rows split the width 50/50, which leaves no room for the control in
+  // narrow containers. Stack them there, at the same breakpoint as FieldLayout.Row.
+  // An `alignRight` control keeps its own width and sits left, under its label.
+  const isStackLayout = useStackedLayout();
+  const isStackedInline = inlineProp && isStackLayout;
+  const inline = inlineProp && !isStackedInline;
+
+  const props = {inline, disabled, visible, ...rest};
 
   const {
     alignRight,
@@ -110,7 +114,7 @@ export function FieldGroup({
       </FieldDescription>
       <ControlWrapper
         inline={inline}
-        alignRight={alignRight}
+        controlAlign={alignRight ? (isStackedInline ? 'start' : 'end') : undefined}
         flexibleControlStateSize={flexibleControlStateSize}
         hideControlState={hideControlState}
         controlState={controlStateElement}

@@ -172,8 +172,7 @@ def test_ingest_inline_only_event_saves_without_working_payload(
         )
 
     store.assert_not_called()
-    assert get.call_count == 1
-    assert get.call_args.kwargs == {"unprocessed": True}
+    get.assert_not_called()
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     assert event is not None
     assert event.data["logentry"]["formatted"] == "inline event"

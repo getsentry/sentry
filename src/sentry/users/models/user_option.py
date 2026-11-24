@@ -186,6 +186,8 @@ class UserOption(Model):
         - user's timezone to display timestamps
      - theme
         - dark, light, or default
+     - theme_variant_dark
+        - palette used in dark mode; see `THEME_VARIANT_DARK_CHOICES`
      - twilio:alert
         - unused
      - workflow_notifications
@@ -256,7 +258,7 @@ class UserOption(Model):
         if self.organization_id is None and self.project_id is None:
             colliding_global_user_option = self.objects.filter(
                 user=self.user, key=self.key, organization_id__isnull=True, project_id__isnull=True
-            ).first()
+            ).first()  # noqa: S035
             if colliding_global_user_option is not None:
                 return None
 

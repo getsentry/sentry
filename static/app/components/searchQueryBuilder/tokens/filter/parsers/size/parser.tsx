@@ -1,9 +1,6 @@
 import {parse} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/grammar.pegjs';
 
-type SizeTokenValue = {
-  value: string;
-  unit?: string;
-};
+type SizeTokenValue = {value: string; unit?: string};
 
 /**
  * This parser is specifically meant for parsing the value of a size filter.

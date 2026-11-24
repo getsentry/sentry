@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
@@ -101,7 +102,12 @@ export function getExpandedProjectIds(
   returnedProjectIds: number[] | null | undefined,
   selectedProjectIds: number[]
 ): number[] | undefined {
-  if (!returnedProjectIds || returnedProjectIds.length === 0) {
+  // The API resolves -1 to every accessible project, so Seer can't broaden it.
+  if (
+    !returnedProjectIds ||
+    returnedProjectIds.length === 0 ||
+    selectedProjectIds.includes(ALL_ACCESS_PROJECTS)
+  ) {
     return undefined;
   }
   const selectedSet = new Set(selectedProjectIds);
@@ -209,18 +215,12 @@ export function resolveSeerProjectSelection(
     if (allResolved && !queryHasOr(query)) {
       search.removeFilter('project');
       search.removeFilter('project.id');
-      return {
-        projectIds: Array.from(new Set(resolvedIds)),
-        query: search.formatString(),
-      };
+      return {projectIds: Array.from(new Set(resolvedIds)), query: search.formatString()};
     }
     return {projectIds: undefined, query};
   }
 
-  return {
-    projectIds: expandedProjectIds?.length ? expandedProjectIds : undefined,
-    query,
-  };
+  return {projectIds: expandedProjectIds?.length ? expandedProjectIds : undefined, query};
 }
 
 export function getCrossEventFilterQuery(crossEvent: CrossEvent): string {
@@ -469,10 +469,7 @@ const FILTER_PHRASES: ReadonlyArray<{
   // Wildcards use the wildcard markers the builder parses back into a proper
   // chip (CONTAINS / STARTS_WITH / ENDS_WITH). Negation is the `!` prefix — the
   // DoesNot* markers are display-only and aren't valid query input.
-  {
-    phrase: 'does not contain',
-    esq: (k, v) => `!${k}:${WildcardOperators.CONTAINS}${v}`,
-  },
+  {phrase: 'does not contain', esq: (k, v) => `!${k}:${WildcardOperators.CONTAINS}${v}`},
   {
     phrase: 'does not start with',
     esq: (k, v) => `!${k}:${WildcardOperators.STARTS_WITH}${v}`,
@@ -481,10 +478,7 @@ const FILTER_PHRASES: ReadonlyArray<{
     phrase: 'does not end with',
     esq: (k, v) => `!${k}:${WildcardOperators.ENDS_WITH}${v}`,
   },
-  {
-    phrase: 'does not match regex',
-    esq: (k, v) => `!${k}://${unquoteRegexPattern(v)}//`,
-  },
+  {phrase: 'does not match regex', esq: (k, v) => `!${k}://${unquoteRegexPattern(v)}//`},
   {phrase: 'matches regex', esq: (k, v) => `${k}://${unquoteRegexPattern(v)}//`},
   {phrase: 'contains', esq: (k, v) => `${k}:${WildcardOperators.CONTAINS}${v}`},
   {phrase: 'starts with', esq: (k, v) => `${k}:${WildcardOperators.STARTS_WITH}${v}`},
@@ -745,4 +739,19 @@ export function stringifyQueryForFeedback(query: QueryTokensProps): string {
     )
   );
   return JSON.stringify(filtered);
+}
+
+/**
+ * Seer's search endpoints explain access denials (AI features turned off,
+ * feature not enabled) in the 403 `detail`. Show that instead of a generic
+ * failure so users can tell an access problem from a Seer error.
+ */
+export function getAskSeerErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof RequestError && error.status === 403) {
+    const detail = error.responseJSON?.detail;
+    if (typeof detail === 'string' && detail) {
+      return detail;
+    }
+  }
+  return fallback;
 }

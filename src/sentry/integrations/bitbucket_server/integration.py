@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypedDict, cast
+from typing import Any, TypedDict
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from cryptography.hazmat.backends import default_backend
@@ -307,7 +307,7 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
     ) -> list[RepositoryInfo]:
         if not query:
             resp = self.get_client().get_repos()
-            repos = cast(BitbucketServerReposResponse, resp)
+            repos = resp
 
             return [
                 {
@@ -321,7 +321,7 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
             ]
 
         resp = self.get_client().search_repositories(query)
-        repos = cast(BitbucketServerReposResponse, resp)
+        repos = resp
 
         return [
             {

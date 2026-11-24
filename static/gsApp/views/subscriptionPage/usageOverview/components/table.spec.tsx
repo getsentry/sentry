@@ -20,7 +20,7 @@ import {DataCategory} from 'sentry/types/core';
 
 import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {OnDemandBudgetMode} from 'getsentry/types';
+import {LineItemTag, OnDemandBudgetMode} from 'getsentry/types';
 import {UsageOverviewTable} from 'getsentry/views/subscriptionPage/usageOverview/components/table';
 
 function render(ui: ReactElement) {
@@ -285,14 +285,8 @@ describe('UsageOverviewTable', () => {
       reserved: UNLIMITED_RESERVED,
       prepaid: UNLIMITED_RESERVED,
     };
-    sub.addOns!.legacySeer = {
-      ...sub.addOns!.legacySeer!,
-      enabled: true,
-    };
-    sub.addOns!.seer = {
-      ...sub.addOns!.seer!,
-      isAvailable: false,
-    };
+    sub.addOns!.legacySeer = {...sub.addOns!.legacySeer!, enabled: true};
+    sub.addOns!.seer = {...sub.addOns!.seer!, isAvailable: false};
 
     render(
       <UsageOverviewTable
@@ -326,14 +320,8 @@ describe('UsageOverviewTable', () => {
       reserved: 100,
       prepaid: 100,
     };
-    sub.addOns!.legacySeer = {
-      ...sub.addOns!.legacySeer!,
-      enabled: true,
-    };
-    sub.addOns!.seer = {
-      ...sub.addOns!.seer!,
-      isAvailable: false,
-    };
+    sub.addOns!.legacySeer = {...sub.addOns!.legacySeer!, enabled: true};
+    sub.addOns!.seer = {...sub.addOns!.seer!, isAvailable: false};
 
     render(
       <UsageOverviewTable
@@ -368,14 +356,8 @@ describe('UsageOverviewTable', () => {
       prepaid: 110,
       free: 10,
     };
-    sub.addOns!.legacySeer = {
-      ...sub.addOns!.legacySeer!,
-      isAvailable: false,
-    };
-    sub.addOns!.seer = {
-      ...sub.addOns!.seer!,
-      enabled: true,
-    };
+    sub.addOns!.legacySeer = {...sub.addOns!.legacySeer!, isAvailable: false};
+    sub.addOns!.seer = {...sub.addOns!.seer!, enabled: true};
 
     render(
       <UsageOverviewTable
@@ -396,10 +378,7 @@ describe('UsageOverviewTable', () => {
   });
 
   it('renders add-on with missing metric history', async () => {
-    subscription.addOns!.seer = {
-      ...subscription.addOns!.seer!,
-      enabled: true,
-    };
+    subscription.addOns!.seer = {...subscription.addOns!.seer!, enabled: true};
     subscription.addOns!.legacySeer = {
       ...subscription.addOns!.legacySeer!,
       isAvailable: false,
@@ -450,12 +429,7 @@ describe('UsageOverviewTable', () => {
       free: 1,
       prepaid: 1,
     };
-    sub.categories.uptime = {
-      ...sub.categories.uptime!,
-      reserved: 0,
-      free: 1,
-      prepaid: 1,
-    };
+    sub.categories.uptime = {...sub.categories.uptime!, reserved: 0, free: 1, prepaid: 1};
     SubscriptionStore.set(organization.slug, sub);
 
     render(
@@ -654,6 +628,52 @@ describe('UsageOverviewTable', () => {
     expect(
       screen.queryByTestId(`product-row-disabled-${seerUsageUid}`)
     ).not.toBeInTheDocument();
+  });
+
+  it('does not render a line item tagged as gen AI usage', async () => {
+    const seerCreditsUid = '0604d551-984d-408e-9bcd-4d490cf7dfc5';
+    const sub = SubscriptionFixture({organization, plan: 'am3_business'});
+    (sub.categories as Record<string, any>)[seerCreditsUid] = {
+      category: seerCreditsUid,
+      reserved: 500,
+      prepaid: 500,
+      free: 0,
+      usage: 0,
+      onDemandBudget: 0,
+      onDemandQuantity: 0,
+      onDemandSpendUsed: 0,
+      customPrice: null,
+      paygCpe: null,
+      softCapType: null,
+      usageExceeded: false,
+      order: 1000,
+      isDisabled: false,
+      tags: [LineItemTag.GEN_AI_USAGE],
+    };
+    sub.planDetails.categoryDisplayNames = {
+      ...sub.planDetails.categoryDisplayNames,
+      [seerCreditsUid]: {plural: 'seer credits', singular: 'seer credit'},
+    };
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <UsageOverviewTable
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    expect(screen.getByTestId('product-row-errors')).toBeInTheDocument();
+    expect(screen.queryByTestId(`product-row-${seerCreditsUid}`)).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(`product-row-disabled-${seerCreditsUid}`)
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Seer Credits')).not.toBeInTheDocument();
   });
 
   it('formats a micro-cent line item as dollars', async () => {

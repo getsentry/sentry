@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from functools import partial
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from django.db import router, transaction
 from django.db.models import QuerySet, Value
@@ -12,7 +12,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -28,6 +28,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.response_types import (
@@ -47,7 +48,6 @@ from sentry.seer.autofix.utils import (
     get_seer_project_repo,
     get_token_based_billing_project_repos,
     get_token_based_billing_repo_filter,
-    is_seer_token_based_billing_onboarding_enabled,
     replace_all_seer_project_repos,
     update_seer_project_repo,
 )
@@ -68,24 +68,36 @@ parse_search_query = partial(base_parse_search_query, config=search_config)
 
 
 class BranchOverrideResponse(TypedDict):
-    id: str
-    tagName: str
-    tagValue: str
-    branchName: str
+    id: Annotated[str, ApiDescription("ID of the branch override")]
+    tagName: Annotated[str, ApiDescription("Event tag key to match")]
+    tagValue: Annotated[str, ApiDescription("Event tag value to match")]
+    branchName: Annotated[
+        str, ApiDescription("Branch Seer uses for issues whose events have this tag value")
+    ]
 
 
 class ProjectRepoResponse(TypedDict):
-    id: str
-    repositoryId: str
-    organizationId: str
-    provider: str
-    owner: str
-    name: str
-    externalId: str
-    integrationId: str | None
-    branchName: str | None
-    branchOverrides: list[BranchOverrideResponse]
-    instructions: str | None
+    id: Annotated[str, ApiDescription("ID of the link between the project and the repository")]
+    repositoryId: Annotated[str, ApiDescription("ID of the repository")]
+    organizationId: Annotated[str, ApiDescription("ID of the organization")]
+    provider: Annotated[
+        str, ApiDescription("Provider of the repository, such as integrations:github")
+    ]
+    owner: Annotated[str, ApiDescription("Owner of the repository")]
+    name: Annotated[str, ApiDescription("Name of the repository, without the owner")]
+    externalId: Annotated[str, ApiDescription("ID of the repository in the provider")]
+    integrationId: Annotated[str | None, ApiDescription("ID of the repository's integration")]
+    branchName: Annotated[
+        str | None,
+        ApiDescription("Branch Seer uses instead of the default branch. Null when not set"),
+    ]
+    branchOverrides: Annotated[
+        list[BranchOverrideResponse],
+        ApiDescription("Deprecated. Branches Seer uses for issues with matching event tags"),
+    ]
+    instructions: Annotated[
+        str | None, ApiDescription("Instructions Seer follows when working with the repository")
+    ]
 
 
 def _serialize_project_repo(
@@ -167,7 +179,7 @@ def _validate_repo_ids(project: Project, repo_ids: list[int]) -> None:
     organization = project.organization
     repos = (
         _get_token_based_billing_repos(organization)
-        if is_seer_token_based_billing_onboarding_enabled(organization)
+        if features.has("organizations:token-billed-seer-enabled", organization)
         else _get_seat_based_billing_repos(organization)
     )
     valid_ids = set(repos.filter(id__in=repo_ids).values_list("id", flat=True))
@@ -330,10 +342,10 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
     def get(self, request: Request, project: Project, repo_id: int) -> Response:
         project_repos_qs = (
             get_token_based_billing_project_repos(project.organization, [project.id])
-            if is_seer_token_based_billing_onboarding_enabled(project.organization)
+            if features.has("organizations:token-billed-seer-enabled", project.organization)
             else _get_seat_based_billing_project_repos(project)
         )
-        project_repo = project_repos_qs.filter(repository_id=repo_id).first()
+        project_repo = project_repos_qs.filter(repository_id=repo_id).first()  # noqa: S035
         if project_repo is None:
             return Response(status=404)
 
@@ -348,7 +360,7 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
 
         seer_project_repo: SeerProjectRepository | None
         with transaction.atomic(router.db_for_write(SeerProjectRepository)):
-            if is_seer_token_based_billing_onboarding_enabled(project.organization):
+            if features.has("organizations:token-billed-seer-enabled", project.organization):
                 project_repo = (
                     get_token_based_billing_project_repos(project.organization, [project.id])
                     .filter(repository_id=repo_id)
@@ -378,7 +390,7 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
         return Response(_serialize_project_repo(project_repo, seer_project_repo))
 
     def delete(self, request: Request, project: Project, repo_id: int) -> Response:
-        if is_seer_token_based_billing_onboarding_enabled(project.organization):
+        if features.has("organizations:token-billed-seer-enabled", project.organization):
             # Under token-based billing Seer uses every linked project repo,
             # so there's nothing to remove.
             return Response({"detail": "Repositories can't be removed from Seer."}, status=400)
@@ -449,7 +461,7 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
     ) -> Response[list[ProjectRepoResponse]] | Response[DetailResponse]:
         queryset = (
             get_token_based_billing_project_repos(project.organization, [project.id])
-            if is_seer_token_based_billing_onboarding_enabled(project.organization)
+            if features.has("organizations:token-billed-seer-enabled", project.organization)
             else _get_seat_based_billing_project_repos(project)
         ).annotate(
             provider_normalized=Replace("repository__provider", Value("integrations:"), Value(""))
@@ -550,13 +562,19 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
             except ValueError as e:
                 return Response({"detail": f"Invalid repository IDs: {e.args[0]}"}, status=400)
 
-        replace_all_seer_project_repos(project, repos_data)
+        if features.has("organizations:token-billed-seer-enabled", project.organization):
+            # Every linked repo is a Seer repo, so leaving one out shouldn't drop its config.
+            add_seer_project_repos(project, repos_data)
+            audit_event = "SEER_PROJECT_REPOSITORIES_UPDATE"
+        else:
+            replace_all_seer_project_repos(project, repos_data)
+            audit_event = "SEER_PROJECT_REPOSITORIES_REPLACE"
 
         self.create_audit_entry(
             request=request,
             organization=project.organization,
             target_object=project.id,
-            event=audit_log.get_event_id("SEER_PROJECT_REPOSITORIES_REPLACE"),
+            event=audit_log.get_event_id(audit_event),
             data={
                 "project_id": project.id,
                 "project_slug": project.slug,

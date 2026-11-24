@@ -2,10 +2,14 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from rest_framework.response import Response
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_UNSPECIFIED,
+)
 
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import FEATURE_ID
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.testutils.cases import APITestCase
@@ -92,6 +96,7 @@ class SeerAdminAutofixRetryTest(APITestCase):
             step=AutofixStep.SOLUTION,
             referrer=AutofixReferrer.NIGHT_SHIFT,
             run_id=1,
+            billing_feature=SEER_BILLING_FEATURE_UNSPECIFIED,
             insert_index=2,
         )
         assert viewer_contexts == [
@@ -154,6 +159,21 @@ class SeerAdminAutofixRetryTest(APITestCase):
 
         assert response.data["results"] == [
             {"run_id": 1, "retried": False, "reason": "Failed to trigger the step"}
+        ]
+
+    def test_trigger_out_of_credits(self, mock_fetch: MagicMock, mock_trigger: MagicMock) -> None:
+        self.create_autofix_run(1)
+        mock_fetch.return_value = run_state(1, [block("root_cause")], group_id=self.group.id)
+        mock_trigger.side_effect = SeerOutOfCreditsException()
+
+        response = self.get_success_response(run_ids=[1])
+
+        assert response.data["results"] == [
+            {
+                "run_id": 1,
+                "retried": False,
+                "reason": "Organization does not have enough Seer credits",
+            }
         ]
 
     def test_invalid_payload(self, mock_fetch: MagicMock, mock_trigger: MagicMock) -> None:

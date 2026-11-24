@@ -61,8 +61,7 @@ export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
 };
 
 /**
- * A parent crumb of the trace view. Labels are plain strings so the same list
- * can feed the legacy `Breadcrumbs` and the typed `BreadcrumbList`.
+ * A parent crumb of the trace view, mapped to `BreadcrumbList` items.
  */
 export interface TraceParentCrumb {
   label: string;
@@ -112,9 +111,7 @@ function getPerformanceBreadCrumbs(
     });
   } else {
     if (!organization.features.includes('insights-to-dashboards-ui-rollout')) {
-      crumbs.push({
-        label: DOMAIN_VIEW_BASE_TITLE,
-      });
+      crumbs.push({label: DOMAIN_VIEW_BASE_TITLE});
     }
   }
 
@@ -215,9 +212,7 @@ function getInsightsModuleBreadcrumbs(
     });
   } else {
     if (!organization.features.includes('insights-to-dashboards-ui-rollout')) {
-      crumbs.push({
-        label: DOMAIN_VIEW_BASE_TITLE,
-      });
+      crumbs.push({label: DOMAIN_VIEW_BASE_TITLE});
     }
   }
 
@@ -247,9 +242,7 @@ function getInsightsModuleBreadcrumbs(
           ),
         });
       } else {
-        crumbs.push({
-          label: t('Query Summary'),
-        });
+        crumbs.push({label: t('Query Summary')});
       }
       break;
     case ModuleName.RESOURCE:
@@ -264,9 +257,7 @@ function getInsightsModuleBreadcrumbs(
           ),
         });
       } else {
-        crumbs.push({
-          label: t('Asset Summary'),
-        });
+        crumbs.push({label: t('Asset Summary')});
       }
       break;
     case ModuleName.APP_START:

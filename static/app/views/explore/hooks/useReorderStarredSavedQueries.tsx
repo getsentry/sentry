@@ -15,9 +15,7 @@ export function useReorderStarredSavedQueries() {
       fetchMutation({
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/explore/all-queries/starred/order/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-          }
+          {path: {organizationIdOrSlug: organization.slug}}
         ),
         method: 'PUT',
         data: {

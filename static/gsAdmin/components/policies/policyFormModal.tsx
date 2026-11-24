@@ -106,9 +106,7 @@ export function PolicyFormModal({
         .mutateAsync({
           url: isNewPolicy
             ? getApiUrl('/policies/')
-            : getApiUrl('/policies/$policySlug/revisions/', {
-                path: {policySlug},
-              }),
+            : getApiUrl('/policies/$policySlug/revisions/', {path: {policySlug}}),
           method: 'POST',
           data: isNewPolicy
             ? {

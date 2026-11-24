@@ -42,11 +42,7 @@ const commonOnboarding = {
             {strong: <strong />}
           ),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: getEnvSetupSnippet(params),
-        },
+        {type: 'code', language: 'bash', code: getEnvSetupSnippet(params)},
       ],
     },
     getUploadSourceMapsStep({
@@ -75,11 +71,7 @@ const commonOnboarding = {
             "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
           ),
         },
-        {
-          type: 'code',
-          language: 'javascript',
-          code: getVerifySnippet(params),
-        },
+        {type: 'code', language: 'javascript', code: getVerifySnippet(params)},
       ],
     },
   ],
@@ -92,7 +84,7 @@ const installationMethodOnboarding: Record<
   [InstallationMethod.LAMBDA_LAYER]: {
     introduction: () =>
       tct(
-        "In this quick guide you'll use set up Sentry for your AWS Lambda function. For more information visit [link:docs].",
+        "In this quick guide you'll set up Sentry for your AWS Lambda Event Function. For more information visit [link:docs].",
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/aws-lambda/install/layer/" />
@@ -110,10 +102,7 @@ const installationMethodOnboarding: Record<
               'Start off by selecting the region you want to deploy your Lambda function to.'
             ),
           },
-          {
-            type: 'custom',
-            content: <AwsLambdaArn canonical="aws-layer:node" />,
-          },
+          {type: 'custom', content: <AwsLambdaArn canonical="aws-layer:node" />},
           {
             type: 'text',
             text: tct(
@@ -130,7 +119,7 @@ const installationMethodOnboarding: Record<
   [InstallationMethod.NPM_PACKAGE]: {
     introduction: () =>
       tct(
-        'In this quick guide you’ll use set up Sentry for your AWS Lambda function. For more information visit [link:docs].',
+        'In this quick guide you’ll set up Sentry for your AWS Lambda Event Function. For more information visit [link:docs].',
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/aws-lambda/install/npm/" />
@@ -142,13 +131,8 @@ const installationMethodOnboarding: Record<
       {
         type: StepType.INSTALL,
         content: [
-          {
-            type: 'text',
-            text: t('Add the Sentry AWS Serverless SDK as a dependency'),
-          },
-          getInstallCodeBlock(params, {
-            packageName: '@sentry/aws-serverless',
-          }),
+          {type: 'text', text: t('Add the Sentry AWS Serverless SDK as a dependency')},
+          getInstallCodeBlock(params, {packageName: '@sentry/aws-serverless'}),
         ],
       },
     ],

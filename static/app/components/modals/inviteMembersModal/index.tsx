@@ -49,11 +49,7 @@ function InviteMembersModal({
     pendingInvites,
     sendingInvites,
     error,
-  } = useInviteModal({
-    initialData,
-    organization,
-    source,
-  });
+  } = useInviteModal({initialData, organization, source});
 
   if (memberResult.isPending) {
     return <LoadingIndicator />;

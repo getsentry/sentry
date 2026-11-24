@@ -6,7 +6,7 @@ import type {
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {logsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
+import {loggerLogsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
 import {metricsVerify} from 'sentry/gettingStartedDocs/dotnet/metrics';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -15,14 +15,14 @@ const getInstallSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.Maui -Version ${getPackageVersion(
   params,
   'sentry.dotnet.maui',
-  '4.3.0'
+  '7.0.0'
 )}`;
 
 const getInstallSnippetCoreCli = (params: DocsParams) => `
 dotnet add package Sentry.Maui -v ${getPackageVersion(
   params,
   'sentry.dotnet.maui',
-  '4.3.0'
+  '7.0.0'
 )}`;
 
 const getConfigureSnippet = (params: DocsParams) => `
@@ -52,13 +52,13 @@ public static MauiApp CreateMauiApp()
       }${
         params.isLogsSelected
           ? `
-      // Enable logs to be sent to Sentry
+      // Send ILogger entries to Sentry as logs
       options.EnableLogs = true;`
           : ''
       }
 
       // Other Sentry options can be set here.
-  })
+  });
 
   // ... the remainder of your MAUI app setup
 
@@ -93,9 +93,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install the [strong:NuGet] package:', {
-            strong: <strong />,
-          }),
+          text: tct('Install the [strong:NuGet] package:', {strong: <strong />}),
         },
         {
           type: 'code',
@@ -123,16 +121,10 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Then add Sentry to [code:MauiProgram.cs] through the [code:MauiAppBuilder]:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'csharp', code: getConfigureSnippet(params)},
       ],
     },
   ],
@@ -151,7 +143,7 @@ export const onboarding: OnboardingConfig = {
           language: 'csharp',
           code: 'SentrySdk.CaptureMessage("Hello Sentry");',
         },
-        logsVerify(params),
+        loggerLogsVerify(params),
         metricsVerify(params),
       ],
     },

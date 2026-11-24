@@ -115,6 +115,8 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     # Top-level structures ("interfaces")
     # sentry_user is a special field added for on-demand metrics
     # https://github.com/getsentry/relay/pull/3122
+    # No longer emitted by Relay but kept here see:
+    # https://github.com/getsentry/sentry/pull/130901
     "user": "sentry_user",
     "user.email": "user.email",
     "user.id": "user.id",
@@ -1395,7 +1397,7 @@ class OnDemandMetricSpec:
         return rule_condition
 
     def _extend_parsed_query(self, parsed_query_result: QueryParsingResult) -> QueryParsingResult:
-        conditions = cast(list[QueryToken], parsed_query_result.conditions)
+        conditions = parsed_query_result.conditions
 
         new_conditions: list[QueryToken] = []
         if self.environment is not None:

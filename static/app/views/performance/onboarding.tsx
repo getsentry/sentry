@@ -1,8 +1,9 @@
 import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
 import {createSerializer, parseAsInteger, parseAsString, useQueryState} from 'nuqs';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
 import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
@@ -57,21 +58,19 @@ import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
-import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
-import {useTracesApiOptions} from 'sentry/views/explore/hooks/useTraces';
 
 import {traceAnalytics} from './traceDetails/traceAnalytics';
+import {useFirstTrace} from './useFirstTrace';
 
 const performanceSetupUrl =
   'https://docs.sentry.io/performance-monitoring/getting-started/';
@@ -144,10 +143,7 @@ export const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-type OnboardingProps = {
-  organization: Organization;
-  project: Project;
-};
+type OnboardingProps = {organization: Organization; project: Project};
 
 export function LegacyOnboarding({organization, project}: OnboardingProps) {
   const {projects} = useProjects();
@@ -165,19 +161,11 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
   }, [location.hash, projectsForOnboarding, project.id]);
 
   function handleAdvance(step: number, duration: number) {
-    trackAnalytics('performance_views.tour.advance', {
-      step,
-      duration,
-      organization,
-    });
+    trackAnalytics('performance_views.tour.advance', {step, duration, organization});
   }
 
   function handleClose(step: number, duration: number) {
-    trackAnalytics('performance_views.tour.close', {
-      step,
-      duration,
-      organization,
-    });
+    trackAnalytics('performance_views.tour.close', {step, duration, organization});
   }
 
   const currentPlatform = project.platform;
@@ -417,34 +405,29 @@ const serializeTraceRedirect = createSerializer({
   guidedStep: parseAsInteger,
 });
 
-export function Onboarding({organization, project}: OnboardingProps) {
+type TraceOnboardingProps = OnboardingProps & {onFirstTraceReady?: () => void};
+
+export function Onboarding({
+  organization,
+  project,
+  onFirstTraceReady,
+}: TraceOnboardingProps) {
   const theme = useTheme();
   const api = useApi();
   const [guidedStep, setGuidedStep] = useQueryState('guidedStep', parseAsInteger);
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
 
   const noPerformanceSupport = doesNotSupportPerformance(project);
 
-  const firstIssue = useEventWaiter({
-    eventType: 'transaction',
+  const {received, traceId} = useFirstTrace({
     organization,
     project,
     disabled: noPerformanceSupport,
+    onReady: onFirstTraceReady,
   });
-  const received = !!firstIssue;
-
-  const tracesQuery = useQuery({
-    ...useTracesApiOptions({
-      limit: 1,
-      sort: 'timestamp',
-    }),
-    enabled: received,
-    refetchInterval: query => {
-      const trace = query.state.data?.json?.data?.[0]?.trace;
-      return trace ? false : 5000; // 5s
-    },
-  });
-  const traceId = tracesQuery.data?.data[0]?.trace;
 
   const currentPlatform = project.platform
     ? platforms.find(p => p.id === project.platform)
@@ -549,10 +532,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
     isPerformanceSelected: true,
     isProfilingSelected: false,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
     feedbackOptions: {},
     urlPrefix,

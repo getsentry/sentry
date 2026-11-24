@@ -6,9 +6,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 
-type Props = {
-  replayId?: string;
-};
+type Props = {replayId?: string};
 
 export function OpenInLogsButton({replayId}: Props) {
   const organization = useOrganization();
@@ -26,11 +24,7 @@ export function OpenInLogsButton({replayId}: Props) {
     query = `${existingQuery}replay_id:${replayId}`;
   }
 
-  const url = getLogsUrl({
-    organization,
-    selection,
-    query,
-  });
+  const url = getLogsUrl({organization, selection, query});
 
   return (
     <LinkButton size="md" to={url}>

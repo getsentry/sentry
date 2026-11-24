@@ -67,12 +67,7 @@ export function useTransactionAsSpans({
         SpanFields.DEVICE_MODEL,
         SpanFields.DEVICE_MANUFACTURER,
       ],
-      sorts: [
-        {
-          field: SpanFields.PRECISE_START_TS,
-          kind: 'asc',
-        },
-      ],
+      sorts: [{field: SpanFields.PRECISE_START_TS, kind: 'asc'}],
       pageFilters: startEndToPageFilters({start, end, projectIds}),
       queryWithoutPageFilters: true,
       // We're querying by specific IDs here and need complete results, so we
@@ -114,13 +109,7 @@ export function useTransactionAsSpans({
     }
   }, [result.dataUpdatedAt]);
 
-  return {
-    ...result,
-    data: {
-      childSpans,
-      transactionSpan,
-    },
-  };
+  return {...result, data: {childSpans, transactionSpan}};
 }
 
 const PADDING_SECONDS = 60; // 1 minute
