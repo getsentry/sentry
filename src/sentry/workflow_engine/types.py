@@ -429,14 +429,26 @@ class FeatureGate:
 APIGate: TypeAlias = bool | FeatureGate
 
 
-class DetectorSettings:
+ALL_API_OPERATIONS_AVAILABLE: Mapping[WorkflowEngineAPIOperation, APIGate] = MappingProxyType(
+    {operation: True for operation in WorkflowEngineAPIOperation}
+)
+
+NO_API_OPERATIONS_AVAILABLE: Mapping[WorkflowEngineAPIOperation, APIGate] = MappingProxyType(
+    {operation: False for operation in WorkflowEngineAPIOperation}
+)
+
+
+class BaseWorkflowEngineSettings:
     DEFAULT_API_AVAILABILITY: ClassVar[Mapping[WorkflowEngineAPIOperation, APIGate]] = (
-        MappingProxyType({operation: True for operation in WorkflowEngineAPIOperation})
+        ALL_API_OPERATIONS_AVAILABLE
     )
 
     api_availability: ClassVar[Mapping[WorkflowEngineAPIOperation, APIGate]] = (
         DEFAULT_API_AVAILABILITY
     )
+
+
+class DetectorSettings(BaseWorkflowEngineSettings):
     handler: ClassVar[type[BaseDetectorHandler[Any, Any]] | None] = None
     validator: ClassVar[type[BaseDetectorTypeValidator] | None] = None
     # None preserves legacy detectors whose configuration is validated outside this model.
