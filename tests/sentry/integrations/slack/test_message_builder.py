@@ -939,6 +939,22 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert isinstance(ret, dict)
         assert "<https://example.com/|*Click Here*>" in ret["blocks"][1]["text"]["text"]
 
+    def test_multiline_title_collapsed_to_single_line(self) -> None:
+        group = self.create_group(
+            project=self.project,
+            data={
+                "type": "default",
+                "title": "User Feedback: first line\nsecond line",
+                # build_attachment_text() reads group.data["metadata"]
+                "metadata": {},
+            },
+        )
+        ret = SlackIssuesMessageBuilder(group, None).build()
+        assert isinstance(ret, dict)
+        title_text = ret["blocks"][0]["text"]["text"]
+        assert "\n" not in title_text
+        assert "User Feedback: first line second line" in title_text
+
     def test_compact_alerts_basic_layout(self) -> None:
         """
         Test that the message uses a compact layout:
