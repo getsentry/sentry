@@ -1,6 +1,8 @@
+import {Fragment} from 'react';
+
 import {Badge} from '@sentry/scraps/badge';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -12,19 +14,34 @@ import {prettifyTagKey} from 'sentry/utils/fields';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
 import {getDatasetLabel} from './datasetLabels';
-import {FILTER_SELECTOR_TRIGGER_MAX_WIDTH} from './settings';
+import {
+  FILTER_SELECTOR_TOOLTIP_MAX_WIDTH,
+  FILTER_SELECTOR_TRIGGER_MAX_WIDTH,
+} from './settings';
+
+export type FilterSelectorDescription = {values: string[]; operator?: string};
 
 type FilterSelectorTriggerButtonProps = React.ComponentProps<
   typeof OverlayTrigger.Button
-> & {globalFilter: GlobalFilter; showDatasetLabel?: boolean};
+> & {
+  /**
+   * The full, untruncated filter, shown in the tooltip because the trigger
+   * ellipsizes long keys and values.
+   */
+  description: FilterSelectorDescription;
+  globalFilter: GlobalFilter;
+  showDatasetLabel?: boolean;
+};
 
 /**
  * Trigger button shared by all global filter selectors. Always shows the
- * filter's dataset in a tooltip, and optionally inline as a muted prefix (used
- * to disambiguate filters on the same key across different datasets).
+ * filter's dataset and full description in a tooltip, and optionally the
+ * dataset inline as a muted prefix (used to disambiguate filters on the same
+ * key across different datasets).
  */
 export function FilterSelectorTriggerButton({
   globalFilter,
+  description,
   showDatasetLabel,
   children,
   ...triggerProps
@@ -33,7 +50,25 @@ export function FilterSelectorTriggerButton({
 
   return (
     <Tooltip
-      title={t('%s Filter', datasetLabel)}
+      title={
+        <Fragment>
+          <Tooltip.Header>{t('%s Filter', datasetLabel)}</Tooltip.Header>
+          <Tooltip.Grid>
+            <Stack gap="xs">
+              <Text bold>{prettifyTagKey(globalFilter.tag.key)}</Text>
+              {description.operator && (
+                <Text variant="muted">{description.operator}</Text>
+              )}
+              {description.values.map((value, index) => (
+                <Text key={index} variant="accent">
+                  {value}
+                </Text>
+              ))}
+            </Stack>
+          </Tooltip.Grid>
+        </Fragment>
+      }
+      maxWidth={FILTER_SELECTOR_TOOLTIP_MAX_WIDTH}
       // The open menu already shows the dataset in its title
       disabled={!!triggerProps['aria-expanded']}
       skipWrapper
@@ -58,6 +93,30 @@ type FilterSelectorTriggerProps = {
   operator: TermOperator;
   options: Array<SelectOption<string>>;
 };
+
+/**
+ * Untruncated version of `FilterSelectorTrigger` for its tooltip.
+ */
+export function getFilterSelectorDescription({
+  activeFilterValues,
+  operator,
+  options,
+}: Omit<FilterSelectorTriggerProps, 'globalFilter'>): FilterSelectorDescription {
+  if (activeFilterValues.length === 0) {
+    return {values: [t('All')]};
+  }
+
+  // Prefer `textValue`: long values get a middle-ellipsized `label`
+  const values = activeFilterValues.map(value => {
+    const option = options.find(opt => opt.value === value);
+    if (option?.textValue) {
+      return option.textValue;
+    }
+    return typeof option?.label === 'string' && option.label ? option.label : value;
+  });
+
+  return {operator: OP_LABELS[operator], values};
+}
 
 export function FilterSelectorTrigger({
   globalFilter,

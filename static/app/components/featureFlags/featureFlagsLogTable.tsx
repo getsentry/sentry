@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {parseAsString, useQueryState} from 'nuqs';
 
@@ -23,6 +23,7 @@ interface FeatureFlagsLogTableProps {
   isPending: boolean;
   pageLinks: string | null;
   cursorKeyName?: string;
+  emptyMessage?: ReactNode;
   highlightedRowKey?: number;
   onResizeColumn?: (columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => void;
   onRowMouseOut?: (dataRow: RawFlag, key: number) => void;
@@ -32,6 +33,7 @@ interface FeatureFlagsLogTableProps {
 export function FeatureFlagsLogTable({
   columns,
   cursorKeyName = 'cursor',
+  emptyMessage,
   flags,
   isPending,
   error,
@@ -67,6 +69,7 @@ export function FeatureFlagsLogTable({
         isLoading={isPending}
         data={flags ?? []}
         columnOrder={columns}
+        emptyMessage={emptyMessage}
         fit="max-content"
         grid={{renderBodyCell, onResizeColumn}}
         onRowMouseOver={onRowMouseOver}

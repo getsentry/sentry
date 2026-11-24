@@ -435,7 +435,7 @@ def test_attachments_and_userfeedback(
                 blob_path=":hello world",
             )
 
-        _create_user_report(cast("Event", evt))
+        _create_user_report(evt)
 
     with BurstTaskRunner() as burst:
         assert event.group_id

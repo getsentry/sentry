@@ -24,10 +24,6 @@ export const preferRelativeChildImports = defineRule({
     },
   },
   create(context) {
-    if (context.filename === '<input>' || context.filename === '<text>') {
-      return {};
-    }
-
     const options = (context.options[0] ?? {}) as Options;
     const root = path.resolve(process.cwd(), options.rootDir ?? 'static/app');
     const directory = path.relative(root, path.dirname(path.resolve(context.filename)));
@@ -45,10 +41,6 @@ export const preferRelativeChildImports = defineRule({
 
     return {
       ImportDeclaration(node) {
-        if (node.source.type !== 'Literal' || typeof node.source.value !== 'string') {
-          return;
-        }
-
         const importPath = node.source.value;
         if (!importPath.startsWith(`${directoryAlias}/`)) {
           return;

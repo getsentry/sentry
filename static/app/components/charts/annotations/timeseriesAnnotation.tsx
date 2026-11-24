@@ -28,7 +28,7 @@ type TimeseriesAnnotationSeverity = 'low' | 'medium' | 'high';
 
 /**
  * An external event that could explain a change in telemetry data, as
- * returned by `/organizations/{org}/annotations/`.
+ * returned by `/organizations/{org}/timeseries-annotations/`.
  */
 export interface TimeseriesAnnotation {
   annotationType: TimeseriesAnnotationType;
@@ -47,4 +47,14 @@ export interface TimeseriesAnnotation {
   severity: TimeseriesAnnotationSeverity;
   startTimestamp: string;
   tags: Record<string, unknown> | null;
+}
+
+export function timeseriesAnnotationEnd({
+  intervalType,
+  endTimestamp,
+}: TimeseriesAnnotation): number | 'ongoing' | undefined {
+  if (endTimestamp) {
+    return new Date(endTimestamp).getTime();
+  }
+  return intervalType === 'range' ? 'ongoing' : undefined;
 }

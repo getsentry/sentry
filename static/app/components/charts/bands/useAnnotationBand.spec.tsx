@@ -150,6 +150,24 @@ describe('useAnnotationBand', () => {
     expect(onClick).toHaveBeenLastCalledWith([]);
   });
 
+  it('counts ranges that started before the chart and are still running in the first bucket', () => {
+    const onClick = jest.fn();
+    const ongoing: AnnotationItem = {
+      id: 'ongoing',
+      kind: 'timeseriesAnnotation',
+      start: -5 * MINUTE,
+      end: 'ongoing',
+      title: 'Ingestion outage',
+    };
+    const ended: AnnotationItem = {...ongoing, id: 'ended', end: -2 * MINUTE};
+    const {result} = renderHookWithProviders(() =>
+      useAnnotationBand({buckets, items: [ongoing, ended], onClick})
+    );
+
+    result.current!.onClick?.(0);
+    expect(onClick).toHaveBeenCalledWith([ongoing]);
+  });
+
   it('counts each kind in the band on its own tooltip row', () => {
     const flag: AnnotationItem = {
       id: 'flag-1',

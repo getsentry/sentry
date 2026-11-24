@@ -9,6 +9,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
+import type {TimeseriesAnnotation} from './annotations/timeseriesAnnotation';
 import type {AnnotationItem} from './annotations/types';
 import {useChartLayers} from './useChartLayers';
 
@@ -48,6 +49,7 @@ describe('useChartLayers', () => {
     expect(result.current.layerControl?.layers).toEqual([
       expect.objectContaining({value: 'dropped-data', label: 'Dropped Spans'}),
     ]);
+    expect(result.current.showConfidence).toBe(false);
   });
 
   it.each(['explore', 'dashboards'] as const)(
@@ -118,22 +120,62 @@ describe('useChartLayers', () => {
       action: 'updated',
     };
 
+    const change: TimeseriesAnnotation = {
+      id: '7',
+      organizationId: '1',
+      projectId: null,
+      environmentId: null,
+      startTimestamp: '2026-11-03T14:00:00Z',
+      endTimestamp: null,
+      intervalType: 'range',
+      annotationType: 'sentry_outage',
+      scope: 'global',
+      severity: 'high',
+      description: 'Ingestion outage',
+      tags: null,
+      createdBy: null,
+      createdByLabel: 'statuspage',
+      dateAdded: '2026-11-03T14:00:00Z',
+      dateUpdated: '2026-11-03T14:00:00Z',
+    };
+    const changeAnnotation: AnnotationItem = {
+      id: 'timeseriesAnnotation:7',
+      kind: 'timeseriesAnnotation',
+      start: new Date('2026-11-03T14:00:00Z').getTime(),
+      end: 'ongoing',
+      title: 'Ingestion outage',
+      annotationType: 'sentry_outage',
+      environmentId: null,
+      severity: 'high',
+    };
+
     let flagLogRequest: jest.Mock;
+    let annotationsRequest: jest.Mock;
 
     function renderAnnotationsHook({
       releases,
       flags,
+      changes = [],
     }: {
       flags: RawFlag[];
       releases: Array<{date: string; version: string}>;
+      changes?: TimeseriesAnnotation[];
     }) {
       MockApiClient.addMockResponse({
         url: `/organizations/${annotationsOrganization.slug}/releases/stats/`,
         body: releases,
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${annotationsOrganization.slug}/releases/`,
+        body: [],
+      });
       flagLogRequest = MockApiClient.addMockResponse({
         url: `/organizations/${annotationsOrganization.slug}/flags/logs/`,
         body: {data: flags},
+      });
+      annotationsRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${annotationsOrganization.slug}/timeseries-annotations/`,
+        body: changes,
       });
 
       return renderHookWithProviders(
@@ -157,7 +199,27 @@ describe('useChartLayers', () => {
         expect.objectContaining({value: 'dropped-data'}),
         expect.objectContaining({value: 'releases', selected: true}),
         expect.objectContaining({value: 'flags', label: 'Flags', selected: true}),
+        expect.objectContaining({value: 'changes', disabled: true}),
       ]);
+    });
+
+    it('feeds timeseries annotations for the chart scope into the annotations band', async () => {
+      const {result} = renderAnnotationsHook({
+        releases: [],
+        flags: [],
+        changes: [change],
+      });
+
+      await waitFor(() => expect(result.current.annotations).toEqual([changeAnnotation]));
+      expect(result.current.layerControl?.layers).toContainEqual(
+        expect.objectContaining({value: 'changes', label: 'Changes', selected: true})
+      );
+      expect(annotationsRequest).toHaveBeenCalledWith(
+        `/organizations/${annotationsOrganization.slug}/timeseries-annotations/`,
+        expect.objectContaining({
+          query: expect.objectContaining({scope: ['spans', 'global']}),
+        })
+      );
     });
 
     it('requests the flag log in a stable order so its pages line up', async () => {
@@ -270,5 +332,41 @@ describe('useChartLayers', () => {
 
     expect(result.current.layerControl).toBeUndefined();
     expect(droppedDataRequest).not.toHaveBeenCalled();
+  });
+
+  it('toggles and tracks low-confidence markers from the Confidence layer', async () => {
+    const confidenceOrganization = OrganizationFixture({
+      features: [
+        'explore-data-fidelity-annotations',
+        'data-browsing-time-series-confidence',
+      ],
+    });
+    const {result} = renderHookWithProviders(
+      () =>
+        useChartLayers({
+          dataset: DiscoverDatasets.SPANS,
+          interval: '1h',
+          source: 'explore',
+        }),
+      {organization: confidenceOrganization}
+    );
+
+    await waitFor(() =>
+      expect(result.current.layerControl?.layers.map(layer => layer.value)).toEqual([
+        'dropped-data',
+        'confidence',
+      ])
+    );
+    expect(result.current.showConfidence).toBe(true);
+
+    act(() => result.current.layerControl!.onChange('confidence', false));
+
+    expect(result.current.showConfidence).toBe(false);
+    expect(result.current.droppedData.band).toBeDefined();
+    expect(trackAnalytics).toHaveBeenCalledWith('explore.confidence.layer_toggled', {
+      organization: confidenceOrganization,
+      source: 'explore',
+      selected: false,
+    });
   });
 });

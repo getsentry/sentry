@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {DEFAULT_QUERY, FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
+import {DEFAULT_QUERY} from 'sentry/views/issueList/utils';
 
 import {NoIssuesMatched} from './noIssuesMatched';
 import {NoUnresolvedIssues} from './noUnresolvedIssues';
@@ -169,17 +169,6 @@ function EmptyResult({emptyMessage, query}: EmptyResultProps) {
       <NoUnresolvedIssues
         title={t("We couldn't find any issues that matched your filters.")}
         subtitle={t('Get out there and write some broken code!')}
-      />
-    );
-  }
-
-  if (FOR_REVIEW_QUERIES.includes(query || '')) {
-    return (
-      <NoUnresolvedIssues
-        title={t('Well, would you look at that.')}
-        subtitle={t(
-          'No more issues to review. Better get back out there and write some broken code.'
-        )}
       />
     );
   }

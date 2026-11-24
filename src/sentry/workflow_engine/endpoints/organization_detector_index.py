@@ -44,6 +44,11 @@ from sentry.auth.principal import RequestPrincipal
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.exceptions import InvalidSearchQuery
+from sentry.incidents.metric_detector_quota import (
+    can_enable_metric_detectors,
+    get_metric_detector_quota,
+    metric_detector_quota_message,
+)
 from sentry.issues.issue_search import convert_actor_or_none_value
 from sentry.models.group import GroupStatus
 from sentry.models.organization import Organization
@@ -472,6 +477,20 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         # Check if the user has edit permissions for all detectors
         if not can_edit_detectors(queryset, request):
             raise PermissionDenied
+
+        if enabled:
+            metric_detectors_to_enable = sum(
+                1
+                for detector in queryset
+                if detector.type == DetectorType.METRIC_ISSUE and not detector.enabled
+            )
+            if metric_detectors_to_enable:
+                quota = get_metric_detector_quota(organization, actor=request.user)
+                if not can_enable_metric_detectors(quota, metric_detectors_to_enable):
+                    return Response(
+                        {"detail": metric_detector_quota_message(quota)},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
         seat_detectors = [
             detector

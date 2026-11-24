@@ -8,9 +8,9 @@ from sentry.shared_integrations.response.base import BaseApiResponse
 API_VERSION = "/api/v4"
 
 
-def build_integration_external_id(hostname: str, group_id: int | str, organization_id: int) -> str:
-    # group_id is a GitLab group number, or "_instance_" on a legacy instance-wide id.
-    return f"{hostname}:{group_id}-{organization_id}"
+def build_integration_external_id(hostname: str, group_id: int | None, organization_id: int) -> str:
+    scope = group_id if group_id is not None else "_instance_"
+    return f"{hostname}:{scope}-{organization_id}"
 
 
 class GitLabRateLimitInfo:

@@ -17,6 +17,8 @@ import type {ChartLayer, ChartLayersControlProps} from './chartLayersControl';
 
 const RELEASES_LAYER = 'releases';
 const FLAGS_LAYER = 'flags';
+const CONFIDENCE_LAYER = 'confidence';
+const CHANGES_LAYER = 'changes';
 
 interface UseChartLayersParams {
   dataset: DiscoverDatasets;
@@ -40,9 +42,11 @@ export function useChartLayers({
   const organization = useOrganization();
   const areAnnotationsEnabled =
     enabled && organization.features.includes('timeseries-annotations');
-  const {release: releaseItems, flag: flagItems} = useAnnotationItems({
-    enabled: areAnnotationsEnabled,
-  });
+  const {
+    release: releaseItems,
+    flag: flagItems,
+    timeseriesAnnotation: changeItems,
+  } = useAnnotationItems({dataset, interval, enabled: areAnnotationsEnabled});
 
   const [isReleasesLayerOn, setIsReleasesLayerOn] = useState(true);
   const hasReleases = (releaseItems?.length ?? 0) > 0;
@@ -54,13 +58,23 @@ export function useChartLayers({
   const isFlagsLayerSelected = hasFlags && isFlagsLayerOn;
   const areFlagsShown = isFlagsLayerSelected && !hidden;
 
+  const [isChangesLayerOn, setIsChangesLayerOn] = useState(true);
+  const hasChanges = (changeItems?.length ?? 0) > 0;
+  const isChangesLayerSelected = hasChanges && isChangesLayerOn;
+  const areChangesShown = isChangesLayerSelected && !hidden;
+
   const annotationKinds = useMemo(
     (): AnnotationKind[] => [
       ...(isReleasesLayerSelected ? ['release' as const] : []),
       ...(isFlagsLayerSelected ? ['flag' as const] : []),
+      ...(isChangesLayerSelected ? ['timeseriesAnnotation' as const] : []),
     ],
-    [isReleasesLayerSelected, isFlagsLayerSelected]
+    [isReleasesLayerSelected, isFlagsLayerSelected, isChangesLayerSelected]
   );
+
+  const isConfidenceEnabled =
+    enabled && organization.features.includes('data-browsing-time-series-confidence');
+  const [isConfidenceLayerOn, setIsConfidenceLayerOn] = useState(true);
 
   const droppedData = useDroppedDataLayer(
     {dataset, interval},
@@ -71,9 +85,17 @@ export function useChartLayers({
     const items: AnnotationItem[] = [
       ...(areReleasesShown ? (releaseItems ?? []) : []),
       ...(areFlagsShown ? (flagItems ?? []) : []),
+      ...(areChangesShown ? (changeItems ?? []) : []),
     ];
     return items.length > 0 ? items : undefined;
-  }, [areReleasesShown, releaseItems, areFlagsShown, flagItems]);
+  }, [
+    areReleasesShown,
+    releaseItems,
+    areFlagsShown,
+    flagItems,
+    areChangesShown,
+    changeItems,
+  ]);
 
   const releasesLayer: ChartLayer | undefined =
     areAnnotationsEnabled && defined(releaseItems)
@@ -97,21 +119,53 @@ export function useChartLayers({
         }
       : undefined;
 
+  const confidenceLayer: ChartLayer | undefined = isConfidenceEnabled
+    ? {value: CONFIDENCE_LAYER, label: t('Confidence'), selected: isConfidenceLayerOn}
+    : undefined;
+
+  const changesLayer: ChartLayer | undefined =
+    areAnnotationsEnabled && defined(changeItems)
+      ? {
+          value: CHANGES_LAYER,
+          label: t('Changes'),
+          selected: isChangesLayerSelected,
+          disabled: !hasChanges,
+          tooltip: hasChanges ? undefined : t('No changes in this time range'),
+        }
+      : undefined;
+
   const layers = [
     ...(droppedData.layerControl?.layers ?? []),
+    confidenceLayer,
     releasesLayer,
     flagsLayer,
+    changesLayer,
   ].filter(defined);
 
   function onLayerChange(value: string, selected: boolean) {
     if (value === DROPPED_DATA_LAYER) {
       droppedData.layerControl?.onChange(value, selected);
+    } else if (value === CONFIDENCE_LAYER) {
+      setIsConfidenceLayerOn(selected);
+      trackAnalytics('explore.confidence.layer_toggled', {
+        organization,
+        source,
+        selected,
+      });
     } else if (value === RELEASES_LAYER) {
       setIsReleasesLayerOn(selected);
       trackAnalytics('releases.bubbles_legend', {organization, selected});
     } else if (value === FLAGS_LAYER) {
       setIsFlagsLayerOn(selected);
       trackAnalytics('flags.layer_toggled', {organization, selected});
+    } else if (value === CHANGES_LAYER) {
+      setIsChangesLayerOn(selected);
+      trackAnalytics('explore.chart_context.changes_layer_toggled', {
+        organization,
+        dataset,
+        source,
+        selected,
+      });
     }
   }
 
@@ -124,5 +178,11 @@ export function useChartLayers({
     [openContextDrawer]
   );
 
-  return {droppedData, annotations, layerControl, onAnnotationClick};
+  return {
+    droppedData,
+    annotations,
+    layerControl,
+    onAnnotationClick,
+    showConfidence: isConfidenceEnabled && isConfidenceLayerOn,
+  };
 }

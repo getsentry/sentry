@@ -29,6 +29,7 @@ import {
   USAGE_OVERVIEW_PANEL_HEADER_HEIGHT,
 } from 'getsentry/views/subscriptionPage/usageOverview/constants';
 import type {UsageOverviewProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
+import {isShownInUsageOverview} from 'getsentry/views/subscriptionPage/usageOverview/utils';
 
 export function UsageOverview({
   subscription,
@@ -62,13 +63,14 @@ export function UsageOverview({
             ]?.dataCategories.every(category =>
               checkIsAddOnChildCategory(subscription, category, true)
             )
-          : metricHistory?.isDisabled === false ||
-            (metricHistory?.prepaid ?? 0) !== 0 ||
-            !!metricHistory?.softCapType ||
-            !!getActiveProductTrial(subscription.productTrials ?? null, dataCategory) ||
-            (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED
-              ? subscription.onDemandBudgets.sharedMaxBudget
-              : (subscription.onDemandBudgets?.budgets?.[dataCategory] ?? 0)) > 0;
+          : isShownInUsageOverview(metricHistory) &&
+            (metricHistory?.isDisabled === false ||
+              (metricHistory?.prepaid ?? 0) !== 0 ||
+              !!metricHistory?.softCapType ||
+              !!getActiveProductTrial(subscription.productTrials ?? null, dataCategory) ||
+              (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED
+                ? subscription.onDemandBudgets.sharedMaxBudget
+                : (subscription.onDemandBudgets?.budgets?.[dataCategory] ?? 0)) > 0);
         if (isSelectable) {
           // oxlint-disable-next-line react/set-state-in-effect
           setSelectedProduct(

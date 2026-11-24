@@ -74,6 +74,11 @@ build-api-docs: build-deprecated-docs build-spectacular-docs
 	@echo "--> Dereference the json schema for ease of use"
 	pnpm run deref-api-docs
 
+# Records the undocumented API responses from a test run with SENTRY_OPENAPI_RESPONSE_CHECK=report
+# in tests/apidocs/openapi-response-baseline.json. Only the endpoint methods the run called change.
+api-response-baseline:
+	@python3 -m tools.openapi_response_baseline $(ARGS)
+
 # The internal RPC method schema, which CI's openapi-diff checks for breaking changes.
 # It also ships with @sentry/api releases (static/packages/api) next to the API spec.
 build-rpc-schema:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, TypedDict, cast
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -66,18 +66,12 @@ class FlagWebhookSigningSecretValidator(serializers.Serializer):
                 raise serializers.ValidationError(
                     "Ensure this field is of the format webhook-<hash>"
                 )
-            return cast(
-                "str", serializers.CharField(min_length=32, max_length=64).run_validation(value)
-            )
+            return serializers.CharField(min_length=32, max_length=64).run_validation(value)
 
         if self.initial_data.get("provider") == "generic":
-            return cast(
-                "str", serializers.CharField(min_length=10, max_length=64).run_validation(value)
-            )
+            return serializers.CharField(min_length=10, max_length=64).run_validation(value)
 
-        return cast(
-            "str", serializers.CharField(min_length=32, max_length=32).run_validation(value)
-        )
+        return serializers.CharField(min_length=32, max_length=32).run_validation(value)
 
 
 @cell_silo_endpoint

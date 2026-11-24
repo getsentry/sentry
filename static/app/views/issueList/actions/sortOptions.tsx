@@ -7,15 +7,10 @@ import {
 } from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
-import {
-  FOR_REVIEW_QUERIES,
-  getSortLabel,
-  IssueSortOptions,
-} from 'sentry/views/issueList/utils';
+import {getSortLabel, IssueSortOptions} from 'sentry/views/issueList/utils';
 
 type Props = {
   onSelect: (sort: string) => void;
-  query: string;
   sort: string;
   className?: string;
   showIcon?: boolean;
@@ -24,8 +19,6 @@ type Props = {
 
 function getSortTooltip(key: IssueSortOptions) {
   switch (key) {
-    case IssueSortOptions.INBOX:
-      return t('When issue was flagged for review.');
     case IssueSortOptions.NEW:
       return t('First time the issue occurred.');
     case IssueSortOptions.TRENDS:
@@ -50,7 +43,6 @@ export function IssueListSortOptions({
   className,
   onSelect,
   sort,
-  query,
   triggerSize = 'xs',
   showIcon = true,
 }: Props) {
@@ -64,7 +56,6 @@ export function IssueListSortOptions({
     : sort || IssueSortOptions.DATE;
   const sortKeys = [
     IssueSortOptions.RECOMMENDED,
-    ...(FOR_REVIEW_QUERIES.includes(query || '') ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
     IssueSortOptions.TRENDS,

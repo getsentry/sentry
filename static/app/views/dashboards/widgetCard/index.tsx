@@ -55,6 +55,7 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
+import {BreakdownTotal} from './breakdownTotal';
 import {useWidgetChartLayers} from './useWidgetChartLayers';
 import {VisualizationWidget} from './visualizationWidget';
 import {WidgetCardChartContainer} from './widgetCardChartContainer';
@@ -132,6 +133,7 @@ const widgetViewerParsers = Object.fromEntries(
 );
 
 type Data = {
+  breakdownTotal?: number | null;
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   isSampled?: boolean | null;
@@ -268,6 +270,9 @@ function WidgetCard(props: Props) {
   });
 
   const onDataFetchStart = useCallback(() => {
+    // Hide the previous period's total until the new one loads.
+    setData(prevData => prevData && {...prevData, breakdownTotal: undefined});
+
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -394,6 +399,20 @@ function WidgetCard(props: Props) {
     );
   };
 
+  const breakdownTotalAggregate = widget.queries[0]?.aggregates[0];
+  const breakdownTotalMeta = data?.timeseriesResults?.[0]?.timeSeries.meta;
+  const breakdownTotal =
+    data?.breakdownTotal !== undefined &&
+    breakdownTotalAggregate &&
+    breakdownTotalMeta ? (
+      <BreakdownTotal
+        aggregate={breakdownTotalAggregate}
+        meta={breakdownTotalMeta}
+        selection={selection}
+        value={data.breakdownTotal}
+      />
+    ) : undefined;
+
   if (canUseTimeseriesVisualization) {
     // Legend state requires a stable widget ID to persist to the URL.
     // Unsaved widgets (no ID yet, e.g. in the widget builder preview) skip this.
@@ -435,6 +454,7 @@ function WidgetCard(props: Props) {
                 <ChartLayersControl triggerLabel="icon" {...chartLayers.layerControl} />
               )
             }
+            titleSummary={breakdownTotal}
           >
             <VisualizationWidget
               widget={widget}
