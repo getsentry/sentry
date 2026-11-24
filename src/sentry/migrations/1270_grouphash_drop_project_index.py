@@ -7,8 +7,8 @@ import sentry.db.models.fields.foreignkey
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.new_migrations.monkey.special import SafeRunSQL
 
-# `db_index=True` on `GroupHash.project` created this. US production never had it, so
-# `IF EXISTS` makes the drop a no-op there.
+# `db_index=True` on `GroupHash.project` created this index. The unique
+# `(project_id, hash)` index already covers lookups by `project_id`.
 PROJECT_ID_INDEX = "sentry_grouphash_project_id_4af8fad7"
 
 
