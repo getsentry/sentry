@@ -1,8 +1,10 @@
+from functools import partial
 from typing import Sequence
 
 from django.db import router, transaction
 
 from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -14,6 +16,7 @@ from sentry.workflow_engine.defaults.detectors import (
     _ensure_detector,
     ensure_default_all_projects_detector,
 )
+from sentry.workflow_engine.handlers.condition.activity_type_in_handler import WorkflowActivityKind
 from sentry.workflow_engine.handlers.condition.seer_activity_trigger_handler import (
     SeerActivityTriggerStage,
 )
@@ -32,6 +35,50 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 DEFAULT_WORKFLOW_LABEL = "Send a notification for high priority issues"
 PULL_REQUEST_WORKFLOW_LABEL = "Send a notification when pull requests are ready"
+INBOX_DEFAULT_KEY = "inbox_default"
+
+
+def ensure_inbox_workflow(org: Organization) -> Workflow:
+    """Provision the organization's Inbox workflow, or reuse its existing graph."""
+    with transaction.atomic(router.db_for_write(Workflow)):
+        create_group = partial(
+            DataConditionGroup.objects.create,
+            organization=org,
+            logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
+        )
+        # A workflow being deleted still owns the key until its row is removed.
+        workflow, created = Workflow.objects_for_deletion.get_or_create(
+            organization=org,
+            default_key=INBOX_DEFAULT_KEY,
+            defaults={
+                "type": Workflow.Type.INBOX,
+                "name": "Add issue activity to Inbox",
+                "config": {"frequency": 0},
+                # get_or_create evaluates this inside its insert savepoint. A lost
+                # race rolls back the trigger group along with the workflow insert.
+                "when_condition_group": create_group,
+            },
+        )
+        if not created:
+            if workflow.status in (
+                ObjectStatus.PENDING_DELETION,
+                ObjectStatus.DELETION_IN_PROGRESS,
+            ):
+                raise Workflow.DoesNotExist("The default Inbox workflow is being deleted")
+            return workflow
+
+        assert workflow.when_condition_group is not None
+        DataCondition.objects.create(
+            condition_group=workflow.when_condition_group,
+            type=Condition.ACTIVITY_TYPE_IN,
+            comparison=[WorkflowActivityKind.ISSUE_ASSIGNED, WorkflowActivityKind.ISSUE_MENTIONED],
+            condition_result=True,
+        )
+        action_group = create_group()
+        action = Action.objects.create(type=Action.Type.ADD_TO_INBOX, config={}, data={})
+        DataConditionGroupAction.objects.create(condition_group=action_group, action=action)
+        WorkflowDataConditionGroup.objects.create(workflow=workflow, condition_group=action_group)
+        return workflow
 
 
 def connect_workflows_to_issue_stream(

@@ -1,8 +1,16 @@
-import pytest
+from threading import Barrier
+from unittest.mock import patch
 
+import pytest
+from django.db import connections
+from django.db.models.signals import pre_save
+
+from sentry.constants import ObjectStatus
 from sentry.notifications.types import FallthroughChoiceType
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.types.activity import ActivityType
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.workflow_engine.defaults.detectors import (
     ensure_default_all_projects_detector,
     ensure_default_detectors,
@@ -13,6 +21,7 @@ from sentry.workflow_engine.defaults.workflows import (
     create_priority_workflow,
     ensure_default_organization_workflows,
     ensure_default_workflows,
+    ensure_inbox_workflow,
     ensure_pull_request_workflow,
 )
 from sentry.workflow_engine.handlers.condition.seer_activity_trigger_handler import (
@@ -29,6 +38,9 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
+from sentry.workflow_engine.processors.workflow import select_workflows
+from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
@@ -374,3 +386,141 @@ class TestEnsureDefaultOrganizationWorkflows(TestCase):
     def test_skips_pull_request_workflow_when_option_disabled(self) -> None:
         workflows = ensure_default_organization_workflows(self.organization)
         assert workflows == []
+
+
+class TestEnsureInboxWorkflow(TestCase):
+    def test_graph(self) -> None:
+        org = self.create_organization()
+        workflow = ensure_inbox_workflow(org)
+
+        assert workflow.type == Workflow.Type.INBOX
+        assert workflow.type not in VISIBLE_WORKFLOW_TYPES
+        assert workflow.organization == org
+        assert workflow.enabled
+        assert workflow.environment_id is None
+        assert workflow.config == {"frequency": 0}
+        assert not DetectorWorkflow.objects.filter(workflow=workflow).exists()
+
+        trigger = workflow.when_condition_group
+        assert trigger is not None
+        assert trigger.organization == org
+        condition = trigger.conditions.get()
+        assert condition.type == Condition.ACTIVITY_TYPE_IN
+        assert condition.comparison == ["issue.assigned", "issue.mentioned"]
+        assert condition.condition_result is True
+
+        action_group = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
+        assert action_group.organization == org
+        assert not action_group.conditions.exists()
+        action = DataConditionGroupAction.objects.get(condition_group=action_group).action
+        assert action.type == Action.Type.ADD_TO_INBOX
+        assert action.config == {}
+        assert action.data == {}
+
+    def test_reuses_only_the_managed_default(self) -> None:
+        org = self.organization
+        priority = create_priority_workflow(org)
+        pr_ready = create_and_connect_pull_request_workflow(
+            org, ensure_default_all_projects_detector(org.id)
+        )
+        first = ensure_inbox_workflow(org)
+        other = self.create_workflow(organization=org, type=Workflow.Type.INBOX, name=first.name)
+        first.update(name="Renamed", enabled=False)
+        second = ensure_inbox_workflow(org)
+        assert second == first
+        assert second.name == "Renamed"
+        assert not second.enabled
+        assert second.when_condition_group_id == first.when_condition_group_id
+        assert set(Workflow.objects.filter(organization=org)) == {first, priority, pr_ready, other}
+        assert ensure_inbox_workflow(self.create_organization()) != first
+
+    def test_pending_deletion_reserves_the_key(self) -> None:
+        workflow = ensure_inbox_workflow(self.organization)
+        workflow.update(status=ObjectStatus.PENDING_DELETION)
+        with pytest.raises(Workflow.DoesNotExist, match="being deleted"):
+            ensure_inbox_workflow(self.organization)
+        assert Workflow.objects_for_deletion.get(organization=self.organization) == workflow
+
+    def test_selection_after_commit(self) -> None:
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.ASSIGNED.value,
+            data={"assigneeType": "user", "assignee": str(self.user.id)},
+        )
+        event_data = WorkflowEventData(event=activity, group=self.group)
+        with self.feature("organizations:workflow-engine-activity-workflows"):
+            assert select_workflows(event_data, [], None) == set()
+            with self.captureOnCommitCallbacks(execute=True):
+                workflow = ensure_inbox_workflow(self.organization)
+            assert select_workflows(event_data, [], None) == {workflow}
+        assert select_workflows(event_data, [], None) == set()
+        evaluation, _ = workflow.evaluate_trigger_conditions(event_data)
+        assert evaluation.triggered
+
+    def test_only_notes_with_mentions_match(self) -> None:
+        workflow = ensure_inbox_workflow(self.organization)
+        note = self.create_group_activity(group=self.group, type=ActivityType.NOTE.value)
+        event_data = WorkflowEventData(event=note, group=self.group)
+        evaluation, _ = workflow.evaluate_trigger_conditions(event_data)
+        assert not evaluation.triggered
+        note.data = {"mentions": [{"actor_type": "user", "id": self.user.id}]}
+        evaluation, _ = workflow.evaluate_trigger_conditions(event_data)
+        assert evaluation.triggered
+
+    def test_rollback_and_retry(self) -> None:
+        org = self.create_organization()
+        with (
+            patch.object(
+                WorkflowDataConditionGroup.objects,
+                "create",
+                side_effect=RuntimeError("link failed"),
+            ),
+            pytest.raises(RuntimeError, match="link failed"),
+        ):
+            ensure_inbox_workflow(org)
+        assert not Workflow.objects.filter(organization=org).exists()
+        assert not DataConditionGroup.objects.filter(organization=org).exists()
+        assert not DataCondition.objects.filter(type=Condition.ACTIVITY_TYPE_IN).exists()
+        assert not Action.objects.filter(type=Action.Type.ADD_TO_INBOX).exists()
+
+        workflow = ensure_inbox_workflow(org)
+        action_group = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
+        assert (
+            DataConditionGroupAction.objects.get(condition_group=action_group).action.type
+            == Action.Type.ADD_TO_INBOX
+        )
+
+
+class TestConcurrentInboxWorkflow(TransactionTestCase):
+    def test_concurrent_first_calls(self) -> None:
+        org = self.create_organization()
+        ready = Barrier(2, timeout=20)
+
+        def wait_before_insert(**kwargs: object) -> None:
+            ready.wait()
+
+        def provision() -> Workflow:
+            try:
+                return ensure_inbox_workflow(org)
+            finally:
+                connections.close_all()
+
+        # Both callers have missed the initial lookup and allocated a trigger group.
+        pre_save.connect(wait_before_insert, sender=Workflow)
+        try:
+            with ContextPropagatingThreadPoolExecutor(max_workers=2) as executor:
+                results = [executor.submit(provision) for _ in range(2)]
+                first, second = [result.result(timeout=30) for result in results]
+        finally:
+            pre_save.disconnect(wait_before_insert, sender=Workflow)
+
+        assert first == second == Workflow.objects.get(organization=org)
+        assert DataConditionGroup.objects.filter(organization=org).count() == 2
+        assert (
+            DataCondition.objects.get(condition_group__organization=org).condition_group_id
+            == first.when_condition_group_id
+        )
+        action_group = WorkflowDataConditionGroup.objects.get(workflow=first).condition_group
+        assert DataConditionGroupAction.objects.get(
+            condition_group=action_group
+        ).action == Action.objects.get(type=Action.Type.ADD_TO_INBOX)
