@@ -1,9 +1,15 @@
-"""Each organization's anomaly evaluator checkpoint, kept in Redis.
+"""Each organization's anomaly evaluator state, kept in Redis.
 
-One key per organization holds the first minute the evaluator hasn't evaluated, followed
-by the evaluator checkpoint. Writes don't compare-and-set: callers must hold the
-organization's evaluation lease. State expires when it stops advancing: its organization
-stopped evaluating, and a later run would discard a checkpoint that stale anyway.
+Anomaly detection runs once per organization per minute. Each run evaluates every project
+for the same minutes, because anomalies are correlated across projects. The result is
+stored as one value per organization: a bookmark for the next minute to evaluate, plus a
+checkpoint. The checkpoint holds each project's baselines (keyed by series, and each
+series belongs to a project) and the cross-project correlation state. One value means
+one atomic write, so all projects always resume from the same minute.
+
+Writes don't compare-and-set: callers must hold the organization's evaluation lease.
+State expires when it stops advancing: its organization stopped evaluating, and a later
+run would discard a checkpoint that stale anyway.
 """
 
 from __future__ import annotations
@@ -42,9 +48,12 @@ def _key(organization_id: int) -> str:
 
 def get_state(organization_id: int) -> AnomalyDetectionState | None:
     value = _client().get(_key(organization_id))
+
     if value is None:
         return None
+
     (seconds,) = _NEXT_MINUTE_HEADER.unpack_from(value)
+
     return AnomalyDetectionState(
         next_minute=datetime.fromtimestamp(seconds, UTC),
         checkpoint=value[_NEXT_MINUTE_HEADER.size :],
