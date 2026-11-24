@@ -100,19 +100,12 @@ export function detectorListApiOptions<
   });
 }
 
-type MetricDetectorQuota = {
-  count: number;
-  hasReachedLimit: boolean;
-  limit: number;
-};
+type MetricDetectorQuota = {count: number; hasReachedLimit: boolean; limit: number};
 
 export function metricDetectorQuotaApiOptions(organization: Organization) {
   return apiOptions.as<MetricDetectorQuota>()(
     '/organizations/$organizationIdOrSlug/detectors/metric-detector-quota/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-      staleTime: 5 * 1000,
-    }
+    {path: {organizationIdOrSlug: organization.slug}, staleTime: 5 * 1000}
   );
 }
 
