@@ -672,6 +672,33 @@ describe('clock drift correction', () => {
       expect(tree.root.space[0]).toBeCloseTo((T - 10) * 1e3);
     });
 
+    it('corrects requests made from spans nested in the segment', () => {
+      const tree = build(
+        makePageload([
+          makeEAPSpan({
+            event_id: 'render',
+            op: 'ui.react.render',
+            project_id: 1,
+            sdk_name: 'sentry.javascript.react',
+            start_timestamp: T,
+            end_timestamp: T + ms(300),
+            children: [
+              makeRequest({
+                id: '1',
+                clientStart: 0,
+                clientDuration: 300,
+                serverStartGap: -1000,
+                serverDuration: 200,
+              }),
+            ],
+          }),
+        ])
+      );
+
+      expect(findSpan(tree, 'server-1').isClockDriftCorrectionRoot).toBe(true);
+      expect(displayedGaps(tree, '1').start).toBeCloseTo(0);
+    });
+
     it('moves services called by a moved server along with it', () => {
       const serverStart = T + ms(-1000);
       const tree = build(
