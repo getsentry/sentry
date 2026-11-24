@@ -260,9 +260,9 @@ class ProcessMentionForSlackTest(TestCase):
         mock_entrypoint.thread_ts = "1234567890.000001"
         mock_entrypoint.install.get_thread_history.return_value = [
             {"user": "U111", "text": "help me debug this"},
-            {"user": "U0BOT", "text": "let me take a look"},
+            {"user": "U0BOT", "blocks": [{"type": "markdown", "text": "let me take a look"}]},
             {"user": "U222", "text": "sure, what's the error?"},
-            {"user": "U0BOT", "text": "I'm on it"},
+            {"user": "U0BOT", "blocks": [{"type": "markdown", "text": "I'm on it"}]},
             {"user": "U1234567890", "text": "<@U0BOT> What is causing this issue?"},
         ]
         mock_agent_cls.return_value = mock_entrypoint

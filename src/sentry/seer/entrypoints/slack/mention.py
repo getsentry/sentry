@@ -369,6 +369,13 @@ def _alert_issue_ids(msg: Mapping[str, Any]) -> list[int]:
     return issue_ids
 
 
+def _is_seer_reply(msg: Mapping[str, Any]) -> bool:
+    # Seer's Slack replies are rendered with a leading MarkdownBlock; alerts and
+    # other notifications use section blocks or attachments.
+    blocks = msg.get("blocks") or []
+    return bool(blocks) and isinstance(blocks[0], dict) and blocks[0].get("type") == "markdown"
+
+
 def _is_own_message(msg: Mapping[str, Any], bot_user_id: str | None) -> bool:
     return bot_user_id is not None and msg.get("user") == bot_user_id
 
@@ -436,10 +443,11 @@ def build_thread_context(
 ) -> str:
     """Build a context string from thread history for Seer Agent.
 
-    Messages posted by our Slack app (``bot_user_id``) are either Sentry issue
-    alerts, recognized by their alert metadata, or Seer's own earlier replies.
-    ``include_own_replies=False`` drops the latter, for runs whose history
-    already holds them.
+    Messages posted by our Slack app (``bot_user_id``) are Sentry issue alerts,
+    recognized by their alert metadata, Seer's own earlier replies, which start
+    with a ``markdown`` block, or other Sentry notifications such as metric
+    alerts. ``include_own_replies=False`` drops Seer's replies, for runs whose
+    history already holds them.
     """
     if not messages:
         return ""
@@ -449,6 +457,8 @@ def build_thread_context(
         if _is_own_message(msg, bot_user_id):
             if _alert_issue_ids(msg):
                 author = "Sentry alert"
+            elif not _is_seer_reply(msg):
+                author = "Sentry notification"
             elif include_own_replies:
                 author = "Sentry (you), earlier reply"
             else:
