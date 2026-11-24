@@ -141,7 +141,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             return Response(status=401)
         provider_id = request.data.get("provider")
 
-        if provider_id is None or not provider_id.startswith("integrations:"):
+        if not isinstance(provider_id, str) or not provider_id.startswith("integrations:"):
             return Response({"error_type": "validation"}, status=400)
 
         try:
