@@ -1,6 +1,7 @@
 import logging
 import re
-from collections.abc import Iterable, Mapping, Sequence
+from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from concurrent.futures import Future
 from datetime import UTC, datetime
 from typing import Annotated, NotRequired, TypedDict
@@ -19,16 +20,13 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, TraceItemFilter
 
 from sentry import options
-from sentry.api.endpoints.organization_trace_item_attributes import (
-    StoredRef,
-    get_column_definitions,
-)
-from sentry.api.endpoints.organization_trace_item_attributes_merged import MAX_QUERY_WORKERS
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.rpc_utils import anyvalue_to_python, or_trace_item_filters
 from sentry.search.eap.types import ColumnType, SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.utils import INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS, TRACE_ITEM_TYPE_DEFINITIONS
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
@@ -41,6 +39,8 @@ from sentry.utils.snuba_rpc import attribute_names_rpc, table_rpc
 
 logger = logging.getLogger(__name__)
 
+MAX_QUERY_WORKERS = 10
+
 DATASET_CLASSES: dict[str, type[RPCBase]] = {
     SupportedTraceItemType.SPANS.value: Spans,
     SupportedTraceItemType.LOGS.value: OurLogs,
@@ -48,6 +48,22 @@ DATASET_CLASSES: dict[str, type[RPCBase]] = {
 }
 
 CARDINALITY_ATTRIBUTE_TYPES: frozenset[ColumnType] = frozenset({"string", "number"})
+
+
+def _internal_names_by_public_name() -> dict[
+    SupportedTraceItemType, dict[str, dict[str, list[str]]]
+]:
+    index: dict[SupportedTraceItemType, dict[str, dict[str, list[str]]]] = {}
+    for item_type, buckets in INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.items():
+        for bucket, mapping in buckets.items():
+            names: defaultdict[str, list[str]] = defaultdict(list)
+            for internal_name, public_name in mapping.items():
+                names[public_name].append(internal_name)
+            index.setdefault(item_type, {})[bucket] = dict(names)
+    return index
+
+
+INTERNAL_NAMES_BY_PUBLIC_NAME = _internal_names_by_public_name()
 
 
 class TraceItemAttributeDatasetStats(TypedDict):
@@ -78,11 +94,44 @@ def _resolver(
     return SearchResolver(
         params=snuba_params,
         config=config or SearchResolverConfig(),
-        definitions=get_column_definitions(SupportedTraceItemType(dataset)),
+        definitions=TRACE_ITEM_TYPE_DEFINITIONS[SupportedTraceItemType(dataset)],
     )
 
 
-def _exists_filter(keys: Iterable[AttributeKey]) -> TraceItemFilter | None:
+# TODO(EXP-1385): Resolve stored attributes directly once the endpoint returns them instead of search aliases.
+def stored_keys(
+    dataset: str, listed_key: str, attribute_type: ColumnType, snuba_params: SnubaParams
+) -> list[AttributeKey] | None:
+    item_type = SupportedTraceItemType(dataset)
+    # The resolver matches by name alone, so the type comes from the bucket the key was listed in.
+    proto_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP[attribute_type]
+    context = TRACE_ITEM_TYPE_DEFINITIONS[item_type].contexts.get(listed_key)
+    if (
+        context is not None
+        and not context.secondary_alias
+        and constants.TYPE_MAP[context.search_type] == proto_type
+    ):
+        return None
+
+    try:
+        resolved, _ = _resolver(dataset, snuba_params).resolve_attribute(listed_key)
+    except InvalidSearchQuery:
+        return None
+
+    names = [resolved.internal_name]
+    if attribute_type != "array":
+        # The names rollup and Relay's metadata still use the names these temporary mappings alias.
+        for name in (
+            INTERNAL_NAMES_BY_PUBLIC_NAME.get(item_type, {})
+            .get(attribute_type, {})
+            .get(listed_key, [])
+        ):
+            if name not in names:
+                names.append(name)
+    return [AttributeKey(name=name, type=proto_type) for name in names]
+
+
+def _exists_filter(keys: Sequence[AttributeKey]) -> TraceItemFilter | None:
     return or_trace_item_filters(
         *(TraceItemFilter(exists_filter=ExistsFilter(key=key)) for key in keys)
     )
@@ -93,7 +142,7 @@ def _escape_like(name: str) -> str:
 
 
 def _query_last_seen_from_table(
-    dataset: str, refs: Sequence[StoredRef], resolver: SearchResolver
+    dataset: str, keys: Sequence[AttributeKey], resolver: SearchResolver
 ) -> datetime | None:
     name = f"{dataset}:last_seen"
     result = DATASET_CLASSES[dataset].run_bulk_table_queries(
@@ -106,9 +155,7 @@ def _query_last_seen_from_table(
                 limit=1,
                 referrer=Referrer.API_TRACE_ITEM_ATTRIBUTE_LAST_SEEN_FALLBACK.value,
                 name=name,
-                extra_conditions=_exists_filter(
-                    AttributeKey(name=ref.name, type=ref.proto_type) for ref in refs
-                ),
+                extra_conditions=_exists_filter(keys),
                 sampling_mode="HIGHEST_ACCURACY",
                 resolver=resolver,
             )
@@ -121,7 +168,7 @@ def _query_last_seen_from_table(
 
 
 def query_last_seen(
-    dataset: str, refs: Sequence[StoredRef], snuba_params: SnubaParams
+    dataset: str, keys: Sequence[AttributeKey], snuba_params: SnubaParams
 ) -> datetime | None:
     resolver = _resolver(dataset, snuba_params)
     meta = resolver.resolve_meta(referrer=Referrer.API_TRACE_ITEM_ATTRIBUTE_LAST_SEEN.value)
@@ -133,14 +180,14 @@ def query_last_seen(
     limit = options.get("explore.trace-items.keys.max")
     # The names RPC has no environment filter, but the details page sends no environment.
     last_seen: datetime | None = None
-    for ref in refs:
+    for key in keys:
         try:
             response = attribute_names_rpc(
                 TraceItemAttributeNamesRequest(
                     meta=meta,
                     limit=limit,
-                    type=ref.proto_type,
-                    value_substring_match=_escape_like(ref.name),
+                    type=key.type,
+                    value_substring_match=_escape_like(key.name),
                     order_by=TraceItemAttributeNamesRequest.OrderBy(
                         column=TraceItemAttributeNamesRequest.OrderBy.COLUMN_LAST_SEEN,
                         descending=True,
@@ -151,16 +198,16 @@ def query_last_seen(
             logger.exception(
                 "trace_item_attribute_stats.names_rpc_failed", extra={"dataset": dataset}
             )
-            return _query_last_seen_from_table(dataset, refs, resolver)
+            return _query_last_seen_from_table(dataset, keys, resolver)
 
-        rows = [attribute for attribute in response.attributes if attribute.name == ref.name]
+        rows = [attribute for attribute in response.attributes if attribute.name == key.name]
         if not rows:
             if len(response.attributes) >= limit:
-                return _query_last_seen_from_table(dataset, refs, resolver)
+                return _query_last_seen_from_table(dataset, keys, resolver)
             continue
         # Snuba answers windows before 2026-07-27 from its v1 table, which has no last_seen.
         if not all(row.HasField("last_seen") for row in rows):
-            return _query_last_seen_from_table(dataset, refs, resolver)
+            return _query_last_seen_from_table(dataset, keys, resolver)
         for row in rows:
             row_last_seen = row.last_seen.ToDatetime(tzinfo=UTC).replace(microsecond=0)
             if last_seen is None or row_last_seen > last_seen:
@@ -172,7 +219,7 @@ def query_last_seen(
     return last_seen
 
 
-def query_cardinality(dataset: str, ref: StoredRef, snuba_params: SnubaParams) -> int | None:
+def query_cardinality(dataset: str, key: AttributeKey, snuba_params: SnubaParams) -> int | None:
     resolver = _resolver(dataset, snuba_params)
     meta = resolver.resolve_meta(
         referrer=Referrer.API_TRACE_ITEM_ATTRIBUTE_CARDINALITY.value,
@@ -189,7 +236,7 @@ def query_cardinality(dataset: str, ref: StoredRef, snuba_params: SnubaParams) -
                         label="cardinality",
                         aggregation=AttributeAggregation(
                             aggregate=Function.FUNCTION_UNIQ,
-                            key=AttributeKey(name=ref.name, type=ref.proto_type),
+                            key=key,
                             label="cardinality",
                             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
                         ),
@@ -206,7 +253,7 @@ def query_cardinality(dataset: str, ref: StoredRef, snuba_params: SnubaParams) -
     return None
 
 
-def query_modified_count(refs: Sequence[StoredRef], snuba_params: SnubaParams) -> int | None:
+def query_modified_count(keys: Sequence[AttributeKey], snuba_params: SnubaParams) -> int | None:
     name = "spans:modified"
     result = Spans.run_bulk_table_queries(
         [
@@ -220,11 +267,13 @@ def query_modified_count(refs: Sequence[StoredRef], snuba_params: SnubaParams) -
                 name=name,
                 # Meta is stored as a string under the stored name, whatever the attribute's type.
                 extra_conditions=_exists_filter(
-                    AttributeKey(
-                        name=f"{constants.META_ATTRIBUTE_PREFIX}.{ref.name}",
-                        type=AttributeKey.Type.TYPE_STRING,
-                    )
-                    for ref in refs
+                    [
+                        AttributeKey(
+                            name=f"{constants.META_ATTRIBUTE_PREFIX}.{key.name}",
+                            type=AttributeKey.Type.TYPE_STRING,
+                        )
+                        for key in keys
+                    ]
                 ),
                 sampling_mode="HIGHEST_ACCURACY",
                 resolver=_resolver(
@@ -255,19 +304,23 @@ def _result_or_none[T](future: Future[T], dataset: str, stat: str) -> T | None:
 # Reads the table, since the names rollup has no rows for top-level columns like `trace`.
 # Datasets without the column are left out; None marks a failed query, not a missing column.
 def query_column_last_seen(
-    refs_by_dataset: Mapping[str, Sequence[StoredRef]], snuba_params: SnubaParams
+    attribute_type: ColumnType, keys_by_dataset: Mapping[str, str], snuba_params: SnubaParams
 ) -> dict[str, datetime | None]:
+    queryable = {
+        dataset: keys
+        for dataset, listed_key in keys_by_dataset.items()
+        if (keys := stored_keys(dataset, listed_key, attribute_type, snuba_params))
+    }
     last_seen_by_dataset: dict[str, datetime | None] = {}
     with ContextPropagatingThreadPoolExecutor(
         thread_name_prefix=__name__,
-        max_workers=max(min(len(refs_by_dataset), MAX_QUERY_WORKERS), 1),
+        max_workers=max(min(len(queryable), MAX_QUERY_WORKERS), 1),
     ) as pool:
         futures = {
             dataset: pool.submit(
-                _query_last_seen_from_table, dataset, refs, _resolver(dataset, snuba_params)
+                _query_last_seen_from_table, dataset, keys, _resolver(dataset, snuba_params)
             )
-            for dataset, refs in refs_by_dataset.items()
-            if refs and not any(ref.is_proxy for ref in refs)
+            for dataset, keys in queryable.items()
         }
         for dataset, future in futures.items():
             try:
@@ -290,26 +343,26 @@ def query_column_last_seen(
 
 def query_attribute_stats(
     attribute_type: ColumnType,
-    refs_by_dataset: Mapping[str, Sequence[StoredRef]],
+    keys_by_dataset: Mapping[str, str],
     snuba_params: SnubaParams,
     known_last_seen: Mapping[str, datetime | None] | None = None,
     include_cardinality: bool = True,
 ) -> tuple[dict[str, TraceItemAttributeDatasetStats], datetime | None]:
     queryable = {
-        dataset: refs
-        for dataset, refs in refs_by_dataset.items()
-        if refs and not any(ref.is_proxy for ref in refs)
+        dataset: keys
+        for dataset, listed_key in keys_by_dataset.items()
+        if (keys := stored_keys(dataset, listed_key, attribute_type, snuba_params))
     }
-    cardinality_refs = {
-        dataset: refs[0]
-        for dataset, refs in queryable.items()
-        if include_cardinality and attribute_type in CARDINALITY_ATTRIBUTE_TYPES and len(refs) == 1
+    cardinality_keys = {
+        dataset: keys[0]
+        for dataset, keys in queryable.items()
+        if include_cardinality and attribute_type in CARDINALITY_ATTRIBUTE_TYPES
     }
 
-    spans_refs = queryable.get(SupportedTraceItemType.SPANS.value)
+    spans_keys = queryable.get(SupportedTraceItemType.SPANS.value)
 
     stats: dict[str, TraceItemAttributeDatasetStats] = {
-        dataset: {"lastSeen": None, "cardinality": None} for dataset in refs_by_dataset
+        dataset: {"lastSeen": None, "cardinality": None} for dataset in keys_by_dataset
     }
     if SupportedTraceItemType.SPANS.value in stats:
         stats[SupportedTraceItemType.SPANS.value]["modifiedCount"] = None
@@ -317,23 +370,23 @@ def query_attribute_stats(
     with ContextPropagatingThreadPoolExecutor(
         thread_name_prefix=__name__,
         max_workers=max(
-            min(len(queryable) + len(cardinality_refs) + bool(spans_refs), MAX_QUERY_WORKERS), 1
+            min(len(queryable) + len(cardinality_keys) + bool(spans_keys), MAX_QUERY_WORKERS), 1
         ),
     ) as pool:
         last_seen_futures = (
             {}
             if known_last_seen is not None
             else {
-                dataset: pool.submit(query_last_seen, dataset, refs, snuba_params)
-                for dataset, refs in queryable.items()
+                dataset: pool.submit(query_last_seen, dataset, keys, snuba_params)
+                for dataset, keys in queryable.items()
             }
         )
         cardinality_futures = {
-            dataset: pool.submit(query_cardinality, dataset, ref, snuba_params)
-            for dataset, ref in cardinality_refs.items()
+            dataset: pool.submit(query_cardinality, dataset, key, snuba_params)
+            for dataset, key in cardinality_keys.items()
         }
         modified_count_future = (
-            pool.submit(query_modified_count, spans_refs, snuba_params) if spans_refs else None
+            pool.submit(query_modified_count, spans_keys, snuba_params) if spans_keys else None
         )
         last_seen_by_dataset = (
             known_last_seen
