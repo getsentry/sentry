@@ -49,6 +49,7 @@ import {
   hasDisplayMetricUnit,
   makeMetricSelectValue,
 } from 'sentry/views/explore/metrics/utils';
+import type {VirtualTraceMetric} from 'sentry/views/explore/metrics/virtualMetrics';
 
 import {MetricDetailPanel} from './metricDetailPanel';
 import {MetricListBoxOption} from './metricListBoxOption';
@@ -102,6 +103,7 @@ export function MetricSelector({
   fieldOption,
   getDisabledOptionReason,
   skipDefaultOption,
+  virtualMetrics,
 }: {
   onChange: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
@@ -118,6 +120,9 @@ export function MetricSelector({
   // for an empty slot. They stay selectable in the list.
   skipDefaultOption?: (option: MetricSelectorOption) => boolean;
   usePortal?: boolean;
+  // Attributes offered as metrics of their own. Each is listed whenever its
+  // stored metric is.
+  virtualMetrics?: VirtualTraceMetric[];
 }) {
   const theme = useTheme();
   const triggerId = useId();
@@ -165,6 +170,9 @@ export function MetricSelector({
       metricType: traceMetricType,
       metricUnit: traceMetric.unit,
       metricName: traceMetric.name,
+      sourceMetric: virtualMetrics?.find(
+        virtual => virtual.name === traceMetric.name && virtual.type === traceMetric.type
+      )?.source,
       trailingItems: () => (
         <MetricOptionTrailingItems
           metricType={traceMetricType}
@@ -175,9 +183,11 @@ export function MetricSelector({
   }, [
     traceMetricSelectValue,
     traceMetric.name,
+    traceMetric.type,
     traceMetricType,
     traceMetric.unit,
     traceMetricDisplayUnit,
+    virtualMetrics,
   ]);
 
   // Always show the selected metric at the top of the list so it's easy to
@@ -242,13 +252,52 @@ export function MetricSelector({
         ];
       }) ?? [];
 
+    // A virtual metric is listed whenever its stored metric is, so it follows
+    // the search and the data. The merged list stays sorted by name.
+    const virtualOptions: MetricSelectorOption[] = (virtualMetrics ?? []).flatMap(
+      virtual => {
+        const source = apiOptions.find(
+          option =>
+            option.metricName === virtual.source.name &&
+            option.metricType === virtual.source.type
+        );
+        if (!source) {
+          return [];
+        }
+        return [
+          {
+            kind: 'metric',
+            label: virtual.name,
+            value: makeMetricSelectValue(virtual),
+            metricType: virtual.type,
+            metricName: virtual.name,
+            metricUnit: virtual.unit,
+            sourceMetric: virtual.source,
+            count: source.count,
+            lastSeen: source.lastSeen,
+            trailingItems: () => (
+              <MetricOptionTrailingItems
+                metricType={virtual.type}
+                metricUnit={virtual.unit}
+              />
+            ),
+          },
+        ];
+      }
+    );
+    const virtualValues = new Set(virtualOptions.map(option => option.value));
+    const allOptions = [
+      ...apiOptions.filter(option => !virtualValues.has(option.value)),
+      ...virtualOptions,
+    ].toSorted((a, b) => a.metricName.localeCompare(b.metricName));
+
     let hasMatchedSelectedMetric = false;
-    const hasExactSelectedMetric = apiOptions.some(
+    const hasExactSelectedMetric = allOptions.some(
       option => option.value === traceMetricSelectValue
     );
     const selectedApiOptions =
       traceMetric.unit === undefined && !hasExactSelectedMetric
-        ? apiOptions.map(option => {
+        ? allOptions.map(option => {
             if (
               hasMatchedSelectedMetric ||
               option.metricName !== traceMetric.name ||
@@ -261,7 +310,7 @@ export function MetricSelector({
             hasMatchedSelectedMetric = true;
             return {...option, value: traceMetricSelectValue};
           })
-        : apiOptions;
+        : allOptions;
 
     // Prefer the API version of the selected metric (it has count/lastSeen),
     // falling back to the bare optionFromTraceMetric when the API hasn't
@@ -299,6 +348,7 @@ export function MetricSelector({
     traceMetric.type,
     traceMetric.unit,
     traceMetricSelectValue,
+    virtualMetrics,
   ]);
 
   // Auto-select the first selectable metric when no metric is currently

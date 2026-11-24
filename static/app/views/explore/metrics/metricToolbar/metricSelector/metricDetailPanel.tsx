@@ -66,8 +66,8 @@ export function MetricDetailPanel({metric}: {metric: MetricSelectorOption | null
         </Flex>
       )}
       <MetricAttributesSection
-        metricName={metric.metricName}
-        metricType={metric.metricType}
+        metricName={metric.sourceMetric?.name ?? metric.metricName}
+        metricType={metric.sourceMetric?.type ?? metric.metricType}
       />
     </Stack>
   );
