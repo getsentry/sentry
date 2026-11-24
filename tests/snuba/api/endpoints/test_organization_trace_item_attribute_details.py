@@ -627,7 +627,7 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         }
         assert response.data["lastSeen"] is None
 
-    def test_returns_latest_last_seen_and_cardinality_across_names_when_the_attribute_is_stored_under_two_names(
+    def test_returns_latest_last_seen_across_names_and_coalesced_cardinality_when_stored_under_two_names(
         self,
     ) -> None:
         older = before_now(hours=2).replace(microsecond=0)
