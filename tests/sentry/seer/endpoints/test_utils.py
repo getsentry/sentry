@@ -1,11 +1,51 @@
 import uuid
+from unittest.mock import MagicMock, patch
 
+import pytest
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.test import APIRequestFactory
 
-from sentry.seer.endpoints.utils import ResolvedSeerRun, resolve_seer_run
+from sentry.seer.endpoints.utils import (
+    ResolvedSeerRun,
+    record_manual_continuation,
+    resolve_seer_run,
+)
 from sentry.seer.models.run import SeerRunMirrorStatus
 from sentry.testutils.cases import TestCase
+
+
+class TestRecordManualContinuation:
+    @patch("sentry.seer.endpoints.utils.sentry_sdk.metrics.count")
+    def test_ui_continuation_uses_proxy_cost_identifiers(self, mock_count: MagicMock) -> None:
+        request = Request(APIRequestFactory().post("/", HTTP_COOKIE="sessionid=test"))
+
+        record_manual_continuation(request, organization_id=123, run_id=456)
+
+        mock_count.assert_called_once_with(
+            "seer.run.manual_continuation",
+            1,
+            attributes={"org_id": "123", "run_id": "456"},
+        )
+
+    @pytest.mark.parametrize(
+        "headers",
+        [
+            {},
+            {"HTTP_COOKIE": "sessionid=test", "HTTP_USER_AGENT": "sentry-mcp/1.0"},
+            {"HTTP_COOKIE": "sessionid=test", "HTTP_X_SEER_REFERRER": "explorer"},
+        ],
+    )
+    @patch("sentry.seer.endpoints.utils.sentry_sdk.metrics.count")
+    def test_automated_requests_are_not_manual(
+        self, mock_count: MagicMock, headers: dict[str, str]
+    ) -> None:
+        request = Request(APIRequestFactory().post("/", **headers))
+
+        record_manual_continuation(request, organization_id=123, run_id=456)
+
+        mock_count.assert_not_called()
 
 
 class ResolveSeerRunTest(TestCase):

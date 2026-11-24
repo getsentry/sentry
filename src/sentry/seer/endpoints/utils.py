@@ -4,6 +4,7 @@ import uuid as uuid_module
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Final, Literal, NamedTuple, TypeVar
 
+import sentry_sdk
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,6 +12,8 @@ from rest_framework.response import Response
 from sentry.api.authentication import ServiceAccountTokenAuthentication
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import UserRequired
+from sentry.issues.action_log.request import resolve_action_source
+from sentry.issues.action_log.types import ActionSource
 from sentry.seer.credits import SeerCreditDenialReason
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
 from sentry.utils.numbers import validate_bigint
@@ -36,6 +39,17 @@ SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL = (
 SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL = (
     "Your organization does not have enough credits left for you to message Seer."
 )
+
+
+def record_manual_continuation(request: Request, *, organization_id: int, run_id: int) -> None:
+    """Identify UI-continued runs for later lookup in proxy cost metrics."""
+    if resolve_action_source(request) != ActionSource.WEB:
+        return
+    sentry_sdk.metrics.count(
+        "seer.run.manual_continuation",
+        1,
+        attributes={"org_id": str(organization_id), "run_id": str(run_id)},
+    )
 
 
 def refuse_service_account_token(request: Request) -> None:

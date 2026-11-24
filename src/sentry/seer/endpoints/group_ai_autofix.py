@@ -98,6 +98,7 @@ from sentry.seer.endpoints.utils import (
     SEER_PERMISSION_DENIED,
     SeerPaymentRequiredCode,
     get_seer_run,
+    record_manual_continuation,
     refuse_service_account_token,
     resolve_seer_run,
     seer_out_of_credits_response,
@@ -697,6 +698,11 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     sentry_run_id = str(run.uuid)
                 else:
                     sentry_run_id = resolved_sentry_run_id
+
+        if resolved_run_id is not None:
+            record_manual_continuation(
+                request, organization_id=group.organization.id, run_id=resolved_run_id
+            )
 
         kickoff_body = {
             "run_id": run_id,
