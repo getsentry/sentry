@@ -3,12 +3,18 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconSearch} from '@sentry/icons/search';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Select} from '@sentry/scraps/select';
+import {Select, type SelectValue} from '@sentry/scraps/select';
+import type {FormSize} from '@sentry/scraps/theme';
 
 const options = [
   {label: 'Production', value: 'production'},
   {label: 'Staging', value: 'staging'},
-];
+] as const;
+
+const deliveryOptions = [
+  {label: 'Email', value: 'email'},
+  {label: 'Slack', value: 'slack'},
+] as const;
 
 function SavedIndicators({children}: {children: ReactNode}) {
   return (
@@ -16,6 +22,27 @@ function SavedIndicators({children}: {children: ReactNode}) {
       <IconCheckmark variant="success" size="sm" />
       {children}
     </Flex>
+  );
+}
+
+function renderOpenMultiSelect(
+  size: FormSize,
+  label: string,
+  choices: readonly [SelectValue<string>, SelectValue<string>]
+) {
+  return (
+    <Stack padding="md" width="300px" height="200px">
+      <Select
+        aria-label={label}
+        options={choices}
+        value={[choices[0].value]}
+        size={size}
+        multiple
+        isOpen
+        styles={{menu: base => ({...base, position: 'initial'})}}
+        onChange={() => {}}
+      />
+    </Stack>
   );
 }
 
@@ -128,19 +155,13 @@ describe('Select', () => {
 
   it.snapshot(
     'open multi-select with checked and unchecked options',
-    () => (
-      <Stack padding="md" width="300px" height="200px">
-        <Select
-          aria-label="Environments"
-          options={options}
-          value={['production']}
-          multiple
-          isOpen
-          styles={{menu: base => ({...base, position: 'initial'})}}
-          onChange={() => {}}
-        />
-      </Stack>
-    ),
-    {tags: {area: 'core', state: 'open-multiple'}}
+    () => renderOpenMultiSelect('md', 'Environments', options),
+    {tags: {area: 'core', size: 'md', state: 'open-multiple'}}
+  );
+
+  it.snapshot.each(['xs', 'sm'] as const)(
+    'open multi-select with checked and unchecked options at size %s',
+    size => renderOpenMultiSelect(size, 'Delivery Method', deliveryOptions),
+    size => ({tags: {area: 'core', size, state: 'open-multiple'}})
   );
 });

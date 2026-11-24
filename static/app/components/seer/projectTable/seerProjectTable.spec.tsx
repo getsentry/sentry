@@ -213,7 +213,7 @@ describe('SeerProjectTable', () => {
 
     render(<SeerProjectTable />, {organization});
 
-    const select = await screen.findByRole('textbox', {
+    const select = await screen.findByRole('combobox', {
       name: 'Auto-iterate on PRs for project-slug',
     });
     expect(select).toBeDisabled();
@@ -229,7 +229,7 @@ describe('SeerProjectTable', () => {
 
     render(<SeerProjectTable />, {organization});
 
-    const select = await screen.findByRole('textbox', {
+    const select = await screen.findByRole('combobox', {
       name: 'Auto-iterate on PRs for project-slug',
     });
     expect(select).toBeEnabled();

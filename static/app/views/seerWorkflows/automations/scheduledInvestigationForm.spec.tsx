@@ -130,7 +130,7 @@ describe('ScheduledInvestigationForm', () => {
       await userEvent.click(getAllProjectsSwitches()[0]!);
       await addProject('checkout-api');
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Environments'}),
+        screen.getByRole('combobox', {name: 'Environments'}),
         'production'
       );
       await userEvent.click(screen.getByRole('button', {name: 'Create automation'}));
@@ -403,11 +403,11 @@ describe('ScheduledInvestigationForm', () => {
 
       // Still offered after switching away from it
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Environments'}),
+        screen.getByRole('combobox', {name: 'Environments'}),
         'staging'
       );
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Environments'}),
+        screen.getByRole('combobox', {name: 'Environments'}),
         'canary'
       );
       expect(screen.getByText('canary')).toBeInTheDocument();
