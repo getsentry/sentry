@@ -13,6 +13,7 @@ import {FullWidthButton} from 'sentry/components/group/externalIssuesList/issueT
 import {Hovercard} from 'sentry/components/hovercard';
 import {t, tct} from 'sentry/locale';
 import type {Group, ImpactAssessment, ImpactLevel} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -63,17 +64,21 @@ function ImpactIcon({level, ...rest}: SVGIconProps & {level: ImpactLevel}) {
  * Currently, the API won't have impact assessments in the results without the flag,
  * but that may change, so check the flag on the frontend as well.
  */
+export function hasImpactAssessment(organization: Organization) {
+  return organization.features.includes('seer-impact-assessment');
+}
+
 export function useHasImpactAssessment() {
-  return useOrganization().features.includes('seer-impact-assessment');
+  return hasImpactAssessment(useOrganization());
 }
 
 /**
  * Returns the group's impact assessment when it has a level and score, if available
  */
 export function useAssessedImpact(group: Group) {
-  const hasImpactAssessment = useHasImpactAssessment();
+  const canSeeImpact = useHasImpactAssessment();
   const impact = group.derivedData?.impact;
-  return hasImpactAssessment && impact?.level && impact.score !== null
+  return canSeeImpact && impact?.level && impact.score !== null
     ? (impact as ImpactAssessment & {level: ImpactLevel; score: number})
     : null;
 }
