@@ -12,21 +12,27 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
+from typing import Any
 
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 
+from sentry import features
 from sentry.constants import ObjectStatus
+from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.repository.model import RpcRepository, RpcRepositoryRename
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
+from sentry.integrations.source_code_management.repo_rename import get_repo_rename
 from sentry.integrations.source_code_management.repository import (
+    RepositoryInfo,
     RepositoryIntegration,
 )
 from sentry.integrations.types import HaltReason
@@ -65,6 +71,11 @@ SCM_SYNC_PROVIDERS = [
     "perforce",
     "cursor_origin",
 ]
+
+# Providers whose rename handling matches get_repo_rename and
+# GitHubRepositoryProvider.build_repository_url. The others store their name
+# and URL in provider-specific shapes.
+RENAME_SYNC_PROVIDERS = frozenset({"github", "github_enterprise"})
 
 SYNC_BATCH_SIZE = 100
 
@@ -246,6 +257,16 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
         removed_ids = set() if fetch_truncated else sentry_active_ids - provider_external_ids
         restored_ids = sentry_disabled_ids & provider_external_ids
 
+        renames = (
+            _find_renames(
+                integration=integration,
+                repos=active_repos + disabled_repos,
+                provider_repos=provider_repos,
+            )
+            if _sync_renames_enabled(provider_key, rpc_org)
+            else []
+        )
+
         metric_tags = {
             "provider": provider_key,
         }
@@ -367,6 +388,58 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
                     "external_ids": restored_batch,
                 }
             )
+
+        for rename_batch in chunked(renames, SYNC_BATCH_SIZE):
+            rename_repos_batch.apply_async(
+                kwargs={
+                    "organization_integration_id": organization_integration_id,
+                    "renames": rename_batch,
+                }
+            )
+
+
+def _sync_renames_enabled(provider_key: str, organization: RpcOrganization) -> bool:
+    return provider_key in RENAME_SYNC_PROVIDERS and features.has(
+        "organizations:scm-repo-sync-renames", organization
+    )
+
+
+def _find_renames(
+    *,
+    integration: RpcIntegration,
+    repos: list[RpcRepository],
+    provider_repos: list[RepositoryInfo],
+) -> list[dict[str, Any]]:
+    """
+    Find repos whose stored name or URL no longer matches the provider. A rename
+    keeps the external id, so the diff above sees these repos as unchanged.
+    """
+    repo_provider = get_integration_repository_provider(integration)
+    assert isinstance(repo_provider, GitHubRepositoryProvider)
+    provider_repos_by_external_id = {repo["external_id"]: repo for repo in provider_repos}
+
+    renames: list[dict[str, Any]] = []
+    for repo in repos:
+        if repo.external_id is None:
+            continue
+        provider_repo = provider_repos_by_external_id.get(repo.external_id)
+        if provider_repo is None:
+            continue
+        name = str(provider_repo["identifier"])
+        url = repo_provider.build_repository_url(integration, name)
+        if get_repo_rename(repo, name=name, url=url) is None:
+            continue
+        rename = RpcRepositoryRename(
+            id=repo.id,
+            external_id=repo.external_id,
+            expected_name=repo.name,
+            expected_url=repo.url,
+            expected_config_name=repo.config.get("name"),
+            name=name,
+            url=url,
+        )
+        renames.append(rename.dict())
+    return renames
 
 
 def _get_sync_context(
@@ -514,38 +587,80 @@ def restore_repos_batch(
     integration, rpc_org, provider_key = ctx
     provider = f"integrations:{provider_key}"
 
-    all_repos = repository_service.get_repositories(
+    restored_repos = repository_service.enable_repositories_by_external_ids(
         organization_id=rpc_org.id,
         integration_id=integration.id,
-        providers=[provider],
+        provider=provider,
         external_ids=external_ids,
     )
     integration_repo_provider = get_integration_repository_provider(integration)
-    restore_set = set(external_ids)
-    for repo in all_repos:
-        if repo.external_id in restore_set:
-            repo.status = ObjectStatus.ACTIVE
-            repository_service.update_repository(organization_id=rpc_org.id, update=repo)
-            log_repo_change(
-                event_name="REPO_ENABLED",
-                organization_id=rpc_org.id,
-                repo=repo,
-                source="automatic SCM syncing",
-                provider=provider_key,
+    for repo in restored_repos:
+        log_repo_change(
+            event_name="REPO_ENABLED",
+            organization_id=rpc_org.id,
+            repo=repo,
+            source="automatic SCM syncing",
+            provider=provider_key,
+        )
+        # the repo is already restored, so a failure here must not retry the batch
+        try:
+            integration_repo_provider.on_create_repository(repo, rpc_org)
+        except Exception:
+            logger.warning(
+                "sync_repos.restore_repos_batch.on_create_failed",
+                exc_info=True,
+                extra={
+                    "organization_id": rpc_org.id,
+                    "integration_id": integration.id,
+                    "repository_id": repo.id,
+                },
             )
-            # the repo is already restored, so a failure here must not retry the batch
-            try:
-                integration_repo_provider.on_create_repository(repo, rpc_org)
-            except Exception:
-                logger.warning(
-                    "sync_repos.restore_repos_batch.on_create_failed",
-                    exc_info=True,
-                    extra={
-                        "organization_id": rpc_org.id,
-                        "integration_id": integration.id,
-                        "repository_id": repo.id,
-                    },
-                )
+
+
+@instrumented_task(
+    name="sentry.integrations.source_code_management.sync_repos.rename_repos_batch",
+    namespace=integrations_control_tasks,
+    retry=Retry(times=3, delay=120, on=(Exception,)),
+    processing_deadline_duration=120,
+    silo_mode=SiloMode.CONTROL,
+)
+def rename_repos_batch(
+    organization_integration_id: int,
+    renames: list[dict[str, Any]],
+) -> None:
+    ctx = _get_sync_context(organization_integration_id)
+    if ctx is None:
+        return
+    integration, rpc_org, provider_key = ctx
+
+    # The organization may have been removed from the rollout since this batch was queued.
+    if not _sync_renames_enabled(provider_key, rpc_org):
+        return
+
+    renamed_ids = repository_service.rename_repositories(
+        organization_id=rpc_org.id,
+        integration_id=integration.id,
+        provider=f"integrations:{provider_key}",
+        renames=[RpcRepositoryRename(**rename) for rename in renames],
+    )
+    if not renamed_ids:
+        return
+
+    logger.info(
+        "scm.repo_sync.renamed",
+        extra={
+            "provider": provider_key,
+            "integration_id": integration.id,
+            "organization_id": rpc_org.id,
+            "repository_ids": renamed_ids,
+        },
+    )
+    metrics.incr(
+        "scm.repo_sync.renamed",
+        amount=len(renamed_ids),
+        tags={"provider": provider_key},
+        sample_rate=1.0,
+    )
 
 
 @instrumented_task(

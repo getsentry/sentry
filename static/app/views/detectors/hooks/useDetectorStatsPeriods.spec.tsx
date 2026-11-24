@@ -5,9 +5,7 @@ import {useDetectorStatsPeriods} from './useDetectorStatsPeriods';
 describe('useDetectorStatsPeriods', () => {
   it('does nothing when there is no statsPeriod in the URL', async () => {
     const {router} = renderHookWithProviders(() => useDetectorStatsPeriods(3600), {
-      initialRouterConfig: {
-        location: {pathname: '/detectors/1/', query: {}},
-      },
+      initialRouterConfig: {location: {pathname: '/detectors/1/', query: {}}},
     });
 
     await act(() => new Promise(resolve => setTimeout(resolve, 100)));

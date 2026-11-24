@@ -49,12 +49,7 @@ export function CommentActions({
         />
       )}
       items={[
-        {
-          key: 'edit',
-          label: t('Edit'),
-          disabled: editing,
-          onAction: onEdit,
-        },
+        {key: 'edit', label: t('Edit'), disabled: editing, onAction: onEdit},
         {
           key: 'delete',
           label: t('Delete'),

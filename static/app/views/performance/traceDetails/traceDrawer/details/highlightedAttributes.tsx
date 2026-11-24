@@ -55,10 +55,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 import {tryParseJsonRecursive} from './utils';
 
-type HighlightedAttribute = {
-  name: string;
-  value: React.ReactNode;
-};
+type HighlightedAttribute = {name: string; value: React.ReactNode};
 
 /**
  * Gets AI tool definitions, checking attributes in priority order.
@@ -242,10 +239,7 @@ function getAISpanAttributes({
 
   const agentName = resolveAgentName(attributes);
   if (agentName) {
-    highlightedAttributes.push({
-      name: t('Agent Name'),
-      value: agentName,
-    });
+    highlightedAttributes.push({name: t('Agent Name'), value: agentName});
   }
 
   const modelField = attributes[SpanFields.GEN_AI_RESPONSE_MODEL]
@@ -435,10 +429,7 @@ function getMemoryHighlightedAttributes(
     attributes[SpanFields.GEN_AI_MEMORY_RECORD_COUNT] !== undefined &&
     Number.isFinite(recordCount)
   ) {
-    highlightedAttributes.push({
-      name: t('Records'),
-      value: recordCount.toLocaleString(),
-    });
+    highlightedAttributes.push({name: t('Records'), value: recordCount.toLocaleString()});
   }
 
   // The query can be long, so it isn't surfaced here; it's shown in full in the
@@ -457,34 +448,22 @@ function getMCPAttributes(attributes: Record<string, string | number | boolean>)
 
   const toolName = attributes['gen_ai.tool.name'];
   if (toolName) {
-    highlightedAttributes.push({
-      name: t('Tool Name'),
-      value: toolName,
-    });
+    highlightedAttributes.push({name: t('Tool Name'), value: toolName});
   }
 
   const resourceUri = attributes['mcp.resource.uri'];
   if (resourceUri) {
-    highlightedAttributes.push({
-      name: t('Resource URI'),
-      value: resourceUri,
-    });
+    highlightedAttributes.push({name: t('Resource URI'), value: resourceUri});
   }
 
   const promptName = attributes['gen_ai.prompt.name'];
   if (promptName) {
-    highlightedAttributes.push({
-      name: t('Prompt Name'),
-      value: promptName,
-    });
+    highlightedAttributes.push({name: t('Prompt Name'), value: promptName});
   }
 
   const transport = attributes['network.transport'];
   if (transport) {
-    highlightedAttributes.push({
-      name: t('Transport'),
-      value: transport,
-    });
+    highlightedAttributes.push({name: t('Transport'), value: transport});
   }
 
   return highlightedAttributes;

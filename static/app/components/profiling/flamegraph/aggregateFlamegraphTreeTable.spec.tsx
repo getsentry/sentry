@@ -31,9 +31,7 @@ const input: Profiling.Schema = {
   profileID: '',
   profiles: [sampledProfile],
   projectID: 1,
-  shared: {
-    frames: [{name: 'root'}, {name: 'busy'}, {name: 'idle'}],
-  },
+  shared: {frames: [{name: 'root'}, {name: 'busy'}, {name: 'idle'}]},
   metadata: {} as Profiling.Schema['metadata'],
 };
 

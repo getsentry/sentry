@@ -11,11 +11,7 @@ import {displayPlanName, hasPerformance, isTrial} from 'getsentry/utils/billing'
 
 import type {Feature} from './types';
 
-type Props = {
-  feature: Feature;
-  organization: Organization;
-  subscription: Subscription;
-};
+type Props = {feature: Feature; organization: Organization; subscription: Subscription};
 
 const IMAGE_SIZE = {height: 'auto', width: '540px'};
 
@@ -38,9 +34,7 @@ export function HighlightedFeature({feature, organization, subscription}: Props)
             })
           : tct(
               "You'll need to migrate to a new plan with [strong:Transactions] to enable this feature.",
-              {
-                strong: <strong />,
-              }
+              {strong: <strong />}
             )}
         {!isTrial(subscription) &&
           tct(" You're currently on the [current] plan.", {

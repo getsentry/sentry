@@ -1,72 +1,67 @@
-import {Fragment, useState, type PointerEventHandler, type ReactNode} from 'react';
-import {css, ThemeProvider, type Theme} from '@emotion/react';
+import {Fragment, useId, useState, type PointerEventHandler} from 'react';
+import {css, ThemeProvider, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconSettings} from '@sentry/icons/settings';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {InfoText} from '@sentry/scraps/info';
-import {Container} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {InfoText, InfoTip} from '@sentry/scraps/info';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {darkTheme} from '@sentry/scraps/theme';
 
 import {t} from 'sentry/locale';
 
-import {getHandoffPrompt} from './handoffPrompt';
+import {getHandoffGuideUrl, getHandoffPrompt} from './handoffPrompt';
 import {AgentHandoffFlow, type AgentHandoffContext} from './types';
 import {useHandoffPromptInteractions} from './useHandoffPromptInteractions';
 
-export function getHandoffPreviewUrl(flow: AgentHandoffFlow, sentryUrl: string): string {
-  return new URL(`/agent-handoff.md?preview=1&flow=${flow}`, sentryUrl).href;
-}
-
-interface HandoffAdvancedMenuProps {
+interface HandoffIpPinningCheckboxProps {
   disabled: boolean;
   onToggle: () => void;
   useIpPinning: boolean;
 }
 
-export function HandoffAdvancedMenu({
+export function HandoffIpPinningCheckbox({
   disabled,
   useIpPinning,
   onToggle,
-}: HandoffAdvancedMenuProps) {
+}: HandoffIpPinningCheckboxProps) {
+  const checkboxId = useId();
+  const descriptionId = useId();
+
   return (
-    <DropdownMenu
-      items={[
-        {
-          key: 'ip-pinning',
-          label: t('Use IP pinning'),
-          details: t(
-            'Restricts the handoff code to your current IP address. Turn this off when your agent runs on a different network.'
-          ),
-          textValue: t('Use IP pinning'),
-          disabled,
-          isSelected: useIpPinning,
-          onAction: onToggle,
-        },
-      ]}
-      maxWidth={360}
-      position="bottom-end"
-      shouldApplyMinWidth={false}
-      size="xs"
-      usePortal
-      trigger={triggerProps => (
-        <OverlayTrigger.Button
-          {...triggerProps}
-          aria-label={t('Advanced options')}
-          icon={<IconSettings />}
-          showChevron={false}
-          size="xs"
-          variant="transparent"
-        >
-          {t('Advanced')}
-        </OverlayTrigger.Button>
-      )}
-    />
+    <Flex align="start" gap="md">
+      <Checkbox
+        id={checkboxId}
+        aria-describedby={descriptionId}
+        checked={useIpPinning}
+        disabled={disabled}
+        onChange={onToggle}
+      />
+      <Stack gap="sm">
+        <Flex align="center" gap="xs">
+          <Text as="label" htmlFor={checkboxId} size="md">
+            {t('Only allow this network')}
+          </Text>
+          <InfoTip
+            size="xs"
+            title={t('Keeps your secret token safe if the prompt leaks.')}
+          />
+        </Flex>
+        <IpPinningDescription id={descriptionId} size="sm" variant="muted">
+          {t('Uncheck if your agent runs in the cloud, or you use iCloud Private Relay.')}
+        </IpPinningDescription>
+      </Stack>
+    </Flex>
   );
 }
+
+// Help text reads best a little looser than the largest density token (1.4).
+const IpPinningDescription = styled(Text)`
+  line-height: 1.5;
+`;
 
 interface HandoffPromptAlertsProps {
   error: Error | null;
@@ -74,15 +69,30 @@ interface HandoffPromptAlertsProps {
 }
 
 export function HandoffPromptAlerts({useIpPinning, error}: HandoffPromptAlertsProps) {
+  const theme = useTheme();
+  // Both prompts render the alerts in a Stack with an md gap. Pulling the warning
+  // up by that gap while collapsed lets the gap animate with it instead of popping.
+  const collapsedOffset = `-${theme.space.md}`;
+
   return (
     <Fragment>
-      {!useIpPinning && (
-        <Alert variant="warning">
-          {t(
-            'Without IP pinning, anyone with this prompt can use its handoff code from any IP address to authorize an agent on your behalf. Avoid pasting your prompt when streaming or screen sharing.'
-          )}
-        </Alert>
-      )}
+      <AnimatePresence initial={false}>
+        {!useIpPinning && (
+          <motion.div
+            initial={{height: 0, opacity: 0, marginTop: collapsedOffset}}
+            animate={{height: 'auto', opacity: 1, marginTop: '0px'}}
+            exit={{height: 0, opacity: 0, marginTop: collapsedOffset}}
+            transition={{duration: 0.12, ease: 'easeOut'}}
+            style={{overflow: 'hidden'}}
+          >
+            <Alert variant="warning">
+              {t(
+                'Without IP pinning, anyone with this prompt can use its handoff code from any IP address to authorize an agent on your behalf. Avoid pasting your prompt when streaming or screen sharing.'
+              )}
+            </Alert>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {error && <Alert variant="danger">{error.message}</Alert>}
     </Fragment>
   );
@@ -93,7 +103,8 @@ interface HandoffPromptBoxProps<Flow extends AgentHandoffFlow> {
   flow: Flow;
   onCopyPrompt: () => void;
   onSelect?: () => void;
-  topRightAction?: ReactNode;
+  /** `md` sets the prompt in larger, looser monospace text with roomier vertical padding. */
+  size?: 'sm' | 'md';
 }
 
 export function HandoffPromptBox<Flow extends AgentHandoffFlow>({
@@ -101,9 +112,10 @@ export function HandoffPromptBox<Flow extends AgentHandoffFlow>({
   flow,
   onCopyPrompt,
   onSelect,
-  topRightAction,
+  size = 'sm',
 }: HandoffPromptBoxProps<Flow>) {
   const [isPromptSelected, setIsPromptSelected] = useState(false);
+  const guideUrl = getHandoffGuideUrl();
 
   const {
     promptProps: {onCopy, onPointerDown, ref: promptRef, tabIndex},
@@ -123,9 +135,7 @@ export function HandoffPromptBox<Flow extends AgentHandoffFlow>({
         background="primary"
         border="primary"
         radius="md"
-        padding="md xl"
-        paddingRight={topRightAction ? '3xl' : 'xl'}
-        position="relative"
+        padding={size === 'md' ? 'lg xl' : 'md xl'}
       >
         {promptBoxProps => (
           <PromptBox {...promptBoxProps} onCopy={onCopy}>
@@ -133,28 +143,35 @@ export function HandoffPromptBox<Flow extends AgentHandoffFlow>({
               ref={promptRef}
               as="div"
               monospace
-              size="sm"
+              size={size}
+              density={size === 'md' ? 'comfortable' : undefined}
               tabIndex={tabIndex}
               textWrap="wrap"
               onBlur={() => setIsPromptSelected(false)}
               onPointerDown={handlePointerDown}
             >
-              {getHandoffPrompt('sntryh_****', flow, context, maskedCode => (
-                <MaskedCode
-                  data-selected={isPromptSelected || undefined}
-                  monospace
-                  variant="warning"
-                  title={t('The secret code authorizes your agent on your behalf')}
-                >
-                  {maskedCode}
-                </MaskedCode>
-              ))}
+              {getHandoffPrompt(flow, context, {
+                url: (
+                  // Stop the prompt from selecting itself so the click opens the link.
+                  <ExternalLink
+                    href={guideUrl}
+                    onPointerDown={event => event.stopPropagation()}
+                  >
+                    {guideUrl}
+                  </ExternalLink>
+                ),
+                code: (
+                  <MaskedCode
+                    data-selected={isPromptSelected || undefined}
+                    monospace
+                    variant="warning"
+                    title={t('The secret code authorizes your agent on your behalf')}
+                  >
+                    sntryh_****
+                  </MaskedCode>
+                ),
+              })}
             </PromptText>
-            {topRightAction && (
-              <Container position="absolute" top="8px" right="8px">
-                {topRightAction}
-              </Container>
-            )}
           </PromptBox>
         )}
       </Container>

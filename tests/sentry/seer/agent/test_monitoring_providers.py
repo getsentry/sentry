@@ -830,9 +830,7 @@ class TestSupabaseMonitoringConnections(TestCase):
         connection = result[0]
         assert connection["type"] == "header_auth"
         assert connection["provider_key"] == "supabase"
-        assert connection["url"] == (
-            "https://mcp.supabase.com/mcp?read_only=true&features=account,debugging"
-        )
+        assert connection["url"] == "https://api.supabase.com/v1"
         assert connection["identity_id"] is None
         assert connection["integration_id"] is not None
         assert connection["auth_method"] == "oauth"

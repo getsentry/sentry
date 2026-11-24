@@ -19,7 +19,7 @@ class OrganizationSeerCreditCheckTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=True),
@@ -39,7 +39,7 @@ class OrganizationSeerCreditCheckTest(APITestCase):
             )
         )
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
@@ -52,7 +52,7 @@ class OrganizationSeerCreditCheckTest(APITestCase):
         assert response.data == {"hasEnoughCredits": False, "denialReason": None}
         assert mock_check_seer_credits.call_args.args[0].feature_id == "seer_agent"
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(
@@ -67,7 +67,7 @@ class OrganizationSeerCreditCheckTest(APITestCase):
 
         assert response.data == {"hasEnoughCredits": False, "denialReason": "not_enough_credits"}
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(
@@ -82,12 +82,6 @@ class OrganizationSeerCreditCheckTest(APITestCase):
 
         assert response.data == {"hasEnoughCredits": False, "denialReason": "daily_cap_exceeded"}
 
-    def test_get_returns_has_enough_credits_when_credit_checks_disabled(self) -> None:
-        response = self.get_success_response(self.organization.slug, operation="autofix_solution")
-
-        assert response.data == {"hasEnoughCredits": True, "denialReason": None}
-
-    @with_feature("organizations:seer-credit-checks")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),

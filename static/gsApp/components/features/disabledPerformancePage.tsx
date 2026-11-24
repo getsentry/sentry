@@ -11,10 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import {PerformanceBackground} from './illustrations/performanceBackground';
 import PageUpsellOverlay from './pageUpsellOverlay';
 
-type Props = React.PropsWithChildren<{
-  features: string[];
-  organization: Organization;
-}>;
+type Props = React.PropsWithChildren<{features: string[]; organization: Organization}>;
 
 const TextWrapper = styled('div')`
   width: 550px;
@@ -28,9 +25,7 @@ function DisabledPerformancePage({
 }: Props) {
   const requiredPlan = tct(
     "You'll need to migrate to a new plan with [strong:Transactions] to access Performance.",
-    {
-      strong: <strong />,
-    }
+    {strong: <strong />}
   );
 
   const description = (

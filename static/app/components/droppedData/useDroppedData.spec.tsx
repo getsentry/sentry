@@ -5,6 +5,7 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {
   act,
+  cleanup,
   render,
   renderHookWithProviders,
   screen,
@@ -152,14 +153,13 @@ describe('useDroppedData', () => {
       jest.useFakeTimers({advanceTimers: true});
       jest.setSystemTime(now);
       PageFiltersStore.onInitializeUrlState(
-        PageFiltersFixture({
-          datetime: {start: null, end: null, period: '14d', utc: null},
-        })
+        PageFiltersFixture({datetime: {start: null, end: null, period: '14d', utc: null}})
       );
     });
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();

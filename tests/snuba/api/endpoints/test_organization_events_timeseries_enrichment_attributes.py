@@ -282,6 +282,42 @@ class OrganizationEventsTimeseriesEnrichmentAttributesEndpointTest(
             self.start, 3_600_000, [1, 0, 0, 0, 0, 0], ignore_accuracy=True
         )
 
+    def test_filter_on_release_and_user(self) -> None:
+        self.store_eap_items(
+            [
+                self.create_enrichment_attributes(
+                    {FRUSTRATION: 0.2, "sentry.release": "1.0", "sentry.user.id": "user-1"},
+                    timestamp=self.start + timedelta(minutes=1),
+                ),
+                self.create_enrichment_attributes(
+                    {FRUSTRATION: 0.4, "sentry.release": "1.0", "sentry.user.id": "user-2"},
+                    timestamp=self.start + timedelta(minutes=2),
+                ),
+                self.create_enrichment_attributes(
+                    {FRUSTRATION: 0.9, "sentry.release": "2.0", "sentry.user.id": "user-1"},
+                    timestamp=self.start + timedelta(minutes=3),
+                ),
+            ]
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "count()",
+                "query": "release:1.0 user.id:user-1",
+                "project": self.project.id,
+                "dataset": "enrichment_attributes",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["timeSeries"]) == 1
+        assert response.data["timeSeries"][0]["values"] == build_expected_timeseries(
+            self.start, 3_600_000, [1, 0, 0, 0, 0, 0], ignore_accuracy=True
+        )
+
     def test_requires_feature_flag(self) -> None:
         response = self._do_request(
             data={

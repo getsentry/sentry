@@ -8,9 +8,14 @@ from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_se
     CheckSeerCreditsResponse,
 )
 
+from sentry.analytics.events.seer_scm_connect_events import (
+    SeerScmConnectResolvedEvent,
+    SeerScmConnectShownEvent,
+)
 from sentry.seer.agent.client_models import (
     MemoryBlock,
     Message,
+    PendingUserInput,
     SeerRunState,
     Usage,
     UsageAccumulator,
@@ -26,6 +31,7 @@ from sentry.service_accounts.tokens import generate_token as generate_service_ac
 from sentry.service_accounts.tokens import stored_token_fields
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.analytics import assert_analytics_events
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -271,9 +277,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
     @with_feature("organizations:ask-seer-scm-connect-prompt")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_scm_connect_prompt_with_flag_and_integrations_scope(
-        self, mock_client_class: MagicMock
-    ) -> None:
+    def test_scm_connect_prompt_with_flag(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
         mock_client_class.return_value = mock_client
@@ -285,9 +289,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
     @with_feature("organizations:ask-seer-scm-connect-prompt")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_scm_connect_prompt_requires_integrations_scope(
-        self, mock_client_class: MagicMock
-    ) -> None:
+    def test_scm_connect_prompt_for_members(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
         mock_client_class.return_value = mock_client
@@ -298,7 +300,47 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         response = self.client.post(self.url, {"query": "hi"}, format="json")
 
         assert response.status_code == 200
-        assert mock_client_class.call_args.kwargs["enable_scm_connect_prompt"] is False
+        assert mock_client_class.call_args.kwargs["enable_scm_connect_prompt"] is True
+
+    @with_feature("organizations:ask-seer-scm-connect-prompt")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_scm_connect_prompt_refuses_org_ci_user_token(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:ci"])
+
+        response = self.client.post(
+            self.url,
+            {"query": "hi"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+
+        assert response.status_code == 403
+        mock_client_class.assert_not_called()
+
+    @with_feature("organizations:ask-seer-scm-connect-prompt")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_scm_connect_prompt_refuses_org_ci_org_auth_token(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        token = generate_token(self.organization.slug, "")
+        self.create_org_auth_token(
+            name="org-auth-token",
+            token_hashed=hash_token(token),
+            organization_id=self.organization.id,
+            scope_list=["org:ci"],
+        )
+
+        response = self.client.post(
+            self.url,
+            {"query": "hi"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+
+        assert response.status_code == 403
+        mock_client_class.assert_not_called()
 
     @with_feature("organizations:ask-seer-create-pr")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
@@ -615,7 +657,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.data["code"] == "run_in_flight"
         mock_continue.assert_not_called()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_reply_to_single_run_without_credits_is_402(self, mock_client_class: MagicMock) -> None:
         run = self._single_run(user_id=self.user.id)
@@ -1103,7 +1145,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 403
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_new_conversation_without_credits_returns_402(
         self, mock_client_class: MagicMock
@@ -1130,7 +1172,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
                 }
         mock_client_class.assert_not_called()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=True),
@@ -1148,7 +1190,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.status_code == 200
         mock_client.start_run.assert_called_once()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
@@ -1173,7 +1215,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         }
         mock_client_class.assert_not_called()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
@@ -1307,6 +1349,59 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         # SeerAgentRun commits with SeerRun before the outbox drain runs, so
         # it persists even when the drain fails.
         assert SeerAgentRun.objects.filter(run=run).exists()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_scm_connect_popup_is_recorded_when_shown_and_when_a_message_closes_it(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=789, user_id=self.user.id
+        )
+        mock_client_class.return_value.get_run.return_value = SeerRunState(
+            run_id=789,
+            blocks=[],
+            status="awaiting_user_input",
+            updated_at="2024-01-01T00:00:00Z",
+            owner_user_id=self.user.id,
+            pending_user_input=PendingUserInput(
+                id="input-1",
+                input_type="connect_scm",
+                data={"repo_name": "acme-labs/app", "failure_reason": "no_scm_integration"},
+            ),
+        )
+
+        with assert_analytics_events(
+            [
+                SeerScmConnectShownEvent(
+                    organization_id=self.organization.id,
+                    user_id=self.user.id,
+                    run_id=789,
+                    input_id="input-1",
+                    failure_reason="no_scm_integration",
+                    can_install_integrations=True,
+                ),
+                SeerScmConnectResolvedEvent(
+                    organization_id=self.organization.id,
+                    user_id=self.user.id,
+                    run_id=789,
+                    input_id="input-1",
+                    failure_reason="no_scm_integration",
+                    resolution="new_message",
+                    repo_status="no_scm_integration",
+                    seconds_open=0,
+                ),
+            ],
+            exclude_fields=["seconds_open"],
+        ):
+            # The chat polls its state; only the first fetch counts as shown.
+            get_response = self.client.get(f"{self.url}789/")
+            self.client.get(f"{self.url}789/")
+            post_response = self.client.post(
+                f"{self.url}789/", {"query": "Skip the code"}, format="json"
+            )
+
+        assert get_response.status_code == 200
+        assert post_response.status_code == 200
 
 
 @with_feature("organizations:seer-explorer")

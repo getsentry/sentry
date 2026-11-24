@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import noop from 'lodash/noop';
 
-import {Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -54,7 +53,7 @@ export default function ProjectFilters() {
 
         {hasDiscardGroups && (
           <TabsContainer>
-            <Tabs onChange={noop} value={activeTab}>
+            <LinkTabs value={activeTab}>
               {({TabList}) => (
                 <TabList>
                   <TabList.Item
@@ -75,7 +74,7 @@ export default function ProjectFilters() {
                   </TabList.Item>
                 </TabList>
               )}
-            </Tabs>
+            </LinkTabs>
           </TabsContainer>
         )}
 

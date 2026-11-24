@@ -23,6 +23,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
     SeerWorkflowRunExtras,
+    SeerWorkflowRunSource,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
     WorkflowRunError,
@@ -51,13 +52,19 @@ class SeerWorkflowRunLifecycle:
 
     @classmethod
     def create(
-        cls, config: SeerWorkflowConfig, *, trigger_key: str, extras: SeerWorkflowRunExtras
+        cls,
+        config: SeerWorkflowConfig,
+        *,
+        trigger_key: str,
+        source: SeerWorkflowRunSource,
+        extras: SeerWorkflowRunExtras,
     ) -> SeerWorkflowRunLifecycle:
         """Record a queued run of ``config``. Callers must hold the config's row lock."""
         run = SeerWorkflowRun.objects.using(router.db_for_write(SeerWorkflowRun)).create(
             organization_id=config.organization_id,
             workflow_config=config,
             trigger_key=trigger_key,
+            source=source,
             status=SeerWorkflowRunStatus.QUEUED,
             extras=json.loads(extras.json()),
         )
@@ -291,7 +298,7 @@ def deliver_workflow_result(
     agent_run = (
         SeerAgentRun.objects.select_related("run__organization")
         .filter(run__organization_id=organization_id, source=feature_id, run__uuid=run_uuid)
-        .first()
+        .first()  # noqa: S035
     )
     if agent_run is None:
         logger.warning("seer.workflow.delivery.missing_run", extra=log_extra)

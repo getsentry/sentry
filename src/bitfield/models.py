@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, SupportsIndex, SupportsInt, TypeVar, cast
+from typing import TYPE_CHECKING, Any, SupportsIndex, SupportsInt, TypeVar, cast, overload
 
 from django.db.models import Model
 from django.db.models.fields import BigIntegerField
@@ -94,6 +94,15 @@ class BitField(_BigIntegerFieldBase):
     def contribute_to_class(self, cls: type[Model], name: str, private_only: bool = False) -> None:
         super().contribute_to_class(cls, name, private_only=private_only)
         setattr(cls, self.name, BitFieldCreator(self))
+
+    if TYPE_CHECKING:
+        # contribute_to_class replaces the field with BitFieldCreator, whose class
+        # access returns BitFieldFlags rather than Django's field descriptor.
+        @overload
+        def __get__(self, instance: None, owner: Any) -> BitFieldFlags: ...
+        @overload
+        def __get__(self, instance: Model, owner: Any) -> Any: ...
+        def __get__(self, instance: Model | None, owner: Any) -> BitFieldFlags | Any: ...
 
     def __init__(
         self,

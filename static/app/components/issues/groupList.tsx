@@ -58,9 +58,7 @@ export type GroupListProps = {
    * Defaults to path '/organizations/$organizationIdOrSlug/issues/'
    */
   endpoint?:
-    | {
-        path: '/organizations/$organizationIdOrSlug/issues/';
-      }
+    | {path: '/organizations/$organizationIdOrSlug/issues/'}
     | {
         path: '/organizations/$organizationIdOrSlug/releases/$version/resolved/';
         version: string;
@@ -79,7 +77,6 @@ export type GroupListProps = {
   source?: string;
   staleTime?: number;
   useFilteredStats?: boolean;
-  useTintRow?: boolean;
   withChart?: boolean;
   withColumns?: GroupListColumn[];
   withHeader?: boolean;
@@ -120,7 +117,6 @@ export function GroupList({
   withPagination = true,
   canSelectGroups = true,
   useFilteredStats = true,
-  useTintRow = true,
   withHeader = true,
 }: GroupListProps) {
   const organization = useOrganization();
@@ -162,10 +158,7 @@ export function GroupList({
         nextPage = undefined;
       }
 
-      navigate({
-        pathname: path,
-        query: {...queryParam, cursor, page: nextPage},
-      });
+      navigate({pathname: path, query: {...queryParam, cursor, page: nextPage}});
     },
     [location, navigate]
   );
@@ -373,7 +366,6 @@ export function GroupList({
                     withColumns={withColumns}
                     memberList={members}
                     useFilteredStats={useFilteredStats}
-                    useTintRow={useTintRow}
                     statsPeriod={statsPeriod}
                     queryFilterDescription={queryFilterDescription}
                     source={source}

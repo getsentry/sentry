@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
 
+import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import type {ChartXRangeSelectionProps} from 'sentry/components/charts/useChartXRangeSelection';
 import type {DroppedDataProps} from 'sentry/components/droppedData/types';
@@ -31,15 +32,18 @@ import type {ChartInfo} from './types';
 
 interface ChartVisualizationProps {
   chartInfo: ChartInfo;
+  annotations?: AnnotationItem[];
   chartRef?: Ref<ReactEchartsRef>;
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
   droppedData?: DroppedDataProps;
   isDroppedDataLoading?: boolean;
+  onAnnotationClick?: (items: AnnotationItem[]) => void;
   /**
    * Overrides the plottables derived from `chartInfo`, e.g. when several
    * aggregates are plotted on the same chart.
    */
   plottables?: Plottable[];
+  showConfidence?: boolean;
   /**
    * Maximum number of series listed in the tooltip, see
    * `TimeSeriesWidgetVisualization`.
@@ -101,12 +105,15 @@ export function useChartInfosPlottables(chartInfos: ChartInfo[]) {
 }
 
 export function ChartVisualization({
+  annotations,
   chartXRangeSelection,
   chartInfo,
   chartRef,
   droppedData,
   isDroppedDataLoading = false,
+  onAnnotationClick,
   plottables: plottablesOverride,
+  showConfidence,
   tooltipLimit,
 }: ChartVisualizationProps) {
   const defaultPlottables = useChartVisualizationPlottables(chartInfo);
@@ -164,7 +171,10 @@ export function ChartVisualization({
         plottables={activePlottables}
         chartXRangeSelection={chartXRangeSelection}
         droppedData={activeDroppedData}
+        annotations={annotations}
+        onAnnotationClick={onAnnotationClick}
         renderTooltipSeriesDetails={renderTooltipSeriesDetails}
+        showConfidence={showConfidence}
         tooltipLimit={tooltipLimit}
       />
     </StyledTransparentLoadingMask>

@@ -13,6 +13,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {InfiniteApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -66,7 +67,7 @@ export function useExportConversation(
         data: InfiniteData<ApiResponse<ConversationApiResponse>>
       ): ConversationExport => {
         const spans = data.pages.flatMap(page => page.json.spans ?? []);
-        const nodes = buildConversationNodes(spans).nodes;
+        const nodes = buildConversationNodes(spans, {organization}).nodes;
         return {
           markdown: messagesToMarkdown(extractMessagesFromNodes(nodes)),
           title: data.pages[0]?.json.title ?? null,
@@ -93,11 +94,8 @@ export function useExportConversation(
         return;
       }
 
-      const exportQueryKey = [
-        options.queryKey[0],
-        options.queryKey[1],
-        {...options.queryKey[2], export: true},
-      ] as unknown as typeof options.queryKey;
+      const conversationQueryKey: InfiniteApiQueryKey = options.queryKey;
+      const exportQueryKey = [...conversationQueryKey, {export: true}] as const;
 
       await queryClient.cancelQueries({queryKey: exportQueryKey});
       queryClient.removeQueries({queryKey: exportQueryKey});

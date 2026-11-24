@@ -6,7 +6,7 @@ from datetime import datetime
 from functools import partial
 from typing import Any, Literal, NotRequired, TypedDict
 
-from django.db.models import OuterRef, Subquery
+from django.db.models import OuterRef, Subquery, prefetch_related_objects
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
@@ -42,6 +42,7 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.base import (
     AllProjects,
+    AutomationDefinition,
     SeerServiceAccountGrant,
     SelectedMonitors,
     SelectedProjects,
@@ -196,6 +197,10 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
     enabled = serializers.BooleanField(required=False)
     serviceAccount = ServiceAccountGrantSerializer(required=False)
     name = serializers.CharField(required=False, max_length=64)
+    # [] selects all environments; omitted leaves them unchanged.
+    environments = serializers.ListField(
+        child=serializers.CharField(max_length=64), required=False, allow_empty=True
+    )
     projectIds = serializers.ListField(
         child=serializers.IntegerField(min_value=ALL_ACCESS_PROJECT_ID),
         required=False,
@@ -449,10 +454,6 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 
         grant: SeerServiceAccountGrant = data["serviceAccount"]
         check_can_grant_service_account(grant, request, organization, self)
-        extras = SeerWorkflowConfigExtras(
-            name=data.get("name"),
-            created_by=acting_user_id(request.user),
-        )
         try:
             if strategy is SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
                 workflow = SeerWorkflow.create(
@@ -461,10 +462,11 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                     enabled=data["enabled"],
                     scope=SelectedMonitors(tuple(monitor_ids)),
                     environments=data["environments"],
-                    extras=extras,
+                    name=data.get("name"),
+                    created_by_id=acting_user_id(request.user),
                     service_account_grant=grant,
                 )
-            elif strategy is SeerWorkflowStrategy.AGENTIC_TRIAGE_V2:
+            elif strategy is SeerWorkflowStrategy.SCHEDULED_INVESTIGATION:
                 workflow = SeerWorkflow.create(
                     organization_id=organization.id,
                     strategy=strategy,
@@ -476,7 +478,8 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                         else SelectedProjects(tuple(project_ids))
                     ),
                     environments=data["environments"],
-                    extras=extras,
+                    name=data.get("name"),
+                    created_by_id=acting_user_id(request.user),
                     service_account_grant=grant,
                 )
             else:
@@ -583,6 +586,9 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         - ``monitorIds`` replaces the monitors of a metric automation and is rejected
           for other strategies.
         - Enabling or pausing requires access to every project the config covers.
+        - ``environments`` replaces the environments the automation covers; ``[]``
+          selects all environments. Like enabling, changing them requires access to
+          every project the config covers; sending the current value is a no-op.
         - ``serviceAccount`` replaces the scopes and projects of the automation's service
           account. Like ``projectIds``, the account's projects the caller can't access are
           kept, and scopes can't be added while any are.
@@ -613,12 +619,11 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
         monitor_ids: list[int] | None = serializer.validated_data.get("monitorIds")
         name: str | None = serializer.validated_data.get("name")
+        # None means not sent; an empty list selects all environments.
+        environments: list[str] | None = serializer.validated_data.get("environments")
 
         # Checks that depend only on the request run before taking the lock.
-        if (
-            monitor_ids is not None
-            and get_definition(config.strategy).trigger.scoped_by != "monitors"
-        ):
+        if monitor_ids is not None and get_definition(config.strategy).scoped_by != "monitors":
             return Response(
                 {"detail": "This automation type does not support monitor selection."}, status=400
             )
@@ -647,11 +652,14 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         try:
             with workflow.update_config() as update:
                 all_projects = project_ids == [ALL_ACCESS_PROJECT_ID]
-                config_all_projects = SeerWorkflowFilters.parse_obj(
-                    update.config.filters
-                ).all_projects
+                config_filters = SeerWorkflowFilters.parse_obj(update.config.filters)
+                config_all_projects = config_filters.all_projects
+                # Clients may resend the stored environments on every save; that is not a change.
+                environments_changed = (
+                    environments is not None and environments != config_filters.environments
+                )
 
-                if enabled is not None:
+                if enabled is not None or environments_changed:
                     denied = _check_project_access(
                         (
                             [ALL_ACCESS_PROJECT_ID]
@@ -665,7 +673,11 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     if denied is not None:
                         raise PermissionDenied(detail=denied)
 
+                if enabled is not None:
                     update.set_enabled(enabled)
+
+                if environments is not None:
+                    update.set_environments(environments)
 
                 if project_ids is not None:
                     # Narrowing an all-projects config drops future projects the caller may
@@ -728,9 +740,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                         applied_grant = grant
 
                 if name is not None:
-                    extras = SeerWorkflowConfigExtras.parse_obj(update.config.extras)
-                    extras.name = name
-                    update.set_extras(extras)
+                    update.set_name(name)
 
                 if update.changed:
                     user_id = acting_user_id(request.user)
@@ -812,6 +822,7 @@ def serialize_workflow_configs(
     accounts: Sequence[RpcServiceAccount] = (),
 ) -> SeerWorkflowConfigsResponse:
     """``accounts`` override the cell replicas, which may lag a write in this request."""
+    prefetch_related_objects(configs, "backing_workflow")
     accessible = set(accessible_project_ids)
     service_accounts = get_config_service_accounts(configs, accessible_project_ids=accessible) | {
         account.id: SeerServiceAccountResponse(
@@ -931,7 +942,7 @@ def serialize_workflow_config(
     result: SeerWorkflowConfigResponse = {
         "id": str(config.id),
         "strategy": config.strategy,
-        "enabled": config.enabled,
+        "enabled": AutomationDefinition.is_enabled(config),
         "schedule": config.schedule,
         "version": config.version,
         "projects": project_ids,
@@ -955,11 +966,12 @@ def serialize_workflow_config(
     if last_run is not None and last_run.last_run_at is not None:
         result["dateLastRun"] = last_run.last_run_at
         result["lastRunStatus"] = last_run.last_run_status
+    workflow = config.backing_workflow
+    if workflow is not None:
+        result["name"] = workflow.name
+        if workflow.created_by_id is not None:
+            result["createdBy"] = str(workflow.created_by_id)
     extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
-    if extras.name is not None:
-        result["name"] = extras.name
-    if extras.created_by is not None:
-        result["createdBy"] = str(extras.created_by)
     if extras.updated_by is not None:
         result["updatedBy"] = str(extras.updated_by)
     return result

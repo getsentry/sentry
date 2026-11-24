@@ -186,14 +186,16 @@ describe('AutofixChatProvider', () => {
         writable: true,
         value: {
           window: null,
-          requestWindow: jest.fn().mockResolvedValue({
-            document: document.implementation.createHTMLDocument('pip'),
-            close: jest.fn(),
-            focus: jest.fn(),
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn(),
-            closed: false,
-          }),
+          requestWindow: jest
+            .fn()
+            .mockResolvedValue({
+              document: document.implementation.createHTMLDocument('pip'),
+              close: jest.fn(),
+              focus: jest.fn(),
+              addEventListener: jest.fn(),
+              removeEventListener: jest.fn(),
+              closed: false,
+            }),
         },
       });
     });
@@ -221,11 +223,7 @@ describe('AutofixChatProvider', () => {
   it('leaves the message in the composer when the organization is out of credits', async () => {
     const creditsOrganization = OrganizationFixture({
       ...organization,
-      features: [
-        ...organization.features,
-        'seer-credit-checks',
-        'token-billed-seer-enabled',
-      ],
+      features: [...organization.features, 'token-billed-seer-enabled'],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/credit-check/`,

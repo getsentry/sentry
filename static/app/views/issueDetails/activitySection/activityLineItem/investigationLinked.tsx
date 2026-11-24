@@ -55,13 +55,13 @@ export function ActivityLineInvestigationLinked({
     >
       {investigation && variant === 'full' ? (
         <Container paddingTop="sm">
-          <Container width="100%" padding="sm md" border="muted" radius="md">
+          <Container width="100%" padding="sm md" border="secondary" radius="md">
             <Stack gap="sm">
               <Text as="p" density="comfortable" wordBreak="break-word">
                 {hypothesisStatement}
               </Text>
               {reason ? (
-                <Container borderTop="muted" paddingTop="sm">
+                <Container borderTop="secondary" paddingTop="sm">
                   <Text as="p" size="xs" variant="muted" wordBreak="break-word">
                     <Text bold>{t('Evidence:')}</Text> {reason}
                   </Text>

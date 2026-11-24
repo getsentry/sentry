@@ -45,15 +45,9 @@ export function useReplayList({
 
   const loadReplays = useCallback(async () => {
     api.clear();
-    setData(prev => ({
-      ...prev,
-      isFetching: true,
-    }));
+    setData(prev => ({...prev, isFetching: true}));
     if (!enabled) {
-      setData(prev => ({
-        ...prev,
-        isFetching: false,
-      }));
+      setData(prev => ({...prev, isFetching: false}));
       return;
     }
     const response = await fetchReplayList({

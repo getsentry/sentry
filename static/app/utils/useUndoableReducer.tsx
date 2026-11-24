@@ -9,13 +9,9 @@ export type UndoableNode<S> = {
   previous: UndoableNode<S> | undefined;
 };
 
-type UndoAction = {
-  type: 'undo';
-};
+type UndoAction = {type: 'undo'};
 
-type RedoAction = {
-  type: 'redo';
-};
+type RedoAction = {type: 'redo'};
 
 export type UndoableReducerAction<A> = UndoAction | RedoAction | A;
 
@@ -73,10 +69,7 @@ export function makeUndoableReducer<R extends React.Reducer<any, any>>(
 type UndoableReducerState<R extends React.Reducer<ReducerState<R>, ReducerAction<R>>> = [
   ReducerState<R>,
   React.Dispatch<UndoableReducerAction<ReducerAction<R>>>,
-  {
-    nextState: ReducerState<R> | undefined;
-    previousState: ReducerState<R> | undefined;
-  },
+  {nextState: ReducerState<R> | undefined; previousState: ReducerState<R> | undefined},
 ];
 
 export function useUndoableReducer<

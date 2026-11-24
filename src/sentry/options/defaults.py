@@ -15,7 +15,7 @@ from sentry.options.manager import (
     FLAG_SCALAR,
 )
 from sentry.quotas.base import build_metric_abuse_quotas
-from sentry.utils.types import Any, Bool, Dict, Float, Int, Sequence, String
+from sentry.utils.types import Any, Bool, Dict, Float, Int, NonNegativeInt, Sequence, String
 
 # Cache
 # register('cache.backend', flags=FLAG_NOSTORE)
@@ -93,38 +93,6 @@ register(
     type=Dict,
     default={"default": {"hosts": {0: {"host": "127.0.0.1", "port": 6379}}}},
     flags=FLAG_NOSTORE | FLAG_IMMUTABLE,
-)
-
-# Share of lock keys (0.0 to 1.0) that MigrationLockBackend sends to its new backend.
-# Only used when a lock manager is configured with the matching selector in
-# sentry.utils.locking.backends.migration.
-register(
-    "locks.default.migration-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "locks.post-process.migration-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When on, MigrationLockBackend also checks the new backend for keys that go to the old
-# backend. Turn it on before the matching rollout rate goes above 0, and turn it off only
-# after the rate is back at 0 and all locks on the new backend have expired. See the
-# MigrationLockBackend docstring for the full sequence.
-register(
-    "locks.default.migration-check-new",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "locks.post-process.migration-check-new",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Processing worker caches
@@ -678,6 +646,15 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Maximum number of bytes a single recording segment may decompress to at ingest. Segments
+# which inflate past this limit are dropped instead of stored. Negative values are rejected
+# because zlib treats a `max_length` of 0 as unlimited.
+register(
+    "replay.consumer.max-segment-decompressed-size",
+    type=NonNegativeInt,
+    default=100 * 1024 * 1024,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Enable new database query caching.
 register(
     "replay.consumer.enable_new_query_caching_system",
@@ -806,11 +783,11 @@ register(
 )
 
 # Bound GitLab project webhook reconciliation independently in each cell region. Each
-# repository consumes three capacity tokens to leave room for repairs that make multiple
+# repository consumes five capacity tokens to leave room for repairs that make multiple
 # GitLab API requests.
 register(
     "gitlab.webhook-reconcile.rate-limit.burst",
-    default=3,
+    default=5,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -830,15 +807,8 @@ register(
 )
 
 register(
-    "gitlab.webhook-reconcile.rate-limit.retry-after-jitter-seconds",
-    default=300,
-    type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "gitlab.webhook-reconcile.forced-fanout-jitter-max-seconds",
-    default=1801,
+    default=601,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1407,6 +1377,13 @@ register(
     default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Killswitch for bounding Bigtable (nodestore) operations while saving events.
+register(
+    "store.save-event.bigtable-operation-timeout.disabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 
 # Enable sending the flag to the microservice to tell it to purposefully take longer than our
@@ -1686,6 +1663,14 @@ register(
     type=Int,
     default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Organizations whose telemetry classifiers aren't processed.
+register(
+    "telemetry-classifiers.killswitch-organization-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Kill switch for sentry.cadence: when False, no triggers are claimed or fired.
@@ -4110,13 +4095,6 @@ register(
     default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Skip workflows that don't belong to the event's organization.
-register(
-    "workflow_engine.filter_cross_org_workflows",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Higher opt-in limit for workflows; intended for orgs we know are hitting limits legitimately,
 # generally set to 'as high as we think we can safely handle for a handful of orgs'.
 register(
@@ -4628,6 +4606,13 @@ register(
     type=Int,
     default=5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "autofix.pr-iteration.check-suite-local-prefilter.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics

@@ -83,7 +83,4 @@ export type FilterKeyItem =
   | RawSearchFilterIsValueItem
   | LogicFilterItem;
 
-export type Section = {
-  label: ReactNode;
-  value: string;
-};
+export type Section = {label: ReactNode; value: string};

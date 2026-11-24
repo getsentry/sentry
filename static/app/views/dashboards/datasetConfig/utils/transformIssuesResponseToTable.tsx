@@ -41,11 +41,7 @@ export function transformIssuesResponseToTable(
           transformedResultProps[key] = resultProps[key];
         });
 
-      issueRowMetadata[id] = {
-        assignedTo,
-        owners,
-        links: annotations ?? [],
-      };
+      issueRowMetadata[id] = {assignedTo, owners, links: annotations ?? []};
 
       const transformedTableResult: TableDataRow = {
         ...transformedResultProps,

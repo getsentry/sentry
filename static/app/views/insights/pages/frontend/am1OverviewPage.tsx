@@ -186,11 +186,7 @@ export function Am1FrontendOverviewPage({
     trackAnalytics('performance.domains.frontend.search', {organization});
 
     setSearchParams(
-      {
-        cursor: null,
-        query: String(searchQuery).trim() || null,
-        isDefaultQuery: false,
-      },
+      {cursor: null, query: String(searchQuery).trim() || null, isDefaultQuery: false},
       {history: 'push'}
     );
   }

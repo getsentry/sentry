@@ -10,10 +10,6 @@ export const docs: Docs = {
   onboarding,
   crashReportOnboarding: CrashReportWebApiOnboarding,
   profilingOnboarding: profiling(),
-  logsOnboarding: logs({
-    docsPlatform: 'ruby',
-  }),
-  metricsOnboarding: metrics({
-    docsPlatform: 'ruby',
-  }),
+  logsOnboarding: logs({docsPlatform: 'ruby'}),
+  metricsOnboarding: metrics({docsPlatform: 'ruby'}),
 };

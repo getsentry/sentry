@@ -406,7 +406,7 @@ def handle_query_errors() -> Iterator[None]:
             message = "Invalid Span ID used in a filter"
         elif message.startswith("Empty string after"):
             message = "Filter key was followed by nothing (eg. thing:)"
-        elif message.endswith("quotes must enclose text or be escaped."):
+        elif message.startswith("Invalid quote at "):
             message = "Invalid quoting in filter"
         sentry_sdk.set_tag("query.error_reason", message)
         sentry_sdk.set_attribute("query.error_reason", message)

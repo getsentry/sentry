@@ -166,12 +166,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert preference["automation_handoff"] is None
         assert response.data["code_mapping_repos"] == []
 
-    @with_feature(
-        {
-            "organizations:seer-token-based-billing-onboarding": True,
-            "organizations:token-billed-seer-enabled": True,
-        }
-    )
+    @with_feature("organizations:token-billed-seer-enabled")
     def test_get_returns_every_linked_repo(self) -> None:
         integration = self.create_integration(
             organization=self.org, provider="github", external_id="github:1"

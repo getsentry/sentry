@@ -32,10 +32,7 @@ function TopBarWrapper({children}: {children: ReactNode}) {
 describe('ExploreContent', () => {
   const {organization, project} = initializeOrg();
   const {organization: highRangeOrganization, project: highRangeProject} = initializeOrg({
-    organization: {
-      slug: 'high-range-org',
-      features: ['visibility-explore-range-high'],
-    },
+    organization: {slug: 'high-range-org', features: ['visibility-explore-range-high']},
   });
 
   function addExploreMockResponses({
@@ -106,9 +103,7 @@ describe('ExploreContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organizationSlug}/events-timeseries/`,
       method: 'GET',
-      body: {
-        timeSeries: [],
-      },
+      body: {timeSeries: []},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organizationSlug}/traces/`,
@@ -124,13 +119,7 @@ describe('ExploreContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organizationSlug}/trace-items/attributes/`,
       method: 'GET',
-      body: [
-        {
-          key: 'project',
-          name: 'project',
-          attributeSource: {source_type: 'sentry'},
-        },
-      ],
+      body: [{key: 'project', name: 'project', attributeSource: {source_type: 'sentry'}}],
       match: [MockApiClient.matchQuery({attributeType: 'string'})],
     });
     MockApiClient.addMockResponse({
@@ -150,19 +139,12 @@ describe('ExploreContent', () => {
     PageFiltersStore.init();
     OrganizationStore.onUpdate(organization, {replace: true});
 
-    addExploreMockResponses({
-      organizationBody: organization,
-      projectBody: project,
-    });
+    addExploreMockResponses({organizationBody: organization, projectBody: project});
     addExploreMockResponses({
       organizationBody: highRangeOrganization,
       projectBody: highRangeProject,
     });
-    MockApiClient.addMockResponse({
-      url: '/assistant/',
-      method: 'GET',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/assistant/', method: 'GET', body: []});
   });
 
   afterEach(() => {
@@ -206,10 +188,7 @@ describe('ExploreContent', () => {
     act(() => ProjectsStore.loadInitialData([highRangeProject]));
     OrganizationStore.reset();
 
-    const highRangeOrganizationWithoutFeature = {
-      ...highRangeOrganization,
-      features: [],
-    };
+    const highRangeOrganizationWithoutFeature = {...highRangeOrganization, features: []};
 
     const {rerender} = render(
       <OrganizationContext value={highRangeOrganizationWithoutFeature}>
@@ -284,10 +263,7 @@ describe('ExploreContent', () => {
       false
     );
 
-    const highRangeOrganizationWithOverride = {
-      ...highRangeOrganization,
-      features: [],
-    };
+    const highRangeOrganizationWithOverride = {...highRangeOrganization, features: []};
     OrganizationStore.onUpdate(highRangeOrganizationWithOverride, {replace: true});
 
     render(<ExploreContent />, {
@@ -327,9 +303,7 @@ describe('ExploreContent', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',
-            query: {
-              crossEvents: JSON.stringify([{query: '', type: 'spans'}]),
-            },
+            query: {crossEvents: JSON.stringify([{query: '', type: 'spans'}])},
           },
         },
       });
@@ -356,9 +330,7 @@ describe('ExploreContent', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',
-            query: {
-              statsPeriod: '14d',
-            },
+            query: {statsPeriod: '14d'},
           },
         },
       });
@@ -391,6 +363,60 @@ describe('ExploreContent', () => {
           utc: null,
         })
       );
+    });
+  });
+
+  describe.each([
+    ['new', ['agent-handoff-empty-states-tracing']],
+    ['legacy', []],
+  ])('when the first transaction arrives in the %s empty state', (_name, features) => {
+    const emptyStateOrganization = {
+      ...organization,
+      features: [...organization.features, ...features],
+    };
+
+    function renderWithFirstTransaction(tracesBody: {data: Array<{trace: string}>}) {
+      act(() => ProjectsStore.loadInitialData([project]));
+      OrganizationStore.onUpdate(emptyStateOrganization, {replace: true});
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        body: {...project, firstTransactionEvent: true},
+      });
+      const tracesMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/traces/`,
+        body: {...tracesBody, meta: {}},
+      });
+
+      render(<ExploreContent />, {
+        organization: emptyStateOrganization,
+        additionalWrapper: TopBarWrapper,
+        initialRouterConfig: {
+          location: {pathname: `/organizations/${organization.slug}/explore/traces/`},
+        },
+      });
+      return tracesMock;
+    }
+
+    it('keeps the empty state until the first trace can be queried', async () => {
+      const tracesMock = renderWithFirstTransaction({data: []});
+
+      expect(
+        await screen.findByText(/We've received this project's first trace!/)
+      ).toBeInTheDocument();
+      await waitFor(() =>
+        expect(ProjectsStore.getById(project.id)?.firstTransactionEvent).toBe(true)
+      );
+      await waitFor(() => expect(tracesMock).toHaveBeenCalled());
+
+      expect(screen.getByText('Tracing in Sentry')).toBeInTheDocument();
+      expect(screen.queryByTestId('explore-span-toolbar')).not.toBeInTheDocument();
+    });
+
+    it('shows the data page once the first trace can be queried', async () => {
+      renderWithFirstTransaction({data: [{trace: 'abc'}]});
+
+      expect(await screen.findByTestId('explore-span-toolbar')).toBeInTheDocument();
+      expect(screen.queryByText('Tracing in Sentry')).not.toBeInTheDocument();
     });
   });
 });

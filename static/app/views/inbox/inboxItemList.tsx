@@ -1,4 +1,4 @@
-import {useId} from 'react';
+import {useId, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconDelete} from '@sentry/icons/delete';
@@ -6,6 +6,7 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconMail} from '@sentry/icons/mail';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -14,19 +15,21 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {TimeSince} from 'sentry/components/timeSince';
 import {UnreadIndicator} from 'sentry/components/unreadIndicator';
 import {t} from 'sentry/locale';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import * as qs from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 
 import {
   removeInboxItemsMutationOptions,
   updateInboxItemsMutationOptions,
 } from './inboxApiOptions';
-import type {InboxFilters, InboxItem} from './types';
-import {getInboxItemPath, INBOX_SUBJECT_CONFIG} from './utils';
+import type {InboxFilters, InboxIssueMetadata, InboxItem} from './types';
+import {INBOX_SUBJECT_CONFIG} from './utils';
 
 interface InboxItemListProps {
   filters: InboxFilters;
@@ -41,37 +44,89 @@ export function InboxItemList({items, selectedItemId, filters}: InboxItemListPro
         <InboxItemListItem
           key={item.id}
           item={item}
-          isSelected={item.id === selectedItemId}
           filters={filters}
+          isSelected={item.id === selectedItemId}
         />
       ))}
     </Stack>
   );
 }
 
-interface InboxItemListItemProps {
+interface InboxItemRowProps {
   filters: InboxFilters;
   isSelected: boolean;
   item: InboxItem;
 }
 
-function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) {
+function InboxItemListItem(props: InboxItemRowProps) {
+  const {subject} = props.item;
+  switch (subject.type) {
+    case 'issue':
+      return <InboxIssueItem {...props} metadata={subject.metadata} />;
+    default:
+      return <DefaultInboxItem {...props} />;
+  }
+}
+
+function InboxIssueItem({
+  metadata,
+  ...props
+}: InboxItemRowProps & {metadata: InboxIssueMetadata}) {
+  const project = useProjectFromId({project_id: metadata.project.id});
+
+  return (
+    <InboxItemRow {...props}>
+      <Flex align="center" gap="2xs" minWidth={0}>
+        <ProjectAvatar project={project ?? metadata.project} size={12} />
+        <Text size="sm" variant="muted" ellipsis>
+          {metadata.shortId}
+        </Text>
+      </Flex>
+      <InboxItemSummary summary={props.item.latestEvent.summary} />
+    </InboxItemRow>
+  );
+}
+
+function DefaultInboxItem(props: InboxItemRowProps) {
+  return (
+    <InboxItemRow {...props}>
+      <InboxItemSummary summary={props.item.latestEvent.summary} />
+    </InboxItemRow>
+  );
+}
+
+function InboxItemSummary({summary}: {summary: string}) {
+  return (
+    <Text size="sm" ellipsis>
+      {summary}
+    </Text>
+  );
+}
+
+function InboxItemRow({
+  item,
+  isSelected,
+  filters,
+  children,
+}: InboxItemRowProps & {children: ReactNode}) {
   const organization = useOrganization();
   const checkboxState = useListItemCheckboxContext();
   const checkboxId = useId();
-  const SubjectIcon = INBOX_SUBJECT_CONFIG[item.subjectType].icon;
-  const title = item.title ?? t('Unavailable');
+  const {type, title} = item.subject;
+  const SubjectIcon = INBOX_SUBJECT_CONFIG[type].icon;
+  const {pathname, search, hash} = new URL(item.url);
   const queryClient = useQueryClient();
   const {mutate: updateInboxItems, isPending: isUpdating} = useMutation(
     updateInboxItemsMutationOptions({organization, queryClient})
   );
   const {mutate: removeInboxItems, isPending: isRemoving} = useMutation({
     ...removeInboxItemsMutationOptions({organization, queryClient}),
-    onSuccess: (_data, {ids}) =>
+    onSuccess: () =>
       toast.success(t('Removed 1 item'), {
         action: {
           label: t('Undo'),
-          onClick: () => updateInboxItems({selection: ids, update: {undoRemoval: true}}),
+          onClick: () =>
+            updateInboxItems({selection: [item.id], update: {undoRemoval: true}}),
         },
       }),
     onError: () => toast.error(t('Unable to remove item')),
@@ -110,10 +165,7 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
                 {linkProps => (
                   <ItemLink
                     {...linkProps}
-                    to={{
-                      pathname: getInboxItemPath(organization, item),
-                      query: {...filters},
-                    }}
+                    to={{pathname, query: {...filters, ...qs.parse(search)}, hash}}
                     aria-current={isSelected ? 'true' : undefined}
                   >
                     <SubjectIcon size="sm" />
@@ -133,13 +185,13 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
                   <Text data-inbox-item-timestamp size="sm" variant="muted" wrap="nowrap">
                     <TimeSince
                       date={item.lastActivityAt}
-                      unitStyle="extraShort"
+                      unitStyle="narrow"
                       suffix=""
                       disabledAbsoluteTooltip
                     />
                   </Text>
                 </Container>
-                <Container column="1" row="1">
+                <Flex column="1" row="1" height="0" align="center">
                   {actionProps => (
                     <ItemActions {...actionProps}>
                       <DropdownMenu
@@ -191,14 +243,12 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
                       />
                     </ItemActions>
                   )}
-                </Container>
+                </Flex>
               </Grid>
             </Flex>
-            <Container column="3" row="2" minWidth={0}>
-              <Text size="sm" variant="muted" ellipsis>
-                {item.latestEvent.summary}
-              </Text>
-            </Container>
+            <Stack column="3" row="2" gap="xs" minWidth={0}>
+              {children}
+            </Stack>
           </Grid>
         </ItemRow>
       )}
@@ -210,7 +260,7 @@ const ItemRow = styled('li')`
   list-style: none;
 
   &:hover,
-  &:focus-within,
+  &:has([aria-haspopup]:focus-visible),
   &:has([aria-expanded='true']) {
     [data-inbox-item-timestamp] {
       opacity: 0;
@@ -235,7 +285,7 @@ const ItemActions = styled('div')`
   pointer-events: none;
 
   [data-inbox-item]:hover &,
-  [data-inbox-item]:focus-within &,
+  &:has(:focus-visible),
   &:has([aria-expanded='true']) {
     opacity: 1;
     pointer-events: auto;

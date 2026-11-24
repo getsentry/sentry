@@ -14,10 +14,7 @@ function showAlert(msg: string, type: 'error' | 'success') {
 
 type ChangeId = string;
 
-type Change = {
-  data: any;
-  itemIds: string[];
-};
+type Change = {data: any; itemIds: string[]};
 
 type Item = BaseGroup | Group;
 
@@ -109,10 +106,7 @@ export const GroupStore = {
     // Merge these items into the store and return a mapping of any that aren't already in the store
     GroupStore.items.forEach((item, itemIndex) => {
       if (itemsById[item.id]) {
-        GroupStore.items[itemIndex] = {
-          ...item,
-          ...itemsById[item.id],
-        };
+        GroupStore.items[itemIndex] = {...item, ...itemsById[item.id]};
         delete itemsById[item.id];
       }
     });
@@ -351,10 +345,7 @@ export const GroupStore = {
 
     GroupStore.items.forEach((item, idx) => {
       if (ids.includes(item.id)) {
-        GroupStore.items[idx] = {
-          ...item,
-          ...response,
-        };
+        GroupStore.items[idx] = {...item, ...response};
         GroupStore.clearStatus(item.id, 'update');
       }
     });
@@ -371,10 +362,7 @@ export const GroupStore = {
 
     GroupStore.items.forEach((item, idx) => {
       if (itemIds?.includes(item.id)) {
-        GroupStore.items[idx] = {
-          ...item,
-          ...groupStatsMap[item.id],
-        };
+        GroupStore.items[idx] = {...item, ...groupStatsMap[item.id]};
       }
     });
     GroupStore.updateItems();

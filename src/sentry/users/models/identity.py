@@ -266,8 +266,8 @@ def link_provider_identity(
 ) -> Identity | None:
     with transaction.atomic(router.db_for_write(Identity)):
         idp, _ = IdentityProvider.objects.get_or_create(
-            type=cast(str, identity_data["type"]),
-            external_id=cast(str, identity_data["idp_external_id"]),
+            type=identity_data["type"],
+            external_id=identity_data["idp_external_id"],
             defaults={"config": identity_data.get("idp_config", {})},
         )
 

@@ -7,26 +7,17 @@ import {SubscriptionUpsellBanner} from './subscriptionUpsellBanner';
 
 describe('SubscriptionUpsellBanner', () => {
   beforeEach(() => {
-    const promptResponse = {
-      dismissed_ts: undefined,
-      snoozed_ts: undefined,
-    };
+    const promptResponse = {dismissed_ts: undefined, snoozed_ts: undefined};
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       body: promptResponse,
     });
-    MockApiClient.addMockResponse({
-      url: '/customers/org-slug/',
-      body: {},
-    });
+    MockApiClient.addMockResponse({url: '/customers/org-slug/', body: {}});
   });
 
   it('should render banner for users on free plan with billing access', async () => {
     const organization = OrganizationFixture({access: ['org:billing']});
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am2_f',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'am2_f'});
     render(
       <SubscriptionUpsellBanner
         organization={organization}
@@ -44,10 +35,7 @@ describe('SubscriptionUpsellBanner', () => {
 
   it('should render banner for users on free plan without billing access', async () => {
     const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am2_f',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'am2_f'});
     render(
       <SubscriptionUpsellBanner
         organization={organization}

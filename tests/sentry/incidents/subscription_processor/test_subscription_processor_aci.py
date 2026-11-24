@@ -541,10 +541,7 @@ class ProcessUpdateUpsampledCountTest(ProcessUpdateBaseClass):
         message = self.build_upsampled_subscription_update(
             self.sub, upsampled_count=upsampled_count, time_delta=time_delta
         )
-        with (
-            self.feature("organizations:performance-view"),
-        ):
-            SubscriptionProcessor.process(self.sub, message)
+        SubscriptionProcessor.process(self.sub, message)
 
     def test_upsampled_count_no_detector_below_threshold(self) -> None:
         """Test that the detector is not triggered when upsampled count is below threshold"""
@@ -625,7 +622,6 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
         timestamp = timestamp.replace(microsecond=0)
 
         with (
-            self.feature("organizations:performance-view"),
             self.capture_on_commit_callbacks(execute=True),
         ):
             if value is None:
@@ -987,27 +983,26 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
     def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(
         self, helper_metrics: MagicMock
     ) -> None:
-        with self.feature("organizations:performance-view"):
-            SubscriptionProcessor.process(
-                self.sub,
-                {
-                    "entity": "entity",
-                    "subscription_id": cast(str, self.sub.subscription_id),
-                    "values": {
-                        # 1001 is a random int that doesn't map to anything in the indexer
-                        "data": [
-                            {
-                                resolve_tag_key(
-                                    UseCaseKey.RELEASE_HEALTH,
-                                    self.organization.id,
-                                    "session.status",
-                                ): 1001
-                            }
-                        ]
-                    },
-                    "timestamp": timezone.now(),
+        SubscriptionProcessor.process(
+            self.sub,
+            {
+                "entity": "entity",
+                "subscription_id": cast(str, self.sub.subscription_id),
+                "values": {
+                    # 1001 is a random int that doesn't map to anything in the indexer
+                    "data": [
+                        {
+                            resolve_tag_key(
+                                UseCaseKey.RELEASE_HEALTH,
+                                self.organization.id,
+                                "session.status",
+                            ): 1001
+                        }
+                    ]
                 },
-            )
+                "timestamp": timezone.now(),
+            },
+        )
         assert self.get_detector_state(self.detector) == DetectorPriorityLevel.OK
         helper_metrics.incr.assert_has_calls(
             [

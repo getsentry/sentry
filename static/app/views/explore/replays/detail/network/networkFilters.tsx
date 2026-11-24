@@ -8,9 +8,10 @@ import {FiltersGrid} from 'sentry/views/explore/replays/detail/filtersGrid';
 
 import type {useNetworkFilters} from './useNetworkFilters';
 
-type Props = {
-  networkFrames: undefined | unknown[];
-} & Omit<ReturnType<typeof useNetworkFilters>, 'items'>;
+type Props = {networkFrames: undefined | unknown[]} & Omit<
+  ReturnType<typeof useNetworkFilters>,
+  'items'
+>;
 
 export function NetworkFilters({
   getMethodTypes,
@@ -33,18 +34,9 @@ export function NetworkFilters({
         multiple
         onChange={setFilters as (selection: Array<SelectOption<string>>) => void}
         options={[
-          {
-            label: t('Method'),
-            options: methodTypes,
-          },
-          {
-            label: t('Status'),
-            options: statusTypes,
-          },
-          {
-            label: t('Type'),
-            options: resourceTypes,
-          },
+          {label: t('Method'), options: methodTypes},
+          {label: t('Status'), options: statusTypes},
+          {label: t('Type'), options: resourceTypes},
         ]}
         size="sm"
         trigger={triggerProps => (

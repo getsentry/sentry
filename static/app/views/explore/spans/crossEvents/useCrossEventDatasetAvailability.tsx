@@ -18,11 +18,7 @@ export function useCrossEventDatasetAvailability(
 
   return useMemo(() => {
     if (!initiallyLoaded) {
-      return {
-        spans: true,
-        logs: true,
-        metrics: canUseMetrics,
-      };
+      return {spans: true, logs: true, metrics: canUseMetrics};
     }
 
     const explicitlySelectedProjectIds = selection.projects.filter(

@@ -187,13 +187,7 @@ export function ReleaseEventsChart({
               </HeaderValue>
             </Fragment>
           }
-          legendOptions={{
-            right: 10,
-            top: 0,
-            textStyle: {
-              padding: [2, 0, 0, 0],
-            },
-          }}
+          legendOptions={{right: 10, top: 0, textStyle: {padding: [2, 0, 0, 0]}}}
           chartOptions={{
             grid: {left: '10px', right: '10px', top: '70px', bottom: '0px'},
             tooltip: {

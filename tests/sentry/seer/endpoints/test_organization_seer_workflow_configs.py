@@ -31,6 +31,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.base import (
+    AutomationDefinition,
     ConfigUpdate,
     SeerServiceAccountGrant,
     SelectedMonitors,
@@ -50,7 +51,7 @@ from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
 from sentry.utils import json
-from sentry.workflow_engine.models import Detector, Workflow
+from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
 
 GRANT = SeerServiceAccountGrant(scopes=["event:read"])
 
@@ -77,6 +78,17 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         assert response.data == {"configs": []}
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
+    def test_lists_config_whose_backing_workflow_was_deleted_as_disabled(self) -> None:
+        config = self.create_config(enabled=True)
+        Workflow.objects.filter(id=config.backing_workflow_id).delete()
+
+        response = self.get_success_response(self.organization.slug)
+
+        [item] = response.data["configs"]
+        assert item["id"] == str(config.id)
+        assert item["enabled"] is False
+        assert "name" not in item
+
     def test_lists_saved_configs_for_organization(self) -> None:
         project = self.create_project()
         config = self.create_config(
@@ -84,7 +96,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             version=4,
             filters={"environments": ["production"], "min_event_count": 10},
             output_policy={"review_mode": "manual"},
-            extras={"seeded_default": "agentic_triage_v2"},
+            extras={"seeded_default": "scheduled_investigation"},
         )
         Factories.create_seer_workflow_config_project(config, project)
         empty = self.create_config()
@@ -93,7 +105,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         )
         Factories.create_seer_workflow_config(
             self.create_organization(owner=self.user),
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
         )
 
         response = self.get_success_response(self.organization.slug)
@@ -101,7 +113,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         assert [item["id"] for item in response.data["configs"]] == [str(config.id), str(empty.id)]
         assert response.data["configs"][0] == {
             "id": str(config.id),
-            "strategy": "agentic_triage_v2",
+            "strategy": "scheduled_investigation",
             "enabled": False,
             "schedule": "daily",
             "version": 4,
@@ -111,10 +123,11 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             "environments": ["production"],
             "filters": {"minEventCount": 10},
             "outputPolicy": {"review_mode": "manual"},
-            "seededDefault": "agentic_triage_v2",
+            "seededDefault": "scheduled_investigation",
             "nextRunAt": None,
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
+            "name": "Seer automation",
         }
         assert response.data["configs"][1]["projects"] == []
 
@@ -141,7 +154,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         second = self.create_config()
         foreign = Factories.create_seer_workflow_config(
             self.create_organization(owner=self.user),
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
         )
         legacy = Factories.create_seer_workflow_config(
             self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
@@ -351,7 +364,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
 
     def create_config(self, **kwargs: Any) -> SeerWorkflowConfig:
         return Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, **kwargs
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION, **kwargs
         )
 
 
@@ -390,7 +403,8 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["projects"] == [self.project.id]
 
     def test_get_includes_created_by(self) -> None:
-        config = self.create_config(extras={"created_by": self.user.id})
+        config = self.create_config()
+        config.update(backing_workflow=self.create_workflow(created_by_id=self.user.id))
 
         response = self.get_success_response(self.organization.slug, config.id)
 
@@ -416,7 +430,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         )
         foreign = Factories.create_seer_workflow_config(
             self.create_organization(owner=self.user),
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
         )
         for config_id in (legacy.id, foreign.id, I64_MAX):
             self.get_error_response(self.organization.slug, config_id, status_code=404)
@@ -468,8 +482,34 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["projects"] == []
         assert self.selected_project_ids(config) == []
 
+    def test_put_replaces_environments(self) -> None:
+        config = self.create_config(version=3)
+        Factories.create_seer_workflow_config_project(config, self.project)
+
+        response = self.get_success_response(
+            self.organization.slug, config.id, method="put", environments=["production"]
+        )
+
+        assert response.data["environments"] == ["production"]
+        assert response.data["projects"] == [self.project.id]
+        assert response.data["version"] == 4
+        config.refresh_from_db()
+        assert config.filters["environments"] == ["production"]
+
+        # An empty list selects all environments.
+        response = self.get_success_response(
+            self.organization.slug, config.id, method="put", environments=[]
+        )
+
+        assert response.data["environments"] == []
+        config.refresh_from_db()
+        assert config.filters["environments"] == []
+
     def test_put_sets_updated_by(self) -> None:
-        config = self.create_config(extras={"created_by": self.user.id})
+        config = self.create_config()
+        config.update(
+            backing_workflow=self.create_workflow(created_by_id=self.user.id, enabled=False)
+        )
         updater = self.create_user()
         self.create_member(organization=self.organization, user=updater, role="owner")
         self.login_as(updater)
@@ -484,7 +524,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         # Recording the updater is part of the same save, so the version bumps once.
         assert response.data["version"] == version + 1
         config.refresh_from_db()
-        assert config.extras == {"created_by": self.user.id, "updated_by": updater.id}
+        assert config.extras == {"updated_by": updater.id}
 
     def test_put_by_another_user_replaces_updated_by(self) -> None:
         config = self.create_config()
@@ -580,7 +620,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["detail"] == "Requesting all projects requires global access"
         config.refresh_from_db()
         assert config.filters["all_projects"] is True
-        assert config.enabled is False
+        assert AutomationDefinition.is_enabled(config) is False
         assert self.selected_project_ids(config) == []
 
     def test_member_cannot_put_all_projects(self) -> None:
@@ -669,6 +709,72 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["projects"] == [other_accessible.id]
         assert self.selected_project_ids(config) == sorted([other_accessible.id, hidden.id])
 
+    def test_member_cannot_put_environments_with_partial_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        team = self.create_team(organization=self.organization)
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
+        accessible = self.create_project(teams=[team])
+        hidden = self.create_project(teams=[self.create_team(organization=self.organization)])
+        config = self.create_config(filters={"environments": ["production"]})
+        for project in (accessible, hidden):
+            Factories.create_seer_workflow_config_project(config, project)
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            config.id,
+            method="put",
+            environments=["staging"],
+            status_code=403,
+        )
+
+        config.refresh_from_db()
+        assert config.filters["environments"] == ["production"]
+
+    def test_member_can_put_unchanged_environments_with_partial_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        team = self.create_team(organization=self.organization)
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
+        accessible = self.create_project(teams=[team])
+        hidden = self.create_project(teams=[self.create_team(organization=self.organization)])
+        config = self.create_config(version=3, filters={"environments": ["production"]})
+        for project in (accessible, hidden):
+            Factories.create_seer_workflow_config_project(config, project)
+        self.login_as(member)
+
+        # Resending the stored environments is not a change, so it needs no extra access.
+        response = self.get_success_response(
+            self.organization.slug, config.id, method="put", environments=["production"]
+        )
+
+        assert response.data["version"] == 3
+
+        response = self.get_success_response(
+            self.organization.slug,
+            config.id,
+            method="put",
+            environments=["production"],
+            name="After",
+        )
+
+        assert response.data["name"] == "After"
+        assert response.data["environments"] == ["production"]
+
+        self.get_error_response(
+            self.organization.slug,
+            config.id,
+            method="put",
+            environments=["staging"],
+            status_code=403,
+        )
+
+        config.refresh_from_db()
+        assert config.filters["environments"] == ["production"]
+
     def test_put_breached_metric_member_keeps_inaccessible_monitors(self) -> None:
         member, accessible_project = self.create_member_with_project(open_membership=False)
         accessible = self.create_metric_monitor(accessible_project)
@@ -717,6 +823,13 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["monitorIds"] == [monitor.id]
         assert not backing_workflow.get().enabled
 
+        response = self.get_success_response(
+            self.organization.slug, workflow.config_id, method="put", name="Checkout breaches"
+        )
+        assert response.data["name"] == "Checkout breaches"
+        assert backing_workflow.get().name == "Checkout breaches"
+        assert "name" not in workflow.get_config().extras
+
     def test_member_cannot_enable_investigations_for_inaccessible_projects(self) -> None:
         monitor = self.create_metric_monitor(self.project)
         workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
@@ -730,7 +843,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             enabled=True,
             status_code=403,
         )
-        assert workflow.get_config().enabled is False
+        assert AutomationDefinition.is_enabled(workflow.get_config()) is False
 
     def test_put_enables_all_projects_config(self) -> None:
         config = self.create_config(filters={"all_projects": True})
@@ -741,7 +854,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         )
         assert response.data["enabled"] is True
         config.refresh_from_db()
-        assert config.enabled is True
+        assert AutomationDefinition.is_enabled(config) is True
 
     def test_agent_projects_hide_projects_the_viewer_cannot_access(self) -> None:
         member, accessible = self.create_member_with_project(open_membership=False)
@@ -929,7 +1042,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         }
         config.refresh_from_db()
         assert config.version == 1
-        assert config.backing_workflow_id is None
+        assert not DetectorWorkflow.objects.filter(workflow_id=config.backing_workflow_id).exists()
 
     def test_put_breached_metric_member_needs_access_to_monitor_projects(self) -> None:
         member, accessible_project = self.create_member_with_project(open_membership=False)
@@ -990,15 +1103,11 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             method="put",
             projectIds=[self.project.id],
             enabled=True,
-            name="Checkout triage",
         )
 
         assert response.data["version"] == config.version + 1
         assert response.data["enabled"] is True
         assert response.data["projects"] == [self.project.id]
-        assert response.data["name"] == "Checkout triage"
-        config.refresh_from_db()
-        assert config.extras["name"] == "Checkout triage"
 
     def test_put_failure_rolls_back_every_change(self) -> None:
         config = self.create_config()
@@ -1018,7 +1127,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
 
         config.refresh_from_db()
         assert config.version == 1
-        assert config.enabled is False
+        assert AutomationDefinition.is_enabled(config) is False
         assert self.selected_project_ids(config) == [self.project.id]
 
     def test_put_project_ids_on_breached_metric_config_returns_400(self) -> None:
@@ -1174,7 +1283,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
 
     def create_config(self, **kwargs: Any) -> SeerWorkflowConfig:
         return Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, **kwargs
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION, **kwargs
         )
 
 
@@ -1196,19 +1305,19 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
     def test_feature_disabled_returns_404(self) -> None:
         with self.feature({"organizations:seer-automations": False}):
             self.get_error_response(
-                self.organization.slug, strategy="agentic_triage_v2", status_code=404
+                self.organization.slug, strategy="scheduled_investigation", status_code=404
             )
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
     def test_creates_config_with_defaults(self) -> None:
         response = self.get_success_response(
-            self.organization.slug, strategy="agentic_triage_v2", status_code=201
+            self.organization.slug, strategy="scheduled_investigation", status_code=201
         )
 
         config = SeerWorkflowConfig.objects.get(organization=self.organization)
         assert response.data == {
             "id": str(config.id),
-            "strategy": "agentic_triage_v2",
+            "strategy": "scheduled_investigation",
             "enabled": False,
             "schedule": "daily",
             "version": 1,
@@ -1227,9 +1336,10 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "nextRunAt": None,
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
+            "name": "Seer automation",
             "createdBy": str(self.user.id),
         }
-        assert config.extras == {"created_by": self.user.id}
+        assert config.extras == {}
 
     @patch(
         "sentry.seer.endpoints.organization_seer_workflow_configs.acting_user_id",
@@ -1237,7 +1347,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
     )
     def test_create_by_non_user_omits_created_by(self, _: MagicMock) -> None:
         response = self.get_success_response(
-            self.organization.slug, strategy="agentic_triage_v2", status_code=201
+            self.organization.slug, strategy="scheduled_investigation", status_code=201
         )
 
         assert "createdBy" not in response.data
@@ -1274,7 +1384,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
     def test_creates_scheduled_automation_with_agent(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
-            strategy="agentic_triage_v2",
+            strategy="scheduled_investigation",
             projectIds=[self.project.id],
             serviceAccount={"scopes": ["event:read"], "allProjects": True},
             status_code=201,
@@ -1294,13 +1404,13 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
     def test_failed_create_removes_the_service_account(self) -> None:
         for _ in range(MAX_WORKFLOW_CONFIGS_PER_ORG):
             Factories.create_seer_workflow_config(
-                self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+                self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
             )
 
         with outbox_runner():
             self.get_error_response(
                 self.organization.slug,
-                strategy="agentic_triage_v2",
+                strategy="scheduled_investigation",
                 serviceAccount={"scopes": ["event:read"]},
                 status_code=400,
             )
@@ -1312,7 +1422,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
     def test_agent_ignores_duplicate_scopes_and_projects(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
-            strategy="agentic_triage_v2",
+            strategy="scheduled_investigation",
             serviceAccount={
                 "scopes": ["project:read", "event:read", "event:read"],
                 "projectIds": [self.project.id, self.project.id],
@@ -1335,14 +1445,14 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
 
         lacks_scope = self.client.post(
             url,
-            {"strategy": "agentic_triage_v2", "serviceAccount": {"scopes": ["org:admin"]}},
+            {"strategy": "scheduled_investigation", "serviceAccount": {"scopes": ["org:admin"]}},
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
         all_projects_without_role = self.client.post(
             url,
             {
-                "strategy": "agentic_triage_v2",
+                "strategy": "scheduled_investigation",
                 "serviceAccount": {"scopes": ["event:read"], "allProjects": True},
             },
             format="json",
@@ -1364,7 +1474,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
     def test_requires_service_accounts_feature(self) -> None:
         with self.feature({"organizations:service-accounts": False}):
             self.get_error_response(
-                self.organization.slug, strategy="agentic_triage_v2", status_code=404
+                self.organization.slug, strategy="scheduled_investigation", status_code=404
             )
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
@@ -1373,18 +1483,15 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            strategy="agentic_triage_v2",
+            strategy="scheduled_investigation",
             enabled=True,
             environments=["production"],
             projectIds=[self.project.id, other.id, other.id],
-            name="Checkout triage",
             status_code=201,
         )
 
         config = SeerWorkflowConfig.objects.get(id=response.data["id"])
-        assert config.enabled is True
-        assert config.extras == {"name": "Checkout triage", "created_by": self.user.id}
-        assert response.data["name"] == "Checkout triage"
+        assert AutomationDefinition.is_enabled(config) is True
         assert response.data["environments"] == ["production"]
         assert sorted(response.data["projects"]) == sorted([self.project.id, other.id])
         assert self.selected_project_ids(config) == sorted([self.project.id, other.id])
@@ -1392,7 +1499,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
     def test_all_projects(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
-            strategy="agentic_triage_v2",
+            strategy="scheduled_investigation",
             projectIds=[-1],
             status_code=201,
         )
@@ -1407,7 +1514,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         for project_id in (self.nonexistent_project_id(), foreign.id):
             self.get_error_response(
                 self.organization.slug,
-                strategy="agentic_triage_v2",
+                strategy="scheduled_investigation",
                 projectIds=[self.project.id, project_id],
                 status_code=403,
             )
@@ -1419,7 +1526,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         for project in (inactive, foreign):
             self.get_error_response(
                 self.organization.slug,
-                strategy="agentic_triage_v2",
+                strategy="scheduled_investigation",
                 projectIds=[self.project.id, project.id],
                 status_code=403,
             )
@@ -1437,14 +1544,14 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
 
         self.get_error_response(
             self.organization.slug,
-            strategy="agentic_triage_v2",
+            strategy="scheduled_investigation",
             projectIds=[accessible.id, hidden.id],
             status_code=403,
         )
 
         response = self.get_error_response(
             self.organization.slug,
-            strategy="agentic_triage_v2",
+            strategy="scheduled_investigation",
             projectIds=[-1],
             status_code=403,
         )
@@ -1453,7 +1560,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            strategy="agentic_triage_v2",
+            strategy="scheduled_investigation",
             projectIds=[accessible.id],
             status_code=201,
         )
@@ -1465,7 +1572,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            strategy="agentic_triage_v2",
+            strategy="scheduled_investigation",
             projectIds=[-1],
             status_code=201,
         )
@@ -1477,20 +1584,21 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
     def test_caps_configs_per_organization(self) -> None:
         for _ in range(MAX_WORKFLOW_CONFIGS_PER_ORG):
             Factories.create_seer_workflow_config(
-                self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+                self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
             )
         Factories.create_seer_workflow_config(
             self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
         )
 
         response = self.get_error_response(
-            self.organization.slug, strategy="agentic_triage_v2", status_code=400
+            self.organization.slug, strategy="scheduled_investigation", status_code=400
         )
 
         assert response.data["detail"] == "Couldn't create the automation."
         assert (
             SeerWorkflowConfig.objects.filter(
-                organization=self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+                organization=self.organization,
+                strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             ).count()
             == MAX_WORKFLOW_CONFIGS_PER_ORG
         )
@@ -1500,7 +1608,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
 
         response = self.get_error_response(
             self.organization.slug,
-            strategy="agentic_triage_v2",
+            strategy="scheduled_investigation",
             monitorIds=[monitor.id],
             status_code=400,
         )
@@ -1525,11 +1633,13 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
 
         config = SeerWorkflowConfig.objects.get(id=response.data["id"])
         assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-        assert config.enabled is True
         assert config.filters == {"all_projects": False, "environments": ["production"]}
-        assert config.extras == {"name": "Latency breaches", "created_by": self.user.id}
+        assert config.extras == {}
         assert config.version == 1
         assert config.backing_workflow is not None
+        assert config.backing_workflow.enabled is True
+        assert config.backing_workflow.name == "Latency breaches"
+        assert config.backing_workflow.created_by_id == self.user.id
         assert set(
             config.backing_workflow.detectorworkflow_set.values_list("detector_id", flat=True)
         ) == {monitor.id for monitor in monitors}
@@ -1618,10 +1728,10 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
     def test_rate_limits_creation(self) -> None:
         for _ in range(5):
             self.get_success_response(
-                self.organization.slug, strategy="agentic_triage_v2", status_code=201
+                self.organization.slug, strategy="scheduled_investigation", status_code=201
             )
         self.get_error_response(
-            self.organization.slug, strategy="agentic_triage_v2", status_code=429
+            self.organization.slug, strategy="scheduled_investigation", status_code=429
         )
 
     def create_metric_monitor(self, project: Project) -> Detector:

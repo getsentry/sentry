@@ -1,5 +1,3 @@
 import {getNodeProfilingOnboarding} from './utils';
 
-export const profiling = getNodeProfilingOnboarding({
-  profilingLifecycle: 'manual',
-});
+export const profiling = getNodeProfilingOnboarding({profilingLifecycle: 'manual'});

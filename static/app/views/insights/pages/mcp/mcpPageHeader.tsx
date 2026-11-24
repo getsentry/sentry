@@ -8,9 +8,7 @@ import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 
 import {MCP_LANDING_SUB_PATH, MCP_SIDEBAR_LABEL, MODULES} from './settings';
 
-type Props = {
-  module?: HeaderProps['selectedModule'];
-};
+type Props = {module?: HeaderProps['selectedModule']};
 
 export function MCPPageHeader({module}: Props) {
   const organization = useOrganization();

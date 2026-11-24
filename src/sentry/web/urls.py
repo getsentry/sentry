@@ -52,7 +52,6 @@ from sentry.web.frontend.project_event import ProjectEventRedirect
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
-from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.signup_verification_pending import SignupVerificationPendingView
 from sentry.web.frontend.sso_signup_verification import SSOSignupVerificationView
@@ -174,8 +173,6 @@ urlpatterns += [
         name="sentry-js-sdk-loader",
     ),
     re_path(r"^agent-handoff\.md$", AgentHandoffView.as_view(), name="sentry-agent-handoff"),
-    # Prompts copied before the .md URL still point here.
-    re_path(r"^agent-handoff/$", AgentHandoffView.as_view(), name="sentry-agent-handoff-legacy"),
     # docs reference this for acquiring the sentry cli
     re_path(r"^get-cli/$", get_cli, name="get_cli_script"),
     re_path(
@@ -458,7 +455,7 @@ urlpatterns += [
                 # Project Wizard
                 re_path(
                     r"^settings/wizard/(?P<wizard_hash>[^/]+)/$",
-                    SetupWizardView.as_view(),
+                    GenericReactPageView.as_view(auth_required=False),
                     name="sentry-project-wizard-fetch",
                 ),
                 # Compatibility
@@ -993,11 +990,6 @@ urlpatterns += [
         r"^releases/",
         react_page_view,
         name="releases",
-    ),
-    re_path(
-        r"^release-thresholds/",
-        react_page_view,
-        name="release-thresholds",
     ),
     # User Feedback
     re_path(

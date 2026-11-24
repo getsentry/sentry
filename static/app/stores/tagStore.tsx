@@ -25,10 +25,7 @@ export const TagStore = {
     const newState: TagCollection = {};
 
     for (const tag of data) {
-      newState[tag.key] = {
-        values: [],
-        ...tag,
-      };
+      newState[tag.key] = {values: [], ...tag};
     }
 
     // We will carry over the previous tags until we reach the max store size

@@ -70,10 +70,7 @@ import {
   type NavigationTourElementProps,
 } from 'sentry/views/navigation/navigationTour';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
-import {
-  useNavigationGroupHoverEnabled,
-  usePrimaryNavigation,
-} from 'sentry/views/navigation/primaryNavigationContext';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
@@ -123,8 +120,6 @@ function SecondarySidebarPanel({
   const containerRef = useObjectRef(tourRef);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
   const {layout, activeGroup} = usePrimaryNavigation();
-  // Group switches only animate to smooth over hover previews.
-  const shouldAnimateGroupSwitch = useNavigationGroupHoverEnabled();
   const isSettingsNavigation = useSettingsNavigation();
 
   const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
@@ -153,9 +148,7 @@ function SecondarySidebarPanel({
     <Container
       height="100%"
       right="0"
-      {...mergeProps(props, {
-        [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
-      })}
+      {...mergeProps(props, {[NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true})}
       width={isMobile ? '100%' : `${size}px`}
       ref={isMobile ? undefined : containerRef}
     >
@@ -170,9 +163,9 @@ function SecondarySidebarPanel({
           width="100%"
           height="100%"
           key={activeGroup}
-          initial={shouldAnimateGroupSwitch ? {x: -6, opacity: 0} : false}
+          initial={{x: -6, opacity: 0}}
           animate={{x: 0, opacity: 1}}
-          exit={shouldAnimateGroupSwitch ? {x: 6, opacity: 0} : undefined}
+          exit={{x: 6, opacity: 0}}
           transition={{duration: 0.06}}
         >
           <Grid
@@ -660,7 +653,7 @@ function SecondaryNavigationSeparator() {
     return (
       <SecondaryNavigationRow height="auto" padding="md" radius="0">
         <Container column="2" minWidth="0">
-          <Separator orientation="horizontal" border="muted" />
+          <Separator orientation="horizontal" border="secondary" />
         </Container>
       </SecondaryNavigationRow>
     );
@@ -668,7 +661,7 @@ function SecondaryNavigationSeparator() {
 
   return (
     <Container padding="0 xl">
-      <Separator orientation="horizontal" border="muted" />
+      <Separator orientation="horizontal" border="secondary" />
     </Container>
   );
 }
@@ -720,10 +713,7 @@ function Collapsible(props: CollapsibleProps) {
           direction="column-reverse"
           key="collapsible-content"
           variants={{
-            collapsed: {
-              height: 0,
-              overflow: 'hidden',
-            },
+            collapsed: {height: 0, overflow: 'hidden'},
             expanded: {
               height: 'auto',
               // Let focus rings and other content extend beyond the expanded section.
@@ -873,12 +863,8 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
   props: SecondaryNavigationReorderableListProps<T>
 ) {
   const sensors = useSensors(
-    useSensor(NavigationPointerSensor, {
-      activationConstraint: {distance: 5},
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(NavigationPointerSensor, {activationConstraint: {distance: 5}}),
+    useSensor(KeyboardSensor, {coordinateGetter: sortableKeyboardCoordinates})
   );
 
   // We need to hold a copy of the local state because dnd-kit does not play well
@@ -1170,9 +1156,7 @@ const DotIndicator = styled('div')<{variant: 'accent' | 'danger' | 'warning'}>`
 
 const StyledReorderableLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'layout',
-})<{
-  layout: 'mobile' | 'sidebar';
-}>`
+})<{layout: 'mobile' | 'sidebar'}>`
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   border: 0;
   user-select: none;
@@ -1230,9 +1214,7 @@ const StyledReorderableLink = styled(Link, {
 
 const LegacyStyledReorderableLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'layout',
-})<{
-  layout: 'mobile' | 'sidebar';
-}>`
+})<{layout: 'mobile' | 'sidebar'}>`
   display: flex;
   gap: ${p => p.theme.space.sm};
   justify-content: center;

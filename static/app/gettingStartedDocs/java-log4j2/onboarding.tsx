@@ -108,16 +108,10 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
           type: 'text',
           text: tct(
             'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
-            {
-              link: <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />,
-            }
+            {link: <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />}
           ),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___',
-        },
+        {type: 'code', language: 'bash', code: 'SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___'},
         {
           type: 'conditional',
           condition: params.platformOptions.packageManager === PackageManager.GRADLE,
@@ -134,11 +128,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
                 }
               ),
             },
-            {
-              type: 'code',
-              language: 'groovy',
-              code: getGradleInstallSnippet(params),
-            },
+            {type: 'code', language: 'groovy', code: getGradleInstallSnippet(params)},
           ],
         },
         {
@@ -157,11 +147,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
                 }
               ),
             },
-            {
-              type: 'code',
-              language: 'xml',
-              code: getMavenInstallSnippet(params),
-            },
+            {type: 'code', language: 'xml', code: getMavenInstallSnippet(params)},
           ],
         },
         {
@@ -183,11 +169,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
                 }
               ),
             },
-            {
-              type: 'code',
-              language: 'bash',
-              code: getOpenTelemetryRunSnippet(params),
-            },
+            {type: 'code', language: 'bash', code: getOpenTelemetryRunSnippet(params)},
           ],
         },
         {
@@ -222,9 +204,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
               type: 'text',
               text: tct(
                 "Here's the [code:sentry.properties] file that goes with the [code:java] command above:",
-                {
-                  code: <code />,
-                }
+                {code: <code />}
               ),
             },
             {
@@ -238,16 +218,10 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
           type: 'text',
           text: tct(
             'The following example using the [code:log4j2.xml] format to configure a [code:ConsoleAppender] that logs to standard out at the INFO level, and a [code:SentryAppender] that logs to the Sentry server at the ERROR level.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'xml',
-          code: getConsoleAppenderSnippet(params),
-        },
+        {type: 'code', language: 'xml', code: getConsoleAppenderSnippet(params)},
         {
           type: 'conditional',
           condition: params.platformOptions.opentelemetry !== YesNo.YES,
@@ -277,11 +251,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
             }
           ),
         },
-        {
-          type: 'code',
-          language: 'xml',
-          code: getLogLevelSnippet(params),
-        },
+        {type: 'code', language: 'xml', code: getLogLevelSnippet(params)},
       ],
     },
   ],
@@ -298,16 +268,8 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'Java',
-              language: 'java',
-              code: getVerifyJavaSnippet(),
-            },
-            {
-              label: 'Kotlin',
-              language: 'kotlin',
-              code: getVerifyKotlinSnippet(),
-            },
+            {label: 'Java', language: 'java', code: getVerifyJavaSnippet()},
+            {label: 'Kotlin', language: 'kotlin', code: getVerifyKotlinSnippet()},
           ],
         },
         metricsVerify(params),

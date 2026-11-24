@@ -40,9 +40,7 @@ describe('IssuesSecondaryNavigation', () => {
   }
 
   it('shows the inbox count for Seer progress sections assigned or suggested to the user or their teams', async () => {
-    const request = mockInboxCount({
-      [inboxCountQuery]: 12,
-    });
+    const request = mockInboxCount({[inboxCountQuery]: 12});
 
     renderNavigation();
 
@@ -62,9 +60,7 @@ describe('IssuesSecondaryNavigation', () => {
   });
 
   it('caps the count at 99+ since the endpoint stops counting at 100', async () => {
-    mockInboxCount({
-      [inboxCountQuery]: 100,
-    });
+    mockInboxCount({[inboxCountQuery]: 100});
 
     renderNavigation();
 
@@ -118,7 +114,6 @@ describe('IssuesSecondaryNavigation', () => {
 
       function ContextCapture() {
         const {getLLMContext} = useLLMContext();
-        // oxlint-disable-next-line react/immutability
         ref.current = () => getLLMContext().nodes;
         return null;
       }

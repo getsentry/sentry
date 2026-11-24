@@ -30,7 +30,7 @@ export function useFetchFeedbackData({feedbackId}: Props) {
   const project = useProjectFromId({project_id: issueData?.project?.id});
 
   // TODO: it would be excellent if `PUT /issues/` could return the same data
-  // as `GET /issues/` when query params are set. IE: it should expand inbox & owners.
+  // as `GET /issues/` when query params are set, including suggested owners.
   // Then we could avoid firing off 2-3 requests whenever a feedback is selected.
   // Until that is fixed, we're going to run `markAsRead` after the issue is
   // initially fetched in order to speedup initial fetch and avoid race conditions.
@@ -40,9 +40,5 @@ export function useFetchFeedbackData({feedbackId}: Props) {
     }
   }, [project?.isMember, issueData, issueResult.isFetched, markAsRead]);
 
-  return {
-    eventData,
-    issueData,
-    issueResult,
-  };
+  return {eventData, issueData, issueResult};
 }
