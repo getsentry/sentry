@@ -21,7 +21,7 @@ import {animate, AnimatePresence, motion} from 'framer-motion';
 import errorIllustration from 'sentry-images/spot/computer-missing.svg';
 
 import {Button} from '@sentry/scraps/button';
-import {ListBox, ListWrap} from '@sentry/scraps/compactSelect';
+import {ListBox} from '@sentry/scraps/compactSelect';
 import {Hotkey} from '@sentry/scraps/hotkey';
 import {Image} from '@sentry/scraps/image';
 import {InputGroup} from '@sentry/scraps/input';
@@ -1248,7 +1248,7 @@ const StyledInputGroupInput = styled(InputGroup.Input)<{seerEnabled?: boolean}>`
 
 const ResultsList = styled(Flex)`
   /* The results are already inset by this element's top padding. */
-  div:has(> ${ListWrap}) {
+  [data-list-scroll-area] {
     --list-inset: 0px;
   }
 

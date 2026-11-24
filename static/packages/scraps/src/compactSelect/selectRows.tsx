@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import {createContext, useContext} from 'react';
+import {createContext, useContext, useMemo} from 'react';
 import type {ListState} from '@react-stately/list';
 import type {Key, Node} from '@react-types/shared';
 
@@ -96,28 +96,44 @@ export function SelectRows<T extends ListItemBase>({
   size,
   virtualized,
 }: SelectRowsProps<T>) {
-  const positions = virtualized
-    ? getVisibleOptionPositions(listItems, hiddenOptions)
-    : undefined;
+  // The published package is built without the React Compiler, so memoize by
+  // hand what must keep its identity while scrolling re-renders this component:
+  // new positions would re-render every memoized option, and a new scroll ref
+  // would re-run the virtualizer's list offset effect.
+  const positions = useMemo(
+    () => (virtualized ? getVisibleOptionPositions(listItems, hiddenOptions) : undefined),
+    [virtualized, listItems, hiddenOptions]
+  );
 
-  const options = virtualized
-    ? flattenSections(listItems, hiddenOptions).filter(node => node.type !== 'section')
-    : [];
-  const focusableOptions = options.filter(node => !selectionManager.isDisabled(node.key));
-  const pinnedKeys = [
-    // The overlay sizes its width to the rows. Keep the visible option with the
-    // longest label mounted, so a virtualized list does not change width as
-    // other options scroll into view.
-    getWidestKey(options),
-    // Opening the menu, leaving the search and moving focus between the lists
-    // of a CompositeSelect find these options in the DOM.
-    options.find(node => selectionManager.isSelected(node.key))?.key,
-    focusableOptions[0]?.key,
-    focusableOptions.at(-1)?.key,
-  ];
+  const pinnedKeys = useMemo(() => {
+    if (!virtualized) {
+      return [];
+    }
+    const options = flattenSections(listItems, hiddenOptions).filter(
+      node => node.type !== 'section'
+    );
+    const focusableOptions = options.filter(
+      node => !selectionManager.isDisabled(node.key)
+    );
+    return [
+      // The overlay sizes its width to the rows. Keep the visible option with the
+      // longest label mounted, so a virtualized list does not change width as
+      // other options scroll into view.
+      getWidestKey(options),
+      // Opening the menu, leaving the search and moving focus between the lists
+      // of a CompositeSelect find these options in the DOM.
+      options.find(node => selectionManager.isSelected(node.key))?.key,
+      focusableOptions[0]?.key,
+      focusableOptions.at(-1)?.key,
+    ];
+  }, [virtualized, listItems, hiddenOptions, selectionManager]);
 
   const sharedScrollElement = useContext(SharedScrollElementContext);
-  const scrollRef = {current: sharedScrollElement ?? scrollElement};
+  const activeScrollElement = sharedScrollElement ?? scrollElement;
+  const scrollRef = useMemo(
+    () => ({current: activeScrollElement}),
+    [activeScrollElement]
+  );
 
   const getSectionLayout = (section: Node<T>): SectionRowLayout => {
     const toggleAllButton =
