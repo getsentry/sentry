@@ -835,12 +835,6 @@ class ServiceAccountTokenAuthentication(StandardAuthentication):
         # endpoints that never build access.
         self._check_organization_url(request, token.organization_id)
 
-        scope = sentry_sdk.get_isolation_scope()
-        scope.set_tag("api_token_type", self.token_name)
-        scope.set_attribute("api_token_type", self.token_name.decode())
-        scope.set_tag("service_account_auth", True)
-        scope.set_attribute("service_account_auth", True)
-
         # Token scopes are fixed at creation, so narrowing the account narrows the token,
         # but widening the account doesn't widen it.
         scopes = sorted(set(token.scope_list) & set(account_auth.scopes))
