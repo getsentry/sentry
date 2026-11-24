@@ -1,41 +1,32 @@
-import type {ReactNode} from 'react';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconSearch} from '@sentry/icons/search';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {Select, type SelectValue} from '@sentry/scraps/select';
+import {Stack} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
 import type {FormSize} from '@sentry/scraps/theme';
 
 const options = [
   {label: 'Production', value: 'production'},
   {label: 'Staging', value: 'staging'},
-] as const;
+];
 
 const deliveryOptions = [
   {label: 'Email', value: 'email'},
   {label: 'Slack', value: 'slack'},
-] as const;
-
-function SavedIndicators({children}: {children: ReactNode}) {
-  return (
-    <Flex padding="0 sm" gap="sm" align="center">
-      <IconCheckmark variant="success" size="sm" />
-      {children}
-    </Flex>
-  );
-}
+];
 
 function renderOpenMultiSelect(
   size: FormSize,
   label: string,
-  choices: readonly [SelectValue<string>, SelectValue<string>]
+  choices: typeof options,
+  selectedValue: string
 ) {
   return (
     <Stack padding="md" width="300px" height="200px">
       <Select
         aria-label={label}
         options={choices}
-        value={[choices[0].value]}
+        value={[selectedValue]}
         size={size}
         multiple
         isOpen
@@ -56,12 +47,29 @@ describe('Select', () => {
           options={options}
           value="production"
           size={size}
-          components={{Indicators: SavedIndicators}}
+          controlTrailingItems={<IconCheckmark variant="success" size="sm" aria-hidden />}
           onChange={() => {}}
         />
       </Stack>
     ),
     size => ({tags: {area: 'core', size, state: 'saved'}})
+  );
+
+  it.snapshot.each(['xs', 'sm', 'md'] as const)(
+    'clear indicator alignment at size %s',
+    size => (
+      <Stack padding="md" width="300px">
+        <Select
+          aria-label="Environment"
+          options={options}
+          value="production"
+          size={size}
+          clearable
+          onChange={() => {}}
+        />
+      </Stack>
+    ),
+    size => ({tags: {area: 'core', size, state: 'clearable'}})
   );
 
   it.snapshot.each(['xs', 'sm', 'md'] as const)(
@@ -155,13 +163,13 @@ describe('Select', () => {
 
   it.snapshot(
     'open multi-select with checked and unchecked options',
-    () => renderOpenMultiSelect('md', 'Environments', options),
+    () => renderOpenMultiSelect('md', 'Environments', options, 'production'),
     {tags: {area: 'core', size: 'md', state: 'open-multiple'}}
   );
 
   it.snapshot.each(['xs', 'sm'] as const)(
     'open multi-select with checked and unchecked options at size %s',
-    size => renderOpenMultiSelect(size, 'Delivery Method', deliveryOptions),
+    size => renderOpenMultiSelect(size, 'Delivery Method', deliveryOptions, 'email'),
     size => ({tags: {area: 'core', size, state: 'open-multiple'}})
   );
 });

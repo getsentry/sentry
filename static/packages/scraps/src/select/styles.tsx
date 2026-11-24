@@ -111,13 +111,7 @@ export function getSelectStyles(
       gridArea: '1 / 1',
       color: disabled ? color : theme.tokens.content.secondary,
     },
-    indicators: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: theme.space.xs,
-      marginInlineStart: theme.space.sm,
-      marginInlineEnd: controlInset,
-    },
+    indicators: {marginInlineStart: theme.space.sm, marginInlineEnd: controlInset},
     clearIcon: {width: 10, height: 10},
     chip: {
       display: 'flex',

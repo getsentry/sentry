@@ -1,8 +1,7 @@
-import type * as React from 'react';
-import {useRef} from 'react';
+import {Fragment, useRef} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import type {
   BaseSelectProps,
@@ -11,17 +10,7 @@ import type {
   SelectValue,
 } from '@sentry/scraps/select';
 
-import {BaseField, useAutoSaveIndicator, type BaseFieldProps} from './baseField';
-
-function SelectIndicatorsContainer({children}: {children: React.ReactNode}) {
-  const indicator = useAutoSaveIndicator();
-  return (
-    <Flex padding="0 sm" gap="sm" align="center">
-      {indicator}
-      {children}
-    </Flex>
-  );
-}
+import {BaseField, type BaseFieldProps} from './baseField';
 
 // Base props shared by all select variants
 type BaseSelectFieldProps<TValue, TOption extends SelectValue<TValue>> = Omit<
@@ -46,6 +35,7 @@ export function SelectField<
   disabled,
   multiple,
   clearable,
+  controlTrailingItems,
   value,
   ref,
   ...props
@@ -62,7 +52,7 @@ export function SelectField<
 
   return (
     <BaseField disabled={disabled} ref={ref}>
-      {({id, ref: fieldRef, ...fieldProps}) => (
+      {({id, ref: fieldRef, ...fieldProps}, {indicator}) => (
         <Container flex={1} minWidth={0}>
           <Select
             {...fieldProps}
@@ -71,7 +61,12 @@ export function SelectField<
             id={id}
             inputRef={fieldRef}
             blurInputOnSelect={false}
-            components={{...props.components, Indicators: SelectIndicatorsContainer}}
+            controlTrailingItems={
+              <Fragment>
+                {indicator}
+                {controlTrailingItems}
+              </Fragment>
+            }
             onOpenChange={isOpen => {
               isMenuOpenRef.current = isOpen;
               props.onOpenChange?.(isOpen);

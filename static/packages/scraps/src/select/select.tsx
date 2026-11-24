@@ -24,7 +24,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {PanelProvider} from '@sentry/scraps/panelProvider';
 import {Spinner} from '@sentry/scraps/spinner';
 import type {FormSize} from '@sentry/scraps/theme';
@@ -65,6 +65,8 @@ export interface BaseSelectProps<
   components?: SelectComponents<TOption>;
   /** Centered content inside the control, before the selected value and input. */
   controlLeadingItems?: React.ReactNode;
+  /** Content beside the clear button and dropdown indicator. Each item is centered in a slot at least 24px wide. */
+  controlTrailingItems?: React.ReactNode;
   /** Allow values that are not in `options`. */
   creatable?: boolean;
   disabled?: boolean;
@@ -149,6 +151,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     isLoading,
     dropdownIndicator,
     controlLeadingItems,
+    controlTrailingItems,
     placeholder,
     isValueEqual,
     multiple = false,
@@ -579,18 +582,32 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
   const {Value, MultiValueLabel, Indicators, OptionLabel} = components ?? {};
   const indicatorContent = (
     <Fragment>
-      {clearable && selected.length > 0 && !disabled && (
-        <Button
-          size="zero"
-          variant="transparent"
-          aria-label={t('Clear choices')}
-          icon={<IconClose css={css.clearIcon} />}
-          tabIndex={-1}
-          onMouseDown={event => event.preventDefault()}
-          onClick={clear}
-        />
-      )}
-      {isLoading && <Spinner mini size={14} />}
+      <Grid
+        flow="column"
+        autoColumns="minmax(24px, max-content)"
+        align="center"
+        justifyItems="center"
+        gap="xs"
+        css={`
+          &:empty {
+            display: none;
+          }
+        `}
+      >
+        {controlTrailingItems}
+        {clearable && selected.length > 0 && !disabled && (
+          <Button
+            size="zero"
+            variant="transparent"
+            aria-label={t('Clear choices')}
+            icon={<IconClose css={css.clearIcon} />}
+            tabIndex={-1}
+            onMouseDown={event => event.preventDefault()}
+            onClick={clear}
+          />
+        )}
+        {isLoading && <Spinner mini size={14} />}
+      </Grid>
       {dropdownIndicator !== null && (
         <Flex as="span" align="center" aria-hidden="true">
           {dropdownIndicator ?? <IconChevron direction="down" size="xs" />}
@@ -841,9 +858,9 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
           />
         </div>
         {Indicators !== null && (
-          <div css={css.indicators}>
+          <Flex align="center" gap="xs" css={css.indicators}>
             {Indicators ? <Indicators>{indicatorContent}</Indicators> : indicatorContent}
-          </div>
+          </Flex>
         )}
       </div>
       {name &&
