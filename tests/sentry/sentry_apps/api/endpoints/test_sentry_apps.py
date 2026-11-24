@@ -971,6 +971,15 @@ class PostSentryAppsTest(SentryAppsTest):
             ]
         }
 
+    @override_options({"api.permission-scope-audit.enabled": True})
+    def test_requested_scopes_are_not_reported_as_undeclared(self) -> None:
+        with patch("sentry.auth.scope_declaration.capture_message") as capture_message:
+            self.get_success_response(
+                **self.get_data(events=(), scopes=("event:read", "project:read")),
+                status_code=201,
+            )
+        capture_message.assert_not_called()
+
     def test_create_integration_with_token_only_scopes(self) -> None:
         """Test that token-only scopes (like project:distribution and org:ci) can be granted
         even if the user doesn't have them in their role."""

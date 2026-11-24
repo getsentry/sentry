@@ -13,6 +13,7 @@ from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import build_typed_list
 from sentry.auth.access import Access
+from sentry.auth.scope_declaration import privilege_ceiling_check
 from sentry.integrations.models.integration_feature import Feature
 from sentry.models.apiscopes import ApiScopes
 from sentry.sentry_apps.api.parsers.schema import UiElementSchema, validate_ui_element_schema
@@ -326,8 +327,11 @@ class SentryAppParser(Serializer):
             assert self.access is not None, (
                 "Access is required to validate scopes in SentryAppParser"
             )
-            # add an error if the requester lacks permissions being requested
-            if not self.access.has_scope(scope) and not self.active_staff:
+            # add an error if the requester lacks permissions being requested.
+            # This caps what can be granted to the app; it is not an endpoint access check.
+            with privilege_ceiling_check():
+                has_requested_scope = self.access.has_scope(scope)
+            if not has_requested_scope and not self.active_staff:
                 validation_errors.append(
                     "Requested permission of %s exceeds requester's permission. Please contact an administrator to make the requested change."
                     % (scope)

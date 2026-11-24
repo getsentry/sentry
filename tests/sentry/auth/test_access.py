@@ -17,6 +17,7 @@ from sentry.auth.principal import set_request_principal
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.scope_declaration import (
     bind_endpoint_scope_declaration,
+    privilege_ceiling_check,
     update_permission_scope_declaration,
 )
 from sentry.auth.services.auth import AuthenticatedToken
@@ -1314,6 +1315,28 @@ class DefaultAccessTest(TestCase):
 
         assert warning.call_count == 1
         assert warning.call_args.kwargs["extra"]["scope"] == "org:admin"
+        assert capture_message.call_count == 1
+
+    @patch("sentry.auth.scope_declaration.capture_message")
+    @patch("sentry.auth.scope_declaration.logger.warning")
+    @override_options({"api.permission-scope-audit.enabled": True})
+    def test_privilege_ceiling_check_is_not_reported(
+        self, warning: Mock, capture_message: Mock
+    ) -> None:
+        class Permission:
+            scope_map = {"POST": ("org:write",)}
+
+        with bind_endpoint_scope_declaration(
+            endpoint="test.Endpoint", method="POST", permission_classes=(Permission,)
+        ):
+            with privilege_ceiling_check():
+                assert not access.DEFAULT.has_scope("event:read")
+            # Checks outside the ceiling context are still audited.
+            assert not access.DEFAULT.has_scope("project:read")
+
+        assert [call.kwargs["extra"]["scope"] for call in warning.call_args_list] == [
+            "project:read"
+        ]
         assert capture_message.call_count == 1
 
     def test_disabled_scope_audit_reads_option_once_per_endpoint(self) -> None:

@@ -12,6 +12,7 @@ from sentry.api.permissions import DemoSafePermission
 from sentry.api.serializers import serialize
 from sentry.auth import access
 from sentry.auth.principal import acting_user_id
+from sentry.auth.scope_declaration import privilege_ceiling_check
 from sentry.auth.superuser import superuser_has_permission
 from sentry.conf.server import SENTRY_TOKEN_ONLY_SCOPES
 from sentry.constants import SentryAppStatus
@@ -67,7 +68,9 @@ class SentryAppRotateSecretPermission(DemoSafePermission):
             # must still belong to the owning organization and have org:write or org:admin.
             if scope in SENTRY_TOKEN_ONLY_SCOPES:
                 continue
-            if not request.access.has_scope(scope):
+            with privilege_ceiling_check():
+                has_app_scope = request.access.has_scope(scope)
+            if not has_app_scope:
                 raise SentryAppError(
                     message=f"Requested permission of {scope} exceeds requester's permission. Please contact an owner to make the requested change.",
                     status_code=403,
