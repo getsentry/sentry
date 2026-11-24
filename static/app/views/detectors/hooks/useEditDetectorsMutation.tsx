@@ -35,10 +35,9 @@ export function useUpdateDetectorsMutation() {
     },
     onError: (error, variables) => {
       const detail = error.responseJSON?.detail;
-      const fallback = t(
-        'Unable to %s monitors',
-        variables.enabled ? t('enable') : t('disable')
-      );
+      const fallback = variables.enabled
+        ? t('Unable to enable monitors')
+        : t('Unable to disable monitors');
       toast.error(typeof detail === 'string' ? detail : fallback);
     },
   });
