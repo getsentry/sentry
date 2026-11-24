@@ -2,7 +2,7 @@ import type * as React from 'react';
 import styled from '@emotion/styled';
 import {z} from 'zod';
 
-import {AutoSaveForm} from '@sentry/scraps/form';
+import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {themeVariables} from '@sentry/scraps/theme';
@@ -16,7 +16,6 @@ type ColorScheme = 'light' | 'dark';
 const DEFAULT_VARIANT = 'default';
 
 const themeVariantSchema = z.object({
-  themeVariantLight: z.enum([DEFAULT_VARIANT]),
   themeVariantDark: z.enum([DEFAULT_VARIANT, 'ash', 'midnight']),
 });
 
@@ -24,10 +23,14 @@ type ThemeVariants = z.infer<typeof themeVariantSchema>;
 
 type ThemeVariant<Value extends string> = {label: string; value: Value};
 
-// Adding a theme is a new entry here and in the schema.
-const LIGHT_VARIANTS: Array<ThemeVariant<ThemeVariants['themeVariantLight']>> = [
+// Light has only the default theme, so there is no user option to save yet.
+// Adding a light theme means adding a `themeVariantLight` option and saving it
+// the way the dark section does.
+const LIGHT_VARIANTS: Array<ThemeVariant<typeof DEFAULT_VARIANT>> = [
   {value: DEFAULT_VARIANT, label: t('Default')},
 ];
+
+// Adding a dark theme is a new entry here and in the schema.
 
 const DARK_VARIANTS: Array<ThemeVariant<ThemeVariants['themeVariantDark']>> = [
   {value: DEFAULT_VARIANT, label: t('Default')},
@@ -41,28 +44,7 @@ export function ThemeVariantPicker() {
 
   return (
     <Stack gap="2xl" padding="xl">
-      <AutoSaveForm
-        name="themeVariantLight"
-        schema={themeVariantSchema}
-        initialValue={user.options.themeVariantLight ?? DEFAULT_VARIANT}
-        mutationOptions={mutationOptions}
-      >
-        {field => (
-          <field.RadioGroup value={field.state.value} onChange={field.handleChange}>
-            {({Card}) => (
-              <field.Layout.Stack label={t('Light')}>
-                <ThemeVariantGrid>
-                  {LIGHT_VARIANTS.map(variant => (
-                    <Card key={variant.value} value={variant.value} padding="md">
-                      <ThemeVariantCardContent scheme="light" variant={variant} />
-                    </Card>
-                  ))}
-                </ThemeVariantGrid>
-              </field.Layout.Stack>
-            )}
-          </field.RadioGroup>
-        )}
-      </AutoSaveForm>
+      <LightThemeVariants />
       <AutoSaveForm
         name="themeVariantDark"
         schema={themeVariantSchema}
@@ -86,6 +68,35 @@ export function ThemeVariantPicker() {
         )}
       </AutoSaveForm>
     </Stack>
+  );
+}
+
+function LightThemeVariants() {
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {variant: DEFAULT_VARIANT},
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <form.AppField name="variant">
+        {field => (
+          <field.RadioGroup value={field.state.value} onChange={field.handleChange}>
+            {({Card}) => (
+              <field.Layout.Stack label={t('Light')}>
+                <ThemeVariantGrid>
+                  {LIGHT_VARIANTS.map(variant => (
+                    <Card key={variant.value} value={variant.value} padding="md">
+                      <ThemeVariantCardContent scheme="light" variant={variant} />
+                    </Card>
+                  ))}
+                </ThemeVariantGrid>
+              </field.Layout.Stack>
+            )}
+          </field.RadioGroup>
+        )}
+      </form.AppField>
+    </form.AppForm>
   );
 }
 

@@ -120,6 +120,16 @@ describe('ThemeVariantPicker', () => {
     );
   });
 
+  it('does not save the light theme', async () => {
+    render(<ThemeVariantPicker />);
+
+    const light = screen.getByRole('radiogroup', {name: 'Light'});
+    await userEvent.click(within(light).getByText('Default'));
+
+    expect(within(light).getByRole('radio', {name: 'Default'})).toBeChecked();
+    expect(mockUserUpdate).not.toHaveBeenCalled();
+  });
+
   it('goes back to the saved theme when saving fails', async () => {
     MockApiClient.addMockResponse({url: '/users/me/', method: 'PUT', statusCode: 500});
 
