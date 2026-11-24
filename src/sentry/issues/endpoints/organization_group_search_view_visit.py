@@ -9,19 +9,21 @@ from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.utils import to_valid_int_id
 from sentry.auth.principal import require_user
+from sentry.issues.endpoints.bases.group_search_view import GroupSearchViewPermission
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.organization import Organization
 
 
-class MemberPermission(OrganizationPermission):
+class GroupSearchViewVisitPermission(OrganizationPermission):
     scope_map = {
         # Anyone who can read an issue view can record a visit to it. A visit only
         # updates metadata (the requesting user's last visited time), not the view itself.
-        "POST": ["member:read", "saved_query:read"],
+        # member:read is kept because this endpoint accepted it before.
+        "POST": ["member:read", *GroupSearchViewPermission.scope_map["GET"]],
     }
 
-    # saved_query:read replaces member:read in orgs with granular scopes.
+    # saved_query:read replaces member:read and org:read in orgs with granular scopes.
     rejects_deprecated_scopes = True
 
 
@@ -32,7 +34,7 @@ class OrganizationGroupSearchViewVisitEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.ISSUES
     max_acceptable_duration = DEFAULT_DURATION_BUDGET
-    permission_classes = (MemberPermission,)
+    permission_classes = (GroupSearchViewVisitPermission,)
 
     def post(self, request: Request, organization: Organization, view_id: str) -> Response:
         """

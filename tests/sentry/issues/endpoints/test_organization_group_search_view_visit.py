@@ -154,6 +154,15 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
             organization=self.organization, user_id=self.user.id, group_search_view=self.view
         ).exists()
 
+    def test_org_read_can_record_visit(self) -> None:
+        # Same scopes as reading an issue view.
+        self._use_token(["org:read"])
+        response = self.client.post(self.url)
+        assert response.status_code == 204, response.content
+        assert GroupSearchViewLastVisited.objects.filter(
+            organization=self.organization, user_id=self.user.id, group_search_view=self.view
+        ).exists()
+
     @with_feature("organizations:granular-permission-scopes")
     def test_saved_query_write_cannot_record_visit(self) -> None:
         # Write does not imply read.
