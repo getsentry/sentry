@@ -108,7 +108,7 @@ type MetricDetectorQuota = {
 
 export function metricDetectorQuotaApiOptions(organization: Organization) {
   return apiOptions.as<MetricDetectorQuota>()(
-    '/organizations/$organizationIdOrSlug/detectors/metric-quota/',
+    '/organizations/$organizationIdOrSlug/detectors/metric-detector-quota/',
     {
       path: {organizationIdOrSlug: organization.slug},
       staleTime: 5 * 1000,

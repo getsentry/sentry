@@ -18,8 +18,13 @@ describe('MetricAlertQuotaMessage', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders nothing when subscription has unlimited quota', async () => {
-    const subscription = SubscriptionFixture({
+  it('renders nothing when the plan has no limit', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/metric-detector-quota/',
+      body: {count: -1, limit: -1, hasReachedLimit: false},
+    });
+
+    const {container} = render(<MetricAlertQuotaMessage />, {
       organization,
       planDetails: {
         ...SubscriptionFixture({
@@ -68,7 +73,7 @@ describe('MetricAlertQuotaMessage', () => {
 
   it('renders reached detectorLimit message with disable or remove and upgrade actions when at detectorLimit', async () => {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/metric-quota/',
+      url: '/organizations/org-slug/detectors/metric-detector-quota/',
       body: {count: 10, limit: 10, hasReachedLimit: true},
     });
 

@@ -10,7 +10,7 @@ const mockOrganization = OrganizationFixture({
 
 const mockOrganizationWithoutFeature = OrganizationFixture({features: []});
 
-const QUOTA_URL = '/organizations/org-slug/detectors/metric-quota/';
+const QUOTA_URL = '/organizations/org-slug/detectors/metric-detector-quota/';
 
 describe('useMetricDetectorLimit', () => {
   beforeEach(() => {
