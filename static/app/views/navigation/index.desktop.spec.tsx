@@ -2667,6 +2667,69 @@ describe('desktop navigation', () => {
           );
         });
 
+        it('tracks a modifier click on a reorderable link in the peek', async () => {
+          MockApiClient.addMockResponse({
+            url: '/organizations/org-slug/dashboards/starred/',
+            body: [
+              DashboardListItemFixture({id: '1', title: 'All projects', projects: []}),
+            ],
+          });
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext({
+              organization: {features: [...navPeek.features, 'dashboards-starred']},
+            })
+          );
+
+          await userEvent.hover(screen.getByRole('link', {name: 'Dashboards'}));
+          const preview = within(
+            await screen.findByRole('dialog', {name: 'Navigation preview'})
+          );
+          await userEvent.click(
+            await preview.findByRole('tab', {name: 'Starred Dashboards'})
+          );
+          // jsdom cannot open the link in a new tab.
+          const preventNewTab = (event: MouseEvent) => event.preventDefault();
+          document.addEventListener('click', preventNewTab);
+          const user = userEvent.setup();
+          await user.keyboard('{Meta>}');
+          await user.click(preview.getByRole('link', {name: 'All projects'}));
+          await user.keyboard('{/Meta}');
+          document.removeEventListener('click', preventNewTab);
+
+          expect(trackAnalytics).toHaveBeenCalledWith(
+            'navigation.secondary_item_clicked',
+            expect.objectContaining({item: 'dashboard_starred_item', tray_state: 'peek'})
+          );
+        });
+
+        it('keeps one peek when switching between hover and keyboard on an item', async () => {
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext({organization: navPeek})
+          );
+
+          const explore = screen.getByRole('link', {name: 'Explore'});
+          await userEvent.hover(explore);
+          await screen.findByRole('dialog', {name: 'Navigation preview'});
+          act(() => explore.focus());
+          await userEvent.keyboard('{ArrowRight}');
+
+          expect(
+            jest
+              .mocked(trackAnalytics)
+              .mock.calls.filter(([event]) => event === 'navigation.peek_opened')
+          ).toHaveLength(1);
+          expect(trackAnalytics).not.toHaveBeenCalledWith(
+            'navigation.peek_dismissed',
+            expect.anything()
+          );
+        });
+
         it('tracks peeks dismissed by switching items and clicking the primary item', async () => {
           render(
             <PrimaryNavigationContextProvider>

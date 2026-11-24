@@ -196,17 +196,21 @@ export function usePrimaryNavigationPreview({
           : PREVIEW_SLIDE_DISTANCE_PX
         : 0;
 
-    const peek = {group, keyboard, openedAt: Date.now()};
-    endTrackedPeek('switched_item');
-    trackedPeek.current = peek;
-    trackAnalytics('navigation.peek_opened', {
-      item: group,
-      trigger: keyboard ? 'keyboard' : 'hover',
-      organization,
-    });
+    // Switching between hover and keyboard on the same item keeps the same peek.
+    const sameGroup = openPreview?.group === group;
+    const openedAt = sameGroup ? openPreview.openedAt : Date.now();
+    if (!sameGroup) {
+      endTrackedPeek('switched_item');
+      trackedPeek.current = {group, keyboard, openedAt};
+      trackAnalytics('navigation.peek_opened', {
+        item: group,
+        trigger: keyboard ? 'keyboard' : 'hover',
+        organization,
+      });
+    }
 
     setPreviewAnchor(anchor);
-    setPreview({...peek, locationKey: location.key, slideFrom});
+    setPreview({group, keyboard, openedAt, locationKey: location.key, slideFrom});
   };
 
   const handlePointerEnter = (

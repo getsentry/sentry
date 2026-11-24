@@ -1042,16 +1042,16 @@ function SecondaryNavigationReorderableLink({
   const isMobile = layout === 'mobile';
 
   function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
-    // Let the browser handle modifier clicks so the view opens in a new tab/window.
-    if (e.metaKey || e.ctrlKey || e.shiftKey) {
-      return;
-    }
     if (analyticsItemName) {
       trackAnalytics('navigation.secondary_item_clicked', {
         ...getTrayAnalyticsParams(),
         item: analyticsItemName,
         organization,
       });
+    }
+    // Let the browser handle modifier clicks so the view opens in a new tab/window.
+    if (e.metaKey || e.ctrlKey || e.shiftKey) {
+      return;
     }
     closeCollapsedNavigationHovercard();
 
