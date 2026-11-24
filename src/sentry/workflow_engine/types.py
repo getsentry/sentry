@@ -443,11 +443,6 @@ class DetectorSettings:
 
 
 class WorkflowSettings:
-    """
-    What a workflow type owns. Types with no registration in workflow_settings_registry
-    use this base class as is.
-    """
-
     config_schema: ClassVar[dict[str, Any]] = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "title": "Workflow Schema",

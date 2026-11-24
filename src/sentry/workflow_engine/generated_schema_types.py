@@ -1408,6 +1408,6 @@ DetectorConfigResponse: TypeAlias = (
 )
 
 
-# Workflow.config_schema
+# WorkflowSettings.config_schema
 class WorkflowConfig(TypedDict):
     frequency: NotRequired[int]

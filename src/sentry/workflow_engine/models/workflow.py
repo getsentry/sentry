@@ -105,8 +105,6 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     DEFAULT_FREQUENCY = 30
 
-    config_schema: ClassVar[dict[str, Any]] = WorkflowSettings.config_schema
-
     __repr__ = sane_repr("organization_id")
 
     class Meta:

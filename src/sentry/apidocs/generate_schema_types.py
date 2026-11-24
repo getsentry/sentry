@@ -494,7 +494,7 @@ def stale_files(files: Iterable[GeneratedFile] | None = None) -> dict[str, str]:
 def _workflow_engine_roots() -> list[Root | Union]:
     from sentry.grouping.grouptype import ErrorGroupType
     from sentry.workflow_engine.endpoints.serializers import response_schemas
-    from sentry.workflow_engine.models import Workflow
+    from sentry.workflow_engine.types import WorkflowSettings
 
     roots: list[Root | Union] = []
     conditions = []
@@ -587,7 +587,12 @@ def _workflow_engine_roots() -> list[Root | Union]:
             "response",
             "Any detector's config, as the API returns it",
         ),
-        Root("WorkflowConfig", Workflow.config_schema, "Workflow.config_schema", "both"),
+        Root(
+            "WorkflowConfig",
+            WorkflowSettings.config_schema,
+            "WorkflowSettings.config_schema",
+            "both",
+        ),
     ]
     return roots
 
