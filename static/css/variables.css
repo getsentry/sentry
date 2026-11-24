@@ -56,7 +56,18 @@
   --legacy-state-warning-text: #5f4b29; /* darken(#8a6d3b, 12%) */
   --legacy-state-danger-text: #672928; /* darken(#a94442, 18%) */
 
+  /* Typography */
+  --legacy-font-family-base:
+    'Rubik', 'Rubik Arial', 'Avenir Next', 'Helvetica Neue', sans-serif;
+  --legacy-font-family-code:
+    'Roboto Mono', 'Roboto Mono Andale', 'Roboto Mono Courier', Consolas, 'Courier New',
+    monospace;
+
   /* Bootstrap values used outside of bootstrap/ */
+  --legacy-font-family-monospace:
+    'Roboto Mono', 'Roboto Mono Andale', 'Roboto Mono Courier', Menlo, Monaco, Consolas,
+    'Courier New', monospace;
+  --legacy-font-size-base: 14px;
   --legacy-line-height-base: 1.42857143;
   --legacy-line-height-computed: 20px; /* floor((font-size-base * line-height-base)) */
   --legacy-padding-base-vertical: 6px;

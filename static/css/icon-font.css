@@ -2,7 +2,7 @@
 
 @font-face {
   font-family: 'sentry-simple';
-  src: url('@sentry/scraps/fonts/sentry-simple.woff2') format('woff2');
+  src: url('../fonts/sentry-simple.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
   /* Icon glyphs have no meaningful fallback, so hide them until the font loads */
