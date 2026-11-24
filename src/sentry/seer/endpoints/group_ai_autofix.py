@@ -700,9 +700,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     sentry_run_id = resolved_sentry_run_id
 
         if resolved_run_id is not None:
-            record_manual_continuation(
-                request, organization_id=group.organization.id, run_id=resolved_run_id
-            )
+            record_manual_continuation(request, run_id=resolved_run_id)
 
         kickoff_body = {
             "run_id": run_id,

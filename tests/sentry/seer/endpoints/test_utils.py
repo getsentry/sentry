@@ -14,6 +14,7 @@ from sentry.seer.endpoints.utils import (
 )
 from sentry.seer.models.run import SeerRunMirrorStatus
 from sentry.testutils.cases import TestCase
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 
 class TestRecordManualContinuation:
@@ -21,7 +22,10 @@ class TestRecordManualContinuation:
     def test_ui_continuation_uses_proxy_cost_identifiers(self, mock_count: MagicMock) -> None:
         request = Request(APIRequestFactory().post("/", HTTP_COOKIE="sessionid=test"))
 
-        record_manual_continuation(request, organization_id=123, run_id=456)
+        with viewer_context_scope(
+            ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1), organization_id=123)
+        ):
+            record_manual_continuation(request, run_id=456)
 
         mock_count.assert_called_once_with(
             "seer.run.manual_continuation",
@@ -43,7 +47,25 @@ class TestRecordManualContinuation:
     ) -> None:
         request = Request(APIRequestFactory().post("/", **headers))
 
-        record_manual_continuation(request, organization_id=123, run_id=456)
+        with viewer_context_scope(
+            ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1), organization_id=123)
+        ):
+            record_manual_continuation(request, run_id=456)
+
+        mock_count.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "viewer",
+        [None, ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1))],
+    )
+    @patch("sentry.seer.endpoints.utils.sentry_sdk.metrics.count")
+    def test_missing_organization_does_not_emit_metric(
+        self, mock_count: MagicMock, viewer: ViewerContext | None
+    ) -> None:
+        request = Request(APIRequestFactory().post("/", HTTP_COOKIE="sessionid=test"))
+
+        with viewer_context_scope(viewer):
+            record_manual_continuation(request, run_id=456)
 
         mock_count.assert_not_called()
 

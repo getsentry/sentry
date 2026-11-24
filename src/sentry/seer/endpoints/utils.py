@@ -17,6 +17,7 @@ from sentry.issues.action_log.types import ActionSource
 from sentry.seer.credits import SeerCreditDenialReason
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
 from sentry.utils.numbers import validate_bigint
+from sentry.viewer_context import get_viewer_context
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -41,14 +42,17 @@ SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL = (
 )
 
 
-def record_manual_continuation(request: Request, *, organization_id: int, run_id: int) -> None:
+def record_manual_continuation(request: Request, *, run_id: int) -> None:
     """Identify UI-continued runs for later lookup in proxy cost metrics."""
     if resolve_action_source(request) != ActionSource.WEB:
+        return
+    viewer = get_viewer_context()
+    if viewer is None or viewer.organization_id is None:
         return
     sentry_sdk.metrics.count(
         "seer.run.manual_continuation",
         1,
-        attributes={"org_id": str(organization_id), "run_id": str(run_id)},
+        attributes={"org_id": str(viewer.organization_id), "run_id": str(run_id)},
     )
 
 
