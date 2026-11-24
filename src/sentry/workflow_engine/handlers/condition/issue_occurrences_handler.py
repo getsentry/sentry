@@ -36,8 +36,8 @@ class IssueOccurrencesConditionHandler(ActionFilterDataConditionHandler[Workflow
 
         # This value is slightly delayed due to us batching writes to times_seen. We attempt to work
         # around this by including pending updates from buffers to improve accuracy.
-        group = event_data.group
-        fetch_buffered_group_stats(event_data.group)
+        group = event_data.require_group()
+        fetch_buffered_group_stats(group)
         issue_occurrences = (
             group.times_seen_with_pending
             if hasattr(group, "_times_seen_pending")

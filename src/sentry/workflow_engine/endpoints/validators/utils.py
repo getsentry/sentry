@@ -221,14 +221,15 @@ def can_edit_workflows(workflows: Sequence[Workflow], request: Request) -> bool:
     """
     Check write permissions after enforcing access to each workflow.
 
-    Organization alert writers can edit workflows. Otherwise, every workflow must
-    have connections and the caller must be able to edit every connection.
+    Organization admins can edit any workflow. Organization alert writers can edit
+    workflows whose connected projects they can all access. Otherwise, every workflow
+    must have connections and the caller must be able to edit every connection.
     """
     workflow_ids = {workflow.id for workflow in workflows}
     if not workflow_ids:
         return False
 
-    if any(request.access.has_scope(scope) for scope in ORGANIZATION_WORKFLOW_WRITE_SCOPES):
+    if request.access.has_scope("org:write") or request.access.has_scope("org:admin"):
         return True
 
     detector_workflows = list(
@@ -236,6 +237,14 @@ def can_edit_workflows(workflows: Sequence[Workflow], request: Request) -> bool:
             "detector", "detector__project"
         )
     )
+
+    if request.access.has_scope("alerts:write"):
+        return all(
+            detector_workflow.detector.project is not None
+            and request.access.has_project_access(detector_workflow.detector.project)
+            for detector_workflow in detector_workflows
+        )
+
     connected_workflow_ids = {
         detector_workflow.workflow_id for detector_workflow in detector_workflows
     }

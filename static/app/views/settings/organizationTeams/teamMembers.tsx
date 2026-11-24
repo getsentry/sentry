@@ -67,10 +67,7 @@ function getTeamMembersApiOptions({
     '/teams/$organizationIdOrSlug/$teamIdOrSlug/members/',
     {
       path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamId},
-      query: {
-        cursor: cursor ?? undefined,
-        query: query ?? undefined,
-      },
+      query: {cursor: cursor ?? undefined, query: query ?? undefined},
       staleTime: 30_000,
     }
   );
@@ -203,10 +200,7 @@ export default function TeamMembers() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const [{cursor, query}] = useQueryStates({
-    cursor: parseAsString,
-    query: parseAsString,
-  });
+  const [{cursor, query}] = useQueryStates({cursor: parseAsString, query: parseAsString});
   const {team} = useTeamDetailsOutlet();
 
   const {
@@ -268,10 +262,7 @@ export default function TeamMembers() {
             },
           }
         ),
-        {
-          method: 'PUT',
-          data: {teamRole: newRole},
-        }
+        {method: 'PUT', data: {teamRole: newRole}}
       );
     },
     onSuccess: (_data, variables) => {
@@ -288,10 +279,7 @@ export default function TeamMembers() {
             ...existingData,
             json: existingData.json.map(member => {
               if (member.id === variables.memberId) {
-                return {
-                  ...member,
-                  teamRole: variables.newRole,
-                };
+                return {...member, teamRole: variables.newRole};
               }
 
               return member;
@@ -323,10 +311,7 @@ export default function TeamMembers() {
           if (!existingData) {
             return existingData;
           }
-          return {
-            ...existingData,
-            json: existingData.json.concat([orgMember]),
-          };
+          return {...existingData, json: existingData.json.concat([orgMember])};
         }
       );
       toast.success(t('Successfully added member to team.'));

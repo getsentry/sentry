@@ -58,10 +58,7 @@ For rules with rich, structured configuration (like slot restrictions):
 interface Options {
   slots: Array<{
     propNames: [string, ...string[]];
-    allowed: Array<{
-      source: string;
-      names: [string, ...string[]];
-    }>;
+    allowed: Array<{source: string; names: [string, ...string[]]}>;
     componentNames?: string[];
   }>;
 }

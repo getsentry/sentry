@@ -57,3 +57,10 @@ class StrictCamelSnakeValidator(serializers.Serializer[InstanceT]):
             if unknown:
                 raise serializers.ValidationError({field: "Unknown field." for field in unknown})
         return super().to_internal_value(data)
+
+
+class NotebookVersionValidator(StrictCamelSnakeValidator[InstanceT]):
+    notebook_version = serializers.IntegerField(
+        min_value=1,
+        help_text="Current notebook version from the latest detail response. Stale versions return 409.",
+    )

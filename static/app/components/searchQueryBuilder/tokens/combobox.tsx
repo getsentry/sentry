@@ -226,10 +226,7 @@ function useHiddenItems({
     [hiddenOptions, items]
   );
 
-  return {
-    hiddenOptions,
-    disabledKeys,
-  };
+  return {hiddenOptions, disabledKeys};
 }
 
 function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
@@ -315,7 +312,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
           </Flex>
         ) : null}
         {enableAISearch ? (
-          <Flex padding="sm" borderTop="muted">
+          <Flex padding="sm" borderTop="secondary">
             <OpenAskSeerButton ref={askSeerButtonRef} onTabForward={onTabForward} />
           </Flex>
         ) : null}

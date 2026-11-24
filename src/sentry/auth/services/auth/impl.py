@@ -92,7 +92,7 @@ class DatabaseBackedAuthService(AuthService):
             possible_providers = [provider] + (equivalent_providers or [])
             auth_provider = AuthProvider.objects.filter(
                 provider__in=possible_providers, config=config
-            ).first()
+            ).first()  # noqa: S035
             if auth_provider is None:
                 return
             # Add Auth identity for partner's SSO if it doesn't exist
@@ -110,7 +110,7 @@ class DatabaseBackedAuthService(AuthService):
     def get_auth_provider_with_config(
         self, *, provider: str, config: Mapping[str, Any]
     ) -> RpcAuthProvider | None:
-        existing_provider = AuthProvider.objects.filter(provider=provider, config=config).first()
+        existing_provider = AuthProvider.objects.filter(provider=provider, config=config).first()  # noqa: S035
         if existing_provider is None:
             return None
         return serialize_auth_provider(existing_provider)
@@ -194,18 +194,18 @@ class DatabaseBackedAuthService(AuthService):
     def update_provider_config(
         self, organization_id: int, auth_provider_id: int, config: dict[str, Any]
     ) -> None:
-        current_provider = AuthProvider.objects.filter(
+        current_provider = AuthProvider.objects.get_or_none(
             organization_id=organization_id, id=auth_provider_id
-        ).first()
+        )
         if current_provider is None:
             return
         current_provider.config = config
         current_provider.save()
 
     def update_provider(self, organization_id: int, auth_provider_id: int, provider: str) -> None:
-        current_provider = AuthProvider.objects.filter(
+        current_provider = AuthProvider.objects.get_or_none(
             organization_id=organization_id, id=auth_provider_id
-        ).first()
+        )
         if current_provider is None:
             return
         current_provider.provider = provider

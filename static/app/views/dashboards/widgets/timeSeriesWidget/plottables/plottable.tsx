@@ -65,6 +65,7 @@ export interface Plottable {
    * Optional callback to get access to the chart `ref`. Some Plottables implement this to allow dispatching events to the chart
    */
   handleChartRef?: (ref: ReactEchartsRef) => void;
+  labelSuffix?: string;
   /**
    * `TimeSeriesWidgetVisualization` will call this function if the user clicks a point on a series that originated from this plottable.
    */

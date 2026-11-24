@@ -82,9 +82,7 @@ export function InvalidTokenTooltip({
 }
 
 type GridInvalidTokenTooltipProps = InvalidTokenTooltipProps &
-  Pick<GridProps, 'height' | 'minHeight'> & {
-    columnCount: number;
-  };
+  Pick<GridProps, 'height' | 'minHeight'> & {columnCount: number};
 
 // The token's height defaults to one line; pass `auto` with a `minHeight` for a
 // token whose content wraps.

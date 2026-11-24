@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, cast
 
 from botocore.exceptions import ClientError
+from django.conf import settings
 from django.http.request import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -55,7 +56,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger("sentry.integrations.aws_lambda")
 
 DESCRIPTION = """
-The AWS Lambda integration will automatically instrument your Lambda functions without any code changes. We use a CloudFormation Stack ([learn more about CloudFormation](https://aws.amazon.com/cloudformation/)) to create a Sentry role and enable error and transaction capture from your Lambda functions.
+The AWS Lambda integration will automatically instrument your Lambda Event Functions without any code changes. We use a CloudFormation Stack ([learn more about CloudFormation](https://aws.amazon.com/cloudformation/)) to create a Sentry role and enable error and transaction capture from your functions.
 """
 
 
@@ -245,7 +246,7 @@ class CloudFormationApiStep:
     step_name = "cloudformation"
 
     def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
-        template_url = options.get("aws-lambda.cloudformation-url")
+        template_url = settings.SENTRY_AWS_LAMBDA_CLOUDFORMATION_URL
         return {
             "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",
             "templateUrl": template_url,

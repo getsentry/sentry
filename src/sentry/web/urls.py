@@ -14,6 +14,7 @@ from sentry.api.endpoints.oauth_userinfo import OAuthUserInfoEndpoint
 from sentry.api.endpoints.warmup import WarmupEndpoint
 from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
 from sentry.charts.endpoints import serve_chartcuterie_config
+from sentry.conf.api_base_path import API_BASE_PATH
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.feedback.endpoints.error_page_embed import ErrorPageEmbedView
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
@@ -51,7 +52,6 @@ from sentry.web.frontend.project_event import ProjectEventRedirect
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
-from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.signup_verification_pending import SignupVerificationPendingView
 from sentry.web.frontend.sso_signup_verification import SSOSignupVerificationView
@@ -172,7 +172,7 @@ urlpatterns += [
         JavaScriptSdkLoader.as_view(),
         name="sentry-js-sdk-loader",
     ),
-    re_path(r"^agent-handoff/$", AgentHandoffView.as_view(), name="sentry-agent-handoff"),
+    re_path(r"^agent-handoff\.md$", AgentHandoffView.as_view(), name="sentry-agent-handoff"),
     # docs reference this for acquiring the sentry cli
     re_path(r"^get-cli/$", get_cli, name="get_cli_script"),
     re_path(
@@ -181,8 +181,10 @@ urlpatterns += [
         name="get_cli_download_url",
     ),
     # Versioned API
+    # A regex route, not path(): route strings such as "^api/0/users/$" feed analytics and
+    # generated silo URL lists.
     re_path(
-        r"^api/0/",
+        rf"^{re.escape(API_BASE_PATH.removeprefix('/'))}/",
         include("sentry.api.urls"),
     ),
     # Legacy unversioned endpoints
@@ -453,7 +455,7 @@ urlpatterns += [
                 # Project Wizard
                 re_path(
                     r"^settings/wizard/(?P<wizard_hash>[^/]+)/$",
-                    SetupWizardView.as_view(),
+                    GenericReactPageView.as_view(auth_required=False),
                     name="sentry-project-wizard-fetch",
                 ),
                 # Compatibility
@@ -988,11 +990,6 @@ urlpatterns += [
         r"^releases/",
         react_page_view,
         name="releases",
-    ),
-    re_path(
-        r"^release-thresholds/",
-        react_page_view,
-        name="release-thresholds",
     ),
     # User Feedback
     re_path(

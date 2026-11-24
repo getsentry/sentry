@@ -22,14 +22,15 @@ export type PollingState =
   | 'not-polling'
   | 'timed-out';
 
-type ChatState = {
-  polling: PollingState;
-};
+type ChatState = {polling: PollingState};
+
+type PendingRestart = {onSubmit: (userContext: string) => Promise<void>};
 
 type SeerExplorerChatState = {
   /** An "Ask Seer" question waiting for the user's reply. Never persisted. */
   chatPrompt: ChatPrompt | null;
   chatStates: Record<SeerExplorerRunId, ChatState>;
+  pendingRestart: PendingRestart | null;
   runId: SeerExplorerRunId | null;
 };
 
@@ -39,6 +40,7 @@ type ChatStateAction =
   /** The unsaved chat on screen was created on the server; it's the same conversation. */
   | {payload: SeerExplorerRunId; type: 'set created run id'}
   | {payload: ChatPrompt | null; type: 'set chat prompt'}
+  | {payload: PendingRestart | null; type: 'set pending restart'}
   /** Puts back a prompt whose send failed, unless a newer one has taken its place. */
   | {payload: ChatPrompt; type: 'restore chat prompt'};
 
@@ -62,6 +64,7 @@ function initState(): SeerExplorerChatState {
     runId: readRunIdFromStorage(),
     chatPrompt: null,
     chatStates: {},
+    pendingRestart: null,
   };
 }
 
@@ -87,7 +90,7 @@ function chatStateReducer(
         return state;
       }
       // A pending question belongs to the conversation it was asked in.
-      return {...state, runId: action.payload, chatPrompt: null};
+      return {...state, runId: action.payload, chatPrompt: null, pendingRestart: null};
     }
     case 'set created run id': {
       if (state.runId === action.payload) {
@@ -107,6 +110,9 @@ function chatStateReducer(
       }
       return {...state, chatPrompt: action.payload};
     }
+    case 'set pending restart': {
+      return {...state, pendingRestart: action.payload};
+    }
     case 'restore chat prompt': {
       if (state.chatPrompt !== null) {
         return state;
@@ -123,6 +129,7 @@ export const SeerExplorerChatStateContext = createContext<SeerExplorerChatState>
   runId: null,
   chatPrompt: null,
   chatStates: {},
+  pendingRestart: null,
 });
 export const SeerExplorerChatDispatchContext = createContext<Dispatch<ChatStateAction>>(
   () => {}

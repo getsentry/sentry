@@ -82,22 +82,10 @@ export function useOwnerOptions({
   const disabledTeamOptions = disabledTeams?.map(makeDisabledTeamOption) ?? [];
 
   const options = [
-    {
-      label: t('My Teams'),
-      options: myTeamOptions,
-    },
-    {
-      label: t('Members'),
-      options: memberOptions,
-    },
-    {
-      label: t('Other Teams'),
-      options: otherTeamOptions,
-    },
-    {
-      label: t('Disabled Teams'),
-      options: disabledTeamOptions,
-    },
+    {label: t('My Teams'), options: myTeamOptions},
+    {label: t('Members'), options: memberOptions},
+    {label: t('Other Teams'), options: otherTeamOptions},
+    {label: t('Disabled Teams'), options: disabledTeamOptions},
   ];
 
   return options;

@@ -9,11 +9,7 @@ import {docs} from './index';
 describe('awslambda onboarding docs', () => {
   it('renders errors onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.dotnet.aspnetcore': {
-          version: '1.99.9',
-        },
-      },
+      releaseRegistry: {'sentry.dotnet.aspnetcore': {version: '1.99.9'}},
       selectedProducts: [ProductSolution.LOGS, ProductSolution.METRICS],
     });
 
@@ -41,12 +37,52 @@ describe('awslambda onboarding docs', () => {
   });
 
   it('renders logs onboarding docs correctly', async () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.LOGS],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.LOGS]});
 
     expect(
       await screen.findByText(textWithMarkupMatcher(/o.EnableLogs/))
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/logger\.LogInformation/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders the logs onboarding for this platform', async () => {
+    renderWithOnboardingLayout(
+      {onboarding: docs.logsOnboarding!},
+      {
+        releaseRegistry: {'sentry.dotnet.aspnetcore': {version: '1.99.9'}},
+        selectedProducts: [ProductSolution.LOGS],
+      }
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(/Install-Package Sentry\.AspNetCore -Version 1\.99\.9/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/logger\.LogInformation/))
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'logs documentation'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/dotnet/guides/aws-lambda/logs/'
+    );
+  });
+
+  it('renders the metrics onboarding for this platform', async () => {
+    renderWithOnboardingLayout(
+      {onboarding: docs.metricsOnboarding!},
+      {selectedProducts: [ProductSolution.METRICS]}
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(/Install-Package Sentry\.AspNetCore -Version/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/SentrySdk\.Init\(/))
+    ).not.toBeInTheDocument();
   });
 });

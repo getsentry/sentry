@@ -154,10 +154,7 @@ function ArgumentsGrid({
 
   const [args, setArguments] = useState(
     functionToken.attributes.map((attr, index) => {
-      return {
-        label: resolveArgumentLabel(index, attr.attribute),
-        value: attr.text,
-      };
+      return {label: resolveArgumentLabel(index, attr.attribute), value: attr.text};
     })
   );
 
@@ -260,11 +257,7 @@ function ArgumentsGridList({
     },
   });
 
-  const {gridProps} = useGridList({
-    props,
-    state,
-    ref,
-  });
+  const {gridProps} = useGridList({props, state, ref});
 
   // Shrink to fit beside the function name; do not grow to the full chip width
   // (that painted long filters over the name).
@@ -601,7 +594,10 @@ function FunctionArgumentInput(props: FunctionArgumentInputProps) {
   ) {
     return (
       <ArgumentGridRow {...rowProps} tabIndex={-1} ref={gridCellRef}>
-        <ArgumentGridCell {...gridCellProps}>
+        <ArgumentGridCell
+          {...gridCellProps}
+          fullText={isCurrentlyEditing ? undefined : displayValue}
+        >
           <InputBox
             tabIndex={-1}
             ref={inputRef}
@@ -622,7 +618,10 @@ function FunctionArgumentInput(props: FunctionArgumentInputProps) {
 
   return (
     <ArgumentGridRow {...rowProps} tabIndex={isFocused ? 0 : -1} ref={gridCellRef}>
-      <ArgumentGridCell {...gridCellProps}>
+      <ArgumentGridCell
+        {...gridCellProps}
+        fullText={isCurrentlyEditing ? undefined : displayValue}
+      >
         <ComboBox
           items={items}
           ref={inputRef}

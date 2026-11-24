@@ -17,7 +17,7 @@ from sentry.models.repositorysettings import RepositorySettings
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import (
     get_token_based_billing_repo_filter,
-    is_seer_token_based_billing_onboarding_enabled,
+    is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -44,6 +44,14 @@ def has_supported_scm_integration(organization: Organization) -> bool:
     return len(organization_integrations) > 0
 
 
+def has_code_review_access(organization: Organization) -> bool:
+    """Check if the organization's plan lets code review run, mirroring the org check in
+    `CodeReviewPreflightService`."""
+    return is_seer_seat_based_tier_enabled(organization) or features.has(
+        "organizations:code-review-beta", organization
+    )
+
+
 def is_code_review_enabled(organization: Organization) -> bool:
     """Check if code review is enabled for any active repository in the organization."""
     return RepositorySettings.objects.filter(
@@ -56,7 +64,7 @@ def is_code_review_enabled(organization: Organization) -> bool:
 def is_autofix_enabled(organization: Organization) -> bool:
     """Check if any active project in the organization has a repo for autofix/RCA: a usable linked
     repo under token-based billing, otherwise a repo picked in Seer settings."""
-    if is_seer_token_based_billing_onboarding_enabled(organization):
+    if features.has("organizations:token-billed-seer-enabled", organization):
         return ProjectRepository.objects.filter(
             get_token_based_billing_repo_filter(organization, prefix="repository__"),
             project__organization_id=organization.id,
@@ -93,13 +101,16 @@ class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
         """Check if the organization has completed Seer onboarding/configuration."""
         autofix_enabled = is_autofix_enabled(organization)
         has_scm_integration = has_supported_scm_integration(organization)
-        code_review_enabled = is_code_review_enabled(organization)
-        is_seer_configured = has_scm_integration and (code_review_enabled or autofix_enabled)
+        # Repos keep their code review setting after the org loses code review, so the setting
+        # alone doesn't mean Seer is set up.
+        is_seer_configured = has_scm_integration and (
+            autofix_enabled
+            or (is_code_review_enabled(organization) and has_code_review_access(organization))
+        )
 
         return Response(
             {
                 "hasSupportedScmIntegration": has_scm_integration,
-                "isCodeReviewEnabled": code_review_enabled,
                 "isAutofixEnabled": autofix_enabled,
                 "isSeerConfigured": is_seer_configured,
             }

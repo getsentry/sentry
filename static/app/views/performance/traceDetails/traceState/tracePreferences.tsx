@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 
-import {localStorageWrapper as localStorage} from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {clamp} from 'sentry/utils/number/clamp';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -8,10 +8,7 @@ type TraceLayoutPreferences = 'drawer left' | 'drawer bottom' | 'drawer right';
 
 type TracePreferencesAction =
   | {payload: TraceLayoutPreferences; type: 'set layout'}
-  | {
-      payload: number;
-      type: 'set drawer dimension';
-    }
+  | {payload: number; type: 'set drawer dimension'}
   | {payload: number; type: 'set list width'}
   | {payload: boolean; type: 'minimize drawer'}
   | {payload: boolean; type: 'set missing instrumentation'}
@@ -25,16 +22,11 @@ type TraceDrawerPreferences = {
 };
 
 export type TracePreferencesState = {
-  autogroup: {
-    parent: boolean;
-    sibling: boolean;
-  };
+  autogroup: {parent: boolean; sibling: boolean};
   compressed_timeline: boolean;
   drawer: TraceDrawerPreferences;
   layout: TraceLayoutPreferences;
-  list: {
-    width: number;
-  };
+  list: {width: number};
   missing_instrumentation: boolean;
 };
 
@@ -57,16 +49,11 @@ export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     sizes: {...TRACE_DRAWER_DEFAULT_SIZES},
     layoutOptions: ['drawer left', 'drawer right', 'drawer bottom'],
   },
-  autogroup: {
-    parent: true,
-    sibling: true,
-  },
+  autogroup: {parent: true, sibling: true},
   missing_instrumentation: false,
   compressed_timeline: true,
   layout: 'drawer right',
-  list: {
-    width: 0.5,
-  },
+  list: {width: 0.5},
 };
 
 export function storeTraceViewPreferences(
@@ -83,7 +70,7 @@ export function storeTraceViewPreferences(
   // Make sure we dont fire this during a render phase
   window.requestAnimationFrame(() => {
     try {
-      localStorage.setItem(key, JSON.stringify(storedState));
+      localStorageWrapper.setItem(key, JSON.stringify(storedState));
     } catch (e) {
       Sentry.captureException(e);
     }
@@ -126,7 +113,7 @@ function isValidCompressedTimeline(state: StoredTracePreferences): boolean {
 }
 
 function loadTraceViewPreferences(key: string): StoredTracePreferences | null {
-  const stored = localStorage.getItem(key);
+  const stored = localStorageWrapper.getItem(key);
 
   if (stored) {
     try {
@@ -197,35 +184,18 @@ export function tracePreferencesReducer(
         ...state,
         drawer: {
           ...state.drawer,
-          sizes: {
-            ...state.drawer.sizes,
-            [state.layout]: clamp(action.payload, 0, 1),
-          },
+          sizes: {...state.drawer.sizes, [state.layout]: clamp(action.payload, 0, 1)},
         },
       };
     case 'set autogrouping': {
-      return {
-        ...state,
-        autogroup: {sibling: action.payload, parent: action.payload},
-      };
+      return {...state, autogroup: {sibling: action.payload, parent: action.payload}};
     }
     case 'set missing instrumentation':
-      return {
-        ...state,
-        missing_instrumentation: action.payload,
-      };
+      return {...state, missing_instrumentation: action.payload};
     case 'set compressed timeline':
-      return {
-        ...state,
-        compressed_timeline: action.payload,
-      };
+      return {...state, compressed_timeline: action.payload};
     case 'set list width':
-      return {
-        ...state,
-        list: {
-          width: clamp(action.payload, 0.1, 0.9),
-        },
-      };
+      return {...state, list: {width: clamp(action.payload, 0.1, 0.9)}};
     default:
       unreachable(action);
       return state;

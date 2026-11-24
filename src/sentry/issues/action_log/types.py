@@ -135,6 +135,7 @@ class GroupActionType(IntEnum):
     SEER_ITERATION_COMPLETED = 1037
     SEER_PR_READY_FOR_REVIEW = 1038
     SMART_ASSIGNMENT_COMPLETED = 1043
+    SEER_STOPPED = 1045
 
 
 class ActionSource(StrEnum):
@@ -929,6 +930,17 @@ class SeerPRReadyForReviewAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.SEER_PR_READY_FOR_REVIEW
+
+
+class SeerStoppedAction(GroupAction):
+    user_visible = True
+    run_id: Optional[int] = None
+    reason: Optional[str] = Field(None, description="Why Seer stopped instead of fixing the issue")
+    suggestion: Optional[str] = Field(None, description="What Seer suggests doing instead")
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SEER_STOPPED
 
 
 class SeerIterationStartedAction(GroupAction):

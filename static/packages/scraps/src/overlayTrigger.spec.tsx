@@ -43,9 +43,7 @@ it('forwards refs and keyboard activation', async () => {
     <OverlayTrigger.Button ref={ref} onKeyDown={onKeyDown}>
       Options
     </OverlayTrigger.Button>,
-    {
-      wrapper: ThemeWrapper,
-    }
+    {wrapper: ThemeWrapper}
   );
 
   await userEvent.tab();
@@ -58,9 +56,7 @@ it('keeps an accessible icon trigger', () => {
   const ref = createRef<HTMLButtonElement>();
   render(
     <OverlayTrigger.IconButton aria-label="Search" icon={<IconSearch />} ref={ref} />,
-    {
-      wrapper: ThemeWrapper,
-    }
+    {wrapper: ThemeWrapper}
   );
 
   expect(ref.current).toBe(screen.getByRole('button', {name: 'Search'}));

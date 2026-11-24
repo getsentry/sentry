@@ -36,11 +36,7 @@ export const metrics = <
             }
           ),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'gem install sentry-ruby',
-        },
+        {type: 'code', language: 'bash', code: 'gem install sentry-ruby'},
       ],
     },
   ],
@@ -53,9 +49,7 @@ export const metrics = <
           type: 'text',
           text: tct(
             'Metrics are automatically enabled in your [code:Sentry.init] configuration. You can emit metrics using the [code:Sentry.metrics] API.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

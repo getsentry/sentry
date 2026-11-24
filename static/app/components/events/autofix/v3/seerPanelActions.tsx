@@ -1,5 +1,5 @@
 import {IconBot} from '@sentry/icons/bot';
-import {IconCopy} from '@sentry/icons/copy';
+import {IconMarkdown} from '@sentry/icons/markdown';
 import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Button} from '@sentry/scraps/button';
@@ -34,7 +34,7 @@ export function SeerPanelActions({
   const isSentryEmployee = useIsSentryEmployee();
 
   return (
-    <Flex align="center" gap="xs">
+    <Flex align="center">
       <AutofixDebugMenu autofixState={autofixState} />
       <Button
         size="xs"
@@ -47,7 +47,7 @@ export function SeerPanelActions({
       />
       <Button
         size="xs"
-        icon={<IconCopy />}
+        icon={<IconMarkdown />}
         onClick={onCopyMarkdown}
         disabled={!onCopyMarkdown}
         tooltipProps={{title: t('Copy analysis as Markdown')}}

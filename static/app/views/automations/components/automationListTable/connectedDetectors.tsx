@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 
 import {Hovercard} from 'sentry/components/hovercard';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
@@ -13,9 +13,7 @@ import {defined} from 'sentry/utils/defined';
 import {useAutomationListDetectors} from 'sentry/views/automations/hooks/useAutomationListDetectors';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 
-type AutomationListConnectedDetectorsProps = {
-  detectorIds: string[];
-};
+type AutomationListConnectedDetectorsProps = {detectorIds: string[]};
 
 const MAX_DISPLAYED_DETECTORS = 5;
 

@@ -16,7 +16,7 @@ describe('getSettingsFieldSections', () => {
     const sections = getSettingsFieldSections('org-slug', true);
 
     expect(getSection(sections, '/settings/:orgId/').title).toBe(
-      'Org Settings › General'
+      'Organization Settings › General'
     );
     expect(getSection(sections, '/settings/account/details/').title).toBe(
       'Account Settings › General'

@@ -1,6 +1,21 @@
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+/**
+ * How often automation data refetches on its own while the tab is visible
+ */
+export const AUTO_REFRESH_INTERVAL = 30_000;
+
+/**
+ * Query options a caller can override on the shared automation data hooks
+ */
+export type AutomationQueryOptions = {
+  refetchInterval?: number | false;
+  refetchOnWindowFocus?: boolean;
+  retry?: boolean | number;
+  staleTime?: number;
+};
+
 export function getAutomationsPath(organizationSlug: string) {
   return normalizeUrl(`/organizations/${organizationSlug}/seer/automations/`);
 }

@@ -3,9 +3,9 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
+from django.conf import settings
 from django.http.request import HttpRequest
 
-from sentry import options
 from sentry.auth.partnership_configs import SPONSOR_OAUTH_NAME, ChannelName
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Provider
 from sentry.auth.services.auth.model import RpcAuthProvider
@@ -29,11 +29,11 @@ class FlyOAuth2Provider(OAuth2Provider):
         super().__init__(**config)
 
     def get_client_id(self) -> str:
-        client_id = options.get("auth-fly.client-id")
+        client_id = settings.SENTRY_AUTH_FLY_CLIENT_ID
         return client_id
 
     def get_client_secret(self) -> str:
-        client_secret = options.get("auth-fly.client-secret")
+        client_secret = settings.SENTRY_AUTH_FLY_CLIENT_SECRET
         return client_secret
 
     def get_configure_view(

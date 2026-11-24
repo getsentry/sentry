@@ -78,6 +78,35 @@ class ClusterManagerTestCase(TestCase):
         with pytest.raises(KeyError):
             manager.get("bar")
 
+    @mock.patch("sentry.utils.redis._add_transaction_checks", side_effect=lambda client: client)
+    @mock.patch("sentry.utils.redis.RetryingRedisCluster")
+    def test_cluster_max_connections_from_client_args(
+        self,
+        RetryingRedisCluster: mock.MagicMock,
+        _add_transaction_checks: mock.MagicMock,
+    ) -> None:
+        manager = RedisClusterManager(
+            cast(
+                OptionsManager,
+                {
+                    "redis.clusters": {
+                        "default": {"is_redis_cluster": True, "hosts": {0: {}}},
+                        "raised": {
+                            "is_redis_cluster": True,
+                            "hosts": {0: {}},
+                            "client_args": {"max_connections": 24},
+                        },
+                    }
+                },
+            )
+        )
+
+        manager.get("default")._setupfunc()  # type: ignore[union-attr]
+        assert RetryingRedisCluster.call_args.kwargs["max_connections"] == 16
+
+        manager.get("raised")._setupfunc()  # type: ignore[union-attr]
+        assert RetryingRedisCluster.call_args.kwargs["max_connections"] == 24
+
     @mock.patch("sentry.utils.redis.RetryingRedisCluster")
     def test_multiple_retrieval_do_not_setup_lazy_object(
         self, RetryingRedisCluster: mock.MagicMock

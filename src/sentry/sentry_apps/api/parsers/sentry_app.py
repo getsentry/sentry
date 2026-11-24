@@ -147,12 +147,14 @@ class SentryAppParser(Serializer):
         help_text="The UI components schema, used to render the custom integration's configuration UI elements. See our [schema docs](https://docs.sentry.io/organization/integrations/integration-platform/ui-components/) for more information.",
     )
     webhookUrl = URLField(
+        max_length=512,
         required=False,
         allow_null=True,
         allow_blank=True,
         help_text="The webhook destination URL.",
     )
     redirectUrl = URLField(
+        max_length=200,
         required=False,
         allow_null=True,
         allow_blank=True,

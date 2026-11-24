@@ -8,22 +8,29 @@ import click
 from sentry.utils.imports import import_string
 
 
-def configure(*, skip_service_validation: bool = False) -> None:
+def configure(*, skip_service_validation: bool = False, settings_only: bool = False) -> None:
     """
     Kick things off and configure all the things.
 
     A guess is made as to whether the entrypoint is coming from Click
     or from another invocation of `configure()`. If Click, we're able
     to pass along the Click context object.
+
+    `settings_only` loads the settings without initializing the app, for
+    commands that only read settings. A later full `configure()` still works.
     """
     from .settings import configure as _configure
-    from .settings import discover_configs
+    from .settings import configure_settings, discover_configs
 
     try:
         ctx = click.get_current_context()
     except RuntimeError:
         ctx = None
     _, py, yaml = discover_configs()
+
+    if settings_only:
+        configure_settings(ctx, py, yaml)
+        return
 
     # TODO(mattrobenolt): Surface this also as a CLI option?
     skip_service_validation = skip_service_validation or (

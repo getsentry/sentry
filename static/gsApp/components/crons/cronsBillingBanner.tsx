@@ -36,10 +36,7 @@ function getCronsPricingInfo(config?: BillingConfig): CronsPricingInfo {
   const bucket = config?.planList.find(plan => plan.id === 'am2_business')?.planCategories
     .monitorSeats?.[0];
 
-  return {
-    onDemandPrice: bucket?.onDemandPrice,
-    reserved: bucket?.events,
-  };
+  return {onDemandPrice: bucket?.onDemandPrice, reserved: bucket?.events};
 }
 
 /** @internal exported for tests only */
@@ -207,9 +204,7 @@ function InsufficentOnDemandMonitorsDisabledBanner({
   );
 }
 
-export default withSubscription(CronsBillingBanner, {
-  noLoader: true,
-});
+export default withSubscription(CronsBillingBanner, {noLoader: true});
 
 const NoBorderRadiusAlert = styled(Alert)`
   border-radius: 0;

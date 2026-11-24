@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, patch
@@ -18,6 +19,7 @@ from sentry.incidents.logic import (
     DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
     get_alert_resolution,
 )
+from sentry.incidents.metric_detector_quota import get_metric_detector_quota
 from sentry.incidents.metric_issue_detector import (
     MetricIssueComparisonConditionValidator,
     MetricIssueDetectorValidator,
@@ -41,6 +43,7 @@ from sentry.snuba.models import (
     SnubaQuery,
     SnubaQueryEventType,
 )
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
@@ -618,7 +621,7 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
     @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
     @with_feature("organizations:workflow-engine-metric-detector-limit")
     def test_enforce_quota_within_limit(self, mock_get_limit: mock.MagicMock) -> None:
-        mock_get_limit.return_value = 1
+        mock_get_limit.return_value = 2
 
         # Create a not-metric detector
         self.create_detector(
@@ -638,17 +641,36 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
                 type=MetricIssue.slug,
                 status=status,
             )
+        # Create a disabled detector, which shouldn't count towards the limit
+        self.create_detector(
+            project_id=self.project.id,
+            name="Disabled Detector",
+            type=MetricIssue.slug,
+            status=ObjectStatus.ACTIVE,
+            enabled=False,
+        )
+
+        # none of the detectors above count
+        assert get_metric_detector_quota(self.organization).count == 0
+
+        self.create_detector(
+            project_id=self.project.id,
+            name="Enabled Detector",
+            type=MetricIssue.slug,
+            status=ObjectStatus.ACTIVE,
+            enabled=True,
+        )
 
         validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid()
         assert validator.save()
-        mock_get_limit.assert_called_once_with(self.project.organization.id)
+        mock_get_limit.assert_called_with(self.project.organization.id)
 
         validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
         validator.is_valid()
         with self.assertRaisesMessage(
             ValidationError,
-            expected_message="Used 1/1 of allowed metric_issue monitors.",
+            expected_message="This would exceed your plan's limit of 2 metric monitors.",
         ):
             validator.save()
 
@@ -665,7 +687,6 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
             validator.save()
         mock_log.assert_called_once()
 
-    @with_feature("organizations:discover-saved-queries-deprecation")
     def test_transaction_dataset_deprecation_transactions(self) -> None:
         data = {
             **self.valid_data,
@@ -689,7 +710,6 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
         ):
             validator.save()
 
-    @with_feature("organizations:discover-saved-queries-deprecation")
     def test_transaction_dataset_deprecation_multiple_data_sources(self) -> None:
         data = {
             **self.valid_data,
@@ -835,12 +855,7 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
             },
         }
 
-    @with_feature(
-        {
-            "organizations:performance-view": False,
-            "organizations:tracemetrics-enabled": False,
-        }
-    )
+    @with_feature({"organizations:tracemetrics-enabled": False})
     def test_create_detector_trace_metrics_feature_flag_disabled(self) -> None:
         validator = MetricIssueDetectorValidator(
             data=self.trace_metrics_data,
@@ -851,12 +866,7 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
         assert data_sources_errors is not None
         assert "You do not have access to the metrics alerts feature." in str(data_sources_errors)
 
-    @with_feature(
-        [
-            "organizations:performance-view",
-            "organizations:tracemetrics-enabled",
-        ]
-    )
+    @with_feature(["organizations:tracemetrics-enabled"])
     def test_create_detector_trace_metrics_invalid_aggregate(self) -> None:
         data = {
             **self.trace_metrics_data,
@@ -871,12 +881,7 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
         assert not validator.is_valid()
         assert "Invalid trace metrics aggregate" in str(validator.errors)
 
-    @with_feature(
-        [
-            "organizations:performance-view",
-            "organizations:tracemetrics-enabled",
-        ]
-    )
+    @with_feature(["organizations:tracemetrics-enabled"])
     def test_create_detector_trace_metrics_valid_aggregates(self) -> None:
         data_per_second = {
             **self.trace_metrics_data,
@@ -1085,6 +1090,136 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         assert update_validator.is_valid(), update_validator.errors
         updated_detector = update_validator.save()
         assert updated_detector.name == new_name
+
+    def test_update_enabled_ignores_subscription_outside_detector_project(self) -> None:
+        detector = self.create_static_detector()
+        other_project = self.create_project(organization=self.create_organization())
+        other_snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.ERROR,
+            dataset=Dataset.Events,
+            query="",
+            aggregate="count()",
+            time_window=timedelta(minutes=1),
+            resolution=timedelta(minutes=1),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.ERROR],
+        )
+        other_subscription = create_snuba_subscription(
+            project=other_project,
+            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=other_snuba_query,
+        )
+        original_status = other_subscription.status
+        DataSource.objects.filter(detector=detector).update(source_id=str(other_subscription.id))
+
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data={"enabled": False}, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        update_validator.save()
+
+        other_subscription.refresh_from_db()
+        assert other_subscription.status == original_status
+
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit", return_value=3)
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_enablement_request_rejected_at_limit(self, mock_get_limit: mock.MagicMock) -> None:
+        self.create_static_detector()
+        self.create_static_detector()
+        disabled = self.create_static_detector()
+        disabled.update(enabled=False)
+        mock_get_limit.return_value = 2
+
+        validator = MetricIssueDetectorValidator(
+            instance=disabled, data={"enabled": True}, context=self.context, partial=True
+        )
+        assert validator.is_valid(), validator.errors
+        with self.assertRaisesMessage(
+            ValidationError,
+            expected_message="This would exceed your plan's limit of 2 metric monitors.",
+        ):
+            validator.save()
+
+        disabled.refresh_from_db()
+        assert disabled.enabled is False
+
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit", return_value=2)
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_enable_allowed_under_limit(self, mock_get_limit: mock.MagicMock) -> None:
+        self.create_static_detector()
+        disabled = self.create_static_detector()
+        disabled.update(enabled=False)
+
+        validator = MetricIssueDetectorValidator(
+            instance=disabled, data={"enabled": True}, context=self.context, partial=True
+        )
+        assert validator.is_valid(), validator.errors
+        assert validator.save().enabled is True
+
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit", return_value=3)
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_disable_and_edit_allowed_over_limit(self, mock_get_limit: mock.MagicMock) -> None:
+        first = self.create_static_detector()
+        second = self.create_static_detector()
+        self.create_static_detector()
+        mock_get_limit.return_value = 2
+
+        disable = MetricIssueDetectorValidator(
+            instance=first, data={"enabled": False}, context=self.context, partial=True
+        )
+        assert disable.is_valid(), disable.errors
+        assert disable.save().enabled is False
+
+        rename = MetricIssueDetectorValidator(
+            instance=second, data={"name": "Renamed"}, context=self.context, partial=True
+        )
+        assert rename.is_valid(), rename.errors
+        assert rename.save().name == "Renamed"
+
+    def test_update_data_source_ignores_subscription_outside_detector_project(self) -> None:
+        detector = self.create_static_detector()
+        other_project = self.create_project(organization=self.create_organization())
+        other_snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.ERROR,
+            dataset=Dataset.Events,
+            query="original",
+            aggregate="count()",
+            time_window=timedelta(minutes=1),
+            resolution=timedelta(minutes=1),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.ERROR],
+        )
+        other_subscription = create_snuba_subscription(
+            project=other_project,
+            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=other_snuba_query,
+        )
+        DataSource.objects.filter(detector=detector).update(source_id=str(other_subscription.id))
+
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector,
+            data={
+                "dataSources": [
+                    {
+                        "queryType": SnubaQuery.Type.ERROR.value,
+                        "dataset": Dataset.Events.value,
+                        "query": "rewritten",
+                        "aggregate": "count()",
+                        "timeWindow": 3600,
+                        "environment": self.environment.name,
+                        "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+                    }
+                ]
+            },
+            context=self.context,
+            partial=True,
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        with pytest.raises(ValidationError):
+            update_validator.save()
+
+        other_snuba_query.refresh_from_db()
+        assert other_snuba_query.query == "original"
 
     def test_update_data_source_marks_query_as_user_updated_when_snapshot_exists(self) -> None:
         detector = self.create_static_detector()
@@ -1751,9 +1886,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         snuba_query = query_sub.snuba_query
         assert snuba_query.query == "test query"
 
-    @with_feature("organizations:discover-saved-queries-deprecation")
     def test_update_allowed_even_with_deprecated_dataset(self) -> None:
-        # Updates should be allowed even when the feature flag is enabled
         # The deprecation only applies to creation, not updates
         validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid(), validator.errors
@@ -1806,12 +1939,9 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
             instance=detector, data=update_data, context=self.context, partial=True
         )
         assert update_validator.is_valid(), update_validator.errors
-        with (
-            self.assertRaisesMessage(
-                ValidationError,
-                expected_message="Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
-            ),
-            with_feature("organizations:discover-saved-queries-deprecation"),
+        with self.assertRaisesMessage(
+            ValidationError,
+            expected_message="Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
         ):
             update_validator.save()
 

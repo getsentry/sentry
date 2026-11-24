@@ -6,10 +6,10 @@
 export function isSimilarOrigin(target: string, origin: string): boolean {
   const targetUrl = new URL(target, origin);
   const originUrl = new URL(origin);
-  // If one of the domains is a child of the other.
+  // If the hosts are the same, or one of the domains is a child of the other.
   if (
-    originUrl.hostname.endsWith(targetUrl.hostname) ||
-    targetUrl.hostname.endsWith(originUrl.hostname)
+    isSameOrSubdomain(originUrl.hostname, targetUrl.hostname) ||
+    isSameOrSubdomain(targetUrl.hostname, originUrl.hostname)
   ) {
     return true;
   }
@@ -24,4 +24,12 @@ export function isSimilarOrigin(target: string, origin: string): boolean {
     return false;
   }
   return targetHost.join('.') === originHost.join('.');
+}
+
+/**
+ * Compare whole DNS labels, so `sentry.io` matches `us.sentry.io` but not
+ * `notsentry.io`.
+ */
+function isSameOrSubdomain(hostname: string, parent: string): boolean {
+  return hostname === parent || hostname.endsWith(`.${parent}`);
 }

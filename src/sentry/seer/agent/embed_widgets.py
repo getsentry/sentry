@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +12,22 @@ _WIDGETS: list[dict[str, Any]] = json.loads(
     (Path(__file__).parent / "embed_widgets.generated.json").read_text()
 )
 
+_QUERY_WIDGET_NAMES = {"spansQuery", "logsQuery", "metricsQuery"}
+
+
+def _without_query_transformations(widget: dict[str, Any]) -> dict[str, Any]:
+    if widget["name"] not in _QUERY_WIDGET_NAMES:
+        return widget
+
+    widget = deepcopy(widget)
+    properties = widget.get("body", {}).get("properties", {})
+    properties.pop("transformations", None)
+    properties.pop("interval", None)
+    for example in widget.get("examples", []):
+        example["data"].pop("transformations", None)
+        example["data"].pop("interval", None)
+    return widget
+
 
 def get_embed_widgets(organization: Any = None, actor: Any = None) -> list[dict[str, Any]]:
     """Return embed widget definitions, filtered by per-widget feature flags.
@@ -21,7 +38,7 @@ def get_embed_widgets(organization: Any = None, actor: Any = None) -> list[dict[
     one flag the org's plan actually grants. Widgets without ``featureFlag`` are
     always included.
     """
-    has_flags = any("featureFlag" in w for w in _WIDGETS)
+    has_flags = any("featureFlag" in w or w["name"] in _QUERY_WIDGET_NAMES for w in _WIDGETS)
     if not has_flags:
         return _WIDGETS
 
@@ -36,4 +53,16 @@ def get_embed_widgets(organization: Any = None, actor: Any = None) -> list[dict[
         flags = [flag] if isinstance(flag, str) else flag
         return any(features.has(f, organization, actor=actor) for f in flags)
 
-    return [w for w in _WIDGETS if is_visible(w)]
+    widgets = [w for w in _WIDGETS if is_visible(w)]
+    transformations_enabled = (
+        organization is not None
+        and features.has(
+            "organizations:seer-explorer-transformed-query-embeds", organization, actor=actor
+        )
+        and features.has(
+            "organizations:explore-interpolation-and-smoothing", organization, actor=actor
+        )
+    )
+    if transformations_enabled:
+        return widgets
+    return [_without_query_transformations(widget) for widget in widgets]

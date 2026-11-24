@@ -8,7 +8,10 @@ import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE} from './rageAndDeadClicksWidget';
 import {SERVER_TREE_WIDGET_TEMPLATE} from './serverTreeWidget';
 import type {WidgetTemplate} from './types';
-import {SCORE_BREAKDOWN_WHEEL_WIDGET} from './webVitalsWidgets';
+import {
+  SCORE_BREAKDOWN_WHEEL_TRACE_METRICS_WIDGET,
+  SCORE_BREAKDOWN_WHEEL_WIDGET,
+} from './webVitalsWidgets';
 
 export const getDefaultWidgets = (organization: Organization) => {
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
@@ -292,31 +295,14 @@ export const getDefaultWidgets = (organization: Organization) => {
         },
       ],
     },
-    SCORE_BREAKDOWN_WHEEL_WIDGET,
+    organization.features.includes('dashboards-web-vitals-trace-metrics')
+      ? SCORE_BREAKDOWN_WHEEL_TRACE_METRICS_WIDGET
+      : SCORE_BREAKDOWN_WHEEL_WIDGET,
   ];
 
   spanWidgets.push(SERVER_TREE_WIDGET_TEMPLATE, RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE);
 
   const errorsWidgets: WidgetTemplate[] = [
-    {
-      id: 'issue-for-review',
-      title: t('Issues For Review'),
-      description: t('Most recently seen unresolved issues for review.'),
-      displayType: DisplayType.TABLE,
-      widgetType: WidgetType.ISSUE,
-      interval: '5m',
-      isCustomizable: true,
-      queries: [
-        {
-          name: '',
-          conditions: 'is:unresolved is:for_review',
-          fields: ['issue', 'assignee', 'events', 'title'],
-          aggregates: [],
-          columns: ['issue', 'assignee', 'events', 'title'],
-          orderby: 'date',
-        },
-      ],
-    },
     {
       id: 'top-unhandled',
       title: t('Top Unhandled Error Types'),

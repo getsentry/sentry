@@ -1,4 +1,8 @@
-from sentry.utils.zip import is_unsafe_path
+from pathlib import Path
+
+import pytest
+
+from sentry.utils.zip import is_unsafe_path, safe_extract_zip
 
 
 def test_is_unsafe_path() -> None:
@@ -36,3 +40,9 @@ def test_is_unsafe_path_backslash_absolute() -> None:
 def test_is_unsafe_path_safe_with_backslash_in_name() -> None:
     assert not is_unsafe_path("foo\\bar.txt")
     assert not is_unsafe_path("a\\b\\c.txt")
+
+
+@pytest.mark.parametrize("path", ["/etc/hostname", b"/etc/hostname"])
+def test_safe_extract_zip_rejects_paths(path: str | bytes, tmp_path: Path) -> None:
+    with pytest.raises(TypeError):
+        safe_extract_zip(path, str(tmp_path))  # type: ignore[arg-type]

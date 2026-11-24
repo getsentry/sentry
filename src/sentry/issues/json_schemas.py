@@ -1,7 +1,11 @@
 import logging
 import pathlib
 from collections.abc import Mapping
-from typing import Any
+from functools import cache
+from typing import Any, cast
+
+import jsonschema
+from jsonschema.protocols import Validator
 
 from sentry.utils import json
 
@@ -181,3 +185,51 @@ except Exception:
         "Failed to load Events schema from 'event.schema.json', falling back to hardcoded schema"
     )
     EVENT_PAYLOAD_SCHEMA = LEGACY_EVENT_PAYLOAD_SCHEMA
+
+
+def _build_validator(schema: Mapping[str, Any]) -> Validator:
+    # The class and options `jsonschema.validate` would use for this schema: picked from its
+    # `$schema`, with no format checker.
+    validator_cls: type[Validator] = jsonschema.validators.validator_for(schema)
+    # The stubs type schemas as dicts, but any mapping works.
+    schema_dict = cast(dict[str, Any], schema)
+    validator_cls.check_schema(schema_dict)
+    return validator_cls(schema_dict)
+
+
+# Built on first use, not at import: checking the event schema against its metaschema is slow.
+# An invalid schema raises `SchemaError` on every call, as `jsonschema.validate` does, since
+# `cache` doesn't store exceptions.
+@cache
+def _event_payload_validator() -> Validator:
+    return _build_validator(EVENT_PAYLOAD_SCHEMA)
+
+
+@cache
+def _legacy_event_payload_validator() -> Validator:
+    return _build_validator(LEGACY_EVENT_PAYLOAD_SCHEMA)
+
+
+def _validate(validator: Validator, instance: Any) -> None:
+    # Raise the error `jsonschema.validate` raises: the most relevant one, not the first.
+    error = jsonschema.exceptions.best_match(validator.iter_errors(instance))
+    if error is not None:
+        raise error
+
+
+def validate_event_payload(event_data: Mapping[str, Any]) -> None:
+    """
+    Raises the `jsonschema.ValidationError` that `jsonschema.validate(event_data,
+    EVENT_PAYLOAD_SCHEMA)` would, without rebuilding the validator and re-checking the
+    schema on every call.
+    """
+    _validate(_event_payload_validator(), event_data)
+
+
+def validate_legacy_event_payload(event_data: Mapping[str, Any]) -> None:
+    """
+    Raises the `jsonschema.ValidationError` that `jsonschema.validate(event_data,
+    LEGACY_EVENT_PAYLOAD_SCHEMA)` would, without rebuilding the validator and re-checking the
+    schema on every call.
+    """
+    _validate(_legacy_event_payload_validator(), event_data)

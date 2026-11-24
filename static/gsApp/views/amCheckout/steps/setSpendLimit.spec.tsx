@@ -10,12 +10,8 @@ import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import AMCheckout from 'getsentry/views/amCheckout';
 
 describe('SetSpendLimit', () => {
-  const organization = OrganizationFixture({
-    features: ['ondemand-budgets'],
-  });
-  const preAm3Organization = OrganizationFixture({
-    features: ['ondemand-budgets'],
-  });
+  const organization = OrganizationFixture({features: ['ondemand-budgets']});
+  const preAm3Organization = OrganizationFixture({features: ['ondemand-budgets']});
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -27,9 +23,7 @@ describe('SetSpendLimit', () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
-      body: {
-        invoiceItems: [],
-      },
+      body: {invoiceItems: []},
     });
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
@@ -42,10 +36,7 @@ describe('SetSpendLimit', () => {
       method: 'GET',
       body: BillingConfigFixture(PlanTier.AM3),
     });
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 'am3_f',
-    });
+    const sub = SubscriptionFixture({organization, plan: 'am3_f'});
     SubscriptionStore.set(organization.slug, sub);
     render(<AMCheckout {...RouteComponentPropsFixture({})} navigate={jest.fn()} />, {
       organization,
@@ -73,10 +64,7 @@ describe('SetSpendLimit', () => {
       method: 'GET',
       body: BillingConfigFixture(PlanTier.AM2),
     });
-    const sub = SubscriptionFixture({
-      organization: preAm3Organization,
-      plan: 'am2_team',
-    });
+    const sub = SubscriptionFixture({organization: preAm3Organization, plan: 'am2_team'});
     SubscriptionStore.set(preAm3Organization.slug, sub);
     render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
       organization: preAm3Organization,

@@ -376,6 +376,18 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         self.check_valid_response(response, sorted_projects)
         assert "latestDeploy" not in response.data[0]
 
+    def test_collapse_documented_values(self) -> None:
+        project = self.create_project(teams=[self.team], name="bar", slug="bar")
+
+        response = self.get_success_response(self.organization.slug)
+        assert "latestDeploys" in response.data[0]
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"collapse": ["latestDeploys", "unusedFeatures"]}
+        )
+        self.check_valid_response(response, [project])
+        assert "latestDeploys" not in response.data[0]
+
     def test_user_projects(self) -> None:
         self.foo_user = self.create_user("foo@example.com")
         self.login_as(user=self.foo_user)
@@ -402,6 +414,9 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         self.project2 = self.create_project(slug="project-2", name="project 2", teams=[self.team])
         self.project1.update_option("quotas:spike-protection-disabled", True)
         self.project1.update_option("sentry:token", 1)
+        self.project1.update_option(
+            "sentry:symbol_sources", '[{"type":"s3","secret_key":"source-secret"}]'
+        )
         self.project1.update_option("sentry:random", "hi")
 
         response = self.get_success_response(self.organization.slug, qs_params={"options": "true"})
@@ -411,13 +426,17 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         response = self.get_success_response(
             self.organization.slug,
             qs_params={
-                "options": ["quotas:spike-protection-disabled", "sentry:token", "sentry:random"]
+                "options": [
+                    "quotas:spike-protection-disabled",
+                    "sentry:token",
+                    "sentry:symbol_sources",
+                    "sentry:random",
+                ]
             },
         )
 
         assert response.data[0]["options"] == {
             "quotas:spike-protection-disabled": True,
-            "sentry:token": 1,
         }
         assert not response.data[1].get("options")
 

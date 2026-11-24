@@ -4,9 +4,7 @@ import {parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
 import {ExternalLink} from '@sentry/scraps/link';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
-import {Feature} from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {NoAccess} from 'sentry/components/noAccess';
 import {
   DatePageFilter,
   type DatePageFilterProps,
@@ -188,11 +186,7 @@ export function Am1FrontendOverviewPage({
     trackAnalytics('performance.domains.frontend.search', {organization});
 
     setSearchParams(
-      {
-        cursor: null,
-        query: String(searchQuery).trim() || null,
-        isDefaultQuery: false,
-      },
+      {cursor: null, query: String(searchQuery).trim() || null, isDefaultQuery: false},
       {history: 'push'}
     );
   }
@@ -200,70 +194,61 @@ export function Am1FrontendOverviewPage({
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
 
   return (
-    <Feature
-      features="performance-view"
-      organization={organization}
-      renderDisabled={NoAccess}
-    >
-      <Layout.Body>
-        <Layout.Main width="full">
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <ToolRibbon>
-                <PageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter {...datePageFilterProps} />
-                </PageFilterBar>
-                {!showOnboarding && (
-                  <StyledTransactionNameSearchBar
-                    organization={organization}
-                    eventView={searchBarEventView}
-                    onSearch={(query: string) => {
-                      handleSearch(query);
-                    }}
-                    query={getFreeTextFromQuery(derivedQuery) ?? ''}
-                  />
-                )}
-              </ToolRibbon>
-            </ModuleLayout.Full>
-            <PageAlert />
-            <ModuleLayout.Full>
-              {showOnboarding ? (
-                <LegacyOnboarding
-                  project={onboardingProject}
+    <Layout.Body>
+      <Layout.Main width="full">
+        <ModuleLayout.Layout>
+          <ModuleLayout.Full>
+            <ToolRibbon>
+              <PageFilterBar condensed>
+                <ProjectPageFilter />
+                <EnvironmentPageFilter />
+                <DatePageFilter {...datePageFilterProps} />
+              </PageFilterBar>
+              {!showOnboarding && (
+                <StyledTransactionNameSearchBar
                   organization={organization}
+                  eventView={searchBarEventView}
+                  onSearch={(query: string) => {
+                    handleSearch(query);
+                  }}
+                  query={getFreeTextFromQuery(derivedQuery) ?? ''}
                 />
-              ) : (
-                <PerformanceDisplayContext
-                  value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
-                >
-                  <DoubleChartRow
-                    allowedCharts={doubleChartRowCharts}
-                    {...sharedProps}
-                    eventView={doubleChartRowEventView}
-                  />
-                  <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
-                  <TeamKeyTransactionManager.Provider
-                    organization={organization}
-                    teams={teams}
-                    selectedTeams={['myteams']}
-                    selectedProjects={eventView.project.map(String)}
-                  >
-                    <Table
-                      projects={projects}
-                      columnTitles={FRONTEND_COLUMN_TITLES}
-                      setError={setPageDanger}
-                      {...sharedProps}
-                    />
-                  </TeamKeyTransactionManager.Provider>
-                </PerformanceDisplayContext>
               )}
-            </ModuleLayout.Full>
-          </ModuleLayout.Layout>
-        </Layout.Main>
-      </Layout.Body>
-    </Feature>
+            </ToolRibbon>
+          </ModuleLayout.Full>
+          <PageAlert />
+          <ModuleLayout.Full>
+            {showOnboarding ? (
+              <LegacyOnboarding project={onboardingProject} organization={organization} />
+            ) : (
+              <PerformanceDisplayContext
+                value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
+              >
+                <DoubleChartRow
+                  allowedCharts={doubleChartRowCharts}
+                  {...sharedProps}
+                  eventView={doubleChartRowEventView}
+                />
+                <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
+                <TeamKeyTransactionManager.Provider
+                  organization={organization}
+                  teams={teams}
+                  selectedTeams={['myteams']}
+                  selectedProjects={eventView.project.map(String)}
+                >
+                  <Table
+                    projects={projects}
+                    columnTitles={FRONTEND_COLUMN_TITLES}
+                    setError={setPageDanger}
+                    {...sharedProps}
+                  />
+                </TeamKeyTransactionManager.Provider>
+              </PerformanceDisplayContext>
+            )}
+          </ModuleLayout.Full>
+        </ModuleLayout.Layout>
+      </Layout.Main>
+    </Layout.Body>
   );
 }
 

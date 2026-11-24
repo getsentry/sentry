@@ -90,11 +90,7 @@ export type GrammarResult<T extends GrammarTokenConverter> = Array<
 >;
 
 /** A literal string the grammar expected at the failure position. */
-type LiteralExpectation = {
-  ignoreCase: boolean;
-  text: string;
-  type: 'literal';
-};
+type LiteralExpectation = {ignoreCase: boolean; text: string; type: 'literal'};
 
 /** Nested character class ranges, e.g. `[a-z]` as `[['a', 'z']]`. */
 type ClassParts = Array<string | ClassParts>;

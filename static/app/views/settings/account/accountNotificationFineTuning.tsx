@@ -19,7 +19,6 @@ import {SearchBar} from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -103,7 +102,7 @@ function AccountNotificationsByProject({
 }
 
 export function AccountNotificationFineTuning() {
-  const {organizations} = useLegacyStore(OrganizationsStore);
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
   const customerDomain = useStore(ConfigStore, state => state.customerDomain);
 
   const [orgIdParam, setOrgId] = useQueryState('organizationId', parseAsString);
@@ -125,11 +124,7 @@ export function AccountNotificationFineTuning() {
     isError: isErrorProjects,
   } = useQuery({
     ...apiOptions.as<Project[]>()('/projects/', {
-      query: {
-        organizationId,
-        cursor,
-        query,
-      },
+      query: {organizationId, cursor, query},
       staleTime: 0,
     }),
     enabled: Boolean(organizationId),

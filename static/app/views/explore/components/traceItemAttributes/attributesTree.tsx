@@ -48,10 +48,7 @@ export type AttributesTreeContent = KeyValueTreeContent<
   Attribute
 >;
 
-type AttributeItem = {
-  fieldKey: string;
-  value: string | number | null;
-};
+type AttributeItem = {fieldKey: string; value: string | number | null};
 
 export type AttributesFieldRendererProps<RendererExtra extends RenderFunctionBaggage> = {
   extra: RendererExtra;
@@ -129,13 +126,7 @@ export function AttributesTree<RendererExtra extends RenderFunctionBaggage>({
           getAdjustedAttributeKey
         );
         return shaped
-          ? [
-              {
-                key: shaped.attribute_key,
-                value: shaped.attribute_value,
-                original: shaped,
-              },
-            ]
+          ? [{key: shaped.attribute_key, value: shaped.attribute_value, original: shaped}]
           : [];
       })
     );

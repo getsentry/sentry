@@ -10,15 +10,17 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {AgentHandoffPrompt} from './agentHandoffPrompt';
-import {AgentHandoffFlow} from './useAgentHandoff';
+import {AgentHandoffFlow} from './types';
 
 describe('AgentHandoffPrompt', () => {
   const organization = OrganizationFixture();
   const url = `/organizations/${organization.slug}/agent-handoff/prompts/`;
   const context = {runId: 'a'.repeat(32)};
   const feedbackSource = 'agent-handoff-prompt-test';
+  const code = 'sntryh_example';
+  const handoffId = 'a'.repeat(32);
   const prompt =
-    'Fetch and follow the instructions at https://sentry.io/agent-handoff/. Your secret token is `sntryh_example`.';
+    'Read and follow https://sentry-jest-tests.example.com/agent-handoff.md verbatim. Your handoff code is `sntryh_example`.';
   const write = jest.fn();
 
   beforeEach(() => {
@@ -38,11 +40,11 @@ describe('AgentHandoffPrompt', () => {
     Reflect.deleteProperty(globalThis, 'ClipboardItem');
   });
 
-  it('copies a private prompt with IP pinning enabled', async () => {
+  it('copies an agent prompt with IP pinning enabled', async () => {
     const mint = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: {prompt, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
     });
     const onCopySuccess = jest.fn();
 
@@ -56,26 +58,25 @@ describe('AgentHandoffPrompt', () => {
       {organization}
     );
 
-    expect(screen.getByRole('link', {name: 'See the full instructions'})).toHaveAttribute(
-      'href',
-      'https://sentry.io/agent-handoff/?preview=1&flow=onboarding'
+    expect(screen.getByText(/Read and follow/)).toHaveTextContent(
+      'Read and follow https://sentry-jest-tests.example.com/agent-handoff.md verbatim. Your handoff code is sntryh_****.'
     );
-    await userEvent.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
+    expect(
+      screen.getByRole('link', {
+        name: 'https://sentry-jest-tests.example.com/agent-handoff.md',
+      })
+    ).toHaveAttribute('href', 'https://sentry-jest-tests.example.com/agent-handoff.md');
+    await userEvent.click(screen.getByRole('button', {name: 'Copy prompt'}));
 
     await waitFor(() => expect(onCopySuccess).toHaveBeenCalledTimes(1));
+    expect(onCopySuccess).toHaveBeenCalledWith(handoffId);
     expect(mint).toHaveBeenCalledWith(
       url,
       expect.objectContaining({
-        data: {
-          context,
-          disableIpPinning: false,
-          flow: 'onboarding',
-        },
+        data: {context, disableIpPinning: false, flow: 'onboarding'},
       })
     );
-    const item = write.mock.calls[0]![0][0] as {
-      data: Record<string, Promise<Blob>>;
-    };
+    const item = write.mock.calls[0]![0][0] as {data: Record<string, Promise<Blob>>};
     await expect(item.data['text/plain']!.then(blob => blob.text())).resolves.toBe(
       prompt
     );
@@ -85,7 +86,7 @@ describe('AgentHandoffPrompt', () => {
     const mint = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: {prompt, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
     });
     render(
       <AgentHandoffPrompt
@@ -96,23 +97,21 @@ describe('AgentHandoffPrompt', () => {
       {organization}
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Advanced options'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: /Use IP pinning/}));
+    const ipPinning = screen.getByRole('checkbox', {name: /Only allow this network/});
+    expect(ipPinning).toBeChecked();
+    await userEvent.click(ipPinning);
+    expect(ipPinning).not.toBeChecked();
 
     expect(
-      screen.getByText(/Without IP pinning, anyone with this prompt can use it/)
+      screen.getByText(/anyone with this prompt can use its handoff code/)
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Copy prompt'}));
 
     await waitFor(() =>
       expect(mint).toHaveBeenCalledWith(
         url,
         expect.objectContaining({
-          data: {
-            context,
-            disableIpPinning: true,
-            flow: 'onboarding',
-          },
+          data: {context, disableIpPinning: true, flow: 'onboarding'},
         })
       )
     );
@@ -140,6 +139,33 @@ describe('AgentHandoffPrompt', () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(document.activeElement?.textContent).toContain('sntryh_****');
     expect(window.getSelection()?.toString()).toContain('sntryh_****');
+    expect(screen.getByText('sntryh_****')).toHaveAttribute('data-selected', 'true');
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Prior input'}));
+
+    expect(screen.getByText('sntryh_****')).not.toHaveAttribute('data-selected');
+  });
+
+  it('does not select the prompt when its guide link is clicked', async () => {
+    const onSelect = jest.fn();
+    render(
+      <AgentHandoffPrompt
+        context={context}
+        feedbackSource={feedbackSource}
+        flow={AgentHandoffFlow.ONBOARDING}
+        onSelect={onSelect}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(
+      screen.getByRole('link', {
+        name: 'https://sentry-jest-tests.example.com/agent-handoff.md',
+      })
+    );
+
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.getByText('sntryh_****')).not.toHaveAttribute('data-selected');
   });
 
   it('shows prompt creation errors', async () => {
@@ -158,10 +184,10 @@ describe('AgentHandoffPrompt', () => {
       {organization}
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Copy prompt'}));
 
     expect(
-      await screen.findByText('Unable to create your agent prompt. Please try again.')
+      await screen.findByText('Unable to create your agent prompt. Try again.')
     ).toBeInTheDocument();
   });
 

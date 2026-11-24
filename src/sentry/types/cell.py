@@ -365,11 +365,9 @@ def get_cell_for_organization(organization_id_or_slug: str) -> Cell:
     from sentry.models.organizationmapping import OrganizationMapping
 
     if organization_id_or_slug.isdecimal():
-        mapping = OrganizationMapping.objects.filter(
-            organization_id=organization_id_or_slug
-        ).first()
+        mapping = OrganizationMapping.objects.get_or_none(organization_id=organization_id_or_slug)
     else:
-        mapping = OrganizationMapping.objects.filter(slug=organization_id_or_slug).first()
+        mapping = OrganizationMapping.objects.get_or_none(slug=organization_id_or_slug)
 
     if not mapping:
         raise CellResolutionError(

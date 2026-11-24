@@ -1,12 +1,17 @@
 import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
-import {skipToken, useQuery} from '@tanstack/react-query';
-import {parseAsString, useQueryState} from 'nuqs';
+import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {
+  Flex,
+  Stack,
+  useResponsivePropValue,
+  type Responsive,
+} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -20,26 +25,35 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
-import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-import type {TelemetryClassifier} from './types';
+import {ClassifierActivity, getActivityLabelSizer} from './components/classifierActivity';
+import {ClassifierSearch} from './components/classifierSearch';
+import {ResultAttributeName} from './components/resultAttributeName';
+import {classifierListApiOptions} from './hooks/classifierApiOptions';
 import {
-  getClassifierDetailPath,
-  getDatasetLabel,
-  getEnrichmentAttributeName,
-  getNewClassifierPath,
-} from './utils';
+  type ClassifierListStatsResult,
+  useClassifierListStats,
+} from './hooks/useClassifierListStats';
+import {CLASSIFIER_LIST_STATS_PERIOD} from './constants';
+import type {TelemetryClassifier} from './types';
+import {getClassifierDetailPath, getDatasetLabel, getNewClassifierPath} from './utils';
 
 const CLASSIFIERS_PER_PAGE = 25;
 
+const searchParsers = {query: parseAsString.withDefault(''), cursor: parseAsString};
+
+const ACTIVITY_COLUMN_VISIBLE: Responsive<boolean> = {zero: false, '2xl': true};
+
 const CLASSIFIER_COLUMNS: TableColumnConfig[] = [
-  {key: 'name', width: 'minmax(0, 1fr)'},
-  {key: 'attribute', visible: {md: true}, width: '300px'},
-  {key: 'data-type', visible: {sm: true}, width: '130px'},
+  {key: 'name', resizable: true, width: 'minmax(0, 1fr)'},
+  {key: 'activity', resizable: true, visible: ACTIVITY_COLUMN_VISIBLE, width: 200},
+  {key: 'attribute', resizable: true, visible: {md: true}, width: 300},
+  {key: 'data-type', visible: {sm: true}, width: 130},
 ];
 
 function CreateClassifierMenu() {
@@ -78,7 +92,15 @@ function CreateClassifierMenu() {
   );
 }
 
-function ClassifierRow({classifier}: {classifier: TelemetryClassifier}) {
+function ClassifierRow({
+  activityLabelSizer,
+  classifier,
+  stats,
+}: {
+  activityLabelSizer: string;
+  classifier: TelemetryClassifier;
+  stats: ClassifierListStatsResult;
+}) {
   const organization = useOrganization();
   const project = useProjectFromId({project_id: classifier.projectId});
   const isDisabled = classifier.status === 'disabled';
@@ -108,15 +130,15 @@ function ClassifierRow({classifier}: {classifier: TelemetryClassifier}) {
         </Stack>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
-        <Text
+        <ClassifierActivity result={stats} labelSizer={activityLabelSizer} />
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
+        <ResultAttributeName
+          resultAttribute={classifier.resultAttribute}
           monospace
           size="sm"
           density="compressed"
-          ellipsis
-          title={getEnrichmentAttributeName(classifier.resultAttribute)}
-        >
-          {getEnrichmentAttributeName(classifier.resultAttribute)}
-        </Text>
+        />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <Tag variant="muted">{getDatasetLabel(classifier.dataset)}</Tag>
@@ -128,25 +150,25 @@ function ClassifierRow({classifier}: {classifier: TelemetryClassifier}) {
 function ClassifiersTable() {
   const organization = useOrganization();
   const {selection, isReady} = usePageFilters();
-  const [cursor] = useQueryState('cursor', parseAsString);
+  const [{query, cursor}] = useQueryStates(searchParsers);
 
   const {data, isPending, isError, refetch} = useQuery({
-    ...apiOptions.as<TelemetryClassifier[]>()(
-      '/organizations/$organizationIdOrSlug/classifiers/',
-      {
-        path: isReady ? {organizationIdOrSlug: organization.slug} : skipToken,
-        query: {
-          project: selection.projects,
-          cursor: cursor ?? undefined,
-          per_page: CLASSIFIERS_PER_PAGE,
-        },
-        staleTime: 0,
-      }
-    ),
+    ...classifierListApiOptions(organization.slug, {
+      project: selection.projects,
+      query: query || undefined,
+      cursor: cursor ?? undefined,
+      per_page: CLASSIFIERS_PER_PAGE,
+    }),
+    enabled: isReady,
     select: selectJsonWithHeaders,
   });
 
   const classifiers = data?.json ?? [];
+  const isActivityVisible = useResponsivePropValue(ACTIVITY_COLUMN_VISIBLE);
+  const getStats = useClassifierListStats(isActivityVisible ? classifiers : []);
+  const activityLabelSizer = getActivityLabelSizer(
+    classifiers.map(classifier => getStats(classifier).data)
+  );
 
   return (
     <div>
@@ -154,9 +176,18 @@ function ClassifiersTable() {
         columns={CLASSIFIER_COLUMNS}
         header={
           <SimpleTable.HeaderRow>
-            <SimpleTable.HeaderCell>{t('Classifier')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>{t('Attribute')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>{t('Data type')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnIndex={0}>
+              {t('Classifier')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnIndex={1}>
+              {t('Activity (%s)', CLASSIFIER_LIST_STATS_PERIOD)}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnIndex={2}>
+              {t('Attribute')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnIndex={3}>
+              {t('Data type')}
+            </SimpleTable.HeaderCell>
           </SimpleTable.HeaderRow>
         }
       >
@@ -168,10 +199,17 @@ function ClassifiersTable() {
             onRetry={() => refetch()}
           />
         ) : classifiers.length === 0 ? (
-          <SimpleTable.Empty>{t('No classifiers found.')}</SimpleTable.Empty>
+          <SimpleTable.Empty>
+            {query ? t('No classifiers match your search.') : t('No classifiers found.')}
+          </SimpleTable.Empty>
         ) : (
           classifiers.map(classifier => (
-            <ClassifierRow key={classifier.id} classifier={classifier} />
+            <ClassifierRow
+              key={classifier.id}
+              classifier={classifier}
+              stats={getStats(classifier)}
+              activityLabelSizer={activityLabelSizer}
+            />
           ))
         )}
       </SimpleTable>
@@ -182,6 +220,11 @@ function ClassifiersTable() {
 
 export default function ClassifiersList() {
   const organization = useOrganization();
+  const [{query}, setSearchParams] = useQueryStates(searchParsers);
+
+  const handleSearch = (searchQuery: string) => {
+    setSearchParams({query: searchQuery, cursor: null}, {history: 'push'});
+  };
 
   return (
     <SentryDocumentTitle title={t('Classifiers')} orgSlug={organization.slug}>
@@ -191,11 +234,14 @@ export default function ClassifiersList() {
       />
       <PageFiltersContainer>
         <Stack gap="lg" padding="xl">
-          <Flex justify="between" align="center" gap="lg">
+          <Flex align="center" gap="lg">
             <PageFilterBar>
               <ProjectPageFilter resetParamsOnChange={['cursor']} />
             </PageFilterBar>
-            <CreateClassifierMenu />
+            <Flex flex={1} align="center" gap="md">
+              <ClassifierSearch initialQuery={query} onSearch={handleSearch} />
+              <CreateClassifierMenu />
+            </Flex>
           </Flex>
           <ClassifiersTable />
         </Stack>

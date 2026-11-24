@@ -33,23 +33,14 @@ const MOCK_DATA = JSON.stringify({
           id: 'intermediate',
           type: 'Nested Container',
           identifier: 'nested',
-          children: [
-            {
-              ...DEFAULT_VALUES,
-              id: 'leaf',
-              type: 'Text',
-              children: [],
-            },
-          ],
+          children: [{...DEFAULT_VALUES, id: 'leaf', type: 'Text', children: []}],
         },
       ],
     },
   ],
 });
 
-const organization = OrganizationFixture({
-  features: ['event-attachments'],
-});
+const organization = OrganizationFixture({features: ['event-attachments']});
 const event = EventFixture();
 
 describe('Event View Hierarchy', () => {
@@ -78,9 +69,7 @@ describe('Event View Hierarchy', () => {
 
     const {container} = render(
       <EventViewHierarchy project={mockProject} event={event} />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     // No loading state so nothing to wait for
@@ -92,9 +81,7 @@ describe('Event View Hierarchy', () => {
   it('does not collapse all nodes when update triggers re-render', async () => {
     const {rerender} = render(
       <EventViewHierarchy project={mockProject} event={event} />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(await screen.findByText('Nested Container - nested')).toBeInTheDocument();

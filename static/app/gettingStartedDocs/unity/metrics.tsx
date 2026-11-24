@@ -48,9 +48,7 @@ export const metrics: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Metrics for Unity are supported in Sentry SDK version [code:4.2.0] and above.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
       ],
@@ -65,9 +63,7 @@ export const metrics: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Metrics are enabled by default. You can emit metrics using the [code:SentrySdk.Metrics] API.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         metricsVerify(params),
