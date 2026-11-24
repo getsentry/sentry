@@ -391,20 +391,6 @@ export function ScmPlatformFeaturesCore({
     debounceManualPickerSearch();
   }
 
-  // Align the platform icons and section headings with the input text. Options
-  // reserve space for the menu-item inset, inner inset, checkmark, and
-  // leading-item gap. Must override the group padding shorthand: base already
-  // has a paddingLeft key before its padding shorthand, which would reset a
-  // paddingLeft override. Shared by both manual-picker Select variants below.
-  const manualPickerStyles: StylesConfig = {
-    container: base => ({...base, width: '100%'}),
-    menu: base => ({...base, '& [role="option"]': {paddingLeft: theme.space.md}}),
-    groupHeading: base => ({
-      ...base,
-      padding: `${theme.space.xs} ${theme.space.lg} ${theme.space.xs} calc(${theme.space.md} + ${theme.space.lg} + ${theme.form.md.fontSize} + ${theme.space.md})`,
-    }),
-  };
-
   // When the active platform is a manual (non-detected) pick, show the manual
   // picker so the selection stays visible (see showDetectedPlatforms below).
   const hasDetectedPlatforms = resolvedPlatforms.length > 0 || isDetecting;
@@ -569,7 +555,6 @@ export function ScmPlatformFeaturesCore({
               searchable
               controlLeadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
               virtualized
-              styles={manualPickerStyles}
             />
           ) : (
             <Select<string, (typeof platformOptions)[number]>
@@ -584,7 +569,6 @@ export function ScmPlatformFeaturesCore({
               searchable
               controlLeadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
               virtualized
-              styles={manualPickerStyles}
             />
           )}
         </MotionStack>
