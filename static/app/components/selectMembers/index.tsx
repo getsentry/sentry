@@ -40,7 +40,6 @@ interface Props {
   'aria-label'?: string;
   projectIds?: readonly string[];
   size?: BaseSelectProps<string>['size'];
-  styles?: StylesConfig;
 }
 
 interface FilterOption {
@@ -100,7 +99,6 @@ function SelectMembers({
   organization,
   projectIds,
   size,
-  styles,
   value,
 }: Props) {
   const [search, setSearch] = useState('');
@@ -132,15 +130,9 @@ function SelectMembers({
 
   const selectStyles: StylesConfig = useMemo(
     () => ({
-      ...styles,
-      menu: (provided, state) => ({
+      menu: provided => ({...provided, width: 320}),
+      input: provided => ({
         ...provided,
-        ...styles?.menu?.(provided, state),
-        width: 320,
-      }),
-      input: (provided, state) => ({
-        ...provided,
-        ...styles?.input?.(provided, state),
         // Align the caret after the selected member's 20px avatar and 6px gap.
         paddingLeft: hasSelectedMember && !search ? 26 : 0,
       }),
@@ -149,7 +141,7 @@ function SelectMembers({
         svg: {color: state.isSelected ? '#fff' : undefined},
       }),
     }),
-    [styles, hasSelectedMember, search]
+    [hasSelectedMember, search]
   );
 
   // Keep the select disabled until project-scoped members have loaded so the
