@@ -7,7 +7,6 @@ from functools import partial
 from typing import Protocol, TypeVar
 
 import sentry_sdk
-import sentry_sdk.scope
 import urllib3
 from google.protobuf.json_format import MessageToJson
 from google.protobuf.message import DecodeError as ProtobufDecodeError
@@ -176,13 +175,7 @@ def _make_rpc_requests(
         sentry_sdk.set_tag("query.referrer", referrers[0])
         sentry_sdk.set_attribute("query.referrer", referrers[0])
 
-    # Sets the thread parameters once so we're not doing it in the map repeatedly
-    partial_request = partial(
-        _make_rpc_request,
-        thread_isolation_scope=sentry_sdk.get_isolation_scope(),
-        thread_current_scope=sentry_sdk.get_current_scope(),
-        debug=debug,
-    )
+    partial_request = partial(_make_rpc_request, debug=debug)
     with ContextPropagatingThreadPoolExecutor(
         thread_name_prefix=__name__, max_workers=10
     ) as query_thread_pool:
@@ -420,8 +413,6 @@ def _make_rpc_request(
     class_version: str,
     referrer: str | None,
     req: SnubaRPCRequest | CreateSubscriptionRequest,
-    thread_isolation_scope: sentry_sdk.Scope | None = None,
-    thread_current_scope: sentry_sdk.Scope | None = None,
     debug: str | bool = False,
 ) -> BaseHTTPResponse:
     try:
@@ -443,63 +434,53 @@ def _make_rpc_request(
     except Exception:
         logger.exception("Failed to log RPC query")
 
-    thread_isolation_scope = (
-        sentry_sdk.get_isolation_scope()
-        if thread_isolation_scope is None
-        else thread_isolation_scope
-    )
-    thread_current_scope = (
-        sentry_sdk.get_current_scope() if thread_current_scope is None else thread_current_scope
-    )
     if SNUBA_INFO:
         log_snuba_info(f"{referrer}.body:\n{MessageToJson(req)}")  # type: ignore[arg-type]
-    with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
-        with sentry_sdk.scope.use_scope(thread_current_scope):
-            with traces.start_span(
-                name=req.__class__.__name__, attributes={"sentry.op": "snuba_rpc.run"}
-            ) as span:
-                if referrer:
-                    span.set_attribute("snuba.referrer", referrer)
-                    span.set_attribute("snuba.query", repr(req))
-                try:
-                    http_resp = _snuba_pool.urlopen(
-                        "POST",
-                        f"/rpc/{endpoint_name}/{class_version}",
-                        body=req.SerializeToString(),
-                        headers=(
-                            {
-                                "referer": referrer,
-                            }
-                            if referrer
-                            else {}
-                        ),
-                    )
-                except urllib3.exceptions.HTTPError as err:
-                    if isinstance(err, urllib3.exceptions.ReadTimeoutError):
-                        metrics.incr("snuba_rpc.read_timeout_error", tags={"referrer": referrer})
-                        raise SnubaRPCTimeout(err)
-                    raise SnubaRPCError(err)
+    with traces.start_span(
+        name=req.__class__.__name__, attributes={"sentry.op": "snuba_rpc.run"}
+    ) as span:
+        if referrer:
+            span.set_attribute("snuba.referrer", referrer)
+            span.set_attribute("snuba.query", repr(req))
+        try:
+            http_resp = _snuba_pool.urlopen(
+                "POST",
+                f"/rpc/{endpoint_name}/{class_version}",
+                body=req.SerializeToString(),
+                headers=(
+                    {
+                        "referer": referrer,
+                    }
+                    if referrer
+                    else {}
+                ),
+            )
+        except urllib3.exceptions.HTTPError as err:
+            if isinstance(err, urllib3.exceptions.ReadTimeoutError):
+                metrics.incr("snuba_rpc.read_timeout_error", tags={"referrer": referrer})
+                raise SnubaRPCTimeout(err)
+            raise SnubaRPCError(err)
 
-                span.set_attribute("timeout", "False")
-                if http_resp.status != 200 and http_resp.status != 202:
-                    error = _parse_error(http_resp)
+        span.set_attribute("timeout", "False")
+        if http_resp.status != 200 and http_resp.status != 202:
+            error = _parse_error(http_resp)
 
-                    if SNUBA_INFO:
-                        log_snuba_info(f"{referrer}.error:\n{error}")
-                    if http_resp.status == 404:
-                        raise NotFound() from SnubaRPCError(error)
-                    if http_resp.status == 429:
-                        raise SnubaRPCRateLimitExceeded(error)
-                    if http_resp.status == 503:
-                        raise SnubaRPCUnavailable(error)
-                    if "Too many simultaneous queries" in error.message:
-                        raise SnubaRPCTooManySimultaneous(error)
-                    if http_resp.status == 400:
-                        if "CANNOT_COMPILE_REGEXP" in error.message:
-                            raise SnubaRPCInvalidRegex(error.message)
-                        raise SnubaRPCBadRequest(error.message)
-                    raise SnubaRPCError(error)
-                return http_resp
+            if SNUBA_INFO:
+                log_snuba_info(f"{referrer}.error:\n{error}")
+            if http_resp.status == 404:
+                raise NotFound() from SnubaRPCError(error)
+            if http_resp.status == 429:
+                raise SnubaRPCRateLimitExceeded(error)
+            if http_resp.status == 503:
+                raise SnubaRPCUnavailable(error)
+            if "Too many simultaneous queries" in error.message:
+                raise SnubaRPCTooManySimultaneous(error)
+            if http_resp.status == 400:
+                if "CANNOT_COMPILE_REGEXP" in error.message:
+                    raise SnubaRPCInvalidRegex(error.message)
+                raise SnubaRPCBadRequest(error.message)
+            raise SnubaRPCError(error)
+        return http_resp
 
 
 def _parse_error(http_resp: BaseHTTPResponse) -> ErrorProto:

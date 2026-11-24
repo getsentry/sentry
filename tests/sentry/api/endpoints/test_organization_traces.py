@@ -848,7 +848,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             assert response.status_code == 200, response.data
 
             actual_referrers = {
-                call[0][0][2].headers["referer"] for call in mock_snuba_query.call_args_list
+                call[0][0].headers["referer"] for call in mock_snuba_query.call_args_list
             }
 
         assert {

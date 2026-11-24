@@ -3,6 +3,7 @@ from typing import Any
 from unittest import mock
 
 import pytest
+import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
@@ -106,6 +107,28 @@ def _meta() -> RequestMeta:
 
 def _request() -> TraceItemTableRequest:
     return TraceItemTableRequest(meta=_meta())
+
+
+def test_make_rpc_requests_runs_each_request_on_its_own_scope() -> None:
+    seen_scopes = []
+
+    def urlopen(*args: Any, **kwargs: Any) -> HTTPResponse:
+        seen_scopes.append((sentry_sdk.get_isolation_scope(), sentry_sdk.get_current_scope()))
+        return HTTPResponse(status=200, body=_table_response().SerializeToString())
+
+    with (
+        sentry_sdk.isolation_scope() as isolation_scope,
+        sentry_sdk.new_scope() as current_scope,
+        mock.patch("sentry.utils.snuba_rpc._snuba_pool.urlopen", side_effect=urlopen),
+    ):
+        snuba_rpc._make_rpc_requests(table_requests=[_request(), _request()])
+
+    assert len(seen_scopes) == 2
+    for worker_isolation_scope, worker_current_scope in seen_scopes:
+        assert worker_isolation_scope is not isolation_scope
+        assert worker_current_scope is not current_scope
+    assert seen_scopes[0][1] is not seen_scopes[1][1]
+    assert isolation_scope._tags["query.referrer"] == "test.referrer"
 
 
 def test_logs_referrer_and_row_count_when_rows_provided() -> None:

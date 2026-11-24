@@ -25,7 +25,6 @@ from typing import Any, Literal, Self, cast, overload
 from urllib.parse import urlparse
 
 import sentry_sdk
-import sentry_sdk.scope
 import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
@@ -1277,34 +1276,19 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
         },
     ) as span:
         if len(snuba_requests_list) > 1:
+            # Workers run on forked scopes, so request-wide tags must be set
+            # here on the caller's scope.
+            referrer = snuba_requests_list[0].headers.get("referer", "unknown")
+            sentry_sdk.set_tag("query.referrer", referrer)
+            sentry_sdk.set_attribute("query.referrer", referrer)
             with ContextPropagatingThreadPoolExecutor(
                 thread_name_prefix=__name__,
                 max_workers=10,
             ) as query_thread_pool:
-                query_results = list(
-                    query_thread_pool.map(
-                        _snuba_query,
-                        [
-                            (
-                                sentry_sdk.get_isolation_scope(),
-                                sentry_sdk.get_current_scope(),
-                                snuba_request,
-                            )
-                            for snuba_request in snuba_requests_list
-                        ],
-                    )
-                )
+                query_results = list(query_thread_pool.map(_snuba_query, snuba_requests_list))
         else:
             # No need to submit to the thread pool if we're just performing a single query
-            query_results = [
-                _snuba_query(
-                    (
-                        sentry_sdk.get_isolation_scope(),
-                        sentry_sdk.get_current_scope(),
-                        snuba_requests_list[0],
-                    )
-                )
-            ]
+            query_results = [_snuba_query(snuba_requests_list[0])]
 
         results = []
         for index, item in enumerate(query_results):
@@ -1436,65 +1420,54 @@ def _log_request_query(req: Request) -> None:
 RawResult = tuple[str, urllib3.response.HTTPResponse, Translator, Translator]
 
 
-def _snuba_query(
-    params: tuple[
-        sentry_sdk.Scope,
-        sentry_sdk.Scope,
-        SnubaRequest,
-    ],
-) -> RawResult:
-    # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
-    # the params here than in the calling function. (bc of thread .map)
-    thread_isolation_scope, thread_current_scope, snuba_request = params
-    with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
-        with sentry_sdk.scope.use_scope(thread_current_scope):
-            request = snuba_request.request
-            headers = snuba_request.headers
-            # Delete queries do not benefit from compression
-            should_compress = not isinstance(request.query, DeleteQuery)
-            if should_compress:
-                headers = {**headers, "Accept-Encoding": "zstd"}
+def _snuba_query(snuba_request: SnubaRequest) -> RawResult:
+    request = snuba_request.request
+    headers = snuba_request.headers
+    # Delete queries do not benefit from compression
+    should_compress = not isinstance(request.query, DeleteQuery)
+    if should_compress:
+        headers = {**headers, "Accept-Encoding": "zstd"}
 
-            try:
-                referrer = headers.get("referer", "unknown")
+    try:
+        referrer = headers.get("referer", "unknown")
 
-                if SNUBA_INFO:
-                    import pprint
+        if SNUBA_INFO:
+            import pprint
 
-                    log_snuba_info(f"{referrer}.body:\n {pprint.pformat(request.to_dict())}")
-                    request.flags.debug = True
+            log_snuba_info(f"{referrer}.body:\n {pprint.pformat(request.to_dict())}")
+            request.flags.debug = True
 
-                # We set both span + sdk level, this is cause 1 txn/error might query snuba more than once
-                # but we still want to know a general sense of how referrers impact performance
-                sentry_sdk.set_tag("query.referrer", referrer)
-                sentry_sdk.set_attribute("query.referrer", referrer)
+        # We set both span + sdk level, this is cause 1 txn/error might query snuba more than once
+        # but we still want to know a general sense of how referrers impact performance
+        sentry_sdk.set_tag("query.referrer", referrer)
+        sentry_sdk.set_attribute("query.referrer", referrer)
 
-                # Whether client asked snuba to zstd-compress the resp.
-                sentry_sdk.set_attribute("snuba.request_compressed", should_compress)
+        # Whether client asked snuba to zstd-compress the resp.
+        sentry_sdk.set_attribute("snuba.request_compressed", should_compress)
 
-                if isinstance(request.query, MetricsQuery):
-                    return (
-                        referrer,
-                        _raw_mql_query(request, headers),
-                        snuba_request.forward,
-                        snuba_request.reverse,
-                    )
-                elif isinstance(request.query, DeleteQuery):
-                    return (
-                        referrer,
-                        _raw_delete_query(request, headers),
-                        snuba_request.forward,
-                        snuba_request.reverse,
-                    )
+        if isinstance(request.query, MetricsQuery):
+            return (
+                referrer,
+                _raw_mql_query(request, headers),
+                snuba_request.forward,
+                snuba_request.reverse,
+            )
+        elif isinstance(request.query, DeleteQuery):
+            return (
+                referrer,
+                _raw_delete_query(request, headers),
+                snuba_request.forward,
+                snuba_request.reverse,
+            )
 
-                return (
-                    referrer,
-                    _raw_snql_query(request, headers),
-                    snuba_request.forward,
-                    snuba_request.reverse,
-                )
-            except urllib3.exceptions.HTTPError as err:
-                raise SnubaError(err)
+        return (
+            referrer,
+            _raw_snql_query(request, headers),
+            snuba_request.forward,
+            snuba_request.reverse,
+        )
+    except urllib3.exceptions.HTTPError as err:
+        raise SnubaError(err)
 
 
 def _raw_delete_query(

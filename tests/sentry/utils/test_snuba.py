@@ -758,10 +758,7 @@ class SnubaQueryRateLimitTest(TestCase):
         rate_limited_response.status = 429
         rate_limited_response.data = json.dumps({"error": {"message": "rate limited"}}).encode()
 
-        def snuba_query(
-            params: Any,
-        ) -> Any:
-            snuba_request = params[2]
+        def snuba_query(snuba_request: SnubaRequest) -> Any:
             response = ok_response if snuba_request.referrer == "ok" else rate_limited_response
             return (snuba_request.referrer, response, lambda x: x, lambda x: x)
 
@@ -791,13 +788,7 @@ class SnubaResponseCompressionTest(unittest.TestCase):
         req = mock.Mock(dataset="events", query=query)
         req.serialize.return_value = b"{}"
         _snuba_query(
-            (
-                sentry_sdk.get_isolation_scope(),
-                sentry_sdk.get_current_scope(),
-                SnubaRequest(
-                    request=req, referrer="test", forward=lambda x: x, reverse=lambda x: x
-                ),
-            )
+            SnubaRequest(request=req, referrer="test", forward=lambda x: x, reverse=lambda x: x)
         )
 
     def test_compresses_read_query(self) -> None:
@@ -809,3 +800,32 @@ class SnubaResponseCompressionTest(unittest.TestCase):
         self._run_query(mock.Mock(spec=DeleteQuery, storage_name="events"))
         headers = self.mock_pool.urlopen.call_args.kwargs["headers"]
         assert "Accept-Encoding" not in headers
+
+
+def test_bulk_snuba_query_runs_each_request_on_its_own_scope() -> None:
+    seen_scopes = []
+
+    def urlopen(*args: Any, **kwargs: Any) -> mock.Mock:
+        seen_scopes.append((sentry_sdk.get_isolation_scope(), sentry_sdk.get_current_scope()))
+        return mock.Mock(status=200, data=b'{"data": []}')
+
+    def make_request(referrer: str) -> SnubaRequest:
+        req = mock.Mock(dataset="events", query=mock.Mock(spec=Query))
+        req.serialize.return_value = b"{}"
+        return SnubaRequest(
+            request=req, referrer=referrer, forward=lambda x: x, reverse=lambda x: x
+        )
+
+    with (
+        sentry_sdk.isolation_scope() as isolation_scope,
+        sentry_sdk.new_scope() as current_scope,
+        mock.patch("sentry.utils.snuba._snuba_pool.urlopen", side_effect=urlopen),
+    ):
+        _bulk_snuba_query([make_request("first"), make_request("second")])
+
+    assert len(seen_scopes) == 2
+    for worker_isolation_scope, worker_current_scope in seen_scopes:
+        assert worker_isolation_scope is not isolation_scope
+        assert worker_current_scope is not current_scope
+    assert seen_scopes[0][1] is not seen_scopes[1][1]
+    assert isolation_scope._tags["query.referrer"] == "first"
