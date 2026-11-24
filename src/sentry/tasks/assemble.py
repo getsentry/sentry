@@ -56,7 +56,6 @@ from sentry.utils.sdk import bind_organization_context
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from objectstore_client import Session
     from sentry_redis_tools.clients import RedisCluster
 
 
@@ -89,14 +88,6 @@ class AssembleResult(NamedTuple):
 
     def delete_bundle(self) -> None:
         self.bundle.delete()
-        self.bundle_temp_file.close()
-
-
-class ObjectstoreAssembleResult(NamedTuple):
-    # Temporary in-memory object holding the assembled chunks, to be uploaded to Objectstore.
-    bundle_temp_file: IO[bytes]
-
-    def delete_bundle(self) -> None:
         self.bundle_temp_file.close()
 
 
@@ -468,22 +459,90 @@ def get_placeholder_release_kind(release: str) -> str | None:
     return None
 
 
+class FileArtifactBundlePayload(NamedTuple):
+    """An artifact bundle assembled into a legacy `File`."""
+
+    assemble_result: AssembleResult
+    checksum: str
+
+    @property
+    def temp_file(self) -> IO[bytes]:
+        return self.assemble_result.bundle_temp_file
+
+    @property
+    def size(self) -> int:
+        assert self.assemble_result.bundle.size is not None
+        return self.assemble_result.bundle.size
+
+    def store(self) -> None:
+        # The `File` is stored while assembling.
+        pass
+
+    def fields(self) -> dict[str, Any]:
+        return {
+            "file": self.assemble_result.bundle,
+            "storage_path": None,
+            "checksum": None,
+            "file_size": None,
+        }
+
+    def discard(self) -> None:
+        self.assemble_result.delete_bundle()
+
+
+class ObjectstoreArtifactBundlePayload:
+    """An artifact bundle assembled into a temporary file, and stored in Objectstore."""
+
+    def __init__(self, temp_file: IO[bytes], checksum: str, organization_id: int) -> None:
+        self.temp_file = temp_file
+        self.checksum = checksum
+        self.organization_id = organization_id
+        self.size = temp_file.seek(0, os.SEEK_END)
+        temp_file.seek(0)
+        # Set once the bundle is stored.
+        self.storage_path: str | None = None
+
+    def store(self) -> None:
+        self.temp_file.seek(0)
+        self.storage_path = get_session(
+            UsecaseId.ARTIFACT_BUNDLES, project=None, org=self.organization_id
+        ).put(self.temp_file, content_type="application/octet-stream")
+
+    def fields(self) -> dict[str, Any]:
+        assert self.storage_path is not None
+        return {
+            "file": None,
+            "storage_path": self.storage_path,
+            "checksum": self.checksum,
+            "file_size": self.size,
+        }
+
+    def discard(self) -> None:
+        self.temp_file.close()
+        if self.storage_path is not None:
+            try:
+                get_session(
+                    UsecaseId.ARTIFACT_BUNDLES, project=None, org=self.organization_id
+                ).delete(self.storage_path)
+            except Exception:
+                # The object's TTI cleans up failed deletes.
+                logger.exception("assemble.artifact_bundle.objectstore_delete_failed")
+
+
+ArtifactBundlePayload = FileArtifactBundlePayload | ObjectstoreArtifactBundlePayload
+
+
 class ArtifactBundlePostAssembler:
     def __init__(
         self,
-        assemble_result: AssembleResult | ObjectstoreAssembleResult,
-        checksum: str,
+        payload: ArtifactBundlePayload,
         organization: Organization,
         release: str | None,
         dist: str | None,
         project_ids: list[int],
         is_release_bundle_migration: bool = False,
     ) -> None:
-        self.assemble_result = assemble_result
-        self.checksum = checksum
-        # Set once the bundle is uploaded to Objectstore.
-        self.storage_path: str | None = None
-        self.file_size: int | None = None
+        self.payload = payload
         self.committed = False
         self._validate_bundle_guarded()
 
@@ -504,7 +563,7 @@ class ArtifactBundlePostAssembler:
             raise AssembleArtifactsError("the bundle is invalid")
 
     def _validate_bundle(self) -> None:
-        self.archive = ArtifactBundleArchive(self.assemble_result.bundle_temp_file)
+        self.archive = ArtifactBundleArchive(self.payload.temp_file)
         metrics.incr(
             "tasks.assemble.artifact_bundle.artifact_count", amount=self.archive.artifact_count
         )
@@ -520,7 +579,7 @@ class ArtifactBundlePostAssembler:
         metrics.incr("tasks.assemble.invalid_bundle")
         # In case the bundle is invalid, we want to delete the actual `File` object created in the database, to
         # avoid orphan entries.
-        self._discard_payload()
+        self.payload.discard()
 
     def __enter__(self) -> ArtifactBundlePostAssembler:
         return self
@@ -534,34 +593,14 @@ class ArtifactBundlePostAssembler:
         # In case any exception happens in the `with` block, we will capture it, and we want to delete the payload we
         # stored, to avoid orphans. Once the transaction committed, the payload belongs to the `ArtifactBundle`.
         if exc_type is not None and not self.committed:
-            self._discard_payload()
+            self.payload.discard()
 
         self.archive.close()
-
-    def _discard_payload(self) -> None:
-        self.assemble_result.delete_bundle()
-        if self.storage_path is not None:
-            try:
-                self._get_objectstore_session().delete(self.storage_path)
-            except Exception:
-                # The object's TTI cleans up failed deletes.
-                logger.exception("assemble.artifact_bundle.objectstore_delete_failed")
-
-    def _get_objectstore_session(self) -> Session:
-        return get_session(UsecaseId.ARTIFACT_BUNDLES, project=None, org=self.organization.id)
-
-    def _upload_to_objectstore(self) -> None:
-        temp_file = self.assemble_result.bundle_temp_file
-        self.file_size = temp_file.seek(0, os.SEEK_END)
-        temp_file.seek(0)
-        self.storage_path = self._get_objectstore_session().put(
-            temp_file, content_type="application/octet-stream"
-        )
 
     def post_assemble(self) -> None:
         if self.archive.artifact_count == 0:
             metrics.incr("tasks.assemble.artifact_bundle.discarded_empty_bundle")
-            self._discard_payload()
+            self.payload.discard()
             return
         with metrics.timer("tasks.assemble.artifact_bundle"):
             self._create_artifact_bundle()
@@ -594,7 +633,7 @@ class ArtifactBundlePostAssembler:
         bundle_id = self.archive.extract_bundle_id()
         if not bundle_id:
             # In case we didn't find the bundle_id in the manifest, we will just generate our own.
-            bundle_id = ArtifactBundleArchive.normalize_debug_id(self.checksum)
+            bundle_id = ArtifactBundleArchive.normalize_debug_id(self.payload.checksum)
         # When normalizing the debug_id from the checksum, or even when reading it from the bundle,
         # the debug_id can have an additional appendix which we want to remove as it is
         # incompatible with the SQL `uuid` type, which expects this to be a 16-byte UUID,
@@ -616,9 +655,8 @@ class ArtifactBundlePostAssembler:
         # debug-ID rows keep their `date_added`, which nothing reads.
         date_only_on_bundle = options.get("sourcemaps.artifact-bundles.date-only-on-bundle")
 
-        # We upload the bundle before opening the transaction, to not hold row locks during network I/O.
-        if isinstance(self.assemble_result, ObjectstoreAssembleResult):
-            self._upload_to_objectstore()
+        # We store the bundle before opening the transaction, to not hold row locks during network I/O.
+        self.payload.store()
 
         # We want to run everything in a transaction, since we don't want the database to be in an inconsistent
         # state after all of these updates.
@@ -817,27 +855,13 @@ class ArtifactBundlePostAssembler:
                     ids=list(map(lambda value: value.id, existing_artifact_bundles))
                 )
 
-            # The bundle is backed by either the legacy `File` or the Objectstore object, and the remaining fields
-            # are only set for the latter.
-            file = (
-                self.assemble_result.bundle
-                if isinstance(self.assemble_result, AssembleResult)
-                else None
-            )
-            payload: dict[str, Any] = {
-                "file": file,
-                "storage_path": self.storage_path,
-                "checksum": self.checksum if file is None else None,
-                "file_size": self.file_size,
-            }
+            payload_fields = self.payload.fields()
 
             # In case there is not ArtifactBundle with a specific bundle_id, we just create it and return.
             if existing_artifact_bundle is None:
-                size = self.file_size if file is None else file.size
-                assert size is not None
                 metrics.distribution(
                     "storage.put.size",
-                    size,
+                    self.payload.size,
                     tags={"usecase": "artifact-bundles", "compression": "none"},
                     unit="byte",
                 )
@@ -845,7 +869,7 @@ class ArtifactBundlePostAssembler:
                 artifact_bundle = ArtifactBundle.objects.create(
                     organization_id=self.organization.id,
                     bundle_id=bundle_id,
-                    **payload,
+                    **payload_fields,
                     artifact_count=self.archive.artifact_count,
                     # By default, a bundle is not indexed.
                     indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
@@ -877,7 +901,7 @@ class ArtifactBundlePostAssembler:
                 )
                 metrics.incr(
                     "sourcemaps.upload.artifact_bundle.reupload",
-                    tags={"same_checksum": str(existing_checksum == self.checksum).lower()},
+                    tags={"same_checksum": str(existing_checksum == self.payload.checksum).lower()},
                 )
 
                 # This captures the storage path the bundle has now, so it has to run before the update below.
@@ -887,7 +911,7 @@ class ArtifactBundlePostAssembler:
                 # moves it to the backend of this upload, with its corresponding artifact count and also update the
                 # dates.
                 existing_artifact_bundle.update(
-                    **payload,
+                    **payload_fields,
                     artifact_count=self.archive.artifact_count,
                     date_added=date_added,
                     # If you upload a bundle which already exists, we track this as a modification since our goal
@@ -980,13 +1004,13 @@ def assemble_artifacts(
         # If nothing is returned, the file failed to assemble because of bad input data, and the assemble status
         # has been set already.
         name = f"bundle-artifacts-{uuid.uuid4().hex}.zip"
-        assemble_result: AssembleResult | ObjectstoreAssembleResult | None = None
+        payload: ArtifactBundlePayload | None = None
         if features.has("organizations:objectstore-artifact-bundles-exclusive-write", organization):
             temp_file = assemble_file_blobs(
                 AssembleTask.ARTIFACT_BUNDLE, organization, name, checksum, chunks
             )
             if temp_file is not None:
-                assemble_result = ObjectstoreAssembleResult(bundle_temp_file=temp_file)
+                payload = ObjectstoreArtifactBundlePayload(temp_file, checksum, organization.id)
         else:
             assemble_result = assemble_file(
                 task=AssembleTask.ARTIFACT_BUNDLE,
@@ -996,13 +1020,14 @@ def assemble_artifacts(
                 chunks=chunks,
                 file_type="artifact.bundle",
             )
-        if assemble_result is None:
+            if assemble_result is not None:
+                payload = FileArtifactBundlePayload(assemble_result, checksum)
+        if payload is None:
             return
 
         # We first want to prepare the post assembler which will take care of validating the archive.
         post_assembler = ArtifactBundlePostAssembler(
-            assemble_result=assemble_result,
-            checksum=checksum,
+            payload=payload,
             organization=organization,
             release=version,
             dist=dist,
