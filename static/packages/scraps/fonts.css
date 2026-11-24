@@ -152,7 +152,7 @@
 /* Local fallbacks with the same line metrics as Rubik and Roboto Mono. */
 
 @font-face {
-  font-family: 'Rubik Arial';
+  font-family: 'scraps-fallback-sans';
   font-style: normal;
   font-weight: 400 499;
   src: local('ArialMT'), local('Arial');
@@ -163,7 +163,7 @@
 }
 
 @font-face {
-  font-family: 'Rubik Arial';
+  font-family: 'scraps-fallback-sans';
   font-style: normal;
   font-weight: 500 599;
   src: local('ArialMT'), local('Arial');
@@ -174,7 +174,7 @@
 }
 
 @font-face {
-  font-family: 'Rubik Arial';
+  font-family: 'scraps-fallback-sans';
   font-style: normal;
   font-weight: 600 700;
   src: local('Arial-BoldMT'), local('Arial Bold');
@@ -185,21 +185,12 @@
 }
 
 @font-face {
-  font-family: 'Roboto Mono Andale';
-  font-style: normal;
-  font-weight: 400;
-  src: local('AndaleMono'), local('Andale Mono');
-  size-adjust: 98.46154%;
-  ascent-override: 94.96094%;
-  descent-override: 23.35938%;
-  line-gap-override: 0%;
-}
-
-@font-face {
-  font-family: 'Roboto Mono Courier';
+  font-family: 'scraps-fallback-mono';
   font-style: normal;
   font-weight: 400 500;
-  src: local('CourierNewPSMT'), local('Courier New');
+  src:
+    local('AndaleMono'), local('Andale Mono'), local('CourierNewPSMT'),
+    local('Courier New');
   size-adjust: 98.46154%;
   ascent-override: 94.96094%;
   descent-override: 23.35938%;
@@ -207,10 +198,12 @@
 }
 
 @font-face {
-  font-family: 'Roboto Mono Courier';
+  font-family: 'scraps-fallback-mono';
   font-style: normal;
   font-weight: 501 700;
-  src: local('CourierNewPS-BoldMT'), local('Courier New Bold');
+  src:
+    local('CourierNewPS-BoldMT'), local('Courier New Bold'), local('AndaleMono'),
+    local('Andale Mono'), local('CourierNewPSMT'), local('Courier New');
   size-adjust: 98.46154%;
   ascent-override: 94.96094%;
   descent-override: 23.35938%;
