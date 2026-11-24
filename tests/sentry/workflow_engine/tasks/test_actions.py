@@ -1,4 +1,5 @@
 import uuid
+from functools import partial
 from unittest.mock import Mock, patch
 
 import pytest
@@ -11,6 +12,7 @@ from sentry.eventstream.base import GroupState
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.testutils.cases import TestCase
+from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
 from sentry.workflow_engine.types import UnsupportedActionEvent, WorkflowEventData
@@ -87,6 +89,39 @@ FINAL_ATTEMPT = RetryState(attempts=2, max_attempts=4)
 
 
 class TestTriggerAction(TestCase):
+    def test_selected_detector_reaches_handler_only_in_own_organization(self) -> None:
+        activity = self.create_group_activity(group=self.group, type=ActivityType.NOTE.value)
+        action = self.create_action()
+        detector = self.create_detector(project=self.project)
+        foreign_detector = self.create_detector(
+            project=self.create_project(organization=self.create_organization())
+        )
+        state = GroupState(
+            id=self.group.id, is_new=False, is_regression=False, is_new_group_environment=False
+        )
+        trigger = partial(
+            trigger_action,
+            action_id=action.id,
+            workflow_id=self.create_workflow().id,
+            event_id=None,
+            activity_id=activity.id,
+            group_id=self.group.id,
+            occurrence_id=None,
+            group_state=state,
+            has_escalated=False,
+        )
+        with (
+            patch.object(Action, "get_handler") as handler,
+            patch("sentry.workflow_engine.processors.detector.get_preferred_detector") as lookup,
+        ):
+            trigger(detector_id=detector.id)
+            invocation = handler.return_value.execute.call_args.args[0]
+            assert invocation.detector == detector
+            handler.return_value.execute.reset_mock()
+            trigger(detector_id=foreign_detector.id)
+            handler.return_value.execute.assert_not_called()
+            lookup.assert_not_called()
+
     def call_trigger_action(self, action: Mock, retry_state: RetryState) -> None:
         event_data = Mock()
         detector = Mock(type="error")
