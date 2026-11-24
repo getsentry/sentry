@@ -11,7 +11,12 @@ from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.agent_handoff.applications import get_handoff_application
-from sentry.agent_handoff.codes import HandoffContext, HandoffFlow, issue_handoff
+from sentry.agent_handoff.codes import (
+    AddFeatureContext,
+    HandoffContext,
+    HandoffFlow,
+    issue_handoff,
+)
 from sentry.agent_handoff.flows import get_flow
 from sentry.analytics.events.agent_handoff import AgentHandoffPromptCreatedEvent
 from sentry.api.api_owners import ApiOwner
@@ -97,6 +102,17 @@ class AgentHandoffResponse(TypedDict):
     expiresAt: str
 
 
+def format_handoff_prompt(*, guide_url: str, code: str, context: HandoffContext) -> str:
+    # Keep this wording identical to the prompt the frontend copies, so agents get the same
+    # instructions whichever client produced the prompt.
+    if isinstance(context, AddFeatureContext):
+        return (
+            f"Read and follow {guide_url} verbatim to set up {context.product}. "
+            f"Your handoff code is `{code}`."
+        )
+    return f"Read and follow {guide_url} verbatim. Your handoff code is `{code}`."
+
+
 class AgentHandoffPermission(OrganizationPermission):
     scope_map = {"POST": ["org:read"]}
 
@@ -171,9 +187,8 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
         data: AgentHandoffResponse = {
             "handoffId": issued.handoff_id,
             "code": issued.code,
-            "prompt": (
-                f"Follow the instructions verbatim at {guide_url}. "
-                f"Your handoff code is `{issued.code}`."
+            "prompt": format_handoff_prompt(
+                guide_url=guide_url, code=issued.code, context=values["context"]
             ),
             "guideUrl": guide_url,
             "expiresAt": issued.expires_at.isoformat(),

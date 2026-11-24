@@ -40,6 +40,7 @@ from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+    SeerSkill,
     SeerWorkflowConfig,
     SeerWorkflowConfigExtras,
     SeerWorkflowConfigProject,
@@ -72,6 +73,7 @@ from sentry.service_accounts.models import (
 from sentry.service_accounts.services.service_account import RpcServiceAccount
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.workflow_engine.generated_schema_types import SeerInvestigationActionData
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.processors.action import is_action_permitted
 
@@ -109,6 +111,7 @@ class SeerWorkflowConfigResponse(TypedDict):
     filters: dict[str, Any]
     outputPolicy: dict[str, Any]
     seededDefault: str | None
+    actionSettings: SeerInvestigationActionData
     # When the automation next runs on its schedule, or None if it doesn't run on one.
     nextRunAt: datetime | None
     dateAdded: datetime
@@ -217,6 +220,16 @@ class SlackChannelSerializer(serializers.Serializer):
         return SlackChannel(integration_id, channel_id, name)
 
 
+class ActionSettingsSerializer(serializers.Serializer):
+    prompt = serializers.CharField(required=False, max_length=4096)
+    skill = serializers.ChoiceField(choices=[skill.value for skill in SeerSkill], required=False)
+
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
+        if ("prompt" in data) == ("skill" in data):
+            raise serializers.ValidationError("Set a prompt or a skill.")
+        return data
+
+
 class WorkflowConfigCreateSerializer(serializers.Serializer):
     strategy = serializers.ChoiceField(
         choices=sorted(s.value for s in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES)
@@ -235,6 +248,7 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
     name = serializers.CharField(default=None, allow_null=True, max_length=64)
     serviceAccount = ServiceAccountGrantSerializer()
     slackChannel = SlackChannelSerializer(required=False, allow_null=True)
+    actionSettings = ActionSettingsSerializer(required=False)
     # Metric automations only; their projects come from the connected monitors.
     monitorIds = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
@@ -273,6 +287,7 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
     serviceAccount = ServiceAccountGrantSerializer(required=False)
     slackChannel = SlackChannelSerializer(required=False, allow_null=True)
     name = serializers.CharField(required=False, max_length=64)
+    actionSettings = ActionSettingsSerializer(required=False)
     # [] selects all environments; omitted leaves them unchanged.
     environments = serializers.ListField(
         child=serializers.CharField(max_length=64), required=False, allow_empty=True
@@ -519,6 +534,9 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         ``serviceAccount`` sets the scopes and projects investigations run with, on a
         service account created for the automation.
 
+        Scheduled investigations (``scheduled_investigation``) take ``actionSettings``
+        (a ``prompt`` or a ``skill``).
+
         The number of automations per organization is capped, and creation is rate
         limited. A create the caller isn't allowed to make returns a 403. One that is
         rejected, such as reaching the cap, returns a 400 with a generic detail. Returns
@@ -565,6 +583,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                     environments=data["environments"],
                     name=data.get("name"),
                     created_by_id=acting_user_id(request.user),
+                    action_settings=data.get("actionSettings"),
                     service_account_grant=grant,
                 )
             elif strategy is SeerWorkflowStrategy.SCHEDULED_INVESTIGATION:
@@ -581,6 +600,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                     environments=data["environments"],
                     name=data.get("name"),
                     created_by_id=acting_user_id(request.user),
+                    action_settings=data.get("actionSettings"),
                     service_account_grant=grant,
                 )
             else:
@@ -698,6 +718,9 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
           account. Like ``projectIds``, the account's projects the caller can't access are
           kept, and scopes can't be added while any are.
         - ``name`` renames the config. It is trimmed and must be non-empty.
+        - ``actionSettings`` replaces the settings the strategy's action takes, such as a
+          scheduled investigation's ``prompt`` or ``skill``. Like enabling, it requires
+          access to every project the config covers.
 
         An update the caller isn't allowed to make returns a 403. One the automation
         rejects returns a 400 with a generic detail. Returns the updated config in the
@@ -726,6 +749,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         name: str | None = serializer.validated_data.get("name")
         # None means not sent; an empty list selects all environments.
         environments: list[str] | None = serializer.validated_data.get("environments")
+        action_settings: dict[str, Any] | None = serializer.validated_data.get("actionSettings")
 
         # Checks that depend only on the request run before taking the lock.
         if monitor_ids is not None and get_definition(config.strategy).scoped_by != "monitors":
@@ -789,7 +813,12 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     environments is not None and environments != config_filters.environments
                 )
 
-                if enabled is not None or environments_changed or channel_supplied:
+                if (
+                    enabled is not None
+                    or environments_changed
+                    or action_settings is not None
+                    or channel_supplied
+                ):
                     denied = _check_project_access(
                         (
                             [ALL_ACCESS_PROJECT_ID]
@@ -874,6 +903,9 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
 
                 if name is not None:
                     update.set_name(name)
+
+                if action_settings is not None:
+                    update.set_action_settings(action_settings)
 
                 if update.changed:
                     user_id = acting_user_id(request.user)
@@ -980,6 +1012,7 @@ def serialize_workflow_configs(
     )
     last_runs_by_config_id = {run.config_id: run for run in last_runs}
     next_run_times = get_next_run_times(configs)
+    action_settings = SeerWorkflow.action_settings_bulk(configs)
     return {
         "configs": [
             serialize_workflow_config(
@@ -994,6 +1027,7 @@ def serialize_workflow_configs(
                     else None
                 ),
                 next_run_at=next_run_times.get(config.id),
+                action_settings=action_settings.get(config.id, SeerInvestigationActionData()),
             )
             for config in configs
         ]
@@ -1065,6 +1099,7 @@ def serialize_workflow_config(
     last_run: WorkflowConfigLastRun | None,
     service_account: SeerServiceAccountResponse | None,
     next_run_at: datetime | None,
+    action_settings: SeerInvestigationActionData,
 ) -> SeerWorkflowConfigResponse:
     filters = SeerWorkflowFilters.parse_obj(config.filters)
     monitor_ids = [m.monitor_id for m in connected_monitors]
@@ -1102,6 +1137,7 @@ def serialize_workflow_config(
         ),
         "outputPolicy": config.output_policy,
         "seededDefault": SeerWorkflowConfigExtras.parse_obj(config.extras).seeded_default,
+        "actionSettings": action_settings,
         "nextRunAt": next_run_at,
         "dateAdded": config.date_added,
         "dateUpdated": config.date_updated,

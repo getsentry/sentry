@@ -39,6 +39,11 @@ JsonSchemaDocument = TypedDict(
         "allOf": Annotated[
             list["JsonSchemaDocument"], ApiDescription("Schemas that the value must all match")
         ],
+        "oneOf": Annotated[
+            list["JsonSchemaDocument"],
+            ApiDescription("Schemas that the value must match exactly one of"),
+        ],
+        "maxProperties": Annotated[int, ApiDescription("Most properties the object can have")],
         "if": Annotated[
             "JsonSchemaDocument", ApiDescription("Schema that decides whether then applies")
         ],
@@ -46,6 +51,8 @@ JsonSchemaDocument = TypedDict(
             "JsonSchemaDocument", ApiDescription("Schema the value must match when if matches")
         ],
         "pattern": Annotated[str, ApiDescription("Regular expression the string must match")],
+        "minLength": Annotated[int, ApiDescription("Fewest characters the string can have")],
+        "maxLength": Annotated[int, ApiDescription("Most characters the string can have")],
     },
     total=False,
 )

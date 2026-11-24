@@ -77,9 +77,10 @@ export function NoGroupsHandler({
   query,
   selectedProjectIds,
 }: NoGroupsHandlerProps) {
-  // If no projects are selected, then we must check every project the user is a
-  // member of and make sure there are no first events for all of the projects.
-  // Set project to -1 for all projects. Do not pass a project id for "my projects".
+  // Omitting `project` means "My Projects" (team membership only). Pass -1 for
+  // "All Projects" so users who aren't on a team don't get onboarding for an org
+  // that already has events.
+  const firstEventProjectIds = selectedProjectIds.length ? selectedProjectIds : undefined;
   const explicitSelectedProjectIds =
     selectedProjectIds.length && !selectedProjectIds.includes(ALL_ACCESS_PROJECTS)
       ? selectedProjectIds
@@ -93,7 +94,7 @@ export function NoGroupsHandler({
       '/organizations/$organizationIdOrSlug/sent-first-event/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {project: explicitSelectedProjectIds},
+        query: {project: firstEventProjectIds},
         staleTime: 0,
       }
     ),

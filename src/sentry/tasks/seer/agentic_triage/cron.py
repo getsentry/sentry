@@ -299,12 +299,9 @@ def _dispatch_agentic_triage_run(
     run: SeerWorkflowRun,
     *,
     resolved_options: SeerAgenticTriageRunOptions,
-    project_ids: list[int] | None,
     execute_in_task: bool,
 ) -> None:
     task_kwargs: dict[str, Any] = {"options": dict(resolved_options)}
-    if project_ids is not None:
-        task_kwargs["project_ids"] = project_ids
 
     if execute_in_task:
         run_agentic_triage_execution.apply_async(args=[run.id], kwargs=task_kwargs)
@@ -322,8 +319,6 @@ def run_agentic_triage_for_org(
     organization_id: int,
     *,
     options: SeerAgenticTriageRunOptionsPartial | None = None,
-    project_ids: list[int] | None = None,
-    triggering_user_id: int | None = None,
     execute_in_task: bool = False,
     schedule_id: str | None = None,
     **kwargs: Any,
@@ -379,12 +374,9 @@ def run_agentic_triage_for_org(
         )
         return None
 
-    # A run scoped to a single project picks up that project's tweaks.
-    single_project_id = project_ids[0] if project_ids and len(project_ids) == 1 else None
     resolved_options = build_run_options(
         organization_id=organization.id,
         manual_overrides=options,
-        project_id=single_project_id,
     )
     workflow_config = SeerWorkflowConfig.get_or_create_for_strategy(
         organization_id=organization.id,
@@ -392,10 +384,6 @@ def run_agentic_triage_for_org(
     )
 
     extras: dict[str, object] = {"options": dict(resolved_options)}
-    if project_ids is not None:
-        extras["target_project_ids"] = project_ids
-    if triggering_user_id is not None:
-        extras["triggering_user_id"] = triggering_user_id
 
     # Unscheduled attempts keep a run row so a quota failure is visible to the caller.
     if schedule_id is None:
@@ -425,7 +413,6 @@ def run_agentic_triage_for_org(
     _dispatch_agentic_triage_run(
         run,
         resolved_options=resolved_options,
-        project_ids=project_ids,
         execute_in_task=execute_in_task,
     )
     return run.id
@@ -457,7 +444,6 @@ def run_agentic_triage_execution(
     run_id: int,
     *,
     options: SeerAgenticTriageRunOptionsPartial | None = None,
-    project_ids: list[int] | None = None,
     **kwargs: Any,
 ) -> None:
     """Heavy phase of an agentic triage run: eligibility, triage, and optional
@@ -479,8 +465,6 @@ def run_agentic_triage_execution(
         "organization_slug": organization.slug,
         "night_shift_run_id": run.id,
     }
-    if project_ids is not None:
-        log_extra["project_ids"] = project_ids
     sentry_sdk.set_tags(
         {"organization_id": organization.id, "organization_slug": organization.slug}
     )
@@ -504,9 +488,7 @@ def run_agentic_triage_execution(
         return None
 
     try:
-        eligible = _get_eligible_projects(
-            organization, resolved_options["source"], project_ids=project_ids
-        )
+        eligible = _get_eligible_projects(organization, resolved_options["source"])
     except Exception:
         _fail_run(
             run,
@@ -588,7 +570,7 @@ _TWEAK_RUN_OPTION_FIELDS = (
 
 
 def _tweaks_to_partial(tweaks: AgenticTriageTweaks) -> dict[str, Any]:
-    """Project an AgenticTriageTweaks (org- or project-scoped) onto a run-options
+    """Project an org's AgenticTriageTweaks onto a run-options
     partial, contributing only the fields that were *explicitly* set on it.
 
     AgenticTriageTweaks fills every unset field with a default, so reading
@@ -603,14 +585,11 @@ def build_run_options(
     *,
     organization_id: int,
     manual_overrides: Mapping[str, Any] | None = None,
-    project_id: int | None = None,
 ) -> SeerAgenticTriageRunOptions:
     """Resolve a fully-populated set of run options, layering by precedence
     (highest wins):
 
         manual overrides (`manual_overrides`)
-        > project tweaks (the project's `sentry:seer_nightshift_tweaks` option,
-          applied when `project_id` is given)
         > per-org overrides (the `seer.night_shift.org_tweaks` option, keyed by
           `organization_id`)
         > global defaults
@@ -622,10 +601,6 @@ def build_run_options(
     org_tweaks = get_agentic_triage_org_tweaks(organization_id)
     if org_tweaks is not None:
         layered.update(_tweaks_to_partial(org_tweaks))
-    if project_id is not None:
-        project = Project.objects.get_or_none(id=project_id, organization_id=organization_id)
-        if project is not None:
-            layered.update(_tweaks_to_partial(get_agentic_triage_tweaks(project)))
     layered.update(manual_overrides or {})
     return _run_option_defaults(layered)
 
@@ -734,18 +709,14 @@ class EligibleProject:
 def _get_eligible_projects(
     organization: Organization,
     source: WorkflowRunSource,
-    project_ids: list[int] | None = None,
 ) -> list[EligibleProject]:
     """Return active projects that have automation enabled and connected repos,
     each paired with its parsed agentic triage tweaks.
 
-    When project_ids is provided, the org's projects are restricted to that set.
     Manual triggers bypass the tweaks.enabled gate — the user explicitly asked
     for this run. Scheduler runs respect it, and are additionally restricted to
     the org's allowed_project_slugs when that override is set."""
     project_qs = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
-    if project_ids is not None:
-        project_qs = project_qs.filter(id__in=project_ids)
     if source == "cron":
         org_tweaks = get_agentic_triage_org_tweaks(organization.id)
         if org_tweaks is not None and org_tweaks.allowed_project_slugs is not None:

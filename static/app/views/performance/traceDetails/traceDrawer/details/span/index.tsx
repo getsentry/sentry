@@ -76,8 +76,8 @@ import {MCPInputSection} from './eapSections/mcpInput';
 import {MCPOutputSection} from './eapSections/mcpOutput';
 import {ServerRenderingSection} from './eapSections/serverRendering';
 import {TraceSpanLinks} from './eapSections/traceSpanLinks';
+import {AISpanErrorCard} from './sections/aiSpanErrorCard';
 import {HttpErrorCard} from './sections/httpErrorCard';
-import {ToolErrorCard} from './sections/toolErrorCard';
 
 export function useAvgSpanDuration(
   span: TraceTree.EAPSpan | undefined,
@@ -406,7 +406,7 @@ function EAPSpanNodeDetailsContent({
         ) : null}
         {issues.length === 0 ? (
           getIsExecuteToolNode(node) ? (
-            <ToolErrorCard node={node} attributes={attributes} />
+            <AISpanErrorCard node={node} attributes={attributes} />
           ) : (
             <HttpErrorCard node={node} />
           )

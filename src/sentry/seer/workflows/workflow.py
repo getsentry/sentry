@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
-from typing import Literal, overload
+from typing import Any, Literal, overload
 
 from django.db import router, transaction
 from django.db.models import Count, Q, QuerySet
@@ -26,6 +26,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.base import (
+    ACTION_WORKFLOW_ID,
     ConfigUpdate,
     LockedConfig,
     ProjectSelection,
@@ -48,6 +49,8 @@ from sentry.service_accounts.services.service_account import (
     RpcServiceAccount,
     service_account_service,
 )
+from sentry.workflow_engine.generated_schema_types import SeerInvestigationActionData
+from sentry.workflow_engine.models import Action
 
 logger = logging.getLogger(__name__)
 
@@ -68,13 +71,13 @@ class SeerWorkflow:
 
     @classmethod
     def ensure_defaults(cls, organization_id: int) -> None:
-        """Seed defaults for strategies with no config; disabled configs count as existing."""
+        """Seed each default that has no seeded config; disabled ones count as existing."""
         database = router.db_for_write(SeerWorkflowConfig)
         configs = SeerWorkflowConfig.objects.using(database).filter(
             organization_id=organization_id,
-            strategy__in=[s.value for s in SEER_DEFAULT_WORKFLOW_STRATEGIES],
+            extras__seeded_default__in=[s.value for s in SEER_DEFAULT_WORKFLOW_STRATEGIES],
         )
-        existing = set(configs.values_list("strategy", flat=True))
+        existing = set(configs.values_list("extras__seeded_default", flat=True))
         if all(s.value in existing for s in SEER_DEFAULT_WORKFLOW_STRATEGIES):
             return
 
@@ -83,7 +86,7 @@ class SeerWorkflow:
             list(
                 Organization.objects.using(database).select_for_update().filter(id=organization_id)
             )
-            existing = set(configs.values_list("strategy", flat=True))
+            existing = set(configs.values_list("extras__seeded_default", flat=True))
             for strategy in SEER_DEFAULT_WORKFLOW_STRATEGIES:
                 if strategy.value in existing:
                     continue
@@ -95,8 +98,11 @@ class SeerWorkflow:
                         exclude_none=True
                     ),
                 )
-                update = ConfigUpdate(LockedConfig(config), get_definition(strategy))
+                definition = get_definition(strategy)
+                update = ConfigUpdate(LockedConfig(config), definition)
                 update.setup_backing_workflow(name=None, created_by_id=None, enabled=False)
+                if definition.seeded_action_settings is not None:
+                    update.set_action_settings(definition.seeded_action_settings)
                 config.save(using=database, update_fields=sorted(update.dirty_fields))
 
     @overload
@@ -114,6 +120,7 @@ class SeerWorkflow:
         name: str | None = ...,
         created_by_id: int | None = ...,
         extras: SeerWorkflowConfigExtras | None = ...,
+        action_settings: Mapping[str, Any] | None = ...,
         service_account_grant: SeerServiceAccountGrant,
     ) -> SeerWorkflow: ...
 
@@ -131,6 +138,7 @@ class SeerWorkflow:
         name: str | None = ...,
         created_by_id: int | None = ...,
         extras: SeerWorkflowConfigExtras | None = ...,
+        action_settings: Mapping[str, Any] | None = ...,
         service_account_grant: SeerServiceAccountGrant,
     ) -> SeerWorkflow: ...
 
@@ -148,6 +156,7 @@ class SeerWorkflow:
         name: str | None = None,
         created_by_id: int | None = None,
         extras: SeerWorkflowConfigExtras | None = None,
+        action_settings: Mapping[str, Any] | None = None,
         service_account_grant: SeerServiceAccountGrant,
     ) -> SeerWorkflow:
         """
@@ -209,6 +218,8 @@ class SeerWorkflow:
                 update.setup_backing_workflow(
                     name=name, created_by_id=created_by_id, enabled=enabled
                 )
+                if definition.takes_action_settings or action_settings is not None:
+                    update.set_action_settings(action_settings or {})
                 update.set_scope(scope)
                 if slack_channel is not None:
                     update.set_slack_channel(slack_channel)
@@ -242,6 +253,29 @@ class SeerWorkflow:
     @property
     def extras(self) -> SeerWorkflowConfigExtras:
         return SeerWorkflowConfigExtras.parse_obj(self.get_config().extras)
+
+    @property
+    def action_settings(self) -> SeerInvestigationActionData:
+        """What the automation's investigation action runs, such as a prompt or a skill."""
+        return self.action_settings_bulk([self.get_config()]).get(
+            self.config_id, SeerInvestigationActionData()
+        )
+
+    @staticmethod
+    def action_settings_bulk(
+        configs: Sequence[SeerWorkflowConfig],
+    ) -> dict[int, SeerInvestigationActionData]:
+        """``action_settings`` for each config, by config ID, in one query."""
+        config_ids_by_workflow_id = {
+            config.backing_workflow_id: config.id
+            for config in configs
+            if config.backing_workflow_id is not None
+        }
+        actions = Action.objects.filter(
+            type=Action.Type.SEER_INVESTIGATION,
+            **{f"{ACTION_WORKFLOW_ID}__in": config_ids_by_workflow_id},
+        ).values_list(ACTION_WORKFLOW_ID, "data")
+        return {config_ids_by_workflow_id[workflow_id]: data for workflow_id, data in actions}
 
     @property
     def filters(self) -> SeerWorkflowFilters:

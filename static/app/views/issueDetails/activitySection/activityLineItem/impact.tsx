@@ -77,39 +77,44 @@ function ImpactActivityDetails({
   const organization = useOrganization();
   const {description, citations, sourceEventId} = activity.data;
   const eventUrl = `/organizations/${organization.slug}/issues/${group.id}/events/${sourceEventId}/`;
+  const showCitations = organization.features.includes(
+    'seer-impact-assessment-citations'
+  );
   return (
     <Stack gap="md" data-test-id="impact-activity-details">
       <Text as="p" density="comfortable">
         {description}
       </Text>
-      <Flex gap="xs" wrap="wrap" borderTop="secondary" paddingTop="md">
-        <Container>
-          <Text bold size="xs">
-            {t('Citations:')}
-          </Text>
-        </Container>
-        {citations.map((citation, index) => (
-          <Tooltip
-            key={`${citation.source}:${citation.reference}:${index}`}
-            title={
-              <Fragment>
-                <Tooltip.Header
-                  trailingItems={
-                    <Link to={eventUrl}>{getShortEventId(sourceEventId)}</Link>
-                  }
-                >
-                  <Text size="sm">{t('Source Event')}</Text>
-                </Tooltip.Header>
-                <Text size="sm" align="left">
-                  {citation.claim}
-                </Text>
-              </Fragment>
-            }
-          >
-            <Tag variant="muted">{citation.source}</Tag>
-          </Tooltip>
-        ))}
-      </Flex>
+      {showCitations && (
+        <Flex gap="xs" wrap="wrap" borderTop="secondary" paddingTop="md">
+          <Container>
+            <Text bold size="xs">
+              {t('Citations:')}
+            </Text>
+          </Container>
+          {citations.map((citation, index) => (
+            <Tooltip
+              key={`${citation.source}:${citation.reference}:${index}`}
+              title={
+                <Fragment>
+                  <Tooltip.Header
+                    trailingItems={
+                      <Link to={eventUrl}>{getShortEventId(sourceEventId)}</Link>
+                    }
+                  >
+                    <Text size="sm">{t('Source Event')}</Text>
+                  </Tooltip.Header>
+                  <Text size="sm" align="left">
+                    {citation.claim}
+                  </Text>
+                </Fragment>
+              }
+            >
+              <Tag variant="muted">{citation.source}</Tag>
+            </Tooltip>
+          ))}
+        </Flex>
+      )}
     </Stack>
   );
 }

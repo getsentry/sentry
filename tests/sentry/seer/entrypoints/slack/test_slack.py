@@ -92,6 +92,7 @@ from sentry.seer.entrypoints.slack.investigation_status import (
 )
 from sentry.seer.entrypoints.slack.messaging import (
     edit_thread_message,
+    get_latest_thread_per_channel,
     process_thread_update,
     replace_investigation_buttons,
     schedule_all_thread_updates,
@@ -734,6 +735,39 @@ class SlackAutofixEntrypointTest(TestCase):
 
         assert mock_process_thread_update.apply_async.call_count == len(threads)
 
+    @patch("sentry.seer.entrypoints.slack.messaging.process_thread_update")
+    def test_schedule_all_thread_updates_one_thread_per_channel(
+        self, mock_process_thread_update: MagicMock
+    ) -> None:
+        busy_channel = [
+            SlackThreadDetails(thread_ts=f"1234567890.{i:06d}", channel_id="CBUSY000000")
+            for i in range(100)
+        ]
+        quiet_channel = SlackThreadDetails(thread_ts="1234567890.999999", channel_id="CQUIET00000")
+
+        schedule_all_thread_updates(
+            threads=[quiet_channel, *busy_channel],
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            data=self._create_update(AutofixStoppingPoint.SOLUTION),
+        )
+
+        scheduled = [
+            call.kwargs["kwargs"]["thread"]
+            for call in mock_process_thread_update.apply_async.call_args_list
+        ]
+        assert scheduled == [quiet_channel, busy_channel[-1]]
+
+    def test_get_latest_thread_per_channel(self) -> None:
+        older = SlackThreadDetails(thread_ts="1.000001", channel_id="C1")
+        same_ts_other_channel = SlackThreadDetails(thread_ts="1.000001", channel_id="C2")
+        latest = SlackThreadDetails(thread_ts="1.000002", channel_id="C1")
+
+        assert get_latest_thread_per_channel([older, same_ts_other_channel, latest]) == [
+            latest,
+            same_ts_other_channel,
+        ]
+
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
         return_value={"ok": True, "ts": "1234567890.000100"},
@@ -842,6 +876,38 @@ class SlackAutofixEntrypointTest(TestCase):
         call_kwargs = mock_populate_cache.call_args.kwargs
         cache_payload = call_kwargs["cache_payload"]
         assert len(cache_payload["threads"]) == 1
+
+    @patch(
+        "sentry.seer.entrypoints.slack.entrypoint.SeerOperatorAutofixCache.populate_pre_autofix_cache",
+        return_value={"key": "just_returning_for_logging", "source": "group_id"},
+    )
+    @patch("sentry.seer.entrypoints.slack.entrypoint.SeerOperatorAutofixCache.get")
+    def test_prepare_slack_thread_for_autofix_updates_keeps_latest_thread_per_channel(
+        self, mock_cache_get: MagicMock, mock_populate_cache: MagicMock
+    ) -> None:
+        other_channel_thread = SlackThreadDetails(
+            thread_ts="9876543210.000001", channel_id="CEXISTING00"
+        )
+        older_same_channel_thread = SlackThreadDetails(
+            thread_ts="9876543210.000002", channel_id=self.channel_id
+        )
+        mock_cache_get.return_value = {
+            "payload": {"threads": [other_channel_thread, older_same_channel_thread]},
+            "source": "group_id",
+            "key": "test_key",
+        }
+
+        prepare_slack_thread_for_autofix_updates(
+            thread_ts=self.thread_ts,
+            channel_id=self.channel_id,
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            group=self.group,
+        )
+
+        cache_payload = mock_populate_cache.call_args.kwargs["cache_payload"]
+        new_thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
+        assert cache_payload["threads"] == [other_channel_thread, new_thread]
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
     def test_update_existing_message_removes_all_buttons_for_non_root_cause(

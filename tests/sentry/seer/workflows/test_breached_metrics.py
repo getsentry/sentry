@@ -78,6 +78,7 @@ from sentry.workflow_engine.types import (
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 GRANT = SeerServiceAccountGrant(scopes=["event:read"])
+PROMPT = {"prompt": "Check checkout latency"}
 
 
 def create_metric_workflow(
@@ -1062,6 +1063,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
             return SeerWorkflow.create(
                 organization_id=self.organization.id,
                 strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+                action_settings=PROMPT,
                 schedule=SeerWorkflowSchedule.DAILY,
                 scope=SelectedProjects(()),
                 service_account_grant=GRANT,

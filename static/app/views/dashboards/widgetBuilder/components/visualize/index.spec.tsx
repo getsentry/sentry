@@ -10,8 +10,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind} from 'sentry/utils/fields';
+import {decodeList} from 'sentry/utils/queryString';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
@@ -2809,6 +2811,548 @@ describe('Visualize', () => {
           ],
         })
       );
+    });
+  });
+
+  describe('trace metrics unified list', () => {
+    const SUM_ALPHA = 'sum(value,alpha_metric,counter,none)';
+    const SUM_BETA = 'sum(value,beta_metric,counter,none)';
+    let unifiedOrganization: Organization;
+
+    beforeEach(() => {
+      unifiedOrganization = OrganizationFixture({
+        features: ['performance-view', 'dashboards-trace-metrics-unified-visualize'],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {
+          data: [
+            {
+              'metric.name': 'alpha_metric',
+              'metric.type': 'counter',
+              'count(metric.name)': 1,
+            },
+            {
+              'metric.name': 'beta_metric',
+              'metric.type': 'counter',
+              'count(metric.name)': 1,
+            },
+          ],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace-items/attributes/',
+        body: [],
+      });
+    });
+
+    function renderUnifiedQuery(query: Record<string, string | string[]>) {
+      return render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization: unifiedOrganization,
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {dataset: WidgetType.TRACEMETRICS, ...query},
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
+        }
+      );
+    }
+
+    function renderUnified(yAxis: string[]) {
+      return renderUnifiedQuery({displayType: DisplayType.LINE, yAxis});
+    }
+
+    it('lists aggregates and equations together without the mode toggle', async () => {
+      renderUnified([SUM_ALPHA, `equation|${SUM_ALPHA} / ${SUM_BETA}`]);
+
+      expect(
+        await screen.findByRole('button', {name: 'Hide series A'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('radio', {name: 'Equation'})).not.toBeInTheDocument();
+
+      expect(screen.getByTestId('hidden-metric-row')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Show series B'})).toBeInTheDocument();
+      expect(screen.getByLabelText('Row ƒ1')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Add Equation'})).toBeInTheDocument();
+    });
+
+    it('adds a metric row after an equation instead of copying the equation', async () => {
+      const {router} = renderUnified([SUM_ALPHA, `equation|${SUM_ALPHA} * 2`]);
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Add Series'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_ALPHA,
+          `equation|${SUM_ALPHA} * 2`,
+          SUM_ALPHA,
+        ]);
+      });
+    });
+
+    it('does not default a new row to a hidden metric', async () => {
+      const {router} = renderUnified([`equation|${SUM_ALPHA} * 2`]);
+      expect(await screen.findByTestId('hidden-metric-row')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Series'}));
+
+      // alpha_metric is first in the list but only lives in the equation
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          `equation|${SUM_ALPHA} * 2`,
+          SUM_BETA,
+        ]);
+      });
+      expect(screen.getByTestId('hidden-metric-row')).toBeInTheDocument();
+    });
+
+    it('disables adding series and equations at the metric cap', async () => {
+      const aggregates = Array.from({length: MAX_METRICS_ALLOWED - 1}, (_, i) =>
+        i % 2 === 0 ? SUM_ALPHA : SUM_BETA
+      );
+      renderUnified([...aggregates, `equation|${SUM_ALPHA} * 2`]);
+
+      // The tooltip keeps the buttons hoverable, so they are aria-disabled instead
+      const addSeries = await screen.findByRole('button', {name: 'Add Series'});
+      expect(addSeries).toHaveAttribute('aria-disabled', 'true');
+      const addEquation = screen.getByRole('button', {name: 'Add Equation'});
+      expect(addEquation).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.hover(addEquation);
+      expect(
+        await screen.findByText(
+          `A widget can have up to ${MAX_METRICS_ALLOWED} metrics and equations.`
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('disables showing a hidden series at the metric cap', async () => {
+      const aggregates = Array.from({length: MAX_METRICS_ALLOWED - 1}, () => SUM_ALPHA);
+      renderUnified([...aggregates, `equation|${SUM_BETA} * 2`]);
+
+      const show = await screen.findByRole('button', {name: 'Show series J'});
+      expect(show).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.hover(show);
+      expect(
+        await screen.findByText(
+          `A widget can have up to ${MAX_METRICS_ALLOWED} metrics and equations.`
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('adds an equation row', async () => {
+      const {router} = renderUnified([SUM_ALPHA]);
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Add Equation'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([SUM_ALPHA, 'equation|']);
+      });
+      expect(screen.getByLabelText('Row ƒ1')).toBeInTheDocument();
+    });
+
+    it('hides a series an equation uses instead of deleting it', async () => {
+      const {router} = renderUnified([SUM_ALPHA, SUM_BETA, `equation|${SUM_ALPHA} * 2`]);
+      const hideToggle = await screen.findByRole('button', {name: 'Hide series A'});
+      expect(screen.getByLabelText('Row B')).toBeInTheDocument();
+
+      const removeButtons = screen.getAllByRole('button', {name: 'Remove field'});
+      expect(removeButtons[0]).toBeDisabled();
+      expect(removeButtons[1]).toBeEnabled();
+
+      await userEvent.click(hideToggle);
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_BETA,
+          `equation|${SUM_ALPHA} * 2`,
+        ]);
+      });
+      expect(await screen.findByTestId('hidden-metric-row')).toBeInTheDocument();
+    });
+
+    it('keeps the row labels in place when hiding a series', async () => {
+      const {router} = renderUnified([
+        SUM_ALPHA,
+        SUM_BETA,
+        `equation|${SUM_ALPHA} + ${SUM_BETA}`,
+      ]);
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Hide series A'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_BETA,
+          `equation|${SUM_ALPHA} + ${SUM_BETA}`,
+        ]);
+      });
+      expect(
+        await screen.findByRole('button', {name: 'Show series A'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Hide series B'})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Show series A'}));
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_ALPHA,
+          SUM_BETA,
+          `equation|${SUM_ALPHA} + ${SUM_BETA}`,
+        ]);
+      });
+    });
+
+    it('explains why a hidden series cannot be deleted', async () => {
+      renderUnified([`equation|${SUM_BETA} * 2`]);
+
+      const hiddenRow = await screen.findByTestId('hidden-metric-row');
+      const removeButton = within(hiddenRow).getByRole('button', {name: 'Remove field'});
+      expect(removeButton).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.hover(removeButton);
+      expect(
+        await screen.findByText(
+          'This series is used in an equation. Remove it from the equation to delete it.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('follows a row in the equation when its metric changes', async () => {
+      const {router} = renderUnified([
+        SUM_ALPHA,
+        SUM_ALPHA,
+        `equation|${SUM_ALPHA} + ${SUM_ALPHA}`,
+      ]);
+      await screen.findByRole('button', {name: 'Hide series A'});
+
+      // The equation reads A + A, so it follows A to beta_metric.
+      await userEvent.click(screen.getAllByRole('button', {name: 'alpha_metric'})[0]!);
+      await userEvent.click(await screen.findByRole('option', {name: 'beta_metric'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_BETA,
+          SUM_ALPHA,
+          `equation|${SUM_BETA} + ${SUM_BETA}`,
+        ]);
+      });
+    });
+
+    it('keeps labels with their rows when series are reordered', async () => {
+      // dnd-kit's keyboard sensor needs distinct element positions to find a drop target
+      jest.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
+        this: Element
+      ) {
+        const siblings = this.parentElement
+          ? Array.from(this.parentElement.children)
+          : [];
+        const top = Math.max(siblings.indexOf(this), 0) * 50;
+        return DOMRect.fromRect({x: 0, y: top, width: 300, height: 40});
+      });
+      const {router} = renderUnified([
+        SUM_ALPHA,
+        SUM_BETA,
+        `equation|${SUM_ALPHA} - ${SUM_BETA}`,
+      ]);
+
+      const [firstHandle] = await screen.findAllByRole('button', {
+        name: 'Drag to reorder',
+      });
+      act(() => firstHandle!.focus());
+      await userEvent.keyboard(' ');
+      await userEvent.keyboard('{ArrowDown}{ArrowDown}');
+      await userEvent.keyboard(' ');
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_BETA,
+          SUM_ALPHA,
+          `equation|${SUM_ALPHA} - ${SUM_BETA}`,
+        ]);
+      });
+      const hideButtons = screen.getAllByRole('button', {name: /Hide series/});
+      expect(hideButtons.map(button => button.getAttribute('aria-label'))).toEqual([
+        'Hide series B',
+        'Hide series A',
+      ]);
+    });
+
+    it('loads an equation saved before the rows it uses without hidden rows', async () => {
+      renderUnified([`equation|${SUM_ALPHA} + ${SUM_BETA}`, SUM_ALPHA, SUM_BETA]);
+
+      expect(await screen.findByLabelText('Row ƒ1')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Hide series A'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Hide series B'})).toBeInTheDocument();
+      expect(screen.queryByTestId('hidden-metric-row')).not.toBeInTheDocument();
+    });
+
+    it('keeps a hidden row after the equation when the last row is hidden', async () => {
+      const {router} = renderUnified([`equation|${SUM_ALPHA} * 2`, SUM_ALPHA]);
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Hide series A'}));
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          `equation|${SUM_ALPHA} * 2`,
+        ]);
+      });
+      expect(screen.getByTestId('hidden-metric-row')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Show series A'}));
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          `equation|${SUM_ALPHA} * 2`,
+          SUM_ALPHA,
+        ]);
+      });
+    });
+
+    it('keeps a hidden row and its label through a reorder', async () => {
+      // dnd-kit's keyboard sensor needs distinct element positions to find a drop target
+      jest.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
+        this: Element
+      ) {
+        const siblings = this.parentElement
+          ? Array.from(this.parentElement.children)
+          : [];
+        const top = Math.max(siblings.indexOf(this), 0) * 50;
+        return DOMRect.fromRect({x: 0, y: top, width: 300, height: 40});
+      });
+      const {router} = renderUnified([
+        SUM_ALPHA,
+        SUM_BETA,
+        `equation|${SUM_ALPHA} + ${SUM_BETA}`,
+      ]);
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Hide series B'}));
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_ALPHA,
+          `equation|${SUM_ALPHA} + ${SUM_BETA}`,
+        ]);
+      });
+
+      // Hidden rows have no drag handle, so the second handle is the equation's.
+      const handles = screen.getAllByRole('button', {name: 'Drag to reorder'});
+      expect(handles).toHaveLength(2);
+      act(() => handles[1]!.focus());
+      await userEvent.keyboard(' ');
+      await userEvent.keyboard('{ArrowUp}{ArrowUp}');
+      await userEvent.keyboard(' ');
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          `equation|${SUM_ALPHA} + ${SUM_BETA}`,
+          SUM_ALPHA,
+        ]);
+      });
+      expect(screen.getByRole('button', {name: 'Hide series A'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Show series B'})).toBeInTheDocument();
+    });
+
+    it('rewrites the equation when a hidden row changes metric', async () => {
+      const {router} = renderUnified([SUM_ALPHA, `equation|${SUM_BETA} * 2`]);
+
+      const hiddenRow = await screen.findByTestId('hidden-metric-row');
+      await userEvent.click(within(hiddenRow).getByRole('button', {name: 'beta_metric'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'alpha_metric'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_ALPHA,
+          `equation|${SUM_ALPHA} * 2`,
+        ]);
+      });
+      expect(screen.getByRole('button', {name: 'Show series B'})).toBeInTheDocument();
+    });
+
+    it('drops a hidden row when the only equation using it is deleted', async () => {
+      const {router} = renderUnified([SUM_ALPHA, `equation|${SUM_BETA} * 2`]);
+      await screen.findByTestId('hidden-metric-row');
+
+      // Remove buttons: row A, hidden row B (disabled), equation.
+      const removeButtons = screen.getAllByRole('button', {name: 'Remove field'});
+      expect(removeButtons).toHaveLength(3);
+      await userEvent.click(removeButtons[2]!);
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([SUM_ALPHA]);
+      });
+      expect(screen.queryByTestId('hidden-metric-row')).not.toBeInTheDocument();
+    });
+
+    it('keeps a hidden row another equation still uses', async () => {
+      const {router} = renderUnified([
+        SUM_ALPHA,
+        `equation|${SUM_BETA} * 2`,
+        `equation|${SUM_BETA} + ${SUM_ALPHA}`,
+      ]);
+      expect(await screen.findAllByTestId('hidden-metric-row')).toHaveLength(1);
+
+      // Remove buttons: row A, hidden row B, equation 1, equation 2.
+      await userEvent.click(screen.getAllByRole('button', {name: 'Remove field'})[2]!);
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_ALPHA,
+          `equation|${SUM_BETA} + ${SUM_ALPHA}`,
+        ]);
+      });
+      expect(screen.getByTestId('hidden-metric-row')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Show series B'})).toBeInTheDocument();
+    });
+
+    it('labels only aggregates and equations in a table with a group by column', async () => {
+      const {router} = render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization: unifiedOrganization,
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {
+                dataset: WidgetType.TRACEMETRICS,
+                displayType: DisplayType.TABLE,
+                field: ['transaction', SUM_ALPHA, `equation|${SUM_ALPHA} * 2`],
+              },
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
+        }
+      );
+
+      expect(
+        await screen.findByRole('button', {name: 'Hide series A'})
+      ).toBeInTheDocument();
+      expect(screen.getByLabelText('Row ƒ1')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+        'transaction'
+      );
+      expect(screen.queryByLabelText('Row B')).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Hide series A'}));
+      await waitFor(() => {
+        expect(decodeList(router.location.query.field)).toEqual([
+          'transaction',
+          `equation|${SUM_ALPHA} * 2`,
+        ]);
+      });
+    });
+
+    it('keeps the big number selection on the same row when a hidden row is shown', async () => {
+      const {router} = renderUnifiedQuery({
+        displayType: DisplayType.BIG_NUMBER,
+        field: [SUM_BETA, `equation|${SUM_ALPHA} * 2`],
+        selectedAggregate: '1',
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Show series B'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.field)).toEqual([
+          SUM_BETA,
+          SUM_ALPHA,
+          `equation|${SUM_ALPHA} * 2`,
+        ]);
+      });
+      expect(router.location.query.selectedAggregate).toBe('2');
+    });
+
+    it('does not offer hide where only the selected series shows', async () => {
+      renderUnifiedQuery({
+        displayType: DisplayType.BIG_NUMBER,
+        field: [SUM_ALPHA, `equation|${SUM_ALPHA} * 2`],
+      });
+
+      expect(await screen.findByLabelText('Row A')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Hide series A'})
+      ).not.toBeInTheDocument();
+
+      // The delete button still explains why it is disabled
+      await userEvent.hover(screen.getAllByRole('button', {name: 'Remove field'})[0]!);
+      expect(
+        await screen.findByText('This series is used in an equation.')
+      ).toBeInTheDocument();
+    });
+
+    it('keeps the categorical bar sort on the displayed series when a hidden row is shown', async () => {
+      const {router} = renderUnifiedQuery({
+        displayType: DisplayType.CATEGORICAL_BAR,
+        field: ['metric.name', SUM_BETA, `equation|${SUM_ALPHA} * 2`],
+        selectedAggregate: '1',
+        sort: ['-equation[0]'],
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Show series B'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.field)).toEqual([
+          'metric.name',
+          SUM_BETA,
+          SUM_ALPHA,
+          `equation|${SUM_ALPHA} * 2`,
+        ]);
+      });
+      expect(router.location.query.selectedAggregate).toBe('2');
+      expect(decodeList(router.location.query.sort)).toEqual(['-equation[0]']);
+    });
+
+    it('shows a disabled transformation button on hidden rows', async () => {
+      unifiedOrganization.features.push('explore-interpolation-and-smoothing');
+      renderUnified([SUM_ALPHA, `equation|${SUM_BETA} * 2`]);
+
+      const hiddenRow = await screen.findByTestId('hidden-metric-row');
+      expect(
+        within(hiddenRow).getByRole('button', {name: 'Add Transformation'})
+      ).toHaveAttribute('aria-disabled', 'true');
+
+      const buttons = screen.getAllByRole('button', {name: 'Add Transformation'});
+      expect(buttons.some(button => !hiddenRow.contains(button))).toBe(true);
+      expect(buttons.find(button => !hiddenRow.contains(button))).toHaveAttribute(
+        'aria-disabled',
+        'false'
+      );
+    });
+
+    it('does not offer the field option on hidden rows', async () => {
+      renderUnifiedQuery({
+        displayType: DisplayType.TABLE,
+        field: [SUM_ALPHA, `equation|${SUM_BETA} * 2`],
+      });
+
+      const hiddenRow = await screen.findByTestId('hidden-metric-row');
+      await userEvent.click(within(hiddenRow).getByRole('button', {name: 'beta_metric'}));
+      expect(
+        await screen.findByRole('option', {name: 'beta_metric'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'field'})).not.toBeInTheDocument();
+      await userEvent.keyboard('{Escape}');
+
+      // Visible columns keep it
+      await userEvent.click(screen.getByRole('button', {name: 'alpha_metric'}));
+      expect(await screen.findByRole('option', {name: 'field'})).toBeInTheDocument();
+    });
+
+    it('shows a hidden series again', async () => {
+      const {router} = renderUnified([`equation|${SUM_BETA} * 2`]);
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Show series A'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_BETA,
+          `equation|${SUM_BETA} * 2`,
+        ]);
+      });
+      expect(screen.queryByTestId('hidden-metric-row')).not.toBeInTheDocument();
     });
   });
 });
