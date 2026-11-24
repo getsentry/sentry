@@ -535,7 +535,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 maybe_renew_debug_files(difs)
 
             # Count how many debug files were found using which ID ("debug_id" or "code_id")
-            # and method ("default", "stored_legacy", or "computed_legacy"; see `debug_id_ueries`).
+            # and method ("default", "stored_legacy", or "computed_legacy"; see `debug_id_queries`).
             for d in difs:
                 try:
                     lookup_method = d.lookup_method  # type: ignore[attr-defined]
