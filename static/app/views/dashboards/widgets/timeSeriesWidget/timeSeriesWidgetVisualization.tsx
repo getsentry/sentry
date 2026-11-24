@@ -396,7 +396,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       isLowConfidenceDataPoint(param.data)
     );
     if (hasLowConfidence && !warningIconRef.current) {
-      warningIconRef.current = renderToString(<IconWarning size="xs" aria-hidden />);
+      // Sits the icon on the text's centre line without growing the line box,
+      // so rows keep their height when a bucket becomes low confidence
+      warningIconRef.current = renderToString(
+        <IconWarning size="xs" aria-hidden style={{verticalAlign: '-0.125em'}} />
+      );
     }
     const warningIcon = hasLowConfidence ? warningIconRef.current : '';
 
@@ -463,7 +467,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         );
 
         if (isLowConfidenceDataPoint(valueFormatterParams.data)) {
-          return `<span style="display: inline-flex; align-items: center; gap: ${theme.space.xs}">${warningIcon}${formattedValue}</span>`;
+          return `<span style="white-space: nowrap">${warningIcon}<span style="margin-left: ${theme.space.xs}">${formattedValue}</span></span>`;
         }
 
         return formattedValue;
