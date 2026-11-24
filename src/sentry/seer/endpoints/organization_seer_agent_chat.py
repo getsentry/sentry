@@ -34,6 +34,10 @@ from sentry.seer.agent.client_utils import (
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
+from sentry.seer.agent.scm_connect_analytics import (
+    record_scm_connect_new_message,
+    record_scm_connect_shown,
+)
 from sentry.seer.autofix.constants import (
     AUTOFIX_RUN_SCOPES,
     PUBLISH_SCOPES,
@@ -361,6 +365,13 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         try:
             client = SeerAgentClient(organization, request.user)
             state = client.get_run(run_id=resolved.seer_run_state_id)
+            record_scm_connect_shown(
+                organization,
+                acting_user_id(request.user),
+                resolved.seer_run_state_id,
+                state,
+                can_install_integrations=request.access.has_scope("org:integrations"),
+            )
             session = state if has_elevated_mode(request) else redact_autofix_prompts(state)
             return Response(
                 SeerAgentChatStateResponse(
@@ -521,6 +532,10 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                     sent_at=sent_at,
                     ui_tools=ui_tools,
                     request=request,
+                )
+                # A new message closes a popup still asking to fix repository access.
+                record_scm_connect_new_message(
+                    organization, acting_user_id(request.user), resolved.seer_run_state_id
                 )
                 return Response(
                     {"run_id": resolved.seer_run_state_id, "sentry_run_id": resolved.uuid}

@@ -14,12 +14,7 @@ describe('isLowConfidenceTimeSeriesItem', () => {
   ] as const)(
     'is $expected for $confidence confidence at sample rate $sampleRate',
     ({confidence, sampleRate, expected}) => {
-      const item: TimeSeriesItem = {
-        timestamp: 1,
-        value: 1,
-        confidence,
-        sampleRate,
-      };
+      const item: TimeSeriesItem = {timestamp: 1, value: 1, confidence, sampleRate};
 
       expect(isLowConfidenceTimeSeriesItem(item)).toBe(expected);
     }

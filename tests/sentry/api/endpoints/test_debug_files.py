@@ -146,6 +146,12 @@ class DebugFilesTest(DebugFilesTestCases):
         assert response.data[0]["cpuName"] == "any"
         assert response.data[0]["symbolType"] == "proguard"
 
+    def test_upload_rejects_non_file_field(self) -> None:
+        response = self.client.post(self.url, {"file": "/etc/hostname"}, format="multipart")
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Missing uploaded file"}
+        assert not ProjectDebugFile.objects.filter(project_id=self.project.id).exists()
+
     def test_dsyms_search(self) -> None:
         for i in range(25):
             last_uuid = str(uuid4())

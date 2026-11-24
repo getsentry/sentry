@@ -281,8 +281,9 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     return (
       <LoadingError
         message={t(
-          'We encountered an issue while loading the getting started documentation for this platform.'
+          'We encountered an issue while loading Client Keys for this getting started documentation.'
         )}
+        onRetry={refetch}
       />
     );
   }
