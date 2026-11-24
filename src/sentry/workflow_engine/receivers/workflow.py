@@ -15,7 +15,12 @@ from sentry.workflow_engine.models import Detector, Workflow
 def enforce_workflow_config_schema(
     sender: type[Workflow], instance: Workflow, **kwargs: Any
 ) -> None:
-    instance.validate_config(instance.config_schema)
+    schema = (
+        instance.inbox_config_schema
+        if instance.type == Workflow.Type.INBOX
+        else instance.config_schema
+    )
+    instance.validate_config(schema)
 
 
 @receiver(pre_delete, sender=Workflow)
