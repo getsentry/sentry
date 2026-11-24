@@ -13,7 +13,9 @@ from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.mixins.issues import IssueSyncIntegration as IssueSyncIntegrationBase
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.project_management.metrics import ProjectManagementEvent
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.external_issues import GeneratedExternalIssueDetails
 from sentry.integrations.utils.issue_url import get_issue_url_path
 from sentry.models.activity import Activity
@@ -88,7 +90,8 @@ def test_issue_url_path(url: str, base_url: str, expected: str) -> None:
 
 
 class IssueSyncIntegration(TestCase):
-    def test_status_sync_inbound_resolve(self) -> None:
+    @patch.object(ProjectManagementEvent, "record_outcome")
+    def test_status_sync_inbound_resolve(self, mock_record_outcome: MagicMock) -> None:
         group = self.group
         assert group.status == GroupStatus.UNRESOLVED
 
@@ -137,6 +140,15 @@ class IssueSyncIntegration(TestCase):
                 "provider": integration.get_provider().name,
                 "provider_key": integration.get_provider().key,
             }
+            log_context = {
+                "integration_id": integration.id,
+                "organization_id": group.organization.id,
+                "issue_key": external_issue.key,
+            }
+            assert mock_record_outcome.call_args_list == [
+                mock.call(EventLifecycleOutcome.STARTED, extra=log_context),
+                mock.call(EventLifecycleOutcome.SUCCESS, extra=log_context),
+            ]
 
     def test_sync_status_resolve_in_next_release_no_releases(self) -> None:
         group = self.group
