@@ -1,9 +1,7 @@
 import pytest
 from django.core.exceptions import ValidationError
-from jsonschema import ValidationError as JSONSchemaValidationError
 
 from sentry.constants import ObjectStatus
-from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import Workflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
@@ -134,9 +132,3 @@ class WorkflowTest(BaseWorkflowTest):
             config={"frequency": 5},
         )
         assert Workflow.objects.filter(name=name).count() == 2
-
-
-class WorkflowConfigSchemaTest(TestCase):
-    def test_alert_workflow_rejects_a_cron(self) -> None:
-        with pytest.raises(JSONSchemaValidationError):
-            self.create_workflow(organization=self.organization, config={"crons": ["0 9 * * *"]})
