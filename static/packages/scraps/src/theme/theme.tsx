@@ -209,11 +209,22 @@ const commonTheme = {
   ...typography,
 } as const;
 
-type ScrapsTheme = {
-  [Key in keyof typeof baseLightTheme]:
-    | (typeof baseLightTheme)[Key]
-    | (typeof baseDarkTheme)[Key];
-};
+const font = {
+  ...typography.font,
+  family: {
+    sans: "Rubik, 'Rubik Arial', 'Avenir Next', sans-serif",
+    mono: "'Roboto Mono', 'Roboto Mono Andale', Monaco, Consolas, 'Roboto Mono Courier', 'Courier New', monospace",
+  },
+} as const;
+
+type ScrapsTheme = Omit<
+  {
+    [Key in keyof typeof baseLightTheme]:
+      | (typeof baseLightTheme)[Key]
+      | (typeof baseDarkTheme)[Key];
+  },
+  'font'
+>;
 
 export interface SentryTheme
   extends ScrapsTheme, Omit<typeof lightThemeDefinition, keyof ScrapsTheme | 'chart'> {
@@ -752,6 +763,7 @@ const lightThemeDefinition = {
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   ...baseLightTheme,
+  font,
   focusRing: (baseShadow = `0 0 0 0 ${baseLightTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.focus.default}`,
@@ -787,6 +799,7 @@ export const darkTheme: SentryTheme = {
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   ...baseDarkTheme,
+  font,
   // This sems to be a bug in the rule. baseShadow is optional.
   // eslint-disable-next-line @typescript-eslint/no-useless-default-assignment
   focusRing: (baseShadow = `0 0 0 0 ${baseDarkTheme.tokens.background.primary}`) => ({
