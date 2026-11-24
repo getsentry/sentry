@@ -217,6 +217,12 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
         """Replace the config's scope, marking ``update`` only when something changed."""
         ...
 
+    def set_trigger_settings(
+        self, update: ConfigUpdate, workflow: Workflow, trigger_settings: Mapping[str, Any]
+    ) -> None:
+        """Replace the trigger's settings, marking ``update`` only when something changed."""
+        raise WorkflowUpdateError(f"{self.strategy} automations take no trigger settings")
+
     def sync(self, config: SeerWorkflowConfig) -> None:
         """Bring anything the trigger keeps outside the config in line with it."""
         return None
@@ -393,6 +399,9 @@ class ConfigUpdate:
             filters.environments = list(environments)
             self.config.filters = filters.dict()
             self.mark("filters")
+
+    def set_trigger_settings(self, trigger_settings: Mapping[str, Any]) -> None:
+        self.definition.set_trigger_settings(self, self._backing_workflow(), trigger_settings)
 
     def set_action_settings(self, action_settings: Mapping[str, Any]) -> None:
         """Replace the investigation action's prompt or skill, which the action's schema checks."""

@@ -10,4 +10,5 @@ class Config(AppConfig):
         import sentry.workflow_engine.handlers.condition  # NOQA
         import sentry.workflow_engine.handlers.workflow  # NOQA
         import sentry.workflow_engine.receivers  # NOQA
+        import sentry.workflow_engine.schedules  # NOQA
         from sentry.workflow_engine.endpoints import serializers  # NOQA
