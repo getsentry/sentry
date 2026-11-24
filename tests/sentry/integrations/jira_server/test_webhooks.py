@@ -1,8 +1,6 @@
 from unittest.mock import MagicMock, patch
 
 import jwt
-import responses
-from requests.exceptions import ConnectionError
 
 from sentry.integrations.jira_server.integration import JiraServerIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -40,7 +38,8 @@ class JiraServerWebhookEndpointTest(APITestCase):
 
         self.get_error_response(" ", status_code=400)
 
-    def test_post_missing_default_identity(self) -> None:
+    @patch("sentry.integrations.mixins.issues.sync_status_inbound_task.apply_async")
+    def test_post_missing_default_identity(self, mock_apply_async: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             org_integration = OrganizationIntegration.objects.get(
                 organization_id=self.organization.id,
@@ -50,8 +49,8 @@ class JiraServerWebhookEndpointTest(APITestCase):
 
         link_group(self.organization, self.integration, self.group)
 
-        with self.tasks():
-            self.get_success_response(self.jwt_token, **EXAMPLE_PAYLOAD)
+        self.get_success_response(self.jwt_token, **EXAMPLE_PAYLOAD)
+        mock_apply_async.assert_called_once()
 
     def test_post_token_missing_id(self) -> None:
         integration = self.integration
@@ -249,18 +248,15 @@ class JiraServerWebhookEndpointTest(APITestCase):
         assert vc.organization_id == self.organization.id
         assert vc.actor.type == ActorType.INTEGRATION
 
-    @responses.activate
-    def test_post_update_status_token_error(self) -> None:
-        responses.add(
-            method=responses.GET,
-            url="https://jira.example.org/rest/api/2/status",
-            body=ConnectionError(),
-        )
+    @patch("sentry.integrations.mixins.issues.sync_status_inbound_task.apply_async")
+    def test_post_update_status_is_processed_asynchronously(
+        self, mock_apply_async: MagicMock
+    ) -> None:
         group = self.create_group(self.project)
         installation = self.integration.get_installation(self.organization.id)
         installation.update_organization_config({"sync_status_reverse": True})
 
         link_group(self.organization, self.integration, group)
 
-        with self.tasks():
-            self.get_success_response(self.jwt_token, **EXAMPLE_PAYLOAD)
+        self.get_success_response(self.jwt_token, **EXAMPLE_PAYLOAD)
+        mock_apply_async.assert_called_once()
