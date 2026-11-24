@@ -33,14 +33,8 @@ function setSubscriptionScopeTags() {
 export function registerSubscriptionScopeTags() {
   setSubscriptionScopeTags();
 
-  const unsubscribeSubscription = SubscriptionStore.listen(
-    setSubscriptionScopeTags,
-    undefined
-  );
-  const unsubscribeOrganization = OrganizationStore.listen(
-    setSubscriptionScopeTags,
-    undefined
-  );
+  const unsubscribeSubscription = SubscriptionStore.subscribe(setSubscriptionScopeTags);
+  const unsubscribeOrganization = OrganizationStore.subscribe(setSubscriptionScopeTags);
 
   return () => {
     unsubscribeSubscription();
