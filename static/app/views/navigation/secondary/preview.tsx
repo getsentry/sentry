@@ -112,11 +112,10 @@ export function SecondaryNavigationPreviewBody({children}: {children: ReactNode}
   // rendered with the body. A section that mounts later is added at the end.
   const setTab = useCallback((tab: PreviewTab) => {
     setTabs(prev => {
-      const index = prev.findIndex(({key}) => key === tab.key);
-      if (index === -1) {
+      const current = prev.find(({key}) => key === tab.key);
+      if (!current) {
         return [...prev, tab];
       }
-      const current = prev[index]!;
       if (current.id === tab.id && current.label === tab.label) {
         return prev;
       }

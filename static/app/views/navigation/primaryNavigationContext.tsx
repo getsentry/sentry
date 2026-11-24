@@ -51,7 +51,7 @@ export function hasSecondaryNavigation(group: NavigationGroup): boolean {
  * `PrimaryNavigationContextProvider` turns this into `hoverBehavior` and
  * `overlayOffset`, which components read from `usePrimaryNavigation()`.
  */
-export function useNavPeek(): boolean {
+function useNavPeek(): boolean {
   const organization = useOrganization({allowNull: true});
   return !!organization?.features.includes('nav-peek');
 }
