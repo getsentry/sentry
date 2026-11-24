@@ -496,13 +496,7 @@ class BaseRequestParser(ABC):
 
             lifecycle.add_extra("integration_id", integration.id)
 
-            # Only the ids are read, so one column beats a COUNT plus a discarded fetch.
-            organization_ids = list(
-                OrganizationIntegration.objects.filter(
-                    integration_id=integration.id,
-                    status=ObjectStatus.ACTIVE,
-                ).values_list("organization_id", flat=True)
-            )
+            organization_ids = self.get_active_organization_ids(integration.id)
 
             if not organization_ids:
                 metrics.incr(
@@ -521,6 +515,19 @@ class BaseRequestParser(ABC):
 
             # Integrations will attempt to target a specific organization
             return self.filter_organizations_from_request(organizations=all_organizations)
+
+    def get_active_organization_ids(self, integration_id: int) -> list[int]:
+        """
+        The organizations a webhook for the integration is routed to. A parser that
+        needs more than this out of the same rows can read them here in one query.
+        """
+        # Only the ids are read, so one column beats a COUNT plus a discarded fetch.
+        return list(
+            OrganizationIntegration.objects.filter(
+                integration_id=integration_id,
+                status=ObjectStatus.ACTIVE,
+            ).values_list("organization_id", flat=True)
+        )
 
     def filter_organizations_from_request(
         self,

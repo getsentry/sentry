@@ -1,3 +1,4 @@
+import orjson
 import responses
 from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
@@ -5,12 +6,18 @@ from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
 from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.middleware.integrations.parsers.github_enterprise import GithubEnterpriseRequestParser
 from sentry.silo.base import SiloMode
+from sentry.silo.util import (
+    WEBHOOK_DELIVERY_CONTEXT_HEADER,
+    WEBHOOK_DELIVERY_CONTEXT_SIGNATURE_HEADER,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell
@@ -158,3 +165,34 @@ class GithubEnterpriseRequestParserTest(TestCase):
             mailbox_name=f"github_enterprise:{integration.id}",
             cell_names=[cell.name],
         )
+
+    @override_cells(cell_config)
+    @override_options({"github.webhook.delivery-context.emit-rate": 1.0})
+    def test_never_queues_a_delivery_context(self) -> None:
+        """GitHub.com only. A copy the caller sent is dropped all the same."""
+        self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={
+                "action": "completed",
+                "installation": {"id": self.external_identifier},
+                "repository": {"id": 123},
+                "check_suite": {"pull_requests": [{"number": 7, "base": {"repo": {"id": 123}}}]},
+            },
+            content_type="application/json",
+            HTTP_X_GITHUB_ENTERPRISE_HOST=self.external_host,
+            HTTP_X_GITHUB_EVENT="check_suite",
+            headers={
+                WEBHOOK_DELIVERY_CONTEXT_HEADER: "forged",
+                WEBHOOK_DELIVERY_CONTEXT_SIGNATURE_HEADER: "v1=forged",
+            },
+        )
+
+        parser = GithubEnterpriseRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
+
+        assert response.status_code == 202
+        payload = WebhookPayload.objects.get()
+        headers = {name.lower() for name in orjson.loads(payload.request_headers)}
+        assert WEBHOOK_DELIVERY_CONTEXT_HEADER.lower() not in headers
+        assert WEBHOOK_DELIVERY_CONTEXT_SIGNATURE_HEADER.lower() not in headers

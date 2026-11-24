@@ -1,6 +1,8 @@
+import time
 from collections.abc import Iterator
 from unittest.mock import Mock, patch
 
+import orjson
 import pytest
 import responses
 from django.core.handlers.wsgi import WSGIRequest
@@ -11,16 +13,27 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework import status
 
+from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
+from sentry.hybridcloud.webhook_delivery_context import (
+    DeliveryContextRejection,
+    WebhookDeliveryContext,
+    verify_webhook_delivery_context,
+)
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.middleware.hybrid_cloud.parser import SHED_INBOUND_KILLSWITCH
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
 from sentry.silo.base import SiloMode
+from sentry.silo.util import (
+    WEBHOOK_DELIVERY_CONTEXT_HEADER,
+    WEBHOOK_DELIVERY_CONTEXT_SIGNATURE_HEADER,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import (
     assert_no_webhook_payloads,
@@ -1298,3 +1311,275 @@ class GithubRequestParserTypeRoutingTest(GithubRequestParserTest):
     def setup(self) -> Iterator[None]:
         with override_options({"github.webhook-type-routing.enabled": True}):
             yield
+
+
+EMIT_DELIVERY_CONTEXT = {"github.webhook.delivery-context.emit-rate": 1.0}
+other_cell = Cell("de", 2, "https://de.testserver")
+
+
+@control_silo_test
+class GithubRequestParserDeliveryContextTest(TestCase):
+    """Tests for the routing context control signs onto a webhook it queues, so that
+    the cell handler does not have to ask control for the integration again."""
+
+    factory = RequestFactory()
+    path = reverse("sentry-integration-github-webhook")
+    delivery_id = "5f2b1c9e-6d1a-4c0b-9a51-1d3f0f6f2a10"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.enterContext(override_mailbox_bucket_count(64))
+
+    def get_response(self, req: HttpRequest) -> HttpResponse:
+        return HttpResponse(status=200, content="passthrough")
+
+    def get_integration(self) -> Integration:
+        return self.create_integration(
+            organization=self.organization,
+            external_id="1",
+            provider="github",
+        )
+
+    def check_suite_request(self, headers: dict[str, str] | None = None) -> WSGIRequest:
+        return self.factory.post(
+            self.path,
+            data={
+                "action": "completed",
+                "installation": {"id": "1"},
+                "repository": {"id": 123},
+                "check_suite": {"pull_requests": [{"number": 7, "base": {"repo": {"id": 123}}}]},
+            },
+            content_type="application/json",
+            headers={
+                "X-GITHUB-EVENT": GithubWebhookType.CHECK_SUITE.value,
+                "X-GitHub-Delivery": self.delivery_id,
+                **(headers or {}),
+            },
+        )
+
+    def queue(self, request: WSGIRequest) -> list[WebhookPayload]:
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        return list(WebhookPayload.objects.order_by("cell_name"))
+
+    def stored_headers(self, payload: WebhookPayload) -> dict[str, str]:
+        return {
+            name.lower(): value for name, value in orjson.loads(payload.request_headers).items()
+        }
+
+    def context_for(
+        self, payload: WebhookPayload
+    ) -> WebhookDeliveryContext | DeliveryContextRejection:
+        """What the cell the payload is queued for makes of its context."""
+        headers = self.stored_headers(payload)
+        assert payload.cell_name is not None
+        return verify_webhook_delivery_context(
+            path=payload.request_path,
+            request_body=payload.request_body.encode("utf-8"),
+            encoded=headers[WEBHOOK_DELIVERY_CONTEXT_HEADER.lower()],
+            signature=headers.get(WEBHOOK_DELIVERY_CONTEXT_SIGNATURE_HEADER.lower()),
+            cell_name=payload.cell_name,
+            max_age_seconds=30,
+        )
+
+    @override_cells(cell_config)
+    @override_options(EMIT_DELIVERY_CONTEXT)
+    @freeze_time("2023-11-14T22:13:20Z")
+    def test_queues_check_suite_with_a_signed_context(self) -> None:
+        integration = self.get_integration()
+
+        (payload,) = self.queue(self.check_suite_request())
+
+        assert self.context_for(payload) == WebhookDeliveryContext(
+            provider="github",
+            external_id="1",
+            integration_id=integration.id,
+            organization_ids=frozenset({self.organization.id}),
+            cell_names=frozenset({cell.name}),
+            event_type="check_suite",
+            delivery_id=self.delivery_id,
+            issued_at=int(time.time()),
+        )
+
+    @override_cells(cell_config)
+    def test_queues_without_a_context_by_default(self) -> None:
+        self.get_integration()
+
+        (payload,) = self.queue(self.check_suite_request())
+
+        headers = self.stored_headers(payload)
+        assert WEBHOOK_DELIVERY_CONTEXT_HEADER.lower() not in headers
+        assert WEBHOOK_DELIVERY_CONTEXT_SIGNATURE_HEADER.lower() not in headers
+
+    @override_cells(cell_config)
+    @override_options(EMIT_DELIVERY_CONTEXT)
+    def test_does_not_sign_an_event_no_handler_uses_a_context_for(self) -> None:
+        self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 123}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
+        )
+
+        (payload,) = self.queue(request)
+
+        assert WEBHOOK_DELIVERY_CONTEXT_HEADER.lower() not in self.stored_headers(payload)
+
+    @override_cells(cell_config)
+    @override_options(EMIT_DELIVERY_CONTEXT)
+    def test_context_lists_every_link_and_routes_on_the_active_ones(self) -> None:
+        integration = self.get_integration()
+        disabled_org = self.create_organization(owner=self.user)
+        pending_org = self.create_organization(owner=self.user)
+        disabled_link = integration.add_organization(disabled_org, self.user)
+        pending_link = integration.add_organization(pending_org, self.user)
+        assert disabled_link is not None
+        assert pending_link is not None
+        disabled_link.update(status=ObjectStatus.DISABLED)
+        pending_link.update(status=ObjectStatus.PENDING_DELETION)
+
+        (payload,) = self.queue(self.check_suite_request())
+
+        context = self.context_for(payload)
+        assert isinstance(context, WebhookDeliveryContext)
+        # What the cell would get from control, which does not filter on status.
+        assert context.organization_ids == {self.organization.id, disabled_org.id, pending_org.id}
+
+    @override_cells(cell_config)
+    @override_options(EMIT_DELIVERY_CONTEXT)
+    def test_does_not_queue_when_no_link_is_active(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            external_id="1",
+            provider="github",
+            oi_params={"status": ObjectStatus.DISABLED},
+        )
+        parser = GithubRequestParser(
+            request=self.check_suite_request(), response_handler=self.get_response
+        )
+
+        response = parser.get_response()
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert_no_webhook_payloads()
+
+    @override_cells((cell, other_cell))
+    @override_options(EMIT_DELIVERY_CONTEXT)
+    def test_context_names_every_cell_it_is_queued_for(self) -> None:
+        integration = self.get_integration()
+        other_org = self.create_organization(owner=self.user, cell=other_cell.name)
+        integration.add_organization(other_org, self.user)
+
+        payloads = self.queue(self.check_suite_request())
+
+        assert [payload.cell_name for payload in payloads] == [other_cell.name, cell.name]
+        for payload in payloads:
+            context = self.context_for(payload)
+            assert isinstance(context, WebhookDeliveryContext)
+            assert context.cell_names == {cell.name, other_cell.name}
+            assert context.organization_ids == {self.organization.id, other_org.id}
+
+    @override_cells(cell_config)
+    @override_options(EMIT_DELIVERY_CONTEXT)
+    def test_reads_each_routing_table_once(self) -> None:
+        self.get_integration()
+        parser = GithubRequestParser(
+            request=self.check_suite_request(), response_handler=self.get_response
+        )
+
+        with CaptureQueriesContext(connections[router.db_for_read(Integration)]) as queries:
+            response = parser.get_response()
+
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        link_reads = [
+            q["sql"]
+            for q in queries.captured_queries
+            if 'FROM "sentry_organizationintegration"' in q["sql"]
+        ]
+        assert len(link_reads) == 1
+        # Every link, not only the active ones routing needs.
+        assert '"status" =' not in link_reads[0]
+
+    @override_cells(cell_config)
+    def test_routing_query_is_unchanged_without_a_context(self) -> None:
+        self.get_integration()
+        parser = GithubRequestParser(
+            request=self.check_suite_request(), response_handler=self.get_response
+        )
+
+        with CaptureQueriesContext(connections[router.db_for_read(Integration)]) as queries:
+            parser.get_response()
+
+        link_reads = [
+            q["sql"]
+            for q in queries.captured_queries
+            if 'FROM "sentry_organizationintegration"' in q["sql"]
+        ]
+        assert len(link_reads) == 1
+        assert '"status" =' in link_reads[0]
+
+    @override_cells(cell_config)
+    def test_drops_a_context_the_caller_sent(self) -> None:
+        self.get_integration()
+        request = self.check_suite_request(
+            headers={
+                WEBHOOK_DELIVERY_CONTEXT_HEADER: "forged",
+                WEBHOOK_DELIVERY_CONTEXT_SIGNATURE_HEADER: "v1=forged",
+            }
+        )
+
+        (payload,) = self.queue(request)
+
+        headers = self.stored_headers(payload)
+        assert WEBHOOK_DELIVERY_CONTEXT_HEADER.lower() not in headers
+        assert WEBHOOK_DELIVERY_CONTEXT_SIGNATURE_HEADER.lower() not in headers
+
+    @override_cells(cell_config)
+    @override_options(EMIT_DELIVERY_CONTEXT)
+    def test_replaces_a_context_the_caller_sent(self) -> None:
+        self.get_integration()
+        request = self.check_suite_request(
+            headers={
+                WEBHOOK_DELIVERY_CONTEXT_HEADER: "forged",
+                WEBHOOK_DELIVERY_CONTEXT_SIGNATURE_HEADER: "v1=forged",
+            }
+        )
+
+        (payload,) = self.queue(request)
+
+        assert "forged" not in payload.request_headers
+        assert isinstance(self.context_for(payload), WebhookDeliveryContext)
+
+    @override_cells(cell_config)
+    @override_options(EMIT_DELIVERY_CONTEXT)
+    @patch("sentry.hybridcloud.webhook_delivery_context.MAX_ENCODED_CONTEXT_BYTES", 16)
+    @patch("sentry.middleware.integrations.parsers.github.metrics")
+    def test_queues_without_a_context_that_is_too_large(self, mock_metrics: Mock) -> None:
+        self.get_integration()
+
+        (payload,) = self.queue(self.check_suite_request())
+
+        assert WEBHOOK_DELIVERY_CONTEXT_HEADER.lower() not in self.stored_headers(payload)
+        mock_metrics.incr.assert_any_call(
+            "github.webhook.delivery_context.emit",
+            tags={"outcome": "too_large"},
+            sample_rate=1.0,
+        )
+
+    @override_cells(cell_config)
+    @override_options(EMIT_DELIVERY_CONTEXT)
+    @override_settings(SENTRY_SUBNET_SECRET=None)
+    @patch("sentry.middleware.integrations.parsers.github.metrics")
+    def test_queues_without_a_context_it_cannot_sign(self, mock_metrics: Mock) -> None:
+        self.get_integration()
+
+        (payload,) = self.queue(self.check_suite_request())
+
+        assert WEBHOOK_DELIVERY_CONTEXT_HEADER.lower() not in self.stored_headers(payload)
+        mock_metrics.incr.assert_any_call(
+            "github.webhook.delivery_context.emit",
+            tags={"outcome": "no_key"},
+            sample_rate=1.0,
+        )

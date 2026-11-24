@@ -2982,6 +2982,15 @@ register(
     default="off",
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# The share of eligible GitHub webhooks control queues with a delivery context. A
+# cell only uses one when its mode says so, and resolves the integration through
+# control for a delivery without one. Read by control.
+register(
+    "github.webhook.delivery-context.emit-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # How old a delivery context may be before a cell ignores it and asks control. This
 # is how long an organization that unlinked the installation can still be handled
 # from a webhook queued before it did.
