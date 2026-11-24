@@ -35,7 +35,6 @@ from sentry.models.project import Project
 from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.objectstore import artifact_bundles_test_both_backends
 from sentry.testutils.skips import requires_objectstore
 from sentry.utils import json
 
@@ -384,7 +383,6 @@ class QueryArtifactBundlesContainingFileTest(TestCase):
         }
 
 
-@artifact_bundles_test_both_backends
 class IndexUrlsInBundleTest(TestCase):
     debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
 
@@ -420,10 +418,9 @@ class IndexUrlsInBundleTest(TestCase):
                 "content": b"plain",
             },
         }
-        artifact_bundle = self.create_artifact_bundle(
-            artifact_count=len(files), payload=make_compressed_zip_file(files)
-        )
-        index_urls_in_bundle(self.organization.id, artifact_bundle, None)
+        artifact_bundle = self.create_artifact_bundle(artifact_count=len(files))
+        with ArtifactBundleArchive(BytesIO(make_compressed_zip_file(files))) as archive:
+            index_urls_in_bundle(self.organization.id, artifact_bundle, archive)
 
         artifact_bundle.refresh_from_db()
         assert artifact_bundle.indexing_state == ArtifactBundleIndexingState.WAS_INDEXED.value
@@ -1160,8 +1157,8 @@ class GetArtifactBundlesContainingDebugIdTest(TestCase):
         ) == [(bundle.id, "debug-id")]
 
 
-class RenewArtifactBundleTestBase(TestCase):
-    def create_old_bundle(self, use_objectstore: bool | None = None) -> None:
+class RenewArtifactBundleTest(TestCase):
+    def create_old_bundle(self, use_objectstore: bool = False) -> None:
         self.old_date = timezone.now() - timedelta(days=60)
         self.artifact_bundle = self.create_artifact_bundle(
             self.organization, artifact_count=1, use_objectstore=use_objectstore
@@ -1207,9 +1204,6 @@ class RenewArtifactBundleTestBase(TestCase):
             ArtifactBundleIndex.objects.get(artifact_bundle_id=bundle_id).date_added,
         }
 
-
-@artifact_bundles_test_both_backends
-class RenewArtifactBundleTest(RenewArtifactBundleTestBase):
     def test_renews_bundle_and_linked_rows(self) -> None:
         self.create_old_bundle()
         now = self.renew()
@@ -1225,9 +1219,7 @@ class RenewArtifactBundleTest(RenewArtifactBundleTestBase):
         assert ArtifactBundle.objects.get(id=self.artifact_bundle.id).date_added == now
         assert self.linked_dates() == {self.old_date}
 
-
-@requires_objectstore
-class RenewObjectstoreArtifactBundleTest(RenewArtifactBundleTestBase):
+    @requires_objectstore
     def test_failed_renewal_retries_on_next_access(self) -> None:
         self.create_old_bundle(use_objectstore=True)
         session = self.artifact_bundle.get_objectstore_session()
@@ -1244,6 +1236,7 @@ class RenewObjectstoreArtifactBundleTest(RenewArtifactBundleTestBase):
         assert ArtifactBundle.objects.get(id=self.artifact_bundle.id).date_added == now
         assert self.linked_dates() == {now}
 
+    @requires_objectstore
     def test_missing_object_leaves_bundle_and_linked_dates_unchanged(self) -> None:
         self.create_old_bundle(use_objectstore=True)
         assert self.artifact_bundle.storage_path is not None

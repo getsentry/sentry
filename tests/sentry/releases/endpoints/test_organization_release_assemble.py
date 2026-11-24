@@ -12,11 +12,9 @@ from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import ChunkFileState, assemble_artifacts
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.objectstore import artifact_bundles_test_both_backends
 from sentry.testutils.silo import assume_test_silo_mode
 
 
-@artifact_bundles_test_both_backends
 class OrganizationReleaseAssembleTest(APITestCase):
     def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.user)

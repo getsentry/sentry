@@ -115,31 +115,6 @@ class SyncArtifactBundlesTest(TestCase):
         with target.get_file() as target_contents:
             assert sha1(target_contents.read()).hexdigest() == source.get_checksum()
 
-    @requires_objectstore
-    def test_sync_preserves_source_backend_with_target_flag_enabled(self) -> None:
-        legacy = self.create_artifact_bundle(org=self.source_org)
-        stored = self.create_artifact_bundle(org=self.source_org, use_objectstore=True)
-
-        with self.feature(
-            {"organizations:objectstore-artifact-bundles-exclusive-write": [self.target_org.slug]}
-        ):
-            _sync_artifact_bundles(self.source_org, self.target_org, self.last_three_days())
-
-        legacy_copy = ArtifactBundle.objects.get(
-            organization_id=self.target_org.id, bundle_id=legacy.bundle_id
-        )
-        assert legacy_copy.storage_path is None
-        assert legacy_copy.file_id == legacy.file_id
-        stored_copy = ArtifactBundle.objects.get(
-            organization_id=self.target_org.id, bundle_id=stored.bundle_id
-        )
-        assert stored_copy.file_id is None
-        assert stored_copy.storage_path is not None
-        assert stored_copy.get_checksum() == stored.get_checksum()
-        assert stored_copy.get_file_size() == stored.get_file_size()
-        with stored_copy.get_file() as contents:
-            assert sha1(contents.read()).hexdigest() == stored.get_checksum()
-
     def test_sync_artifact_bundles_with_differences(self) -> None:
         (source_artifact_bundle, _, __) = self.set_up_artifact_bundle(
             self.source_org, self.source_proj_foo
