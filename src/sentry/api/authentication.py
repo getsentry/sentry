@@ -813,7 +813,6 @@ class ServiceAccountTokenAuthentication(StandardAuthentication):
                 )
             except ServiceAccountToken.DoesNotExist:
                 raise AuthenticationFailed("Invalid service account token")
-            token_id = token.id
             service_account_id = token.service_account_id
         else:
             try:
@@ -822,7 +821,6 @@ class ServiceAccountTokenAuthentication(StandardAuthentication):
                 )
             except ServiceAccountTokenReplica.DoesNotExist:
                 raise AuthenticationFailed("Invalid service account token")
-            token_id = token.token_id
             service_account_id = token.service_account.service_account_id
 
         if token.date_expires is not None and token.date_expires <= timezone.now():
@@ -840,9 +838,8 @@ class ServiceAccountTokenAuthentication(StandardAuthentication):
         scope = sentry_sdk.get_isolation_scope()
         scope.set_tag("api_token_type", self.token_name)
         scope.set_attribute("api_token_type", self.token_name.decode())
-        # Keep "token" out of this key: our own data scrubbing strips keys containing it.
-        scope.set_tag("service_account_credential_id", token_id)
-        scope.set_attribute("service_account_credential_id", token_id)
+        scope.set_tag("service_account_auth", True)
+        scope.set_attribute("service_account_auth", True)
 
         # Token scopes are fixed at creation, so narrowing the account narrows the token,
         # but widening the account doesn't widen it.

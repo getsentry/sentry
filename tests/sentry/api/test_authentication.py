@@ -509,12 +509,12 @@ class TestServiceAccountTokenAuthentication(TestCase):
         with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
             self.assert_authenticates_as_account(["project:read"])
 
-    def test_tags_scope_with_credential(self) -> None:
+    def test_marks_scope_as_service_account_auth(self) -> None:
         with sentry_sdk.isolation_scope() as scope:
             assert self.auth.authenticate(self.request()) is not None
 
-        for values in (scope._tags, scope._attributes):
-            assert values["service_account_credential_id"] == self.token.id
+        assert scope._tags["service_account_auth"] is True
+        assert scope._attributes["service_account_auth"] is True
 
     def test_accepts_only_service_account_tokens(self) -> None:
         assert self.auth.accepts_auth([b"Bearer", self.token_str.encode()])
