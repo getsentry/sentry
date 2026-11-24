@@ -10,9 +10,16 @@ import {PositionWrapper} from '@sentry/scraps/overlay';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import type {NavigationPeekDismissReason} from 'sentry/utils/analytics/navigationAnalyticsEvents';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import {PRIMARY_NAVIGATION_OVERLAY_OFFSET} from 'sentry/views/navigation/constants';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
+  PRIMARY_NAVIGATION_OVERLAY_OFFSET,
+} from 'sentry/views/navigation/constants';
+import {NavigationPeekAnalyticsContext} from 'sentry/views/navigation/navigationTrayAnalytics';
 import {
   hasSecondaryNavigation,
   type NavigationGroup,
@@ -37,6 +44,8 @@ interface PreviewState {
   keyboard: boolean;
   /** The preview closes when the location changes. */
   locationKey: string;
+  /** When the preview opened for `group`, for analytics. */
+  openedAt: number;
   /** Vertical offset the content slides in from. */
   slideFrom: number;
 }
@@ -63,8 +72,36 @@ export function usePrimaryNavigationPreview({
   const {activeGroup, setActiveGroup} = usePrimaryNavigation();
   const {view} = useSecondaryNavigation();
   const location = useLocation();
+  const organization = useOrganization({allowNull: true});
   const [preview, setPreview] = useState<PreviewState | null>(null);
   const previewTimer = useRef<number | undefined>(undefined);
+  /** The open peek that has not ended in a click or a dismissal yet. */
+  const trackedPeek = useRef<Pick<
+    PreviewState,
+    'group' | 'keyboard' | 'openedAt'
+  > | null>(null);
+
+  /**
+   * Ends the tracked peek. Pass `null` when the peek ended in a link click,
+   * which `navigation.secondary_item_clicked` already records.
+   */
+  const endTrackedPeek = useCallback(
+    (reason: NavigationPeekDismissReason | null) => {
+      const peek = trackedPeek.current;
+      trackedPeek.current = null;
+      if (!peek || reason === null) {
+        return;
+      }
+      trackAnalytics('navigation.peek_dismissed', {
+        item: peek.group,
+        open_ms: Date.now() - peek.openedAt,
+        reason,
+        trigger: peek.keyboard ? 'keyboard' : 'hover',
+        organization,
+      });
+    },
+    [organization]
+  );
 
   const canPreviewGroup = (group: NavigationGroup) =>
     enabled &&
@@ -78,20 +115,34 @@ export function usePrimaryNavigationPreview({
     setPreview(null);
   }
 
-  const closePreview = useCallback(() => {
-    window.clearTimeout(previewTimer.current);
-    setPreview(null);
-  }, []);
+  const closePreview = useCallback(
+    (reason: NavigationPeekDismissReason | null) => {
+      window.clearTimeout(previewTimer.current);
+      endTrackedPeek(reason);
+      setPreview(null);
+    },
+    [endTrackedPeek]
+  );
+  const interactOutsideReason = useRef<NavigationPeekDismissReason>('interact_outside');
+  const closeAfterNavigate = useCallback(() => closePreview(null), [closePreview]);
   const scheduleClose = () => {
     window.clearTimeout(previewTimer.current);
     previewTimer.current = window.setTimeout(
-      () => setPreview(null),
+      () => closePreview('pointer_left'),
       PREVIEW_CLOSE_DELAY_MS
     );
   };
   const cancelClose = () => window.clearTimeout(previewTimer.current);
 
   useEffect(() => () => window.clearTimeout(previewTimer.current), []);
+
+  // The preview can also close during render, such as when the route changes
+  // or the guided tour starts.
+  useEffect(() => {
+    if (!openPreview) {
+      endTrackedPeek('other');
+    }
+  });
 
   const {
     overlayProps,
@@ -101,15 +152,27 @@ export function usePrimaryNavigationPreview({
     isOpen: openPreview !== null,
     onOpenChange: isOpen => {
       if (!isOpen) {
-        closePreview();
+        closePreview(interactOutsideReason.current);
+        interactOutsideReason.current = 'interact_outside';
       }
     },
     position: 'right-start',
     offset: PRIMARY_NAVIGATION_OVERLAY_OFFSET,
     shouldApplyMinWidth: false,
     shouldCloseOnBlur: true,
-    shouldCloseOnInteractOutside: target =>
-      !ignoreInteractOutsideRef?.current?.contains(target),
+    shouldCloseOnInteractOutside: target => {
+      if (ignoreInteractOutsideRef?.current?.contains(target)) {
+        return false;
+      }
+      // Pressing a primary item outside its icon closes the preview here,
+      // before the item's click handler runs.
+      interactOutsideReason.current = target.closest(
+        `[${NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE}]`
+      )
+        ? 'primary_clicked'
+        : 'interact_outside';
+      return true;
+    },
   });
 
   const openPreviewFor = (
@@ -133,8 +196,17 @@ export function usePrimaryNavigationPreview({
           : PREVIEW_SLIDE_DISTANCE_PX
         : 0;
 
+    const peek = {group, keyboard, openedAt: Date.now()};
+    endTrackedPeek('switched_item');
+    trackedPeek.current = peek;
+    trackAnalytics('navigation.peek_opened', {
+      item: group,
+      trigger: keyboard ? 'keyboard' : 'hover',
+      organization,
+    });
+
     setPreviewAnchor(anchor);
-    setPreview({group, keyboard, locationKey: location.key, slideFrom});
+    setPreview({...peek, locationKey: location.key, slideFrom});
   };
 
   const handlePointerEnter = (
@@ -145,7 +217,7 @@ export function usePrimaryNavigationPreview({
       return;
     }
     if (!canPreviewGroup(group)) {
-      closePreview();
+      closePreview('switched_item');
       return;
     }
     cancelClose();
@@ -194,7 +266,7 @@ export function usePrimaryNavigationPreview({
       onPointerLeave: canPreview && !openPreview?.keyboard ? scheduleClose : undefined,
       onKeyDown: canPreview ? event => handleKeyDown(event, group) : undefined,
       onClick: () => {
-        closePreview();
+        closePreview('primary_clicked');
         setActiveGroup(group);
       },
     };
@@ -206,7 +278,8 @@ export function usePrimaryNavigationPreview({
       overlayProps={overlayProps}
       onPointerEnter={cancelClose}
       onPointerLeave={openPreview.keyboard ? undefined : scheduleClose}
-      onNavigate={closePreview}
+      onNavigate={closeAfterNavigate}
+      onLinkClick={() => endTrackedPeek(null)}
     />
   ) : null;
 
@@ -214,6 +287,11 @@ export function usePrimaryNavigationPreview({
 }
 
 interface PrimaryNavigationPreviewCardProps {
+  /**
+   * Called for every link click in the preview, including modified clicks that
+   * open a new tab and keep the preview open.
+   */
+  onLinkClick: () => void;
   onNavigate: () => void;
   onPointerEnter: () => void;
   onPointerLeave: (() => void) | undefined;
@@ -227,6 +305,7 @@ function PrimaryNavigationPreviewCard({
   onPointerEnter,
   onPointerLeave,
   onNavigate,
+  onLinkClick,
 }: PrimaryNavigationPreviewCardProps) {
   const theme = useTheme();
   // The preview body moves focus in once its sections render.
@@ -251,6 +330,11 @@ function PrimaryNavigationPreviewCard({
         aria-label={t('Navigation preview')}
         onPointerEnter={onPointerEnter}
         onPointerLeave={onPointerLeave}
+        onClick={event => {
+          if (event.target instanceof Element && event.target.closest('a[href]')) {
+            onLinkClick();
+          }
+        }}
       >
         <Surface variant="overlay" elevation="high">
           {surfaceProps => (
@@ -274,7 +358,9 @@ function PrimaryNavigationPreviewCard({
                 transition={theme.motion.framer.enter.fast}
               >
                 <SecondaryNavigation.Preview value={previewContext}>
-                  <SecondaryNavigationContent group={preview.group} />
+                  <NavigationPeekAnalyticsContext value={preview}>
+                    <SecondaryNavigationContent group={preview.group} />
+                  </NavigationPeekAnalyticsContext>
                 </SecondaryNavigation.Preview>
               </MotionPreviewPanel>
             </Stack>

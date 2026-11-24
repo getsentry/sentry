@@ -42,6 +42,7 @@ import {
   PRIMARY_SIDEBAR_WIDTH,
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/navigation/constants';
+import {useNavigationTrayAnalyticsParams} from 'sentry/views/navigation/navigationTrayAnalytics';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigationToggle} from 'sentry/views/navigation/secondary/useSecondaryNavigationToggle';
 
@@ -141,6 +142,7 @@ function PrimaryNavigationLink({unreadCount = 0, ...props}: PrimaryNavigationLin
   // Reload the page when the frontend is stale to ensure users get the latest version
   const {state: appState} = useFrontendVersion();
   const theme = useTheme();
+  const getTrayAnalyticsParams = useNavigationTrayAnalyticsParams();
   const label =
     unreadCount > 0
       ? t('%s (%s)', props.label, tn('%s unread item', '%s unread items', unreadCount))
@@ -161,6 +163,7 @@ function PrimaryNavigationLink({unreadCount = 0, ...props}: PrimaryNavigationLin
     onKeyDown: props.onKeyDown,
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
       trackAnalytics('navigation.primary_item_clicked', {
+        ...getTrayAnalyticsParams(),
         item: props.analyticsKey,
         organization,
         ...props.analyticsParams,
