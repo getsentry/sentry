@@ -745,6 +745,11 @@ ConditionComparisonResponse: TypeAlias = (
 )
 
 
+# config_schema of the add_to_inbox action handler
+class AddToInboxActionConfig(TypedDict):
+    pass
+
+
 # config_schema of the discord action handler
 class DiscordActionConfig(TypedDict):
     """The configuration schema for a Discord Action"""
@@ -1034,6 +1039,11 @@ class WebhookActionConfigResponse(TypedDict):
     targetType: NotRequired[None]
 
 
+# data_schema of the add_to_inbox action handler
+class AddToInboxActionData(TypedDict):
+    pass
+
+
 # data_schema of the discord action handler
 class DiscordActionData(TypedDict):
     """Schema for Discord action data blob"""
@@ -1221,7 +1231,8 @@ WebhookActionData: TypeAlias = Any
 
 # Any action's config
 ActionConfig: TypeAlias = (
-    DiscordActionConfig
+    AddToInboxActionConfig
+    | DiscordActionConfig
     | EmailActionConfig
     | GithubActionConfig
     | GithubEnterpriseActionConfig
@@ -1242,7 +1253,8 @@ ActionConfig: TypeAlias = (
 
 # Any action's config, as the API returns it
 ActionConfigResponse: TypeAlias = (
-    DiscordActionConfigResponse
+    AddToInboxActionConfig
+    | DiscordActionConfigResponse
     | EmailActionConfigResponse
     | GithubActionConfigResponse
     | GithubEnterpriseActionConfigResponse
@@ -1263,7 +1275,8 @@ ActionConfigResponse: TypeAlias = (
 
 # Any action's data
 ActionData: TypeAlias = (
-    DiscordActionData
+    AddToInboxActionData
+    | DiscordActionData
     | EmailActionData
     | GithubActionData
     | GithubEnterpriseActionData
@@ -1284,7 +1297,8 @@ ActionData: TypeAlias = (
 
 # Any action's data, as the API returns it
 ActionDataResponse: TypeAlias = (
-    DiscordActionData
+    AddToInboxActionData
+    | DiscordActionData
     | EmailActionDataResponse
     | GithubActionDataResponse
     | GithubEnterpriseActionDataResponse

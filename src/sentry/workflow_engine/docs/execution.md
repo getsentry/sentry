@@ -364,6 +364,9 @@ normal successful cleanup. They remain until expiry or manual cleanup.
 
 ## Action Selection and Dispatch
 
+Actions whose handlers reject the event are excluded before frequency checks and history
+creation. Evaluations without a group include only Inbox workflows.
+
 [`processors/action.py`](../processors/action.py) applies two different controls:
 
 ### Repeat frequency
@@ -373,6 +376,8 @@ workflow, action, and issue group tuple last passed the frequency check. It is u
 before event-level deduplication and task execution. A tuple is suppressed when it
 passed within `Workflow.config.frequency` minutes, even if a later equivalent action was
 deduplicated or an external handler failed.
+
+Inbox workflows bypass group-frequency suppression.
 
 ### Event-level deduplication
 
@@ -385,7 +390,7 @@ imply Workflow execution order.
 ### History and task dispatch
 
 The processor updates frequency statuses and creates
-[`WorkflowFireHistory`](../models/workflow_fire_history.py) rows before `fire_actions`
+[`WorkflowFireHistory`](../models/workflow_fire_history.py) rows for eligible workflows before `fire_actions`
 removes inactive actions and deduplicates by key. It then schedules
 [`trigger_action`](../tasks/actions.py) for retained actions. Fire-history rows describe
 scheduling, not successful external delivery, and can exist for actions that are later
@@ -396,8 +401,8 @@ The action task:
 1. Requires exactly one event ID or activity ID.
 2. Rebuilds `WorkflowEventData`.
 3. Loads the action and preferred detector.
-4. Creates an [`ActionInvocation`](../types.py).
-5. Calls the handler registered for the action type.
+4. Validates handler compatibility and detector/event organization consistency.
+5. Creates an [`ActionInvocation`](../types.py) and calls the registered handler.
 
 External integration calls therefore run outside the workflow evaluation task. Action
 handlers must handle deleted integrations and other expected external-state changes.

@@ -41,7 +41,9 @@ from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler
 
 AVAILABLE_ACTION_TYPES = tuple(
-    action_type for action_type in Action.Type if action_type not in DEPRECATED_ACTION_TYPES
+    action_type
+    for action_type in Action.Type
+    if action_type not in DEPRECATED_ACTION_TYPES and action_type != Action.Type.ADD_TO_INBOX
 )
 AVAILABLE_ACTION_TYPE_VALUES = frozenset(
     action_type.value for action_type in AVAILABLE_ACTION_TYPES
@@ -142,8 +144,8 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
 
         actions = []
         for action_type, handler in action_handler_registry.registrations.items():
-            # Seer provisions this action; the alert editor cannot configure it.
-            if action_type == Action.Type.SEER_INVESTIGATION:
+            # These actions are provisioned internally.
+            if action_type in (Action.Type.SEER_INVESTIGATION, Action.Type.ADD_TO_INBOX):
                 continue
             if requested_action_types and str(action_type) not in requested_action_types:
                 continue

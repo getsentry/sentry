@@ -5,5 +5,6 @@ class Config(AppConfig):
     name = "sentry.inbox"
 
     def ready(self) -> None:
+        import sentry.inbox.action_handler  # noqa: F401
         import sentry.inbox.issue  # noqa: F401
         import sentry.inbox.notebook  # noqa: F401

@@ -1,6 +1,9 @@
 from typing import override
 
 from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.notifications.notification_action.action_handler_registry.base import (
+    IssueNotificationActionHandler,
+)
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.workflow_engine.models import Action
@@ -10,7 +13,7 @@ from sentry.workflow_engine.types import ActionHandler, ActionInvocation, Config
 
 
 @action_handler_registry.register(Action.Type.EMAIL)
-class EmailActionHandler(ActionHandler):
+class EmailActionHandler(IssueNotificationActionHandler):
     _config_transformer: ConfigTransformer | None = None
 
     config_schema = {
