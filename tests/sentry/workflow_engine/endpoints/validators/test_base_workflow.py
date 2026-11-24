@@ -722,16 +722,46 @@ class TestWorkflowValidatorCreate(TestCase):
         assert action_group.action.type == Action.Type.SLACK
         assert action_group.condition_group.logic_type == "any"
 
-    def test_create_workflow_ignores_type_field(self) -> None:
-        validator = WorkflowValidator(
-            data={**self.valid_data, "type": WorkflowType.INBOX}, context=self.context
-        )
+    def test_create_without_type_creates_an_alert(self) -> None:
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
 
         assert validator.is_valid() is True
 
         workflow = validator.create(validator.validated_data)
 
-        assert workflow.type == WorkflowType.ALERT
+        assert workflow.type == Workflow.Type.ALERT
+
+    def test_create_rejects_type_closed_for_post(self) -> None:
+        validator = WorkflowValidator(
+            data={**self.valid_data, "type": "inbox"}, context=self.context
+        )
+
+        assert validator.is_valid() is False
+
+        assert validator.errors == {"type": ["Invalid workflow type: inbox"]}
+
+    def test_create_rejects_unknown_type(self) -> None:
+        validator = WorkflowValidator(
+            data={**self.valid_data, "type": "bogus"}, context=self.context
+        )
+
+        assert validator.is_valid() is False
+
+        assert validator.errors == {"type": ["Invalid workflow type: bogus"]}
+
+    def test_create_with_type_open_for_post_creates_that_type(self) -> None:
+        with override_workflow_api_availability(
+            Workflow.Type.INBOX, WorkflowSettings.DEFAULT_API_AVAILABILITY
+        ):
+            validator = WorkflowValidator(
+                data={**self.valid_data, "type": "inbox"}, context=self.context
+            )
+
+            assert validator.is_valid() is True
+
+            workflow = validator.create(validator.validated_data)
+
+        assert workflow.type == WorkflowType.INBOX
 
     def test_create_workflow_limit_only_counts_alerts(self) -> None:
         self.create_workflow(organization=self.organization, type=WorkflowType.INBOX)
@@ -929,16 +959,77 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert workflow.id == self.workflow.id
         assert workflow.name == "Update Test"
 
-    def test_update_workflow_ignores_type_field(
+    def test_update_accepts_matching_type(self, mock_action_validator: mock.MagicMock) -> None:
+        validator = WorkflowValidator(
+            data={**self.valid_data, "type": "alert"}, context=self.context
+        )
+
+        assert validator.is_valid() is True
+
+        workflow = validator.update(self.workflow, validator.validated_data)
+
+        assert workflow.type == Workflow.Type.ALERT
+
+    def test_update_rejects_different_type(self, mock_action_validator: mock.MagicMock) -> None:
+        validator = WorkflowValidator(
+            data={**self.valid_data, "type": "inbox"}, context=self.context
+        )
+
+        assert validator.is_valid() is False
+
+        assert validator.errors == {"type": ["Workflow type cannot be changed"]}
+
+    def test_update_rejects_alert_type_on_non_alert_workflow(
         self, mock_action_validator: mock.MagicMock
     ) -> None:
-        self.valid_data["type"] = WorkflowType.INBOX
+        self.workflow.update(type=Workflow.Type.INBOX)
+
+        validator = WorkflowValidator(
+            data={**self.valid_data, "type": "alert"}, context=self.context
+        )
+
+        assert validator.is_valid() is False
+
+        assert validator.errors == {"type": ["Workflow type cannot be changed"]}
+
+    def test_update_without_type_keeps_stored_type(
+        self, mock_action_validator: mock.MagicMock
+    ) -> None:
+        self.workflow.update(type=WorkflowType.INBOX)
 
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
 
         assert validator.is_valid() is True
 
         workflow = validator.update(self.workflow, validator.validated_data)
+
+        workflow.refresh_from_db()
+
+        assert workflow.type == WorkflowType.INBOX
+
+    def test_update_never_writes_type(self, mock_action_validator: mock.MagicMock) -> None:
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+
+        assert validator.is_valid() is True
+
+        workflow = validator.update(
+            self.workflow, {**validator.validated_data, "type": Workflow.Type.INBOX}
+        )
+
+        workflow.refresh_from_db()
+
+        assert workflow.type == WorkflowType.INBOX
+
+    def test_update_never_writes_type(self, mock_action_validator: mock.MagicMock) -> None:
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+
+        assert validator.is_valid() is True
+
+        workflow = validator.update(
+            self.workflow, {**validator.validated_data, "type": Workflow.Type.INBOX}
+        )
+
+        workflow.refresh_from_db()
 
         assert workflow.type == WorkflowType.ALERT
 

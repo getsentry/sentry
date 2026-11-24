@@ -1,3 +1,4 @@
+import builtins
 from typing import Any, NotRequired, TypedDict, TypeVar
 
 from django.db import router, transaction
@@ -11,6 +12,7 @@ from sentry.auth.principal import acting_user_id, has_user
 from sentry.db import models
 from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
+from sentry.workflow_engine.endpoints.utils.workflow_filters import get_excluded_workflow_types
 from sentry.workflow_engine.endpoints.validators.api_docs_help_text import (
     ACTION_FILTERS_HELP_TEXT,
     OWNER_HELP_TEXT,
@@ -37,7 +39,11 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition, get_internal_condition_types
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowType
+from sentry.workflow_engine.types import (
+    DataConditionHandler,
+    WorkflowEngineAPIOperation,
+    WorkflowType,
+)
 
 InputData = dict[str, Any]
 ListInputData = list[InputData]
@@ -70,6 +76,22 @@ class WorkflowInput(TypedDict):
     actionFilters: NotRequired[list[ActionFilterInput]]
     owner: NotRequired[str | int | None]
     detectorIds: NotRequired[list[int]]
+    type: NotRequired[str]
+
+
+class WorkflowTypeField(serializers.CharField):
+    """
+    If a type is omitted, we MUST default to `alert` or it will break
+    callers prior to this field being supported
+    """
+
+    def get_default(self) -> str:
+        workflow: Workflow | None = self.context.get("workflow")
+
+        if workflow is None:
+            return WorkflowType.ALERT
+
+        return workflow.type
 
 
 class WorkflowValidator(CamelSnakeSerializer[Any]):
@@ -108,6 +130,10 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         allow_null=True,
         help_text=OWNER_HELP_TEXT,
     )
+    type = WorkflowTypeField(
+        required=False,
+        help_text="The type of the alert. It cannot be changed after the workflow is created.",
+    )
 
     def _split_action_and_condition_group(
         self, action_filter: dict[str, Any]
@@ -123,6 +149,30 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         schema = Workflow.config_schema
         validate_json_schema(value, schema)
         return value
+
+    def validate_type(self, value: str) -> str:
+        workflow: Workflow | None = self.context.get("workflow")
+
+        if workflow is None:
+            self._validate_type_can_be_created(value)
+        else:
+            self._validate_type_is_unchanged(value, workflow)
+
+        return value
+
+    def _validate_type_can_be_created(self, workflow_type: str) -> None:
+        excluded_types = get_excluded_workflow_types(
+            WorkflowEngineAPIOperation.POST,
+            self.context["organization"],
+            actor=self.context["request"].user,
+        )
+
+        if workflow_type not in WorkflowType or workflow_type in excluded_types:
+            raise serializers.ValidationError(f"Invalid workflow type: {workflow_type}")
+
+    def _validate_type_is_unchanged(self, workflow_type: str, workflow: Workflow) -> None:
+        if workflow_type != workflow.type:
+            raise serializers.ValidationError("Workflow type cannot be changed")
 
     def validate_triggers(self, value: InputData) -> InputData:
         if "workflow" in self.context:
@@ -195,7 +245,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         self,
         input_data: dict[str, Any],
         validator: serializers.Serializer[Any],
-        Model: type[ModelType],
+        Model: builtins.type[ModelType],
     ) -> ModelType:
         input_id = input_data.get("id")
         instance = None
@@ -370,6 +420,9 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         # The workflow's primary key comes from the URL and must never be written from the payload.
         validated_data.pop("id", None)
 
+        # A workflow keeps the type it was created with.
+        validated_data.pop("type", None)
+
         detector_ids = None
         if "detector_ids" in validated_data:
             detector_ids = validated_data.pop("detector_ids")
@@ -465,6 +518,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
             workflow = Workflow.objects.create(
                 name=validated_value["name"],
+                type=validated_value["type"],
                 enabled=validated_value["enabled"],
                 config=validated_value.get("config", {}),
                 organization_id=organization.id,

@@ -299,6 +299,54 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         assert self.workflow.name == "Test Workflow"
 
+    def test_update_accepts_matching_type(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data={**self.valid_workflow, "name": "Updated Workflow", "type": "alert"},
+        )
+
+        assert response.data["type"] == "alert"
+
+        self.workflow.refresh_from_db()
+
+        assert self.workflow.name == "Updated Workflow"
+
+    def test_update_rejects_different_type(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data={**self.valid_workflow, "name": "Updated Workflow", "type": "inbox"},
+            status_code=400,
+        )
+
+        assert response.data == {"type": ["Workflow type cannot be changed"]}
+
+        self.workflow.refresh_from_db()
+
+        assert self.workflow.name == "Test Workflow"
+
+        assert self.workflow.type == Workflow.Type.ALERT
+
+    def test_type_open_for_put_rejects_a_different_type(self) -> None:
+        self.workflow.update(type=Workflow.Type.INBOX)
+
+        with override_workflow_api_availability(Workflow.Type.INBOX, GET_AND_PUT_ONLY_AVAILABILITY):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.workflow.id,
+                raw_data={**self.valid_workflow, "name": "Updated Workflow", "type": "alert"},
+                status_code=400,
+            )
+
+        assert response.data == {"type": ["Workflow type cannot be changed"]}
+
+        self.workflow.refresh_from_db()
+
+        assert self.workflow.name == "Test Workflow"
+
+        assert self.workflow.type == Workflow.Type.INBOX
+
     def test_team_admin_can_update_project_scoped_workflow(self) -> None:
         detector = self.create_detector(project=self.project)
         self.create_detector_workflow(workflow=self.workflow, detector=detector)

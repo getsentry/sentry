@@ -8,6 +8,13 @@ from sentry.workflow_engine.types import (
 
 @workflow_settings_registry.register(WorkflowType.ALERT)
 class AlertWorkflowSettings(WorkflowSettings):
+    """
+    Prior to the `type` field being supported, all workflows were implicitly `alert` workflows
+
+    Because of this, the default availability of alerts must not be changed or it will break
+    existing callers
+    """
+
     pass
 
 
