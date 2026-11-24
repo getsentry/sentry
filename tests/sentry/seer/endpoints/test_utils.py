@@ -7,6 +7,7 @@ from sentry.auth.access import from_user
 from sentry.seer.endpoints.utils import ResolvedSeerRun, authorize_seer_run, resolve_seer_run
 from sentry.seer.models.run import SeerAgentRun, SeerRunMirrorStatus
 from sentry.testutils.cases import TestCase
+from sentry.users.models.user import User
 
 
 class ResolveSeerRunTest(TestCase):
@@ -183,7 +184,14 @@ class AuthorizeSeerRunTest(TestCase):
         run = self.create_seer_run(seer_run_state_id=555, user_id=user_id)
         self.create_seer_agent_run(run=run, source="autofix", group=self.group)
 
-    def _authorize(self, user, *, scopes=None, publish: bool = False, run_id: str = "555"):
+    def _authorize(
+        self,
+        user: User,
+        *,
+        scopes: set[str] | None = None,
+        publish: bool = False,
+        run_id: str = "555",
+    ) -> ResolvedSeerRun | Response:
         return authorize_seer_run(
             run_id,
             self.organization,
@@ -192,7 +200,7 @@ class AuthorizeSeerRunTest(TestCase):
             publish=publish,
         )
 
-    def _assert_forbidden(self, result) -> None:
+    def _assert_forbidden(self, result: ResolvedSeerRun | Response) -> None:
         assert isinstance(result, Response)
         assert result.status_code == status.HTTP_403_FORBIDDEN
 
