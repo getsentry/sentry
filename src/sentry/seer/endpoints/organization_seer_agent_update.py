@@ -97,7 +97,6 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
             organization,
             request.access,
             user_id,
-            write=True,
             publish=payload_type in CODING_PAYLOAD_TYPES,
         )
         if isinstance(resolved, Response):

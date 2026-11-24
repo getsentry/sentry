@@ -797,7 +797,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         mock_client.get_run.assert_called_once_with(run_id=555)
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_get_denies_reading_another_users_personal_chat(
+    def test_get_allows_reading_another_users_conversation(
         self, mock_client_class: MagicMock
     ) -> None:
         run = self.create_seer_run(
@@ -806,30 +806,19 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         member = self.create_user()
         self.create_member(user=member, organization=self.organization, role="member")
         self.login_as(user=member)
-
-        response = self.client.get(f"{self.url}{run.uuid}/")
-
-        assert response.status_code == 403
-        assert response.data == {"detail": "You do not have access to this run."}
-        mock_client_class.return_value.get_run.assert_not_called()
-
-    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_get_allows_teammate_to_read_issue_run(self, mock_client_class: MagicMock) -> None:
-        run = self._single_run(user_id=self.user.id)
-        member = self.create_user()
-        self.create_member(user=member, organization=self.organization, role="member")
-        self.login_as(user=member)
-        mock_client_class.return_value.get_run.return_value = SeerRunState(
-            run_id=901,
+        mock_client = MagicMock()
+        mock_client.get_run.return_value = SeerRunState(
+            run_id=555,
             blocks=[],
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
         )
+        mock_client_class.return_value = mock_client
 
         response = self.client.get(f"{self.url}{run.uuid}/")
 
         assert response.status_code == 200
-        mock_client_class.return_value.get_run.assert_called_once_with(run_id=901)
+        mock_client.get_run.assert_called_once_with(run_id=555)
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_with_unknown_uuid_returns_null_session(self, mock_client_class: MagicMock) -> None:

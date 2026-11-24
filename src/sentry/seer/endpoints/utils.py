@@ -159,18 +159,14 @@ def resolve_seer_run(
     return _resolve_uuid_run(run, for_continue=for_continue)
 
 
-def _has_run_scope(access: Access, project: Project | None, *, write: bool, publish: bool) -> bool:
+def _has_run_scope(access: Access, project: Project | None, *, publish: bool) -> bool:
     scopes = PUBLISH_SCOPES if publish else AUTOFIX_RUN_SCOPES
     if project is None:
-        return not write or any(access.has_scope(scope) for scope in scopes)
-    if not write:
-        return access.has_project_access(project)
+        return any(access.has_scope(scope) for scope in scopes)
     return access.has_any_project_scope(project, scopes)
 
 
-def _can_access_run(
-    run: SeerRun, access: Access, user_id: int | None, *, write: bool, publish: bool
-) -> bool:
+def _can_act_on_run(run: SeerRun, access: Access, user_id: int | None, *, publish: bool) -> bool:
     is_owner = user_id is not None and run.user_id == user_id
     try:
         agent: SeerAgentRun | None = run.agent
@@ -180,14 +176,12 @@ def _can_access_run(
     if agent is not None and agent.group_id is not None:
         if agent.group is None:
             return is_owner
-        return is_owner or _has_run_scope(access, agent.group.project, write=write, publish=publish)
+        return is_owner or _has_run_scope(access, agent.group.project, publish=publish)
     if run.user_id is not None:
         return is_owner
     if agent is not None and agent.project_id is not None:
-        return agent.project is not None and _has_run_scope(
-            access, agent.project, write=write, publish=publish
-        )
-    return _has_run_scope(access, None, write=write, publish=publish)
+        return agent.project is not None and _has_run_scope(access, agent.project, publish=publish)
+    return _has_run_scope(access, None, publish=publish)
 
 
 def authorize_seer_run(
@@ -196,7 +190,6 @@ def authorize_seer_run(
     access: Access,
     user_id: int | None,
     *,
-    write: bool,
     publish: bool = False,
 ) -> ResolvedSeerRun | Response:
     parsed = _parse_run_id(run_id)
@@ -210,15 +203,15 @@ def authorize_seer_run(
         .first()  # noqa: S035
     )
     if run is None:
-        if not isinstance(parsed, int):
-            return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
-        return _no_access_response() if write else ResolvedSeerRun(parsed, None)
+        if isinstance(parsed, int):
+            return _no_access_response()
+        return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
 
-    if not _can_access_run(run, access, user_id, write=write, publish=publish):
+    if not _can_act_on_run(run, access, user_id, publish=publish):
         return _no_access_response()
     if isinstance(parsed, int):
         return ResolvedSeerRun(parsed, str(run.uuid))
-    return _resolve_uuid_run(run, for_continue=write)
+    return _resolve_uuid_run(run, for_continue=True)
 
 
 _RpcReturn = TypeVar("_RpcReturn")
