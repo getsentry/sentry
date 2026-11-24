@@ -21,6 +21,7 @@ from sentry.workflow_engine.defaults.detectors import (
     ensure_default_all_projects_detector,
     ensure_default_detectors,
     ensure_default_organization_detectors,
+    ensure_organization_activity_detector,
 )
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.types import (
@@ -134,7 +135,42 @@ class TestEnsureDefaultDetectors(TestCase):
         ).exists()
 
 
+class TestOrganizationActivityDetector(TestCase):
+    def test_reuses_only_the_owning_organizations_detector(self) -> None:
+        detector = ensure_organization_activity_detector(self.organization.id)
+        assert ensure_organization_activity_detector(self.organization.id) == detector
+        other = ensure_organization_activity_detector(self.create_organization().id)
+        assert other != detector
+        assert detector.project_id is None
+        assert detector.config == {"organization_id": self.organization.id}
+        assert not any(detector.settings.api_availability.values())
+
+
 class TestEnsureDefaultDetectorsConcurrency(TransactionTestCase):
+    def test_concurrent_activity_detector_creation(self) -> None:
+        org = self.create_organization()
+        db = router.db_for_write(Detector)
+        started = Event()
+        worker_pid: list[int] = []
+
+        def ensure_in_other_connection() -> Detector:
+            try:
+                with connections[db].cursor() as cursor:
+                    cursor.execute("SELECT pg_backend_pid()")
+                    worker_pid.append(cursor.fetchone()[0])
+                started.set()
+                return ensure_organization_activity_detector(org.id)
+            finally:
+                connections.close_all()
+
+        with ContextPropagatingThreadPoolExecutor(max_workers=1) as executor:
+            with transaction.atomic(using=db):
+                first = ensure_organization_activity_detector(org.id)
+                future = executor.submit(ensure_in_other_connection)
+                assert started.wait(timeout=10)
+                self._wait_for_lock_wait(db, worker_pid[0])
+            assert future.result(timeout=10) == first
+
     def test_concurrent_caller_waits_for_detectors(self) -> None:
         project = self.create_project(create_default_detectors=False)
         db = router.db_for_write(Project)
