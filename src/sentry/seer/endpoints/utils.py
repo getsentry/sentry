@@ -92,44 +92,22 @@ def _no_access_response() -> Response:
     )
 
 
-def resolve_seer_run(
-    run_id: str | int,
-    organization: Organization,
-    *,
-    for_continue: bool = False,
-    user_id: int | None = None,
-) -> ResolvedSeerRun | Response:
-    """Resolve a client-facing run id (numeric ``seer_run_state_id`` or
-    ``SeerRun.uuid``) to a :class:`ResolvedSeerRun`, or an error ``Response``
-    (narrow with ``isinstance``). When ``user_id`` is supplied, the mirrored run
-    must belong to that user. A numeric id with no ``SeerRun`` row is rejected
-    in that case. For a not-ready run, a poll gets the 200
-    ``{"session": {"status": ...}}`` shape; ``for_continue`` instead gets 409
-    (still mirroring) or 422 (mirror failed).
-    """
+def _parse_run_id(run_id: str | int) -> int | uuid_module.UUID | Response:
     try:
         seer_run_state_id = int(run_id)
     except (TypeError, ValueError):
         seer_run_state_id = None
-
     if seer_run_state_id is not None:
         if not validate_bigint(seer_run_state_id):
             return Response({"detail": "Invalid run_id"}, status=status.HTTP_400_BAD_REQUEST)
-        run = get_seer_run(seer_run_state_id, organization)
-        if user_id is not None and (run is None or run.user_id != user_id):
-            return _no_access_response()
-        return ResolvedSeerRun(seer_run_state_id, str(run.uuid) if run else None)
-
+        return seer_run_state_id
     try:
-        run_uuid = uuid_module.UUID(str(run_id))
+        return uuid_module.UUID(str(run_id))
     except (TypeError, ValueError):
         return Response({"detail": "Invalid run_id"}, status=status.HTTP_400_BAD_REQUEST)
 
-    run = SeerRun.objects.get_or_none(uuid=run_uuid, organization=organization)
-    if run is None:
-        return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
-    if user_id is not None and run.user_id != user_id:
-        return _no_access_response()
+
+def _resolve_uuid_run(run: SeerRun, *, for_continue: bool) -> ResolvedSeerRun | Response:
     if run.mirror_status == SeerRunMirrorStatus.FAILED:
         if for_continue:
             return Response(
@@ -147,29 +125,42 @@ def resolve_seer_run(
     return ResolvedSeerRun(run.seer_run_state_id, str(run.uuid))
 
 
-def authorize_seer_run(
+def resolve_seer_run(
     run_id: str | int,
     organization: Organization,
-    access: Access,
-    user_id: int | None,
     *,
-    write: bool,
-    publish: bool = False,
+    for_continue: bool = False,
+    user_id: int | None = None,
 ) -> ResolvedSeerRun | Response:
-    resolved = resolve_seer_run(run_id, organization, for_continue=write)
-    if isinstance(resolved, Response):
-        return resolved
+    """Resolve a client-facing run id (numeric ``seer_run_state_id`` or
+    ``SeerRun.uuid``) to a :class:`ResolvedSeerRun`, or an error ``Response``
+    (narrow with ``isinstance``). When ``user_id`` is supplied, the mirrored run
+    must belong to that user. A numeric id with no ``SeerRun`` row is rejected
+    in that case. For a not-ready run, a poll gets the 200
+    ``{"session": {"status": ...}}`` shape; ``for_continue`` instead gets 409
+    (still mirroring) or 422 (mirror failed).
+    """
+    parsed = _parse_run_id(run_id)
+    if isinstance(parsed, Response):
+        return parsed
 
-    run = (
-        SeerRun.objects.filter(
-            organization=organization, seer_run_state_id=resolved.seer_run_state_id
-        )
-        .select_related("agent__group__project")
-        .first()  # noqa: S035
-    )
+    if isinstance(parsed, int):
+        run = get_seer_run(parsed, organization)
+        if user_id is not None and (run is None or run.user_id != user_id):
+            return _no_access_response()
+        return ResolvedSeerRun(parsed, str(run.uuid) if run else None)
+
+    run = SeerRun.objects.get_or_none(uuid=parsed, organization=organization)
     if run is None:
-        return _no_access_response() if write else resolved
+        return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
+    if user_id is not None and run.user_id != user_id:
+        return _no_access_response()
+    return _resolve_uuid_run(run, for_continue=for_continue)
 
+
+def _can_access_run(
+    run: SeerRun, access: Access, user_id: int | None, *, write: bool, publish: bool
+) -> bool:
     is_owner = user_id is not None and run.user_id == user_id
     try:
         agent: SeerAgentRun | None = run.agent
@@ -179,18 +170,45 @@ def authorize_seer_run(
     if agent is not None and agent.group_id is not None:
         group = agent.group
         if group is None:
-            allowed = is_owner
-        elif write:
+            return is_owner
+        if write:
             scopes = PUBLISH_SCOPES if publish else AUTOFIX_RUN_SCOPES
-            allowed = is_owner or access.has_any_project_scope(group.project, scopes)
-        else:
-            allowed = is_owner or access.has_project_access(group.project)
-    elif write:
-        allowed = is_owner
-    else:
-        allowed = run.user_id is None or is_owner
+            return is_owner or access.has_any_project_scope(group.project, scopes)
+        return is_owner or access.has_project_access(group.project)
+    if write:
+        return is_owner
+    return run.user_id is None or is_owner
 
-    return resolved if allowed else _no_access_response()
+
+def authorize_seer_run(
+    run_id: str | int,
+    organization: Organization,
+    access: Access,
+    user_id: int | None,
+    *,
+    write: bool,
+    publish: bool = False,
+) -> ResolvedSeerRun | Response:
+    parsed = _parse_run_id(run_id)
+    if isinstance(parsed, Response):
+        return parsed
+
+    lookup = {"seer_run_state_id": parsed} if isinstance(parsed, int) else {"uuid": parsed}
+    run = (
+        SeerRun.objects.filter(organization=organization, **lookup)
+        .select_related("agent__group__project")
+        .first()  # noqa: S035
+    )
+    if run is None:
+        if not isinstance(parsed, int):
+            return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
+        return _no_access_response() if write else ResolvedSeerRun(parsed, None)
+
+    if not _can_access_run(run, access, user_id, write=write, publish=publish):
+        return _no_access_response()
+    if isinstance(parsed, int):
+        return ResolvedSeerRun(parsed, str(run.uuid))
+    return _resolve_uuid_run(run, for_continue=write)
 
 
 _RpcReturn = TypeVar("_RpcReturn")

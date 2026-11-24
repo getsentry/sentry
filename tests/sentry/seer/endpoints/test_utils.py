@@ -280,3 +280,31 @@ class AuthorizeSeerRunTest(TestCase):
             self._authorize(self.owner, write=True, scopes=seer_only, publish=True),
             ResolvedSeerRun,
         )
+
+    def test_pending_personal_chat_forbidden_before_status(self) -> None:
+        run = self.create_seer_run(user_id=self.owner.id, seer_run_state_id=None)
+
+        for write in (False, True):
+            result = authorize_seer_run(
+                str(run.uuid),
+                self.organization,
+                from_user(self.teammate, self.organization),
+                self.teammate.id,
+                write=write,
+            )
+            assert isinstance(result, Response)
+            assert result.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_pending_personal_chat_owner_sees_processing(self) -> None:
+        run = self.create_seer_run(user_id=self.owner.id, seer_run_state_id=None)
+
+        result = authorize_seer_run(
+            str(run.uuid),
+            self.organization,
+            from_user(self.owner, self.organization),
+            self.owner.id,
+            write=False,
+        )
+
+        assert isinstance(result, Response)
+        assert result.data == {"session": {"status": "processing"}}
