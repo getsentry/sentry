@@ -940,6 +940,40 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
             replica = ServiceAccountTokenReplica.objects.get(token_id=active.id)
             assert replica.date_deactivated == active.date_deactivated
 
+    def test_delete_writes_audit_log_when_outbox_flush_fails(self) -> None:
+        stored = stored_token_fields("plaintext-deploys")
+        with outbox_runner():
+            token = ServiceAccountToken.objects.create(
+                service_account=self.service_account,
+                organization_id=self.organization.id,
+                name="deploys",
+                token_hashed=stored.token_hashed,
+                token_last_characters=stored.token_last_characters,
+                scope_list=["project:read"],
+                created_by=self.user,
+            )
+
+        with (
+            self.feature(FEATURE_FLAG),
+            mock.patch(
+                "sentry.service_accounts.models.ServiceAccountToken.handle_async_replication",
+                side_effect=Exception("cell unavailable"),
+            ),
+        ):
+            self.get_success_response(
+                self.organization.slug, self.service_account.id, method="delete", status_code=204
+            )
+
+        token.refresh_from_db()
+        assert token.date_deactivated is not None
+        assert AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("SERVICE_ACCOUNT_REMOVE"),
+            target_object=self.service_account.id,
+        ).exists()
+        assert AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_REMOVE"), target_object=token.id
+        ).exists()
+
     def test_delete_clears_all_projects(self) -> None:
         self.service_account.update(all_projects=True)
 
