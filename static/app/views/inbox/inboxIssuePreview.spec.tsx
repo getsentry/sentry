@@ -127,8 +127,13 @@ describe('InboxIssuePreview', () => {
 
   it('links to the linked investigation and the top related issues', async () => {
     const relatedIssues = ['11', '12', '13'].map(id => ({
-      issue: GroupFixture({id, shortId: `CHECKOUT-${id}`, title: `Checkout error ${id}`}),
-      relations: [{type: 'same_trace'}],
+      issue: GroupFixture({
+        id,
+        shortId: `CHECKOUT-${id}`,
+        title: `Checkout error ${id}`,
+        metadata: {type: 'TimeoutError', value: `Checkout timed out after ${id}s`},
+      }),
+      relations: [{type: 'similar_stacktrace', score: 0.9432}, {type: 'same_trace'}],
     }));
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/related/`,
@@ -143,6 +148,7 @@ describe('InboxIssuePreview', () => {
         ],
         meta: {
           types: [
+            {type: 'similar_stacktrace', status: 'ok'},
             {type: 'same_trace', status: 'ok'},
             {type: 'investigations', status: 'ok'},
           ],
@@ -153,9 +159,10 @@ describe('InboxIssuePreview', () => {
     render(<InboxIssuePreview groupId={group.id} />, {organization});
 
     const sidebar = await screen.findByRole('complementary', {name: 'Issue overview'});
-    expect(
-      await within(sidebar).findByRole('link', {name: 'Payment timeouts'})
-    ).toHaveAttribute(
+    const investigationLink = await within(sidebar).findByRole('link', {
+      name: 'Payment timeouts',
+    });
+    expect(investigationLink).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/seer/investigations/5172/`
     );
@@ -169,6 +176,21 @@ describe('InboxIssuePreview', () => {
     expect(
       within(sidebar).queryByRole('link', {name: 'CHECKOUT-13 – Checkout error 13'})
     ).not.toBeInTheDocument();
+
+    // Hovering a row explains why it's related
+    await userEvent.hover(investigationLink);
+    expect(
+      await screen.findByText('Its timeouts start with the deploy.')
+    ).toBeInTheDocument();
+    await userEvent.hover(
+      within(sidebar).getByRole('link', {name: 'CHECKOUT-11 – Checkout error 11'})
+    );
+    expect(
+      await screen.findByText('Similar stack trace (94%) · Same trace')
+    ).toBeInTheDocument();
+    // Shown like the issue stream: the error type, then the message
+    expect(screen.getByText('TimeoutError')).toBeInTheDocument();
+    expect(screen.getByText('Checkout timed out after 11s')).toBeInTheDocument();
   });
 
   it('shows an error when every related issue type that applies failed', async () => {
