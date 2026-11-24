@@ -53,6 +53,8 @@ class RpcMemberSsoState(RpcModel):
     is_valid: bool = False
     # The auth provider's `sso_session_duration`
     session_duration: int | None = None
+    # The auth provider's provider's `requires_refresh`
+    requires_refresh: bool = False
 
 
 class RpcAuthState(RpcModel):

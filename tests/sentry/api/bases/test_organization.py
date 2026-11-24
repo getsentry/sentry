@@ -41,7 +41,9 @@ from sentry.api.permissions import SentryPermission
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, ServiceAccountAccess, from_request
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.principal import set_request_principal
+from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import Superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
@@ -81,6 +83,7 @@ from sentry.organizations.services.organization.model import (
 from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
 from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
+from sentry.tasks.auth.check_auth import check_auth_identities
 from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -786,7 +789,9 @@ class DetermineAccessSsoSessionTest(TestCase):
         self.auth_provider = self.create_auth_provider(
             organization_id=self.org.id, provider="dummy"
         )
-        self.create_auth_identity(auth_provider=self.auth_provider, user=self.user)
+        self.auth_identity = self.create_auth_identity(
+            auth_provider=self.auth_provider, user=self.user
+        )
         self.create_member(
             user=self.user,
             organization=self.org,
@@ -829,6 +834,60 @@ class DetermineAccessSsoSessionTest(TestCase):
 
         self.set_sso_session_age(timedelta(hours=25))
         with pytest.raises(SsoRequired):
+            OrganizationPermission().determine_access(self.request, self.org)
+
+    @override_options({"auth.sso-session.no-limit-with-refresh": True})
+    def test_no_limit_with_refresh(self) -> None:
+        self.set_sso_session_age(SSO_EXPIRY_TIME + timedelta(hours=1))
+        OrganizationPermission().determine_access(self.request, self.org)
+
+        # The auth provider's own duration still applies
+        self.set_sso_session_duration(timedelta(days=1))
+        with pytest.raises(SsoRequired):
+            OrganizationPermission().determine_access(self.request, self.org)
+
+    @override_options({"auth.sso-session.no-limit-with-refresh": True})
+    def test_no_limit_with_refresh_ends_with_rejected_refresh(self) -> None:
+        self.set_sso_session_age(SSO_EXPIRY_TIME + timedelta(hours=1))
+        OrganizationPermission().determine_access(self.request, self.org)
+
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            mock.patch.object(DummyProvider, "refresh_identity", side_effect=IdentityNotValid),
+        ):
+            check_auth_identities(auth_identity_ids=[self.auth_identity.id])
+
+        with pytest.raises(SsoRequired):
+            OrganizationPermission().determine_access(self.request, self.org)
+
+    @override_options({"auth.sso-session.no-limit-with-refresh": True})
+    def test_no_limit_with_refresh_ends_without_successful_refresh(self) -> None:
+        self.set_sso_session_age(SSO_EXPIRY_TIME + timedelta(hours=1))
+
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            mock.patch.object(DummyProvider, "refresh_identity", side_effect=Exception),
+            mock.patch("sentry.tasks.auth.check_auth.in_test_environment", return_value=False),
+        ):
+            check_auth_identities(auth_identity_ids=[self.auth_identity.id])
+
+        # A failed refresh doesn't end the session on its own
+        OrganizationPermission().determine_access(self.request, self.org)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.auth_identity.update(last_verified=timezone.now() - timedelta(days=8))
+
+        with pytest.raises(SsoRequired):
+            OrganizationPermission().determine_access(self.request, self.org)
+
+    @override_options({"auth.sso-session.no-limit-with-refresh": True})
+    def test_limit_without_refresh(self) -> None:
+        self.set_sso_session_age(SSO_EXPIRY_TIME + timedelta(hours=1))
+
+        with (
+            mock.patch.object(DummyProvider, "requires_refresh", False),
+            pytest.raises(SsoRequired),
+        ):
             OrganizationPermission().determine_access(self.request, self.org)
 
 
