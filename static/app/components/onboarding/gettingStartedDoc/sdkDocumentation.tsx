@@ -37,12 +37,14 @@ export function SdkDocumentation({
     return <LoadingIndicator />;
   }
 
+  // isError only reflects the project keys request; docs import failures resolve to `docs === null`.
   if (isError) {
     return (
       <LoadingError
         message={t(
-          'We encountered an issue while loading the getting started documentation for this platform.'
+          'We encountered an issue while loading Client Keys for this getting started documentation.'
         )}
+        onRetry={refetch}
       />
     );
   }

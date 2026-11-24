@@ -144,6 +144,8 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const TabName: Partial<Record<Tab, string>> = {
     [Tab.DETAILS]: issueTypeConfig.customCopy.eventUnits,
     [Tab.EVENTS]: issueTypeConfig.customCopy.eventUnits,
+    [Tab.CHECK_INS]: t('Check-Ins'),
+    [Tab.UPTIME_CHECKS]: t('Uptime Checks'),
     [Tab.REPLAYS]: t('Replays'),
     [Tab.ATTACHMENTS]: t('Attachments'),
     [Tab.USER_FEEDBACK]: t('Feedback'),

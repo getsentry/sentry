@@ -139,6 +139,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/detectors/$detectorId/'
   | '/organizations/$organizationIdOrSlug/detectors/$detectorId/anomaly-data/'
   | '/organizations/$organizationIdOrSlug/detectors/count/'
+  | '/organizations/$organizationIdOrSlug/detectors/metric-detector-quota/'
   | '/organizations/$organizationIdOrSlug/discover/homepage/'
   | '/organizations/$organizationIdOrSlug/discover/saved/'
   | '/organizations/$organizationIdOrSlug/discover/saved/$id/starred/'

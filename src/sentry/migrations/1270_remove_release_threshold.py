@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1268_artifactbundle_file_nullable"),
+        ("sentry", "1269_add_eventattachment_crash_report_index"),
     ]
 
     operations = [

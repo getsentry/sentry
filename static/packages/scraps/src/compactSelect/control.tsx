@@ -501,7 +501,10 @@ export function Control<Value extends SelectKey>({
 
   return (
     <ControlContext value={contextValue}>
-      <Container width="max-content" position="relative" {...wrapperProps}>
+      {/* A flex wrapper hugs the trigger. As a block, it would put the inline
+          trigger on a text line, and a trigger with no text (icons, avatars)
+          would sit on the baseline with extra space below it. */}
+      <Container display="flex" width="max-content" position="relative" {...wrapperProps}>
         {trigger ? (
           // TriggerProps constrains ref forwarding; the runtime element is a button.
           trigger(mergedTriggerProps as TriggerProps, overlayIsOpen)
