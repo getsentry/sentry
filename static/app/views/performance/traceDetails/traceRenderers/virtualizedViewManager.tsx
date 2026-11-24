@@ -1894,7 +1894,8 @@ export class VirtualizedViewManager {
   /**
    * Draws the recorded position of a span shifted for clock drift, with a connector to where it is
    * shown now. If the recorded position is out of view or inside a collapsed gap, where its position
-   * would be meaningless, only the connector is drawn, from the edge of the view it lies beyond.
+   * would be meaningless, only the connector is drawn. The connector is clamped to the view, so it
+   * runs from the edge the recorded position lies beyond.
    */
   drawClockDriftGhost(ghost: RegisteredClockDriftGhost | undefined, index: number) {
     if (!ghost) {
@@ -1918,27 +1919,11 @@ export class VirtualizedViewManager {
 
     if (outOfView || collapsed) {
       ghost.ghostRef.style.display = 'none';
-      if (movedRight) {
-        this.drawClockDriftConnector(
-          ghost.connectorRef,
-          CLOCK_DRIFT_EDGE_PADDING_PX,
-          targetLeft,
-          'right'
-        );
-      } else {
-        this.drawClockDriftConnector(
-          ghost.connectorRef,
-          targetRight,
-          width - CLOCK_DRIFT_EDGE_PADDING_PX,
-          'left'
-        );
-      }
-      return;
+    } else {
+      ghost.ghostRef.style.display = '';
+      ghost.ghostRef.style.transform = `translateX(${left}px)`;
+      ghost.ghostRef.style.width = `${Math.max(right - left, CLOCK_DRIFT_GHOST_MIN_WIDTH_PX)}px`;
     }
-
-    ghost.ghostRef.style.display = '';
-    ghost.ghostRef.style.transform = `translateX(${left}px)`;
-    ghost.ghostRef.style.width = `${Math.max(right - left, CLOCK_DRIFT_GHOST_MIN_WIDTH_PX)}px`;
 
     if (movedRight) {
       this.drawClockDriftConnector(ghost.connectorRef, right, targetLeft, 'right');
@@ -1979,6 +1964,10 @@ export class VirtualizedViewManager {
     to: number,
     direction: 'left' | 'right'
   ) {
+    const width = this.view.trace_physical_space.width;
+    from = clamp(from, CLOCK_DRIFT_EDGE_PADDING_PX, width - CLOCK_DRIFT_EDGE_PADDING_PX);
+    to = clamp(to, CLOCK_DRIFT_EDGE_PADDING_PX, width - CLOCK_DRIFT_EDGE_PADDING_PX);
+
     if (to - from < CLOCK_DRIFT_CONNECTOR_MIN_WIDTH_PX) {
       connector.style.display = 'none';
       return;

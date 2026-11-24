@@ -532,6 +532,31 @@ describe('VirtualizedViewManger', () => {
       expect(connectorRef).toHaveStyle({width: `${1000 - 4 - 150}px`});
     });
 
+    it('hides the connector if a span shifted later was recorded past the right edge', () => {
+      // The span and where it was recorded are both later than the view
+      const {ghostRef, connectorRef} = drawGhost([1500, 50], 300);
+
+      expect(ghostRef).toHaveStyle({display: 'none'});
+      expect(connectorRef).toHaveStyle({display: 'none'});
+    });
+
+    it('hides the connector if a span shifted earlier was recorded past the left edge', () => {
+      // The span and where it was recorded are both earlier than the view
+      const {ghostRef, connectorRef} = drawGhost([-1500, 50], -300);
+
+      expect(ghostRef).toHaveStyle({display: 'none'});
+      expect(connectorRef).toHaveStyle({display: 'none'});
+    });
+
+    it('ends the connector at the edge of the view if the span is out of view', () => {
+      const {ghostRef, connectorRef} = drawGhost([1500, 50], 1000);
+
+      expect(ghostRef).toHaveStyle({display: ''});
+      expect(connectorRef.dataset.direction).toBe('right');
+      expect(connectorRef).toHaveStyle({transform: 'translateX(550px)'});
+      expect(connectorRef).toHaveStyle({width: `${1000 - 4 - 550}px`});
+    });
+
     it('ends the connector before the duration label of the span', () => {
       const manager = makeManager();
       const space: [number, number] = [800, 100];
@@ -539,7 +564,7 @@ describe('VirtualizedViewManger', () => {
         errors: new Set(),
         occurrences: new Set(),
         clockDriftOffsetMs: 700,
-        clockDriftCorrection: {offsetMs: 700},
+        isClockDriftCorrectionRoot: true,
         makeBarTextColor: () => '',
       } as unknown as BaseNode;
       manager.columns.list.column_nodes[0] = node;
