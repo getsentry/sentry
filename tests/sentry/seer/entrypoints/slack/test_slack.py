@@ -65,11 +65,7 @@ from sentry.seer.entrypoints.cache import (
     SeerOperatorAutofixCache,
     SeerOperatorInvestigationCache,
 )
-from sentry.seer.entrypoints.operator import (
-    SeerAutofixOperator,
-    process_autofix_updates,
-    process_investigation_updates,
-)
+from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.entrypoints.registry import investigation_entrypoint_registry
 from sentry.seer.entrypoints.slack.cache import (
     SlackSeerAgentMessageCache,
@@ -119,7 +115,6 @@ from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.locking import UnableToAcquireLock
@@ -2768,17 +2763,9 @@ class SlackInvestigationEntrypointTest(TestCase):
             for call in self.mock_post_message.call_args_list
         ]
 
-    @with_feature(
-        [
-            "organizations:investigations",
-            "organizations:investigations-slack",
-        ]
-    )
-    def test_completed_metric_investigation_reaches_both_linked_runs_without_cache(
-        self,
-    ) -> None:
+    def test_alert_and_linked_runs_receive_start_and_conclusion_once(self) -> None:
         self._use_open_period()
-        self._complete_with_conclusion()
+        self._alert_thread(self.channel_id)
         for ts in ("10.1", "20.1"):
             run = Factories.create_seer_workflow_run(self.organization)
             execution = Factories.create_seer_workflow_run_execution(run)
@@ -2796,12 +2783,15 @@ class SlackInvestigationEntrypointTest(TestCase):
                     "provider_data": None,
                 }
             )
-        process_investigation_updates(investigation_id=self.investigation.id)
-        process_investigation_updates(investigation_id=self.investigation.id)
-        assert sorted(self._posts()) == [
-            (self.channel_id, "10.1", "conclusion"),
-            (self.channel_id, "20.1", "conclusion"),
-        ]
+        self._update_alert_threads()
+        self._complete_with_conclusion()
+        self._update_alert_threads()
+        self._update_alert_threads()
+        assert sorted(self._posts()) == sorted(
+            (self.channel_id, ts, message)
+            for ts in (self.message_ts, "10.1", "20.1")
+            for message in ("started", "conclusion")
+        )
 
     def test_alert_threads_get_conclusion(self) -> None:
         self._use_open_period()

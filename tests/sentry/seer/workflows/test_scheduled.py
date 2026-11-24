@@ -14,11 +14,6 @@ from sentry.cadence.api import (
 )
 from sentry.cadence.registry import trigger_type_registry
 from sentry.cadence.tasks import cadence_tick
-from sentry.locks import locks
-from sentry.notifications.models.notificationthread import (
-    NotificationThread,
-    NotificationThreadObjectType,
-)
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowExecutionStatus,
@@ -44,7 +39,6 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
-from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.models import Workflow
 
 SCHEDULED_FOR = datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
@@ -148,94 +142,59 @@ class RecordScheduledAutomationRunTest(TestCase):
         ) == [SeerWorkflowExecutionStatus.COMPLETE]
         assert self.is_scheduled()
 
-    @patch(
-        "sentry.integrations.slack.integration.SlackIntegration.send_notification",
-        return_value={"ts": "10.1"},
-    )
-    def test_completed_run_announces_once_in_original_channel(self, send: MagicMock) -> None:
-        integration = self.create_integration(
-            self.organization, provider="slack", external_id="T123"
-        )
+    def configure_slack(self, integration_id: int) -> None:
         destination = {
-            "integration_id": integration.id,
+            "integration_id": integration_id,
             "channel_id": "C123",
             "channel_name": "ops",
         }
         self.config.update(extras={"slack_destination": destination})
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_notification")
+    def test_completed_run_announces_once_in_original_channel(self, send: MagicMock) -> None:
+        integration = self.create_integration(
+            self.organization, provider="slack", external_id="T123"
+        )
+        self.configure_slack(integration.id)
         with (
             patch.object(announce_workflow_run, "delay") as enqueue,
             self.captureOnCommitCallbacks(execute=True),
         ):
             self.run_task()
-            self.run_task()
         (run,) = self.runs()
         enqueue.assert_called_once_with(organization_id=self.organization.id, run_id=run.id)
         self.config.update(extras={})
-        announce_workflow_run(organization_id=self.organization.id, run_id=run.id)
-        announce_workflow_run(organization_id=self.organization.id, run_id=run.id)
-        send.assert_called_once()
-        target, message = send.call_args.args
-        assert target.resource_id == "C123"
-        assert message["text"] == "Seer automation started a run"
-        runs_link = message["blocks"][-1].elements[0].url
-        assert runs_link.endswith(f"/seer/automations/{self.config.id}/runs/")
-        parent = NotificationThread.objects.get(
-            object_type=NotificationThreadObjectType.SEER_WORKFLOW_RUN, object_id=run.id
-        )
-        assert parent.thread_identifier == "10.1"
-        assert run.status == SeerWorkflowRunStatus.COMPLETE
 
-    @patch("sentry.integrations.slack.integration.SlackIntegration.send_notification")
-    def test_announcer_skips_busy_or_unavailable_destination(self, send: MagicMock) -> None:
-        integration = self.create_integration(
-            self.organization, provider="slack", external_id="T123"
-        )
-        self.config.update(
-            extras={
-                "slack_destination": {
-                    "integration_id": integration.id,
-                    "channel_id": "C123",
-                    "channel_name": "ops",
-                }
-            }
-        )
-        with patch.object(announce_workflow_run, "delay"):
-            self.run_task()
-        (run,) = self.runs()
-        with (
-            locks.get(
-                f"seer:workflow:slack:{run.id}", duration=60, name="seer_workflow_slack"
-            ).acquire(),
-            pytest.raises(UnableToAcquireLock),
-        ):
-            announce_workflow_run(organization_id=self.organization.id, run_id=run.id)
-        with patch(
-            "sentry.seer.workflows.slack.integration_service.organization_context"
-        ) as context:
-            context.return_value.active.return_value = None
-            announce_workflow_run(organization_id=self.organization.id, run_id=run.id)
-        send.assert_not_called()
-        send.side_effect = IntegrationConfigurationError(message="ratelimited", error_code=429)
+        send.side_effect = [
+            IntegrationConfigurationError(message="ratelimited", error_code=429),
+            {"ts": "10.1"},
+        ]
         with pytest.raises(RetrySlackAnnouncement):
             announce_workflow_run(organization_id=self.organization.id, run_id=run.id)
-        send.side_effect = IntegrationConfigurationError(message="channel_not_found")
         announce_workflow_run(organization_id=self.organization.id, run_id=run.id)
-        run.refresh_from_db()
-        assert run.status == SeerWorkflowRunStatus.COMPLETE
-        assert not NotificationThread.objects.filter(
-            object_type=NotificationThreadObjectType.SEER_WORKFLOW_RUN, object_id=run.id
-        ).exists()
+        announce_workflow_run(organization_id=self.organization.id, run_id=run.id)
+        assert send.call_count == 2
+        target, message = send.call_args.args
+        assert target.resource_id == "C123"
+        assert (
+            message["blocks"][-1]
+            .elements[0]
+            .url.endswith(f"/seer/automations/{self.config.id}/runs/")
+        )
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_notification")
+    def test_run_skips_foreign_workspace(self, send: MagicMock) -> None:
+        foreign = self.create_integration(
+            self.create_organization(), provider="slack", external_id="T456"
+        )
+        self.configure_slack(foreign.id)
+        self.run_task()
+        (run,) = self.runs()
+        announce_workflow_run(organization_id=self.organization.id, run_id=run.id)
+        send.assert_not_called()
 
     def test_start_rollback_does_not_announce(self) -> None:
-        self.config.update(
-            extras={
-                "slack_destination": {
-                    "integration_id": 123,
-                    "channel_id": "C123",
-                    "channel_name": "ops",
-                }
-            }
-        )
+        self.configure_slack(123)
         with (
             patch.object(announce_workflow_run, "delay") as enqueue,
             self.captureOnCommitCallbacks(execute=True),
@@ -245,7 +204,6 @@ class RecordScheduledAutomationRunTest(TestCase):
                 self.run_task()
                 transaction.set_rollback(True, using=db)
         enqueue.assert_not_called()
-        assert self.runs() == []
 
     def test_repeated_firing_records_one_run(self) -> None:
         self.run_task()

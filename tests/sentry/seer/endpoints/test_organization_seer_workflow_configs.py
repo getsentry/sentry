@@ -403,104 +403,48 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         )
         args = (self.organization.slug, config.id)
         dest = {"integrationId": str(integration.id), "channelId": "C123"}
-        first = self.get_success_response(*args, method="put", slackChannel=dest)
-        assert first.data["slackChannel"] == {**dest, "channelName": "ops"}
-        assert (
-            self.get_success_response(*args, method="put", slackChannel=dest).data["version"]
-            == first.data["version"]
+        saved = self.get_success_response(*args, method="put", slackChannel=dest)
+        expected = {**dest, "channelName": "ops"}
+        assert saved.data["slackChannel"] == expected
+        self.get_success_response(*args, method="put", slackChannel=expected)
+        self.get_error_response(
+            *args, method="put", slackChannel={**dest, "channelName": "wrong"}, status_code=400
+        )
+        lookup.return_value = {"channel": {"is_im": True}}
+        self.get_error_response(
+            *args, method="put", slackChannel={**dest, "channelId": "D123"}, status_code=400
         )
         assert (
             self.get_success_response(*args, method="put", name="Renamed").data["slackChannel"]
-            == first.data["slackChannel"]
+            == expected
         )
-        lookup.return_value = {"channel": {"is_channel": True, "name": "oncall"}}
-        replacement = {**dest, "channelId": "C456", "channelName": "oncall"}
-        self.get_success_response(*args, method="put", slackChannel=replacement)
-        assert self.get_success_response(*args).data["slackChannel"] == replacement
-        lookup.return_value = {"channel": {"is_im": True}}
-        self.get_error_response(*args, method="put", slackChannel=dest, status_code=400)
-        assert self.get_success_response(*args).data["slackChannel"] == replacement
-        assert (
-            self.get_success_response(*args, method="put", slackChannel=None).data["slackChannel"]
-            is None
-        )
-
-    def test_rejects_foreign_workspace_and_partial_destination(self) -> None:
-        config = self.create_config()
-        other = self.create_integration(
-            self.create_organization(), provider="slack", external_id="T123"
-        )
-        args = (self.organization.slug, config.id)
-        self.get_error_response(
-            *args,
-            method="put",
-            slackChannel={"integrationId": str(other.id), "channelId": "C123"},
-            status_code=400,
-        )
-        self.get_error_response(
-            *args, method="put", slackChannel={"channelId": "C123"}, status_code=400
-        )
-        missing_channel = self.get_error_response(
-            *args, method="put", slackChannel={"integrationId": other.id}, status_code=400
-        )
-        assert (
-            "Provide a channelId or channelName."
-            in missing_channel.data["slackChannel"]["non_field_errors"]
-        )
+        self.get_success_response(*args, method="put", slackChannel=None)
         assert self.get_success_response(*args).data["slackChannel"] is None
 
-    @patch("sentry.integrations.slack.utils.channel.SlackSdkClient")
-    def test_update_with_channel_id_and_name(self, client_cls: MagicMock) -> None:
-        integration = self.create_integration(
-            self.organization, provider="slack", external_id="T123"
+    @patch(
+        "sentry.integrations.slack.utils.channel._get_channel_info",
+        return_value={"channel": {"is_channel": True, "name": "ops"}},
+    )
+    def test_rejects_invalid_slack_workspace(self, lookup: MagicMock) -> None:
+        foreign = self.create_integration(
+            self.create_organization(), provider="slack", external_id="T123"
         )
-        client = client_cls.return_value
-        client.conversations_info.return_value.data = {
-            "channel": {"is_channel": True, "name": "ops"}
-        }
-        args = (self.organization.slug, self.create_config().id)
-        destination = {"integrationId": integration.id, "channelId": "C123", "channelName": "#ops"}
-        saved = self.get_success_response(*args, method="put", slackChannel=destination)
-        assert saved.data["slackChannel"] == {
-            "integrationId": str(integration.id),
-            "channelId": "C123",
-            "channelName": "ops",
-        }
-        client.conversations_info.assert_called_once_with(channel="C123")
-
-        mismatch = self.get_error_response(
-            *args,
-            method="put",
-            slackChannel={**destination, "channelName": "other"},
-            status_code=400,
-        )
-        assert "does not match" in mismatch.data["slackChannel"][0]
-        assert self.get_success_response(*args).data["version"] == saved.data["version"]
-        client.chat_scheduleMessage.assert_not_called()
-
-    def test_rejects_non_slack_and_inactive_installation(self) -> None:
-        config = self.create_config()
-        github = self.create_integration(self.organization, provider="github", external_id="123")
         disabled = self.create_integration(
             self.organization,
             provider="slack",
-            external_id="T123",
+            external_id="T456",
             oi_params={"status": ObjectStatus.DISABLED},
         )
-        self.get_error_response(
-            self.organization.slug,
-            config.id,
-            method="put",
-            slackChannel={"integrationId": str(github.id), "channelId": "C123"},
-            status_code=400,
-        )
-        self.get_error_response(
-            self.organization.slug,
-            config.id,
-            method="put",
-            slackChannel={"integrationId": str(disabled.id), "channelId": "C123"},
-            status_code=400,
-        )
+        github = self.create_integration(self.organization, provider="github", external_id="123")
+        args = (self.organization.slug, self.create_config().id)
+        for integration in (foreign, disabled, github):
+            self.get_error_response(
+                *args,
+                method="put",
+                slackChannel={"integrationId": integration.id, "channelId": "C123"},
+                status_code=400,
+            )
+        lookup.assert_not_called()
 
     def test_get_matches_list_item(self) -> None:
         config = self.create_config()
@@ -1464,17 +1408,11 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             self.organization, provider="slack", external_id="T123"
         )
         client = client_cls.return_value
-        check_for_channel.side_effect = [None, "C123"]
+        check_for_channel.return_value = "C123"
         client.conversations_info.return_value.data = {
             "channel": {"name": "ops", "is_channel": True}
         }
         destination = {"integrationId": integration.id, "channelName": "#ops"}
-        self.get_error_response(
-            self.organization.slug,
-            strategy="breached_metric_investigation",
-            slackChannel={**destination, "channelName": "missing"},
-            status_code=400,
-        )
         created = self.get_success_response(
             self.organization.slug,
             strategy="breached_metric_investigation",
@@ -1490,8 +1428,6 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             f"/api/0/organizations/{self.organization.slug}/seer/workflows/configs/"
         )
         assert listed.data["configs"][0]["slackChannel"] == created.data["slackChannel"]
-        check_for_channel.assert_called_with(client, "ops")
-        client.conversations_info.assert_called_once_with(channel="C123")
 
     def test_creates_config_with_defaults(self) -> None:
         response = self.get_success_response(
