@@ -413,9 +413,11 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         """
         # Do not allow modifications on members with the highest priority role
         if member.role == organization_roles.get_top_dog().id:
-            member.flags["idp:role-restricted"] = False
-            member.flags["idp:provisioned"] = True
-            member.save()
+            # IdPs re-send unchanged users, so only save when something changes.
+            if member.flags["idp:role-restricted"] or not member.flags["idp:provisioned"]:
+                member.flags["idp:role-restricted"] = False
+                member.flags["idp:provisioned"] = True
+                member.save()
 
             context = serialize(
                 member, serializer=_scim_member_serializer_with_expansion(organization)
@@ -466,11 +468,17 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
         previous_role = member.role
         previous_restriction = member.flags["idp:role-restricted"]
+        previous_provisioned = member.flags["idp:provisioned"]
         if member.role != organization_roles.get_top_dog().id:
             member.role = requested_role
         member.flags["idp:role-restricted"] = idp_role_restricted
         member.flags["idp:provisioned"] = True
-        member.save()
+        if (
+            member.role != previous_role
+            or idp_role_restricted != previous_restriction
+            or not previous_provisioned
+        ):
+            member.save()
 
         if previous_role != member.role:
             self.create_audit_entry(
