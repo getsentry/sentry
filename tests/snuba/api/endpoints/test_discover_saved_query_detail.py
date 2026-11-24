@@ -662,8 +662,8 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
     @with_feature("organizations:granular-permission-scopes")
-    def test_user_preference_write_can_record_visit(self) -> None:
-        self._use_token(["user_preference:write"])
+    def test_saved_query_read_can_record_visit(self) -> None:
+        self._use_token(["saved_query:read"])
         with self.feature("organizations:discover-query"):
             response = self.client.post(self.url(self.query.id))
         assert response.status_code == 204, response.content
@@ -682,8 +682,9 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
         assert DiscoverSavedQuery.objects.get(id=self.query.id).visits == 2
 
     @with_feature("organizations:granular-permission-scopes")
-    def test_saved_query_scopes_cannot_record_visit(self) -> None:
-        self._use_token(["saved_query:read", "saved_query:write", "user_preference:read"])
+    def test_saved_query_write_cannot_record_visit(self) -> None:
+        # Write does not imply read.
+        self._use_token(["saved_query:write", "user_preference:read", "user_preference:write"])
         with self.feature("organizations:discover-query"):
             response = self.client.post(self.url(self.query.id))
         assert response.status_code == 403

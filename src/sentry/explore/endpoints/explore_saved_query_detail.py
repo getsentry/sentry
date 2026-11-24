@@ -190,10 +190,11 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
 
 
 class ExploreSavedQueryVisitPermission(ExploreSavedQueryPermission):
-    # Recording a visit is the requesting user's own state, not a change to the query.
+    # Anyone who can read a saved query can record a visit to it. A visit only updates
+    # metadata (visit count and last visited times), not the query itself.
     scope_map = {
         **ExploreSavedQueryPermission.scope_map,
-        "POST": ["org:read", "org:write", "org:admin", "user_preference:write"],
+        "POST": ExploreSavedQueryPermission.scope_map["GET"],
     }
 
 

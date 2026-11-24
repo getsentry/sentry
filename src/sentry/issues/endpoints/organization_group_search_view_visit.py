@@ -16,10 +16,12 @@ from sentry.models.organization import Organization
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "POST": ["member:read", "user_preference:write"],
+        # Anyone who can read an issue view can record a visit to it. A visit only
+        # updates metadata (the requesting user's last visited time), not the view itself.
+        "POST": ["member:read", "saved_query:read"],
     }
 
-    # user_preference:write replaces member:read in orgs with granular scopes.
+    # saved_query:read replaces member:read in orgs with granular scopes.
     rejects_deprecated_scopes = True
 
 

@@ -5012,8 +5012,8 @@ class OrganizationDashboardVisitScopeTest(OrganizationDashboardDetailsTestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
     @with_feature("organizations:dashboards-user-last-visited")
-    def test_user_preference_write_can_record_visit(self) -> None:
-        self._use_token(["user_preference:write"])
+    def test_dashboard_read_can_record_visit(self) -> None:
+        self._use_token(["dashboard:read"])
         response = self.do_request("post", self.url(self.dashboard.id))
         assert response.status_code == 204, response.content
         assert Dashboard.objects.get(id=self.dashboard.id).visits == 2
@@ -5028,8 +5028,9 @@ class OrganizationDashboardVisitScopeTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 204, response.content
         assert Dashboard.objects.get(id=self.dashboard.id).visits == 2
 
-    def test_dashboard_scopes_cannot_record_visit(self) -> None:
-        self._use_token(["dashboard:read", "dashboard:write", "user_preference:read"])
+    def test_dashboard_write_cannot_record_visit(self) -> None:
+        # Write does not imply read.
+        self._use_token(["dashboard:write", "user_preference:read", "user_preference:write"])
         response = self.do_request("post", self.url(self.dashboard.id))
         assert response.status_code == 403
         assert Dashboard.objects.get(id=self.dashboard.id).visits == 1

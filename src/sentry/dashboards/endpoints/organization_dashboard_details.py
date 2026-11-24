@@ -257,10 +257,11 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
 
 class OrganizationDashboardVisitPermission(OrganizationDashboardsPermission):
-    # Recording a visit is the requesting user's own state, not a change to the dashboard.
+    # Anyone who can read a dashboard can record a visit to it. A visit only updates
+    # metadata (visit count and last visited times), not the dashboard itself.
     scope_map = {
         **OrganizationDashboardsPermission.scope_map,
-        "POST": ["org:read", "org:write", "org:admin", "user_preference:write"],
+        "POST": OrganizationDashboardsPermission.scope_map["GET"],
     }
 
 
