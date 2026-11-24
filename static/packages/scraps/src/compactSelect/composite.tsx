@@ -7,7 +7,6 @@ import type {DistributedOmit} from 'type-fest';
 
 import {type ButtonProps} from '@sentry/scraps/button';
 import {useTranslation} from '@sentry/scraps/translation';
-import {DEFAULT_VIRTUALIZE_THRESHOLD} from '@sentry/scraps/useVirtualCollection';
 
 import {ClearButton, Control} from './control';
 import type {ControlProps} from './control';
@@ -167,7 +166,6 @@ function Region<Value extends SelectKey>({
   isOptionDisabled,
   size,
   label,
-  virtualized,
   ...props
 }: RegionProps<Value>) {
   const itemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
@@ -180,7 +178,6 @@ function Region<Value extends SelectKey>({
       shouldFocusWrap={false}
       size={size}
       label={label}
-      virtualized={virtualized ?? options.length > DEFAULT_VIRTUALIZE_THRESHOLD}
     >
       {(opt: (typeof itemsWithKey)[number]) => (
         <Item {...opt} key={opt.key}>
