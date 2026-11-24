@@ -5,7 +5,7 @@ import moment from 'moment-timezone';
 import {useTimezone} from '@sentry/scraps/dateTime';
 import {toast} from '@sentry/scraps/toast';
 
-import {getOutOfCreditsPRMessage} from 'sentry/components/seer/outOfCredits/messages';
+import {getRefusedPRMessage} from 'sentry/components/seer/outOfCredits/messages';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -115,24 +115,6 @@ export const useSeerExplorer = () => {
   const capturePageContext = usePageContextCapture();
   const {getPageReferrer} = usePageReferrer();
   const timezone = useTimezone();
-  type CodeModeValue = 'off' | 'only';
-  const [overrideCodeModeEnable, setOverrideCodeModeEnable] =
-    useLocalStorageState<CodeModeValue>(
-      'seer-explorer.override.code-mode',
-      (storedValue?: unknown): CodeModeValue => {
-        if (storedValue === 'off' || storedValue === 'only') {
-          return storedValue;
-        }
-        // Migrate the legacy boolean
-        if (storedValue === false) {
-          return 'off';
-        }
-        // Everything else, including the retired 'on' and its legacy `true`, gets the server's own
-        // default for a flagged org. This value is sent on every request, so it is not really an
-        // override until someone picks one.
-        return 'only';
-      }
-    );
   const [overrideBashModeEnabled, setOverrideBashModeEnabled] = useLocalStorageState(
     'seer-explorer.override.bash-mode',
     false
@@ -262,7 +244,6 @@ export const useSeerExplorer = () => {
       insertIndex: number;
       orgSlug: string;
       overrideBashModeEnabled: boolean;
-      overrideCodeModeEnable: 'off' | 'only';
       pageLocation: LLMContextLocation | undefined;
       pageName: string;
       /** The pending prompt this send took from chat state, put back if it fails. */
@@ -293,13 +274,12 @@ export const useSeerExplorer = () => {
           page_location: params.pageLocation,
           sent_at: params.sentAt,
           override_bash_mode_enabled: params.overrideBashModeEnabled,
-          override_code_mode_enable: params.overrideCodeModeEnable,
           chat_prompt: params.chatPrompt?.text,
           chat_prompt_context: params.chatPrompt?.context,
         },
       });
     },
-    onSuccess: (response, params) => {
+    onSuccess: async (response, params) => {
       if (isLatestRequest(params) && isCurrentRun(params.runId)) {
         setRequestError(null);
       }
@@ -310,8 +290,10 @@ export const useSeerExplorer = () => {
           payload: response.sentry_run_id ?? response.run_id,
         });
       } else {
-        // invalidate the query so fresh data is fetched
-        queryClient.invalidateQueries({
+        // Stay pending until the refetch lands. A poll that ran before the server saved the
+        // message may have stored a finished session; ending the send before fresh data
+        // arrives would drop the optimistic message until then.
+        await queryClient.invalidateQueries({
           queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
         });
       }
@@ -583,7 +565,6 @@ export const useSeerExplorer = () => {
         ],
         screenshot,
         overrideBashModeEnabled,
-        overrideCodeModeEnable,
       });
     },
     [
@@ -595,7 +576,6 @@ export const useSeerExplorer = () => {
       getPageReferrer,
       organization,
       overrideBashModeEnabled,
-      overrideCodeModeEnable,
       pendingChatPrompt,
       sendMessageMutate,
       setLastSentMessage,
@@ -644,7 +624,7 @@ export const useSeerExplorer = () => {
       ) {
         toast.error(
           isOutOfCreditsPRState(currentState)
-            ? getOutOfCreditsPRMessage(currentState)
+            ? getRefusedPRMessage(currentState, null)
             : (currentState.pr_creation_error ?? 'Failed to create PR')
         );
       }
@@ -776,7 +756,5 @@ export const useSeerExplorer = () => {
     respondToUserInput,
     overrideBashModeEnabled,
     setOverrideBashModeEnabled,
-    overrideCodeModeEnable,
-    setOverrideCodeModeEnable,
   };
 };

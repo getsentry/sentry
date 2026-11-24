@@ -58,7 +58,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   isTimedOut: false,
   runId: null,
   overrideBashModeEnabled: false,
-  overrideCodeModeEnable: 'off',
   hasSentInterrupt: false,
   sendMessage: jest.fn(),
   requestError: null,
@@ -67,7 +66,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   interruptRun: jest.fn(),
   respondToUserInput: jest.fn(),
   setOverrideBashModeEnabled: jest.fn(),
-  setOverrideCodeModeEnable: jest.fn(),
 };
 
 describe('SeerExplorerContent', () => {
@@ -1329,7 +1327,7 @@ describe('SeerExplorerContent', () => {
 
       expect(
         await screen.findByText(
-          'Seer stopped because your organization is out of credits.'
+          'Seer stopped because your organization ran out of available credits.'
         )
       ).toBeInTheDocument();
       expect(screen.queryByText(/so I stopped here/)).not.toBeInTheDocument();
@@ -1359,7 +1357,9 @@ describe('SeerExplorerContent', () => {
 
       expect(await screen.findByText(/so I stopped here/)).toBeInTheDocument();
       expect(
-        screen.queryByText('Seer stopped because your organization is out of credits.')
+        screen.queryByText(
+          'Seer stopped because your organization ran out of available credits.'
+        )
       ).not.toBeInTheDocument();
     });
   });

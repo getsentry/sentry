@@ -5,7 +5,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {getOutOfCreditsPRMessage} from 'sentry/components/seer/outOfCredits/messages';
+import {getStoppedPRMessage} from 'sentry/components/seer/outOfCredits/messages';
 import {t} from 'sentry/locale';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {isOutOfCreditsPRState, type RepoPRState} from 'sentry/views/seerExplorer/types';
@@ -34,7 +34,7 @@ export function PRLinksBar({repoPRStates}: PRLinksBarProps) {
 
 function getErrorTooltip(state: RepoPRState): string {
   if (isOutOfCreditsPRState(state)) {
-    return getOutOfCreditsPRMessage(state);
+    return getStoppedPRMessage(state);
   }
   // A PR number means the PR already exists, so the failure was a push to it.
   return (

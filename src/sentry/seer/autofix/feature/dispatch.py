@@ -51,7 +51,6 @@ from sentry.seer.autofix.utils import (
     get_automation_handoff,
     get_event_matched_project_repo_ids,
     is_free_cohort_org,
-    is_seer_seat_or_token_billed_enabled,
 )
 from sentry.seer.credits import SeerOperation, check_seer_operation, get_denial_reason
 from sentry.seer.models.run import SeerAgentRun, SeerRun
@@ -61,8 +60,6 @@ from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
-
-SINGLE_RUN_LEGACY_PLAN_DETAIL = "Single-run Autofix needs a seat-based or token-billed Seer plan"
 
 
 @dataclass(frozen=True)
@@ -138,9 +135,9 @@ def should_use_single_run(
     # Only fresh root-cause starts qualify: later steps and retries continue step-by-step runs.
     if step != AutofixStep.ROOT_CAUSE or existing_run_id is not None:
         return False
-    return (
-        single_run_requested or features.has("organizations:autofix-single-run", group.organization)
-    ) and is_seer_seat_or_token_billed_enabled(group.organization)
+    return single_run_requested or features.has(
+        "organizations:autofix-single-run", group.organization
+    )
 
 
 def _single_run_pr_internal_settings(
@@ -213,11 +210,6 @@ def check_autofix_billing(
     return uses_quota
 
 
-def _require_single_run_plan(organization: Organization) -> None:
-    if not is_seer_seat_or_token_billed_enabled(organization):
-        raise SeerPermissionError(SINGLE_RUN_LEGACY_PLAN_DETAIL)
-
-
 def continue_single_run(
     agent_run: SeerAgentRun,
     group: Group,
@@ -228,7 +220,6 @@ def continue_single_run(
     user: User | RpcUser,
     can_publish: bool,
 ) -> SeerRun:
-    _require_single_run_plan(group.organization)
     check_autofix_billing(
         group.organization,
         billing_feature,
@@ -265,7 +256,6 @@ def continue_single_run_from_pr_feedback(
     referrer: AutofixReferrer,
     billing_feature: int,
 ) -> SeerRun:
-    _require_single_run_plan(group.organization)
     check_autofix_billing(
         group.organization,
         billing_feature,

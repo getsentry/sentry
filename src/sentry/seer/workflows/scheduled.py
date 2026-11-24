@@ -1,9 +1,9 @@
 """
 The scheduled automation: its trigger and action, and the sentry.cadence task that runs it.
 
-Firings reach the task, but scheduled execution is separately gated off while Seer dispatch
-is unimplemented. Admission and lifecycle handling remain available for that integration.
-No run history is created while the execution flag is off.
+Each firing records one run per scheduled time. Until the investigation platform runs
+custom prompts, a run's single execution succeeds immediately. No run history is created
+while the execution flag is off.
 """
 
 from __future__ import annotations
@@ -38,20 +38,26 @@ from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowConfigExtras,
     SeerWorkflowConfigProject,
+    SeerWorkflowExecutionExtras,
     SeerWorkflowFilters,
     SeerWorkflowRun,
+    SeerWorkflowRunSource,
     SeerWorkflowSchedule,
+    SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.base import (
     AllProjects,
     AutomationDefinition,
     ConfigUpdate,
+    LockedConfig,
     ScopeSelection,
     SelectedMonitors,
     SelectedProjects,
     WorkflowUpdateError,
+    lock_config,
     validate_project_ids,
 )
+from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -130,6 +136,7 @@ def sync_schedule(config: SeerWorkflowConfig) -> None:
 class ScheduleDefinition(AutomationDefinition[ScheduledRunInputs]):
     """Runs on the config's schedule, over the projects the config selects."""
 
+    strategy = SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
     inputs_type = ScheduledRunInputs
     settings_type = ScheduleSettings
     scoped_by: Literal["projects", "monitors"] = "projects"
@@ -191,6 +198,34 @@ class ScheduleDefinition(AutomationDefinition[ScheduledRunInputs]):
             trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
             target_id=config.id,
         )
+
+    def admit_firing(self, config: LockedConfig, scheduled_for: datetime) -> ScheduledRunOutcome:
+        """Record one run per scheduled time, and dispatch it when it is new."""
+        if not self.is_enabled(config):
+            return ScheduledRunOutcome("ignored", reason="config_disabled")
+        admitted = self.admit_run(
+            config,
+            trigger_key=trigger_key_for(scheduled_for),
+            source=SeerWorkflowRunSource.CRON,
+            inputs=ScheduledRunInputs(scheduled_for=scheduled_for),
+        )
+        if admitted.rejection is not None:
+            return ScheduledRunOutcome(
+                "rejected", reason=admitted.rejection, run=admitted.lifecycle.get_run()
+            )
+        if not admitted.created:
+            return ScheduledRunOutcome("duplicate", run=admitted.lifecycle.get_run())
+        admitted.lifecycle.start()
+        self.dispatch(admitted.lifecycle)
+        return ScheduledRunOutcome("accepted", run=admitted.lifecycle.get_run())
+
+    def dispatch(self, run: SeerWorkflowRunLifecycle) -> None:
+        # TODO(telkins): Start an investigation with the config's prompt or skill once the
+        # investigation platform runs custom prompts. Until then the run has one execution
+        # that succeeds immediately.
+        (execution,) = run.create_executions([SeerWorkflowExecutionExtras()])
+        run.start_execution(execution.id)
+        run.complete_execution(execution.id)
 
 
 def trigger_key_for(scheduled_for: datetime) -> str:
@@ -255,14 +290,10 @@ def record_scheduled_automation_run(
 
 
 def _run(organization_id: int, config_id: int, scheduled_for: datetime) -> ScheduledRunOutcome:
-    # Imported here because definitions imports this module for its strategy table.
-    from sentry.seer.workflows.definitions import find_definition
-
     config = SeerWorkflowConfig.objects.get_or_none(id=config_id, organization_id=organization_id)
-    definition = find_definition(config.strategy) if config is not None else None
     if (
         config is None
-        or not isinstance(definition, ScheduleDefinition)
+        or config.strategy != ScheduleDefinition.strategy
         or schedule_for(config) is None
     ):
         # The config was deleted, disabled, or no longer runs on a schedule, but its
@@ -280,5 +311,8 @@ def _run(organization_id: int, config_id: int, scheduled_for: datetime) -> Sched
     # Firings consumed during this stage are not replayed when execution is enabled later.
     if not features.has(SCHEDULED_EXECUTION_FEATURE, config.organization):
         return ScheduledRunOutcome("ignored", reason="execution_disabled")
-    # TODO(telkins): Scheduled automations don't start runs yet.
-    return ScheduledRunOutcome("ignored", reason="not_implemented")
+    try:
+        with lock_config(organization_id, config_id) as locked:
+            return ScheduleDefinition().admit_firing(locked, scheduled_for)
+    except SeerWorkflowConfig.DoesNotExist:
+        return ScheduledRunOutcome("ignored", reason="unscheduled")

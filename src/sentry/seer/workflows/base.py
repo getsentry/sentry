@@ -20,6 +20,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowFilters,
     SeerWorkflowRun,
     SeerWorkflowRunExtras,
+    SeerWorkflowRunSource,
     SeerWorkflowStrategy,
     WorkflowRunError,
     WorkflowRunSnapshot,
@@ -35,6 +36,7 @@ from sentry.service_accounts.models import (
 from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.utils import json
 from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
 
@@ -152,9 +154,38 @@ class AdmittedRun:
     rejection: RejectionReason | None = None
 
 
+@dataclass(frozen=True)
+class AcceptedRun:
+    run: SeerWorkflowRun
+    created: bool
+
+
+@dataclass(frozen=True)
+class RejectedRun:
+    run: SeerWorkflowRun
+    reason: RejectionReason
+    created: bool
+
+
+@dataclass(frozen=True)
+class IgnoredRun:
+    reason: Literal[
+        "unsupported_trigger",
+        "invalid_source",
+        "feature_disabled",
+        "config_disabled",
+        "configuration_unavailable",
+        "out_of_scope",
+    ]
+
+
+type ActionAdmission = AcceptedRun | RejectedRun | IgnoredRun
+
+
 class AutomationDefinition[Inputs: BaseModel](Protocol):
     """An automation: how its runs start, and which projects those runs cover."""
 
+    strategy: SeerWorkflowStrategy
     # What a firing hands to the automation's action; recorded in the run's snapshot.
     inputs_type: type[Inputs]
     settings_type: type[BaseModel]
@@ -167,6 +198,10 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
     def setup(self, update: ConfigUpdate, workflow: Workflow) -> None:
         """Attach anything the trigger needs to a new automation's backing workflow."""
         return None
+
+    def admit_action(self, invocation: ActionInvocation, *, config_id: int) -> ActionAdmission:
+        """Decide whether the automation's backing workflow firing this action starts a run."""
+        return IgnoredRun("unsupported_trigger")
 
     def set_scope(self, update: ConfigUpdate, selection: ScopeSelection) -> None:
         """Replace the config's scope, marking ``update`` only when something changed."""
@@ -217,7 +252,14 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
         # TODO(telkins): Enforce automation quota before accepting a new run.
         return True
 
-    def admit_run(self, config: LockedConfig, *, trigger_key: str, inputs: Inputs) -> AdmittedRun:
+    def admit_run(
+        self,
+        config: LockedConfig,
+        *,
+        trigger_key: str,
+        source: SeerWorkflowRunSource,
+        inputs: Inputs,
+    ) -> AdmittedRun:
         """Record one admission decision per trigger key, leaving an accepted run queued.
 
         Retries return the original run with its configuration, inputs and decision.
@@ -262,7 +304,9 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
             ),
             admission=admission,
         )
-        lifecycle = SeerWorkflowRunLifecycle.create(config, trigger_key=trigger_key, extras=extras)
+        lifecycle = SeerWorkflowRunLifecycle.create(
+            config, trigger_key=trigger_key, source=source, extras=extras
+        )
         # TODO(telkins): Decide whether an automation that stays over quota should keep
         # recording a rejected run for every trigger.
         if admission.status == "rejected":
@@ -331,6 +375,14 @@ class ConfigUpdate:
         if workflow.name != name:
             workflow.name = name
             self.mark_workflow("name")
+
+    def set_environments(self, environments: Sequence[str]) -> None:
+        """Replace the environments the automation covers. An empty list means all."""
+        filters = SeerWorkflowFilters.parse_obj(self.config.filters)
+        if filters.environments != list(environments):
+            filters.environments = list(environments)
+            self.config.filters = filters.dict()
+            self.mark("filters")
 
     def _backing_workflow(self) -> Workflow:
         workflow = self.config.backing_workflow

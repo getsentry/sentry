@@ -88,7 +88,7 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
         last_visited_map = {lv.group_search_view_id: lv for lv in last_visited_views}
 
         serialized_users: dict[str, dict[str, object]] = {
-            cast(str, user["id"]): cast("dict[str, object]", user)
+            cast(str, user["id"]): user
             for user in user_service.serialize_many(
                 filter={"user_ids": [view.user_id for view in item_list if view.user_id]},
                 as_user=acting_user(user),

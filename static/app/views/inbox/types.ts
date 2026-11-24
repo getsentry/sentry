@@ -68,6 +68,24 @@ type InboxItemEvent = {
   [T in InboxEventType]: BaseInboxItemEvent & {data: InboxEventDataByType[T]; type: T};
 }[InboxEventType];
 
+interface BaseInboxSubject {
+  id: string;
+  title: string;
+}
+
+export interface InboxIssueMetadata {
+  project: {id: string; slug: string};
+  shortId: string;
+}
+
+type InboxSubject = BaseInboxSubject &
+  (
+    | {metadata: InboxIssueMetadata; type: 'issue'}
+    | {metadata: Record<string, never>; type: 'notebook'}
+  );
+
+export type InboxSubjectRef = Pick<InboxSubject, 'id' | 'type'>;
+
 export interface InboxItem {
   eventCount: number;
   eventTypes: InboxEventType[];
@@ -76,15 +94,11 @@ export interface InboxItem {
   lastActivityAt: string;
   lastReadAt: string | null;
   latestEvent: InboxItemEvent;
-  subjectId: string;
-  subjectType: InboxSubjectType;
+  subject: InboxSubject;
   subtitle: string;
-  title: string | null;
   unreadEventCount: number;
   url: string;
 }
-
-export type InboxSubject = Pick<InboxItem, 'subjectId' | 'subjectType'>;
 
 export interface InboxFilters {
   eventType: InboxEventType[];

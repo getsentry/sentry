@@ -62,15 +62,14 @@ import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
+import {useOrganizationSwitcher} from 'sentry/utils/organization/useOrganizationSwitcher';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -291,7 +290,7 @@ async function openCurrentReplay() {
  */
 export function GlobalCommandPaletteActions() {
   const organization = useOrganization();
-  const navigate = useNavigate();
+  const {switchTo} = useOrganizationSwitcher();
   const user = useUser();
   const isSentryEmployee = useIsSentryEmployee();
   const {projects} = useProjects();
@@ -679,12 +678,7 @@ export function GlobalCommandPaletteActions() {
                         `/settings/${organization.slug}/`,
                         `/settings/${org.slug}/`
                       );
-                    const url = resolveRoute(newPath, null, org);
-                    if (url.startsWith('http')) {
-                      window.location.assign(url);
-                    } else {
-                      navigate(url);
-                    }
+                    switchTo(org, newPath);
                   };
 
                   return [

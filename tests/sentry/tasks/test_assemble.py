@@ -281,7 +281,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 debug_id_artifact_bundle = DebugIdArtifactBundle.objects.get(
                     organization_id=self.organization.id, debug_id=debug_id
                 )
-                assert debug_id_artifact_bundle.artifact_bundle.file.size == len(bundle_file)
+                file = debug_id_artifact_bundle.artifact_bundle.file
+                assert file is not None
+                assert file.size == len(bundle_file)
                 assert (
                     str(debug_id_artifact_bundle.artifact_bundle.bundle_id)
                     == "67429b2f-1d9e-43bb-a626-771a1e37555c"

@@ -3,6 +3,7 @@ import type {LineSeriesOption} from 'echarts';
 import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 import {segmentTimeSeriesByDisplayStyle} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
+import {LOW_CONFIDENCE_OPACITY} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
 import {
   ContinuousTimeSeries,
@@ -56,8 +57,8 @@ export class Area extends ContinuousTimeSeries implements Plottable {
             ...commonOptions,
             stack: `lowConfidence-${stackPrefix}-${index}`,
             data,
-            lineStyle: {type: 'dashed', opacity: 0.6},
-            areaStyle: {color, opacity: 0.5},
+            lineStyle: {opacity: LOW_CONFIDENCE_OPACITY},
+            areaStyle: {color, opacity: LOW_CONFIDENCE_OPACITY},
           })
         );
       }

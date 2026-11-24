@@ -46,7 +46,7 @@ describe('ProjectDetail > ProjectIssues', () => {
       body: {'error.unhandled:true is:unresolved': 6},
     });
     const counts = {
-      'is:unresolved is:for_review release:1.2.3': 1,
+      'is:new release:1.2.3': 1,
       'error.unhandled:true is:unresolved release:1.2.3': 3,
       'regressed_in_release:latest release:1.2.3': 4,
       'is:resolved release:1.2.3': null,
@@ -144,9 +144,7 @@ describe('ProjectDetail > ProjectIssues', () => {
 
     expect(mockFetchIssues).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({query: 'error.unhandled:true is:unresolved'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({query: 'is:new'})})
     );
   });
 

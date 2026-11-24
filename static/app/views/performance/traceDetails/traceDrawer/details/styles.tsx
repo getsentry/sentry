@@ -280,7 +280,7 @@ function Highlights({
           </Stack>
         </Stack>
       </Flex>
-      <Separator orientation="horizontal" border="muted" />
+      <Separator orientation="horizontal" border="secondary" />
     </Stack>
   );
 }
