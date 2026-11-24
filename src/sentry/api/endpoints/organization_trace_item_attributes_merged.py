@@ -14,8 +14,6 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
     POSSIBLE_ATTRIBUTE_TYPES,
     SCALAR_ATTRIBUTE_TYPES,
     OrganizationTraceItemAttributesEndpoint,
-    StoredRef,
-    StoredRefs,
     adjust_start_end_window,
     attach_custom_attribute_context,
     get_column_definitions,
@@ -153,10 +151,7 @@ def list_attributes_by_dataset(
     attribute_types: Collection[str] | None,
     substring_match: str,
     include_context: bool,
-) -> tuple[
-    dict[str, list[TraceItemAttributeKey]],
-    dict[str, dict[tuple[ColumnType, str], list[StoredRef]]],
-]:
+) -> dict[str, list[TraceItemAttributeKey]]:
     selected_datasets = [
         dataset for dataset in MERGEABLE_DATASETS if not datasets or dataset in datasets
     ]
@@ -205,37 +200,33 @@ def list_attributes_by_dataset(
     attributes_by_dataset: dict[str, list[TraceItemAttributeKey]] = {
         dataset: [] for dataset in selected_datasets
     }
-    stored_refs_by_dataset: dict[str, dict[tuple[ColumnType, str], list[StoredRef]]] = {
-        dataset: {} for dataset in selected_datasets
-    }
     with ContextPropagatingThreadPoolExecutor(
         thread_name_prefix=__name__,
         max_workers=max(min(len(tasks), MAX_QUERY_WORKERS), 1),
     ) as pool:
-        futures = []
-        for dataset, trace_item_type, column_definitions, meta, attribute_type in tasks:
-            task_stored_refs: StoredRefs = {}
-            future = pool.submit(
-                endpoint.query_trace_attributes,
-                0,
-                max_attributes,
-                meta,
-                None,
-                substring_match,
-                attribute_type,
-                column_definitions,
-                trace_item_type,
-                include_internal,
-                include_context=include_context,
-                include_internal_convention_attributes=include_internal_convention_attributes,
-                stored_refs=task_stored_refs,
+        futures = [
+            (
+                dataset,
+                pool.submit(
+                    endpoint.query_trace_attributes,
+                    0,
+                    max_attributes,
+                    meta,
+                    None,
+                    substring_match,
+                    attribute_type,
+                    column_definitions,
+                    trace_item_type,
+                    include_internal,
+                    include_context=include_context,
+                    include_internal_convention_attributes=include_internal_convention_attributes,
+                ),
             )
-            futures.append((dataset, attribute_type, task_stored_refs, future))
-        for dataset, attribute_type, task_stored_refs, future in futures:
+            for dataset, trace_item_type, column_definitions, meta, attribute_type in tasks
+        ]
+        for dataset, future in futures:
             result_attributes, _ = future.result()
             attributes_by_dataset[dataset].extend(result_attributes)
-            for key, refs in task_stored_refs.items():
-                stored_refs_by_dataset[dataset].setdefault((attribute_type, key), []).extend(refs)
 
     if include_custom_context:
         project_ids = [project.id for project in snuba_params.projects]
@@ -244,7 +235,7 @@ def list_attributes_by_dataset(
                 attributes, organization, SupportedTraceItemType(dataset), project_ids
             )
 
-    return attributes_by_dataset, stored_refs_by_dataset
+    return attributes_by_dataset
 
 
 def list_merged_attributes(
@@ -261,17 +252,18 @@ def list_merged_attributes(
     Each dataset's attributes are fetched in full and merged, since per-dataset
     cursors can't be combined into a single ordering.
     """
-    attributes_by_dataset, _ = list_attributes_by_dataset(
-        endpoint,
-        request,
-        organization,
-        snuba_params,
-        datasets,
-        attribute_types,
-        substring_match,
-        include_context,
+    return merge_attributes_across_datasets(
+        list_attributes_by_dataset(
+            endpoint,
+            request,
+            organization,
+            snuba_params,
+            datasets,
+            attribute_types,
+            substring_match,
+            include_context,
+        )
     )
-    return merge_attributes_across_datasets(attributes_by_dataset)
 
 
 @cell_silo_endpoint

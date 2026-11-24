@@ -8,10 +8,6 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
-from sentry.api.endpoints.organization_trace_item_attribute_stats import (
-    TraceItemAttributeDatasetStats,
-    query_attribute_stats,
-)
 from sentry.api.endpoints.organization_trace_item_attributes import (
     POSSIBLE_ATTRIBUTE_TYPES,
     OrganizationTraceItemAttributesEndpoint,
@@ -26,6 +22,7 @@ from sentry.api.endpoints.organization_trace_item_attributes_merged import (
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.response_types import as_validation_errors
 from sentry.models.organization import Organization
+from sentry.search.eap.attribute_stats import TraceItemAttributeDatasetStats, query_attribute_stats
 from sentry.search.eap.types import AttributeSourceType
 
 
@@ -77,7 +74,7 @@ class OrganizationTraceItemAttributeDetailsEndpoint(OrganizationTraceItemAttribu
         serialized: dict[str, Any] = serializer.validated_data
         attribute_name = serialized["attribute_name"]
         attribute_source = serialized.get("attribute_source")
-        attributes_by_dataset, stored_refs_by_dataset = list_attributes_by_dataset(
+        attributes_by_dataset = list_attributes_by_dataset(
             self,
             request,
             organization,
@@ -100,24 +97,19 @@ class OrganizationTraceItemAttributeDetailsEndpoint(OrganizationTraceItemAttribu
             return Response({"detail": "Attribute not found."}, status=404)
 
         match = sort_merged_attributes(matches, "name")[0]
-        refs_by_dataset = {
-            dataset: list(
-                dict.fromkeys(
-                    ref
-                    for attribute in attributes_by_dataset[dataset]
-                    if attribute["name"] == match["name"]
-                    and attribute["attributeType"] == match["attributeType"]
-                    and attribute["attributeSource"]["source_type"]
-                    == match["attributeSource"]["source_type"]
-                    for ref in stored_refs_by_dataset[dataset].get(
-                        (attribute["attributeType"], attribute["key"]), []
-                    )
-                )
+        keys_by_dataset = {
+            dataset: next(
+                attribute["key"]
+                for attribute in attributes_by_dataset[dataset]
+                if attribute["name"] == match["name"]
+                and attribute["attributeType"] == match["attributeType"]
+                and attribute["attributeSource"]["source_type"]
+                == match["attributeSource"]["source_type"]
             )
             for dataset in match["datasets"]
         }
         stats, last_seen = query_attribute_stats(
-            match["attributeType"], refs_by_dataset, snuba_params
+            match["attributeType"], keys_by_dataset, snuba_params
         )
         details: TraceItemAttributeDetails = {
             **match,

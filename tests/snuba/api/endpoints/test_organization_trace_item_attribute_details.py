@@ -30,7 +30,7 @@ from sentry.testutils.cases import (
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import snuba_rpc
 
-STATS_MODULE = "sentry.api.endpoints.organization_trace_item_attribute_stats"
+STATS_MODULE = "sentry.search.eap.attribute_stats"
 META_PREFIX = "sentry._meta.fields.attributes"
 RELAY_META = '{"meta": {"": {"len": 300, "rem": [["!limit", "s", 0, 10]]}}}'
 original_attribute_names_rpc = snuba_rpc.attribute_names_rpc
@@ -627,7 +627,7 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         }
         assert response.data["lastSeen"] is None
 
-    def test_returns_latest_last_seen_when_the_attribute_is_stored_under_two_names(
+    def test_returns_latest_last_seen_and_cardinality_across_names_when_the_attribute_is_stored_under_two_names(
         self,
     ) -> None:
         older = before_now(hours=2).replace(microsecond=0)
@@ -656,12 +656,77 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
 
         assert response.status_code == 200, response.content
         assert response.data["stats"] == {
-            "spans": {"lastSeen": newer.isoformat(), "cardinality": None, "modifiedCount": 0}
+            "spans": {"lastSeen": newer.isoformat(), "cardinality": 2, "modifiedCount": 0}
         }
         assert sorted(call.args[0].value_substring_match for call in names_rpc.call_args_list) == [
             "sentry.segment.name",
             "sentry.transaction",
         ]
+
+    def test_returns_last_seen_from_the_legacy_name_when_the_rollup_lists_it_for_an_alias(
+        self,
+    ) -> None:
+        last_seen = before_now(hours=1).replace(microsecond=0)
+        self.store_spans([self.create_span({"data": {"sentry.span_id": "a" * 16}})])
+
+        with mock.patch(
+            f"{STATS_MODULE}.attribute_names_rpc",
+            return_value=names_response([("sentry.span_id", last_seen)]),
+        ) as names_rpc:
+            response = self.do_request(
+                query={
+                    "attributeName": "id",
+                    "attributeType": "string",
+                    "dataset": "spans",
+                    "statsPeriod": "14d",
+                }
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["stats"]["spans"]["lastSeen"] == last_seen.isoformat()
+        assert [call.args[0].value_substring_match for call in names_rpc.call_args_list] == [
+            "sentry.item\\_id",
+            "sentry.span\\_id",
+        ]
+
+    def test_returns_string_stats_when_a_string_attribute_shares_a_number_column_name(
+        self,
+    ) -> None:
+        timestamp = before_now(minutes=10).replace(microsecond=0)
+        self._store_span({"http.response.status_code": "200"}, timestamp=timestamp)
+        self._store_span({"http.response.status_code": "404"}, timestamp=timestamp)
+
+        response = self.do_request(
+            query={
+                "attributeName": "http.response.status_code",
+                "attributeType": "string",
+                "dataset": "spans",
+                "statsPeriod": "14d",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["stats"]["spans"]["lastSeen"] == timestamp.isoformat()
+        assert response.data["stats"]["spans"]["cardinality"] == 2
+
+    def test_returns_stats_when_a_user_attribute_shares_a_secondary_alias_context_name(
+        self,
+    ) -> None:
+        timestamp = before_now(minutes=10).replace(microsecond=0)
+        self._store_span({"project.slug": "custom"}, timestamp=timestamp)
+
+        response = self.do_request(
+            query={
+                "attributeName": "project.slug",
+                "attributeType": "string",
+                "dataset": "spans",
+                "statsPeriod": "14d",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["stats"]["spans"]["lastSeen"] == timestamp.isoformat()
+        assert response.data["stats"]["spans"]["cardinality"] == 1
 
     def test_returns_stats_for_each_dataset_when_the_attribute_is_in_several(self) -> None:
         span_timestamp = before_now(minutes=30).replace(microsecond=0)
