@@ -3,6 +3,11 @@
 from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
+
+INDEX_NAME = "sentry_eventatt_crash_grp_idx"
+# US built this index by hand. Renaming it keeps the build from running twice there.
+HAND_BUILT_INDEX_NAME = "sentry_eventattachment_recent_minidumps_jtcunning"
 
 
 class Migration(CheckedMigration):
@@ -20,17 +25,41 @@ class Migration(CheckedMigration):
 
     is_post_deployment = True
 
+    atomic = False
+
     dependencies = [
         ("sentry", "1268_artifactbundle_file_nullable"),
     ]
 
     operations = [
-        migrations.AddIndex(
-            model_name="eventattachment",
-            index=models.Index(
-                condition=models.Q(("type__in", ("event.minidump", "event.applecrashreport"))),
-                fields=["group_id", "-date_added"],
-                name="sentry_eventatt_crash_grp_idx",
-            ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                SafeRunSQL(
+                    f'ALTER INDEX IF EXISTS "{HAND_BUILT_INDEX_NAME}" RENAME TO "{INDEX_NAME}"',
+                    reverse_sql=migrations.RunSQL.noop,
+                    hints={"tables": ["sentry_eventattachment"]},
+                ),
+                SafeRunSQL(
+                    f'CREATE INDEX CONCURRENTLY IF NOT EXISTS "{INDEX_NAME}" '
+                    'ON "sentry_eventattachment" ("group_id", "date_added" DESC) '
+                    "WHERE \"type\" IN ('event.minidump', 'event.applecrashreport')",
+                    reverse_sql=f'DROP INDEX CONCURRENTLY IF EXISTS "{INDEX_NAME}"',
+                    hints={"tables": ["sentry_eventattachment"]},
+                    # The build scans the whole table, which outlasts the statement timeout.
+                    use_statement_timeout=False,
+                ),
+            ],
+            state_operations=[
+                migrations.AddIndex(
+                    model_name="eventattachment",
+                    index=models.Index(
+                        condition=models.Q(
+                            ("type__in", ("event.minidump", "event.applecrashreport"))
+                        ),
+                        fields=["group_id", "-date_added"],
+                        name=INDEX_NAME,
+                    ),
+                ),
+            ],
         ),
     ]
