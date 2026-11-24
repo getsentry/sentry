@@ -89,6 +89,7 @@ import {
   PendingUserInputPicker,
 } from './pendingUserInputDock';
 import {SeerExplorerHeader} from './seerExplorerHeader';
+import {SeerExplorerSettingsMenu} from './seerExplorerSettingsMenu';
 import {UpdateSlackAlert} from './updateSlackAlert';
 
 export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
@@ -649,7 +650,7 @@ export function SeerExplorerContent({
   );
 
   // Menu component
-  const {menu, closeMenu} = useExplorerMenu({
+  const {menu, toolbarMenu, closeMenu} = useExplorerMenu({
     clearInput,
     completeInput,
     inputValue: inputValue.text,
@@ -890,14 +891,10 @@ export function SeerExplorerContent({
       onChangeSession={switchToRun}
       onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
       onCopyLinkClick={runId === null ? undefined : handleCopyLink}
-      overrideBashModeEnabled={overrideBashModeEnabled}
-      onOverrideBashModeToggle={() => setOverrideBashModeEnabled(v => !v)}
-      conversationsUrl={conversationsUrl}
       isPipSupported={isPipSupported}
       isPoppedOut={isPoppedOut}
       onTogglePictureInPicture={handleTogglePictureInPicture}
-      sidebarPosition={sidebarPosition}
-      onSidebarPositionChange={onSidebarPositionChange}
+      canChangeDockPosition={!!onSidebarPositionChange}
     />
   );
 
@@ -1018,6 +1015,21 @@ export function SeerExplorerContent({
             <SeerCreditUsageMeter
               hasEnoughCredits={hasEnoughCredits && !showSingleRunCreditError}
             />
+          }
+          leadingToolbarItems={
+            <Flex align="center">
+              {toolbarMenu}
+              <SeerExplorerSettingsMenu
+                isPipSupported={isPipSupported}
+                isPoppedOut={isPoppedOut}
+                onTogglePictureInPicture={handleTogglePictureInPicture}
+                sidebarPosition={sidebarPosition}
+                onSidebarPositionChange={onSidebarPositionChange}
+                overrideBashModeEnabled={overrideBashModeEnabled}
+                onOverrideBashModeToggle={() => setOverrideBashModeEnabled(v => !v)}
+                conversationsUrl={conversationsUrl}
+              />
+            </Flex>
           }
           interruptState={interruptState}
           onInputChange={handleInputChange}
