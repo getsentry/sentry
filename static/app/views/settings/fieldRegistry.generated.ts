@@ -742,10 +742,8 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     name: 'stoppingPoint',
     formId: 'autofix-agent',
     route: '/settings/:orgId/projects/:projectId/seer',
-    label: t('Automation Steps'),
-    hintText: t(
-      'Choose which steps Seer should run automatically on issues. Depending on how actionable the issue is, Seer may stop at an earlier step.'
-    ),
+    label: t('Open PRs'),
+    hintText: '',
   },
   'autofix-agent.prIteration': {
     name: 'prIteration',
