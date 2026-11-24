@@ -218,8 +218,10 @@ def _replay_event_attributes(replay_event_json: bytes | None) -> dict[str, Any]:
     if not isinstance(replay_event, dict):
         return {}
 
-    contexts = replay_event.get("contexts") or {}
-    sdk = replay_event.get("sdk") or {}
+    contexts = replay_event.get("contexts")
+    contexts = contexts if isinstance(contexts, dict) else {}
+    sdk = replay_event.get("sdk")
+    sdk = sdk if isinstance(sdk, dict) else {}
     return {
         "sdk_name": sdk.get("name"),
         "sdk_version": sdk.get("version"),

@@ -375,6 +375,23 @@ def test_parse_recording_event_invalid_headers() -> None:
         parse_recording_event(msgpack.packb(message))
 
 
+def test_parse_recording_event_invalid_headers_malformed_replay_event() -> None:
+    """Test that a malformed replay_event does not stop an invalid recording from dropping"""
+    message = {
+        "type": "replay_recording_not_chunked",
+        "org_id": 123,
+        "project_id": 456,
+        "replay_id": "test-replay-id",
+        "received": 1234567890,
+        "retention_days": 30,
+        "payload": zlib.compress(b"not headers"),
+        "replay_event": json.dumps({"sdk": "not-a-dict", "contexts": ["nope"]}).encode(),
+        "version": 0,
+    }
+    with pytest.raises(DropSilently):
+        parse_recording_event(msgpack.packb(message))
+
+
 @django_db_all
 def test_process_message_compressed() -> None:
     """Test "process_message" function with compressed payload."""
