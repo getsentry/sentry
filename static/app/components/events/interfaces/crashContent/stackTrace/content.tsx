@@ -47,8 +47,6 @@ export function Content({
   frameSourceMapDebuggerData,
   hideSourceMapDebugger = false,
 }: Props) {
-  const [toggleFrameMap, setToggleFrameMap] = useState(setInitialFrameMap());
-
   const {frames = [], registers} = data;
 
   function frameIsVisible(frame: Frame, nextFrame: Frame) {
@@ -72,6 +70,11 @@ export function Content({
     });
     return indexMap;
   }
+
+  // Must come after the helpers above. React Compiler can rewrite memoized
+  // function declarations into consts, so calling them earlier in render
+  // throws a ReferenceError.
+  const [toggleFrameMap, setToggleFrameMap] = useState(setInitialFrameMap());
 
   function getInitialFrameCounts(): Record<number, number> {
     let count = 0;
