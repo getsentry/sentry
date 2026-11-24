@@ -12,7 +12,8 @@ from rest_framework.serializers import ValidationError
 from sentry import roles
 from sentry.auth import manager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
-from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.options.organization_option import OrganizationOption
@@ -625,38 +626,47 @@ class OrganizationMemberAsyncReplicationTest(TestCase):
             organization=self.org, user=self.create_user(), role="member"
         )
 
-    def _drains(self, fn: Callable[[], object]) -> bool:
-        from sentry.hybridcloud.models.outbox import CellOutbox
+    def _run[T](self, fn: Callable[[], T]) -> T:
+        with self.captureOnCommitCallbacks(execute=True):
+            return fn()
 
-        with patch.object(CellOutbox, "drain_shard") as mock_drain_shard:
-            with self.captureOnCommitCallbacks(execute=True):
-                fn()
-        return mock_drain_shard.called
+    def _pending(self, member_id: int) -> bool:
+        """Whether the member's outbox row is still waiting to drain."""
+        return CellOutbox.objects.filter(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=self.org.id,
+            category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE,
+            object_identifier=member_id,
+        ).exists()
 
     def test_option_off_keeps_sync(self) -> None:
-        assert self._drains(lambda: self.member.update(role="admin"))
+        self._run(lambda: self.member.update(role="admin"))
+        assert not self._pending(self.member.id)
 
     def test_existing_member_write_is_async(self) -> None:
         with self.options({self.OPTION: True}):
-            assert not self._drains(lambda: self.member.update(role="admin"))
+            self._run(lambda: self.member.update(role="admin"))
+        assert self._pending(self.member.id)
 
     def test_new_member_with_user_is_sync(self) -> None:
         user = self.create_user()
         with self.options({self.OPTION: True}):
-            assert self._drains(
+            member = self._run(
                 lambda: OrganizationMember.objects.create(
                     organization=self.org, user_id=user.id, role="member"
                 )
             )
+        assert not self._pending(member.id)
 
     def test_new_invite_is_async(self) -> None:
         with self.options({self.OPTION: True}):
             for role in ("member", "owner"):
-                assert not self._drains(
+                invite = self._run(
                     lambda: OrganizationMember.objects.create(
                         organization=self.org, email=f"{role}-invite@example.com", role=role
                     )
                 )
+                assert self._pending(invite.id)
 
     def test_explicit_flush_wins(self) -> None:
         def save_synced() -> None:
@@ -666,24 +676,29 @@ class OrganizationMemberAsyncReplicationTest(TestCase):
                 self.member.update(role="admin")
 
         with self.options({self.OPTION: True}):
-            assert self._drains(save_synced)
-            assert not self._drains(lambda: self.member.update(role="member"))
+            self._run(save_synced)
+            assert not self._pending(self.member.id)
+            self._run(lambda: self.member.update(role="member"))
+            assert self._pending(self.member.id)
 
     def test_explicit_flush_false_context_still_wins(self) -> None:
         user = self.create_user()
 
-        def create_unflushed() -> None:
+        def create_unflushed() -> OrganizationMember:
             with outbox_context(flush=False):
-                OrganizationMember.objects.create(
+                return OrganizationMember.objects.create(
                     organization=self.org, user_id=user.id, role="member"
                 )
 
         with self.options({self.OPTION: True}):
-            assert not self._drains(create_unflushed)
+            member = self._run(create_unflushed)
+        assert self._pending(member.id)
 
     def test_delete_stays_async(self) -> None:
+        member_id = self.member.id
         with self.options({self.OPTION: True}):
-            assert not self._drains(self.member.delete)
+            self._run(self.member.delete)
+        assert self._pending(member_id)
 
     def test_accept_and_remove_user_are_sync(self) -> None:
         from sentry.organizations.services.organization.impl import (
@@ -694,16 +709,16 @@ class OrganizationMemberAsyncReplicationTest(TestCase):
         invite = self.create_member(organization=self.org, email="accept@example.com")
         user = self.create_user()
         with self.options({self.OPTION: True}):
-            assert self._drains(
+            self._run(
                 lambda: service.set_user_for_organization_member(
                     organization_member_id=invite.id,
                     organization_id=self.org.id,
                     user_id=user.id,
                 )
             )
-            assert self._drains(
-                lambda: service.remove_user(organization_id=self.org.id, user_id=user.id)
-            )
+            assert not self._pending(invite.id)
+            self._run(lambda: service.remove_user(organization_id=self.org.id, user_id=user.id))
+            assert not self._pending(invite.id)
 
     def test_merge_users_promoting_to_owner_is_sync(self) -> None:
         from sentry.organizations.services.organization.impl import (
@@ -716,13 +731,14 @@ class OrganizationMemberAsyncReplicationTest(TestCase):
         to_user_id = self.member.user_id
         assert to_user_id is not None
         with self.options({self.OPTION: True}):
-            assert self._drains(
+            self._run(
                 lambda: service.merge_users(
                     organization_id=self.org.id,
                     from_user_id=owner.id,
                     to_user_id=to_user_id,
                 )
             )
+        assert not self._pending(self.member.id)
 
     def test_update_organization_member_rpc_owner_change_is_sync(self) -> None:
         from sentry.organizations.services.organization.impl import (
@@ -737,14 +753,14 @@ class OrganizationMemberAsyncReplicationTest(TestCase):
             )
 
         with self.options({self.OPTION: True}):
-            assert not self._drains(lambda: update("manager"))
-            assert self._drains(lambda: update("owner"))
+            self._run(lambda: update("manager"))
+            assert self._pending(self.member.id)
+            self._run(lambda: update("owner"))
+            assert not self._pending(self.member.id)
         self.member.refresh_from_db()
         assert self.member.role == "owner"
 
     def test_sync_write_drains_async_rows_in_the_same_shard(self) -> None:
-        from sentry.hybridcloud.models.outbox import CellOutbox
-
         user = self.create_user()
         with self.options({self.OPTION: True}):
             with self.captureOnCommitCallbacks(execute=True):
@@ -753,4 +769,4 @@ class OrganizationMemberAsyncReplicationTest(TestCase):
                     OrganizationMember.objects.create(  # sync
                         organization=self.org, user_id=user.id, role="member"
                     )
-        assert not CellOutbox.objects.filter(shard_identifier=self.org.id).exists()
+        assert not self._pending(self.member.id)

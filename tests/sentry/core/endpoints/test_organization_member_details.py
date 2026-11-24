@@ -10,6 +10,7 @@ from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.core.endpoints.organization_member_details import ERR_INSUFFICIENT_SCOPE
 from sentry.hybridcloud.models.outbox import CellOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -1033,11 +1034,16 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 class UpdateOrganizationMemberAsyncReplicationTest(OrganizationMemberTestBase):
     method = "put"
 
-    def _drains(self, member: OrganizationMember, role: str) -> bool:
-        with patch.object(CellOutbox, "drain_shard") as mock_drain_shard:
-            with self.captureOnCommitCallbacks(execute=True):
-                self.get_success_response(self.organization.slug, member.id, orgRole=role)
-        return mock_drain_shard.called
+    def _set_role(self, member: OrganizationMember, role: str) -> bool:
+        """Changes the role and returns whether the member's outbox row is still pending."""
+        with self.captureOnCommitCallbacks(execute=True):
+            self.get_success_response(self.organization.slug, member.id, orgRole=role)
+        return CellOutbox.objects.filter(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=self.organization.id,
+            category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE,
+            object_identifier=member.id,
+        ).exists()
 
     @override_options({"hybridcloud.outbox.organization_member_async_replication.enabled": True})
     def test_only_owner_role_changes_drain(self) -> None:
@@ -1045,9 +1051,9 @@ class UpdateOrganizationMemberAsyncReplicationTest(OrganizationMemberTestBase):
             organization=self.organization, user=self.create_user(), role="member"
         )
 
-        assert not self._drains(member, "manager")
-        assert self._drains(member, "owner")
-        assert self._drains(member, "manager")
+        assert self._set_role(member, "manager")
+        assert not self._set_role(member, "owner")
+        assert not self._set_role(member, "manager")
 
 
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
