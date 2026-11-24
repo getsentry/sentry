@@ -5,6 +5,7 @@ import pytest
 from django.db import connections
 from django.db.models import QuerySet
 
+from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -15,6 +16,7 @@ from sentry.workflow_engine.defaults.detectors import (
     ensure_default_detectors,
 )
 from sentry.workflow_engine.defaults.workflows import (
+    INBOX_WORKFLOW_LABEL,
     connect_workflows_to_issue_stream,
     create_and_connect_pull_request_workflow,
     create_priority_workflow,
@@ -414,7 +416,7 @@ class TestEnsureInboxWorkflow(TestCase):
     def test_reuses_only_the_managed_default(self) -> None:
         org = self.create_organization()
         other = self.create_workflow(
-            organization=org, type=Workflow.Type.INBOX, name="Add issue activity to Inbox"
+            organization=org, type=Workflow.Type.INBOX, name=INBOX_WORKFLOW_LABEL
         )
         priority = create_priority_workflow(org)
         pr_ready = create_and_connect_pull_request_workflow(
@@ -430,6 +432,21 @@ class TestEnsureInboxWorkflow(TestCase):
         assert second.when_condition_group_id == first.when_condition_group_id
         assert set(Workflow.objects.filter(organization=org)) == {first, other, priority, pr_ready}
         assert ensure_inbox_workflow(self.create_organization()) != first
+
+    def test_replaces_default_pending_deletion(self) -> None:
+        original = ensure_inbox_workflow(self.organization)
+        original.update(status=ObjectStatus.PENDING_DELETION)
+
+        replacement = ensure_inbox_workflow(self.organization)
+        assert replacement != original
+        assert replacement.status == ObjectStatus.ACTIVE
+        assert ensure_inbox_workflow(self.organization) == replacement
+
+    def test_duplicate_default_markers_raise(self) -> None:
+        original = ensure_inbox_workflow(self.organization)
+        self.create_workflow(type=Workflow.Type.INBOX, config=original.config)
+        with pytest.raises(Workflow.MultipleObjectsReturned):
+            ensure_inbox_workflow(self.organization)
 
     def test_rollback_and_retry(self) -> None:
         org = self.create_organization()
