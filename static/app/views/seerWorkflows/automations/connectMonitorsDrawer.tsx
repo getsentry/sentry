@@ -77,7 +77,8 @@ function MetricMonitors({
 
   const {data, isPending, isError} = useQuery({
     ...detectorListApiOptions(organization, {
-      query: query ? `type:metric_issue ${query}` : 'type:metric_issue',
+      type: 'metric_issue',
+      query,
       projects: selection.projects,
       limit: MONITORS_PER_PAGE,
       sortBy: lastBreachSort === 'desc' ? '-latestGroup' : 'latestGroup',
@@ -85,7 +86,7 @@ function MetricMonitors({
     }),
     select: selectJsonWithHeaders,
   });
-  const monitors = data?.json.filter(monitor => monitor.type === 'metric_issue') ?? [];
+  const monitors = data?.json ?? [];
 
   return (
     <Stack gap="lg">
