@@ -31,7 +31,6 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
     this.type = 'ms';
 
     if (this.previous.endTimestamp && this.next.startTimestamp) {
-      // Either side may have been moved to correct for clock drift.
       this.space = [
         this.previous.endTimestamp * 1e3 + this.previous.clockDriftOffsetMs,
         (this.next.startTimestamp - this.previous.endTimestamp) * 1e3 +
