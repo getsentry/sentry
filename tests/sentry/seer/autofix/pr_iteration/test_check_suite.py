@@ -6,6 +6,8 @@ import orjson
 import pytest
 from scm.helpers import iter_all_pages
 from scm.types import BuildConclusion, CheckSuiteAction
+from urllib3.connectionpool import ConnectionPool
+from urllib3.exceptions import ReadTimeoutError
 
 from sentry.models.repository import Repository
 from sentry.scm.types import CheckSuiteEvent
@@ -2075,3 +2077,18 @@ class CheckSuiteSeerUnavailableTest(TestCase):
 
         mock_enqueue.assert_called_once()
         mock_trigger.assert_called_once()
+
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
+    @patch("sentry.seer.agent.client_utils.make_agent_state_pr_request")
+    def test_seer_timeout_raises_retryable_error(
+        self, mock_request: MagicMock, mock_enqueue: MagicMock
+    ) -> None:
+        from sentry.scm.private.ipc import serialize_check_suite_event
+        from sentry.tasks.seer.pr_iteration import process_pr_iteration_check_suite
+
+        mock_request.side_effect = ReadTimeoutError(ConnectionPool("seer"), "/", "Read timed out.")
+        event_data = serialize_check_suite_event(check_suite_event(self.raw))
+
+        with pytest.raises(SeerUnavailableError):
+            process_pr_iteration_check_suite(event_data=event_data)
+        mock_enqueue.assert_not_called()

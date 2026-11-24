@@ -5,6 +5,8 @@ import jwt
 import orjson
 import pytest
 from django.test import override_settings
+from urllib3.connectionpool import ConnectionPool
+from urllib3.exceptions import MaxRetryError, ReadTimeoutError
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -632,6 +634,16 @@ class GetAgentStateFromPrIdTest(TestCase):
         with mock.patch(self._REQUEST, return_value=mock.Mock(status=503)):
             with pytest.raises(SeerUnavailableError):
                 get_agent_state_from_pr_id(1, "integrations:github", 2)
+
+    def test_raises_unavailable_on_timeout(self) -> None:
+        for error in (
+            ReadTimeoutError(ConnectionPool("seer"), "/", "Read timed out."),
+            MaxRetryError(ConnectionPool("seer"), "/"),
+        ):
+            with mock.patch(self._REQUEST, side_effect=error):
+                with pytest.raises(SeerUnavailableError) as excinfo:
+                    get_agent_state_from_pr_id(1, "integrations:github", 2)
+            assert excinfo.value.__cause__ is error
 
     def test_sends_pr_id_as_string(self) -> None:
         for pr_id in (2, "2", "pr_01abc"):

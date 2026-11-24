@@ -20,6 +20,8 @@ from django.http import HttpRequest
 from django.utils.timezone import now
 from rest_framework.request import Request
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
+from urllib3.exceptions import MaxRetryError
+from urllib3.exceptions import TimeoutError as Urllib3TimeoutError
 
 from sentry import features
 from sentry.auth.principal import RequestPrincipal, acting_user
@@ -360,11 +362,15 @@ def get_agent_state_from_pr_id(
     """
     Look up the Seer run that owns a pull request, or None if there isn't one.
 
-    A server error raises ``SeerUnavailableError`` so the calling task can try
-    again later.
+    A server error or a timeout raises ``SeerUnavailableError`` so the calling
+    task can try again later.
     """
     body = AgentPrStateRequest(organization_id=organization_id, provider=provider, pr_id=str(pr_id))
-    response = make_agent_state_pr_request(body)
+    try:
+        response = make_agent_state_pr_request(body)
+    except (Urllib3TimeoutError, MaxRetryError) as e:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "timeout"})
+        raise SeerUnavailableError("Seer request timed out", 504) from e
 
     if response.status >= 500:
         metrics.incr("seer.agent.state_from_pr", tags={"outcome": "unavailable"})
