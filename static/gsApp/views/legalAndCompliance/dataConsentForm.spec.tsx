@@ -6,6 +6,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {BillingType} from 'getsentry/types';
 
 import {DataConsentForm} from './dataConsentForm';
@@ -28,7 +29,9 @@ describe('DataConsentForm', () => {
       type: BillingType.CREDIT_CARD,
     });
 
-    render(<DataConsentForm subscription={subscription} />, {organization});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<DataConsentForm />, {organization});
 
     await waitFor(() => expect(screen.getByRole('checkbox')).toBeEnabled());
   });
@@ -40,7 +43,9 @@ describe('DataConsentForm', () => {
       type: BillingType.CREDIT_CARD,
     });
 
-    render(<DataConsentForm subscription={subscription} />, {organization});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<DataConsentForm />, {organization});
 
     expect(screen.getByRole('checkbox')).toBeDisabled();
   });
@@ -53,7 +58,9 @@ describe('DataConsentForm', () => {
       msaUpdatedForDataConsent: false,
     });
 
-    render(<DataConsentForm subscription={subscription} />, {organization});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<DataConsentForm />, {organization});
 
     expect(screen.getByRole('checkbox')).toBeDisabled();
   });
@@ -66,7 +73,9 @@ describe('DataConsentForm', () => {
       msaUpdatedForDataConsent: true,
     });
 
-    render(<DataConsentForm subscription={subscription} />, {organization});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<DataConsentForm />, {organization});
 
     expect(screen.getByRole('checkbox')).toBeEnabled();
   });
@@ -79,7 +88,9 @@ describe('DataConsentForm', () => {
       type: BillingType.CREDIT_CARD,
     });
 
-    render(<DataConsentForm subscription={subscription} />, {organization});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<DataConsentForm />, {organization});
 
     expect(screen.getByRole('checkbox')).toBeEnabled();
   });
@@ -93,7 +104,9 @@ describe('DataConsentForm', () => {
       msaUpdatedForDataConsent: false,
     });
 
-    render(<DataConsentForm subscription={subscription} />, {organization});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<DataConsentForm />, {organization});
 
     expect(screen.getByRole('checkbox')).toBeEnabled();
   });

@@ -13,16 +13,23 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
-import {withSubscription} from 'getsentry/components/withSubscription';
-import {BillingType, type Subscription} from 'getsentry/types';
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
+import {BillingType} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {DataConsentSettingsHeader} from 'getsentry/views/legalAndCompliance/utils';
 
 const dataConsentSchema = z.object({aggregatedDataConsent: z.boolean()});
 
-export function DataConsentForm({subscription}: {subscription: Subscription}) {
+export function DataConsentForm() {
   const organization = useOrganization();
   const user = useUser();
+  const subscription = useSubscription();
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback />;
+  }
+
   const endpoint = getApiUrl('/organizations/$organizationIdOrSlug/data-consent/', {
     path: {organizationIdOrSlug: organization.slug},
   });
@@ -90,5 +97,3 @@ export function DataConsentForm({subscription}: {subscription: Subscription}) {
     </FieldGroup>
   );
 }
-
-export default withSubscription(DataConsentForm);

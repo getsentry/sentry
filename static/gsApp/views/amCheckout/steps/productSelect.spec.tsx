@@ -12,7 +12,7 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory} from 'getsentry/types';
-import AMCheckout from 'getsentry/views/amCheckout/';
+import {AMCheckout} from 'getsentry/views/amCheckout/';
 
 async function findLegacySeerOption() {
   await screen.findByText(/Includes \$25\/mo in credits/);

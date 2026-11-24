@@ -5,7 +5,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import AMCheckout from 'getsentry/views/amCheckout';
+import {AMCheckout} from 'getsentry/views/amCheckout';
 
 // The checkout tier is resolved server-side (the billing-config endpoint
 // resolves `tier=checkout`), so this view no longer needs to pick a tier — it

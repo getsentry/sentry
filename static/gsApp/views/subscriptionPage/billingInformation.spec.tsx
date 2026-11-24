@@ -7,6 +7,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {PlanTier} from 'getsentry-test/planTier';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -82,7 +83,8 @@ describe('Subscription > BillingInformation', () => {
 
     MockApiClient.addMockResponse({url: `/organizations/${org.slug}/members/`, body: []});
 
-    render(<BillingInformation subscription={subscription} />, {organization: org});
+    SubscriptionStore.set(org.slug, subscription);
+    render(<BillingInformation />, {organization: org});
 
     await screen.findByText('Insufficient Access');
     expect(
@@ -103,7 +105,8 @@ describe('Subscription > BillingInformation', () => {
       }),
     });
 
-    render(<BillingInformation subscription={subscription} />, {organization});
+    SubscriptionStore.set(organization.slug, subscription);
+    render(<BillingInformation />, {organization});
 
     // panels are collapsed with pre-existing information
     const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
@@ -145,7 +148,7 @@ describe('Subscription > BillingInformation', () => {
     const sub: TSubscription = {...subscription, paymentSource: null};
     SubscriptionStore.set(organization.slug, sub);
 
-    render(<BillingInformation subscription={sub} />, {organization});
+    render(<BillingInformation />, {organization});
 
     // panels are expanded with no pre-existing information
     const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
@@ -166,7 +169,8 @@ describe('Subscription > BillingInformation', () => {
   });
 
   it('opens credit card form with billing failure query', async () => {
-    render(<BillingInformation subscription={subscription} />, {
+    SubscriptionStore.set(organization.slug, subscription);
+    render(<BillingInformation />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -197,7 +201,7 @@ describe('Subscription > BillingInformation', () => {
     const sub: TSubscription = {...subscription, accountBalance: 100_00};
     SubscriptionStore.set(organization.slug, sub);
 
-    render(<BillingInformation subscription={sub} />, {organization});
+    render(<BillingInformation />, {organization});
 
     expect(await screen.findByText('Balance due: $100')).toBeInTheDocument();
   });
@@ -211,7 +215,7 @@ describe('Subscription > BillingInformation', () => {
     const sub: TSubscription = {...subscription, accountBalance: -100_00};
     SubscriptionStore.set(organization.slug, sub);
 
-    render(<BillingInformation subscription={sub} />, {organization});
+    render(<BillingInformation />, {organization});
 
     expect(await screen.findByText('Account credits: $100')).toBeInTheDocument();
   });
@@ -220,7 +224,7 @@ describe('Subscription > BillingInformation', () => {
     const sub = {...subscription, accountBalance: 0};
     SubscriptionStore.set(organization.slug, sub);
 
-    render(<BillingInformation subscription={sub} />, {organization});
+    render(<BillingInformation />, {organization});
 
     await screen.findByText('Payment method');
     expect(screen.queryByText(/account credits/i)).not.toBeInTheDocument();
@@ -260,9 +264,8 @@ describe('Subscription > BillingInformation', () => {
       },
     });
 
-    const {rerender} = render(<BillingInformation subscription={testSubscription} />, {
-      organization,
-    });
+    SubscriptionStore.set(organization.slug, testSubscription);
+    render(<BillingInformation />, {organization});
 
     await screen.findByText('Payment method');
     await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
@@ -282,11 +285,7 @@ describe('Subscription > BillingInformation', () => {
     // Wait for the API call to complete
     await screen.findByRole('button', {name: 'Edit payment method'});
 
-    // for testing purposes, update the store and rerender with the updated subscription
-    // due to the nature of how the components are abstracted, this is necessary for testing
-    // but in prod the UI refreshes on SubscriptionStore update
-    SubscriptionStore.set(organization.slug, updatedSubscription);
-    rerender(<BillingInformation subscription={updatedSubscription} />);
+    act(() => SubscriptionStore.set(organization.slug, updatedSubscription));
     expect(screen.getByText('Visa ****1111 12/30')).toBeInTheDocument();
     expect(screen.getByText('United States 94107')).toBeInTheDocument();
   });
@@ -306,7 +305,8 @@ describe('Subscription > BillingInformation', () => {
       body: {clientSecret: 'seti_abc123'},
     });
 
-    render(<BillingInformation subscription={subscription} />, {organization});
+    SubscriptionStore.set(organization.slug, subscription);
+    render(<BillingInformation />, {organization});
 
     const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
     await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
@@ -337,7 +337,8 @@ describe('Subscription > BillingInformation', () => {
       body: {detail: 'Unable to initialize payment setup, please try again later.'},
     });
 
-    render(<BillingInformation subscription={testSubscription} />, {organization});
+    SubscriptionStore.set(organization.slug, testSubscription);
+    render(<BillingInformation />, {organization});
 
     await screen.findByText('Payment method');
     await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
@@ -363,7 +364,8 @@ describe('Subscription > BillingInformation', () => {
       body: {},
     });
 
-    render(<BillingInformation subscription={subscription} />, {organization});
+    SubscriptionStore.set(organization.slug, subscription);
+    render(<BillingInformation />, {organization});
 
     const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
     await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
@@ -390,7 +392,8 @@ describe('Subscription > BillingInformation', () => {
     });
 
     const sub: TSubscription = {...subscription, paymentSource: null};
-    render(<BillingInformation subscription={sub} />, {organization});
+    SubscriptionStore.set(organization.slug, sub);
+    render(<BillingInformation />, {organization});
 
     const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
     await userEvent.click(within(cardPanel).getByRole('button', {name: 'Save Changes'}));
@@ -414,7 +417,8 @@ describe('Subscription > BillingInformation', () => {
 
     const sub: TSubscription = {...subscription, paymentSource: null};
 
-    render(<BillingInformation subscription={sub} />, {organization});
+    SubscriptionStore.set(organization.slug, sub);
+    render(<BillingInformation />, {organization});
 
     const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
 

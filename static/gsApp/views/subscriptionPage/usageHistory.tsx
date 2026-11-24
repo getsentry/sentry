@@ -27,8 +27,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import {withSubscription} from 'getsentry/components/withSubscription';
+import {SubscriptionLoadingFallback} from 'getsentry/components/subscriptionLoadingFallback';
 import {RESERVED_BUDGET_QUOTA, UNLIMITED, UNLIMITED_ONDEMAND} from 'getsentry/constants';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {
   BillingHistory,
   BillingMetricHistory,
@@ -50,10 +51,6 @@ import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import {StripedTable} from './styles';
-
-interface Props {
-  subscription: Subscription;
-}
 
 function usagePercentage(usage: number, prepaid: number | null): string {
   if (prepaid === null || prepaid === 0) {
@@ -87,8 +84,9 @@ function getCategoryDisplay({
     : displayName;
 }
 
-function UsageHistory({subscription}: Props) {
+export default function UsageHistory() {
   const organization = useOrganization();
+  const subscription = useSubscription();
   const [cursor] = useQueryState('cursor');
 
   const {data, isPending, isError, refetch} = useQuery({
@@ -102,6 +100,10 @@ function UsageHistory({subscription}: Props) {
 
   const usageListPageLinks = data?.headers.Link;
   const hasBillingPerms = organization.access?.includes('org:billing');
+
+  if (!subscription) {
+    return <SubscriptionLoadingFallback />;
+  }
 
   return (
     <SubscriptionPageContainer>
@@ -355,8 +357,6 @@ function UsageHistoryRow({history}: RowProps) {
     </StyledPanelItem>
   );
 }
-
-export default withSubscription(UsageHistory);
 
 const StyledPanelItem = styled(PanelItem)`
   flex-direction: column;

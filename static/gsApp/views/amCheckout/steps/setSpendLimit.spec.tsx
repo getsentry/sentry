@@ -7,7 +7,7 @@ import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import AMCheckout from 'getsentry/views/amCheckout';
+import {AMCheckout} from 'getsentry/views/amCheckout';
 
 describe('SetSpendLimit', () => {
   const organization = OrganizationFixture({features: ['ondemand-budgets']});
