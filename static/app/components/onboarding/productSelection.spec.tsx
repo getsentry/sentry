@@ -5,7 +5,11 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import {ProductSolution} from './gettingStartedDoc/types';
-import {platformProductAvailability, ProductSelection} from './productSelection';
+import {
+  getDisabledProducts,
+  platformProductAvailability,
+  ProductSelection,
+} from './productSelection';
 
 describe('Onboarding Product Selection', () => {
   const organization = OrganizationFixture({
@@ -101,6 +105,26 @@ describe('Onboarding Product Selection', () => {
 
     // Clicking disabled tracing should not change the URL
     await waitFor(() => expect(router.location.query).toEqual(initialQuery));
+  });
+
+  it('explains disabled org features without self-hosted wording on SaaS', () => {
+    ConfigStore.set('isSelfHosted', false);
+
+    const disabledProducts = getDisabledProducts(OrganizationFixture({features: []}));
+
+    expect(disabledProducts[ProductSolution.LOGS]?.reason).toBe(
+      "This feature isn't enabled for your organization."
+    );
+  });
+
+  it('explains disabled org features as an installation setting on self-hosted', () => {
+    ConfigStore.set('isSelfHosted', true);
+
+    const disabledProducts = getDisabledProducts(OrganizationFixture({features: []}));
+
+    expect(disabledProducts[ProductSolution.LOGS]?.reason).toBe(
+      'This feature is not enabled on your Sentry installation.'
+    );
   });
 
   it('does not render Session Replay if not available for the platform', () => {
