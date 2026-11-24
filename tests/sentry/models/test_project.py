@@ -11,7 +11,7 @@ from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.hybridcloud.models.outbox import CellOutbox
-from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -32,7 +32,6 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
-from sentry.models.tombstone import ControlTombstone
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus, ScheduleType
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.types import NotificationSettingEnum
@@ -1334,46 +1333,16 @@ class ProjectDeletionTest(TestCase):
             # Ensure they are all now gone.
             assert not UserOption.objects.filter(project_id=proj_id).exists()
 
+    def test_option_leaves_outbox_pending(self) -> None:
+        pending = CellOutbox.objects.filter(category=OutboxCategory.PROJECT_UPDATE)
+        drained_project = self.create_project()
+        deferred_project = self.create_project()
 
-class ProjectAsyncDeletionTest(TestCase):
-    OPTION = "hybridcloud.outbox.project_delete_async.enabled"
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.deleted_project = self.create_project()
-        self.deleted_project_id = self.deleted_project.id
-
-    def _pending(self) -> bool:
-        return CellOutbox.objects.filter(
-            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-            shard_identifier=self.organization.id,
-            category=OutboxCategory.PROJECT_UPDATE,
-            object_identifier=self.deleted_project_id,
-        ).exists()
-
-    def _has_control_tombstone(self) -> bool:
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            return ControlTombstone.objects.filter(
-                table_name=Project._meta.db_table,
-                object_identifier=self.deleted_project_id,
-            ).exists()
-
-    def test_option_off_keeps_sync(self) -> None:
         with self.captureOnCommitCallbacks(execute=True):
-            self.deleted_project.delete()
+            drained_project.delete()
+        assert not pending.exists()
 
-        assert not self._pending()
-        assert self._has_control_tombstone()
-
-    def test_delete_is_async(self) -> None:
-        with self.options({self.OPTION: True}), self.captureOnCommitCallbacks(execute=True):
-            self.deleted_project.delete()
-
-        assert self._pending()
-        assert not self._has_control_tombstone()
-
-        with outbox_runner():
-            pass
-
-        assert not self._pending()
-        assert self._has_control_tombstone()
+        option = "hybridcloud.outbox.project_delete_async.enabled"
+        with self.options({option: True}), self.captureOnCommitCallbacks(execute=True):
+            deferred_project.delete()
+        assert pending.exists()
