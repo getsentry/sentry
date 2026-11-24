@@ -26,6 +26,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.base import (
+    ACTION_WORKFLOW_ID,
     ConfigUpdate,
     LockedConfig,
     ProjectSelection,
@@ -33,7 +34,6 @@ from sentry.seer.workflows.base import (
     SeerServiceAccountGrant,
     SelectedMonitors,
     WorkflowUpdateError,
-    get_config_action_settings_bulk,
     lock_config,
     validate_service_account_grant,
 )
@@ -49,6 +49,7 @@ from sentry.service_accounts.services.service_account import (
     service_account_service,
 )
 from sentry.workflow_engine.generated_schema_types import SeerInvestigationActionData
+from sentry.workflow_engine.models import Action
 
 logger = logging.getLogger(__name__)
 
@@ -251,9 +252,25 @@ class SeerWorkflow:
     @property
     def action_settings(self) -> SeerInvestigationActionData:
         """What the automation's investigation action runs, such as a prompt or a skill."""
-        return get_config_action_settings_bulk([self.get_config()]).get(
+        return self.action_settings_bulk([self.get_config()]).get(
             self.config_id, SeerInvestigationActionData()
         )
+
+    @staticmethod
+    def action_settings_bulk(
+        configs: Sequence[SeerWorkflowConfig],
+    ) -> dict[int, SeerInvestigationActionData]:
+        """``action_settings`` for each config, by config ID, in one query."""
+        config_ids_by_workflow_id = {
+            config.backing_workflow_id: config.id
+            for config in configs
+            if config.backing_workflow_id is not None
+        }
+        actions = Action.objects.filter(
+            type=Action.Type.SEER_INVESTIGATION,
+            **{f"{ACTION_WORKFLOW_ID}__in": config_ids_by_workflow_id},
+        ).values_list(ACTION_WORKFLOW_ID, "data")
+        return {config_ids_by_workflow_id[workflow_id]: data for workflow_id, data in actions}
 
     @property
     def filters(self) -> SeerWorkflowFilters:

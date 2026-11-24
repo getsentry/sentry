@@ -36,14 +36,13 @@ from sentry.service_accounts.models import (
 )
 from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.utils import json
-from sentry.workflow_engine.generated_schema_types import SeerInvestigationActionData
 from sentry.workflow_engine.models import Action, Workflow
 from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
 
 # How an action reaches its workflow: workflow -> action filter group -> action.
-_ACTION_WORKFLOW_ID = (
+ACTION_WORKFLOW_ID = (
     "dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow_id"
 )
 
@@ -395,12 +394,6 @@ class ConfigUpdate:
             self.config.filters = filters.dict()
             self.mark("filters")
 
-    def _backing_workflow(self) -> Workflow:
-        workflow = self.config.backing_workflow
-        if workflow is None:
-            raise WorkflowUpdateError("The automation has no backing workflow")
-        return workflow
-
     def set_action_settings(self, action_settings: Mapping[str, Any]) -> None:
         """Replace the investigation action's prompt or skill, which the action's schema checks."""
         if not self.definition.takes_action_settings:
@@ -461,6 +454,20 @@ class ConfigUpdate:
         self.mark_related_changed()
         return True
 
+    def set_scope(self, selection: ScopeSelection) -> None:
+        """Replace which projects the automation covers, in the form its trigger takes.
+
+        Callers must authorize the change; this only checks that the selection belongs to
+        the workflow's organization.
+        """
+        self.definition.set_scope(self, selection)
+
+    def _backing_workflow(self) -> Workflow:
+        workflow = self.config.backing_workflow
+        if workflow is None:
+            raise WorkflowUpdateError("The automation has no backing workflow")
+        return workflow
+
     def _service_account_replica(self) -> ServiceAccountReplica:
         if self.config.service_account_id is None:
             raise WorkflowUpdateError("The automation doesn't have a service account")
@@ -481,35 +488,11 @@ class ConfigUpdate:
             raise WorkflowUpdateError("The automation's service account can't be found")
         return replica
 
-    def set_scope(self, selection: ScopeSelection) -> None:
-        """Replace which projects the automation covers, in the form its trigger takes.
-
-        Callers must authorize the change; this only checks that the selection belongs to
-        the workflow's organization.
-        """
-        self.definition.set_scope(self, selection)
-
     def _investigation_action(self) -> Action:
         try:
             return Action.objects.get(
                 type=Action.Type.SEER_INVESTIGATION,
-                **{_ACTION_WORKFLOW_ID: self._backing_workflow().id},
+                **{ACTION_WORKFLOW_ID: self._backing_workflow().id},
             )
         except Action.DoesNotExist as e:
             raise WorkflowUpdateError("The automation has no investigation action") from e
-
-
-def get_config_action_settings_bulk(
-    configs: Sequence[SeerWorkflowConfig],
-) -> dict[int, SeerInvestigationActionData]:
-    """Return what each config's investigation action stores in its ``data``, by config ID."""
-    config_ids_by_workflow_id = {
-        config.backing_workflow_id: config.id
-        for config in configs
-        if config.backing_workflow_id is not None
-    }
-    actions = Action.objects.filter(
-        type=Action.Type.SEER_INVESTIGATION,
-        **{f"{_ACTION_WORKFLOW_ID}__in": config_ids_by_workflow_id},
-    ).values_list(_ACTION_WORKFLOW_ID, "data")
-    return {config_ids_by_workflow_id[workflow_id]: data for workflow_id, data in actions}

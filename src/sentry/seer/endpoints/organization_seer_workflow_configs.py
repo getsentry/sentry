@@ -48,7 +48,6 @@ from sentry.seer.workflows.base import (
     SelectedMonitors,
     SelectedProjects,
     WorkflowUpdateError,
-    get_config_action_settings_bulk,
 )
 from sentry.seer.workflows.breached_metrics import (
     ConnectedMonitor,
@@ -874,7 +873,7 @@ def serialize_workflow_configs(
     )
     last_runs_by_config_id = {run.config_id: run for run in last_runs}
     next_run_times = get_next_run_times(configs)
-    action_settings = get_config_action_settings_bulk(configs)
+    action_settings = SeerWorkflow.action_settings_bulk(configs)
     return {
         "configs": [
             serialize_workflow_config(
