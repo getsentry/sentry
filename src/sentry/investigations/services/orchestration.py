@@ -582,7 +582,9 @@ def create_agentic_detector_investigation(
     """The active investigation for the detector's occurrence fingerprint, or a new one.
 
     One fingerprint is one issue group, so retries and priority changes within it reuse the
-    active investigation. The bool is True when it was created.
+    active investigation. A reused run that Seer hasn't accepted is dispatched again, since
+    the attempt that created it may have committed without queueing its dispatch.
+    The bool is True when it was created.
     """
     _validate_creation_actor(organization=organization, creator=creator, project_ids=project_ids)
     source_key = agentic_detector_source_key(detector_id, fingerprint)
@@ -602,9 +604,19 @@ def create_agentic_detector_investigation(
         )
         return investigation
 
-    return get_or_create_source_notebook(
+    investigation, created = get_or_create_source_notebook(
         organization=organization, source_key=source_key, create=create
     )
+    if not created:
+        # Repeats send Seer the same per-run request id, and a run it accepted is skipped here.
+        undelivered = InvestigationOrchestrationRun.objects.filter(
+            investigation=investigation,
+            seer_run_id__isnull=True,
+            status=InvestigationOrchestrationStatus.PENDING,
+        ).get_or_none()
+        if undelivered is not None:
+            _schedule_orchestration_create(undelivered.id)
+    return investigation, created
 
 
 def _breached_metric_orchestration_source(source: dict[str, Any]) -> dict[str, Any]:

@@ -375,7 +375,8 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
         assert first.source_type == NotebookSourceType.DETECTOR
         assert rebuild_orchestration_source(first) == first.orchestration_run.source
 
-        # A retry or a priority change carries the same fingerprint.
+        # A priority change carries the same fingerprint after Seer accepted the run.
+        first.orchestration_run.update(seer_run_id=self.create_seer_run().id)
         with self.capture_on_commit_callbacks(execute=True):
             reused, created = create_agentic_detector_investigation(
                 fingerprint=["group-a"], **arguments
@@ -404,3 +405,27 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
             mock.call(other.orchestration_run.id),
             mock.call(revision.orchestration_run.id),
         ]
+
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
+    def test_detector_retry_redispatches_a_run_seer_never_got(self, dispatch: mock.Mock) -> None:
+        arguments: dict[str, Any] = dict(
+            organization=self.organization,
+            creator=self.creator,
+            title="Anomaly",
+            source={"type": "manual", "prompt": "Investigate the anomaly"},
+            detector_id=self.detector.id,
+            fingerprint=["group-a"],
+            project_ids=[self.project.id],
+        )
+        # The first attempt commits, but Seer never gets its dispatch.
+        with self.capture_on_commit_callbacks(execute=True):
+            first, created = create_agentic_detector_investigation(**arguments)
+        assert created
+        dispatch.reset_mock()
+
+        with self.capture_on_commit_callbacks(execute=True):
+            retried, created = create_agentic_detector_investigation(**arguments)
+        assert not created
+        assert retried.id == first.id
+        assert Notebook.objects.filter(source_key=first.source_key).count() == 1
+        dispatch.assert_called_once_with(first.orchestration_run.id)
