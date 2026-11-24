@@ -24,12 +24,11 @@ SERVICE_ACCOUNT_CONFIG_KEY = "service_account_id"
 @detector_outcome_registry.add(DetectorOutcome.SEER_INVESTIGATION)
 class SeerInvestigationOutcomeHandler(DetectorOutcomeHandler):
     """
-    Start a Seer investigation for each issue group instead of creating an issue.
+    Start a Seer investigation for each detector trigger instead of creating an issue.
 
-    Investigations are keyed on the occurrence fingerprint, like Issue Platform groups: later
-    occurrences for the same fingerprint (priority changes, retries) reuse the active
-    investigation, and a new one starts only after it's archived. Status changes produce
-    nothing, since investigations don't resolve.
+    Each trigger is identified by its occurrence's UUID, so it gets its own investigation and
+    task retries for it reuse that one. Every occurrence counts as a trigger, priority changes
+    included. Status changes produce nothing, since investigations don't resolve.
 
     The detector commits its state before this runs, so the investigation is created by a
     retried task rather than inline: a failure here would otherwise be lost to dedupe.
@@ -54,7 +53,7 @@ class SeerInvestigationOutcomeHandler(DetectorOutcomeHandler):
             service_account_id=service_account_id,
             title=occurrence.issue_title,
             source=_investigation_source(detector, evaluation, occurrence),
-            fingerprint=list(occurrence.fingerprint),
+            occurrence_id=occurrence.id,
         )
 
 

@@ -54,14 +54,14 @@ def create_detector_investigation(
     service_account_id: int,
     title: str,
     source: dict[str, Any],
-    fingerprint: list[str],
+    occurrence_id: str,
 ) -> None:
     """
     Start the Seer investigation for a detector trigger.
 
     The detector has already committed its state, so a transient failure must retry here
-    rather than be lost. Creation is keyed on the occurrence fingerprint, so a retry or a
-    priority change within the same issue group reuses the active investigation.
+    rather than be lost. Creation is keyed on the trigger's occurrence UUID, so a retry reuses
+    the investigation an earlier attempt created.
 
     A rejected service account can't succeed on retry and is skipped.
     """
@@ -90,7 +90,7 @@ def create_detector_investigation(
             title=title[:MAX_NOTEBOOK_TITLE_LENGTH],
             source=source,
             detector_id=detector.id,
-            fingerprint=fingerprint,
+            occurrence_id=occurrence_id,
             project_ids=[project.id],
         )
 

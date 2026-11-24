@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 from unittest import mock
+from uuid import uuid4
 
 import pytest
 from django.utils import timezone
@@ -360,9 +361,7 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
         dispatch.assert_not_called()
 
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
-    def test_detector_investigation_is_one_per_active_fingerprint(
-        self, dispatch: mock.Mock
-    ) -> None:
+    def test_detector_investigation_is_one_per_trigger(self, dispatch: mock.Mock) -> None:
         arguments: dict[str, Any] = dict(
             organization=self.organization,
             creator=self.creator,
@@ -371,43 +370,36 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
             detector_id=self.detector.id,
             project_ids=[self.project.id],
         )
+        trigger = uuid4().hex
         with self.capture_on_commit_callbacks(execute=True):
             first, created = create_agentic_detector_investigation(
-                fingerprint=["group-a"], **arguments
+                occurrence_id=trigger, **arguments
             )
         assert created
         assert first.source_type == NotebookSourceType.DETECTOR
         assert rebuild_orchestration_source(first) == first.orchestration_run.source
 
-        # A priority change carries the same fingerprint after Seer accepted the run.
+        # A task retry for the same trigger after Seer accepted the run.
         first.orchestration_run.update(seer_run_id=self.create_seer_run().id)
         with self.capture_on_commit_callbacks(execute=True):
             reused, created = create_agentic_detector_investigation(
-                fingerprint=["group-a"], **arguments
+                occurrence_id=trigger, **arguments
             )
         assert not created
         assert reused.id == first.id
 
+        # The next trigger starts its own investigation while the first is still active.
         with self.capture_on_commit_callbacks(execute=True):
-            other, created = create_agentic_detector_investigation(
-                fingerprint=["group-b"], **arguments
+            second, created = create_agentic_detector_investigation(
+                occurrence_id=uuid4().hex, **arguments
             )
         assert created
-        assert other.id != first.id
-
-        first.update(status=NotebookStatus.ARCHIVED)
-        with self.capture_on_commit_callbacks(execute=True):
-            revision, created = create_agentic_detector_investigation(
-                fingerprint=["group-a"], **arguments
-            )
-        assert created
-        assert revision.source_key == first.source_key
-        assert revision.source_revision == 2
+        assert second.id != first.id
+        assert Notebook.objects.get(id=first.id).status == NotebookStatus.ACTIVE
 
         assert dispatch.call_args_list == [
             mock.call(first.orchestration_run.id),
-            mock.call(other.orchestration_run.id),
-            mock.call(revision.orchestration_run.id),
+            mock.call(second.orchestration_run.id),
         ]
 
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
@@ -418,7 +410,7 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
             title="Anomaly",
             source={"type": "manual", "prompt": "Investigate the anomaly"},
             detector_id=self.detector.id,
-            fingerprint=["group-a"],
+            occurrence_id=uuid4().hex,
             project_ids=[self.project.id],
         )
         # The first attempt commits, but Seer never gets its dispatch.
@@ -444,7 +436,7 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
             title="Anomaly",
             source={"type": "manual", "prompt": "Investigate the anomaly"},
             detector_id=self.detector.id,
-            fingerprint=["group-a"],
+            occurrence_id=uuid4().hex,
             project_ids=[self.project.id],
         )
         with self.capture_on_commit_callbacks(execute=True):

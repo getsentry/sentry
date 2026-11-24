@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from collections.abc import Set as AbstractSet
 from copy import deepcopy
 from dataclasses import dataclass
@@ -49,7 +49,6 @@ from sentry.notebooks.services.notebooks import (
     update_notebook_row,
 )
 from sentry.users.services.user.service import user_service
-from sentry.utils.hashlib import hash_values
 from sentry.viewer_context import ActorId, ActorType
 from sentry.workflow_engine.types import DetectorId
 
@@ -565,9 +564,8 @@ def create_agentic_manual_investigation(
     )
 
 
-def agentic_detector_source_key(detector_id: DetectorId, fingerprint: Sequence[str]) -> str:
-    # Hashed: stateful fingerprints embed the group key, which has no length bound.
-    return f"{NotebookSourceType.DETECTOR}:{detector_id}:{hash_values(fingerprint)}"
+def agentic_detector_source_key(detector_id: DetectorId, occurrence_id: str) -> str:
+    return f"{NotebookSourceType.DETECTOR}:{detector_id}:{occurrence_id}"
 
 
 def create_agentic_detector_investigation(
@@ -577,18 +575,19 @@ def create_agentic_detector_investigation(
     title: str | None,
     source: dict[str, Any],
     detector_id: DetectorId,
-    fingerprint: Sequence[str],
+    occurrence_id: str,
     project_ids: list[int],
 ) -> tuple[Notebook, bool]:
-    """The active investigation for the detector's occurrence fingerprint, or a new one.
+    """The investigation for one detector trigger, created on the first call.
 
-    One fingerprint is one issue group, so retries and priority changes within it reuse the
-    active investigation. A reused run that Seer hasn't accepted is dispatched again: the
-    attempt that created it may have committed without queueing its dispatch, or its dispatch
-    may have run out of retries. The bool is True when it was created.
+    `occurrence_id` is the UUID the detector minted for the trigger, so each trigger gets
+    its own investigation and repeated calls for it (task retries, redelivery) reuse that
+    one. A reused run that Seer hasn't accepted is dispatched again: the attempt that created
+    it may have committed without queueing its dispatch, or its dispatch may have run out of
+    retries. The bool is True when it was created.
     """
     _validate_creation_actor(organization=organization, creator=creator, project_ids=project_ids)
-    source_key = agentic_detector_source_key(detector_id, fingerprint)
+    source_key = agentic_detector_source_key(detector_id, occurrence_id)
 
     def create(revision: int) -> Notebook:
         investigation, _ = _create_agentic_investigation(
