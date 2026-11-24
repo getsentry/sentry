@@ -40,7 +40,7 @@ from sentry.seer.autofix.feature.models import (
     RCAStepArgs,
     SolutionStepArgs,
 )
-from sentry.seer.autofix.open_prs import get_open_prs_setting
+from sentry.seer.autofix.open_prs import get_open_prs
 from sentry.seer.autofix.pr_iteration.feedback import (
     Feedback,
     feedback_text,
@@ -142,10 +142,14 @@ def should_use_single_run(
     )
 
 
-def manual_single_run_stopping_point(project: Project) -> AutofixStoppingPoint:
+def single_run_stopping_point(
+    project: Project, requested: AutofixStoppingPoint | None
+) -> AutofixStoppingPoint:
+    if requested is not None and requested != AutofixStoppingPoint.OPEN_PR:
+        return requested
     return (
         AutofixStoppingPoint.OPEN_PR
-        if get_open_prs_setting(project)
+        if get_open_prs(project.get_option)
         else AutofixStoppingPoint.CODE_CHANGES
     )
 
@@ -418,7 +422,7 @@ def trigger_autofix_feature(
         single_run_requested=args.single_run,
     )
     stopping_point = (
-        (args.stopping_point or manual_single_run_stopping_point(group.project))
+        single_run_stopping_point(group.project, args.stopping_point)
         if single_run
         else args.stopping_point
     )
@@ -451,11 +455,7 @@ def trigger_autofix_feature(
             stopping_point in _CODING_STOPPING_POINTS and not hand_off and _org_allows_coding(group)
         )
         payload.coding_agent_handoff = hand_off
-        open_pr = (
-            enable_coding
-            and stopping_point == AutofixStoppingPoint.OPEN_PR
-            and get_open_prs_setting(group.project)
-        )
+        open_pr = enable_coding and stopping_point == AutofixStoppingPoint.OPEN_PR
         if open_pr:
             payload.pr_internal_settings = _single_run_pr_internal_settings(group, args.referrer)
     else:

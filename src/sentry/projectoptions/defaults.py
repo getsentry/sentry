@@ -238,7 +238,6 @@ register(key="sentry:seer_automation_handoff_integration_id", default=None)
 register(key="sentry:seer_automation_handoff_auto_create_pr", default=False)
 # Should Autofix automatically iterate on the PRs it opens for this project's issues
 register(key="sentry:seer_pr_iteration", default=True)
-# Can Autofix open PRs without being asked; unset follows the Automation Steps dropdown
 register(key="sentry:seer_open_prs", default=None)
 
 SEER_PROJECT_PREFERENCE_OPTION_KEYS = [

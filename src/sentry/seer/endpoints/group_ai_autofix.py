@@ -66,8 +66,8 @@ from sentry.seer.autofix.constants import PUBLISH_SCOPES, AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
 from sentry.seer.autofix.feature.dispatch import (
     get_run_billing_feature,
-    manual_single_run_stopping_point,
     should_use_single_run,
+    single_run_stopping_point,
 )
 from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
@@ -445,7 +445,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
             stopping_point is None
             and is_new_run
             and should_use_single_run(group, step)
-            and manual_single_run_stopping_point(group.project) == AutofixStoppingPoint.OPEN_PR
+            and single_run_stopping_point(group.project, None) == AutofixStoppingPoint.OPEN_PR
         ):
             stopping_points.add(AutofixStoppingPoint.OPEN_PR.value)
         _require_publish_scope(request, group, step, stopping_points)

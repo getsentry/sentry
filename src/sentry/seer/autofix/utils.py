@@ -864,7 +864,6 @@ def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettin
         options_to_set["sentry:seer_pr_iteration"] = data["pr_iteration"]
 
     if "open_prs" in data:
-        # Stored even when false, so it stops following the Automation Steps dropdown.
         options_to_set["sentry:seer_open_prs"] = data["open_prs"]
 
     if "automation_tuning" in data:

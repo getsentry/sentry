@@ -36,11 +36,7 @@ from sentry.models.projectrepository import ProjectRepository
 from sentry.projectoptions.defaults import SEER_PROJECT_PREFERENCE_OPTION_KEYS
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.issue_summary import STOPPING_POINT_HIERARCHY
-from sentry.seer.autofix.open_prs import (
-    OPEN_PRS_OPTION,
-    get_open_prs_setting,
-    resolve_open_prs,
-)
+from sentry.seer.autofix.open_prs import get_open_prs
 from sentry.seer.autofix.pr_iteration.project_setting import (
     get_pr_iteration_setting,
     get_pr_iteration_settings,
@@ -170,7 +166,7 @@ def _get_project_settings(project: Project) -> SeerProjectSettings:
         stopping_point=project.get_option("sentry:seer_automated_run_stopping_point"),
         handoff=get_automation_handoff(project.get_option),
         pr_iteration=get_pr_iteration_setting(project),
-        open_prs=get_open_prs_setting(project),
+        open_prs=get_open_prs(project.get_option),
         repo_providers=repo_stats.repo_providers.get(project.id, []),
         repos_count=repo_stats.repos_count.get(project.id, 0),
     )
@@ -207,11 +203,7 @@ def _bulk_get_project_settings(
             stopping_point=_get_option("sentry:seer_automated_run_stopping_point"),
             handoff=get_automation_handoff(_get_option),
             pr_iteration=pr_iteration_by_project_id[project.id],
-            open_prs=resolve_open_prs(
-                _get_option(OPEN_PRS_OPTION),
-                _get_option("sentry:autofix_automation_tuning"),
-                _get_option("sentry:seer_automated_run_stopping_point"),
-            ),
+            open_prs=get_open_prs(_get_option),
             repo_providers=repo_stats.repo_providers.get(project.id, []),
             repos_count=repo_stats.repos_count.get(project.id, 0),
         )

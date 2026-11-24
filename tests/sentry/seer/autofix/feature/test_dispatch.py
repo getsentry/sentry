@@ -820,13 +820,13 @@ class TestSingleRunStart(TestCase):
 
     def test_manual_single_run_follows_project_open_prs(self) -> None:
         cases = [
-            ("open_pr", "medium", True),
-            ("open_pr", "off", False),
-            ("code_changes", "medium", False),
-            ("root_cause", "medium", False),
+            ("open_pr", "medium", True, "open_pr"),
+            ("open_pr", "off", False, "code_changes"),
+            ("code_changes", "medium", False, "code_changes"),
+            ("root_cause", "medium", False, "code_changes"),
         ]
         self.organization.update_option("sentry:enable_seer_coding", True)
-        for stored, tuning, expect_pr in cases:
+        for stored, tuning, expect_pr, expected_stopping_point in cases:
             with self.subTest(stored=stored, tuning=tuning):
                 self.project.update_option("sentry:seer_automated_run_stopping_point", stored)
                 self.project.update_option("sentry:autofix_automation_tuning", tuning)
@@ -838,9 +838,7 @@ class TestSingleRunStart(TestCase):
                 assert options["enable_coding"] is True
                 assert options.get("enable_write_pull_request", False) is expect_pr
                 assert (start_kwargs["payload"]["pr_internal_settings"] is not None) is expect_pr
-                assert start_kwargs["extras"]["stopping_point"] == (
-                    "open_pr" if expect_pr else "code_changes"
-                )
+                assert start_kwargs["extras"]["stopping_point"] == expected_stopping_point
 
     def test_open_prs_off_keeps_any_single_run_from_opening_a_pr(self) -> None:
         self.organization.update_option("sentry:enable_seer_coding", True)
@@ -856,6 +854,7 @@ class TestSingleRunStart(TestCase):
                 assert start_kwargs["agent_run_options"]["enable_coding"] is True
                 assert "enable_write_pull_request" not in start_kwargs["agent_run_options"]
                 assert start_kwargs["payload"]["pr_internal_settings"] is None
+                assert start_kwargs["extras"]["stopping_point"] == "code_changes"
 
     def test_single_run_pr_internal_settings_match_the_pipeline_push(self) -> None:
         self.organization.update_option("sentry:enable_seer_coding", True)
