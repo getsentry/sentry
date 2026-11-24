@@ -89,10 +89,11 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
       ) : occurrences.length > 0 ? (
         <Fragment>
           {occurrences.map((occurrence, i) => {
+            // Occurrence timestamps are not shifted for clock drift, the node space is
             const timestamp =
-              'start_timestamp' in occurrence
+              ('start_timestamp' in occurrence
                 ? occurrence.start_timestamp * 1e3
-                : occurrence.start * 1e3;
+                : occurrence.start * 1e3) + props.node.clockDriftOffsetMs;
             // Clamp the issue timestamp to the span's timestamp
             const left = props.manager.computeRelativeLeftPositionFromOrigin(
               clamp(
