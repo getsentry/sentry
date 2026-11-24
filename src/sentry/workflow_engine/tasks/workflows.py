@@ -22,7 +22,6 @@ from sentry.utils.exceptions import quiet_redis_noise, quiet_retriable_timeouts
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import DataConditionGroup, Detector
-from sentry.workflow_engine.processors.detector import get_detector_for_group
 from sentry.workflow_engine.processors.evaluations.tracking import emit_evaluations
 from sentry.workflow_engine.tasks.utils import (
     EventNotFoundError,
@@ -52,6 +51,7 @@ def process_workflow_activity(
     The task will get the Activity from the database, create a WorkflowEventData object,
     and then process the data in `process_workflows`.
     """
+    from sentry.workflow_engine.processors.detector import get_detector_for_group
     from sentry.workflow_engine.processors.workflow import (
         is_activity_workflow_enabled,
         process_workflows,
