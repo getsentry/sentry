@@ -2527,6 +2527,37 @@ describe('desktop navigation', () => {
         expect(preview.queryByRole('separator')).not.toBeInTheDocument();
       });
 
+      it('keeps a keyboard-opened preview open when a section renders later', async () => {
+        let loadDashboards!: () => void;
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/dashboards/',
+          body: [DashboardListItemFixture({id: '1', title: 'Starred dashboard'})],
+          asyncDelay: new Promise<void>(resolve => (loadDashboards = resolve)),
+        });
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({organization: navPeek})
+        );
+
+        const dashboards = screen.getByRole('link', {name: 'Dashboards'});
+        act(() => dashboards.focus());
+        await userEvent.keyboard('{ArrowRight}');
+
+        const dialog = await screen.findByRole('dialog', {name: 'Navigation preview'});
+        const allDashboards = within(dialog).getByRole('link', {name: 'All Dashboards'});
+        expect(allDashboards).toHaveFocus();
+        // Starred dashboards render once they load, after the preview took focus,
+        // so they join the untabbed list instead of remounting the focused link.
+        act(() => loadDashboards());
+        expect(
+          await within(dialog).findByRole('link', {name: 'Starred dashboard'})
+        ).toBeInTheDocument();
+        expect(within(dialog).queryByRole('tablist')).not.toBeInTheDocument();
+        expect(allDashboards).toHaveFocus();
+      });
+
       it('keeps the preview open when a link opens in a new tab', async () => {
         const {router} = render(
           <PrimaryNavigationContextProvider>

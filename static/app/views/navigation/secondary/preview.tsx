@@ -130,7 +130,11 @@ export function SecondaryNavigationPreviewBody({children}: {children: ReactNode}
   }, []);
 
   const tabGroups = useMemo(() => groupTabsByLabel(tabs) ?? [], [tabs]);
-  const tabbed = tabGroups.length > 1;
+  // Switching between tabbed and untabbed remounts every section, which would
+  // drop focus from inside the preview. Once focus is inside, a section that
+  // renders later joins the current layout instead.
+  const [lockedTabbed, setLockedTabbed] = useState<boolean | null>(null);
+  const tabbed = lockedTabbed ?? tabGroups.length > 1;
   const selectedTab = tabGroups.find(group => group.id === selectedId) ?? tabGroups[0];
 
   const registry = useMemo(
@@ -150,31 +154,36 @@ export function SecondaryNavigationPreviewBody({children}: {children: ReactNode}
   }, [focusManager, tabs]);
 
   return (
-    <PreviewTabsContext value={registry}>
-      {tabbed && selectedTab ? (
-        <Tabs size="sm" value={selectedTab.id} onChange={setSelectedId}>
-          {({TabList, TabPanels}) => (
-            <Fragment>
-              <Container borderBottom="primary" padding="0 md">
-                <TabList aria-label={t('Navigation sections')}>
-                  {tabGroups.map(({id, label}) => (
-                    <TabList.Item key={id}>{label}</TabList.Item>
+    <Container
+      display="contents"
+      onFocus={() => setLockedTabbed(locked => locked ?? tabbed)}
+    >
+      <PreviewTabsContext value={registry}>
+        {tabbed && selectedTab ? (
+          <Tabs size="sm" value={selectedTab.id} onChange={setSelectedId}>
+            {({TabList, TabPanels}) => (
+              <Fragment>
+                <Container borderBottom="primary" padding="0 md">
+                  <TabList aria-label={t('Navigation sections')}>
+                    {tabGroups.map(({id, label}) => (
+                      <TabList.Item key={id}>{label}</TabList.Item>
+                    ))}
+                  </TabList>
+                </Container>
+                <TabPanels>
+                  {tabGroups.map(({id}) => (
+                    <TabPanels.Item key={id}>
+                      <PreviewTabPanel id={id} onElementChange={setPanelElement} />
+                    </TabPanels.Item>
                   ))}
-                </TabList>
-              </Container>
-              <TabPanels>
-                {tabGroups.map(({id}) => (
-                  <TabPanels.Item key={id}>
-                    <PreviewTabPanel id={id} onElementChange={setPanelElement} />
-                  </TabPanels.Item>
-                ))}
-              </TabPanels>
-            </Fragment>
-          )}
-        </Tabs>
-      ) : null}
-      <Container padding="0 md">{children}</Container>
-    </PreviewTabsContext>
+                </TabPanels>
+              </Fragment>
+            )}
+          </Tabs>
+        ) : null}
+        <Container padding="0 md">{children}</Container>
+      </PreviewTabsContext>
+    </Container>
   );
 }
 
