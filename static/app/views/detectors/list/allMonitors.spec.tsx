@@ -503,12 +503,12 @@ describe('DetectorsList', () => {
     });
 
     it('shows the error from the API when enabling fails', async () => {
-      jest.spyOn(toast, 'error');
+      const toastError = jest.spyOn(toast, 'error');
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
         method: 'PUT',
         statusCode: 400,
-        body: {detail: "You've reached your plan's limit on metric monitors."},
+        body: {detail: "This would exceed your plan's limit of 3 metric monitors."},
       });
 
       render(<AllMonitors />, {organization});
@@ -525,10 +525,11 @@ describe('DetectorsList', () => {
       );
 
       await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith(
-          "You've reached your plan's limit on metric monitors."
+        expect(toastError).toHaveBeenCalledWith(
+          "This would exceed your plan's limit of 3 metric monitors."
         );
       });
+      toastError.mockRestore();
     });
 
     it('can disable selected detectors with confirmation', async () => {
