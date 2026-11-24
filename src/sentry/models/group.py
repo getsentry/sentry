@@ -42,6 +42,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
+from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import GroupCategory, GroupType, get_group_type_by_type_id
@@ -854,7 +855,8 @@ class Group(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    project = FlexibleForeignKey("sentry.Project")
+    # The composite indexes in Meta.indexes that lead with project cover it.
+    project = FlexibleForeignKey("sentry.Project", db_index=False)
     logger = models.CharField(max_length=64, blank=True, default=str(DEFAULT_LOGGER_NAME))
     level = BoundedPositiveIntegerField(
         choices=[(key, str(val)) for key, val in sorted(LOG_LEVELS.items())],
@@ -874,7 +876,6 @@ class Group(Model):
             (GroupStatus.RESOLVED, _("Resolved")),
             (GroupStatus.IGNORED, _("Ignored")),
         ),
-        db_index=True,
     )
     substatus = BoundedIntegerField(
         null=True,
@@ -887,12 +888,12 @@ class Group(Model):
         ),
     )
     times_seen = BoundedPositiveIntegerField(default=1)
-    last_seen = models.DateTimeField(default=timezone.now, db_index=True)
-    first_seen = models.DateTimeField(default=timezone.now, db_index=True)
+    last_seen = models.DateTimeField(default=timezone.now)
+    first_seen = models.DateTimeField(default=timezone.now)
     first_release = FlexibleForeignKey("sentry.Release", null=True, on_delete=models.PROTECT)
-    resolved_at = models.DateTimeField(null=True, db_index=True)
+    resolved_at = models.DateTimeField(null=True)
     # active_at should be the same as first_seen by default
-    active_at = models.DateTimeField(null=True, db_index=True)
+    active_at = models.DateTimeField(null=True)
     time_spent_total = BoundedIntegerField(default=0)
     time_spent_count = BoundedIntegerField(default=0)
     # deprecated, do not use. GroupShare has superseded
@@ -928,6 +929,24 @@ class Group(Model):
             models.Index(fields=("status", "substatus", "id")),  # TODO: Remove this
             models.Index(fields=("status", "substatus", "first_seen")),
             models.Index(fields=("project", "status", "priority", "last_seen", "id")),
+            IndexWithPostgresNameLimits(
+                fields=("project", "first_seen"),
+                name="sentry_groupedmessage_project_first_seen",
+            ),
+            IndexWithPostgresNameLimits(
+                fields=("project", "first_seen"),
+                condition=Q(status=GroupStatus.UNRESOLVED),
+                name="sentry_groupedmessage_project_first_seen_status",
+            ),
+            IndexWithPostgresNameLimits(
+                fields=("project", "-last_seen"),
+                name="sentry_groupedmessage_project_id_last_seen",
+            ),
+            IndexWithPostgresNameLimits(
+                fields=("project", "resolved_at"),
+                condition=Q(status=GroupStatus.RESOLVED),
+                name="sentry_groupedmessage_project_resolved_at_status",
+            ),
         ]
         unique_together = (("project", "short_id"),)
 
