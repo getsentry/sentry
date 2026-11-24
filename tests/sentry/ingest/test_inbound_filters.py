@@ -1410,11 +1410,6 @@ def test_log_and_trace_metric_lists_become_glob_conditions(default_project: Proj
 CONSOLE_FILTER_REFERENCES = {
     "playstation": {"id": "console-platform-playstation", "isEnabled": True, "condition": None},
     "xbox": {"id": "console-platform-xbox", "isEnabled": True, "condition": None},
-    "nintendo-switch": {
-        "id": "console-platform-nintendo-switch",
-        "isEnabled": True,
-        "condition": None,
-    },
 }
 
 
@@ -1430,11 +1425,11 @@ def test_console_platform_filters_need_feature(default_project: Project) -> None
 @pytest.mark.parametrize(
     ("enabled_platforms", "filtered_platforms"),
     [
-        pytest.param(None, ["playstation", "xbox", "nintendo-switch"], id="no_option"),
-        pytest.param([], ["playstation", "xbox", "nintendo-switch"], id="empty_option"),
-        pytest.param(["playstation"], ["xbox", "nintendo-switch"], id="playstation_only"),
+        pytest.param(None, ["playstation", "xbox"], id="no_option"),
+        pytest.param([], ["playstation", "xbox"], id="empty_option"),
+        pytest.param(["playstation"], ["xbox"], id="playstation_only"),
         pytest.param(["xbox", "nintendo-switch"], ["playstation"], id="xbox_and_switch"),
-        pytest.param(["playstation", "xbox", "nintendo-switch"], [], id="all_enabled"),
+        pytest.param(["playstation", "xbox"], [], id="playstation_and_xbox"),
     ],
 )
 def test_console_platform_filters_for_platforms_without_access(
@@ -1503,15 +1498,11 @@ def test_console_platform_filter_conditions_are_valid(
             "xbox",
             id="xbox_durango_os",
         ),
-        pytest.param(
-            {"event.sdk.name": "nintendo.crash_report"}, "nintendo-switch", id="switch_crash_report"
-        ),
-        pytest.param(
-            {"event.sdk.name": "sentry.native.switch.unity"}, "nintendo-switch", id="switch_unity"
-        ),
+        pytest.param({"event.sdk.name": "nintendo.crash_report"}, None, id="switch_crash_report"),
+        pytest.param({"event.sdk.name": "sentry.native.switch.unity"}, None, id="switch_unity"),
         pytest.param(
             {"event.sdk.name": "sentry.dotnet.unity", "event.contexts.os.name": "Nintendo OS"},
-            "nintendo-switch",
+            None,
             id="switch_unity_os",
         ),
         pytest.param(

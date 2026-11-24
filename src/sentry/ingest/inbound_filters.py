@@ -498,11 +498,6 @@ CONSOLE_PLATFORM_FILTERS: Sequence[_ConsolePlatformFilter] = [
         sdk_names=["sentry.native.xbox", "sentry.native.xbox.*"],
         os_names=["Xbox", "durangoos"],
     ),
-    _ConsolePlatformFilter(
-        platform="nintendo-switch",
-        sdk_names=["sentry.native.switch", "sentry.native.switch.*", "nintendo.crash_report"],
-        os_names=["Nintendo", "Nintendo OS", "Nintendo Switch"],
-    ),
 ]
 
 
