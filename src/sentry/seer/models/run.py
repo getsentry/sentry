@@ -89,8 +89,6 @@ class SeerRun(DefaultFieldsModel):
             models.Index(fields=["organization", "user_id", "-last_triggered_at"]),
             # Per-org type breakdowns (e.g. "all PR reviews for this org").
             models.Index(fields=["organization", "type", "-last_triggered_at"]),
-            # Per-org referrer breakdowns (e.g. "all agentic-triage-triggered runs").
-            models.Index(fields=["organization", "referrer", "-last_triggered_at"]),
             # TTL/cleanup scans across all orgs.
             models.Index(fields=["last_triggered_at"]),
         ]
