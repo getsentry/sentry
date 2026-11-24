@@ -606,7 +606,14 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
             onClick={clear}
           />
         )}
-        {isLoading && <Spinner mini size={14} />}
+        {isLoading && (
+          <Spinner
+            size={14}
+            css={css`
+              margin: 0;
+            `}
+          />
+        )}
       </Grid>
       {dropdownIndicator !== null && (
         <Flex as="span" align="center" aria-hidden="true">

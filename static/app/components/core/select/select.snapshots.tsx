@@ -73,6 +73,24 @@ describe('Select', () => {
   );
 
   it.snapshot.each(['xs', 'sm', 'md'] as const)(
+    'loading indicator alignment at size %s',
+    size => (
+      <Stack padding="md" width="300px">
+        <Select
+          aria-label="Repository"
+          placeholder="Search repositories"
+          options={[]}
+          value={null}
+          size={size}
+          isLoading
+          onChange={() => {}}
+        />
+      </Stack>
+    ),
+    size => ({tags: {area: 'core', size, state: 'loading'}})
+  );
+
+  it.snapshot.each(['xs', 'sm', 'md'] as const)(
     'leading icon alignment at size %s',
     size => (
       <Stack padding="md" width="300px">
