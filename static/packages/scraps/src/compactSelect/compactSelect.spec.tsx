@@ -2084,6 +2084,7 @@ describe('CompactSelect', () => {
 
   describe('virtualization', () => {
     stubScrollLayout();
+    afterEach(() => jest.restoreAllMocks());
 
     const options = Array.from({length: 500}, (_, i) => ({
       value: `${i}`,
@@ -2202,7 +2203,65 @@ describe('CompactSelect', () => {
       }
     );
 
+    it.each([
+      ['list box', undefined],
+      ['grid', 'grid'],
+    ] as const)(
+      'measures the width of a %s with every section header and widest option',
+      async (_, mode) => {
+        const longHeader = 'A section header much longer than any option label';
+        const longOption = 'An option label longer than the others';
+        const manySections = Array.from({length: 10}, (__, s) => ({
+          key: `s${s}`,
+          label: s === 5 ? longHeader : `Section ${s}`,
+          options: Array.from({length: 20}, (___, i) => ({
+            value: `${s}-${i}`,
+            label: s === 7 && i === 10 ? longOption : `${s} ${i}`,
+          })),
+        }));
+
+        const contentsWhenMeasured: string[] = [];
+        jest
+          .spyOn(HTMLElement.prototype, 'offsetWidth', 'get')
+          .mockImplementation(function (this: HTMLElement) {
+            if (within(this).queryByTestId('select-scroll-area')) {
+              contentsWhenMeasured.push(this.textContent ?? '');
+            }
+            return 0;
+          });
+
+        render(
+          <CompactSelect
+            mode={mode}
+            options={manySections}
+            value={undefined}
+            onChange={jest.fn()}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+        await userEvent.click(screen.getByRole('button'));
+        await waitFor(() => expect(contentsWhenMeasured).not.toHaveLength(0));
+
+        const [measured] = contentsWhenMeasured;
+        for (const section of manySections) {
+          expect(measured).toContain(section.label);
+        }
+        expect(measured).toContain(longOption);
+      }
+    );
+
     it('reserves the scrollbar gutter of a virtualized list box from the start', async () => {
+      const gutterWhenMeasured: string[] = [];
+      jest
+        .spyOn(HTMLElement.prototype, 'offsetWidth', 'get')
+        .mockImplementation(function (this: HTMLElement) {
+          const scrollArea = within(this).queryByTestId('select-scroll-area');
+          if (scrollArea) {
+            gutterWhenMeasured.push(scrollArea.style.scrollbarGutter);
+          }
+          return 0;
+        });
+
       render(<CompactSelect options={options} value={undefined} onChange={jest.fn()} />, {
         wrapper: ThemeWrapper,
       });
@@ -2211,7 +2270,8 @@ describe('CompactSelect', () => {
 
       // The menu's width is measured from a few options that do not overflow,
       // so the gutter must not wait for an overflow to be reserved.
-      expect(await screen.findByTestId('select-scroll-area')).toHaveStyle({
+      await waitFor(() => expect(gutterWhenMeasured).toEqual(['stable']));
+      expect(screen.getByTestId('select-scroll-area')).toHaveStyle({
         scrollbarGutter: 'stable',
       });
     });

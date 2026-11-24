@@ -197,9 +197,10 @@ export function CompactSelect<Value extends SelectKey>({
         size={size}
         sizeLimit={sizeLimit}
         sizeLimitMessage={sizeLimitMessage}
-        // Set during the measuring pass too, so the measured list reserves the
-        // same scrollbar gutter as the virtualized list it stands in for.
-        virtualized={virtualized}
+        // The measuring pass renders every row it is given, so each one counts
+        // toward the width, and reserves the gutter of the list it stands in for.
+        virtualized={virtualized && !needsMeasuring}
+        reserveScrollbarGutter={virtualized}
         aria-labelledby={triggerId}
       >
         {(item: SelectOptionOrSectionWithKey<Value>) => {

@@ -74,6 +74,11 @@ interface ListBoxProps<T extends ListItemBase>
   overlayIsOpen?: boolean;
   ref?: React.Ref<HTMLUListElement>;
   /**
+   * Reserves the scrollbar's space even when the list does not overflow. A
+   * virtualized list always reserves it.
+   */
+  reserveScrollbarGutter?: boolean;
+  /**
    * Ref forwarded to the inner scroll container div (the element the virtualizer
    * uses as its scroll element). Useful for callers that need to reset scrollTop.
    */
@@ -136,6 +141,7 @@ export function ListBox<T extends ListItemBase>({
   showSectionHeaders = true,
   showDetails = true,
   onAction,
+  reserveScrollbarGutter,
   virtualized,
   scrollContainerRef,
   className,
@@ -268,9 +274,11 @@ export function ListBox<T extends ListItemBase>({
           ref={refs}
           className={className}
           // A virtualized list has more options than fit, so it reserves the
-          // gutter from the start, including while its width is measured.
+          // gutter from the start.
           style={
-            hasEverOverflowed || virtualized ? {scrollbarGutter: 'stable'} : undefined
+            hasEverOverflowed || virtualized || reserveScrollbarGutter
+              ? {scrollbarGutter: 'stable'}
+              : undefined
           }
         >
           <ListWrap

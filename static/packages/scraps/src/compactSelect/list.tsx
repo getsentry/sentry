@@ -73,6 +73,11 @@ interface BaseListProps<Value extends SelectKey>
    *   interactive child elements (buttons/links) that need to be keyboard-reachable.
    */
   mode?: 'list' | 'grid';
+  /**
+   * Reserves the scrollbar's space even when the list does not overflow. A
+   * list box only, a grid list never reserves it.
+   */
+  reserveScrollbarGutter?: boolean;
   size?: FormSize;
   /**
    * Upper limit for the number of options to display in the menu at a time. Users can
@@ -165,6 +170,7 @@ export function List<Value extends SelectKey>({
   sizeLimit,
   sizeLimitMessage,
   closeOnSelect,
+  reserveScrollbarGutter,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
   const {overlayState, search, searchable, overlayIsOpen, searchMatcher} =
@@ -376,6 +382,7 @@ export function List<Value extends SelectKey>({
           {...props}
           searchable={searchable}
           overlayIsOpen={overlayIsOpen}
+          reserveScrollbarGutter={reserveScrollbarGutter}
           hiddenOptions={hiddenOptions}
           id={listId}
           listState={listState}
