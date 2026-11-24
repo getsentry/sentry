@@ -395,15 +395,6 @@ class ConfigUpdate:
             self.config.filters = filters.dict()
             self.mark("filters")
 
-    def _investigation_action(self) -> Action:
-        try:
-            return Action.objects.get(
-                type=Action.Type.SEER_INVESTIGATION,
-                **{_ACTION_WORKFLOW_ID: self._backing_workflow().id},
-            )
-        except Action.DoesNotExist as e:
-            raise WorkflowUpdateError("The automation has no investigation action") from e
-
     def _backing_workflow(self) -> Workflow:
         workflow = self.config.backing_workflow
         if workflow is None:
@@ -497,6 +488,15 @@ class ConfigUpdate:
         the workflow's organization.
         """
         self.definition.set_scope(self, selection)
+
+    def _investigation_action(self) -> Action:
+        try:
+            return Action.objects.get(
+                type=Action.Type.SEER_INVESTIGATION,
+                **{_ACTION_WORKFLOW_ID: self._backing_workflow().id},
+            )
+        except Action.DoesNotExist as e:
+            raise WorkflowUpdateError("The automation has no investigation action") from e
 
 
 def get_config_action_settings_bulk(
