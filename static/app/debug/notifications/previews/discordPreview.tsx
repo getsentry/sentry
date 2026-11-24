@@ -25,7 +25,7 @@ export function DiscordPreview({
   const payload = registration.previews[NotificationProviderKey.DISCORD];
   return (
     <DebugNotificationsPreview title="Discord">
-      <Container border="primary" radius="md">
+      <Container borderColor="primary" radius="md">
         <DiscordMessageContainer columns="auto 1fr" gap="xs md" padding="xl">
           <SentryDiscordAppIcon />
           <Flex gap="md" align="end">

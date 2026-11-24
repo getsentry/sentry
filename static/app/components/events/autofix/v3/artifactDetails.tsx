@@ -8,7 +8,7 @@ interface ArtifactDetailsProps extends FlexProps {
 
 export function ArtifactDetails({children, ...flexProps}: ArtifactDetailsProps) {
   return (
-    <Stack borderTop="primary" gap="md" paddingTop="lg" {...flexProps}>
+    <Stack borderTopColor="primary" gap="md" paddingTop="lg" {...flexProps}>
       {children}
     </Stack>
   );

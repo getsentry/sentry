@@ -381,7 +381,7 @@ export function ScheduledInvestigationForm(
                           </field.Layout.Stack>
                         )}
                       </form.AppField>
-                      <Container borderTop="primary" paddingTop="2xl">
+                      <Container borderTopColor="primary" paddingTop="2xl">
                         <form.AppField name="scopes">
                           {field => (
                             <field.Layout.Stack label={t('Permissions')}>

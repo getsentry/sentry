@@ -210,7 +210,7 @@ function SecondarySidebarWrapper(props: NavigationTourElementProps) {
   return (
     <Container
       background="secondary"
-      borderRight="primary"
+      borderRightColor="primary"
       position="relative"
       height="100%"
     >
@@ -309,7 +309,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
     <Grid
       columns="minmax(0, 1fr) auto"
       align="center"
-      borderBottom="primary"
+      borderBottomColor="primary"
       height={`${PRIMARY_HEADER_HEIGHT}px`}
       padding={isMobile ? 'md lg' : '0 sm 0 sm'}
     >
@@ -653,7 +653,7 @@ function SecondaryNavigationSeparator() {
     return (
       <SecondaryNavigationRow height="auto" padding="md" radius="0">
         <Container column="2" minWidth="0">
-          <Separator orientation="horizontal" border="secondary" />
+          <Separator orientation="horizontal" borderColor="secondary" />
         </Container>
       </SecondaryNavigationRow>
     );
@@ -661,7 +661,7 @@ function SecondaryNavigationSeparator() {
 
   return (
     <Container padding="0 xl">
-      <Separator orientation="horizontal" border="secondary" />
+      <Separator orientation="horizontal" borderColor="secondary" />
     </Container>
   );
 }

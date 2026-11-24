@@ -16,7 +16,7 @@ function LabeledGroup({label, children}: {children: React.ReactNode; label: stri
       <Text size="xs" variant="muted">
         {label}
       </Text>
-      <Stack gap="sm" borderLeft="secondary" paddingLeft="md">
+      <Stack gap="sm" borderLeftColor="secondary" paddingLeft="md">
         {children}
       </Stack>
     </Stack>

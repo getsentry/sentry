@@ -25,8 +25,8 @@ export function ExploreControlSection({expanded, ...props}: ExploreControlSectio
       as="aside"
       display={{zero: expanded ? 'block' : 'none', xl: 'block'}}
       padding={expanded ? 'md xl' : '0'}
-      borderBottom={expanded ? {zero: 'primary', xl: 'none'} : 'none'}
-      borderRight={{zero: 'none', xl: expanded ? 'primary' : 'none'}}
+      borderBottomColor={expanded ? {zero: 'primary', xl: 'none'} : 'none'}
+      borderRightColor={{zero: 'none', xl: expanded ? 'primary' : 'none'}}
       overflow={expanded ? 'visible' : 'hidden'}
       width={{zero: 'auto', xl: expanded ? '343px' : '0px'}}
       flexShrink={0}

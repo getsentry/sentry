@@ -115,7 +115,7 @@ function WhatsNewBroadcastList({
             </Flex>
             <Placeholder height="124px" width="100%" />
 
-            {item < 3 && <Stack.Separator border="secondary" />}
+            {item < 3 && <Stack.Separator borderColor="secondary" />}
           </Stack>
         ))}
       </Stack>

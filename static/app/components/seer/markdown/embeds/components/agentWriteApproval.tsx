@@ -57,7 +57,7 @@ export function AgentWriteApprovalResult({
       width="fit-content"
       maxWidth="100%"
       padding="sm"
-      border="primary"
+      borderColor="primary"
       radius="md"
       background="secondary"
       onClick={event => event.stopPropagation()}

@@ -13,7 +13,7 @@ interface PathMappingEmptyStateProps {
 export function PathMappingEmptyState({onAdd}: PathMappingEmptyStateProps) {
   return (
     <Container
-      border="secondary"
+      borderColor="secondary"
       radius="md"
       padding="2xl"
       style={{borderStyle: 'dashed'}}

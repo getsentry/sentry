@@ -121,7 +121,7 @@ function SidebarHeaderShell({
       height={`${PRIMARY_HEADER_HEIGHT}px`}
       padding="0 lg"
       background="primary"
-      borderBottom="primary"
+      borderBottomColor="primary"
       flexShrink={0}
     >
       <Button
@@ -1129,7 +1129,7 @@ function RestartNotice({onCancel}: {onCancel: () => void}) {
       gap="md"
       padding="md lg"
       radius="md"
-      border="accent.vibrant"
+      borderColor="accent.vibrant"
       background="secondary"
       data-test-id="seer-explorer-restart-notice"
     >

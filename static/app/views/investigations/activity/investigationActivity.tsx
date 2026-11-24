@@ -73,7 +73,14 @@ export function InvestigationActivity({
   );
 
   return (
-    <Stack ref={ref} as="section" id={id} gap="lg" paddingTop="2xl" borderTop="primary">
+    <Stack
+      ref={ref}
+      as="section"
+      id={id}
+      gap="lg"
+      paddingTop="2xl"
+      borderTopColor="primary"
+    >
       <Heading as="h2" size="lg">
         {t('Activity')}
       </Heading>
@@ -301,7 +308,7 @@ function CommentRow({
         ) : (
           <Container
             background="secondary"
-            border="primary"
+            borderColor="primary"
             radius="lg"
             padding="sm md"
             marginTop="xs"

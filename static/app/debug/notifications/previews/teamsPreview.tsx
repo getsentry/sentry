@@ -62,7 +62,7 @@ export function TeamsPreview({
         </Grid>
       }
     >
-      <Container border="primary" radius="md">
+      <Container borderColor="primary" radius="md">
         <TeamsPreviewContainer columns="auto 1fr" gap="0 lg" padding="xl">
           <SentryTeamsAppIcon />
           <TeamsMessage padding="xl" gap="md" direction="column">

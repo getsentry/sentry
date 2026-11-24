@@ -133,7 +133,7 @@ export function HandoffPromptBox<Flow extends AgentHandoffFlow>({
     <ThemeProvider theme={darkTheme}>
       <Container
         background="primary"
-        border="primary"
+        borderColor="primary"
         radius="md"
         padding={size === 'md' ? 'lg xl' : 'md xl'}
       >

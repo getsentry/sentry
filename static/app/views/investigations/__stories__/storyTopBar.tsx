@@ -15,7 +15,7 @@ export function StoryTopBar({children}: {children: React.ReactNode}) {
         gap="md"
         minHeight="48px"
         padding="sm xl"
-        borderBottom="primary"
+        borderBottomColor="primary"
       >
         <Flex align="center" gap="sm" minWidth="0">
           <TopBarSlots.Outlet name="breadcrumbs">

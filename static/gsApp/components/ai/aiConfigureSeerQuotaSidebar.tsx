@@ -40,7 +40,7 @@ export function AiConfigureSeerQuotaSidebar({
   const hasBillingPerms = hasAccessToSubscriptionOverview(subscription, organization);
 
   return (
-    <Stack border="secondary" radius="md" padding="lg" gap="lg">
+    <Stack borderColor="secondary" radius="md" padding="lg" gap="lg">
       <Text bold>{t('Meet Seer, your AI assistant')}</Text>
       <Text>
         {t(

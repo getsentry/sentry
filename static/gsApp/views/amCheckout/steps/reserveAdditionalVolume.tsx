@@ -80,7 +80,7 @@ export function ReserveAdditionalVolume({
   );
 
   return (
-    <Stack borderTop="primary">
+    <Stack borderTopColor="primary">
       <Flex
         gap="md"
         align="center"
@@ -127,8 +127,8 @@ export function ReserveAdditionalVolume({
         )}
       </Flex>
       {showSliders && (
-        <Stack direction="column" borderTop="primary">
-          <Flex borderTop="primary" width="100%" />
+        <Stack direction="column" borderTopColor="primary">
+          <Flex borderTopColor="primary" width="100%" />
           <VolumeSliders
             activePlan={activePlan}
             organization={organization}

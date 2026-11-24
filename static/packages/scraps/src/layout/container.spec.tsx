@@ -24,7 +24,7 @@ describe('Container', () => {
   it('implements render prop', () => {
     render(
       <section>
-        <Container border="primary">{props => <p {...props}>Hello</p>}</Container>
+        <Container borderColor="primary">{props => <p {...props}>Hello</p>}</Container>
       </section>,
       {wrapper: ThemeWrapper}
     );
@@ -38,8 +38,8 @@ describe('Container', () => {
   it('does not forward border props to the DOM', () => {
     render(
       <Container
-        border="transparent.neutral.muted"
-        borderTop="danger.vibrant"
+        borderColor="transparent.neutral.muted"
+        borderTopColor="danger.vibrant"
         borderWidth="xl"
       >
         Hello
@@ -48,26 +48,79 @@ describe('Container', () => {
     );
 
     const element = screen.getByText('Hello');
-    expect(element).not.toHaveAttribute('border');
-    expect(element).not.toHaveAttribute('borderTop');
+    expect(element).not.toHaveAttribute('borderColor');
+    expect(element).not.toHaveAttribute('borderTopColor');
     expect(element).not.toHaveAttribute('borderWidth');
   });
 
-  it('borderWidth overrides the width set by border', () => {
-    render(
-      <Container border="primary" borderWidth="xl">
-        Hello
-      </Container>,
-      {wrapper: ThemeWrapper}
-    );
+  describe('borders', () => {
+    const {border, tokens} = lightTheme;
 
-    expect(screen.getByText('Hello')).toHaveStyle({borderWidth: '2px'});
+    function renderBorder(props: React.ComponentProps<typeof Container>) {
+      render(<Container {...props}>Hello</Container>, {wrapper: ThemeWrapper});
+      return screen.getByText('Hello');
+    }
+
+    it('draws no border without border props', () => {
+      expect(renderBorder({})).not.toHaveStyle({borderStyle: 'solid'});
+    });
+
+    it('defaults to a 1px width when only a color is set', () => {
+      expect(renderBorder({borderColor: 'danger.vibrant'})).toHaveStyle({
+        borderStyle: 'solid',
+        borderWidth: border.md,
+        borderColor: tokens.border.danger.vibrant,
+      });
+    });
+
+    it('defaults to the primary color when only a width is set', () => {
+      expect(renderBorder({borderWidth: 'xl'})).toHaveStyle({
+        borderStyle: 'solid',
+        borderWidth: border.xl,
+        borderColor: tokens.border.primary,
+      });
+    });
+
+    it('combines a color and a width', () => {
+      expect(
+        renderBorder({borderColor: 'accent.vibrant', borderWidth: '2xl'})
+      ).toHaveStyle({
+        borderStyle: 'solid',
+        borderWidth: border['2xl'],
+        borderColor: tokens.border.accent.vibrant,
+      });
+    });
+
+    it('draws only the side whose color is set, at borderWidth', () => {
+      expect(
+        renderBorder({borderBottomColor: 'accent.vibrant', borderWidth: 'xl'})
+      ).toHaveStyle({
+        borderBottomStyle: 'solid',
+        borderBottomColor: tokens.border.accent.vibrant,
+        borderBottomWidth: border.xl,
+        borderTopStyle: '',
+      });
+    });
+
+    it('overrides one side of a full border', () => {
+      expect(
+        renderBorder({borderColor: 'primary', borderTopColor: 'danger.vibrant'})
+      ).toHaveStyle({
+        borderColor: `${tokens.border.danger.vibrant} ${tokens.border.primary} ${tokens.border.primary}`,
+      });
+    });
+
+    it('removes a side with none', () => {
+      expect(
+        renderBorder({borderColor: 'primary', borderBottomColor: 'none'})
+      ).toHaveStyle({borderTopStyle: 'solid', borderBottomStyle: 'none'});
+    });
   });
 
   it('render prop guards against invalid attributes', () => {
     render(
       // @ts-expect-error - aria-activedescendant should be set on the child element
-      <Container border="primary" aria-activedescendant="what">
+      <Container borderColor="primary" aria-activedescendant="what">
         {/* @ts-expect-error - this should be a React.ElementType */}
         {props => <p {...props}>Hello</p>}
       </Container>,
@@ -84,7 +137,7 @@ describe('Container', () => {
     }
 
     render(
-      <Container border="primary">
+      <Container borderColor="primary">
         {/* @ts-expect-error - className is incompatible */}
         {props => <Child {...props} />}
       </Container>,

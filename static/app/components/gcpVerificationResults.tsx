@@ -63,7 +63,7 @@ export function GcpVerificationResults({result}: {result: GcpVerifyConnectionRes
           aria-label={getStatusLabel(group.status)}
           gap="md"
           padding="lg"
-          border="primary"
+          borderColor="primary"
           radius="md"
           minWidth="0"
         >

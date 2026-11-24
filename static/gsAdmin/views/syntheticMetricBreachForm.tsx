@@ -152,7 +152,7 @@ export function SyntheticMetricBreachForm() {
 
   return (
     <form.AppForm form={form}>
-      <Container background="secondary" border="primary" radius="md" padding="lg">
+      <Container background="secondary" borderColor="primary" radius="md" padding="lg">
         <Stack gap="lg" align="stretch">
           <Heading as="h3">Create test metric breach</Heading>
           <Text as="p" variant="muted">

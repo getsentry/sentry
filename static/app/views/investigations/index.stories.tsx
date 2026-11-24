@@ -66,7 +66,7 @@ export default Storybook.story('Investigations — List', story => {
       list={realisticInvestigations}
       pageLinks={getPaginationPageLink({numRows: 14, pageSize: 5, offset: 0})}
     >
-      <Container minHeight="520px" border="primary" radius="md" overflow="hidden">
+      <Container minHeight="520px" borderColor="primary" radius="md" overflow="hidden">
         <InvestigationsPage />
       </Container>
     </InvestigationFixtureApi>
@@ -74,7 +74,7 @@ export default Storybook.story('Investigations — List', story => {
 
   story('Empty and search results', () => (
     <InvestigationFixtureApi organizationSlug="storybook-investigations-empty" list={[]}>
-      <Container minHeight="420px" border="primary" radius="md" overflow="hidden">
+      <Container minHeight="420px" borderColor="primary" radius="md" overflow="hidden">
         <InvestigationsPage />
       </Container>
     </InvestigationFixtureApi>
@@ -85,7 +85,7 @@ export default Storybook.story('Investigations — List', story => {
       organizationSlug="storybook-investigations-list-loading"
       mode="loading"
     >
-      <Container minHeight="420px" border="primary" radius="md" overflow="hidden">
+      <Container minHeight="420px" borderColor="primary" radius="md" overflow="hidden">
         <InvestigationsPage />
       </Container>
     </InvestigationFixtureApi>
@@ -98,7 +98,7 @@ export default Storybook.story('Investigations — List', story => {
         minHeight="420px"
         width="100%"
         padding="2xl 3xl"
-        border="primary"
+        borderColor="primary"
         radius="md"
       >
         <RouteError />
@@ -111,7 +111,7 @@ export default Storybook.story('Investigations — List', story => {
       organizationSlug="storybook-investigations-disabled"
       featureEnabled={false}
     >
-      <Container minHeight="320px" border="primary" radius="md" overflow="hidden">
+      <Container minHeight="320px" borderColor="primary" radius="md" overflow="hidden">
         <InvestigationsView />
       </Container>
     </InvestigationFixtureApi>
@@ -122,7 +122,7 @@ export default Storybook.story('Investigations — List', story => {
       organizationSlug="storybook-investigations-closed-membership"
       openMembership={false}
     >
-      <Container minHeight="240px" border="primary" radius="md" overflow="hidden">
+      <Container minHeight="240px" borderColor="primary" radius="md" overflow="hidden">
         <InvestigationsView />
       </Container>
     </InvestigationFixtureApi>

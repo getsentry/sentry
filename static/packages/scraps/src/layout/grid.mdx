@@ -50,14 +50,14 @@ The `Grid` implements composition via <a href="/scraps/layout/composition">rende
       "header header"
       "sidebar main"
       "footer footer"`}
-    border="primary"
+    borderColor="primary"
     radius="md"
     padding="md"
   >
     {props => (
       <CustomComponent {...props}>
         <Container
-          border="primary"
+          borderColor="primary"
           background="primary"
           radius="md"
           padding="md"
@@ -66,7 +66,7 @@ The `Grid` implements composition via <a href="/scraps/layout/composition">rende
           Header
         </Container>
         <Container
-          border="primary"
+          borderColor="primary"
           background="primary"
           radius="md"
           padding="md"
@@ -75,7 +75,7 @@ The `Grid` implements composition via <a href="/scraps/layout/composition">rende
           Sidebar
         </Container>
         <Container
-          border="primary"
+          borderColor="primary"
           background="primary"
           radius="md"
           padding="md"
@@ -84,7 +84,7 @@ The `Grid` implements composition via <a href="/scraps/layout/composition">rende
           Main Content
         </Container>
         <Container
-          border="primary"
+          borderColor="primary"
           background="primary"
           radius="md"
           padding="md"
@@ -102,7 +102,7 @@ The `Grid` implements composition via <a href="/scraps/layout/composition">rende
     "header header"
     "sidebar main"
     "footer footer"`}
-  border="primary"
+  borderColor="primary"
   radius="md"
   padding="md"
 >
@@ -143,7 +143,7 @@ The `Grid` component renders a `div` element by default, but you can specify the
   >
     <Container
       area="header"
-      border="primary"
+      borderColor="primary"
       padding="md"
       background="primary"
       radius="md"
@@ -152,7 +152,7 @@ The `Grid` component renders a `div` element by default, but you can specify the
     </Container>
     <Container
       area="sidebar"
-      border="primary"
+      borderColor="primary"
       padding="md"
       background="primary"
       radius="md"
@@ -161,7 +161,7 @@ The `Grid` component renders a `div` element by default, but you can specify the
     </Container>
     <Container
       area="main"
-      border="primary"
+      borderColor="primary"
       padding="md"
       minWidth="300px"
       background="primary"
@@ -171,7 +171,7 @@ The `Grid` component renders a `div` element by default, but you can specify the
     </Container>
     <Container
       area="footer"
-      border="primary"
+      borderColor="primary"
       padding="md"
       background="primary"
       radius="md"
@@ -205,10 +205,10 @@ Grid provides fine-grained control over alignment using `justify`, `align`, `jus
   <Grid columns="repeat(1, 1fr)" gap="md" padding="md" width="100%">
     {ALIGNMENT_OPTIONS.map(({justify, align, label}) => (
       <Grid key={label} columns="repeat(2, 25%)" gap="sm" justify={justify} align={align}>
-        <Container padding="md" background="primary" radius="md" border="primary">
+        <Container padding="md" background="primary" radius="md" borderColor="primary">
           {label}
         </Container>
-        <Container padding="md" background="primary" radius="md" border="primary">
+        <Container padding="md" background="primary" radius="md" borderColor="primary">
           alignment
         </Container>
       </Grid>
@@ -238,22 +238,22 @@ Example of a responsive grid container that changes from single column on small 
     gap="md"
     padding="md"
   >
-    <Container padding="md" border="primary" radius="md" background="primary">
+    <Container padding="md" borderColor="primary" radius="md" background="primary">
       Responsive
     </Container>
-    <Container padding="md" border="primary" radius="md" background="primary">
+    <Container padding="md" borderColor="primary" radius="md" background="primary">
       Grid
     </Container>
-    <Container padding="md" border="primary" radius="md" background="primary">
+    <Container padding="md" borderColor="primary" radius="md" background="primary">
       Layout
     </Container>
-    <Container padding="md" border="primary" radius="md" background="primary">
+    <Container padding="md" borderColor="primary" radius="md" background="primary">
       Items
     </Container>
-    <Container padding="md" border="primary" radius="md" background="primary">
+    <Container padding="md" borderColor="primary" radius="md" background="primary">
       🔥
     </Container>
-    <Container padding="md" border="primary" radius="md" background="primary">
+    <Container padding="md" borderColor="primary" radius="md" background="primary">
       Awesome
     </Container>
   </Grid>

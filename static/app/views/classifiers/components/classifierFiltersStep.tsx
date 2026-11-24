@@ -45,7 +45,7 @@ export function ClassifierFiltersStep({
   return (
     <WizardStep>
       <WizardBody maxWidth="1088px">
-        <Container border="primary" radius="md" padding="xl">
+        <Container borderColor="primary" radius="md" padding="xl">
           <Stack gap="xl">
             <Stack gap="md">
               <Heading as="h2" size="md">

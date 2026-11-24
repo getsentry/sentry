@@ -38,7 +38,7 @@ export function ArtifactCard({
     : t('Re-run step');
 
   return (
-    <Container border="primary" radius="md" padding="lg" background="primary">
+    <Container borderColor="primary" radius="md" padding="lg" background="primary">
       <Disclosure defaultExpanded>
         <Disclosure.Title
           trailingItems={

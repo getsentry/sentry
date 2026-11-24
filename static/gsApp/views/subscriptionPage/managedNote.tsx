@@ -73,7 +73,7 @@ export function ManagedNote({subscription}: Props) {
     <Container
       data-test-id="managed-note"
       background="primary"
-      border="primary"
+      borderColor="primary"
       radius="md"
     >
       <PanelBody withPadding>

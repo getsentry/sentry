@@ -38,8 +38,8 @@ Base layout component that supports all common layout properties. Flex, Grid, an
 - `padding`, `paddingTop`, `paddingBottom`, `paddingLeft`, `paddingRight`: SpaceSize tokens
 - `margin`, `marginTop`, etc.: SpaceSize tokens (deprecated, prefer gap)
 - `width`, `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight`
-- `border`, `borderTop`, `borderBottom`, `borderLeft`, `borderRight`: BorderVariant tokens
-- `borderWidth`: BorderWidthToken (a key of `theme.border`)
+- `borderColor` (all sides), `borderTopColor`, `borderBottomColor`, `borderLeftColor`, `borderRightColor` (one side): BorderVariant tokens. Draws a solid border, 1px unless `borderWidth` is set
+- `borderWidth`: BorderWidthToken (a key of `theme.border`). On its own it draws all sides in `primary`
 - `radius`: RadiusSize tokens
 - `overflow`, `overflowX`, `overflowY`: "visible" | "hidden" | "scroll" | "auto"
 - `background`: BackgroundToken (a path into `tokens.background`)
@@ -57,7 +57,7 @@ const Component = styled('div')`
 `;
 
 // ✅ Use Container primitive
-<Container padding="md" border="primary">
+<Container padding="md" borderColor="primary">
   Content
 </Container>;
 ```
@@ -75,7 +75,7 @@ Use `<Flex>` for flex layouts. Extends `Container`, inheriting all Container pro
 - `wrap`: "nowrap" | "wrap" | "wrap-reverse"
 - `display`: "flex" | "inline-flex" | "none"
 
-**Plus ALL Container props**: `position`, `padding`, `margin`, `width`, `height`, `border`, `radius`, `overflow`, `background`, flex/grid item props, and more (see Container section above).
+**Plus ALL Container props**: `position`, `padding`, `margin`, `width`, `height`, `borderColor`, `borderWidth`, `radius`, `overflow`, `background`, flex/grid item props, and more (see Container section above).
 
 ```tsx
 import {Flex} from '@sentry/scraps/layout';
@@ -111,7 +111,7 @@ Use `<Grid>` for grid layouts. Extends `Container`, inheriting all Container pro
 - `flow`: "row" | "column" | "row dense" | "column dense"
 - `autoColumns`, `autoRows`: Size of auto-generated tracks
 
-**Plus ALL Container props**: `position`, `padding`, `margin`, `width`, `height`, `border`, `radius`, `overflow`, `background`, flex/grid item props, and more (see Container section above).
+**Plus ALL Container props**: `position`, `padding`, `margin`, `width`, `height`, `borderColor`, `borderWidth`, `radius`, `overflow`, `background`, flex/grid item props, and more (see Container section above).
 
 ```tsx
 import {Grid} from '@sentry/scraps/layout';
@@ -168,7 +168,7 @@ const Component = styled('div')`
 </Stack>;
 
 // ✅ Stack supports all Flex and Container props
-<Stack gap="md" padding="lg" position="relative" border="primary">
+<Stack gap="md" padding="lg" position="relative" borderColor="primary">
   <Item1 />
   <Item2 />
 </Stack>;
@@ -479,7 +479,7 @@ Use these for `gap`, `padding`:
 
 ### Border Tokens (BorderVariant)
 
-Use these for the `border` props. A value is a path into `tokens.border`, matching the theme's token names:
+Use these for `borderColor` and the side color props (`borderTopColor`, etc.). A value is a path into `tokens.border`, matching the theme's token names:
 
 - `"primary"`, `"secondary"`
 - `"<color>.muted"`, `"<color>.moderate"`, `"<color>.vibrant"`, where `<color>` is `neutral`, `accent`, `promotion`, `danger`, `warning` or `success` (e.g. `"accent.moderate"`)
@@ -489,7 +489,7 @@ Use these for the `border` props. A value is a path into `tokens.border`, matchi
 
 ### Border Width Tokens (BorderWidthToken)
 
-Use these for the `borderWidth` prop. A value is a key of `theme.border`; pair it with a `border` prop for the color:
+Use these for the `borderWidth` prop. A value is a key of `theme.border`. Without a color prop, the border is `primary`:
 
 - `"0"` (0px), `"md"` (1px), `"lg"` (1.5px), `"xl"` (2px), `"2xl"` (4px)
 

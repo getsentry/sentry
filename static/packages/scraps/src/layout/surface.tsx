@@ -98,7 +98,7 @@ export const Surface = styled(
 
     const {variant, elevation: _, ...rest} = props;
     if (variant === 'overlay') {
-      return <Container border="primary" radius={rest.radius ?? 'md'} {...rest} />;
+      return <Container borderColor="primary" radius={rest.radius ?? 'md'} {...rest} />;
     }
     return <Container radius={rest.radius} {...rest} />;
   }

@@ -46,7 +46,7 @@ export default function AutomationsLayout() {
             trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
           }}
         />
-        <Flex justify="between" align="end" gap="lg" borderBottom="primary">
+        <Flex justify="between" align="end" gap="lg" borderBottomColor="primary">
           {/* Tabs stretch to the row height, so size this wrapper to the tab list to keep the active underline on the divider. */}
           <Flex flex="1" minWidth="0">
             <LinkTabs value={activeTab} size="sm">

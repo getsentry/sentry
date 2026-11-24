@@ -1,36 +1,55 @@
-import {Container, Flex} from '@sentry/scraps/layout';
+import type {ReactNode} from 'react';
+
+import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {lightTheme, type BorderWidthToken} from '@sentry/scraps/theme';
 
 const BORDER_WIDTHS = Object.keys(lightTheme.border) as BorderWidthToken[];
 
+function Swatch({children, ...props}: ContainerProps & {children: ReactNode}) {
+  return (
+    <Container padding="md" radius="md" minWidth="96px" {...props}>
+      <Text size="sm">{children}</Text>
+    </Container>
+  );
+}
+
+function Gallery({children}: {children: ReactNode}) {
+  return (
+    <Flex gap="md" padding="md" wrap="wrap" width="560px" background="primary">
+      {children}
+    </Flex>
+  );
+}
+
 describe('Container', () => {
   it.snapshot(
     'border widths',
     () => (
-      <Flex gap="md" padding="md" wrap="wrap" width="560px" background="primary">
+      <Gallery>
         {BORDER_WIDTHS.map(width => (
-          <Container
-            key={width}
-            padding="md"
-            radius="md"
-            minWidth="96px"
-            border="accent.vibrant"
-            borderWidth={width}
-          >
-            <Text size="sm">{width}</Text>
-          </Container>
+          <Swatch key={width} borderColor="accent.vibrant" borderWidth={width}>
+            {width}
+          </Swatch>
         ))}
-        <Container
-          padding="md"
-          radius="md"
-          minWidth="96px"
-          borderBottom="accent.vibrant"
-          borderWidth="2xl"
-        >
-          <Text size="sm">bottom 2xl</Text>
-        </Container>
-      </Flex>
+      </Gallery>
+    ),
+    {tags: {area: 'core'}}
+  );
+
+  it.snapshot(
+    'border defaults',
+    () => (
+      <Gallery>
+        <Swatch borderColor="accent.vibrant">color only</Swatch>
+        <Swatch borderWidth="xl">width only</Swatch>
+        <Swatch borderBottomColor="accent.vibrant" borderWidth="2xl">
+          bottom 2xl
+        </Swatch>
+        <Swatch borderWidth="xl" borderTopColor="danger.vibrant">
+          top only
+        </Swatch>
+      </Gallery>
     ),
     {tags: {area: 'core'}}
   );

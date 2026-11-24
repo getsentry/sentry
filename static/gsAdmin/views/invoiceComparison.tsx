@@ -580,7 +580,7 @@ export function InvoiceComparison() {
               />
               {!!data.summary.hidden_small_mismatch_count &&
                 data.summary.min_listed_mismatch_cents !== undefined && (
-                  <Flex padding="md lg" borderBottom="primary">
+                  <Flex padding="md lg" borderBottomColor="primary">
                     <Text size="sm" variant="muted">
                       Hiding {data.summary.hidden_small_mismatch_count.toLocaleString()}{' '}
                       {data.summary.hidden_small_mismatch_count === 1
@@ -680,7 +680,7 @@ function Paginator({
   // so the table doesn't look like it's missing its header.
   if (totalPages <= 1) {
     return (
-      <Flex justify="between" align="center" padding="md lg" borderBottom="primary">
+      <Flex justify="between" align="center" padding="md lg" borderBottomColor="primary">
         <Text size="sm" variant="muted">
           {total === 0 ? 'No rows' : `${total} row${total === 1 ? '' : 's'}`}
         </Text>
@@ -690,7 +690,7 @@ function Paginator({
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);
   return (
-    <Flex justify="between" align="center" padding="md lg" borderBottom="primary">
+    <Flex justify="between" align="center" padding="md lg" borderBottomColor="primary">
       <Text size="sm" variant="muted">
         {start.toLocaleString()}–{end.toLocaleString()} of {total.toLocaleString()} · page{' '}
         {page} of {totalPages}

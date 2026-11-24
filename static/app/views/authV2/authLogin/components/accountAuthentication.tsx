@@ -133,11 +133,11 @@ function AuthenticationContext({children}: {children: React.ReactNode}) {
 function AuthDivider() {
   return (
     <Grid columns="1fr max-content 1fr" align="center" gap="lg">
-      <Container borderTop="secondary" />
+      <Container borderTopColor="secondary" />
       <Text as="div" align="center" variant="muted" size="xs" uppercase>
         {t('or')}
       </Text>
-      <Container borderTop="secondary" />
+      <Container borderTopColor="secondary" />
     </Grid>
   );
 }

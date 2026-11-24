@@ -27,7 +27,7 @@ export function CreateFromSeerLoading({blocks, seerRunId}: CreateFromSeerLoading
           </Text>
           <Container overflow="hidden" maxHeight="500px" paddingTop="lg">
             <Stack
-              border={blocks.length > 0 ? 'primary' : undefined}
+              borderColor={blocks.length > 0 ? 'primary' : undefined}
               radius="md"
               background="primary"
             >

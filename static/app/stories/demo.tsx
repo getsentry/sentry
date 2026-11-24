@@ -67,10 +67,10 @@ export function Demo({resizable, standalone, ...props}: DemoProps) {
           gap="md"
           padding="3xl xl"
           background="secondary"
-          borderTop="primary"
-          borderLeft="primary"
-          borderRight="primary"
-          borderBottom={standalone ? 'primary' : undefined}
+          borderTopColor="primary"
+          borderLeftColor="primary"
+          borderRightColor="primary"
+          borderBottomColor={standalone ? 'primary' : undefined}
           radius={standalone ? 'md' : 'md md 0 0'}
           minHeight="160px"
           overflow="auto"
@@ -100,7 +100,7 @@ export function Demo({resizable, standalone, ...props}: DemoProps) {
           position="relative"
           style={{marginBottom: isFullscreen ? 0 : '-1lh'}}
         >
-          <Container background="secondary" borderBottom="primary">
+          <Container background="secondary" borderBottomColor="primary">
             <DemoToolbar
               breadcrumb={isFullscreen ? breadcrumb : []}
               breakpoints={breakpoints}
@@ -328,7 +328,7 @@ function Ruler({
     <Container
       position="relative"
       background="tertiary"
-      borderTop="primary"
+      borderTopColor="primary"
       overflow="hidden"
       style={{height: 28, zIndex: 1}}
     >
