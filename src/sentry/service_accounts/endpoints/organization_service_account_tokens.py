@@ -249,9 +249,9 @@ class OrganizationServiceAccountTokenIndexEndpoint(ServiceAccountTokenEndpointBa
                 # Locks out a concurrent delete, which deactivates the account's tokens under
                 # the same lock, so it can't miss this one.
                 if (
-                    ServiceAccount.objects.select_for_update()
-                    .filter(id=service_account.id, is_active=True)
-                    .first()  # noqa: S035
+                    ServiceAccount.objects.select_for_update().get_or_none(
+                        id=service_account.id, is_active=True
+                    )
                     is None
                 ):
                     raise ResourceDoesNotExist

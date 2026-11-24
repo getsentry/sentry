@@ -481,9 +481,9 @@ class OrganizationServiceAccountDetailsEndpoint(ServiceAccountScopedEndpointBase
             # Token create takes this lock too, so the list below is exactly the set of
             # tokens that deactivate() turns off.
             if (
-                ServiceAccount.objects.select_for_update()
-                .filter(id=service_account_id, is_active=True)
-                .first()  # noqa: S035
+                ServiceAccount.objects.select_for_update().get_or_none(
+                    id=service_account_id, is_active=True
+                )
                 is None
             ):
                 # Deleted by another request after convert_args loaded it.
