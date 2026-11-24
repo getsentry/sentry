@@ -1,13 +1,14 @@
 """Each organization's anomaly evaluator checkpoint, kept in Redis.
 
-One hash per organization holds the evaluator checkpoint and the first minute it hasn't
-evaluated. Writes compare-and-set on that minute, so a worker that lost a race can't roll
-the state back. State expires when it stops advancing: its organization stopped
-evaluating, and a later run would discard a checkpoint that stale anyway.
+One key per organization holds the first minute the evaluator hasn't evaluated, followed
+by the evaluator checkpoint. Writes don't compare-and-set: callers must hold the
+organization's evaluation lease. State expires when it stops advancing: its organization
+stopped evaluating, and a later run would discard a checkpoint that stale anyway.
 """
 
 from __future__ import annotations
 
+import struct
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
@@ -16,10 +17,12 @@ from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.utils import redis
 
+# How long state is kept after its last write.
 STATE_TTL = timedelta(days=1)
-"""How long state is kept after its last write."""
 
-_set_state = redis.load_redis_script("anomaly_detection/set_state.lua")
+# The stored value is the next minute as big-endian epoch seconds, then the checkpoint.
+_MINUTE = struct.Struct(">q")
+ANOMALY_KEY_PREFIX = "anomaly-detection:state:v1"
 
 
 @dataclass(frozen=True)
@@ -33,48 +36,33 @@ def _client() -> RedisCluster[bytes] | StrictRedis[bytes]:
 
 
 def _key(organization_id: int) -> str:
-    return f"anomaly-detection:state:v1:{organization_id}"
-
-
-def _encode_minute(minute: datetime) -> int:
-    if minute.tzinfo is None:
-        raise ValueError("Anomaly detection state minutes must be timezone-aware")
-
-    return int(minute.timestamp())
+    return f"{ANOMALY_KEY_PREFIX}:{organization_id}"
 
 
 def get_state(organization_id: int) -> AnomalyDetectionState | None:
-    next_minute, checkpoint = _client().hmget(_key(organization_id), ["next_minute", "checkpoint"])
-
-    if next_minute is None or checkpoint is None:
+    value = _client().get(_key(organization_id))
+    if value is None:
         return None
-
+    (seconds,) = _MINUTE.unpack_from(value)
     return AnomalyDetectionState(
-        next_minute=datetime.fromtimestamp(int(next_minute), UTC), checkpoint=checkpoint
+        next_minute=datetime.fromtimestamp(seconds, UTC), checkpoint=value[_MINUTE.size :]
     )
 
 
-def compare_and_set_state(
-    organization_id: int,
-    *,
-    expected_minute: datetime | None,
-    next_minute: datetime,
-    checkpoint: bytes,
-) -> bool:
+def set_state(organization_id: int, *, next_minute: datetime, checkpoint: bytes) -> None:
     """
-    Store the state if its minute is still `expected_minute`; return whether it was stored.
+    Replace the organization's state and restart its TTL.
 
-    `expected_minute` is the `next_minute` read before evaluating, or None if there was no
-    state. Every successful write restarts the TTL.
+    The caller must hold the organization's evaluation lease, so no other worker writes
+    between its read and this write.
     """
-    expected = "" if expected_minute is None else _encode_minute(expected_minute)
+    if next_minute.tzinfo is None:
+        raise ValueError("Anomaly detection state minutes must be timezone-aware")
 
-    return bool(
-        _set_state(
-            [_key(organization_id)],
-            [expected, _encode_minute(next_minute), checkpoint, int(STATE_TTL.total_seconds())],
-            _client(),
-        )
+    _client().set(
+        _key(organization_id),
+        _MINUTE.pack(int(next_minute.timestamp())) + checkpoint,
+        ex=STATE_TTL,
     )
 
 
