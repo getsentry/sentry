@@ -99,15 +99,6 @@ describe('registerSubscriptionScopeTags', () => {
     expect(setTags).toHaveBeenLastCalledWith(clearedTags);
   });
 
-  it('clears tags when the active organization subscription has no plan', () => {
-    OrganizationStore.onUpdate(organization, {replace: true});
-    unregister = registerSubscriptionScopeTags();
-
-    SubscriptionStore.set(organization.slug, {hasDismissedTrialEndingNotice: true});
-
-    expect(setTags).toHaveBeenLastCalledWith(clearedTags);
-  });
-
   it('does not tag when store changes after unregistering', () => {
     OrganizationStore.onUpdate(organization, {replace: true});
     registerSubscriptionScopeTags()();

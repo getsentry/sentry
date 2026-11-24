@@ -11,7 +11,7 @@ function setSubscriptionScopeTags() {
   }
 
   const subscription = SubscriptionStore.getState()[organization.slug];
-  if (subscription?.plan === undefined) {
+  if (!subscription) {
     Sentry.setTags({
       plan: undefined,
       'plan.name': undefined,
