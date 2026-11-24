@@ -15,6 +15,26 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+// The command palette virtualizes its list, which renders nothing in jsdom.
+jest.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: ({count}: {count: number}) => {
+    const virtualItems = Array.from({length: count}, (_, index) => ({
+      key: index,
+      index,
+      start: index * 48,
+      size: 48,
+      lane: 0,
+    }));
+    return {
+      getVirtualItems: () => virtualItems,
+      getTotalSize: () => count * 48,
+      measureElement: jest.fn(),
+      measure: jest.fn(),
+      scrollToIndex: jest.fn(),
+    };
+  },
+}));
+
 import {GlobalModal} from '@sentry/scraps/modal';
 import * as modalActions from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
@@ -26,6 +46,7 @@ import {
 } from 'sentry/components/commandPalette/ui/cmdk';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -413,6 +434,95 @@ describe('GroupActions', () => {
       expect(
         screen.queryByRole('menuitemradio', {name: 'Add Inbound Filter'})
       ).not.toBeInTheDocument();
+    });
+
+    describe('in the command palette', () => {
+      beforeEach(() => {
+        ConfigStore.loadInitialData({
+          user: UserFixture({id: '1', name: 'Test User'}),
+        } as any);
+        MockApiClient.addMockResponse({
+          url: `/projects/${filterOrg.slug}/${project.slug}/events/${event.id}/owners/`,
+          body: {owners: [], rule: null, rules: []},
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${filterOrg.slug}/users/`,
+          body: [],
+        });
+      });
+
+      async function openCommandPalette() {
+        await userEvent.keyboard('{Control>}k{/Control}');
+        // The palette module is imported lazily on first open.
+        await screen.findByRole('searchbox', {name: 'Search commands'}, {timeout: 5000});
+      }
+
+      it('opens the filter modal drafted from the event', async () => {
+        MockApiClient.addMockResponse({url: createUrl, body: []});
+        render(
+          <Fragment>
+            <CommandPaletteHotkeys />
+            <GlobalModal />
+            <GroupActions group={group} project={filterProject} event={event} />
+            <SlotOutlets />
+          </Fragment>,
+          {organization: filterOrg}
+        );
+
+        await openCommandPalette();
+        await userEvent.click(
+          await screen.findByRole('option', {name: 'Add Inbound Filter'})
+        );
+
+        // The menu item test above checks every drafted condition. Both entry
+        // points share one handler, so one condition shows the draft came
+        // from the event.
+        expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
+        expect(screen.getByRole('row', {name: 'error_type:Error'})).toBeInTheDocument();
+      });
+
+      it.each([
+        {
+          case: 'without the in-product flows flag',
+          org: OrganizationFixture({
+            ...filterOrg,
+            features: ['inbound-filters-v2', 'inbound-filters-v2-ui'],
+          }),
+          actionProject: filterProject,
+        },
+        {
+          case: 'when the plan lacks custom inbound filters',
+          org: filterOrg,
+          actionProject: project,
+        },
+        {
+          case: 'without project write access',
+          org: OrganizationFixture({
+            ...filterOrg,
+            access: organization.access.filter(scope => scope !== 'project:write'),
+          }),
+          actionProject: filterProject,
+        },
+      ])('hides the action $case', async ({org, actionProject}) => {
+        render(
+          <Fragment>
+            <CommandPaletteHotkeys />
+            <GlobalModal />
+            <GroupActions group={group} project={actionProject} event={event} />
+            <SlotOutlets />
+          </Fragment>,
+          {organization: org}
+        );
+
+        await openCommandPalette();
+
+        // Wait for a sibling action so the absence check runs against the
+        // loaded list rather than passing before the actions render.
+        expect(await screen.findByRole('option', {name: 'Archive'})).toBeInTheDocument();
+        expect(
+          screen.queryByRole('option', {name: 'Add Inbound Filter'})
+        ).not.toBeInTheDocument();
+      });
     });
   });
 

@@ -5,6 +5,7 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconClock} from '@sentry/icons/clock';
 import {IconCopy} from '@sentry/icons/copy';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconFilter} from '@sentry/icons/filter';
 import {IconSubscribed} from '@sentry/icons/subscribed';
 import {IconUnsubscribed} from '@sentry/icons/unsubscribed';
 import {IconUpload} from '@sentry/icons/upload';
@@ -387,6 +388,7 @@ export function GroupActions({
       'You need project write access to add custom inbound filters'
     );
   }
+  const canWriteInboundFilter = addInboundFilterDisabledReason === undefined;
 
   const onAddInboundFilter = () => {
     if (!event) {
@@ -572,6 +574,16 @@ export function GroupActions({
                     substatus: GroupSubstatus.ONGOING,
                   })
                 }
+              />
+            )}
+            {/* The palette can't show a disabled action with a reason, so hide it
+                when the plan or permissions rule it out. The "More Actions" menu
+                still shows the reason. */}
+            {canAddInboundFilter && canWriteInboundFilter && (
+              <CMDKAction
+                display={{label: t('Add Inbound Filter'), icon: <IconFilter />}}
+                keywords={['inbound', 'filter', 'drop', 'custom filter', 'data filter']}
+                onAction={onAddInboundFilter}
               />
             )}
             {stacktraceBody && (
