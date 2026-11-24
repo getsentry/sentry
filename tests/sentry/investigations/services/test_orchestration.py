@@ -11,7 +11,10 @@ from rest_framework.exceptions import PermissionDenied
 from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.investigations.models import InvestigationOrchestrationRun
+from sentry.investigations.models import (
+    InvestigationOrchestrationRun,
+    InvestigationOrchestrationStatus,
+)
 from sentry.investigations.services.breached_metrics import resolve_investigation_source
 from sentry.investigations.services.orchestration import (
     agentic_breached_metric_source_key,
@@ -28,6 +31,7 @@ from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
+from sentry.tasks.seer.investigation import _mark_create_dispatch_failed
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import cell_silo_test
@@ -429,3 +433,32 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
         assert retried.id == first.id
         assert Notebook.objects.filter(source_key=first.source_key).count() == 1
         dispatch.assert_called_once_with(first.orchestration_run.id)
+
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
+    def test_detector_retry_redispatches_a_run_whose_dispatch_failed(
+        self, dispatch: mock.Mock
+    ) -> None:
+        arguments: dict[str, Any] = dict(
+            organization=self.organization,
+            creator=self.creator,
+            title="Anomaly",
+            source={"type": "manual", "prompt": "Investigate the anomaly"},
+            detector_id=self.detector.id,
+            fingerprint=["group-a"],
+            project_ids=[self.project.id],
+        )
+        with self.capture_on_commit_callbacks(execute=True):
+            first, created = create_agentic_detector_investigation(**arguments)
+        assert created
+        # The dispatch ran out of retries.
+        _mark_create_dispatch_failed(first.orchestration_run.id)
+        dispatch.reset_mock()
+
+        with self.capture_on_commit_callbacks(execute=True):
+            retried, created = create_agentic_detector_investigation(**arguments)
+        assert not created
+        assert retried.id == first.id
+        run = InvestigationOrchestrationRun.objects.get(investigation=first)
+        assert run.status == InvestigationOrchestrationStatus.PENDING
+        assert run.error is None
+        dispatch.assert_called_once_with(run.id)

@@ -582,9 +582,9 @@ def create_agentic_detector_investigation(
     """The active investigation for the detector's occurrence fingerprint, or a new one.
 
     One fingerprint is one issue group, so retries and priority changes within it reuse the
-    active investigation. A reused run that Seer hasn't accepted is dispatched again, since
-    the attempt that created it may have committed without queueing its dispatch.
-    The bool is True when it was created.
+    active investigation. A reused run that Seer hasn't accepted is dispatched again: the
+    attempt that created it may have committed without queueing its dispatch, or its dispatch
+    may have run out of retries. The bool is True when it was created.
     """
     _validate_creation_actor(organization=organization, creator=creator, project_ids=project_ids)
     source_key = agentic_detector_source_key(detector_id, fingerprint)
@@ -608,15 +608,42 @@ def create_agentic_detector_investigation(
         organization=organization, source_key=source_key, create=create
     )
     if not created:
-        # Repeats send Seer the same per-run request id, and a run it accepted is skipped here.
-        undelivered = InvestigationOrchestrationRun.objects.filter(
-            investigation=investigation,
-            seer_run_id__isnull=True,
-            status=InvestigationOrchestrationStatus.PENDING,
-        ).get_or_none()
-        if undelivered is not None:
-            _schedule_orchestration_create(undelivered.id)
+        _redispatch_undelivered_run(investigation)
     return investigation, created
+
+
+def _redispatch_undelivered_run(investigation: Notebook) -> None:
+    """Dispatch the investigation's run again if Seer never accepted it.
+
+    Repeats send Seer the same per-run request id. A run whose dispatch failed is reset first,
+    as a run retry would.
+    """
+    with transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun)):
+        locked_investigation = (
+            Notebook.objects.select_for_update()
+            .filter(id=investigation.id, status=NotebookStatus.ACTIVE)
+            .get_or_none()
+        )
+        if locked_investigation is None:
+            return
+        run = (
+            InvestigationOrchestrationRun.objects.select_for_update()
+            .filter(investigation=locked_investigation, seer_run_id__isnull=True)
+            .get_or_none()
+        )
+        if run is None:
+            return
+        if (
+            run.status == InvestigationOrchestrationStatus.FAILED
+            and isinstance(run.error, dict)
+            and run.error.get("code") == "seer_dispatch_failed"
+        ):
+            _reset_create_dispatch_failure(run)
+            run.date_updated = timezone.now()
+            run.save(update_fields=["phase", "status", "projection", "error", "date_updated"])
+        elif run.status != InvestigationOrchestrationStatus.PENDING:
+            return
+        _schedule_orchestration_create(run.id)
 
 
 def _breached_metric_orchestration_source(source: dict[str, Any]) -> dict[str, Any]:
