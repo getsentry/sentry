@@ -108,6 +108,14 @@ function normalizeBlocks(blocks: Block[] | undefined): Block[] {
   });
 }
 
+/**
+ * Whether Seer turned an answer away because it isn't waiting on that input any more, which
+ * happens when another answer to it got there first.
+ */
+function isInputNotPendingError(error: RequestError) {
+  return error.status === 409 && error.responseJSON?.code === 'input_not_pending';
+}
+
 export const useSeerExplorer = () => {
   const queryClient = useQueryClient();
   const organization = useOrganization({allowNull: true});
@@ -365,8 +373,16 @@ export const useSeerExplorer = () => {
         queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
       });
     },
-    onError: (_e, params, context) => {
+    onError: (error, params, context) => {
       if (!isLatestRequest(params)) {
+        return;
+      }
+      if (isInputNotPendingError(error)) {
+        // Another answer (say, from a second tab) got there first, so the run has moved on. Show
+        // where it is now instead of asking again.
+        queryClient.invalidateQueries({
+          queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
+        });
         return;
       }
       // Keep the existing conversation and pending input so the user can answer again.
@@ -601,7 +617,13 @@ export const useSeerExplorer = () => {
       }
       userInputMutate(
         {inputId, responseData, orgSlug, runId, requestId: uniqueId()},
-        {onError: () => options?.onError?.()}
+        {
+          onError: error => {
+            if (!isInputNotPendingError(error)) {
+              options?.onError?.();
+            }
+          },
+        }
       );
     },
     [orgSlug, runId, userInputMutate]
