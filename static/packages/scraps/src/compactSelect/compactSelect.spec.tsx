@@ -1988,6 +1988,50 @@ describe('CompactSelect', () => {
     });
   });
 
+  // Not under the scroll layout stubs, so the list never overflows: a menu
+  // measures its width before its list overflows, and must already make room
+  // for the scrollbar.
+  it.each([
+    ['list box', undefined],
+    ['grid', 'grid'],
+  ] as const)('reserves the scrollbar of a %s that will virtualize', async (_, mode) => {
+    render(
+      <CompactSelect
+        mode={mode}
+        options={Array.from({length: 500}, (__, i) => ({
+          value: `${i}`,
+          label: `Option ${i}`,
+        }))}
+        value={undefined}
+        onChange={jest.fn()}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await userEvent.click(screen.getByRole('button'));
+
+    expect(await screen.findByTestId('select-scroll-area')).toHaveStyle({
+      scrollbarGutter: 'stable',
+    });
+  });
+
+  it('does not reserve the scrollbar of a short list', async () => {
+    render(
+      <CompactSelect
+        options={[{value: 'one', label: 'One'}]}
+        value={undefined}
+        onChange={jest.fn()}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await userEvent.click(screen.getByRole('button'));
+
+    expect(await screen.findByTestId('select-scroll-area')).not.toHaveStyle({
+      scrollbarGutter: 'stable',
+    });
+  });
+
   describe('virtualization', () => {
     stubScrollLayout();
 
