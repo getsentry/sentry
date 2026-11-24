@@ -35,7 +35,7 @@ import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Event} from 'sentry/types/event';
 import {EventOrGroupType} from 'sentry/types/event';
-import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
+import type {Group, GroupStatusResolution} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -70,9 +70,8 @@ import {StatusBanner} from './statusBanner';
 import {SubscribeAction} from './subscribeAction';
 
 type UpdateData =
-  | {isBookmarked: boolean; inbox?: boolean}
-  | {isSubscribed: boolean; inbox?: boolean}
-  | MarkReviewed
+  | {isBookmarked: boolean}
+  | {isSubscribed: boolean}
   | GroupStatusResolution;
 
 const isResolutionStatus = (data: UpdateData): data is GroupStatusResolution => {
@@ -93,10 +92,6 @@ const getUpdateSuccessMessage = (group: Group, data: UpdateData) => {
       default:
         return;
     }
-  }
-
-  if (data.inbox === false) {
-    return t('Issue marked reviewed');
   }
 
   return;
@@ -285,7 +280,6 @@ export function GroupActions({
       | 'deleted'
       | 'bookmarked'
       | 'subscribed'
-      | 'mark_reviewed'
       | 'discarded'
       | 'add_inbound_filter'
       | GroupStatus,
@@ -339,9 +333,6 @@ export function GroupActions({
         data.substatus,
         Object.keys(data.statusDetails || {})[0]
       );
-    }
-    if ((data as {inbox: boolean}).inbox !== undefined) {
-      trackIssueAction('mark_reviewed');
     }
     IssueListCacheStore.reset();
 
@@ -676,14 +667,6 @@ export function GroupActions({
                 ? t('Impact assessment is being started')
                 : undefined,
               onAction: () => assessImpact(),
-            },
-            {
-              key: 'mark-review',
-              label: t('Mark reviewed'),
-              disabled: !group.inbox || disabled,
-              details:
-                !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
-              onAction: () => onUpdate({inbox: false}),
             },
             {key: bookmarkKey, label: bookmarkTitle, onAction: onToggleBookmark},
             {

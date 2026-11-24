@@ -70,12 +70,3 @@ class IssueListPage(BasePage):
             self.browser.wait_until('[data-test-id="merge"]')
             self.browser.click('[data-test-id="merge"]')
             self.browser.click('[data-test-id="confirm-button"]')
-
-    def mark_reviewed_issues(self) -> None:
-        # Marked reviewed button gets put into an overflow menu for small viewports
-        if self.browser.element_exists('[aria-label="Mark Reviewed"]'):
-            self.browser.click('[aria-label="Mark Reviewed"]')
-        else:
-            self.browser.click('[aria-label="More issue actions"]')
-            self.browser.wait_until('[data-test-id="mark-reviewed"]')
-            self.browser.click('[data-test-id="mark-reviewed"]')

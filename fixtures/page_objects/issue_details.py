@@ -144,10 +144,3 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until_test_id("linked-issues")
         self.browser.wait_until_test_id("loaded-device-name")
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-
-    def mark_reviewed(self) -> None:
-        self.browser.click('[aria-label="More Actions"]')
-        self.browser.wait_until('[data-test-id="mark-review"]')
-        self.browser.click('[data-test-id="mark-review"]')
-        self.browser.click('[aria-label="More Actions"]')
-        self.browser.wait_until('[data-test-id="mark-review"][aria-disabled="true"]')
