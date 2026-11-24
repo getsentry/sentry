@@ -103,20 +103,8 @@ describe('useMetricDetectorLimit', () => {
     });
   });
 
-  it('handles detectors API error gracefully', async () => {
-    const subscription = SubscriptionFixture({
-      organization: mockOrganization,
-      planDetails: {
-        ...SubscriptionFixture({organization: mockOrganization}).planDetails,
-        metricDetectorLimit: 20,
-      },
-    });
-
   it('handles a quota API error gracefully', async () => {
-    MockApiClient.addMockResponse({
-      url: QUOTA_URL,
-      statusCode: 500,
-    });
+    MockApiClient.addMockResponse({url: QUOTA_URL, statusCode: 500});
 
     const {result} = renderHookWithProviders(() => useMetricDetectorLimit(), {
       organization: mockOrganization,

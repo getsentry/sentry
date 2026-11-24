@@ -24,16 +24,6 @@ describe('MetricAlertQuotaMessage', () => {
       body: {count: -1, limit: -1, hasReachedLimit: false},
     });
 
-    const {container} = render(<MetricAlertQuotaMessage />, {
-      organization,
-      planDetails: {
-        ...SubscriptionFixture({
-          organization,
-        }).planDetails,
-        metricDetectorLimit: -1,
-      },
-    });
-
     const {container} = render(<MetricAlertQuotaMessage />, {organization});
 
     await waitFor(() => {
@@ -59,17 +49,6 @@ describe('MetricAlertQuotaMessage', () => {
       source: 'metric-alert-quota',
     });
   });
-
-  it('renders reached detectorLimit message with remove and upgrade actions when at detectorLimit', async () => {
-    const subscription = SubscriptionFixture({
-      organization,
-      planDetails: {
-        ...SubscriptionFixture({organization}).planDetails,
-        metricDetectorLimit: 10,
-      },
-    });
-
-    SubscriptionStore.set(organization.slug, subscription);
 
   it('renders reached detectorLimit message with disable or remove and upgrade actions when at detectorLimit', async () => {
     MockApiClient.addMockResponse({
