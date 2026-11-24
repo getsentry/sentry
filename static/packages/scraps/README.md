@@ -54,7 +54,9 @@ Load Rubik, Roboto Mono, and their metric-adjusted fallbacks in your app stylesh
 @import '@sentry/scraps/fonts.css';
 ```
 
-Individual WOFF2 files are available under `@sentry/scraps/fonts/*.woff2`.
+The stylesheet uses relative URLs to separate WOFF2 files. For direct asset imports, use paths such as `@sentry/scraps/fonts/rubik-variable.woff2`.
+
+To self-host without a bundler, copy `fonts.css` and the `fonts/` directory from the installed package into the same public directory, then link to `fonts.css` in your page. Keep `fonts/OFL.txt` with the font files.
 
 ## Date and duration formatting
 
