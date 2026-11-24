@@ -19,11 +19,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemSelectedState} from 'sentry/utils/list/listItemSelectedState';
 import {ListSelectAllCheckbox} from 'sentry/utils/list/listSelectAllCheckbox';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {
-  OPEN_PRS_TOOLTIP,
-  openPrsStoppingPoint,
-  useShowOpenPrs,
-} from 'sentry/utils/seer/openPrs';
+import {openPrsStoppingPoint, useShowOpenPrs} from 'sentry/utils/seer/openPrs';
 import {
   getSeerProjectSettingsMutationKey,
   type SeerBulkEditVariables,
@@ -109,7 +105,11 @@ const OPEN_PRS_COLUMN = {
   title: (
     <Flex gap="sm" align="center">
       {t('Open PRs')}
-      <InfoTip title={OPEN_PRS_TOOLTIP} />
+      <InfoTip
+        title={t(
+          'When Seer finds a fix, it opens a PR. You can still ask Seer to open a PR when this is off.'
+        )}
+      />
     </Flex>
   ),
   key: 'automation_steps',

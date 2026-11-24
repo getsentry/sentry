@@ -743,7 +743,9 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     formId: 'autofix-agent',
     route: '/settings/:orgId/projects/:projectId/seer',
     label: t('Open PRs'),
-    hintText: '',
+    hintText: t(
+      'When Seer finds a fix, it opens a PR. You can still ask Seer to open a PR when this is off.'
+    ),
   },
   'autofix-agent.prIteration': {
     name: 'prIteration',

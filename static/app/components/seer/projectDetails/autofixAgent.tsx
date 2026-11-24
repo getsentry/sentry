@@ -16,11 +16,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {
-  OPEN_PRS_TOOLTIP,
-  openPrsStoppingPoint,
-  useShowOpenPrs,
-} from 'sentry/utils/seer/openPrs';
+import {openPrsStoppingPoint, useShowOpenPrs} from 'sentry/utils/seer/openPrs';
 import {
   NON_GITHUB_HANDOFF_WARNING,
   seerAgentIntegrationsSelectQueryOptions,
@@ -216,7 +212,12 @@ export function AutofixAgent({canWrite, project}: Props) {
         >
           {field =>
             showOpenPrsToggle ? (
-              <field.Layout.Row label={t('Open PRs')} hintText={OPEN_PRS_TOOLTIP}>
+              <field.Layout.Row
+                label={t('Open PRs')}
+                hintText={t(
+                  'When Seer finds a fix, it opens a PR. You can still ask Seer to open a PR when this is off.'
+                )}
+              >
                 <field.Switch
                   checked={field.state.value === 'open_pr'}
                   disabled={!canWrite}
