@@ -81,6 +81,9 @@ def test_posts_body_to_spam_score_path() -> None:
         "log_mismatch_message": False,
     }
     assert mock_signed.call_args.kwargs["retries"] == 0
+    # The request uses the pool's total timeout, which ends before the task deadline.
+    assert mock_signed.call_args.kwargs["timeout"] is None
+    assert pool.timeout.total == 15
     assert mock_signed.call_args.kwargs["viewer_context"] == {"organization_id": 1}
 
 

@@ -2,7 +2,7 @@ from typing import NotRequired, TypedDict
 
 import orjson
 from django.conf import settings
-from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry, Timeout
 
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
@@ -19,6 +19,10 @@ seer_summarization_connection_pool = connection_from_url(
 # Created lazily since SEER_FEEDBACK_SPAM_URL is unset by default.
 _seer_feedback_spam_connection_pool: HTTPConnectionPool | None = None
 
+# A total budget (not per phase) so a request always ends well before the task's processing
+# deadline: a deadline kill would report an error event whose frames hold the message text.
+SEER_FEEDBACK_SPAM_TIMEOUT = Timeout(total=15)
+
 
 def _get_seer_feedback_spam_connection_pool() -> HTTPConnectionPool:
     global _seer_feedback_spam_connection_pool
@@ -27,7 +31,7 @@ def _get_seer_feedback_spam_connection_pool() -> HTTPConnectionPool:
             raise ValueError("SEER_FEEDBACK_SPAM_URL is not configured")
         _seer_feedback_spam_connection_pool = connection_from_url(
             settings.SEER_FEEDBACK_SPAM_URL,
-            timeout=settings.SEER_DEFAULT_TIMEOUT,
+            timeout=SEER_FEEDBACK_SPAM_TIMEOUT,
             retries=0,
             maxsize=10,
         )

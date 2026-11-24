@@ -5,21 +5,23 @@ from sentry.feedback.lib.seer_api import SpamShadowScoreRequest, make_spam_shado
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
 from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
-SEER_TIMEOUT_S = 20
 SEER_RETRIES = 0
 
 
 @instrumented_task(
     name="sentry.feedback.tasks.spam_shadow.spam_shadow_score",
-    namespace=issues_tasks,
+    namespace=seer_tasks,
     processing_deadline_duration=30,
     retry=None,
+    # A deadline error event would capture the message text in its frames. The request's own
+    # timeout ends well before the deadline, so this only drops a report that should not happen.
+    report_timeout_errors=False,
     silo_mode=SiloMode.CELL,
 )
 def spam_shadow_score(
@@ -57,7 +59,6 @@ def spam_shadow_score(
         ):
             response = make_spam_shadow_score_request(
                 body,
-                timeout=SEER_TIMEOUT_S,
                 retries=SEER_RETRIES,
                 viewer_context=SeerViewerContext(organization_id=organization_id),
             )

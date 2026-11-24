@@ -451,8 +451,12 @@ def create_feedback_issue(
                     llm_is_spam=is_message_spam,
                 )
                 metrics.incr("feedback.spam_shadow.enqueued")
-        except Exception:
-            logger.exception("Error enqueuing spam shadow score", extra={"project_id": project.id})
+        except Exception as e:
+            # A warning without the traceback: an error event would capture the message text.
+            logger.warning(
+                "Error enqueuing spam shadow score",
+                extra={"project_id": project.id, "error_type": type(e).__name__},
+            )
             metrics.incr("feedback.spam_shadow.enqueue_error")
 
     metrics.incr(
