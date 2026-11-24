@@ -9,6 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {
   getAutofixArtifactFromSection,
   getSingleRunStop,
+  hasSingleRunOutOfCreditsRetry,
   isOutOfCreditsSection,
   isRootCauseArtifact,
   isSingleRunAutofix,
@@ -57,18 +58,26 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
 
   const {copy} = useCopyToClipboard();
   const isSingleRun = isSingleRunAutofix(autofix.runState);
+  const isOutOfCredits = isOutOfCreditsSection(section);
+  const hasOutOfCreditsRetry = isSingleRun
+    ? hasSingleRunOutOfCreditsRetry(section, autofix.runState)
+    : isOutOfCredits;
   const singleRunRerun = useRerunSingleRun(autofix, {
-    enabled: isSingleRun && section.status !== 'processing' && !artifact?.data && !stop,
+    enabled:
+      isSingleRun &&
+      section.status !== 'processing' &&
+      !artifact?.data &&
+      !stop &&
+      (!isOutOfCredits || hasOutOfCreditsRetry),
   });
   const markdown = useMemo(
     () => (artifact ? artifactToMarkdown(artifact) : null),
     [artifact]
   );
 
-  const isOutOfCredits = isOutOfCreditsSection(section);
   const outOfCreditsRetry = useOutOfCreditsRetry('root_cause', {
     billingFeature: isSingleRun ? undefined : autofix.runState?.billing_feature,
-    enabled: isOutOfCredits,
+    enabled: hasOutOfCreditsRetry,
   });
 
   const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
@@ -171,22 +180,23 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
           <ArtifactPartialDetails blocks={section.blocks} />
           {evidenceDetails}
           <OutOfCreditsStatus message={STOPPED_STEP_MESSAGE.root_cause}>
-            {resetPrompt ?? (
-              <Flex>
-                <Button
-                  variant="primary"
-                  icon={<IconRefresh />}
-                  // Single runs reject step restarts, so this starts a new one.
-                  disabled={isSingleRun ? singleRunRerun.disabled : !canReset}
-                  tooltipProps={{title: outOfCreditsRetry.tooltip}}
-                  onClick={
-                    isSingleRun ? () => singleRunRerun.rerun() : () => handleReset()
-                  }
-                >
-                  {t('Re-run')}
-                </Button>
-              </Flex>
-            )}
+            {resetPrompt ??
+              (hasOutOfCreditsRetry ? (
+                <Flex>
+                  <Button
+                    variant="primary"
+                    icon={<IconRefresh />}
+                    // Single runs reject step restarts, so this starts a new one.
+                    disabled={isSingleRun ? singleRunRerun.disabled : !canReset}
+                    tooltipProps={{title: outOfCreditsRetry.tooltip}}
+                    onClick={
+                      isSingleRun ? () => singleRunRerun.rerun() : () => handleReset()
+                    }
+                  >
+                    {t('Re-run')}
+                  </Button>
+                </Flex>
+              ) : null)}
           </OutOfCreditsStatus>
         </Fragment>
       ) : stopDetails ? (

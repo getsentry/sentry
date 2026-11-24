@@ -3,7 +3,7 @@ import {
   type AutofixAction,
 } from 'sentry/components/events/autofix/autofixCredits';
 
-import {OUT_OF_CREDITS_RETRY_TOOLTIP} from './messages';
+import {getRefusedRetryTooltip} from './messages';
 
 interface UseOutOfCreditsRetryOptions {
   /**
@@ -26,7 +26,13 @@ export function useOutOfCreditsRetry(
   action: AutofixAction,
   options: UseOutOfCreditsRetryOptions
 ) {
-  const {disabled, hasEnoughCredits} = useAutofixCreditCheck(action, options);
+  const {disabled, hasEnoughCredits, denialReason} = useAutofixCreditCheck(
+    action,
+    options
+  );
 
-  return {disabled, tooltip: hasEnoughCredits ? undefined : OUT_OF_CREDITS_RETRY_TOOLTIP};
+  return {
+    disabled,
+    tooltip: hasEnoughCredits ? undefined : getRefusedRetryTooltip(denialReason),
+  };
 }

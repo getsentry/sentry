@@ -489,6 +489,180 @@ describe('SeerDrawerContent', () => {
       ).toBeEnabled();
     });
 
+    describe('single runs that stopped', () => {
+      // Seer adds a user block for every message it takes, starting with the
+      // request that began the run.
+      const requestBlock: ExplorerAutofixState['blocks'][number] = {
+        id: 'b0',
+        timestamp: '2026-01-01T00:00:00Z',
+        message: {role: 'user', content: 'Fix issue', metadata: {step: 'single_run'}},
+      };
+
+      const stoppedSingleRun: ExplorerAutofixState = {
+        run_id: 776,
+        feature_id: 'autofix_single_run',
+        status: 'error',
+        failure_reason: 'out_of_credits',
+        updated_at: '2026-01-01T00:00:00Z',
+        blocks: [
+          requestBlock,
+          {
+            id: 'b1',
+            timestamp: '2026-01-01T00:00:00Z',
+            message: {
+              role: 'assistant',
+              content: 'Reading the handler.',
+              metadata: {step: 'single_run'},
+            },
+          },
+        ],
+      };
+
+      const rootCauseBlock: ExplorerAutofixState['blocks'][number] = {
+        id: 'b1',
+        timestamp: '2026-01-01T00:00:00Z',
+        message: {
+          role: 'assistant',
+          content: 'Found the cause.',
+          metadata: {step: 'single_run'},
+        },
+        artifacts: [
+          {
+            key: 'single_run_root_cause',
+            reason: 'found',
+            data: {headline: 'Divides by zero', cause: 'Empty weights.'},
+          },
+        ],
+      };
+
+      it('shows the continue alert, checking credits for a new run', async () => {
+        mockCreditCheck('autofix_root_cause');
+        // SeerBillingFeature.AUTOFIX_AGENTIC_TRIAGE, which a new run isn't.
+        const stoppedRunCheck = mockCreditCheck('autofix_root_cause', true, 4);
+
+        render(
+          <SeerDrawerContent
+            aiConfig={makeAiConfig()}
+            autofix={makeAutofix({runState: {...stoppedSingleRun, billing_feature: 4}})}
+            group={GroupFixture()}
+          />,
+          {organization}
+        );
+
+        expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+          'warning autofix-continue'
+        );
+        expect(stoppedRunCheck).not.toHaveBeenCalled();
+      });
+
+      it('shows the continue alert for a new run after a PR opened from it', async () => {
+        // Only a new run is mocked, so checking PR feedback shows no alert.
+        mockCreditCheck('autofix_root_cause');
+
+        render(
+          <SeerDrawerContent
+            aiConfig={makeAiConfig()}
+            autofix={makeAutofix({
+              runState: {
+                ...stoppedSingleRun,
+                blocks: [requestBlock, rootCauseBlock],
+                repo_pr_states: {'org/repository': AutofixRepoPRStateFixture()},
+              },
+            })}
+            group={GroupFixture()}
+          />,
+          {organization}
+        );
+
+        expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+          'warning autofix-continue'
+        );
+      });
+
+      it('checks nothing for a reply that stopped, since the chat resends it', async () => {
+        const creditCheck = MockApiClient.addMockResponse({
+          url: creditCheckUrl,
+          body: {hasEnoughCredits: false},
+        });
+
+        render(
+          <SeerDrawerContent
+            aiConfig={makeAiConfig()}
+            autofix={makeAutofix({
+              runState: {
+                ...stoppedSingleRun,
+                // The reply is the run's second user block.
+                blocks: [
+                  requestBlock,
+                  rootCauseBlock,
+                  {
+                    id: 'b2',
+                    timestamp: '2026-01-01T00:01:00Z',
+                    message: {role: 'user', content: 'Also cover empty weights'},
+                  },
+                ],
+              },
+            })}
+            group={GroupFixture()}
+          />,
+          {organization}
+        );
+
+        expect(
+          await screen.findByText(
+            'Seer stopped before finishing the code changes because your organization ran out of credits.'
+          )
+        ).toBeInTheDocument();
+        expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
+        expect(creditCheck).not.toHaveBeenCalled();
+      });
+    });
+
+    it("checks a single run's PR feedback against the run's billing feature", async () => {
+      // SeerBillingFeature.AUTOFIX_AGENTIC_TRIAGE, which PR feedback is billed to.
+      mockCreditCheck('autofix_pr_iteration', false, 4);
+
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({
+            runState: {
+              run_id: 777,
+              feature_id: 'autofix_single_run',
+              status: 'completed',
+              billing_feature: 4,
+              updated_at: '2026-01-01T00:00:00Z',
+              blocks: [
+                {
+                  id: 'b1',
+                  timestamp: '2026-01-01T00:00:00Z',
+                  message: {
+                    role: 'assistant',
+                    content: 'Opened a PR.',
+                    metadata: {step: 'single_run'},
+                  },
+                  artifacts: [
+                    {
+                      key: 'single_run_root_cause',
+                      reason: 'found',
+                      data: {headline: 'Divides by zero', cause: 'Empty weights.'},
+                    },
+                  ],
+                },
+              ],
+              repo_pr_states: {'org/repository': AutofixRepoPRStateFixture()},
+            },
+          })}
+          group={GroupFixture()}
+        />,
+        {organization}
+      );
+
+      expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+        'warning autofix-continue'
+      );
+    });
+
     it('does not check credits while a step is running', () => {
       const creditCheck = MockApiClient.addMockResponse({
         url: creditCheckUrl,

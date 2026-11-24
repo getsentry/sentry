@@ -95,15 +95,23 @@ export function SeerDrawerContent({
     );
   }
 
+  const continueAction = getAutofixContinueAction({
+    isPolling: autofix.isPolling,
+    runState: autofix.runState,
+    sections,
+  });
+
   return (
     <Stack gap="lg">
       <AutofixOutOfCreditsAlert
-        action={getAutofixContinueAction({
-          isPolling: autofix.isPolling,
-          runState: autofix.runState,
-          sections,
-        })}
-        billingFeature={autofix.runState?.billing_feature}
+        action={continueAction}
+        // A single run is retried with a new run, which is priced as one. Its
+        // PR feedback is billed to the run, like a multi-step run's.
+        billingFeature={
+          singleRun && continueAction === 'root_cause'
+            ? undefined
+            : autofix.runState?.billing_feature
+        }
         reason="autofix-continue"
       />
       <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
