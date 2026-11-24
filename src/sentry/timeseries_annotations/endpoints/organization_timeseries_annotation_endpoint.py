@@ -51,8 +51,8 @@ logger = logging.getLogger(__name__)
 class TimeseriesAnnotationPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:write", "org:admin"],
+        "PUT": ["org:write", "org:admin"],
     }
 
 
@@ -242,8 +242,10 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
                 end_timestamp=data.get("endTimestamp"),
                 set_end_timestamp="endTimestamp" in data,
             )
-        except ValueError as exc:
-            return Response({"detail": str(exc)}, status=400)
+        except ValueError:
+            return Response(
+                {"detail": "endTimestamp must be at or after startTimestamp"}, status=400
+            )
         return Response(serialize(annotation, request.user, TimeseriesAnnotationSerializer()))
 
     def _accessible_ranges(

@@ -440,12 +440,13 @@ class UpdateOrganizationTimeseriesAnnotationEndpointTest(APITestCase):
 
     def test_end_before_start_is_400(self) -> None:
         annotation = self._range(start_timestamp=before_now(days=1))
-        self.get_error_response(
+        response = self.get_error_response(
             self.organization.slug,
             filters={"id": annotation.id},
             endTimestamp=before_now(days=2).isoformat(),
             status_code=400,
         )
+        assert response.data["detail"] == "endTimestamp must be at or after startTimestamp"
         annotation.refresh_from_db()
         assert annotation.end_timestamp is None
 
