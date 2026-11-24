@@ -283,6 +283,8 @@ def fire_actions(
     event_data: WorkflowEventData,
     workflow_uuid_map: dict[WorkflowId, str],
     action_to_workflow_id: dict[ActionId, WorkflowId],
+    *,
+    activity_detector_id: int | None = None,
 ) -> None:
     supported_actions = get_supported_actions(actions, event_data)
     deduped_actions = get_unique_active_actions(supported_actions, event_data.group)
@@ -292,6 +294,8 @@ def fire_actions(
         task_params = build_trigger_action_task_params(
             action, event_data, workflow_uuid_map, workflow_id=workflow_id
         )
+        if activity_detector_id is not None:
+            task_params["detector_id"] = activity_detector_id
         trigger_action.apply_async(kwargs=task_params, headers={"sentry-propagate-traces": False})
 
 

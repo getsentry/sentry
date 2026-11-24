@@ -26,9 +26,10 @@ from sentry.workflow_engine.processors.evaluations.tracking import emit_evaluati
 from sentry.workflow_engine.tasks.utils import (
     EventNotFoundError,
     ProjectNotActiveError,
+    build_workflow_event_data_from_activity,
     build_workflow_event_data_from_event,
 )
-from sentry.workflow_engine.types import DetectorId, WorkflowEventData
+from sentry.workflow_engine.types import DetectorId
 from sentry.workflow_engine.utils import log_context, scopedstats
 
 logger = log_context.get_logger(__name__)
@@ -41,21 +42,28 @@ logger = log_context.get_logger(__name__)
     retry=Retry(times=3, delay=5, on=(Exception,)),
     silo_mode=SiloMode.CELL,
 )
-def process_workflow_activity(activity_id: int, group_id: int, detector_id: DetectorId) -> None:
+def process_workflow_activity(
+    activity_id: int, group_id: int, detector_id: DetectorId | None = None
+) -> None:
     """
     Process a workflow task identified by the given activity, group, and detector.
 
     The task will get the Activity from the database, create a WorkflowEventData object,
     and then process the data in `process_workflows`.
     """
-    from sentry.workflow_engine.processors.workflow import process_workflows
+    from sentry.workflow_engine.processors.detector import get_detector_for_group
+    from sentry.workflow_engine.processors.workflow import (
+        is_activity_workflow_enabled,
+        process_workflows,
+    )
 
     with transaction.atomic(router.db_for_write(Detector)):
         try:
-            activity = Activity.objects.get(id=activity_id)
-            group = Group.objects.get(id=group_id)
-            detector = Detector.objects.get(id=detector_id)
-        except (Activity.DoesNotExist, Group.DoesNotExist, Detector.DoesNotExist):
+            event_data = build_workflow_event_data_from_activity(activity_id, group_id)
+            detector = (
+                Detector.objects.get_or_none(id=detector_id) if detector_id is not None else None
+            )
+        except (Activity.DoesNotExist, Group.DoesNotExist):
             logger.exception(
                 "Unable to fetch data to process workflow activity",
                 extra={
@@ -66,11 +74,23 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: Dete
             )
             return  # Exit execution that we cannot recover from
 
-    event_data = WorkflowEventData(
-        event=activity,
-        group=group,
-        organization=activity.project.organization,
-    )
+    activity = event_data.event
+    assert isinstance(activity, Activity)
+    organization = event_data.get_organization()
+    if detector is None:
+        if not is_activity_workflow_enabled(organization):
+            return
+        try:
+            detector = get_detector_for_group(event_data.require_group())
+        except Detector.DoesNotExist:
+            # Organization candidates can still run without an issue detector.
+            pass
+    if detector is not None and detector.get_organization_id() != organization.id:
+        logger.error(
+            "workflow_engine.activity.detector_organization_mismatch",
+            extra={"activity_id": activity_id, "detector_id": detector_id},
+        )
+        return
     with quiet_redis_noise():
         batch_client = DelayedWorkflowClient()
         result = process_workflows(
@@ -78,13 +98,13 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: Dete
         )
 
     emit_evaluations(
-        organization=event_data.get_organization(),
+        organization=organization,
         result=result,
     )
 
     metrics.incr(
         "workflow_engine.tasks.process_workflows.activity_update.executed",
-        tags={"activity_type": activity.type, "detector_type": detector.type},
+        tags={"activity_type": activity.type, "detector_type": result.detector_type or "none"},
         sample_rate=1.0,
     )
 

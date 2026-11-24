@@ -19,6 +19,7 @@ from sentry.workflow_engine.caches.workflow import (
     get_activity_workflows_by_organization,
     get_workflows_by_detectors,
 )
+from sentry.workflow_engine.defaults.detectors import ensure_organization_activity_detector
 from sentry.workflow_engine.models import DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
@@ -586,42 +587,24 @@ def process_workflows(
 
     organization = event_data.get_organization()
 
-    try:
-        event_detectors = get_detectors_for_event_data(event_data, detector)
-
-        if not event_detectors:
-            raise Detector.DoesNotExist("No Detectors associated with the issue were found")
-
-        log_context.add_extras(
-            detector_id=event_detectors.preferred_detector.id, group_id=event_data.group_id
-        )
-
-        # set the detector / org information asap, this is used in `get_environment_by_event` as well.
-        WorkflowEventContext.set(
-            WorkflowEventContextData(
-                detector=event_detectors.preferred_detector,
-                organization=organization,
-            )
-        )
-    except Detector.DoesNotExist:
+    event_detectors = get_detectors_for_event_data(event_data, detector)
+    if event_detectors is None and not (
+        isinstance(event_data.event, Activity)
+        and event_data.group is not None
+        and is_activity_workflow_enabled(organization)
+    ):
         return _build_process_workflows_result(
             event_data=event_data,
             outcome=WorkflowEvaluationOutcome.NO_DETECTOR,
         )
 
-    associated_detector = event_detectors.preferred_detector
+    associated_detector = event_detectors.preferred_detector if event_detectors else None
+    WorkflowEventContext.set(
+        WorkflowEventContextData(detector=associated_detector, organization=organization)
+    )
 
     try:
         environment = get_environment_by_event(event_data)
-
-        # Set the full context now that we've gotten everything.
-        WorkflowEventContext.set(
-            WorkflowEventContextData(
-                detector=associated_detector,
-                environment=environment,
-                organization=organization,
-            )
-        )
     except Environment.DoesNotExist:
         return _build_process_workflows_result(
             event_data=event_data,
@@ -632,7 +615,8 @@ def process_workflows(
     if features.has("organizations:workflow-engine-process-workflows-logs", organization):
         log_context.set_verbose(True)
 
-    workflows = select_workflows(event_data, event_detectors.detectors, environment)
+    linked_detectors = event_detectors.detectors if event_detectors else set()
+    workflows = select_workflows(event_data, linked_detectors, environment)
     debug_workflow_ids = options.get("workflow_engine.process_workflows_debug_workflow_ids")
     if any(workflow.id in debug_workflow_ids for workflow in workflows):
         log_context.set_verbose(True)
@@ -659,6 +643,15 @@ def process_workflows(
         )
 
     metrics_incr("process_workflows", len(workflows))
+    # This detector identifies the execution. Its links do not select candidates.
+    if associated_detector is None:
+        associated_detector = ensure_organization_activity_detector(organization.id)
+    log_context.add_extras(detector_id=associated_detector.id, group_id=event_data.group_id)
+    WorkflowEventContext.set(
+        WorkflowEventContextData(
+            detector=associated_detector, environment=environment, organization=organization
+        )
+    )
     event_id = event_data.event_id
     logger.debug(
         "workflow_engine.process_workflows",
@@ -667,7 +660,7 @@ def process_workflows(
             "event_id": event_id,
             "event_environment_id": environment.id if environment else None,
             "workflows": [workflow.id for workflow in workflows],
-            "detector_types": [d.type for d in event_detectors.detectors],
+            "detector_types": [d.type for d in linked_detectors],
         },
     )
 
@@ -707,6 +700,9 @@ def process_workflows(
             event_data,
             workflow_uuid_map=workflow_uuid_map,
             action_to_workflow_id=action_to_workflow_id,
+            activity_detector_id=associated_detector.id
+            if isinstance(event_data.event, Activity) and detector is None
+            else None,
         )
 
     return result.with_triggered_actions(actions, action_to_workflow_id)

@@ -28,6 +28,7 @@ logger = log_context.get_logger(__name__)
 
 TRIGGER_ACTION_RETRY_IGNORED_EXCEPTIONS = (
     Action.DoesNotExist,
+    Activity.DoesNotExist,
     Group.DoesNotExist,
     Project.DoesNotExist,
     ProjectNotActiveError,

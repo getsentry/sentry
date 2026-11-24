@@ -216,7 +216,7 @@ def _get_detector_for_event(event: GroupEvent) -> Detector | None:
         return None
 
 
-def _get_detector_for_group(group: Group) -> Detector:
+def get_detector_for_group(group: Group) -> Detector:
     """
     Returns Detector associated with this group, either based on DetectorGroup,
     (project, type), or if those fail, returns the Issue Stream detector.
@@ -246,7 +246,7 @@ def get_preferred_detector(event_data: WorkflowEventData) -> Detector:
                 raise Detector.DoesNotExist("No detectors found for event")
             return event_detectors.preferred_detector
         elif isinstance(event_data.event, Activity):
-            return _get_detector_for_group(event_data.require_group())
+            return get_detector_for_group(event_data.require_group())
         else:
             raise TypeError(f"Cannot determine the detector from {type(event_data.event)}.")
     except Detector.DoesNotExist:

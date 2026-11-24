@@ -22,7 +22,10 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
-from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
+from sentry.workflow_engine.defaults.detectors import (
+    ensure_default_all_projects_detector,
+    ensure_organization_activity_detector,
+)
 from sentry.workflow_engine.models import Action, DataConditionGroup, Workflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
@@ -770,6 +773,27 @@ class TestActivityWorkflowSelection(BaseWorkflowTest):
     def test_activity_selection_does_not_require_detector_links(self) -> None:
         with self.feature("organizations:workflow-engine-activity-workflows"):
             assert select_workflows(self.event_data, [], None) == {self.inbox}
+
+    @override_options(
+        {"workflow_engine.group.type_id.disable_issue_stream_detector": [ErrorGroupType.type_id]}
+    )
+    def test_fallback_detector_does_not_contribute_alert_candidates(self) -> None:
+        fallback = ensure_organization_activity_detector(self.organization.id)
+        self.create_detector_workflow(detector=fallback, workflow=self.alert)
+        with self.feature("organizations:workflow-engine-activity-workflows"):
+            result = process_workflows(DelayedWorkflowClient(), self.event_data, FROZEN_TIME)
+        assert result.detector_id == fallback.id
+        assert result.evaluated_workflow_ids() == {self.inbox.id}
+
+    @override_options(
+        {"workflow_engine.group.type_id.disable_issue_stream_detector": [ErrorGroupType.type_id]}
+    )
+    def test_missing_candidates_do_not_provision_a_detector(self) -> None:
+        self.inbox.update(enabled=False)
+        with self.feature("organizations:workflow-engine-activity-workflows"):
+            result = process_workflows(DelayedWorkflowClient(), self.event_data, FROZEN_TIME)
+        assert result.outcome == WorkflowEvaluationOutcome.NO_WORKFLOWS
+        assert result.detector_id is None
 
     def test_lookup_does_not_match_activity_kinds(self) -> None:
         for activity_type in (ActivityType.NOTE, ActivityType.SEER_PR_READY_FOR_REVIEW):
