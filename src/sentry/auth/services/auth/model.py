@@ -192,6 +192,7 @@ class RpcAuthProvider(RpcModel):
     config: dict[str, Any]
     default_role: int = -1
     default_global_access: bool = False
+    sso_session_duration: int | None = None
 
     def __hash__(self) -> int:
         return hash((self.id, self.organization_id, self.provider))

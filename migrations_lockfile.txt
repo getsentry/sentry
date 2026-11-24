@@ -41,7 +41,7 @@ seer: 0050_rename_agentic_triage_v2
 
 seer_workflow_outputs: 0001_initial
 
-sentry: 1268_artifactbundle_file_nullable
+sentry: 1269_authprovider_sso_session_duration
 
 service_accounts: 0008_add_owner_kind
 

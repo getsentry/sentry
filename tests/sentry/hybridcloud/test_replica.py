@@ -39,12 +39,14 @@ def test_replicate_auth_provider() -> None:
     assert replicated.config == auth_provider.config
     assert replicated.default_role == auth_provider.default_role
     assert replicated.default_global_access == auth_provider.default_global_access
+    assert replicated.sso_session_duration is None
     assert replicated.scim_enabled == auth_provider.flags.scim_enabled
     assert replicated.allow_unlinked == auth_provider.flags.allow_unlinked
 
     with assume_test_silo_mode(SiloMode.CONTROL):
         auth_provider.provider = "new_provider"
         auth_provider.flags.scim_enabled = not auth_provider.flags.scim_enabled
+        auth_provider.sso_session_duration = 86400
         auth_provider.save()
 
     with assume_test_silo_mode(SiloMode.CELL):
@@ -52,6 +54,7 @@ def test_replicate_auth_provider() -> None:
 
     assert replicated.auth_provider_id == auth_provider.id
     assert replicated.provider == auth_provider.provider
+    assert replicated.sso_session_duration == 86400
     assert replicated.scim_enabled == auth_provider.flags.scim_enabled
 
     serialized = serialize_auth_provider(auth_provider)
