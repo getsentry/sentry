@@ -89,6 +89,23 @@ def process_sentry_app_installation_deletes(
     payload: Mapping[str, Any],
     **kwds: Any,
 ) -> None:
+    # If the org reinstalled the app before this outbox drained, its actions belong to the
+    # live installation now. Disabling them would break the new installation silently.
+    if SentryAppInstallation.objects.filter(
+        sentry_app_id=payload["sentry_app_id"],
+        organization_id=payload["organization_id"],
+    ).exists():
+        logger.info(
+            "sentry_app_installation_delete.skipped_reinstalled",
+            extra={
+                "installation_id": object_identifier,
+                "sentry_app_id": payload["sentry_app_id"],
+                "organization_id": payload["organization_id"],
+                "cell_name": cell_name,
+            },
+        )
+        return
+
     action_service.update_action_status_for_sentry_app_installation(
         cell_name=cell_name,
         status=ObjectStatus.DISABLED,
