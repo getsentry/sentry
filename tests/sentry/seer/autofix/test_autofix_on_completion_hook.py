@@ -3284,7 +3284,7 @@ class TestSingleRunCompletion(TestCase):
 
         assert self._events(mocks) == ["root_cause_completed"]
         payload = mocks["broadcast"].call_args.kwargs["payload"]
-        assert payload["root_cause"]["one_line_description"] == "C2"
+        assert payload["root_cause"]["cause"] == "C2"
 
     def test_root_cause_announced_before_hashing_is_not_announced_again(self) -> None:
         SeerRun.objects.filter(id=self.seer_run.id).update(
