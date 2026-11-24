@@ -1,16 +1,16 @@
 from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
-from django.conf import settings
 
 from sentry.anomaly_detection.state import (
     STATE_TTL,
     AnomalyDetectionState,
+    _client,
+    _key,
     delete_state,
     get_state,
     set_state,
 )
-from sentry.utils import redis
 
 ORG_ID = 1
 MINUTE = datetime(2020, 1, 1, 12, 0, tzinfo=UTC)
@@ -19,8 +19,7 @@ BLOB = b"\x78\x9c\xff\x00checkpoint"
 
 
 def _ttl(organization_id: int) -> int:
-    client = redis.redis_clusters.get_binary(settings.SENTRY_ANOMALY_DETECTION_REDIS_CLUSTER)
-    return client.ttl(f"anomaly-detection:state:v1:{organization_id}")
+    return _client().ttl(_key(organization_id))
 
 
 def test_round_trips_state_with_ttl() -> None:
@@ -32,13 +31,15 @@ def test_round_trips_state_with_ttl() -> None:
     assert 0 < _ttl(ORG_ID) <= STATE_TTL.total_seconds()
 
 
-def test_overwrites_previous_state() -> None:
+def test_overwrite_replaces_state_and_restarts_ttl() -> None:
     set_state(ORG_ID, next_minute=MINUTE, checkpoint=BLOB)
+    _client().expire(_key(ORG_ID), 10)
     later = MINUTE + timedelta(minutes=5)
 
     set_state(ORG_ID, next_minute=later, checkpoint=b"")
 
     assert get_state(ORG_ID) == AnomalyDetectionState(next_minute=later, checkpoint=b"")
+    assert _ttl(ORG_ID) > 10
 
 
 def test_stores_minutes_as_utc() -> None:

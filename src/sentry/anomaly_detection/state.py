@@ -20,9 +20,10 @@ from sentry.utils import redis
 # How long state is kept after its last write.
 STATE_TTL = timedelta(days=1)
 
+_KEY_PREFIX = "anomaly-detection:state:v1"
+
 # The stored value is the next minute as big-endian epoch seconds, then the checkpoint.
-_MINUTE = struct.Struct(">q")
-ANOMALY_KEY_PREFIX = "anomaly-detection:state:v1"
+_NEXT_MINUTE_HEADER = struct.Struct(">q")
 
 
 @dataclass(frozen=True)
@@ -36,16 +37,17 @@ def _client() -> RedisCluster[bytes] | StrictRedis[bytes]:
 
 
 def _key(organization_id: int) -> str:
-    return f"{ANOMALY_KEY_PREFIX}:{organization_id}"
+    return f"{_KEY_PREFIX}:{organization_id}"
 
 
 def get_state(organization_id: int) -> AnomalyDetectionState | None:
     value = _client().get(_key(organization_id))
     if value is None:
         return None
-    (seconds,) = _MINUTE.unpack_from(value)
+    (seconds,) = _NEXT_MINUTE_HEADER.unpack_from(value)
     return AnomalyDetectionState(
-        next_minute=datetime.fromtimestamp(seconds, UTC), checkpoint=value[_MINUTE.size :]
+        next_minute=datetime.fromtimestamp(seconds, UTC),
+        checkpoint=value[_NEXT_MINUTE_HEADER.size :],
     )
 
 
@@ -61,7 +63,7 @@ def set_state(organization_id: int, *, next_minute: datetime, checkpoint: bytes)
 
     _client().set(
         _key(organization_id),
-        _MINUTE.pack(int(next_minute.timestamp())) + checkpoint,
+        _NEXT_MINUTE_HEADER.pack(int(next_minute.timestamp())) + checkpoint,
         ex=STATE_TTL,
     )
 
