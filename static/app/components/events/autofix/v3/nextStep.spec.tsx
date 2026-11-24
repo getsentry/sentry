@@ -1383,7 +1383,7 @@ describe('SeerDrawerNextStep', () => {
       ).toBeEnabled();
     });
 
-    it('leaves the coding agent hand-off available', async () => {
+    it('disables the coding agent hand-off when the step is unaffordable', async () => {
       mockCreditCheck('autofix_solution');
 
       await renderAndWaitForCheck(
@@ -1396,12 +1396,9 @@ describe('SeerDrawerNextStep', () => {
       );
 
       expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeDisabled();
-      await userEvent.click(
-        await screen.findByRole('button', {name: 'More code fix options'})
-      );
       expect(
-        await screen.findByRole('menuitemradio', {name: 'Send to Copilot'})
-      ).toBeInTheDocument();
+        await screen.findByRole('button', {name: 'More code fix options'})
+      ).toBeDisabled();
     });
 
     it('disables Ask Seer in code mode', async () => {
