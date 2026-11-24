@@ -13,6 +13,7 @@ from sentry.db.models import (
     Model,
     cell_silo_model,
 )
+from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.tasks.relay import schedule_invalidate_project_config
 
@@ -64,5 +65,9 @@ class ReleaseProject(Model):
             models.Index(fields=("project", "adopted")),
             models.Index(fields=("project", "unadopted")),
             models.Index(fields=("project", "first_seen_transaction")),
+            # Joins from a release to its projects, such as release lists filtered by project.
+            IndexWithPostgresNameLimits(
+                fields=("release", "project"), name="sentry_release_project_release_id_project_id"
+            ),
         )
         unique_together = (("project", "release"),)
