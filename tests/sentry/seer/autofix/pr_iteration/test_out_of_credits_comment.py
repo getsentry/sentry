@@ -1,8 +1,10 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from scm.types import CreatePullRequestCommentProtocol
 
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
+from sentry.seer.autofix.pr_iteration.out_of_credits import OUT_OF_CREDITS_EXTRA
 from sentry.seer.autofix.pr_iteration.out_of_credits_comment import (
     OUT_OF_CREDITS_COMMENT_EXTRA,
     clear_out_of_credits_comment,
@@ -22,6 +24,15 @@ RUN_ID = 67890
 REPO = "owner/repo"
 OTHER_REPO = "owner/other"
 PR_NUMBER = 7
+STOPPED = {OUT_OF_CREDITS_EXTRA: {"stranded_action": None, "denial_reason": None}}
+
+
+class _ScmStub:
+    """Spec for an SCM that can read PRs as well as comment on them."""
+
+    def get_pull_request(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def create_pull_request_comment(self, *args: Any, **kwargs: Any) -> Any: ...
 
 
 class OutOfCreditsCommentBodyTest(TestCase):
@@ -84,6 +95,15 @@ class QueueOutOfCreditsCommentTest(TestCase):
             denial_reason="daily_cap_exceeded",
         )
 
+    @patch(TASK_DELAY, side_effect=Exception("broker down"))
+    def test_an_enqueue_failure_does_not_raise(self, mock_delay: MagicMock) -> None:
+        # The stop is already recorded; only the comment is lost.
+        self.create_seer_run(organization=self.organization, seer_run_state_id=RUN_ID)
+
+        self._queue(self._state(repo=PR_NUMBER))
+
+        mock_delay.assert_called_once()
+
     @patch(TASK_DELAY)
     def test_skips_without_a_pr(self, mock_delay: MagicMock) -> None:
         self.create_seer_run(organization=self.organization, seer_run_state_id=RUN_ID)
@@ -138,6 +158,13 @@ class PostOutOfCreditsCommentTest(TestCase):
         self.mock_actions = actions_patcher.start()
         self.addCleanup(actions_patcher.stop)
 
+    def _stopped_run(self, extras: dict[str, Any] | None = None) -> SeerRun:
+        return self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=RUN_ID,
+            extras={**STOPPED, **(extras or {})},
+        )
+
     def _post(
         self,
         pr_numbers_by_repo: dict[str, int] | None = None,
@@ -153,7 +180,7 @@ class PostOutOfCreditsCommentTest(TestCase):
         )
 
     def test_posts_and_marks(self) -> None:
-        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=RUN_ID)
+        seer_run = self._stopped_run()
 
         self._post()
 
@@ -168,7 +195,7 @@ class PostOutOfCreditsCommentTest(TestCase):
         )
 
     def test_posts_once_per_credit_stop(self) -> None:
-        self.create_seer_run(organization=self.organization, seer_run_state_id=RUN_ID)
+        self._stopped_run()
 
         self._post()
         self._post(denial_reason="not_enough_credits")
@@ -176,7 +203,7 @@ class PostOutOfCreditsCommentTest(TestCase):
         self.mock_actions.create_pull_request_comment.assert_called_once()
 
     def test_posts_again_after_an_iteration_starts(self) -> None:
-        self.create_seer_run(organization=self.organization, seer_run_state_id=RUN_ID)
+        self._stopped_run()
 
         self._post()
         clear_out_of_credits_comment(run_id=RUN_ID, organization_id=self.organization.id)
@@ -185,7 +212,7 @@ class PostOutOfCreditsCommentTest(TestCase):
         assert self.mock_actions.create_pull_request_comment.call_count == 2
 
     def test_skips_a_repo_it_cannot_resolve(self) -> None:
-        self.create_seer_run(organization=self.organization, seer_run_state_id=RUN_ID)
+        self._stopped_run()
         # Another org's repo with the same name is never used.
         self.create_repo(
             project=self.create_project(organization=self.create_organization()),
@@ -198,12 +225,48 @@ class PostOutOfCreditsCommentTest(TestCase):
         self.mock_actions.create_pull_request_comment.assert_called_once()
         assert self.mock_make_scm.call_args[0] == (self.organization.id, self.repo.id)
 
-    def test_skips_when_paused(self) -> None:
-        seer_run = self.create_seer_run(
-            organization=self.organization,
-            seer_run_state_id=RUN_ID,
-            extras={PAUSED_EXTRA: {"reason": "user_stop"}},
+    def test_skips_a_repo_name_shared_by_two_repos(self) -> None:
+        self._stopped_run()
+        # Refuses to guess which repo the PR is in.
+        self.create_repo(
+            project=self.project, name=REPO, provider="integrations:github", external_id="other"
         )
+
+        self._post()
+
+        self.mock_make_scm.assert_not_called()
+        self.mock_actions.create_pull_request_comment.assert_not_called()
+
+    def test_skips_a_closed_pr(self) -> None:
+        self._stopped_run()
+        self.mock_make_scm.return_value = MagicMock(spec=_ScmStub)
+        self.mock_actions.get_pull_request.return_value = {"data": {"state": "closed"}}
+
+        self._post()
+
+        self.mock_actions.create_pull_request_comment.assert_not_called()
+
+    def test_posts_on_an_open_pr_it_can_read(self) -> None:
+        self._stopped_run()
+        self.mock_make_scm.return_value = MagicMock(spec=_ScmStub)
+        self.mock_actions.get_pull_request.return_value = {"data": {"state": "open"}}
+
+        self._post()
+
+        self.mock_actions.create_pull_request_comment.assert_called_once()
+
+    def test_skips_once_work_resumed(self) -> None:
+        # Queued during the stop, but an iteration started before the task ran.
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=RUN_ID)
+
+        self._post()
+
+        self.mock_actions.create_pull_request_comment.assert_not_called()
+        seer_run.refresh_from_db()
+        assert OUT_OF_CREDITS_COMMENT_EXTRA not in seer_run.extras
+
+    def test_skips_when_paused(self) -> None:
+        seer_run = self._stopped_run(extras={PAUSED_EXTRA: {"reason": "user_stop"}})
 
         self._post()
 
@@ -217,7 +280,7 @@ class PostOutOfCreditsCommentTest(TestCase):
         self.mock_actions.create_pull_request_comment.assert_not_called()
 
     def test_skips_when_the_run_is_deleted_before_the_claim(self) -> None:
-        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=RUN_ID)
+        seer_run = self._stopped_run()
         # A queryset delete keeps ``seer_run.id``, as a stale lookup would.
         SeerRun.objects.filter(id=seer_run.id).delete()
 
@@ -228,7 +291,7 @@ class PostOutOfCreditsCommentTest(TestCase):
         self.mock_actions.create_pull_request_comment.assert_not_called()
 
     def test_failed_post_is_not_retried(self) -> None:
-        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=RUN_ID)
+        seer_run = self._stopped_run()
         self.mock_actions.create_pull_request_comment.side_effect = Exception("boom")
 
         self._post()
@@ -240,7 +303,7 @@ class PostOutOfCreditsCommentTest(TestCase):
         assert OUT_OF_CREDITS_COMMENT_EXTRA in seer_run.extras
 
     def test_unsupported_provider_does_not_post(self) -> None:
-        self.create_seer_run(organization=self.organization, seer_run_state_id=RUN_ID)
+        self._stopped_run()
         self.mock_make_scm.return_value = object()
 
         self._post()

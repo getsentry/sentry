@@ -1299,6 +1299,49 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_trigger.assert_called_once()
         assert get_out_of_credits(run_id=67890, organization_id=self.organization.id) is None
 
+    def _strand_with_comment(self, action: StrandedAction) -> SeerRun:
+        seer_run = self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=67890,
+            extras={OUT_OF_CREDITS_COMMENT_EXTRA: {"denial_reason": None}},
+        )
+        mark_out_of_credits(
+            run_id=67890, organization_id=self.organization.id, stranded_action=action
+        )
+        return seer_run
+
+    @patch("sentry.seer.autofix.pr_iteration.completion.redo_stranded_action")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_redone_stranded_action_clears_the_out_of_credits_comment(
+        self, mock_fetch: MagicMock, mock_redo: MagicMock
+    ) -> None:
+        # Work resumed, so the next credit stop comments again.
+        seer_run = self._strand_with_comment(StrandedAction.BRANCH_MOVED_RETRY)
+        mock_fetch.return_value = self._state(blocks=[self._unpushed_block()])
+
+        self._call()
+
+        mock_redo.assert_called_once()
+        seer_run.refresh_from_db()
+        assert OUT_OF_CREDITS_COMMENT_EXTRA not in seer_run.extras
+
+    @patch("sentry.seer.autofix.pr_iteration.completion.redo_stranded_action")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_redo_refused_again_keeps_the_out_of_credits_comment(
+        self, mock_fetch: MagicMock, mock_redo: MagicMock
+    ) -> None:
+        # Still the same credit stop, so its comment stands.
+        seer_run = self._strand_with_comment(StrandedAction.PUSH)
+        mock_fetch.return_value = self._state(blocks=[self._unpushed_block()])
+        mock_redo.side_effect = lambda *args: mark_out_of_credits(
+            run_id=67890, organization_id=self.organization.id, stranded_action=StrandedAction.PUSH
+        )
+
+        self._call()
+
+        seer_run.refresh_from_db()
+        assert OUT_OF_CREDITS_COMMENT_EXTRA in seer_run.extras
+
     @patch(f"{TASK_PATH}.fetch_run_status")
     def test_an_empty_queue_leaves_the_out_of_credits_marker(self, mock_fetch: MagicMock) -> None:
         # Only a step that starts clears the marker.

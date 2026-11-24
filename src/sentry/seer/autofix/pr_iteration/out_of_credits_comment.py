@@ -6,8 +6,10 @@ posts one comment on each of the run's PRs saying why Seer stopped and how to re
 
 One comment per credit stop, however many refusals follow it. The ``SeerRun.extras``
 marker is claimed under the row lock *before* posting, so two refusals racing can never
-both comment, and a failed post is not retried. The drain clears the marker once an
-iteration starts again, so the next stop comments again.
+both comment, and a failed post is not retried. The drain clears the marker once work
+starts again (an iteration, or a redo of a stranded action), so the next stop comments
+again. A claim also needs the run to still be marked out of credits, so a comment queued
+before work resumed is dropped instead of announcing a stop that's over.
 
 The comment is posted from a task so the GitHub call stays off the webhook and completion
 paths that hit the refusal.
@@ -21,14 +23,14 @@ from typing import Any
 
 from django.utils import timezone
 from scm import actions as scm_actions
-from scm.types import CreatePullRequestCommentProtocol
+from scm.types import CreatePullRequestCommentProtocol, GetPullRequestProtocol
 
-from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.constants import SEER_GITHUB_PROVIDERS
+from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER_SLUG
+from sentry.seer.autofix.pr_iteration.out_of_credits import OUT_OF_CREDITS_EXTRA
 from sentry.seer.autofix.pr_iteration.pause import PAUSED_EXTRA
 from sentry.seer.autofix.pr_iteration.run_markers import (
     get_run_extra,
@@ -122,12 +124,20 @@ def queue_out_of_credits_comment(
         _record("skipped", log_fields, reason=reason)
         return
 
-    comment_on_out_of_credits.delay(
-        run_id=run_id,
-        organization_id=organization_id,
-        pr_numbers_by_repo=pr_numbers_by_repo,
-        denial_reason=denial_reason,
-    )
+    try:
+        comment_on_out_of_credits.delay(
+            run_id=run_id,
+            organization_id=organization_id,
+            pr_numbers_by_repo=pr_numbers_by_repo,
+            denial_reason=denial_reason,
+        )
+    except Exception:
+        # The comment is best effort: the stop it announces is already recorded.
+        logger.exception(
+            "autofix.pr_iteration.out_of_credits_comment.enqueue_failed", extra=log_fields
+        )
+        _record("failed", log_fields, reason="enqueue_failed")
+        return
     _record("queued", log_fields)
 
 
@@ -139,6 +149,9 @@ def _claim_comment(seer_run: SeerRun, *, denial_reason: str | None) -> str | Non
                 return "raced"
             if extras.get(PAUSED_EXTRA) is not None:
                 return "paused"
+            if extras.get(OUT_OF_CREDITS_EXTRA) is None:
+                # Work resumed after this comment was queued, so the stop is over.
+                return "resumed"
             extras[OUT_OF_CREDITS_COMMENT_EXTRA] = {
                 "denial_reason": denial_reason,
                 "claimed_at": timezone.now().isoformat(),
@@ -149,15 +162,41 @@ def _claim_comment(seer_run: SeerRun, *, denial_reason: str | None) -> str | Non
     return None
 
 
+def _pr_is_closed(scm: object, pr_number: int, log_fields: Mapping[str, Any]) -> bool:
+    """Whether the PR reads back as closed or merged. One we can't read gets the comment."""
+    if not isinstance(scm, GetPullRequestProtocol):
+        return False
+    try:
+        pull_request = scm_actions.get_pull_request(scm, str(pr_number))
+    except Exception:
+        logger.warning(
+            "autofix.pr_iteration.out_of_credits_comment.pr_fetch_failed",
+            extra=log_fields,
+            exc_info=True,
+        )
+        return False
+    return pull_request["data"]["state"] == "closed"
+
+
 def _post_comment(
     organization: Organization,
-    repository_id: int,
+    repo_name: str,
     pr_number: int,
     body: str,
     log_fields: Mapping[str, Any],
 ) -> None:
+    # Names aren't unique, so this refuses to guess between repos with the same name.
+    repo, resolution = Repository.objects.resolve_active(
+        organization_id=organization.id,
+        name=repo_name,
+        normalized_provider=PR_ITERATION_PROVIDER_SLUG,
+    )
+    if repo is None:
+        _record("failed", log_fields, reason=f"repository_{resolution}")
+        return
+
     try:
-        scm = make_scm(organization.id, repository_id, referrer="seer")
+        scm = make_scm(organization.id, repo.id, referrer="seer")
     except Exception:
         logger.exception(
             "autofix.pr_iteration.out_of_credits_comment.scm_init_failed", extra=log_fields
@@ -167,6 +206,11 @@ def _post_comment(
 
     if not isinstance(scm, CreatePullRequestCommentProtocol):
         _record("failed", log_fields, reason="unsupported_provider")
+        return
+
+    if _pr_is_closed(scm, pr_number, log_fields):
+        # Nothing on a closed or merged PR resumes, so don't say how to.
+        _record("skipped", log_fields, reason="pr_closed")
         return
 
     try:
@@ -188,7 +232,7 @@ def post_out_of_credits_comment(
     pr_numbers_by_repo: Mapping[str, int],
     denial_reason: str | None,
 ) -> None:
-    """Post the credit stop's comment on each of the run's PRs, claiming it first."""
+    """Post the credit stop's comment on each of the run's open PRs, claiming it first."""
     log_fields: dict[str, Any] = {
         "run_id": run_id,
         "organization_id": organization.id,
@@ -203,25 +247,15 @@ def post_out_of_credits_comment(
         _record("skipped", log_fields, reason=reason)
         return
 
-    # Org-scoped, so a run can only comment through repos in its own org.
-    repository_ids: dict[str, int] = dict(
-        Repository.objects.filter(
-            organization_id=organization.id,
-            provider__in=SEER_GITHUB_PROVIDERS,
-            name__in=list(pr_numbers_by_repo),
-            status=ObjectStatus.ACTIVE,
-        )
-        .order_by("name", "id")
-        .values_list("name", "id")
-    )
     body = out_of_credits_comment_body(organization, denial_reason)
     for repo_name, pr_number in pr_numbers_by_repo.items():
-        repository_id = repository_ids.get(repo_name)
-        pr_log_fields = {**log_fields, "repository_id": repository_id, "pr_number": pr_number}
-        if repository_id is None:
-            _record("failed", pr_log_fields, reason="repository_not_found")
-            continue
-        _post_comment(organization, repository_id, pr_number, body, pr_log_fields)
+        _post_comment(
+            organization,
+            repo_name,
+            pr_number,
+            body,
+            {**log_fields, "scm_repo_full_name": repo_name, "pr_number": pr_number},
+        )
 
 
 def clear_out_of_credits_comment(*, run_id: int, organization_id: int) -> None:

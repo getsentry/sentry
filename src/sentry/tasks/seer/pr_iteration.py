@@ -766,6 +766,10 @@ def _drain_queued_autofix_feedback(
         from sentry.seer.autofix.pr_iteration.completion import redo_stranded_action
 
         redo_stranded_action(log_ctx, group, run_id, state, stranded_action)
+        # A redo refused for credits marks the run again. Otherwise work resumed, so the next
+        # credit stop gets its own comment.
+        if get_out_of_credits(run_id=run_id, organization_id=organization_id) is None:
+            clear_out_of_credits_comment(run_id=run_id, organization_id=organization_id)
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
             outcome="redo_stranded_action",
@@ -1052,7 +1056,7 @@ def _drain_queued_autofix_feedback(
         _record_drain_outcome("failed", trigger_source)
         raise
 
-    # The iteration is running again, so the next credit stop gets its own comment.
+    # Work resumed, so the next credit stop gets its own comment.
     clear_out_of_credits_comment(run_id=run_id, organization_id=organization_id)
     log_ctx.info(
         "autofix.pr_iteration.consume_feedback.trigger_agent",
