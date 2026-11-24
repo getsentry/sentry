@@ -607,8 +607,8 @@ interface SingleRunHandoffDropdownProps {
 }
 
 /**
- * Sits beside "Open Autofix" once a single run has a root cause, so the reader
- * can hand the fix to a coding agent the way the step-by-step flow allows.
+ * Hands a single run's root cause to a coding agent: the chevron beside "Open
+ * Autofix", or a labeled button that replaces it while the run's chat is open.
  */
 export function SingleRunHandoffDropdown({
   autofix,
