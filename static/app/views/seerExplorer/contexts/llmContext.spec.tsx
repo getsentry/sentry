@@ -222,12 +222,7 @@ describe('registerLLMContext — nesting', () => {
                 priority: 0,
                 data: {title: 'Error Rate', type: 'timeseries', unit: 'ms'},
                 children: [
-                  {
-                    nodeType: 'chart',
-                    priority: 0,
-                    data: {label: 'p99'},
-                    children: [],
-                  },
+                  {nodeType: 'chart', priority: 0, data: {label: 'p99'}, children: []},
                 ],
               },
             ],
@@ -496,9 +491,9 @@ describe('getLLMContext — full tree vs componentOnly', () => {
 
   it('getLLMContext(true) returns only the current component subtree', async () => {
     // We need a capture inside the dashboard to test componentOnly
-    const innerRef: {
-      current: ((c?: boolean) => LLMContextSnapshot) | null;
-    } = {current: null};
+    const innerRef: {current: ((c?: boolean) => LLMContextSnapshot) | null} = {
+      current: null,
+    };
 
     function DashboardWithCapture({name}: {name: string}) {
       useLLMContext({name});

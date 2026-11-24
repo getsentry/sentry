@@ -15,6 +15,7 @@ import {
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -51,7 +52,9 @@ import {getDatasetLabel} from './datasetLabels';
 import {
   FilterSelectorTrigger,
   FilterSelectorTriggerButton,
+  getFilterSelectorDescription,
 } from './filterSelectorTrigger';
+import {FILTER_SELECTOR_TOOLTIP_MAX_WIDTH} from './settings';
 import {
   buildNoValueFilterQuery,
   deriveFilterState,
@@ -115,10 +118,7 @@ export function FilterSelector({
   // Get operator info from the picker or no value token
   const {initialOperator, operatorDropdownItems} = useMemo(() => {
     if (!pickerToken) {
-      return {
-        initialOperator: TermOperator.DEFAULT,
-        operatorDropdownItems: [],
-      };
+      return {initialOperator: TermOperator.DEFAULT, operatorDropdownItems: []};
     }
 
     const operatorInfo = getOperatorInfo({filterToken: pickerToken, fieldDefinition});
@@ -217,9 +217,7 @@ export function FilterSelector({
       searchQuery,
     ]
   );
-  const [queryKey] = useDebouncedValue(baseQueryKey, {
-    wait: DEFAULT_DEBOUNCE_DURATION,
-  });
+  const [queryKey] = useDebouncedValue(baseQueryKey, {wait: DEFAULT_DEBOUNCE_DURATION});
 
   const queryResult = useQuery({
     queryKey,
@@ -347,6 +345,13 @@ export function FilterSelector({
   ]);
 
   const translatedOptions = translateKnownFilterOptions(options, globalFilter);
+  const filterTriggerProps = {
+    activeFilterValues: stripUnsupportedNoValue(activeFilterValues, stagedOperator),
+    globalFilter,
+    operator: stagedOperator,
+    options: translatedOptions,
+  };
+  const filterDescription = getFilterSelectorDescription(filterTriggerProps);
 
   const handleChange = (rawOpts: string[]) => {
     const opts = stripUnsupportedNoValue(rawOpts, stagedOperator);
@@ -361,10 +366,7 @@ export function FilterSelector({
     setActiveFilterValues(opts);
     if (opts.length === 0) {
       setStagedOperator(TermOperator.DEFAULT);
-      onUpdateFilter({
-        ...globalFilter,
-        value: '',
-      });
+      onUpdateFilter({...globalFilter, value: ''});
       return;
     }
 
@@ -396,10 +398,7 @@ export function FilterSelector({
       ? buildNoValueFilterQuery(globalFilter.tag.key, stagedOperator, valueQuery)
       : valueQuery;
 
-    onUpdateFilter({
-      ...globalFilter,
-      value: newValue,
-    });
+    onUpdateFilter({...globalFilter, value: newValue});
   };
 
   const hasOperatorChanges =
@@ -479,17 +478,10 @@ export function FilterSelector({
           <FilterSelectorTriggerButton
             {...triggerProps}
             globalFilter={globalFilter}
+            description={filterDescription}
             showDatasetLabel={showDatasetLabel}
           >
-            <FilterSelectorTrigger
-              activeFilterValues={stripUnsupportedNoValue(
-                activeFilterValues,
-                stagedOperator
-              )}
-              globalFilter={globalFilter}
-              operator={stagedOperator}
-              options={translatedOptions}
-            />
+            <FilterSelectorTrigger {...filterTriggerProps} />
           </FilterSelectorTriggerButton>
         )}
       />
@@ -546,9 +538,16 @@ export function FilterSelector({
               usePortal
               trigger={(triggerProps, isOpen) => (
                 <WildcardButton gap="xs" align="center">
-                  <FilterValueTruncated>
-                    {prettifyTagKey(globalFilter.tag.key)}
-                  </FilterValueTruncated>
+                  <Tooltip
+                    title={prettifyTagKey(globalFilter.tag.key)}
+                    maxWidth={FILTER_SELECTOR_TOOLTIP_MAX_WIDTH}
+                    showOnlyOnOverflow
+                    skipWrapper
+                  >
+                    <FilterValueTruncated>
+                      {prettifyTagKey(globalFilter.tag.key)}
+                    </FilterValueTruncated>
+                  </Tooltip>
                   <OverlayTrigger.Button
                     showChevron={false}
                     {...triggerProps}
@@ -593,17 +592,10 @@ export function FilterSelector({
         <FilterSelectorTriggerButton
           {...triggerProps}
           globalFilter={globalFilter}
+          description={filterDescription}
           showDatasetLabel={showDatasetLabel}
         >
-          <FilterSelectorTrigger
-            activeFilterValues={stripUnsupportedNoValue(
-              activeFilterValues,
-              stagedOperator
-            )}
-            globalFilter={globalFilter}
-            operator={stagedOperator}
-            options={translatedOptions}
-          />
+          <FilterSelectorTrigger {...filterTriggerProps} />
         </FilterSelectorTriggerButton>
       )}
     />

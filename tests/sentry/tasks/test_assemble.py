@@ -15,6 +15,7 @@ from django.core.files.base import ContentFile
 from django.db import OperationalError, connections, router
 from django.db.models.query import QuerySet
 from django.test.utils import CaptureQueriesContext
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.models.artifactbundle import (
     ArtifactBundle,
@@ -22,7 +23,6 @@ from sentry.models.artifactbundle import (
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
-    SourceFileType,
 )
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
@@ -31,9 +31,9 @@ from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.tasks.assemble import (
     ArtifactBundlePostAssembler,
-    AssembleResult,
     AssembleTask,
     ChunkFileState,
+    FileArtifactBundlePayload,
     assemble_artifacts,
     assemble_dif,
     assemble_file,
@@ -48,6 +48,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.redis import use_redis_cluster
 from sentry.testutils.objectstore import debug_files_test_both_backends
+from sentry.testutils.skips import requires_objectstore
 
 _NO_RELEASE = cast(str, None)
 
@@ -244,6 +245,232 @@ class AssembleDifTest(BaseAssembleTest):
         assert dif.debug_id == "67e9247c-814e-392b-a027-dbde6748fcbf-beef"
 
 
+@requires_objectstore
+class ArtifactBundleBackendChangeTest(BaseAssembleTest):
+    bundle_id = uuid.UUID("67429b2f-1d9e-43bb-a626-771a1e37555c")
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.payload = self.create_artifact_bundle_zip(fixture_path="artifact_bundle_debug_ids")
+        self.blob = FileBlob.from_file_with_organization(
+            ContentFile(self.payload), self.organization
+        )
+
+    def assemble(self, payload: bytes | None = None, **kwargs: Any) -> str:
+        blob = self.blob
+        if payload is not None:
+            blob = FileBlob.from_file_with_organization(ContentFile(payload), self.organization)
+        assemble_artifacts(
+            **{
+                "org_id": self.organization.id,
+                "project_ids": [self.project.id],
+                "version": "1.0",
+                "checksum": blob.checksum,
+                "chunks": [blob.checksum],
+                **kwargs,
+            }
+        )
+        return blob.checksum
+
+    def test_new_bundle_uses_objectstore_with_flag_enabled(self) -> None:
+        with (
+            self.feature("organizations:objectstore-artifact-bundles-exclusive-write"),
+            patch.object(
+                File.objects, "create", side_effect=AssertionError("unexpected File write")
+            ),
+        ):
+            self.assemble()
+
+        bundle = ArtifactBundle.objects.get(
+            organization_id=self.organization.id, bundle_id=self.bundle_id
+        )
+        assert bundle.file_id is None
+        with bundle.get_file() as contents:
+            assert contents.read() == self.payload
+
+    def test_reupload_moves_bundle_to_objectstore_with_flag_enabled(self) -> None:
+        bundle = self.create_artifact_bundle(
+            bundle_id=self.bundle_id, use_objectstore=False, payload=self.payload
+        )
+        old_file_id = bundle.file_id
+
+        with (
+            self.feature("organizations:objectstore-artifact-bundles-exclusive-write"),
+            patch("sentry.tasks.assemble.metrics.incr") as incr,
+        ):
+            self.assemble()
+
+        incr.assert_any_call(
+            "sourcemaps.upload.artifact_bundle.reupload", tags={"same_checksum": "true"}
+        )
+        bundle.refresh_from_db()
+        assert bundle.file_id is None
+        assert not File.objects.filter(id=old_file_id).exists()
+        assert bundle.get_checksum() == self.blob.checksum
+        assert bundle.get_file_size() == len(self.payload)
+        with bundle.get_file() as contents:
+            assert contents.read() == self.payload
+
+    def test_reupload_replaces_objectstore_object(self) -> None:
+        bundle = self.create_artifact_bundle(bundle_id=self.bundle_id, use_objectstore=True)
+        old_key = bundle.storage_path
+        assert old_key is not None
+
+        with (
+            self.feature("organizations:objectstore-artifact-bundles-exclusive-write"),
+            patch("sentry.tasks.assemble.metrics.incr") as incr,
+        ):
+            self.assemble()
+
+        incr.assert_any_call(
+            "sourcemaps.upload.artifact_bundle.reupload", tags={"same_checksum": "false"}
+        )
+        bundle.refresh_from_db()
+        assert bundle.file_id is None
+        assert bundle.storage_path != old_key
+        assert bundle.get_checksum() == self.blob.checksum
+        assert bundle.get_file_size() == len(self.payload)
+        with bundle.get_file() as contents:
+            assert contents.read() == self.payload
+        assert bundle.get_objectstore_session().get(old_key) is None
+
+    def test_reupload_moves_bundle_to_filestore_with_flag_disabled(self) -> None:
+        bundle = self.create_artifact_bundle(bundle_id=self.bundle_id, use_objectstore=True)
+        old_key = bundle.storage_path
+        assert old_key is not None
+
+        with self.feature({"organizations:objectstore-artifact-bundles-exclusive-write": False}):
+            self.assemble()
+
+        bundle.refresh_from_db()
+        assert bundle.storage_path is None
+        assert bundle.checksum is None
+        assert bundle.file_size is None
+        assert bundle.file is not None
+        with bundle.get_file() as contents:
+            assert contents.read() == self.payload
+        assert bundle.get_objectstore_session().get(old_key) is None
+
+    def test_failed_replacement_keeps_previous_object(self) -> None:
+        bundle = self.create_artifact_bundle(bundle_id=self.bundle_id, use_objectstore=True)
+        original_key = bundle.storage_path
+        session = bundle.get_objectstore_session()
+        with (
+            self.feature("organizations:objectstore-artifact-bundles-exclusive-write"),
+            patch("sentry.tasks.assemble.get_session", return_value=session),
+            patch.object(session, "delete", wraps=session.delete) as delete,
+            patch.object(
+                ProjectArtifactBundle.objects, "update_or_create", side_effect=RuntimeError
+            ),
+        ):
+            self.assemble()
+
+        state, _ = get_assemble_status(
+            AssembleTask.ARTIFACT_BUNDLE, self.organization.id, self.blob.checksum
+        )
+        assert state == ChunkFileState.ERROR
+        bundle.refresh_from_db()
+        assert bundle.storage_path == original_key
+        with bundle.get_file() as contents:
+            assert sha1(contents.read()).hexdigest() == bundle.checksum
+        delete.assert_called_once()
+        discarded_key = delete.call_args.args[0]
+        assert discarded_key != original_key
+        assert session.get(discarded_key) is None
+
+    def test_failed_on_commit_hook_keeps_new_object(self) -> None:
+        bundle = self.create_artifact_bundle(bundle_id=self.bundle_id, use_objectstore=True)
+        old_key = bundle.storage_path
+        # The deletion of the replaced object runs in an on-commit hook. The task's deadline is not an `Exception`,
+        # so it escapes the hook after the bundle already points at the new object.
+        failing_session = MagicMock()
+        failing_session.delete.side_effect = ProcessingDeadlineExceeded
+
+        with (
+            self.feature("organizations:objectstore-artifact-bundles-exclusive-write"),
+            patch.object(ArtifactBundle, "get_objectstore_session", return_value=failing_session),
+            pytest.raises(ProcessingDeadlineExceeded),
+        ):
+            self.assemble()
+
+        failing_session.delete.assert_called_once_with(old_key)
+        bundle.refresh_from_db()
+        assert bundle.storage_path != old_key
+        with bundle.get_file() as contents:
+            assert contents.read() == self.payload
+
+    def test_reupload_removes_duplicates_on_both_backends(self) -> None:
+        self.create_artifact_bundle(bundle_id=self.bundle_id, use_objectstore=False)
+        stored = self.create_artifact_bundle(bundle_id=self.bundle_id, use_objectstore=True)
+        old_key = stored.storage_path
+        assert old_key is not None
+
+        with self.feature("organizations:objectstore-artifact-bundles-exclusive-write"):
+            self.assemble()
+
+        bundle = ArtifactBundle.objects.get(
+            organization_id=self.organization.id, bundle_id=self.bundle_id
+        )
+        assert bundle.file_id is None
+        assert bundle.storage_path not in (None, old_key)
+        with bundle.get_file() as contents:
+            assert contents.read() == self.payload
+        assert not File.objects.exists()
+        assert bundle.get_objectstore_session().get(old_key) is None
+
+    def test_rejected_bundles_are_not_uploaded(self) -> None:
+        file_info = {"url": "~/index.js", "type": "minified_source", "content": b"content"}
+        cases: list[tuple[str, bytes, dict[str, Any], tuple[str, str | None]]] = [
+            (
+                "empty",
+                make_artifact_bundle({}),
+                {},
+                (ChunkFileState.OK, None),
+            ),
+            (
+                "no debug IDs or release",
+                make_artifact_bundle({"files/_/_/index.js": file_info}),
+                {"version": None},
+                (
+                    ChunkFileState.ERROR,
+                    "uploading a bundle without debug ids or release is prohibited",
+                ),
+            ),
+            (
+                "no projects",
+                self.payload,
+                {"project_ids": []},
+                (
+                    ChunkFileState.ERROR,
+                    "uploading an artifact bundle without a project is prohibited",
+                ),
+            ),
+            ("invalid ZIP", b"invalid ZIP", {}, (ChunkFileState.ERROR, "the bundle is invalid")),
+        ]
+
+        for name, payload, kwargs, status in cases:
+            with (
+                self.subTest(name),
+                self.feature("organizations:objectstore-artifact-bundles-exclusive-write"),
+                patch(
+                    "sentry.tasks.assemble.get_session",
+                    side_effect=AssertionError("unexpected Objectstore access"),
+                ),
+            ):
+                checksum = self.assemble(payload, **kwargs)
+
+                assert (
+                    get_assemble_status(
+                        AssembleTask.ARTIFACT_BUNDLE, self.organization.id, checksum
+                    )
+                    == status
+                )
+                assert not ArtifactBundle.objects.filter(
+                    organization_id=self.organization.id
+                ).exists()
+                assert not File.objects.exists()
+
+
 class AssembleArtifactsTest(BaseAssembleTest):
     def test_artifacts_with_debug_ids(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
@@ -252,7 +479,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
         blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
 
-        expected_source_file_types = [SourceFileType.MINIFIED_SOURCE, SourceFileType.SOURCE_MAP]
         expected_debug_ids = ["eb6e60f1-65ff-4f6f-adff-f1bbeded627b"]
 
         for version, dist, count in [
@@ -279,20 +505,17 @@ class AssembleArtifactsTest(BaseAssembleTest):
             assert details is None
 
             for debug_id in expected_debug_ids:
-                debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(
+                # The minified file and its source map share the debug ID, which gets one row.
+                debug_id_artifact_bundle = DebugIdArtifactBundle.objects.get(
                     organization_id=self.organization.id, debug_id=debug_id
-                ).order_by("-debug_id", "source_file_type")
-                assert len(debug_id_artifact_bundles) == 2
-                assert debug_id_artifact_bundles[0].artifact_bundle.file.size == len(bundle_file)
-                # We check if the bundle to which each debug id entry is connected has the correct bundle_id.
-                for entry in debug_id_artifact_bundles:
-                    assert (
-                        str(entry.artifact_bundle.bundle_id)
-                        == "67429b2f-1d9e-43bb-a626-771a1e37555c"
-                    )
-                # We check also if the source file types are equal.
-                for index, entry in enumerate(debug_id_artifact_bundles):
-                    assert entry.source_file_type == expected_source_file_types[index].value
+                )
+                file = debug_id_artifact_bundle.artifact_bundle.file
+                assert file is not None
+                assert file.size == len(bundle_file)
+                assert (
+                    str(debug_id_artifact_bundle.artifact_bundle.bundle_id)
+                    == "67429b2f-1d9e-43bb-a626-771a1e37555c"
+                )
 
                 release_artifact_bundle = ReleaseArtifactBundle.objects.filter(
                     organization_id=self.organization.id
@@ -424,15 +647,33 @@ class AssembleArtifactsTest(BaseAssembleTest):
         files = File.objects.filter()
         assert len(files) == 0
 
-    @patch("sentry.tasks.assemble.ArtifactBundleArchive")
-    def test_assembled_bundle_is_deleted_if_archive_is_invalid(
-        self, artifact_bundle_archive: MagicMock
-    ) -> None:
-        artifact_bundle_archive.side_effect = Exception
-
+    def test_failure_after_commit_keeps_payload(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        with patch.object(
+            ArtifactBundlePostAssembler, "_index_bundle_if_needed", side_effect=RuntimeError
+        ):
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version="1.0",
+                checksum=total_checksum,
+                chunks=[blob1.checksum],
+            )
+
+        assert get_assemble_status(
+            AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
+        ) == (ChunkFileState.ERROR, "internal server error")
+        artifact_bundle = ArtifactBundle.objects.get(organization_id=self.organization.id)
+        with artifact_bundle.get_file() as contents:
+            assert contents.read() == bundle_file
+
+    def test_assembled_bundle_is_deleted_if_archive_is_invalid(self) -> None:
+        bundle_file = b"invalid ZIP"
         blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
 
@@ -445,6 +686,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
             chunks=[blob1.checksum],
         )
 
+        assert get_assemble_status(
+            AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
+        ) == (ChunkFileState.ERROR, "the bundle is invalid")
         files = File.objects.filter()
         assert len(files) == 0
 
@@ -515,8 +759,8 @@ class AssembleArtifactsTest(BaseAssembleTest):
             debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(
                 organization_id=self.organization.id, debug_id=debug_id
             )
-            # We expect to have only two entries, since we have duplicated debug_id, file_type pairs.
-            assert len(debug_id_artifact_bundles) == 2
+            # The bundle gets one row for the debug ID, however many files have it.
+            assert len(debug_id_artifact_bundles) == 1
 
     def test_upload_multiple_artifacts_with_same_bundle_id(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
@@ -552,10 +796,8 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert len(files) == 1
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
-        # We have two entries, since we have multiple files in the artifact bundle.
-        assert len(debug_id_artifact_bundles) == 2
+        assert len(debug_id_artifact_bundles) == 1
         assert debug_id_artifact_bundles[0].date_added == expected_updated_date
-        assert debug_id_artifact_bundles[1].date_added == expected_updated_date
 
         release_artifact_bundle = ReleaseArtifactBundle.objects.filter(
             release_name="1.0", dist_name="android"
@@ -598,7 +840,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         # The rows linked to it keep the date of the first upload.
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
-        assert len(debug_id_artifact_bundles) == 2
+        assert len(debug_id_artifact_bundles) == 1
         assert {row.date_added for row in debug_id_artifact_bundles} == {first_upload}
         release_artifact_bundle = ReleaseArtifactBundle.objects.get(
             release_name="1.0", dist_name="android"
@@ -675,7 +917,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert '"organization_id"' not in updates[0]
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
-        assert len(debug_id_artifact_bundles) == 2
+        assert len(debug_id_artifact_bundles) == 1
         assert {row.date_added for row in debug_id_artifact_bundles} == {
             datetime.fromisoformat("2023-05-31T11:00:00+00:00")
         }
@@ -795,8 +1037,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert len(files) == 1
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
-        # We have two entries, since we have multiple files in the artifact bundle.
-        assert len(debug_id_artifact_bundles) == 2
+        assert len(debug_id_artifact_bundles) == 1
 
         project_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
         assert len(project_artifact_bundle) == 1
@@ -831,8 +1072,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert len(files) == 1
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
-        # We have * 2 entries, since we have multiple files in the artifact bundle.
-        assert len(debug_id_artifact_bundles) == 2
+        assert len(debug_id_artifact_bundles) == 1
 
         for version, dist in combinations:
             release_artifact_bundle = ReleaseArtifactBundle.objects.filter(
@@ -870,8 +1110,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert len(files) == 1
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
-        # We have two entries, since we have multiple files in the artifact bundle.
-        assert len(debug_id_artifact_bundles) == 2
+        assert len(debug_id_artifact_bundles) == 1
 
         release_artifact_bundle = ReleaseArtifactBundle.objects.filter(release_name="1.0")
         assert len(release_artifact_bundle) == 1
@@ -906,8 +1145,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert len(files) == 1
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
-        # We have two entries, since we have multiple files in the artifact bundle.
-        assert len(debug_id_artifact_bundles) == 2
+        assert len(debug_id_artifact_bundles) == 1
 
         release_artifact_bundle = ReleaseArtifactBundle.objects.filter(release_name="1.0")
         assert len(release_artifact_bundle) == 1
@@ -1228,7 +1466,7 @@ class AssemblePlaceholderReleaseTest(BaseAssembleTest):
             DebugIdArtifactBundle.objects.filter(
                 debug_id=self.debug_id, artifact_bundle=artifact_bundle
             ).count()
-            == 2
+            == 1
         )
         assert ProjectArtifactBundle.objects.filter(
             project_id=self.project.id, artifact_bundle=artifact_bundle
@@ -1377,7 +1615,7 @@ class ArtifactBundleIndexingTest(TestCase):
 
         return artifact_bundle
 
-    def mock_assemble_result(self) -> AssembleResult:
+    def mock_payload(self) -> FileArtifactBundlePayload:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
@@ -1392,7 +1630,7 @@ class ArtifactBundleIndexingTest(TestCase):
             file_type="artifact.bundle",
         )
         assert rv is not None
-        return rv
+        return FileArtifactBundlePayload(rv, total_checksum)
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_no_bundles(
@@ -1402,7 +1640,7 @@ class ArtifactBundleIndexingTest(TestCase):
         dist = "android"
 
         with ArtifactBundlePostAssembler(
-            assemble_result=self.mock_assemble_result(),
+            payload=self.mock_payload(),
             organization=self.organization,
             release=release,
             dist=dist,
@@ -1432,7 +1670,7 @@ class ArtifactBundleIndexingTest(TestCase):
         )
 
         with ArtifactBundlePostAssembler(
-            assemble_result=self.mock_assemble_result(),
+            payload=self.mock_payload(),
             organization=self.organization,
             release=release,
             dist=dist,
@@ -1478,7 +1716,7 @@ class ArtifactBundleIndexingTest(TestCase):
         )
 
         with ArtifactBundlePostAssembler(
-            assemble_result=self.mock_assemble_result(),
+            payload=self.mock_payload(),
             organization=self.organization,
             release=release,
             dist=dist,
@@ -1519,7 +1757,7 @@ class ArtifactBundleIndexingTest(TestCase):
         )
 
         with ArtifactBundlePostAssembler(
-            assemble_result=self.mock_assemble_result(),
+            payload=self.mock_payload(),
             organization=self.organization,
             release=release,
             dist=dist,
@@ -1567,7 +1805,7 @@ class ArtifactBundleIndexingTest(TestCase):
         )
 
         with ArtifactBundlePostAssembler(
-            assemble_result=self.mock_assemble_result(),
+            payload=self.mock_payload(),
             organization=self.organization,
             release=release,
             dist=dist,

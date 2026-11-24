@@ -48,6 +48,8 @@ The FK type is an architectural statement, not a style choice:
 - `HybridCloudForeignKey("sentry.User", on_delete="...", ...)` — the FK target lives in the _opposite_ silo. No database constraint. Cascade is eventually consistent via outbox tombstones. `on_delete` is passed as a string (`"CASCADE"`, `"SET_NULL"`, `"DO_NOTHING"`). Name the field with an explicit `_id` suffix (e.g. `user_id = HybridCloudForeignKey(...)`) since there's no ORM relationship to resolve — only an ID. Compare with `FlexibleForeignKey`, where Django gives you both `project` (the related object) and `project_id` (the column) from a single `project = FlexibleForeignKey(...)`.
 - Plain Django `ForeignKey` — avoid. A couple of older `workflow_engine` models still use it, but for new code the convention is `FlexibleForeignKey` (same-silo) or `HybridCloudForeignKey` (cross-silo). Both plug into Sentry's deletion framework and hybrid-cloud plumbing in ways plain `ForeignKey` does not.
 
+Within a silo, some production tables also live on separate Postgres databases, where a `FlexibleForeignKey` cannot reach. Before adding a FK, check both tables with the `django-queries` skill.
+
 If a model has both kinds of FKs, that is fine and common. The presence of an HCFK is _not_ a signal that the model should be in the other silo — it just means the relationship crosses silos.
 
 ## Other norms worth encoding

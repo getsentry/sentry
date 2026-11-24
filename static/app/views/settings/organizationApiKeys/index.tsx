@@ -43,10 +43,7 @@ function OrganizationApiKeys() {
     onSuccess: (_data, {removedId}) => {
       queryClient.setQueryData(apiKeysOptions.queryKey, previous =>
         previous
-          ? {
-              ...previous,
-              json: previous.json.filter(({id}) => id !== removedId),
-            }
+          ? {...previous, json: previous.json.filter(({id}) => id !== removedId)}
           : undefined
       );
     },

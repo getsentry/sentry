@@ -3,6 +3,8 @@ import type {RefObject} from 'react';
 import {css, keyframes} from '@emotion/react';
 import {useReducedMotion} from 'framer-motion';
 
+import {baseTheme} from '@sentry/scraps/theme';
+
 /**
  * Imperative streaming decode animation for Markdown.
  *
@@ -18,15 +20,15 @@ import {useReducedMotion} from 'framer-motion';
  *
  * Layout:
  *   Each character is wrapped in a <span> whose text content is the real
- *   character (holds width, invisible via `color: transparent`). A `::after`
- *   pseudo-element driven by `data-decode-glyph` overlays the cycling glyph,
- *   centered horizontally via `left: 50%; transform: translateX(-50%)`.
- *   This keeps layout stable regardless of glyph width.
+ *   character (holds its original width, invisible via `color: transparent`).
+ *   An absolutely positioned child keeps the original font's baseline and
+ *   centers a monospace `::after` over the character. The glyph can compress
+ *   to fit the character's width without affecting the underlying layout.
  *
  * Accessibility:
  *   The real character is always the span's text content — assistive tech
- *   reads it normally. The glyph overlay is purely visual (::after with
- *   pointer-events: none). Respects `prefers-reduced-motion: reduce`.
+ *   reads it normally. An `aria-hidden` child span contains the visual glyph
+ *   overlay. Respects `prefers-reduced-motion: reduce`.
  *
  * Cleanup:
  *   Settled characters are progressively collapsed back to plain text nodes
@@ -172,17 +174,25 @@ export const streamingAnimationStyles = css`
   [data-streaming-hidden] {
     opacity: 0;
   }
-  ${ATTR_SEL}::after {
+  ${ATTR_SEL} > span {
+    position: absolute;
+    inset: 0 0 auto;
+    display: flex;
+    justify-content: center;
+    line-height: normal;
+    container-type: inline-size;
+    pointer-events: none;
+  }
+  ${ATTR_SEL} > span::after {
     content: '1';
     animation: var(--da, ${DECODE_ANIMATIONS[0]?.name}) ${CYCLE_DURATION_MS}ms steps(1)
       infinite;
     animation-delay: var(--dd, 0ms);
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
     color: var(--glyph-color, CanvasText);
-    font: inherit;
-    pointer-events: none;
+    /* The shared stylesheet is built once, and the mono font is the same in every theme. */
+    font-family: ${baseTheme.font.family.mono};
+    font-size: var(--glyph-font-size, 1em);
+    transform: scaleX(min(1, calc(100cqi / 1ch)));
   }
 `;
 
@@ -252,6 +262,8 @@ function prepareTextNode(
 
     if (isSimpleChar(grapheme) && globalOffset + idx >= skipChars) {
       span.setAttribute(ATTR, '');
+      const overlay = span.appendChild(document.createElement('span'));
+      overlay.setAttribute('aria-hidden', 'true');
       const s = span.style;
       s.setProperty('--dd', `-${Math.random() * CYCLE_DURATION_MS}ms`);
       s.setProperty(

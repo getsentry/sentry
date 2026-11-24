@@ -10,7 +10,7 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
 import {UnreadIndicator} from 'sentry/components/unreadIndicator';
@@ -53,10 +53,7 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
       <LinkedFeedbackCard
         data-selected={isOpen}
         to={{
-          pathname: makeFeedbackPathname({
-            path: '/',
-            organization,
-          }),
+          pathname: makeFeedbackPathname({path: '/', organization}),
           query: {
             ...location.query,
             referrer: 'feedback_list_page',

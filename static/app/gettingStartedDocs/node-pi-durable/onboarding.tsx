@@ -187,11 +187,7 @@ Sentry.init({
     {
       type: 'code',
       tabs: [
-        {
-          label: 'bash',
-          language: 'bash',
-          code: 'node --import ./instrument.mjs app.mjs',
-        },
+        {label: 'bash', language: 'bash', code: 'node --import ./instrument.mjs app.mjs'},
       ],
     },
     {
@@ -423,18 +419,8 @@ function getConfigureContent(params: DocsParams): ContentBlock[] {
 export const onboarding: OnboardingConfig = {
   sdkImportSpecifier: params =>
     getSdkImportSpecifier(RUNTIME_PACKAGE_NAMES[getRuntime(params)]),
-  install: params => [
-    {
-      type: StepType.INSTALL,
-      content: getInstallContent(params),
-    },
-  ],
-  configure: params => [
-    {
-      title: t('Configure'),
-      content: getConfigureContent(params),
-    },
-  ],
+  install: params => [{type: StepType.INSTALL, content: getInstallContent(params)}],
+  configure: params => [{title: t('Configure'), content: getConfigureContent(params)}],
   verify: () => [
     {
       type: StepType.VERIFY,

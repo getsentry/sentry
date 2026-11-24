@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import Any
 
 from django.db import router, transaction
 from django.utils.functional import cached_property
@@ -30,7 +30,7 @@ class SentryAppAlertRuleActionCreator:
         component = SentryAppComponent.objects.get(
             type="alert-rule-action", sentry_app=self.sentry_app
         )
-        settings = cast(Any, component.schema).get("settings", {})
+        settings = component.schema.get("settings", {})
         return settings.get("uri")
 
     def _make_external_request(self, uri: str | None = None) -> SentryAppAlertRuleActionResult:

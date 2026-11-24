@@ -26,7 +26,7 @@ class GetTriggerTest(TestCase):
     def test_schedule_definition_scopes_by_selected_projects(self) -> None:
         selected = self.create_project()
         config = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
         )
         Factories.create_seer_workflow_config_project(config, selected)
 

@@ -24,9 +24,7 @@ describe('TeamSettings', () => {
     const putMock = MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team.slug}/`,
       method: 'PUT',
-      body: {
-        slug: 'new-slug',
-      },
+      body: {slug: 'new-slug'},
     });
 
     const {router} = render(<TeamSettings />, {
@@ -48,18 +46,12 @@ describe('TeamSettings', () => {
 
     expect(putMock).toHaveBeenCalledWith(
       `/teams/org-slug/${team.slug}/`,
-      expect.objectContaining({
-        data: {
-          slug: 'new-slug',
-        },
-      })
+      expect.objectContaining({data: {slug: 'new-slug'}})
     );
 
     await waitFor(() =>
       expect(router.location).toEqual(
-        expect.objectContaining({
-          pathname: '/settings/org-slug/teams/new-slug/settings/',
-        })
+        expect.objectContaining({pathname: '/settings/org-slug/teams/new-slug/settings/'})
       )
     );
   });
@@ -110,9 +102,7 @@ describe('TeamSettings', () => {
 
     expect(deleteMock).toHaveBeenCalledWith(
       `/teams/org-slug/${team.slug}/`,
-      expect.objectContaining({
-        method: 'DELETE',
-      })
+      expect.objectContaining({method: 'DELETE'})
     );
 
     await waitFor(() =>

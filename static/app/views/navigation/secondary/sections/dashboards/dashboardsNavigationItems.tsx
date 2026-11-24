@@ -7,9 +7,7 @@ import {useReorderStarredDashboards} from 'sentry/views/dashboards/hooks/useReor
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 
-type DashboardsNavigationItemsProps = {
-  dashboards: DashboardListItem[];
-};
+type DashboardsNavigationItemsProps = {dashboards: DashboardListItem[]};
 
 export function DashboardsNavigationItems({dashboards}: DashboardsNavigationItemsProps) {
   const organization = useOrganization();

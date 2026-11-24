@@ -67,16 +67,8 @@ describe('useExploreTimeseries', () => {
           {
             ...mockTimeSeries,
             yAxis: 'count(span.duration)',
-            values: [
-              {
-                ...mockTimeSeries.values[0]!,
-                value: 0,
-              },
-            ],
-            meta: {
-              ...mockTimeSeries.meta,
-              dataScanned: 'partial',
-            },
+            values: [{...mockTimeSeries.values[0]!, value: 0}],
+            meta: {...mockTimeSeries.meta, dataScanned: 'partial'},
           },
         ],
       },
@@ -97,14 +89,8 @@ describe('useExploreTimeseries', () => {
       method: 'GET',
     });
     renderHookWithProviders(
-      () =>
-        useExploreTimeseries({
-          query: 'test value',
-          enabled: true,
-        }),
-      {
-        additionalWrapper: Wrapper,
-      }
+      () => useExploreTimeseries({query: 'test value', enabled: true}),
+      {additionalWrapper: Wrapper}
     );
 
     expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
@@ -147,19 +133,13 @@ describe('useExploreTimeseries', () => {
     });
 
     renderHookWithProviders(
-      () =>
-        useExploreTimeseries({
-          query: 'test value',
-          enabled: true,
-        }),
+      () => useExploreTimeseries({query: 'test value', enabled: true}),
       {
         additionalWrapper: Wrapper,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',
-            query: {
-              extrapolate: '0',
-            },
+            query: {extrapolate: '0'},
           },
         },
       }
@@ -197,9 +177,7 @@ describe('useExploreTimeseries', () => {
     await waitFor(() => expect(mockRequest).toHaveBeenCalled());
     expect(mockRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events-timeseries/',
-      expect.objectContaining({
-        query: expect.objectContaining({query}),
-      })
+      expect.objectContaining({query: expect.objectContaining({query})})
     );
   });
 
@@ -210,11 +188,7 @@ describe('useExploreTimeseries', () => {
     });
 
     renderHookWithProviders(
-      () =>
-        useExploreTimeseries({
-          query: 'test value',
-          enabled: true,
-        }),
+      () => useExploreTimeseries({query: 'test value', enabled: true}),
       {
         additionalWrapper: Wrapper,
         initialRouterConfig: {

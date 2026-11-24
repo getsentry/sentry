@@ -8,7 +8,10 @@ import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {Placeholder} from 'sentry/components/placeholder';
 
-import type {EntityHeaderTextBehavior, EntityHeaderTextStyles} from './entityHeaderText';
+import type {
+  EntityHeaderTextBehavior,
+  EntityHeaderTextTypography,
+} from './entityHeaderText';
 import {EntityHeaderText} from './entityHeaderText';
 
 /**
@@ -47,9 +50,7 @@ type EntityHeaderStatLinkBehavior = {
  * One half of a stat — its label or its value: what it shows, and how it
  * behaves.
  */
-type EntityHeaderStatPart<TContent> = {
-  content: TContent;
-} & EntityHeaderStatPartBehavior;
+type EntityHeaderStatPart<TContent> = {content: TContent} & EntityHeaderStatPartBehavior;
 
 export interface EntityHeaderStatProps {
   /**
@@ -93,7 +94,7 @@ export interface EntityHeaderStatProps {
 const STAT_PART_STYLES = {
   label: {size: 'sm', bold: true, density: 'comfortable', wrap: 'nowrap'},
   value: {size: 'lg', bold: true, tabular: true, wrap: 'nowrap'},
-} as const satisfies Record<'label' | 'value', EntityHeaderTextStyles>;
+} as const satisfies Record<'label' | 'value', EntityHeaderTextTypography>;
 
 const EMPTY_VALUE = '\u2014';
 
@@ -178,10 +179,7 @@ export function EntityHeaderStat(props: EntityHeaderStatProps) {
         then "3".
       */}
       <Flex align="baseline" gap="xs" minWidth={0}>
-        <EntityHeaderText
-          behavior={muteText(label, true)}
-          styles={STAT_PART_STYLES.label}
-        >
+        <EntityHeaderText {...STAT_PART_STYLES.label} behavior={muteText(label, true)}>
           {label.content}
         </EntityHeaderText>
         {/*
@@ -189,10 +187,7 @@ export function EntityHeaderStat(props: EntityHeaderStatProps) {
           baseline do not move, and is muted so it does not read as a
           measurement — unless it links, where the colour says it navigates.
         */}
-        <EntityHeaderText
-          behavior={muteText(value, isEmpty)}
-          styles={STAT_PART_STYLES.value}
-        >
+        <EntityHeaderText {...STAT_PART_STYLES.value} behavior={muteText(value, isEmpty)}>
           {isEmpty ? <EmptyValue /> : value.content}
         </EntityHeaderText>
       </Flex>

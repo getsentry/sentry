@@ -6,12 +6,12 @@ The Cron Monitors below have not processed a successful check-in for multiple we
 {{project_slug}} {{monitor_url}} | Failing since {{earliest_incident_start_date|date:"N j, Y, g:i:s a e"}}
 {% endfor %}
 
-To unmute your monitors, please head over to Crons and manually unmute your monitors.
+To unmute your monitors, go to Monitors > Crons and unmute them manually.
 
 View Monitors: {{ view_monitors_link }}
 
-Note that muted monitors will still count towards on-demand budget, but can be disabled in order to preserve your on-demand budget for the next billing cycle.
+Note that muted monitors still count towards your pay-as-you-go budget, but you can disable them to preserve your pay-as-you-go budget for the next billing cycle.
 
-We recommend checking out our troubleshooting guide and our FAQs: "https://docs.sentry.io/product/crons/troubleshooting/" for further information on how you can bring your monitors back to a healthy status.
+We recommend checking out our troubleshooting guide and our FAQs: "https://docs.sentry.io/product/monitors-and-alerts/monitors/crons/troubleshooting/" for further information on how you can bring your monitors back to a healthy status.
 
 Still facing issues? Reach out to our support team "https://www.sentry.help/".

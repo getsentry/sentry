@@ -66,10 +66,7 @@ export function saveRecentSearch(
   const url = getRecentSearchUrl(orgSlug);
   const promise = api.requestPromise(url, {
     method: 'POST',
-    data: {
-      query: encodeNamespacedRecentSearch(namespace, query),
-      type,
-    },
+    data: {query: encodeNamespacedRecentSearch(namespace, query), type},
   });
 
   promise.catch((err: RequestError) =>
@@ -121,11 +118,7 @@ export function useFetchRecentSearches(
     savedSearchType,
     limit = MAX_AUTOCOMPLETE_RECENT_SEARCHES,
     namespace,
-  }: {
-    savedSearchType: SavedSearchType | null;
-    limit?: number;
-    namespace?: string;
-  },
+  }: {savedSearchType: SavedSearchType | null; limit?: number; namespace?: string},
   options: RecentSearchesQueryOptions = {}
 ) {
   const organization = useOrganization();

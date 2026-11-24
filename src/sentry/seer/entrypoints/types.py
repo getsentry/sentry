@@ -7,6 +7,7 @@ from sentry.notebooks.models import Notebook
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.utils import CodingAgentProviderType
+from sentry.seer.credits import SeerCreditDenialReason
 from sentry.sentry_apps.event_types import SentryAppEventType
 
 
@@ -48,10 +49,13 @@ class SeerAutofixEntrypoint[CachePayloadT](Protocol):
         """
         ...
 
-    def on_trigger_autofix_out_of_credits(self, *, started: bool) -> None:
+    def on_trigger_autofix_out_of_credits(
+        self, *, started: bool, denial_reason: SeerCreditDenialReason | None
+    ) -> None:
         """
         Called when the organization doesn't have enough Seer credits for the requested step.
         `started` is False when the run itself was refused, True when a later step of a run was.
+        `denial_reason` tells a daily usage limit apart from running out of credits.
 
         Example Usage: Sending a message with a link to add credits, etc.
         """

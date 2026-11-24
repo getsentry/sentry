@@ -66,11 +66,7 @@ export const sessionReplay: OnboardingConfig = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'Swift',
-              language: 'swift',
-              code: getReplaySetupSnippet(params),
-            },
+            {label: 'Swift', language: 'swift', code: getReplaySetupSnippet(params)},
           ],
         },
       ],
@@ -95,11 +91,7 @@ export const sessionReplay: OnboardingConfig = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'Swift',
-              language: 'swift',
-              code: getReplayConfigurationSnippet(),
-            },
+            {label: 'Swift', language: 'swift', code: getReplayConfigurationSnippet()},
           ],
         },
       ],

@@ -6,7 +6,7 @@ import zoneinfo
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
 from functools import cache
-from typing import TYPE_CHECKING, Any, ClassVar, Self, cast, override
+from typing import TYPE_CHECKING, Any, ClassVar, Self, override
 from uuid import uuid4
 
 import jsonschema
@@ -72,10 +72,7 @@ MONITOR_CONFIG = {
 
 @cache
 def get_monitor_config_validator() -> jsonschema.protocols.Validator:
-    validator_cls = cast(
-        "type[jsonschema.protocols.Validator]",
-        jsonschema.validators.validator_for(MONITOR_CONFIG),
-    )
+    validator_cls = jsonschema.validators.validator_for(MONITOR_CONFIG)
     validator_cls.check_schema(MONITOR_CONFIG)
     return validator_cls(MONITOR_CONFIG)
 
@@ -556,6 +553,7 @@ class MonitorCheckIn(Model):
         on_delete=models.PROTECT,
         # Nothing looks up check-ins by config, and config rows are never deleted
         db_index=False,
+        db_constraint=False,
     )
     """
     References the MonitorCheckInConfig holding a snapshot of the monitor
@@ -730,9 +728,6 @@ class MonitorEnvironment(Model):
         app_label = "monitors"
         db_table = "sentry_monitorenvironment"
         unique_together = (("monitor", "environment_id"),)
-        indexes = [
-            models.Index(fields=["status", "next_checkin_latest"]),
-        ]
 
     __repr__ = sane_repr("monitor_id", "environment_id")
 

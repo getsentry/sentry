@@ -1,6 +1,5 @@
 import {type ReactNode, useEffect} from 'react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
 import {createSerializer, parseAsInteger, parseAsString} from 'nuqs';
 import {useStore} from 'zustand';
 import {useShallow} from 'zustand/react/shallow';
@@ -34,24 +33,21 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
-import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
-import {useTracesApiOptions} from 'sentry/views/explore/hooks/useTraces';
 
 import {traceAnalytics} from './traceDetails/traceAnalytics';
+import {useFirstTrace} from './useFirstTrace';
 
 const TRACING_BENEFITS = [
   t('See related errors, logs, replays, and metrics alongside each trace'),
-  t(
-    'Find slow services and operations in the trace view and spot where a problem originated'
-  ),
+  t('Find slow services and operations, and where problems start'),
   t('Inspect model calls and tool calls in AI agents'),
 ];
 
 const TRACING_AGENT_STEPS = [
-  t('Install or update the Sentry SDK with tracing support'),
-  t('Configure the tracing sample rate and SDK options'),
-  t('Send a test request and verify traces appear in Sentry'),
+  t('Install or update the Sentry SDK with tracing'),
+  t('Set the sample rate and SDK options'),
+  t('Send a test request and check traces in Sentry'),
 ];
 
 const PLATFORM_DOCS_URL = 'https://docs.sentry.io/platforms/';
@@ -200,28 +196,18 @@ function TracingManualSetup({
 type Props = {
   organization: Organization;
   project: Project;
+  onFirstTraceReady?: () => void;
 };
 
-export function TracingEmptyState({organization, project}: Props) {
+export function TracingEmptyState({organization, project, onFirstTraceReady}: Props) {
   const noPerformanceSupport = doesNotSupportPerformance(project);
 
-  const firstIssue = useEventWaiter({
-    eventType: 'transaction',
+  const {received, traceId} = useFirstTrace({
     organization,
     project,
     disabled: noPerformanceSupport,
+    onReady: onFirstTraceReady,
   });
-  const received = !!firstIssue;
-
-  const tracesQuery = useQuery({
-    ...useTracesApiOptions({limit: 1, sort: 'timestamp'}),
-    enabled: received,
-    refetchInterval: query => {
-      const trace = query.state.data?.json?.data?.[0]?.trace;
-      return trace ? false : 5000;
-    },
-  });
-  const traceId = tracesQuery.data?.data[0]?.trace;
 
   const currentPlatform = project.platform
     ? platforms.find(p => p.id === project.platform)

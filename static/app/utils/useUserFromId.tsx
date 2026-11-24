@@ -10,7 +10,7 @@ export function useUserFromId({id}: {id: number | undefined}) {
 
   return useQuery({
     ...apiOptions.as<User>()('/organizations/$organizationIdOrSlug/users/$userId/', {
-      path: {organizationIdOrSlug: organization.slug, userId: id!},
+      path: {organizationIdOrSlug: organization.slug, userId: String(id)},
       staleTime: Infinity,
     }),
     retry: false,

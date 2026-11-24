@@ -11,10 +11,8 @@ from django.urls import reverse
 from pytest_django.live_server_helper import LiveServer
 
 from sentry.models.artifactbundle import (
-    ArtifactBundle,
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
-    SourceFileType,
 )
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
@@ -23,7 +21,10 @@ from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.objectstore import debug_files_test_both_backends
+from sentry.testutils.objectstore import (
+    artifact_bundles_test_both_backends,
+    debug_files_test_both_backends,
+)
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka, requires_symbolicator
 from sentry.utils import json
@@ -90,8 +91,7 @@ def load_fixture(name: str) -> bytes:
         return fp.read()
 
 
-@debug_files_test_both_backends
-class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
+class SymbolicatorResolvingIntegrationBase(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, live_server: LiveServer) -> Generator[None]:
         self.project.update_option("sentry:builtin_symbol_sources", [])
@@ -107,6 +107,9 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
     def get_event(self, event_id: str) -> Event | GroupEvent | None:
         return eventstore.backend.get_event_by_id(self.project.id, event_id)
 
+
+@debug_files_test_both_backends
+class SymbolicatorResolvingIntegrationTest(SymbolicatorResolvingIntegrationBase):
     def test_real_resolving(self) -> None:
         url = reverse(
             "sentry-api-0-dsym-files",
@@ -283,9 +286,12 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         redact_location(candidates)
         self.insta_snapshot(candidates)
 
+
+@artifact_bundles_test_both_backends
+class SymbolicatorArtifactBundleIntegrationTest(SymbolicatorResolvingIntegrationBase):
     def test_resolve_mixed_stack_trace(self) -> None:
-        # JS debug files:
-        debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
+        # Give each backend a fresh debug ID so Symbolicator must fetch its source map.
+        debug_id = str(uuid4())
 
         compressed = BytesIO(b"SYSB")
         with zipfile.ZipFile(compressed, "a") as zip_file:
@@ -316,15 +322,8 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
                     }
                 ),
             )
-        compressed.seek(0)
-        bundle_file = File.objects.create(name="bundle.zip", type="artifact.bundle")
-        bundle_file.putfile(compressed)
-
-        artifact_bundle = ArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            bundle_id=uuid4(),
-            file=bundle_file,
-            artifact_count=2,
+        artifact_bundle = self.create_artifact_bundle(
+            payload=compressed.getvalue(), artifact_count=2
         )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -335,13 +334,6 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
             organization_id=self.organization.id,
             debug_id=debug_id,
             artifact_bundle=artifact_bundle,
-            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
-        )
-        DebugIdArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            debug_id=debug_id,
-            artifact_bundle=artifact_bundle,
-            source_file_type=SourceFileType.SOURCE_MAP.value,
         )
 
         # native debug files:

@@ -70,9 +70,7 @@ type SpanSampleRow = {
 
 export type SpanSampleRowWithScore = SpanSampleRow & Score;
 
-export type Opportunity = {
-  opportunity: number;
-};
+export type Opportunity = {opportunity: number};
 
 export type ProjectScore = Partial<Score>;
 
@@ -116,10 +114,7 @@ export const SORTABLE_INDEXED_FIELDS = [
   ...SORTABLE_INDEXED_SCORE_FIELDS,
 ] as const;
 
-export const DEFAULT_SORT: Sort = {
-  kind: 'desc',
-  field: 'count()',
-};
+export const DEFAULT_SORT: Sort = {kind: 'desc', field: 'count()'};
 
 export const SORTABLE_INDEXED_INTERACTION_FIELDS = [
   SpanFields.BROWSER_WEB_VITAL_INP_VALUE,
@@ -138,7 +133,4 @@ export const SORTABLE_INDEXED_INTERACTION_FIELDS = [
   SpanFields.SPAN_DESCRIPTION,
 ] as const;
 
-export const DEFAULT_INDEXED_SPANS_SORT: Sort = {
-  kind: 'desc',
-  field: 'timestamp',
-};
+export const DEFAULT_INDEXED_SPANS_SORT: Sort = {kind: 'desc', field: 'timestamp'};

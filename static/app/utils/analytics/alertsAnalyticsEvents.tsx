@@ -1,9 +1,7 @@
 import type {UptimeMonitorMode} from 'sentry/views/detectors/components/uptime/types';
 
 export type AlertsEventParameters = {
-  'uptime_monitor.created': {
-    uptime_mode: UptimeMonitorMode;
-  };
+  'uptime_monitor.created': {uptime_mode: UptimeMonitorMode};
 };
 
 type AlertsEventKey = keyof AlertsEventParameters;

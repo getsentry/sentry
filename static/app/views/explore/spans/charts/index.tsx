@@ -98,18 +98,9 @@ interface ExploreChartsProps {
 }
 
 export const EXPLORE_CHART_TYPE_OPTIONS = [
-  {
-    value: ChartType.LINE,
-    label: t('Line'),
-  },
-  {
-    value: ChartType.AREA,
-    label: t('Area'),
-  },
-  {
-    value: ChartType.BAR,
-    label: t('Bar'),
-  },
+  {value: ChartType.LINE, label: t('Line')},
+  {value: ChartType.AREA, label: t('Area')},
+  {value: ChartType.BAR, label: t('Bar')},
 ];
 
 const CHART_TYPE_TO_ICON: Record<ChartType, 'line' | 'area' | 'bar' | 'heatmap'> = {
@@ -325,9 +316,7 @@ function Chart({
   const {
     dismiss: dismissChartSelectionAlert,
     isDismissed: isChartSelectionAlertDismissed,
-  } = useDismissAlert({
-    key: CHART_SELECTION_ALERT_KEY,
-  });
+  } = useDismissAlert({key: CHART_SELECTION_ALERT_KEY});
 
   const chartRef = useRef<ReactEchartsRef>(null);
   const chartWrapperRef = useRef<HTMLDivElement | null>(null);
@@ -335,12 +324,13 @@ function Chart({
   const isCombinedChart = visualizes.length > 1;
   const heatMapYAxis = getSpansHeatMapYAxis(visualize);
   const isHeatMap = !isCombinedChart && isSpansHeatMap(visualize, organization);
-  const {droppedData, annotations, layerControl} = useChartLayers({
-    dataset,
-    interval: chartInterval,
-    source: 'explore',
-    enabled: !isHeatMap,
-  });
+  const {droppedData, annotations, layerControl, onAnnotationClick, showConfidence} =
+    useChartLayers({
+      dataset,
+      interval: chartInterval,
+      source: 'explore',
+      enabled: !isHeatMap,
+    });
   const showTransformationControls =
     visualize.visible &&
     organization.features.includes('explore-interpolation-and-smoothing');
@@ -565,6 +555,8 @@ function Chart({
               droppedData={droppedData.band}
               isDroppedDataLoading={droppedData.isLoading}
               annotations={annotations}
+              onAnnotationClick={onAnnotationClick}
+              showConfidence={showConfidence}
               chartXRangeSelection={
                 isAttributeBreakdown
                   ? {

@@ -3,6 +3,7 @@ from unittest import mock
 
 import orjson
 import pytest
+from django.test import override_settings
 
 from sentry.lang.native.sources import (
     get_sources_for_project,
@@ -37,6 +38,37 @@ CUSTOM_SOURCE_CONFIG = """
     "bundleId": "test"
 }]
 """
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    ("pool_urls", "expected_url"),
+    [
+        ({"default": "http://native.invalid", "js": "http://js.invalid/"}, "http://js.invalid"),
+        ({"default": "http://native.invalid"}, "http://native.invalid"),
+        ({}, "http://fallback.invalid"),
+    ],
+)
+def test_symbolicator_with_function(
+    default_project: Project, pool_urls: dict[str, str], expected_url: str
+) -> None:
+    on_request = mock.Mock()
+    task_kind = SymbolicatorTaskKind(SymbolicatorFunction.native, is_reprocessing=True)
+    with override_settings(
+        SYMBOLICATOR_POOL_URLS=pool_urls,
+        SENTRY_SYMBOLICATOR_OPTIONS={"url": "http://fallback.invalid/"},
+    ):
+        native = Symbolicator(task_kind, on_request, default_project, "0" * 32)
+        javascript = native.with_function(SymbolicatorFunction.js)
+    assert javascript.base_url == expected_url
+    assert javascript.task_kind == SymbolicatorTaskKind(
+        SymbolicatorFunction.js, is_reprocessing=True
+    )
+    assert javascript.project is default_project
+    assert javascript.event_id == "0" * 32
+    assert javascript.on_request is on_request
+    assert native.task_kind == task_kind
+    assert native.base_url == pool_urls.get("default", "http://fallback.invalid")
 
 
 @django_db_all

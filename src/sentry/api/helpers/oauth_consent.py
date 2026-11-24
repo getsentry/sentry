@@ -133,6 +133,17 @@ _PERMISSION_RESOURCES = (
         },
     ),
     OAuthPermissionResource(
+        "membership",
+        "Organization and team membership",
+        ("membership:read", "membership:write", "membership:admin", "membership:invite"),
+        access_descriptions={
+            "read": "View organization members, invites, invite requests, and team access requests.",
+            "write": "Invite members, handle invite and team access requests, and manage team membership.",
+            "admin": "Change member roles and remove organization members.",
+            "invite": "Invite organization members.",
+        },
+    ),
+    OAuthPermissionResource(
         "projects",
         "Projects",
         ("project:read", "project:write", "project:admin"),
@@ -181,7 +192,7 @@ _PERMISSION_RESOURCES = (
         "Dashboards",
         ("dashboard:read", "dashboard:write"),
         access_descriptions={
-            "read": "View dashboards.",
+            "read": "View dashboards and record visits to them.",
             "write": "Create, update, and delete dashboards.",
         },
     ),
@@ -190,7 +201,7 @@ _PERMISSION_RESOURCES = (
         "Saved queries",
         ("saved_query:read", "saved_query:write"),
         access_descriptions={
-            "read": "View saved queries in Discover and Explore.",
+            "read": "View saved queries in Discover and Explore and issue views, and record visits to them.",
             "write": "Create, update, and delete saved queries.",
         },
     ),
@@ -218,7 +229,7 @@ _PERMISSION_RESOURCES = (
         ("user_preference:read", "user_preference:write"),
         access_descriptions={
             "read": "View your starred dashboards and issue views, recent searches, and dismissed prompts.",
-            "write": "Star and unstar dashboards, saved queries, issue views, and Insights segments, and reorder your starred items. Save recent searches, record issue view visits, and dismiss prompts.",
+            "write": "Star and unstar dashboards, saved queries, issue views, and Insights segments, and reorder your starred items. Save recent searches and dismiss prompts.",
         },
     ),
     OAuthPermissionResource(
@@ -251,6 +262,8 @@ _PERMISSION_ACTIONS = {
     "saved_query:write": ("write",),
     "service_account:write": ("write",),
     "user_preference:write": ("write",),
+    "membership:write": ("write",),
+    "membership:admin": ("admin",),
     "org:integrations": ("read", "write", "admin"),
     "project:releases": ("read", "write", "admin"),
 }

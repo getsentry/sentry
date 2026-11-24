@@ -22,11 +22,13 @@ def is_unsafe_path(path: str) -> bool:
     return False
 
 
-def safe_extract_zip(f: str | IO[bytes] | zipfile.ZipFile, path: str) -> None:
-    """Safely extract a given zip file to a path.  The zipfile can either
-    be an open file or a filename.  If the zip is unsafe an exception is
-    raised.
+def safe_extract_zip(f: IO[bytes] | zipfile.ZipFile, path: str) -> None:
+    """Safely extract a given zip file to a path.  The zipfile must be an
+    open file or a ``ZipFile``.  If the zip is unsafe an exception is raised.
     """
+    if isinstance(f, (str, bytes, os.PathLike)):
+        raise TypeError("safe_extract_zip requires an open file, not a path")
+
     with contextlib.ExitStack() as ctx:
         if not isinstance(f, zipfile.ZipFile):
             zf = ctx.enter_context(zipfile.ZipFile(f, "r"))

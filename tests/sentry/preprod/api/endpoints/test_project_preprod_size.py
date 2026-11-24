@@ -1,5 +1,4 @@
 from datetime import timedelta
-from typing import cast
 
 import orjson
 from django.http import HttpResponse
@@ -34,14 +33,11 @@ class ProjectPreprodSizeEndpointTest(TestCase):
         else:
             url = f"/api/0/internal/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{self.artifact.id}/size/"
         signature = generate_service_request_signature(url, data, [secret], "Launchpad")
-        return cast(
-            "HttpResponse",
-            self.client.put(
-                url,
-                data=data,
-                content_type="application/json",
-                HTTP_AUTHORIZATION=f"rpcsignature {signature}",
-            ),
+        return self.client.put(
+            url,
+            data=data,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"rpcsignature {signature}",
         )
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])

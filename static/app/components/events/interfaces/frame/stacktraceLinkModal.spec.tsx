@@ -180,9 +180,7 @@ describe('StacktraceLinkModal', () => {
       expect(closeModal).not.toHaveBeenCalled();
     });
     expect(
-      screen.getByText('We can’t access this repository.', {
-        exact: false,
-      })
+      screen.getByText('We can’t access this repository.', {exact: false})
     ).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Add it'})).toHaveAttribute(
       'href',
@@ -247,9 +245,7 @@ describe('StacktraceLinkModal', () => {
 
     expect(analyticsSpy).toHaveBeenCalledWith(
       'integrations.stacktrace_complete_setup',
-      expect.objectContaining({
-        is_suggestion: true,
-      })
+      expect.objectContaining({is_suggestion: true})
     );
   });
 

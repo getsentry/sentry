@@ -39,6 +39,7 @@ from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import BaseMetricsTestCase, OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -164,6 +165,16 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
 
     def test_dashboard_does_not_exist(self) -> None:
         response = self.do_request("get", self.url(1234567890))
+        assert response.status_code == 404
+        assert response.data == {"detail": "The requested resource does not exist"}
+
+    def test_dashboard_id_out_of_range(self) -> None:
+        response = self.do_request("get", self.url("1" * 40))
+        assert response.status_code == 404
+        assert response.data == {"detail": "The requested resource does not exist"}
+
+    def test_dashboard_id_not_numeric(self) -> None:
+        response = self.do_request("get", self.url("not-a-dashboard"))
         assert response.status_code == 404
         assert response.data == {"detail": "The requested resource does not exist"}
 
@@ -1759,11 +1770,12 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400, response.data
         assert b"Invalid interval" in response.content
 
-    def test_add_widget_e2e_test_with_translation(self) -> None:
+    def test_update_transaction_widget_e2e_test_with_translation(self) -> None:
         data = {
             "title": "First dashboard",
             "widgets": [
                 {
+                    "id": str(self.widget_1.id),
                     "title": "transaction widget to translate",
                     "displayType": "line",
                     "interval": "5m",
@@ -1794,7 +1806,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         widget = DashboardWidget.objects.filter(title="transaction widget to translate").first()
         assert widget is not None
         assert widget.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE
-        assert widget.dataset_source == DatasetSourcesTypes.USER.value
         assert widget.display_type == DashboardWidgetDisplayTypes.LINE_CHART
         assert widget.interval == "5m"
 
@@ -2580,7 +2591,11 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.data == ["You cannot update widgets that are not part of this dashboard."]
         self.assert_no_changes()
 
-    def test_widget_does_not_exist(self) -> None:
+    @mock.patch("sentry.api.serializers.rest_framework.dashboard.sentry_sdk.capture_message")
+    @mock.patch("sentry.api.serializers.rest_framework.dashboard.sdk_logger")
+    def test_widget_does_not_exist(
+        self, mock_sdk_logger: mock.MagicMock, mock_capture_message: mock.MagicMock
+    ) -> None:
         response = self.do_request(
             "put",
             self.url(self.dashboard.id),
@@ -2589,6 +2604,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400
         assert response.data == ["You cannot update widgets that are not part of this dashboard."]
         self.assert_no_changes()
+        mock_sdk_logger.info.assert_called_once()
+        assert (
+            mock_sdk_logger.info.call_args.args[0]
+            == "dashboard.update_widgets.widget_not_in_dashboard"
+        )
+        assert mock_sdk_logger.info.call_args.kwargs["attributes"]["dashboard.widget_id"] == (
+            1234567890
+        )
+        mock_capture_message.assert_not_called()
 
     def test_add_issue_widget_valid_query(self) -> None:
         data = {
@@ -2647,6 +2671,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "widgets": [
                 {"id": str(self.widget_1.id)},
                 {
+                    "id": str(self.widget_2.id),
                     "title": "Issues",
                     "displayType": "table",
                     "widgetType": "transaction-like",
@@ -2703,6 +2728,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     ],
                 },
                 {
+                    "id": str(self.widget_2.id),
                     "title": "Transactions",
                     "displayType": "table",
                     "widgetType": "transaction-like",
@@ -2743,6 +2769,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "widgets": [
                 {"id": str(self.widget_1.id)},
                 {
+                    "id": str(self.widget_2.id),
                     "title": "Issues",
                     "displayType": "table",
                     "widgetType": "transaction-like",
@@ -3455,86 +3482,84 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.data["widgets"][0]["queries"][0]["fields"] == ["issue", "title"]
         assert response.data["widgets"][0]["widgetType"] == "issue"
 
-    def test_dashboard_transaction_widget_deprecation_with_flag(self) -> None:
-        with self.feature("organizations:discover-saved-queries-deprecation"):
-            data = {
-                "title": "Test Dashboard",
-                "widgets": [
-                    {
-                        "title": "Transaction Widget",
-                        "displayType": "table",
-                        "widgetType": DashboardWidgetTypes.get_type_name(
-                            DashboardWidgetTypes.TRANSACTION_LIKE
-                        ),
-                        "queries": [
-                            {
-                                "name": "Transaction Widget",
-                                "fields": ["count()"],
-                                "aggregates": ["count()"],
-                                "conditions": "",
-                                "orderby": "-count()",
-                                "columns": [],
-                                "fieldAliases": [],
-                            }
-                        ],
-                    }
-                ],
-            }
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
-            assert response.status_code == 400
-            assert (
-                response.data["widgets"][0]["widgetType"][0]
-                == "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
-            )
+    def test_dashboard_transaction_widget_deprecation(self) -> None:
+        data = {
+            "title": "Test Dashboard",
+            "widgets": [
+                {
+                    "title": "Transaction Widget",
+                    "displayType": "table",
+                    "widgetType": DashboardWidgetTypes.get_type_name(
+                        DashboardWidgetTypes.TRANSACTION_LIKE
+                    ),
+                    "queries": [
+                        {
+                            "name": "Transaction Widget",
+                            "fields": ["count()"],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                            "orderby": "-count()",
+                            "columns": [],
+                            "fieldAliases": [],
+                        }
+                    ],
+                }
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400
+        assert (
+            response.data["widgets"][0]["widgetType"][0]
+            == "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
+        )
 
-    def test_dashboard_exisiting_transaction_widget_deprecation_with_flag(self) -> None:
-        with self.feature("organizations:discover-saved-queries-deprecation"):
-            data = {
-                "title": "Test Dashboard",
-                "widgets": [
-                    {
-                        "id": self.widget_1.id,
-                        "title": "Transaction Widget",
-                        "displayType": "table",
-                        "widgetType": DashboardWidgetTypes.get_type_name(
-                            DashboardWidgetTypes.TRANSACTION_LIKE
-                        ),
-                        "queries": [
-                            {
-                                "name": "Transaction Widget",
-                                "fields": ["count()"],
-                                "aggregates": ["count()"],
-                                "conditions": "",
-                                "orderby": "-count()",
-                                "columns": [],
-                                "fieldAliases": [],
-                            }
-                        ],
-                    },
-                    {
-                        "title": "Error Widget",
-                        "displayType": "table",
-                        "widgetType": DashboardWidgetTypes.get_type_name(
-                            DashboardWidgetTypes.ERROR_EVENTS
-                        ),
-                        "queries": [
-                            {
-                                "name": "Error Widget",
-                                "fields": ["count()"],
-                                "aggregates": ["count()"],
-                                "conditions": "",
-                                "orderby": "-count()",
-                                "columns": [],
-                                "fieldAliases": [],
-                            }
-                        ],
-                    },
-                ],
-            }
-            # should be able to add widget to dashboard with existing transaction widgets
+    def test_dashboard_exisiting_transaction_widget_deprecation(self) -> None:
+        data = {
+            "title": "Test Dashboard",
+            "widgets": [
+                {
+                    "id": self.widget_1.id,
+                    "title": "Transaction Widget",
+                    "displayType": "table",
+                    "widgetType": DashboardWidgetTypes.get_type_name(
+                        DashboardWidgetTypes.TRANSACTION_LIKE
+                    ),
+                    "queries": [
+                        {
+                            "name": "Transaction Widget",
+                            "fields": ["count()"],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                            "orderby": "-count()",
+                            "columns": [],
+                            "fieldAliases": [],
+                        }
+                    ],
+                },
+                {
+                    "title": "Error Widget",
+                    "displayType": "table",
+                    "widgetType": DashboardWidgetTypes.get_type_name(
+                        DashboardWidgetTypes.ERROR_EVENTS
+                    ),
+                    "queries": [
+                        {
+                            "name": "Error Widget",
+                            "fields": ["count()"],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                            "orderby": "-count()",
+                            "columns": [],
+                            "fieldAliases": [],
+                        }
+                    ],
+                },
+            ],
+        }
+        # should be able to add widget to dashboard with existing transaction widgets
 
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
-            assert response.status_code == 200
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200
 
     def test_create_widget_with_field_links(self) -> None:
         # Create a second dashboard to link to
@@ -4364,6 +4389,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             "title": "First dashboard",
             "widgets": [
                 {
+                    "id": str(self.widget_3.id),
                     "title": "Errors per project",
                     "displayType": "table",
                     "interval": "5m",
@@ -4401,6 +4427,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             "title": "First dashboard",
             "widgets": [
                 {
+                    "id": str(self.widget_3.id),
                     "title": "Errors per project",
                     "displayType": "table",
                     "interval": "5m",
@@ -4439,6 +4466,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             "title": "First dashboard",
             "widgets": [
                 {
+                    "id": str(self.widget_3.id),
                     "title": "Errors per project",
                     "displayType": "table",
                     "interval": "5m",
@@ -4478,6 +4506,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             "title": "First dashboard",
             "widgets": [
                 {
+                    "id": str(self.widget_3.id),
                     "title": "Errors per project",
                     "displayType": "table",
                     "interval": "5m",
@@ -4524,6 +4553,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             "title": "first dashboard",
             "widgets": [
                 {
+                    "id": str(self.widget_3.id),
                     "title": "errors per project",
                     "displayType": "table",
                     "interval": "5m",
@@ -4569,6 +4599,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             "title": "first dashboard",
             "widgets": [
                 {
+                    "id": str(self.widget_3.id),
                     "title": "errors per project",
                     "displayType": "table",
                     "interval": "5m",
@@ -4659,6 +4690,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             "title": "first dashboard",
             "widgets": [
                 {
+                    "id": str(self.widget_3.id),
                     "title": "errors per project",
                     "displayType": "table",
                     "interval": "5m",
@@ -4749,6 +4781,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             "title": "first dashboard",
             "widgets": [
                 {
+                    "id": str(self.widget_3.id),
                     "title": "errors per project",
                     "displayType": "table",
                     "interval": "5m",
@@ -4796,6 +4829,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             "title": "first dashboard",
             "widgets": [
                 {
+                    "id": str(self.widget_3.id),
                     "title": "errors per project",
                     "displayType": "table",
                     "interval": "5m",
@@ -4880,21 +4914,6 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
                     "widgetType": "error-events",
                 },
                 {
-                    "title": "Transaction Op Count",
-                    "displayType": "table",
-                    "interval": "5m",
-                    "queries": [
-                        {
-                            "name": "Transaction Op Count",
-                            "fields": ["count()", "transaction.op"],
-                            "columns": ["transaction.op"],
-                            "aggregates": ["count()"],
-                            "conditions": "",
-                        }
-                    ],
-                    "widgetType": "transaction-like",
-                },
-                {
                     "title": "Irrelevant widget type",
                     "displayType": "table",
                     "interval": "5m",
@@ -4920,15 +4939,8 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             "error-events"
         )
 
-        assert widgets[1].widget_type == DashboardWidgetTypes.get_id_for_type_name(
-            "transaction-like"
-        )
-        assert widgets[1].discover_widget_split == DashboardWidgetTypes.get_id_for_type_name(
-            "transaction-like"
-        )
-
-        assert widgets[2].widget_type == DashboardWidgetTypes.get_id_for_type_name("issue")
-        assert widgets[2].discover_widget_split is None
+        assert widgets[1].widget_type == DashboardWidgetTypes.get_id_for_type_name("issue")
+        assert widgets[1].discover_widget_split is None
 
 
 class OrganizationDashboardDetailsOnDemandTransactionLikeTest(
@@ -4980,6 +4992,48 @@ class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 204, response.content
         assert Dashboard.objects.get(id=self.dashboard.id).visits == 2
         assert not DashboardLastVisited.objects.filter(dashboard=self.dashboard).exists()
+
+
+@with_feature("organizations:granular-permission-scopes")
+class OrganizationDashboardVisitScopeTest(OrganizationDashboardDetailsTestCase):
+    def url(self, dashboard_id: int | str) -> str:
+        return reverse(
+            "sentry-api-0-organization-dashboard-visit",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+            },
+        )
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:dashboards-user-last-visited")
+    def test_dashboard_read_can_record_visit(self) -> None:
+        self._use_token(["dashboard:read"])
+        response = self.do_request("post", self.url(self.dashboard.id))
+        assert response.status_code == 204, response.content
+        assert Dashboard.objects.get(id=self.dashboard.id).visits == 2
+        assert DashboardLastVisited.objects.filter(
+            user_id=self.user.id, dashboard=self.dashboard
+        ).exists()
+
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_org_read_token_is_translated(self) -> None:
+        self._use_token(["org:read"])
+        response = self.do_request("post", self.url(self.dashboard.id))
+        assert response.status_code == 204, response.content
+        assert Dashboard.objects.get(id=self.dashboard.id).visits == 2
+
+    def test_dashboard_write_cannot_record_visit(self) -> None:
+        # Write does not imply read.
+        self._use_token(["dashboard:write", "user_preference:read", "user_preference:write"])
+        response = self.do_request("post", self.url(self.dashboard.id))
+        assert response.status_code == 403
+        assert Dashboard.objects.get(id=self.dashboard.id).visits == 1
 
 
 class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):

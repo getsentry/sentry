@@ -414,10 +414,7 @@ describe('TraceTree', () => {
             start_timestamp: start,
             end_timestamp: start + 2,
             is_transaction: true,
-            measurements: {
-              'measurements.fcp': 100,
-              'measurements.lcp': 200,
-            },
+            measurements: {'measurements.fcp': 100, 'measurements.lcp': 200},
             children: [
               makeEAPSpan({
                 event_id: 'eap-span-2',
@@ -452,16 +449,8 @@ describe('TraceTree', () => {
 
       expect(tree.indicators).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({
-            type: 'fcp',
-            label: 'FCP',
-            measurement: {value: 100},
-          }),
-          expect.objectContaining({
-            type: 'lcp',
-            label: 'LCP',
-            measurement: {value: 200},
-          }),
+          expect.objectContaining({type: 'fcp', label: 'FCP', measurement: {value: 100}}),
+          expect.objectContaining({type: 'lcp', label: 'LCP', measurement: {value: 200}}),
         ])
       );
     });
@@ -474,12 +463,8 @@ describe('TraceTree', () => {
             start_timestamp: start,
             end_timestamp: start + 2,
             is_transaction: true,
-            measurements: {
-              'measurements.lcp': 0,
-            },
-            browser_web_vital: {
-              'browser.web_vital.lcp.value': 200,
-            },
+            measurements: {'measurements.lcp': 0},
+            browser_web_vital: {'browser.web_vital.lcp.value': 200},
             children: [],
           }),
         ]),
@@ -523,14 +508,8 @@ describe('TraceTree', () => {
       const span1 = tree.root.findChild(n => n.id === 'eap-span-1');
       expect(tree.vitals.get(span1!)).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({
-            key: 'app_start_cold',
-            measurement: {value: 1600},
-          }),
-          expect.objectContaining({
-            key: 'app_start_warm',
-            measurement: {value: 400},
-          }),
+          expect.objectContaining({key: 'app_start_cold', measurement: {value: 1600}}),
+          expect.objectContaining({key: 'app_start_warm', measurement: {value: 400}}),
           expect.objectContaining({
             key: 'time_to_initial_display',
             measurement: {value: 1200},
@@ -554,9 +533,7 @@ describe('TraceTree', () => {
             start_timestamp: start,
             end_timestamp: start + 2,
             is_transaction: true,
-            measurements: {
-              'measurements.lcp': 500,
-            },
+            measurements: {'measurements.lcp': 500},
             children: [],
           }),
           makeEAPSpan({
@@ -565,9 +542,7 @@ describe('TraceTree', () => {
             start_timestamp: standaloneStart,
             end_timestamp: standaloneStart + 0.1,
             is_transaction: false,
-            measurements: {
-              'measurements.lcp': 500,
-            },
+            measurements: {'measurements.lcp': 500},
             children: [],
           }),
         ]),
@@ -585,15 +560,11 @@ describe('TraceTree', () => {
       attributeName: string;
     }>([
       {
-        additionalAttributes: {
-          'tags[browser.performance.time_origin,number]': start,
-        },
+        additionalAttributes: {'tags[browser.performance.time_origin,number]': start},
         attributeName: 'replacement',
       },
       {
-        additionalAttributes: {
-          'tags[performance.timeOrigin,number]': start,
-        },
+        additionalAttributes: {'tags[performance.timeOrigin,number]': start},
         attributeName: 'deprecated',
       },
     ])(
@@ -608,9 +579,7 @@ describe('TraceTree', () => {
               end_timestamp: start + 2,
               is_transaction: true,
               additional_attributes: additionalAttributes,
-              measurements: {
-                'measurements.lcp': 500,
-              },
+              measurements: {'measurements.lcp': 500},
               children: [],
             }),
             makeEAPSpan({
@@ -619,9 +588,7 @@ describe('TraceTree', () => {
               start_timestamp: start + 1.5,
               end_timestamp: start + 1.6,
               is_transaction: false,
-              measurements: {
-                'measurements.lcp': 1240,
-              },
+              measurements: {'measurements.lcp': 1240},
               children: [],
             }),
           ]),
@@ -815,14 +782,8 @@ describe('TraceTree', () => {
     it('returns ONLY_ERRORS for EAP trace with only errors', () => {
       const tree = TraceTree.FromTrace(
         makeEAPTrace([
-          makeEAPError({
-            event_id: 'error-1',
-            description: 'Test error',
-          }),
-          makeEAPError({
-            event_id: 'error-2',
-            description: 'Another error',
-          }),
+          makeEAPError({event_id: 'error-1', description: 'Test error'}),
+          makeEAPError({event_id: 'error-2', description: 'Another error'}),
         ]),
         traceOptions
       );
@@ -833,14 +794,8 @@ describe('TraceTree', () => {
     it('returns NO_ROOT for EAP trace with only non-root spans', () => {
       const tree = TraceTree.FromTrace(
         makeEAPTrace([
-          makeEAPSpan({
-            parent_span_id: 'some-parent',
-            is_transaction: false,
-          }),
-          makeEAPSpan({
-            parent_span_id: 'another-parent',
-            is_transaction: false,
-          }),
+          makeEAPSpan({parent_span_id: 'some-parent', is_transaction: false}),
+          makeEAPSpan({parent_span_id: 'another-parent', is_transaction: false}),
         ]),
         traceOptions
       );
@@ -855,10 +810,7 @@ describe('TraceTree', () => {
             parent_span_id: null,
             is_transaction: true,
             children: [
-              makeEAPSpan({
-                parent_span_id: 'root-span-id',
-                is_transaction: false,
-              }),
+              makeEAPSpan({parent_span_id: 'root-span-id', is_transaction: false}),
             ],
           }),
         ]),
@@ -871,14 +823,8 @@ describe('TraceTree', () => {
     it('returns BROKEN_SUBTRACES for EAP trace with root and orphan spans', () => {
       const tree = TraceTree.FromTrace(
         makeEAPTrace([
-          makeEAPSpan({
-            parent_span_id: null,
-            is_transaction: true,
-          }),
-          makeEAPSpan({
-            parent_span_id: 'non-existent-parent',
-            is_transaction: false,
-          }),
+          makeEAPSpan({parent_span_id: null, is_transaction: true}),
+          makeEAPSpan({parent_span_id: 'non-existent-parent', is_transaction: false}),
         ]),
         traceOptions
       );
@@ -934,15 +880,8 @@ describe('TraceTree', () => {
     it('handles mixed EAP trace with spans and errors correctly', () => {
       const tree = TraceTree.FromTrace(
         makeEAPTrace([
-          makeEAPSpan({
-            parent_span_id: null,
-            is_transaction: true,
-            children: [],
-          }),
-          makeEAPError({
-            event_id: 'error-1',
-            description: 'Orphan error',
-          }),
+          makeEAPSpan({parent_span_id: null, is_transaction: true, children: []}),
+          makeEAPError({event_id: 'error-1', description: 'Orphan error'}),
         ]),
         traceOptions
       );

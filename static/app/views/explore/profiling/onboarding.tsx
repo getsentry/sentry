@@ -29,6 +29,7 @@ import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStarted
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PeekingBug} from 'sentry/components/peekingBug/peekingBug';
 import {ContinuousProfilingBillingRequirementBanner} from 'sentry/components/profiling/billing/alerts';
 import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {profiling as profilingPlatforms} from 'sentry/data/platformCategories';
@@ -68,26 +69,25 @@ function WaitingIndicator({
     fields: ['profile.id', 'timestamp'],
     limit: 1,
     referrer: 'profiling-onboarding',
-    sort: {
-      key: 'timestamp',
-      order: 'desc',
-    },
+    sort: {key: 'timestamp', order: 'desc'},
     enabled: hasProfile,
   });
 
   const profileId = data?.data[0]?.['profile.id']?.toString();
 
   return profileId ? (
-    <LinkButton
-      variant="primary"
-      to={generateProfileFlamechartRoute({
-        organization,
-        projectSlug: project.slug,
-        profileId,
-      })}
-    >
-      {t('Take me to my profile')}
-    </LinkButton>
+    <PeekingBug>
+      <LinkButton
+        variant="primary"
+        to={generateProfileFlamechartRoute({
+          organization,
+          projectSlug: project.slug,
+          profileId,
+        })}
+      >
+        {t('Take me to my profile')}
+      </LinkButton>
+    </PeekingBug>
   ) : (
     <EventWaitingIndicator />
   );
@@ -284,10 +284,7 @@ export function Onboarding() {
     isPerformanceSelected: true,
     isProfilingSelected: true,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
     docsLocation: DocsPageLocation.PROFILING_PAGE,
     profilingOptions: {

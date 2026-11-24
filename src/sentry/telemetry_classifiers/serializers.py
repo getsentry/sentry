@@ -14,10 +14,10 @@ from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.auth.principal import acting_user_id, has_user
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.types import SnubaParams
-from sentry.telemetry_classifiers.constants import DEFAULT_BINARY_THRESHOLD
 from sentry.telemetry_classifiers.datasets import compile_filter
 from sentry.telemetry_classifiers.definitions import (
     InvalidClassifierDefinition,
+    resolve_classifier_definition,
     resolve_prebuilt_definition,
 )
 from sentry.telemetry_classifiers.models import TelemetryClassifier
@@ -25,7 +25,6 @@ from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS
 from sentry.telemetry_classifiers.types import (
     Dataset,
     PrebuiltClassifier,
-    TelemetryClassifierOutputType,
     TelemetryClassifierStatus,
 )
 from sentry.users.api.serializers.user import UserSerializerResponse
@@ -51,23 +50,6 @@ class TelemetryClassifierResponse(TypedDict):
     createdBy: UserSerializerResponse | None
     dateAdded: datetime
     dateUpdated: datetime
-
-
-def _resolve_output_type(classifier: TelemetryClassifier) -> str | None:
-    if classifier.prebuilt_classifier_key is None:
-        return classifier.output_type
-    prebuilt = PREBUILT_CLASSIFIERS.get(classifier.prebuilt_classifier_key)
-    return prebuilt.output_type if prebuilt else None
-
-
-def _resolve_binary_threshold(classifier: TelemetryClassifier) -> float | None:
-    if classifier.prebuilt_classifier_key is None:
-        # TODO(aknaus): Read it from the classifier once the model stores it (AGT-3349).
-        if classifier.output_type == TelemetryClassifierOutputType.BINARY:
-            return DEFAULT_BINARY_THRESHOLD
-        return None
-    prebuilt = PREBUILT_CLASSIFIERS.get(classifier.prebuilt_classifier_key)
-    return prebuilt.binary_threshold if prebuilt else None
 
 
 @register(TelemetryClassifier)
@@ -102,6 +84,7 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> TelemetryClassifierResponse:
+        definition = resolve_classifier_definition(obj)
         return {
             "id": str(obj.id),
             "projectId": str(obj.project_id),
@@ -112,8 +95,8 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
             "status": obj.status,
             "prebuiltClassifierKey": obj.prebuilt_classifier_key,
             "naturalLanguagePrompt": obj.natural_language_prompt,
-            "outputType": _resolve_output_type(obj),
-            "binaryThreshold": _resolve_binary_threshold(obj),
+            "outputType": definition.output_type,
+            "binaryThreshold": definition.binary_threshold,
             "createdBy": attrs["createdBy"],
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,

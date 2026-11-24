@@ -29,7 +29,11 @@ interface HiddenFrameIndicesProps {
   toggleFrameMap: Record<number, boolean>;
 }
 
-export function findImageForAddress({event, addrMode, address}: ImageForAddressProps) {
+export function findImageForAddress({
+  event,
+  addrMode,
+  address,
+}: ImageForAddressProps): Image | null {
   const images = event.entries.find(entry => entry.type === 'debugmeta')?.data?.images;
 
   if (!images || !address) {
@@ -45,7 +49,16 @@ export function findImageForAddress({event, addrMode, address}: ImageForAddressP
     return addrMode === `rel:${idx}`;
   });
 
-  return image;
+  return image ?? null;
+}
+
+/**
+ * Binary name of a debug image, used for frames that have no `package`.
+ * MetricKit images can lack `code_file`, in which case Symbolicator fills in
+ * the dSYM name on `debug_file`.
+ */
+export function getImageName(image: Image | null | undefined): string | undefined {
+  return image?.code_file ?? image?.debug_file ?? undefined;
 }
 
 export function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {

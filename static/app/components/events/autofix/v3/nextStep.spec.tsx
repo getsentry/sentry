@@ -118,12 +118,7 @@ function makeSection(
   artifacts?: AutofixSection['artifacts'],
   status: AutofixSection['status'] = 'completed'
 ): AutofixSection {
-  return {
-    step,
-    artifacts: artifacts ?? defaultArtifacts(step),
-    blocks: [],
-    status,
-  };
+  return {step, artifacts: artifacts ?? defaultArtifacts(step), blocks: [], status};
 }
 
 describe('SeerDrawerNextStep', () => {
@@ -131,21 +126,23 @@ describe('SeerDrawerNextStep', () => {
 
   beforeEach(() => {
     openChatPrompt.mockClear();
-    jest.mocked(useSeerExplorerContext).mockReturnValue({
-      closeSeerExplorer: jest.fn(),
-      isOpen: false,
-      openChatPrompt,
-      openSeerExplorer: jest.fn(),
-      sessionState: 'inactive',
-      sidebarContainerRef: {current: null},
-      setSidebarPosition: jest.fn(),
-      sidebarAppendInitialQuery: false,
-      sidebarInitialQuery: undefined,
-      sidebarKey: 0,
-      sidebarPosition: 'auto',
-      toggleSeerExplorer: jest.fn(),
-      unreadCount: 0,
-    });
+    jest
+      .mocked(useSeerExplorerContext)
+      .mockReturnValue({
+        closeSeerExplorer: jest.fn(),
+        isOpen: false,
+        openChatPrompt,
+        openSeerExplorer: jest.fn(),
+        sessionState: 'inactive',
+        sidebarContainerRef: {current: null},
+        setSidebarPosition: jest.fn(),
+        sidebarAppendInitialQuery: false,
+        sidebarInitialQuery: undefined,
+        sidebarKey: 0,
+        sidebarPosition: 'auto',
+        toggleSeerExplorer: jest.fn(),
+        unreadCount: 0,
+      });
   });
 
   describe('on the Autofix page', () => {
@@ -1151,10 +1148,7 @@ describe('SeerDrawerNextStep', () => {
     function makePrIterationAutofix(
       overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}
     ) {
-      return makeAutofix({
-        runState: {run_id: 1, blocks: []} as any,
-        ...overrides,
-      });
+      return makeAutofix({runState: {run_id: 1, blocks: []} as any, ...overrides});
     }
 
     beforeEach(() => {

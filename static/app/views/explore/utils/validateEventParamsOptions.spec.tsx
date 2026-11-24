@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 import {validateEventParamsOptions} from './validateEventParamsOptions';
@@ -24,9 +25,11 @@ describe('validateEventParamsOptions', () => {
       query: 'span.op:http',
     });
 
-    expect(options.queryKey).toEqual([
-      '/organizations/org-slug/events/validate/',
-      {
+    expect(parseQueryKey(options.queryKey).url).toBe(
+      '/organizations/org-slug/events/validate/'
+    );
+    expect(parseQueryKey(options.queryKey).options).toEqual(
+      expect.objectContaining({
         query: {
           dataset: TraceItemDataset.SPANS,
           environment: ['production'],
@@ -36,9 +39,8 @@ describe('validateEventParamsOptions', () => {
           query: 'span.op:http',
           statsPeriod: '14d',
         },
-      },
-      {infinite: false},
-    ]);
+      })
+    );
   });
 
   it('prefers explicit project ids over selected projects', () => {
@@ -52,14 +54,16 @@ describe('validateEventParamsOptions', () => {
     });
 
     expect(options.queryKey).toEqual([
-      '/organizations/org-slug/events/validate/',
+      '_api',
       expect.objectContaining({
-        query: expect.objectContaining({
-          dataset: TraceItemDataset.LOGS,
-          project: ['2', '3'],
+        url: '/organizations/org-slug/events/validate/',
+        options: expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: TraceItemDataset.LOGS,
+            project: ['2', '3'],
+          }),
         }),
       }),
-      {infinite: false},
     ]);
   });
 });

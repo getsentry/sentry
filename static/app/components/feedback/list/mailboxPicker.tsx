@@ -38,10 +38,7 @@ export function MailboxPicker({onChange, value}: Props) {
         {
           linkGenAI: (
             <Link
-              to={{
-                pathname: `/settings/${organization.slug}/`,
-                hash: 'hideAiFeatures',
-              }}
+              to={{pathname: `/settings/${organization.slug}/`, hash: 'hideAiFeatures'}}
             />
           ),
         }
@@ -54,11 +51,7 @@ export function MailboxPicker({onChange, value}: Props) {
   const MAILBOXES = [
     {key: 'unresolved', label: t('Inbox'), tooltip: undefined},
     {key: 'resolved', label: t('Resolved'), tooltip: undefined},
-    {
-      key: 'ignored',
-      label: t('Spam'),
-      tooltip: getSpamTooltip(),
-    },
+    {key: 'ignored', label: t('Spam'), tooltip: getSpamTooltip()},
   ] as const;
 
   const filteredMailboxes = MAILBOXES;

@@ -72,6 +72,7 @@ export function SeerDrawerContent({
   const singleRunHasRootCause =
     defined(singleRunRootCause) &&
     defined(getAutofixArtifactFromSection(singleRunRootCause));
+  const handoffRunId = singleRunHasRootCause ? singleRunId : undefined;
 
   const isLoadingRun =
     autofix.isLoading || (autofix.isPolling && !autofix.runState?.blocks?.length);
@@ -117,28 +118,39 @@ export function SeerDrawerContent({
       {singleRun && (
         <NextStepWrap isSticky={stickyNextStep}>
           <Flex>
-            <ButtonBar>
-              <Button
-                variant="primary"
-                icon={<IconSeer />}
-                onClick={() =>
-                  singleRunId !== undefined && openSingleRunChat(singleRunId)
-                }
-                disabled={isSingleRunChatOpen}
-                tooltipProps={{
-                  title: isSingleRunChatOpen ? t('Chat is open') : undefined,
-                }}
-              >
-                {t('Open Autofix')}
-              </Button>
-              {singleRunHasRootCause && singleRunId !== undefined && (
-                <SingleRunHandoffDropdown
-                  autofix={autofix}
-                  group={group}
-                  runId={singleRunId}
-                />
-              )}
-            </ButtonBar>
+            {/* The chat already shows this run, so hand-off is the only action
+                left. A disabled half beside a live chevron reads as broken. */}
+            {isSingleRunChatOpen && handoffRunId !== undefined ? (
+              <SingleRunHandoffDropdown
+                autofix={autofix}
+                group={group}
+                runId={handoffRunId}
+                label={t('Hand off')}
+              />
+            ) : (
+              <ButtonBar>
+                <Button
+                  variant="primary"
+                  icon={<IconSeer />}
+                  onClick={() =>
+                    singleRunId !== undefined && openSingleRunChat(singleRunId)
+                  }
+                  disabled={isSingleRunChatOpen}
+                  tooltipProps={{
+                    title: isSingleRunChatOpen ? t('Chat is open') : undefined,
+                  }}
+                >
+                  {t('Open Autofix')}
+                </Button>
+                {handoffRunId !== undefined && (
+                  <SingleRunHandoffDropdown
+                    autofix={autofix}
+                    group={group}
+                    runId={handoffRunId}
+                  />
+                )}
+              </ButtonBar>
+            )}
           </Flex>
         </NextStepWrap>
       )}
@@ -223,9 +235,9 @@ function SeerDrawerArtifacts({autofix, groupId, sections}: SeerDrawerArtifactsPr
  * analysis above it is still in view, then scrolls away with the rest of the
  * autofix content once the reader moves past it into the event details below.
  */
-const NextStepWrap = styled('div', {
-  shouldForwardProp: prop => prop !== 'isSticky',
-})<{isSticky?: boolean}>`
+const NextStepWrap = styled('div', {shouldForwardProp: prop => prop !== 'isSticky'})<{
+  isSticky?: boolean;
+}>`
   ${p =>
     p.isSticky &&
     css`

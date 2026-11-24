@@ -7,9 +7,7 @@ import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {t} from 'sentry/locale';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 
-type Props = ModalRenderProps & {
-  linkText: string;
-};
+type Props = ModalRenderProps & {linkText: string};
 
 function NavigateToExternalLinkModal({Body, closeModal, Header, linkText}: Props) {
   const handleClose = () => closeModal();

@@ -152,24 +152,13 @@ function ConfidenceMessage({
       if (isTopN) {
         return tct(
           '[maybeWarning]Estimated for top [topEvents] groups from [maybeTooltip:[matchingLogsCount]] of [totalLogsCount]',
-          {
-            maybeWarning,
-            topEvents,
-            maybeTooltip,
-            matchingLogsCount,
-            totalLogsCount,
-          }
+          {maybeWarning, topEvents, maybeTooltip, matchingLogsCount, totalLogsCount}
         );
       }
 
       return tct(
         '[maybeWarning]Estimated from [maybeTooltip:[matchingLogsCount]] of [totalLogsCount]',
-        {
-          maybeWarning,
-          maybeTooltip,
-          matchingLogsCount,
-          totalLogsCount,
-        }
+        {maybeWarning, maybeTooltip, matchingLogsCount, totalLogsCount}
       );
     }
 
@@ -183,12 +172,7 @@ function ConfidenceMessage({
     if (isTopN) {
       return tct(
         '[maybeWarning]Estimated for top [topEvents] groups from [maybeTooltip:[matchingLogsCount]]',
-        {
-          maybeWarning,
-          topEvents,
-          maybeTooltip,
-          matchingLogsCount,
-        }
+        {maybeWarning, topEvents, maybeTooltip, matchingLogsCount}
       );
     }
 
@@ -246,13 +230,7 @@ function ConfidenceMessage({
 
     return tct(
       '[maybeWarning]Estimated from [maybeTooltip:[matchingLogsCount]] after scanning [scannedLogsCount] of [totalLogsCount]',
-      {
-        maybeWarning,
-        maybeTooltip,
-        matchingLogsCount,
-        scannedLogsCount,
-        totalLogsCount,
-      }
+      {maybeWarning, maybeTooltip, matchingLogsCount, scannedLogsCount, totalLogsCount}
     );
   }
 
@@ -276,24 +254,13 @@ function ConfidenceMessage({
   if (isTopN) {
     return tct(
       '[maybeWarning]Estimated for top [topEvents] groups from [maybeTooltip:[matchingLogsCount]] of [totalLogsCount]',
-      {
-        maybeWarning,
-        topEvents,
-        maybeTooltip,
-        matchingLogsCount,
-        totalLogsCount,
-      }
+      {maybeWarning, topEvents, maybeTooltip, matchingLogsCount, totalLogsCount}
     );
   }
 
   return tct(
     '[maybeWarning]Estimated from [maybeTooltip:[matchingLogsCount]] of [totalLogsCount]',
-    {
-      maybeWarning,
-      maybeTooltip,
-      matchingLogsCount,
-      totalLogsCount,
-    }
+    {maybeWarning, maybeTooltip, matchingLogsCount, totalLogsCount}
   );
 }
 

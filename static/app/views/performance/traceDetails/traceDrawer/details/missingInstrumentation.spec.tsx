@@ -15,10 +15,7 @@ import {MissingInstrumentationNodeDetails} from './missingInstrumentation';
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
-): TraceTreeNodeExtra => ({
-  organization: OrganizationFixture(),
-  ...overrides,
-});
+): TraceTreeNodeExtra => ({organization: OrganizationFixture(), ...overrides});
 
 describe('MissingInstrumentationNodeDetails', () => {
   beforeEach(() => {

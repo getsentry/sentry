@@ -203,6 +203,9 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
     def get_quota(self) -> DetectorQuota:
         return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
 
+    def get_quota_message(self, quota: DetectorQuota) -> str:
+        return f"This would exceed your plan's limit of {quota.limit} monitors."
+
     def enforce_quota(self, validated_data: dict[str, Any]) -> None:
         """
         Enforce quota limits for detector creation.
@@ -218,9 +221,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                 organization=self.context["organization"],
                 actor=request.user if has_user(request.user) else None,
             )
-            raise serializers.ValidationError(
-                f"Used {detector_quota.count}/{detector_quota.limit} of allowed {validated_data['type']} monitors."
-            )
+            raise serializers.ValidationError(self.get_quota_message(detector_quota))
 
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
         organization = self.context["organization"]

@@ -5,6 +5,7 @@ import {Container} from '@sentry/scraps/layout';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import * as Storybook from 'sentry/stories';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
@@ -80,6 +81,7 @@ class FixtureQueryClient extends QueryClient {
       const {remaining, total} = this.wallet;
       return {
         balance: remaining,
+        dailyLimit: null,
         percentUsed: 1 - remaining / total,
         included: {remaining, resetsAt: null, total},
         purchased: {remaining: 0, expiresAt: null, total: 0},
@@ -91,7 +93,7 @@ class FixtureQueryClient extends QueryClient {
 
   override defaultQueryOptions: QueryClient['defaultQueryOptions'] = options => {
     const defaulted = super.defaultQueryOptions(options);
-    const url = String(defaulted.queryKey[0]);
+    const url = safeParseQueryKey(defaulted.queryKey)?.url ?? '';
     // `then` turns a fixture that throws into a failed query.
     const queryFn = () =>
       Promise.resolve().then(() => ({json: this.respond(url), headers: {}}));

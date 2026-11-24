@@ -57,10 +57,7 @@ describe('SimilarIssuesDrawer', () => {
   });
 
   it('renders the content as expected', async () => {
-    render(<SimilarIssuesDrawer group={group} />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<SimilarIssuesDrawer group={group} />, {organization, initialRouterConfig});
 
     expect(screen.getByText('Similar Issues')).toHaveAttribute(
       'aria-current',

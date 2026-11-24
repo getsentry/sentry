@@ -51,6 +51,7 @@ from sentry.notifications.platform.types import (
 from sentry.seer.agent.client_models import RepoPRState
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 from sentry.seer.credits import OUT_OF_CREDITS
+from sentry.utils.strings import truncatechars
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -62,6 +63,8 @@ class AutofixStageConfig(TypedDict):
     working_text: str
     completed_text: str
 
+
+SEER_AUTO_RELOAD_MODAL_FRAGMENT = "open-seer-auto-reload-modal"
 
 MAX_STEPS = 10
 MAX_CHANGES = 5
@@ -77,7 +80,7 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
     AutofixStoppingPoint.ROOT_CAUSE: AutofixStageConfig(
         heading=":mag:  *Root Cause Analysis*",
         label="Fix with Seer",
-        working_text="Seer is peering into the void...",
+        working_text="Seer is peering into the void... Updates will appear in this thread.",
         completed_text="Seer's eye has seen the root cause",
     ),
     AutofixStoppingPoint.SOLUTION: AutofixStageConfig(
@@ -140,8 +143,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             return SlackRenderable(
                 blocks=[
                     SectionBlock(text="Seer stopped early"),
-                    SectionBlock(text=MarkdownTextObject(text=f">{data.reason}")),
-                    SectionBlock(text=MarkdownTextObject(text=f"*Suggestion:* {data.suggestion}")),
+                    cls._render_section(f">{data.reason}"),
+                    cls._render_section(f"*Suggestion:* {data.suggestion}"),
                 ],
                 text="Seer stopped early",
             )
@@ -163,6 +166,13 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             return cls._render_investigation_conclusion(data, link_decorator)
         else:
             raise ValueError(f"SeerSlackRenderer does not support {data.__class__.__name__}")
+
+    @classmethod
+    def _render_section(cls, text: str) -> SectionBlock:
+        # Slack rejects blocks >3000 characters, truncate anything exceeding that
+        return SectionBlock(
+            text=MarkdownTextObject(text=truncatechars(text, SectionBlock.text_max_length))
+        )
 
     @classmethod
     def create_first_block_id(cls, group_id: int, run_id: int | None) -> str:
@@ -220,35 +230,28 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         message = data.message
         blocks: list[Block] = [SectionBlock(text=message)]
 
-        style: str | None
-        url: str | None
-        if data.has_billing_access:
-            try:
-                organization = Organization.objects.get_from_cache(id=data.organization_id)
-            except Organization.DoesNotExist:
-                return SlackRenderable(blocks=blocks, text=message)
-            text = "Configure auto-reload"
-            action = SlackAction.SEER_VIEW_BILLING
-            style = "primary"
-            url = link_decorator.decorate_url(
-                organization.absolute_url(f"/settings/{organization.slug}/billing/overview/")
-            )
-        else:
-            # TODO(alexsohn): this click does nothing until the handler emails the admins.
-            text = "Contact Admin"
-            action = SlackAction.SEER_REQUEST_CREDITS
-            style = None
-            url = None
+        try:
+            organization = Organization.objects.get_from_cache(id=data.organization_id)
+        except Organization.DoesNotExist:
+            return SlackRenderable(blocks=blocks, text=message)
 
+        fragment = SEER_AUTO_RELOAD_MODAL_FRAGMENT
+        if data.denial_reason:
+            fragment += f":{data.denial_reason}"
         blocks.append(
             ActionsBlock(
                 elements=[
                     ButtonElement(
-                        text=text,
-                        style=style,
-                        url=url,
+                        text="Configure auto-reload",
+                        style="primary",
+                        url=link_decorator.decorate_url(
+                            organization.absolute_url(
+                                f"/settings/{organization.slug}/billing/overview/",
+                                fragment=fragment,
+                            )
+                        ),
                         action_id=encode_action_id(
-                            action=action.value,
+                            action=SlackAction.SEER_VIEW_BILLING.value,
                             organization_id=data.organization_id,
                             project_id=None,
                         ),
@@ -262,8 +265,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     def _render_autofix_error(cls, data: SeerAutofixError) -> SlackRenderable:
         return SlackRenderable(
             blocks=[
-                SectionBlock(text=data.error_title),
-                SectionBlock(text=MarkdownTextObject(text=f">{data.error_message}")),
+                cls._render_section(data.error_title),
+                cls._render_section(f">{data.error_message}"),
             ],
             text=f"Seer stumbled: {data.error_title}",
         )
@@ -301,7 +304,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         ]
 
         if data.summary:
-            blocks.append(SectionBlock(text=MarkdownTextObject(text=data.summary)))
+            blocks.append(cls._render_section(data.summary))
         if data.reasoning:
             if data.reasoning_header:
                 blocks.append(
@@ -326,9 +329,13 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
                 if change.get("description"):
                     change_mrkdwn.append(f"{change['description']}")
-                if change.get("diff"):
-                    change_mrkdwn.append(f"```{change['diff']}```")
-                blocks.append(SectionBlock(text=MarkdownTextObject(text="\n".join(change_mrkdwn))))
+                text = "\n".join(change_mrkdwn)
+                if diff := change.get("diff"):
+                    # Cut the diff, not the fence, so the code block stays closed.
+                    max_diff_length = SectionBlock.text_max_length - len(text) - len("\n``````")
+                    if max_diff_length >= len("..."):
+                        text += f"\n```{truncatechars(diff, max_diff_length)}```"
+                blocks.append(cls._render_section(text))
         for pr in data.pull_requests[:MAX_PRS]:
             action_elements.append(
                 LinkButtonElement(
@@ -353,8 +360,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     def _render_agent_error(cls, data: SeerAgentError) -> SlackRenderable:
         return SlackRenderable(
             blocks=[
-                SectionBlock(text=data.error_title),
-                SectionBlock(text=MarkdownTextObject(text=f">{data.error_message}")),
+                cls._render_section(data.error_title),
+                cls._render_section(f">{data.error_message}"),
             ],
             text=f"Seer stumbled: {data.error_title}",
         )
@@ -413,7 +420,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         if data.subtitle:
             header += f"\n{escape_slack_text(data.subtitle)}"
         bold = RichTextElementParts.TextStyle(bold=True)
-        blocks: list[Block] = [SectionBlock(text=MarkdownTextObject(text=header))]
+        blocks: list[Block] = [cls._render_section(header)]
         for index, hypothesis in enumerate(data.hypotheses, start=1):
             quote = RichTextQuoteElement(
                 elements=[
@@ -451,13 +458,13 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         text = f"*{escape_slack_text(data.summary)}*"
         if data.summary_description:
             text += f"\n{escape_slack_text(data.summary_description)}"
-        blocks: list[Block] = [SectionBlock(text=MarkdownTextObject(text=text))]
+        blocks: list[Block] = [cls._render_section(text)]
         if data.next_step:
             next_step = (
                 f"*Suggested next step:* {escape_slack_text(data.next_step['title'])}\n"
                 f"{escape_slack_text(data.next_step['rationale'])}"
             )
-            blocks.append(SectionBlock(text=MarkdownTextObject(text=next_step)))
+            blocks.append(cls._render_section(next_step))
         blocks.append(DividerBlock())
         blocks.append(
             ActionsBlock(

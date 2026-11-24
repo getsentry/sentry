@@ -7,25 +7,11 @@ import {SpanFields} from 'sentry/views/insights/types';
 export const STARFISH_CHART_INTERVAL_FIDELITY = 'metrics';
 
 export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}> = {
-  [SpanFields.SPAN_DURATION]: {
-    outputType: 'duration',
-  },
-  [SpanFields.SPAN_SELF_TIME]: {
-    outputType: 'duration',
-  },
-  [SpanFields.HTTP_RESPONSE_TRANSFER_SIZE]: {
-    outputType: 'size',
-  },
-  [SpanFields.HTTP_DECODED_RESPONSE_CONTENT_LENGTH]: {
-    outputType: 'size',
-  },
-  [SpanFields.HTTP_RESPONSE_CONTENT_LENGTH]: {
-    outputType: 'size',
-  },
-  [SpanFields.CACHE_ITEM_SIZE]: {
-    outputType: 'size',
-  },
-  [SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY]: {
-    outputType: 'duration',
-  },
+  [SpanFields.SPAN_DURATION]: {outputType: 'duration'},
+  [SpanFields.SPAN_SELF_TIME]: {outputType: 'duration'},
+  [SpanFields.HTTP_RESPONSE_TRANSFER_SIZE]: {outputType: 'size'},
+  [SpanFields.HTTP_DECODED_RESPONSE_CONTENT_LENGTH]: {outputType: 'size'},
+  [SpanFields.HTTP_RESPONSE_CONTENT_LENGTH]: {outputType: 'size'},
+  [SpanFields.CACHE_ITEM_SIZE]: {outputType: 'size'},
+  [SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY]: {outputType: 'duration'},
 };

@@ -53,10 +53,7 @@ export function SentryComponentInspector() {
   const [state, setState] = useState<{
     enabled: null | 'inspector' | 'context-menu';
     trace: TraceElement[] | null;
-  }>({
-    enabled: null,
-    trace: [],
-  });
+  }>({enabled: null, trace: []});
 
   useHotkeys([
     {
@@ -83,10 +80,7 @@ export function SentryComponentInspector() {
     top: number;
   } | null>(null);
 
-  const contextMenuPositionRef = useRef<{
-    left: number;
-    top: number;
-  } | null>(null);
+  const contextMenuPositionRef = useRef<{left: number; top: number} | null>(null);
 
   const copyToClipboard = useCallback((text: string) => {
     navigator.clipboard?.writeText(text).catch(() => {
@@ -114,10 +108,7 @@ export function SentryComponentInspector() {
         if (tooltipRef.current) {
           tooltipPositionRef.current = {
             ...computeTooltipPosition(event, tooltipRef.current),
-            mouse: {
-              x: event.clientX,
-              y: event.clientY,
-            },
+            mouse: {x: event.clientX, y: event.clientY},
           };
           tooltipRef.current.style.left = `${tooltipPositionRef.current.left}px`;
           tooltipRef.current.style.top = `${tooltipPositionRef.current.top}px`;
@@ -146,10 +137,7 @@ export function SentryComponentInspector() {
             .querySelectorAll('[data-sentry-component-trace]')
             .forEach(el => delete (el as TraceElement).dataset.sentryComponentTrace);
 
-          setState(prev => ({
-            ...prev,
-            trace: null,
-          }));
+          setState(prev => ({...prev, trace: null}));
           return;
         }
 
@@ -175,10 +163,7 @@ export function SentryComponentInspector() {
         }
 
         setState(prev => {
-          return {
-            ...prev,
-            trace,
-          };
+          return {...prev, trace};
         });
       });
     };
@@ -201,11 +186,7 @@ export function SentryComponentInspector() {
       contextMenuPositionRef.current = null;
 
       if (state.enabled === 'context-menu') {
-        setState(prev => ({
-          ...prev,
-          enabled: 'inspector',
-          trace: null,
-        }));
+        setState(prev => ({...prev, enabled: 'inspector', trace: null}));
       }
     };
 
@@ -213,10 +194,7 @@ export function SentryComponentInspector() {
       // Prevent built-in context menu from appearing
       event.preventDefault();
 
-      setState(prev => ({
-        ...prev,
-        enabled: 'context-menu',
-      }));
+      setState(prev => ({...prev, enabled: 'context-menu'}));
 
       contextMenu.handleContextMenu(event);
 
@@ -376,10 +354,7 @@ export function SentryComponentInspector() {
               positionContextMenuOnMountRef(ref);
             }}
             {...contextMenuProps}
-            style={{
-              position: 'fixed',
-              width: 'max-content',
-            }}
+            style={{position: 'fixed', width: 'max-content'}}
           >
             <ProfilingContextMenuGroup>
               <Stack gap="xs" padding="md xs">
@@ -531,11 +506,7 @@ function MenuItem(props: {
         onMouseEnter={() => {
           setIsOpen(true);
         }}
-        style={{
-          width: '100%',
-          overflow: 'hidden',
-          padding: '0',
-        }}
+        style={{width: '100%', overflow: 'hidden', padding: '0'}}
       >
         <Flex
           direction="row"
@@ -693,10 +664,7 @@ function computeTooltipPosition(
     top = y - container.offsetHeight - CURSOR_OFFSET_BOTTOM;
   }
 
-  return {
-    left,
-    top,
-  };
+  return {left, top};
 }
 
 function isTraceElement(el: unknown): el is TraceElement {

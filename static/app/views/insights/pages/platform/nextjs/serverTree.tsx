@@ -75,10 +75,7 @@ const COLUMNS: TableColumnConfig[] = [
 ];
 
 const getP95Threshold = (avg: number) => {
-  return {
-    danger: avg * 3,
-    warning: avg * 2,
-  };
+  return {danger: avg * 3, warning: avg * 2};
 };
 
 export function getFileAndFunctionName(componentType: string) {
@@ -92,10 +89,7 @@ export function getFileAndFunctionName(componentType: string) {
 
   const functionMatch = componentType.match(/^(.*)\.(.*)$/);
   if (functionMatch?.[1] && functionMatch?.[2]) {
-    return {
-      file: functionMatch[1].toLowerCase(),
-      functionName: functionMatch[2],
-    };
+    return {file: functionMatch[1].toLowerCase(), functionName: functionMatch[2]};
   }
 
   // Fallback if the component type doesn't match the expected pattern
@@ -104,11 +98,7 @@ export function getFileAndFunctionName(componentType: string) {
 }
 
 export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
-  const root: TreeContainer = {
-    children: [],
-    name: 'root',
-    type: 'folder',
-  };
+  const root: TreeContainer = {children: [], name: 'root', type: 'folder'};
 
   // Each item of the response is a component in the tree with a path
   for (const item of response) {
@@ -259,12 +249,7 @@ function TreeNodeRenderer({
       organization,
       selection,
       mode: Mode.SAMPLES,
-      visualize: [
-        {
-          chartType: ChartType.LINE,
-          yAxes: ['avg(span.duration)'],
-        },
-      ],
+      visualize: [{chartType: ChartType.LINE, yAxes: ['avg(span.duration)']}],
       query: item.query,
     });
   }

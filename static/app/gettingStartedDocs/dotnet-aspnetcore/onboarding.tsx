@@ -6,7 +6,7 @@ import type {
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {logsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
+import {loggerLogsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
 import {metricsVerify} from 'sentry/gettingStartedDocs/dotnet/metrics';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -15,21 +15,21 @@ const getInstallSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.AspNetCore -Version ${getPackageVersion(
   params,
   'sentry.dotnet.aspnetcore',
-  '6.12.1'
+  '7.0.0'
 )}`;
 
 const getInstallSnippetCoreCli = (params: DocsParams) => `
 dotnet add package Sentry.AspNetCore -v ${getPackageVersion(
   params,
   'sentry.dotnet.aspnetcore',
-  '6.12.1'
+  '7.0.0'
 )}`;
 
 const getConfigureSnippet = (params: DocsParams) => `
 var builder = WebApplication.CreateBuilder(args);
 
 // Add the following lines:
-builder.WebHost.UseSentry(o =>
+builder.UseSentry(o =>
 {
     o.Dsn = "${params.dsn.public}";
     // When configuring for the first time, to see what the SDK is doing:
@@ -44,7 +44,7 @@ builder.WebHost.UseSentry(o =>
     }${
       params.isLogsSelected
         ? `
-    // Enable logs to be sent to Sentry
+    // Send ILogger entries to Sentry as logs
     o.EnableLogs = true;`
         : ''
     }
@@ -84,9 +84,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install the [strong:NuGet] package:', {
-            strong: <strong />,
-          }),
+          text: tct('Install the [strong:NuGet] package:', {strong: <strong />}),
         },
         {
           type: 'code',
@@ -113,22 +111,11 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Add Sentry to [code:Program.cs] by calling [code:UseSentry] on [code:builder.WebHost]:',
+            'Add Sentry to [code:Program.cs] by calling [code:UseSentry] on [code:builder]:',
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: getConfigureSnippet(params),
-        },
-        {
-          type: 'text',
-          text: tct(
-            'Keep [code:var app = builder.Build();] on its own line. If you chain [code:.Build()] onto [code:UseSentry(...)], calls like [code:app.MapGet(...)] will not compile.',
-            {code: <code />}
-          ),
-        },
+        {type: 'code', language: 'csharp', code: getConfigureSnippet(params)},
       ],
     },
   ],
@@ -143,11 +130,7 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: getVerifySnippet(),
-        },
+        {type: 'code', language: 'csharp', code: getVerifySnippet()},
         {
           type: 'text',
           text: tct(
@@ -160,7 +143,7 @@ export const onboarding: OnboardingConfig = {
             }
           ),
         },
-        logsVerify(params),
+        loggerLogsVerify(params, 'app.Logger'),
         metricsVerify(params),
       ],
     },
@@ -173,16 +156,10 @@ export const onboarding: OnboardingConfig = {
                 type: 'text',
                 text: tct(
                   'With [code:TracesSampleRate] set, Sentry traces every request automatically. To measure a specific part of a request, add a span inside your endpoint:',
-                  {
-                    code: <code />,
-                  }
+                  {code: <code />}
                 ),
               },
-              {
-                type: 'code',
-                language: 'csharp',
-                code: getPerformanceSpansSnippet(),
-              },
+              {type: 'code', language: 'csharp', code: getPerformanceSpansSnippet()},
             ],
           },
         ] satisfies OnboardingStep[])

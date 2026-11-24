@@ -18,14 +18,14 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {
-  seerCreditChecksQueryKey,
+  seerCreditChecksFilter,
   type SeerCreditDenialReason,
 } from 'sentry/utils/seer/useSeerCreditCheck';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {makeSeerPathname, makeSeerQuery} from 'sentry/views/issueDetails/autofix/utils';
-import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {groupQueryFilter} from 'sentry/views/issueDetails/useGroup';
 import {
   isArtifact,
   isExplorerCodingAgentState,
@@ -199,10 +199,7 @@ interface GithubPrReviewBodyFeedbackSource {
 
 interface CheckSuiteFeedbackSource {
   app_name: string;
-  event: {
-    check_suite: {head_sha: string; id: number};
-    repository: {html_url: string};
-  };
+  event: {check_suite: {head_sha: string; id: number}; repository: {html_url: string}};
   type: 'check-suite';
 }
 
@@ -228,6 +225,7 @@ export interface ExplorerAutofixState {
   /** The saved SeerBillingFeature. Null means the run has no attribution. */
   billing_feature?: number | null;
   coding_agents?: Record<string, ExplorerCodingAgentState>;
+  credit_denial_reason?: SeerCreditDenialReason | null;
   failure_reason?: ExplorerFailureReason | null;
   feature_id?: string | null;
   pending_user_input?: {
@@ -242,11 +240,7 @@ export interface ExplorerAutofixState {
   queued_feedback?: RawFeedback[];
   repo_pr_states?: Record<string, RepoPRState>;
   sentry_run_id?: string | null;
-  warnings?: Array<{
-    warning_type: string;
-    installation_id?: string;
-    repo_name?: string;
-  }>;
+  warnings?: Array<{warning_type: string; installation_id?: string; repo_name?: string}>;
 }
 
 interface PrIterationOutOfCredits {
@@ -287,9 +281,7 @@ export function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
   );
 }
 
-const makeInitialExplorerAutofixData = (): ExplorerAutofixResponse => ({
-  autofix: null,
-});
+const makeInitialExplorerAutofixData = (): ExplorerAutofixResponse => ({autofix: null});
 
 /**
  * Pulls a readable message out of an API error, falling back to `fallback`.
@@ -378,10 +370,7 @@ const makeErrorExplorerAutofixData = (errorMessage: string): ExplorerAutofixResp
     blocks: [
       {
         id: 'error',
-        message: {
-          role: 'assistant',
-          content: `Error: ${errorMessage}`,
-        },
+        message: {role: 'assistant', content: `Error: ${errorMessage}`},
         timestamp: new Date().toISOString(),
         loading: false,
       },
@@ -462,6 +451,10 @@ export interface AutofixSection {
   status: 'processing' | 'completed' | 'error';
   step: string;
   /**
+   * Why billing refused credit, on the section a credit stop ended.
+   */
+  creditDenialReason?: SeerCreditDenialReason | null;
+  /**
    * Why the run stopped, on the section it stopped in.
    */
   failureReason?: ExplorerFailureReason | null;
@@ -500,17 +493,12 @@ function buildSection(
   // (codemode-structured-content-only).
   const artifacts: AutofixArtifact[] = collectArtifacts(blocks);
 
-  const section: AutofixSection = {
-    index,
-    step,
-    blocks,
-    artifacts,
-    status: 'processing',
-  };
+  const section: AutofixSection = {index, step, blocks, artifacts, status: 'processing'};
 
   if (currentStep && runState?.status === 'error') {
     section.status = 'error';
     section.failureReason = runState.failure_reason;
+    section.creditDenialReason = runState.credit_denial_reason;
   } else if (
     (!currentStep && runState?.status !== 'processing') ||
     isLastBlockOfSection(blocks[blocks.length - 1]) ||
@@ -622,6 +610,7 @@ function getSingleRunSections(
   for (const section of sections) {
     if (section.status === 'error') {
       section.failureReason = runState.failure_reason;
+      section.creditDenialReason = runState.credit_denial_reason;
     }
   }
   return sections;
@@ -1020,20 +1009,16 @@ export function useExplorerAutofix(
           getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
             path: {organizationIdOrSlug: orgSlug, issueId: groupId},
           }),
-          {
-            method: 'POST',
-            query: {mode: 'explorer'},
-            data,
-          }
+          {method: 'POST', query: {mode: 'explorer'}, data}
         );
 
         // Invalidate to fetch fresh data
         const invalidation = queryClient.invalidateQueries({
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
-        queryClient.invalidateQueries({
-          queryKey: groupQueryKey({organizationSlug: orgSlug, groupId}),
-        });
+        queryClient.invalidateQueries(
+          groupQueryFilter({organizationSlug: orgSlug, groupId})
+        );
 
         if (step === 'pr_iteration') {
           await invalidation;
@@ -1090,9 +1075,9 @@ export function useExplorerAutofix(
         // undoing the UI they just put into a loading state.
         if (isRunInFlightError(e)) {
           await queryClient.invalidateQueries({queryKey});
-          queryClient.invalidateQueries({
-            queryKey: groupQueryKey({organizationSlug: orgSlug, groupId}),
-          });
+          queryClient.invalidateQueries(
+            groupQueryFilter({organizationSlug: orgSlug, groupId})
+          );
           return {runId: getAutofixRunId(e.responseJSON)!, isSingleRun: false};
         }
 
@@ -1101,9 +1086,7 @@ export function useExplorerAutofix(
         // didn't start. A refused kickoff paints no failed run: the start card
         // offers the CTA instead.
         if (isOutOfCreditsError(e)) {
-          queryClient.invalidateQueries({
-            queryKey: seerCreditChecksQueryKey(organization),
-          });
+          queryClient.invalidateQueries(seerCreditChecksFilter(organization));
           // A refused PR iteration waits on the queue, so show it.
           if (step === 'pr_iteration') {
             queryClient.invalidateQueries({queryKey});
@@ -1165,11 +1148,7 @@ export function useExplorerAutofix(
           getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
             path: {organizationIdOrSlug: orgSlug, issueId: groupId},
           }),
-          {
-            method: 'POST',
-            query: {mode: 'explorer'},
-            data,
-          }
+          {method: 'POST', query: {mode: 'explorer'}, data}
         );
 
         // Invalidate to trigger polling for status updates
@@ -1184,7 +1163,7 @@ export function useExplorerAutofix(
 
         // Recheck every credit check, so the credit gates bring up the
         // out-of-credits CTA and hold their buttons back.
-        queryClient.invalidateQueries({queryKey: seerCreditChecksQueryKey(organization)});
+        queryClient.invalidateQueries(seerCreditChecksFilter(organization));
         // A retry for a repo whose PR exists pushes to it rather than opening one.
         const repoState = repoName
           ? queryClient.getQueryData(explorerAutofixApiOptions(orgSlug, groupId).queryKey)
@@ -1256,11 +1235,7 @@ export function useExplorerAutofix(
           getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
             path: {organizationIdOrSlug: orgSlug, issueId: groupId},
           }),
-          {
-            method: 'POST',
-            query: {mode: 'explorer'},
-            data,
-          }
+          {method: 'POST', query: {mode: 'explorer'}, data}
         );
 
         // Check for failures in the response
