@@ -35,7 +35,7 @@ describe('HatchAreas', () => {
   it('draws stripes behind the data, and a wash with stripes over it', () => {
     const series = new HatchAreas([{start: 1_000, end: 3_000}], config).toSeries();
 
-    expect(series.map(({z}) => z)).toEqual([1, 3]);
+    expect(series.map(({z}) => z)).toEqual([1, 4]);
     for (const item of series) {
       expect(item).toEqual(
         expect.objectContaining({

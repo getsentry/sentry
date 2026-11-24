@@ -125,10 +125,16 @@ export class HatchAreas implements Plottable {
         ...series,
         id: `${this.name}-background`,
         renderItem: this.renderBackground,
-        // Under line, area, and bar series, which default to 2
+        // Under bar series, which default to 2, and line and area series, which default to 3
         z: 1,
       },
-      {...series, id: this.name, renderItem: this.renderForeground, z: 3},
+      {
+        ...series,
+        id: this.name,
+        renderItem: this.renderForeground,
+        // Over line and area series, which default to 3, and under mark lines and points, which default to 5
+        z: 4,
+      },
     ];
   }
 
