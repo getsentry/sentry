@@ -33,8 +33,7 @@ from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.snuba import raw_snql_query
 
-# Number of segments downloaded and decompressed concurrently, and therefore the maximum number
-# of decompressed segments held in memory at once while serving a request.
+# Max number of decompressed segments held in memory at once per request.
 SEGMENT_DOWNLOAD_WINDOW = 4
 
 # METADATA QUERY BEHAVIOR.
@@ -277,10 +276,6 @@ def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[b
 def iter_segment_data(
     segments: list[RecordingSegmentStorageMeta],
 ) -> Generator[tuple[int, memoryview]]:
-    # Download and decompress a small window of segments at a time. Each segment can inflate to
-    # `replay.consumer.max-segment-decompressed-size`, so materializing a whole page (up to 100+
-    # segments) at once would hold gigabytes in a single web worker. Windowing bounds peak memory
-    # by SEGMENT_DOWNLOAD_WINDOW segments regardless of how many are requested.
     with ContextPropagatingThreadPoolExecutor(max_workers=SEGMENT_DOWNLOAD_WINDOW) as pool:
         for start in range(0, len(segments), SEGMENT_DOWNLOAD_WINDOW):
             batch = segments[start : start + SEGMENT_DOWNLOAD_WINDOW]
@@ -315,18 +310,13 @@ def _download_segment(
 
     decompressed = decompress(result)
     if decompressed is None:
-        # Oversized or corrupt segments are served as if the blob were missing.
         return None
     return unpack(decompressed)
 
 
 @traces.trace
 def decompress(buffer: bytes) -> bytes | None:
-    """Return decompressed output, or None if it is oversized or malformed.
-
-    Decompression is bounded by the same limit ingest enforces. Segments stored before that limit
-    existed (or under a higher one) are never inflated past it on read.
-    """
+    """Return decompressed output, or None if it is malformed or exceeds the ingest size limit."""
     # If the file starts with a valid JSON character we assume its uncompressed.
     #
     # Going forward all replays are compressed by Relay regardless of their SDK compression
@@ -335,24 +325,15 @@ def decompress(buffer: bytes) -> bytes | None:
         return buffer
 
     max_size = options.get("replay.consumer.max-segment-decompressed-size")
-
+    decompressor = zlib.decompressobj(zlib.MAX_WBITS | 32)
     try:
-        # Ask for one byte past the limit so an oversized segment is detectable without ever
-        # materializing more than `max_size + 1` bytes.
-        decompressor = zlib.decompressobj(zlib.MAX_WBITS | 32)
+        # One byte past the limit is enough to detect an oversized segment.
         decompressed = decompressor.decompress(buffer, max_size + 1)
     except zlib.error:
-        metrics.incr("replays.reader.segment_dropped", tags={"reason": "invalid"})
-        return None
+        decompressed = b""
 
-    if len(decompressed) > max_size:
-        metrics.incr("replays.reader.segment_dropped", tags={"reason": "oversized"})
+    # `eof` is false for truncated or invalid streams, matching `zlib.decompress` raising.
+    if len(decompressed) > max_size or not decompressor.eof:
+        metrics.incr("replays.reader.segment_dropped")
         return None
-
-    # The incremental API returns partial output where `zlib.decompress` raised on a truncated
-    # stream. Keep rejecting those.
-    if not decompressor.eof:
-        metrics.incr("replays.reader.segment_dropped", tags={"reason": "truncated"})
-        return None
-
     return decompressed
