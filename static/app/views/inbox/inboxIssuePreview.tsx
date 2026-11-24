@@ -5,6 +5,7 @@ import {IconIssues} from '@sentry/icons/issues';
 import {IconSeer} from '@sentry/icons/seer';
 import {useQuery} from '@tanstack/react-query';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tabs} from '@sentry/scraps/tabs';
@@ -35,6 +36,11 @@ import {IssueDetailsContextProvider} from 'sentry/views/issueDetails/context';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/eventDetailsHeader';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import {
+  AssessImpactButton,
+  getAssessedImpact,
+  GroupImpactBadge,
+} from 'sentry/views/issueDetails/groupImpact';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {
   relatedIssuesApiOptions,
@@ -184,13 +190,16 @@ function InboxIssuePreviewHeader({group, project, event}: InboxIssueSectionProps
       </Grid>
       <Flex justify="between" align="center" gap="md" wrap="wrap">
         <GroupActions group={group} project={project} event={event ?? null} />
-        {hasParticipants && (
-          <ParticipantList
-            users={userParticipants}
-            teams={teamParticipants}
-            hideTimestamp
-          />
-        )}
+        <Flex align="center" gap="md">
+          <GroupImpactBadge group={group} />
+          {hasParticipants && (
+            <ParticipantList
+              users={userParticipants}
+              teams={teamParticipants}
+              hideTimestamp
+            />
+          )}
+        </Flex>
       </Flex>
     </Stack>
   );
@@ -242,6 +251,9 @@ function InboxIssueSidebar({group, project, event}: InboxIssueSectionProps) {
           />
         </Flex>
       </SidebarField>
+      <ErrorBoundary mini>
+        <InboxImpactField group={group} />
+      </ErrorBoundary>
       <SidebarField label={t('Priority')}>
         <GroupPriority group={group} />
       </SidebarField>
@@ -257,6 +269,28 @@ function InboxIssueSidebar({group, project, event}: InboxIssueSectionProps) {
         <InboxIssueExternalLinks group={group} event={event} />
       </ErrorBoundary>
     </Stack>
+  );
+}
+
+function InboxImpactField({group}: {group: Group}) {
+  const organization = useOrganization();
+  const hasImpact = getAssessedImpact(group) !== null;
+  const canAssessImpact = organization.features.includes('seer-impact-assessment');
+
+  if (!hasImpact && !canAssessImpact) {
+    return null;
+  }
+
+  return (
+    <SidebarField label={t('Impact')} leadingItems={<FeatureBadge type="alpha" />}>
+      {hasImpact ? (
+        <Flex>
+          <GroupImpactBadge group={group} />
+        </Flex>
+      ) : (
+        <AssessImpactButton group={group} />
+      )}
+    </SidebarField>
   );
 }
 
@@ -440,15 +474,19 @@ interface SidebarFieldProps {
   children: React.ReactNode;
   label: string;
   actions?: React.ReactNode;
+  leadingItems?: React.ReactNode;
 }
 
-function SidebarField({label, actions, children}: SidebarFieldProps) {
+function SidebarField({label, actions, leadingItems, children}: SidebarFieldProps) {
   return (
     <Stack gap="md">
       <Flex justify="between" align="center" gap="md">
-        <Heading as="h3" size="md">
-          {label}
-        </Heading>
+        <Flex align="center" gap="md">
+          {leadingItems}
+          <Heading as="h3" size="md">
+            {label}
+          </Heading>
+        </Flex>
         {actions}
       </Flex>
       <Container>{children}</Container>
