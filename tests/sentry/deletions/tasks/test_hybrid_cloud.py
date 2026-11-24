@@ -4,7 +4,7 @@ import threading
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from operator import itemgetter
-from typing import Any, ClassVar, ContextManager, NotRequired, TypedDict, cast
+from typing import Any, ClassVar, ContextManager, NotRequired, TypedDict
 from unittest.mock import Mock, patch
 
 import pytest
@@ -130,7 +130,7 @@ def reset_watermarks() -> None:
 
 @pytest.fixture
 def project_bookmark_user_id_field() -> HybridCloudForeignKey[int, int]:
-    return cast(HybridCloudForeignKey[int, int], ProjectBookmark._meta.get_field("user_id"))
+    return ProjectBookmark._meta.get_field("user_id")
 
 
 @contextmanager
@@ -312,9 +312,7 @@ def test_write_failure_reaches_the_caller(
 def test_watermark_model_in_monolith_follows_the_field_model_silo(
     project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
 ) -> None:
-    auth_provider_field = cast(
-        HybridCloudForeignKey[int, int], AuthProvider._meta.get_field("organization_id")
-    )
+    auth_provider_field = AuthProvider._meta.get_field("organization_id")
     with assume_test_silo_mode(SiloMode.MONOLITH):
         assert _watermark_model(project_bookmark_user_id_field) is CellDeletionWatermark
         assert _watermark_model(auth_provider_field) is ControlDeletionWatermark
@@ -323,7 +321,7 @@ def test_watermark_model_in_monolith_follows_the_field_model_silo(
 @django_db_all
 @control_silo_test
 def test_write_uses_the_control_table_in_control_silo() -> None:
-    field = cast(HybridCloudForeignKey[int, int], AuthProvider._meta.get_field("organization_id"))
+    field = AuthProvider._meta.get_field("organization_id")
     ControlDeletionWatermark.objects.filter(
         table_name=AuthProvider._meta.db_table, field_name=field.name
     ).delete()
@@ -432,10 +430,7 @@ def test_two_concurrent_reads_create_one_row(
 
 @django_db_all
 def test_empty_model_table_fast_forwards_tombstone_watermark() -> None:
-    field = cast(
-        HybridCloudForeignKey[int, int],
-        DoNothingIntegrationModel._meta.get_field("integration_id"),
-    )
+    field = DoNothingIntegrationModel._meta.get_field("integration_id")
     DoNothingIntegrationModel.objects.all().delete()
     set_watermark("tombstone", field, 0, "abc123")
     set_watermark("row", field, 0, "abc123")
@@ -483,10 +478,7 @@ def test_empty_model_table_fast_forwards_tombstone_watermark() -> None:
 
 @django_db_all
 def test_populated_model_table_does_not_fast_forward() -> None:
-    field = cast(
-        HybridCloudForeignKey[int, int],
-        DoNothingIntegrationModel._meta.get_field("integration_id"),
-    )
+    field = DoNothingIntegrationModel._meta.get_field("integration_id")
     DoNothingIntegrationModel.objects.all().delete()
     DoNothingIntegrationModel.objects.create(integration_id=1)
     set_watermark("tombstone", field, 0, "abc123")
@@ -513,10 +505,7 @@ def test_populated_model_table_does_not_fast_forward() -> None:
 
 @django_db_all
 def test_rows_hidden_by_the_default_manager_are_not_an_empty_table() -> None:
-    field = cast(
-        HybridCloudForeignKey[int, int],
-        FilteredIntegrationModel._meta.get_field("integration_id"),
-    )
+    field = FilteredIntegrationModel._meta.get_field("integration_id")
     FilteredIntegrationModel._base_manager.all().delete()
     FilteredIntegrationModel._base_manager.create(integration_id=1, hidden=True)
     assert not FilteredIntegrationModel.objects.exists()

@@ -40,9 +40,7 @@ export function getBadgeProperties(
     return {
       tagVariant: 'muted',
       status: t('Ongoing'),
-      tooltip: t(
-        'This issue was created more than 7 days ago or has manually been marked as reviewed.'
-      ),
+      tooltip: t('This issue is no longer new, regressed, or escalating.'),
     };
   }
   if (status === 'ignored') {

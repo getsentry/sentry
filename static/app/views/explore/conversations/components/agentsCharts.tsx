@@ -60,6 +60,7 @@ function createGroupedWidget({
     widgetType: WidgetType.SPANS,
     interval,
     limit: 3,
+    legendType: 'breakdown',
     queries: [
       {
         name: '',
@@ -165,7 +166,7 @@ export function AgentsCharts() {
       <Stack gap="sm">
         <AgentsChartsBanner show={showMissingAgentDataBanner} />
         {isChartDataPending ? (
-          <Flex align="center" justify="center" minHeight="240px">
+          <Flex align="center" justify="center" minHeight="400px">
             <LoadingIndicator />
           </Flex>
         ) : (
@@ -178,7 +179,7 @@ export function AgentsCharts() {
             gap="md"
           >
             {widgets.map(widget => (
-              <Container key={widget.id} minHeight="240px" minWidth="0">
+              <Container key={widget.id} minHeight="400px" minWidth="0">
                 <WidgetCard
                   disableFullscreen
                   disableTableActions

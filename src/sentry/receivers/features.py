@@ -430,9 +430,21 @@ def record_save_search_created(
 
 @inbound_filter_toggled.connect(weak=False)
 def record_inbound_filter_toggled(project: Project, **kwargs: object) -> None:
-    FeatureAdoption.objects.record(
-        organization_id=project.organization_id, feature_slug="inbound_filters", complete=True
-    )
+    organization_id = project.organization_id
+
+    # Record after commit so we are guaranteed not to call Redis inside a transaction
+    def on_commit() -> None:
+        try:
+            FeatureAdoption.objects.record(
+                organization_id=organization_id, feature_slug="inbound_filters", complete=True
+            )
+        except Exception:
+            logger.exception(
+                "feature_adoption.inbound_filters_failed",
+                extra={"organization_id": organization_id},
+            )
+
+    transaction.on_commit(on_commit, router.db_for_write(FeatureAdoption))
 
 
 @alert_rule_created.connect(weak=False)

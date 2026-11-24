@@ -1,7 +1,9 @@
 import {Fragment} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 import {useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
+import {LinkButton} from '@sentry/scraps/button';
 import {DateTime} from '@sentry/scraps/dateTime';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Link} from '@sentry/scraps/link';
@@ -17,10 +19,12 @@ import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
+import {getNewServiceAccountUrl, getServiceAccountUrl} from './paths';
 import {serviceAccountsApiOptions} from './serviceAccountApi';
 import {ServiceAccountOwnerKind} from './serviceAccountOwnerKind';
 import {PermissionCount} from './serviceAccountPermissionTable';
 import {ProjectAccessSummary} from './serviceAccountProjectAccess';
+import {NO_WRITE_ACCESS_REASON, useServiceAccountAccess} from './useServiceAccountAccess';
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: 'minmax(0, 2fr)'},
@@ -39,13 +43,26 @@ export default function OrganizationServiceAccounts() {
   });
   const accounts = data?.json ?? [];
 
-  const basePath = `/settings/${organization.slug}/service-accounts/`;
+  const {canWrite} = useServiceAccountAccess();
+
+  const newAccountButton = (
+    <LinkButton
+      variant="primary"
+      icon={<IconAdd />}
+      to={getNewServiceAccountUrl(organization.slug)}
+      disabled={!canWrite}
+      tooltipProps={canWrite ? undefined : {title: NO_WRITE_ACCESS_REASON}}
+    >
+      {t('New Service Account')}
+    </LinkButton>
+  );
 
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Service Accounts')} orgSlug={organization.slug} />
       <SettingsPageHeader
         title={t('Service Accounts')}
+        action={newAccountButton}
         subtitle={t(
           'Non-human accounts for CI, scripts, agents and integrations. Each one has its own permissions and access tokens, and never acts as the person who created it.'
         )}
@@ -74,15 +91,18 @@ export default function OrganizationServiceAccounts() {
             <EmptyState
               title={t('No service accounts yet')}
               description={t(
-                'Service accounts give CI, scripts or agents their own credentials instead of a personal token.'
+                'Create one to give CI, scripts or agents their own credentials instead of a personal token.'
               )}
+              action={newAccountButton}
             />
           </SimpleTable.Empty>
         )}
         {accounts?.map(account => (
           <SimpleTable.Row key={account.id}>
             <SimpleTable.RowCell>
-              <Link to={`${basePath}${account.id}/`}>{account.name}</Link>
+              <Link to={getServiceAccountUrl(organization.slug, account.id)}>
+                {account.name}
+              </Link>
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
               <ServiceAccountOwnerKind ownerKind={account.ownerKind} />

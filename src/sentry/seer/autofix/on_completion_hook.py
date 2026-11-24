@@ -69,7 +69,7 @@ from sentry.seer.autofix.utils import (
     clear_preference_automation_handoff,
     get_automation_handoff,
 )
-from sentry.seer.credits import OUT_OF_CREDITS
+from sentry.seer.credits import OUT_OF_CREDITS, get_run_denial_reason
 from sentry.seer.entrypoints.operator import (
     SeerActivityAttribution,
     SeerAutofixOperator,
@@ -86,6 +86,7 @@ from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import metrics
+from sentry.utils.hashlib import hash_values
 from sentry.viewer_context import get_acting_user_id, get_viewer_context
 
 if TYPE_CHECKING:
@@ -142,6 +143,7 @@ def _pr_failure_reason(state: SeerRunState) -> str:
 
 SingleRunStage = Literal["root_cause", "coding", "pr_created", "pr_failed", "stopped"]
 SINGLE_RUN_ANNOUNCED_STAGES_KEY = "single_run_announced_stages"
+SINGLE_RUN_ROOT_CAUSE_HASH_KEY = "single_run_root_cause_hash"
 # Set once the completion hook has launched a single run's coding agent, so later
 # completions (replies) don't launch it again.
 SINGLE_RUN_HANDED_OFF_KEY = "single_run_handed_off"
@@ -227,7 +229,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 seer_run = SeerRun.objects.get_or_none(
                     organization_id=organization.id, seer_run_state_id=run_id
                 )
-                cls._announce_failure(organization, run_id, group, seer_run, state.failure_reason)
+                cls._announce_failure(
+                    organization, run_id, group, seer_run, state, state.failure_reason
+                )
             return
 
         cls._record_triggered(organization, run_id, group)
@@ -282,7 +286,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         )
         if not cls._run_completed(organization, run_id, state) and not paused:
             if state.status == "error":
-                cls._announce_failure(organization, run_id, group, seer_run, state.failure_reason)
+                cls._announce_failure(
+                    organization, run_id, group, seer_run, state, state.failure_reason
+                )
             return
         if seer_run is None:
             logger.warning(
@@ -328,6 +334,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         with record_run_extras(seer_run) as extras:
             announced = extras.get(SINGLE_RUN_ANNOUNCED_STAGES_KEY) or []
             new_stages = [stage for stage in reached if stage not in announced]
+            if root_cause is not None:
+                root_cause_hash = hash_values([root_cause])
+                previous_hash = extras.get(SINGLE_RUN_ROOT_CAUSE_HASH_KEY, root_cause_hash)
+                if "root_cause" not in new_stages and root_cause_hash != previous_hash:
+                    new_stages.insert(0, "root_cause")
+                extras[SINGLE_RUN_ROOT_CAUSE_HASH_KEY] = root_cause_hash
             extras[SINGLE_RUN_ANNOUNCED_STAGES_KEY] = [*announced, *new_stages]
             hand_off = ready_to_hand_off and not extras.get(SINGLE_RUN_HANDED_OFF_KEY)
             if hand_off:
@@ -395,7 +407,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 continue
             if stage == "pr_failed":
                 cls._announce_failure(
-                    organization, run_id, group, seer_run, _pr_failure_reason(state)
+                    organization, run_id, group, seer_run, state, _pr_failure_reason(state)
                 )
                 continue
             if stage == "root_cause":
@@ -519,8 +531,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         run_id: int,
         group: Group,
         seer_run: SeerRun | None,
+        state: SeerRunState,
         failure_reason: str | None,
     ) -> None:
+        entrypoint_payload: dict[str, object] = {}
+        if failure_reason == OUT_OF_CREDITS:
+            entrypoint_payload["denial_reason"] = get_run_denial_reason(state)
         cls._announce_run_end(
             organization,
             SeerActionType.ERRORED,
@@ -530,6 +546,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 "group_id": group.id,
                 "failure_reason": failure_reason,
             },
+            entrypoint_payload=entrypoint_payload,
         )
 
     @classmethod
@@ -538,6 +555,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         organization: Organization,
         action_type: SeerActionType,
         event_payload: dict[str, object],
+        entrypoint_payload: dict[str, object] | None = None,
     ) -> None:
         """Tells entrypoints and Sentry Apps that the run stopped or errored."""
         event_type = SentryAppEventType(f"seer.{action_type}")
@@ -549,7 +567,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             process_autofix_updates.apply_async(
                 kwargs={
                     "event_type": event_type,
-                    "event_payload": event_payload,
+                    "event_payload": {**event_payload, **(entrypoint_payload or {})},
                     "organization_id": organization.id,
                 }
             )
@@ -659,7 +677,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 # Seer adds one entry per repository before asking the provider to open
                 # a PR. If every request fails, the entries remain but there is no PR.
                 cls._announce_failure(
-                    organization, run_id, group, seer_run, _pr_failure_reason(state)
+                    organization, run_id, group, seer_run, state, _pr_failure_reason(state)
                 )
                 return
 

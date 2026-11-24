@@ -69,7 +69,7 @@ describe('AutofixRepositoriesList', () => {
     name: `repo-${i + 1}`,
   }));
 
-  function mockUnlinkedOrgRepo(slug: string) {
+  function mockUnlinkedOrgRepo(slug: string, integrationId = '301') {
     MockApiClient.addMockResponse({
       url: `/organizations/${slug}/repos/`,
       method: 'GET',
@@ -77,6 +77,7 @@ describe('AutofixRepositoriesList', () => {
         RepositoryFixture({
           id: '99',
           externalId: '999',
+          integrationId,
           name: 'getsentry/relay',
           provider: {id: 'integrations:github', name: 'GitHub'},
         }),
@@ -154,6 +155,36 @@ describe('AutofixRepositoriesList', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Add 1 Repository'}));
 
       expect(addRequest).toHaveBeenCalled();
+    });
+
+    it('disables a repo when it has no integration', async () => {
+      mockRepos(tokenBilledOrganization.slug, [repo]);
+      mockUnlinkedOrgRepo(tokenBilledOrganization.slug, '');
+
+      render(
+        <AutofixRepositoriesList
+          canWrite
+          includeInstructions={false}
+          project={project}
+        />,
+        {organization: tokenBilledOrganization}
+      );
+      renderGlobalModal({organization: tokenBilledOrganization});
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Link Repositories'})
+      );
+      await userEvent.hover(await screen.findByText('getsentry/relay'));
+      expect(
+        await screen.findByText(
+          "Seer can't access this repository without an integration"
+        )
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByText('getsentry/relay'));
+      expect(
+        screen.queryByRole('button', {name: 'Add 1 Repository'})
+      ).not.toBeInTheDocument();
     });
   });
 

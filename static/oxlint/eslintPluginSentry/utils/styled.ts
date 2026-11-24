@@ -20,11 +20,10 @@ export function isCssTaggedTemplate(
 }
 
 export function isStyledOrCssTemplate(
-  node: ESTree.Node | undefined
+  node: ESTree.Node
 ): node is ESTree.TaggedTemplateExpression {
-  if (node?.type !== 'TaggedTemplateExpression') {
-    return false;
-  }
-  const {tag} = node;
-  return tagInvolvesName(tag, 'styled') || tagInvolvesName(tag, 'css');
+  return (
+    node.type === 'TaggedTemplateExpression' &&
+    (tagInvolvesName(node.tag, 'styled') || tagInvolvesName(node.tag, 'css'))
+  );
 }

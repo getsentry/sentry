@@ -30,6 +30,7 @@ from sentry.notifications.platform.types import (
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 from sentry.utils.email.address import get_from_email_domain
 from sentry.utils.email.message_builder import inline_css
+from sentry.utils.email.sanitize import strip_control_chars
 from sentry.utils.email.send import send_messages
 from sentry.web.helpers import render_to_string
 
@@ -56,7 +57,7 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
         if rendered_template.email_subject_prefix is not None:
             subject = f"{rendered_template.email_subject_prefix}{subject}"
         # Avoid BadHeaderError while preserving text from multi-line subjects.
-        subject = " ".join(subject.splitlines())
+        subject = strip_control_chars(" ".join(subject.splitlines()))
         footer_html = mark_safe(
             cls.render_text_blocks_to_html_string(rendered_template.footer_blocks)
         )

@@ -24,8 +24,8 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {
-  getPrIterationOutOfCreditsMessage,
-  OUT_OF_CREDITS_STEP_MESSAGE,
+  getStoppedPRIterationMessage,
+  STOPPED_STEP_MESSAGE,
 } from 'sentry/components/seer/outOfCredits/messages';
 import {useOutOfCreditsRetry} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
 import {t, tn} from 'sentry/locale';
@@ -148,7 +148,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const outOfCredits = autofix.runState?.pr_iteration_out_of_credits;
   const outOfCreditsMessage = outOfCredits
-    ? getPrIterationOutOfCreditsMessage(
+    ? getStoppedPRIterationMessage(
         getPrIterationWaitingAction(autofix.runState),
         autofix.runState?.queued_feedback?.length ?? 0,
         outOfCredits.denial_reason
@@ -385,7 +385,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       <Fragment>
         <ArtifactPartialDetails blocks={currentStepBlocks} />
         {patchesByRepo.size > 0 && diffDetails}
-        <OutOfCreditsStatus message={OUT_OF_CREDITS_STEP_MESSAGE[stoppedStep]}>
+        <OutOfCreditsStatus message={STOPPED_STEP_MESSAGE[stoppedStep]}>
           {retry}
         </OutOfCreditsStatus>
       </Fragment>

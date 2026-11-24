@@ -202,11 +202,7 @@ describe('WidgetBuilderGroupBySelector', () => {
     expect(optionRow(await screen.findByText('my_number'))).toHaveTextContent('number');
   });
 
-  it('disables group by selector when transaction widget type and discover-saved-queries-deprecation feature flag', async () => {
-    const organizationWithFeature = OrganizationFixture({
-      features: ['discover-saved-queries-deprecation'],
-    });
-
+  it('disables group by selector for transaction widgets', async () => {
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderGroupBySelector />
@@ -219,7 +215,7 @@ describe('WidgetBuilderGroupBySelector', () => {
             query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
           },
         },
-        organization: organizationWithFeature,
+        organization,
       }
     );
 
@@ -229,36 +225,7 @@ describe('WidgetBuilderGroupBySelector', () => {
     expect(await screen.findByRole('button', {name: 'Select group'})).toBeDisabled();
   });
 
-  it('enables group by selector when transaction widget type but no discover-saved-queries-deprecation feature flag', async () => {
-    const organizationWithoutFeature = OrganizationFixture({features: []});
-
-    render(
-      <WidgetBuilderProvider>
-        <WidgetBuilderGroupBySelector />
-      </WidgetBuilderProvider>,
-      {
-        initialRouterConfig: {
-          route: '/organizations/:orgId/dashboard/:dashboardId/',
-          location: {
-            pathname: '/organizations/org-slug/dashboard/1/',
-            query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
-          },
-        },
-        organization: organizationWithoutFeature,
-      }
-    );
-
-    const addGroupButton = await screen.findByRole('button', {name: 'Add Group'});
-    expect(addGroupButton).toBeEnabled();
-
-    expect(await screen.findByRole('button', {name: 'Select group'})).toBeEnabled();
-  });
-
-  it('enables group by selector when discover-saved-queries-deprecation feature flag but not transaction widget type', async () => {
-    const organizationWithFeature = OrganizationFixture({
-      features: ['discover-saved-queries-deprecation'],
-    });
-
+  it('enables group by selector for non-transaction widgets', async () => {
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderGroupBySelector />
@@ -271,7 +238,7 @@ describe('WidgetBuilderGroupBySelector', () => {
             query: {dataset: WidgetType.ERRORS, displayType: DisplayType.LINE},
           },
         },
-        organization: organizationWithFeature,
+        organization,
       }
     );
 

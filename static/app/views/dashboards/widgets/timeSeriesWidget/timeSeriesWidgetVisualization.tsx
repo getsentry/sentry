@@ -45,10 +45,10 @@ import {escape} from 'sentry/utils';
 import {getUserTimezone} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
+import {mergeTimeRanges} from 'sentry/utils/timeSeries/mergeTimeRanges';
 import type {TimeSeriesSegmentField} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
@@ -70,6 +70,7 @@ import {
   ContinuousTimeSeries,
   isLowConfidenceDataPoint,
 } from './plottables/continuousTimeSeries';
+import {HatchAreas} from './plottables/hatchAreas';
 import type {Plottable} from './plottables/plottable';
 import {assignPlottablesToYAxes} from './assignPlottablesToYAxes';
 import {createReleaseSeriesOptions} from './createReleaseSeriesOptions';
@@ -160,6 +161,13 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
   renderTooltipSeriesDetails?: (seriesNames: string[], timestamp: number) => string;
 
   /**
+   * Marks low-confidence buckets on the plot and in the tooltip.
+   *
+   * Default: `false`
+   */
+  showConfidence?: boolean;
+
+  /**
    * Defines the legend's visibility.
    *
    * - `auto`: Show the legend if there are multiple series.
@@ -219,10 +227,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // have the same difference in `timestamp`s) even though this is rare, since
   // the backend zerofills the data
 
-  const organization = useOrganization({allowNull: true});
-  const segmentBy: readonly TimeSeriesSegmentField[] = organization?.features.includes(
-    'data-browsing-time-series-confidence'
-  )
+  const segmentBy: readonly TimeSeriesSegmentField[] = props.showConfidence
     ? ['completeness', 'confidence']
     : ['completeness'];
 
@@ -518,7 +523,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   });
   const annotationMarkers = useAnnotationMarkers({
     buckets: bandBuckets,
+    chartRef,
     items: props.annotations,
+    utc,
   });
   const annotationMarkerSeries = annotationMarkers
     ? {...annotationMarkers, yAxisIndex: yAxes.length}
@@ -653,6 +660,34 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const thresholdMaxOffset = 10;
 
+  const lowConfidenceAreas = segmentBy.includes('confidence')
+    ? new HatchAreas(
+        mergeTimeRanges(
+          props.plottables
+            // Series hidden from the legend don't mark their low confidence data
+            .filter(plottable => !showLegend || legendSelection[plottable.name] !== false)
+            .flatMap(plottable =>
+              plottable instanceof ContinuousTimeSeries
+                ? plottable.lowConfidenceRanges
+                : []
+            )
+        ),
+        {
+          name: LOW_CONFIDENCE_AREAS_NAME,
+          color: theme.tokens.background.tertiary,
+          // The first plottable's type always gets the left axis
+          dataType: props.plottables[0]?.dataType ?? FALLBACK_TYPE,
+        }
+      )
+    : null;
+
+  // Plottables the chart creates itself go last, so they stay out of the
+  // legend and the Y axis assignment, which only read `props.plottables`
+  const plottables: Plottable[] =
+    lowConfidenceAreas && !lowConfidenceAreas.isEmpty
+      ? [...props.plottables, lowConfidenceAreas]
+      : props.plottables;
+
   // Keep track of which `Series[]` indexes correspond to which `Plottable` so
   // we can look up the types in the tooltip. We need this so we can find the
   // plottable responsible for a given value in the tooltip formatter. The only
@@ -662,10 +697,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   let seriesIndex = 0;
   const seriesIndexToPlottableMapRanges: Array<Range<Plottable>> = [];
 
+  const dataBounds =
+    defined(earliestTimeStamp) && defined(latestTimeStamp)
+      ? {start: earliestTimeStamp, end: latestTimeStamp}
+      : undefined;
+
   // Keep track of what color in the chosen palette we're assigning
   let seriesColorIndex = 0;
   const seriesFromPlottables: SeriesOption[] = [];
-  for (const plottable of props.plottables) {
+  for (const plottable of plottables) {
     let color: string | undefined;
 
     if (plottable.needsColor) {
@@ -682,6 +722,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       segmentBy,
       theme,
       maxOffset: thresholdMaxOffset,
+      bounds: dataBounds,
     });
 
     seriesIndexToPlottableMapRanges.push({
@@ -910,6 +951,8 @@ function getBandBuckets(plottables: Plottable[]): BandBucket[] {
     .map(({timestamp}) => ({start: timestamp, end: timestamp + meta.interval}))
     .toSorted((a, b) => a.start - b.start);
 }
+
+export const LOW_CONFIDENCE_AREAS_NAME = '__low_confidence__';
 
 // Hide every part of the axis so ECharts will remove those elements and also
 const X_AXIS_SPLIT_NUMBER = 10;
