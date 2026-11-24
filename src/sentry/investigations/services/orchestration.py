@@ -51,6 +51,7 @@ from sentry.notebooks.services.notebooks import (
 from sentry.users.services.user.service import user_service
 from sentry.utils.hashlib import hash_values
 from sentry.viewer_context import ActorId, ActorType
+from sentry.workflow_engine.types import DetectorId
 
 logger = logging.getLogger(__name__)
 
@@ -564,7 +565,7 @@ def create_agentic_manual_investigation(
     )
 
 
-def agentic_detector_source_key(detector_id: int, fingerprint: Sequence[str]) -> str:
+def agentic_detector_source_key(detector_id: DetectorId, fingerprint: Sequence[str]) -> str:
     # Hashed: stateful fingerprints embed the group key, which has no length bound.
     return f"{NotebookSourceType.DETECTOR}:{detector_id}:{hash_values(fingerprint)}"
 
@@ -575,7 +576,7 @@ def create_agentic_detector_investigation(
     creator: ActorId,
     title: str | None,
     source: dict[str, Any],
-    detector_id: int,
+    detector_id: DetectorId,
     fingerprint: Sequence[str],
     project_ids: list[int],
 ) -> tuple[Notebook, bool]:

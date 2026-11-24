@@ -12,6 +12,7 @@ from sentry.taskworker.namespaces import workflow_engine_tasks
 from sentry.utils import metrics
 from sentry.viewer_context import ActorId, ActorType
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.types import DetectorId
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ def record_investigation_skipped(detector_type: str, reason: SkipReason) -> None
     silo_mode=SiloMode.CELL,
 )
 def create_detector_investigation(
-    detector_id: int,
+    detector_id: DetectorId,
     detector_type: str,
     service_account_id: int,
     title: str,
