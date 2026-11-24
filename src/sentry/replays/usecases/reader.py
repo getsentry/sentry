@@ -23,13 +23,19 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry import options
 from sentry.models.files.file import File
 from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, filestore, storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.pack import unpack
+from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.snuba import raw_snql_query
+
+# Number of segments downloaded and decompressed concurrently, and therefore the maximum number
+# of decompressed segments held in memory at once while serving a request.
+SEGMENT_DOWNLOAD_WINDOW = 4
 
 # METADATA QUERY BEHAVIOR.
 
@@ -271,14 +277,18 @@ def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[b
 def iter_segment_data(
     segments: list[RecordingSegmentStorageMeta],
 ) -> Generator[tuple[int, memoryview]]:
-    with ContextPropagatingThreadPoolExecutor(max_workers=10) as pool:
-        segment_data = pool.map(_download_segment, segments)
-
-    for i, result in enumerate(segment_data):
-        if result is None:
-            yield i, memoryview(b"[]")
-        else:
-            yield i, result[1]
+    # Download and decompress a small window of segments at a time. Each segment can inflate to
+    # `replay.consumer.max-segment-decompressed-size`, so materializing a whole page (up to 100+
+    # segments) at once would hold gigabytes in a single web worker. Windowing bounds peak memory
+    # by SEGMENT_DOWNLOAD_WINDOW segments regardless of how many are requested.
+    with ContextPropagatingThreadPoolExecutor(max_workers=SEGMENT_DOWNLOAD_WINDOW) as pool:
+        for start in range(0, len(segments), SEGMENT_DOWNLOAD_WINDOW):
+            batch = segments[start : start + SEGMENT_DOWNLOAD_WINDOW]
+            for offset, result in enumerate(pool.map(_download_segment, batch)):
+                if result is None:
+                    yield start + offset, memoryview(b"[]")
+                else:
+                    yield start + offset, result[1]
 
 
 def download_segment(segment: RecordingSegmentStorageMeta, span: Any) -> bytes:
@@ -304,12 +314,19 @@ def _download_segment(
         return None
 
     decompressed = decompress(result)
+    if decompressed is None:
+        # Oversized or corrupt segments are served as if the blob were missing.
+        return None
     return unpack(decompressed)
 
 
 @traces.trace
-def decompress(buffer: bytes) -> bytes:
-    """Return decompressed output."""
+def decompress(buffer: bytes) -> bytes | None:
+    """Return decompressed output, or None if it is oversized or malformed.
+
+    Decompression is bounded by the same limit ingest enforces. Segments stored before that limit
+    existed (or under a higher one) are never inflated past it on read.
+    """
     # If the file starts with a valid JSON character we assume its uncompressed.
     #
     # Going forward all replays are compressed by Relay regardless of their SDK compression
@@ -317,4 +334,25 @@ def decompress(buffer: bytes) -> bytes:
     if buffer.startswith(b"["):
         return buffer
 
-    return zlib.decompress(buffer, zlib.MAX_WBITS | 32)
+    max_size = options.get("replay.consumer.max-segment-decompressed-size")
+
+    try:
+        # Ask for one byte past the limit so an oversized segment is detectable without ever
+        # materializing more than `max_size + 1` bytes.
+        decompressor = zlib.decompressobj(zlib.MAX_WBITS | 32)
+        decompressed = decompressor.decompress(buffer, max_size + 1)
+    except zlib.error:
+        metrics.incr("replays.reader.segment_dropped", tags={"reason": "invalid"})
+        return None
+
+    if len(decompressed) > max_size:
+        metrics.incr("replays.reader.segment_dropped", tags={"reason": "oversized"})
+        return None
+
+    # The incremental API returns partial output where `zlib.decompress` raised on a truncated
+    # stream. Keep rejecting those.
+    if not decompressor.eof:
+        metrics.incr("replays.reader.segment_dropped", tags={"reason": "truncated"})
+        return None
+
+    return decompressed
