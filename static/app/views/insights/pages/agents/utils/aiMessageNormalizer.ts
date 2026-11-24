@@ -82,6 +82,20 @@ export function normalizeToMessages(
 }
 
 /**
+ * Returns the role of every message in an AI attribute value, including the
+ * messages `normalizeToMessages` drops because they have no text to render,
+ * such as an assistant message that only requests tool calls.
+ */
+export function getMessageRoles(
+  raw: string,
+  {defaultRole}: {defaultRole: string}
+): string[] {
+  return rawMessagesFromAttribute(raw, defaultRole).messages.map(
+    msg => msg.role ?? defaultRole
+  );
+}
+
+/**
  * Extracts assistant output from AI attribute values, splitting it into
  * response text, structured objects, and tool calls.
  *

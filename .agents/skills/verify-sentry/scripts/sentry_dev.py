@@ -47,7 +47,6 @@ FLAGS = {
     "agentic": "organizations:onboarding-agentic-setup",
     "messaging": "organizations:onboarding-scm-messaging-experiment",
     "scm-project-creation": "organizations:onboarding-scm-project-creation",
-    "scm": "organizations:onboarding-scm",
 }
 DEFAULT_FLAGS = "agentic,scm-project-creation"
 # SaaS plans grant these. Without them the onboarding product toggles render disabled.

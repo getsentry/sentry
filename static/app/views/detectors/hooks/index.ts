@@ -9,6 +9,7 @@ import {
   type BaseDetectorUpdatePayload,
   type Detector,
   type IssueStreamDetector,
+  type MetricDetector,
   type UptimeDetector,
 } from 'sentry/types/workflowEngine/detectors';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -19,6 +20,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface DetectorTypeMap {
   issue_stream: IssueStreamDetector;
+  metric_issue: MetricDetector;
   uptime: UptimeDetector;
 }
 

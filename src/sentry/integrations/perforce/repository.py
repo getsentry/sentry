@@ -14,12 +14,12 @@ from sentry.integrations.perforce.client import (
 )
 from sentry.integrations.perforce.integration import PerforceIntegration
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.repository_reconciliation import RepositoryConfig
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.plugins.providers.integration_repository import RepositoryConfig
 from sentry.shared_integrations.exceptions import IntegrationError
 
 logger = logging.getLogger(__name__)

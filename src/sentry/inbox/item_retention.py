@@ -27,9 +27,9 @@ def cleanup_inbox_items(*, organization_id: int, user_id: int) -> None:
         organization_id=organization_id, user_id=user_id, status=ObjectStatus.ACTIVE
     )
     overflow = list(
-        items.order_by("-last_activity_at", "-id")[
-            MAX_ITEMS_PER_INBOX : MAX_ITEMS_PER_INBOX + ITEM_BATCH_SIZE
-        ]
+        items.order_by("-last_activity_at", "-id").values_list(
+            "id", "last_activity_at", named=True
+        )[MAX_ITEMS_PER_INBOX : MAX_ITEMS_PER_INBOX + ITEM_BATCH_SIZE]
     )
     if not overflow:
         return

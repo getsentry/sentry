@@ -82,6 +82,7 @@ from sentry.seer.autofix.single_run import (
 )
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.credits import OUT_OF_CREDITS
 from sentry.seer.milestones import reconcile_milestones
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
 from sentry.seer.models.run import SeerRun, SeerRunMilestone, SeerRunMilestoneType
@@ -1573,6 +1574,28 @@ class TestPrIterationCompletionHook(TestCase):
         ) == OutOfCreditsMarker(stranded_action=StrandedAction.PUSH)
         mock_push.assert_not_called()
 
+    @patch(f"{COMPLETION_PATH}.trigger_push_changes")
+    def test_a_seer_push_that_hit_the_daily_limit_records_the_reason(
+        self, mock_push: MagicMock
+    ) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        state = self._unsynced()
+        repo_state = state.repo_pr_states["test-repo"]
+        repo_state.pr_creation_status = "error"
+        # Seer reports every credit refusal as out_of_credits; the denial reason says which.
+        repo_state.pr_creation_error_code = OUT_OF_CREDITS
+        repo_state.credit_denial_reason = "daily_cap_exceeded"
+
+        continue_pr_iteration(
+            self.organization, self.group, 123, state, AutofixReferrer.ON_COMPLETION_HOOK
+        )
+
+        assert get_out_of_credits(
+            run_id=123, organization_id=self.organization.id
+        ) == OutOfCreditsMarker(
+            stranded_action=StrandedAction.PUSH, denial_reason="daily_cap_exceeded"
+        )
+
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
     def test_a_single_run_seer_push_that_ran_out_of_credits_marks_the_run_without_a_push(
@@ -1712,6 +1735,24 @@ class TestFailedRunCompletionHook(TestCase):
         assert get_out_of_credits(
             run_id=123, organization_id=self.organization.id
         ) == OutOfCreditsMarker(stranded_action=None)
+
+    @patch(f"{HOOK_PATH}.fetch_run_status")
+    def test_a_seer_iteration_that_hit_the_daily_limit_records_the_reason(
+        self, mock_fetch: MagicMock
+    ) -> None:
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123, user_id=self.user.id
+        )
+        # Seer reports every credit refusal as out_of_credits; the denial reason says which.
+        state = self._errored([pr_iteration_memory_block()], failure_reason=OUT_OF_CREDITS)
+        state.credit_denial_reason = "daily_cap_exceeded"
+        mock_fetch.return_value = state
+
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        assert get_out_of_credits(
+            run_id=123, organization_id=self.organization.id
+        ) == OutOfCreditsMarker(stranded_action=None, denial_reason="daily_cap_exceeded")
 
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
@@ -3093,7 +3134,8 @@ class TestSingleRunRootCause(TestCase):
 
         assert single_run_root_cause_payload(state) == {
             "headline": "H",
-            "one_line_description": "C",
+            "cause": "C",
+            "one_line_description": "H",
             "five_whys": [],
             "reproduction_steps": [],
         }
@@ -3230,7 +3272,9 @@ class TestSingleRunCompletion(TestCase):
 
         assert self._events(mocks) == ["root_cause_completed"]
         payload = mocks["broadcast"].call_args.kwargs["payload"]
-        assert payload["root_cause"]["one_line_description"] == "C"
+        assert payload["root_cause"]["headline"] == "H"
+        assert payload["root_cause"]["cause"] == "C"
+        assert payload["root_cause"]["one_line_description"] == "H"
         assert Activity.objects.filter(
             group=self.group, type=ActivityType.SEER_RCA_COMPLETED.value
         ).exists()
@@ -3281,7 +3325,7 @@ class TestSingleRunCompletion(TestCase):
 
         assert self._events(mocks) == ["root_cause_completed"]
         payload = mocks["broadcast"].call_args.kwargs["payload"]
-        assert payload["root_cause"]["one_line_description"] == "C2"
+        assert payload["root_cause"]["cause"] == "C2"
 
     def test_root_cause_announced_before_hashing_is_not_announced_again(self) -> None:
         SeerRun.objects.filter(id=self.seer_run.id).update(

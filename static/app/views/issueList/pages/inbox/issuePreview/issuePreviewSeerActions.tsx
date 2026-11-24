@@ -29,6 +29,7 @@ import {
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
+import {PeekingBug} from 'sentry/components/peekingBug/peekingBug';
 import {Placeholder} from 'sentry/components/placeholder';
 import {getStoppedPRMessage} from 'sentry/components/seer/outOfCredits/messages';
 import {useOutOfCreditsRetry} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
@@ -304,21 +305,23 @@ function SeerActionButton({
 
   if (!runState) {
     return (
-      <RunSeerActionButton
-        action={() => autofix.startStep('root_cause')}
-        analyticsAction="root_cause"
-        analyticsEventKey="issue_inbox.start_fix_clicked"
-        analyticsEventName="Issue Inbox: Start Fix Clicked"
-        autofix={autofix}
-        creditsDisabled={creditsDisabled}
-        disabled={disabled}
-        group={group}
-        icon={<IconBug data-test-id="autofix-root-cause-icon" />}
-        label={t('Find Root Cause')}
-        onContinueInSeer={onContinueInSeer}
-        variant={variant}
-        waiting={isWaitingForRun}
-      />
+      <PeekingBug>
+        <RunSeerActionButton
+          action={() => autofix.startStep('root_cause')}
+          analyticsAction="root_cause"
+          analyticsEventKey="issue_inbox.start_fix_clicked"
+          analyticsEventName="Issue Inbox: Start Fix Clicked"
+          autofix={autofix}
+          creditsDisabled={creditsDisabled}
+          disabled={disabled}
+          group={group}
+          icon={<IconBug data-test-id="autofix-root-cause-icon" />}
+          label={t('Find Root Cause')}
+          onContinueInSeer={onContinueInSeer}
+          variant={variant}
+          waiting={isWaitingForRun}
+        />
+      </PeekingBug>
     );
   }
 

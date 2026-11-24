@@ -56,10 +56,9 @@ class OrganizationAgentHandoffTest(APITestCase):
         code = response.data["code"]
         assert code.startswith("sntryh_")
         assert response.data["prompt"] == (
-            f"Follow the instructions verbatim at {response.data['guideUrl']}. "
-            f"Your handoff code is `{code}`."
+            f"Read and follow {response.data['guideUrl']} verbatim. Your handoff code is `{code}`."
         )
-        record = consume_handoff(code, ip_address="127.0.0.1")
+        record = consume_handoff(code)
         assert record is not None
         assert record.handoff_id == response.data["handoffId"]
         assert record.flow is HandoffFlow.GUIDED_NEXT_STEPS
@@ -77,7 +76,7 @@ class OrganizationAgentHandoffTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug, flow="guided_next_steps", status_code=201
         )
-        handoff = consume_handoff(response.data["code"], ip_address="127.0.0.1")
+        handoff = consume_handoff(response.data["code"])
         assert handoff is not None
         assert handoff.flow is HandoffFlow.GUIDED_NEXT_STEPS
 
@@ -95,7 +94,7 @@ class OrganizationAgentHandoffTest(APITestCase):
         validate.assert_called_once_with(
             organization_id=self.organization.id, user_id=self.user.id, run_id="a" * 32
         )
-        handoff = consume_handoff(response.data["code"], ip_address="127.0.0.1")
+        handoff = consume_handoff(response.data["code"])
         assert handoff is not None
         assert handoff.flow is HandoffFlow.ONBOARDING
         assert handoff.context == ProjectSetupContext(run_id="a" * 32)
@@ -120,7 +119,7 @@ class OrganizationAgentHandoffTest(APITestCase):
                 user_id=self.user.id,
                 organization_id=self.organization.id,
                 flow=HandoffFlow.ONBOARDING.value,
-                ip_pinning=False,
+                ip_pinning=True,
             ),
         )
 
@@ -149,7 +148,7 @@ class OrganizationAgentHandoffTest(APITestCase):
                 context={"runId": "a" * 32},
                 status_code=201,
             )
-        handoff = consume_handoff(response.data["code"], ip_address="127.0.0.1")
+        handoff = consume_handoff(response.data["code"])
         assert handoff is not None
         assert handoff.flow is HandoffFlow.CREATE_PROJECT
         assert handoff.context == ProjectSetupContext(run_id="a" * 32)
@@ -289,18 +288,18 @@ class OrganizationAgentHandoffTest(APITestCase):
             ipAddress="192.0.2.2",
             status_code=201,
         )
-        handoff = consume_handoff(response.data["code"], ip_address="192.0.2.1")
+        handoff = consume_handoff(response.data["code"])
         assert handoff is not None
         assert handoff.ip_address == "192.0.2.1"
 
-    def test_disable_ip_pinning(self) -> None:
+    def test_accepts_legacy_ip_pinning_option(self) -> None:
         response = self.get_success_response(
             self.organization.slug, disableIpPinning=True, status_code=201
         )
-        handoff = consume_handoff(response.data["code"], ip_address="192.0.2.2")
+        handoff = consume_handoff(response.data["code"])
         assert handoff is not None
         assert handoff.ip_address == "127.0.0.1"
-        assert handoff.disable_ip_pinning
+        assert not handoff.disable_ip_pinning
 
     def test_rejects_invalid_disable_ip_pinning(self) -> None:
         response = self.get_error_response(
@@ -319,11 +318,15 @@ class OrganizationAgentHandoffTest(APITestCase):
                 context={"product": "tracing", "projectId": str(42)},
                 status_code=201,
             )
-        handoff = consume_handoff(response.data["code"], ip_address="127.0.0.1")
+        handoff = consume_handoff(response.data["code"])
         assert handoff is not None
         assert handoff.flow is HandoffFlow.ADD_FEATURE
         assert handoff.context == AddFeatureContext(
             product=AddFeatureProduct.TRACING, project_id=42
+        )
+        assert response.data["prompt"] == (
+            f"Read and follow {response.data['guideUrl']} verbatim to set up tracing. "
+            f"Your handoff code is `{response.data['code']}`."
         )
 
     def test_add_feature_rejects_unavailable_project(self) -> None:

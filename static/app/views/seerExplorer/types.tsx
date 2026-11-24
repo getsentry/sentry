@@ -2,6 +2,7 @@ import {z} from 'zod';
 
 import {isFilePatch, type FilePatch} from 'sentry/components/events/autofix/types';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
+import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
 
 /**
  * Where the Seer Explorer sidebar docks. `auto` picks right/bottom based on
@@ -29,6 +30,10 @@ const explorerFilePatchSchema = z.object({
 const repoPRStateSchema = z.object({
   branch_name: z.string().nullable(),
   commit_sha: z.string().nullable(),
+  credit_denial_reason: zLooseEnum([
+    'not_enough_credits',
+    'daily_cap_exceeded',
+  ]).nullish(),
   pr_creation_error: z.string().nullable(),
   pr_creation_error_code: z.string().nullish(),
   pr_creation_status: zLooseEnum(['creating', 'completed', 'error']).nullable(),
@@ -298,6 +303,7 @@ export type SeerExplorerResponse = {
     status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
     updated_at: string;
     blocks?: Block[];
+    credit_denial_reason?: SeerCreditDenialReason | null;
     failure_reason?: ExplorerFailureReason | null;
     owner_user_id?: number | null;
     pending_user_input?: PendingUserInput | null;

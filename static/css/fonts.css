@@ -5,6 +5,9 @@
   font-family: 'Rubik';
   font-style: normal;
   font-weight: 400 600;
+  ascent-override: 93.5%;
+  descent-override: 23%;
+  line-gap-override: 0%;
   font-display: swap;
   src: url('sentry-fonts/rubik-variable.woff2') format('woff2');
   unicode-range:
@@ -17,6 +20,9 @@
   font-family: 'Rubik';
   font-style: normal;
   font-weight: 400 600;
+  ascent-override: 93.5%;
+  descent-override: 23%;
+  line-gap-override: 0%;
   font-display: swap;
   src: url('sentry-fonts/rubik-variable-latin-ext.woff2') format('woff2');
   unicode-range:
@@ -29,6 +35,9 @@
   font-family: 'Rubik';
   font-style: normal;
   font-weight: 400 600;
+  ascent-override: 93.5%;
+  descent-override: 23%;
+  line-gap-override: 0%;
   font-display: swap;
   src: url('sentry-fonts/rubik-variable-cyrillic.woff2') format('woff2');
   unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
@@ -39,6 +48,9 @@
   font-family: 'Rubik';
   font-style: normal;
   font-weight: 400 600;
+  ascent-override: 93.5%;
+  descent-override: 23%;
+  line-gap-override: 0%;
   font-display: swap;
   src: url('sentry-fonts/rubik-variable-cyrillic-ext.woff2') format('woff2');
   unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
@@ -51,6 +63,10 @@
   font-family: 'Roboto Mono';
   font-style: normal;
   font-weight: 425 600;
+  size-adjust: 98.46154%;
+  ascent-override: 94.96094%;
+  descent-override: 23.35938%;
+  line-gap-override: 0%;
   font-display: swap;
   src: url('sentry-fonts/roboto-mono-variable.woff2') format('woff2');
   unicode-range:
@@ -64,6 +80,10 @@
   font-family: 'Roboto Mono';
   font-style: normal;
   font-weight: 425 600;
+  size-adjust: 98.46154%;
+  ascent-override: 94.96094%;
+  descent-override: 23.35938%;
+  line-gap-override: 0%;
   font-display: swap;
   src: url('sentry-fonts/roboto-mono-variable-latin-ext.woff2') format('woff2');
   unicode-range:
@@ -76,6 +96,10 @@
   font-family: 'Roboto Mono';
   font-style: normal;
   font-weight: 425 600;
+  size-adjust: 98.46154%;
+  ascent-override: 94.96094%;
+  descent-override: 23.35938%;
+  line-gap-override: 0%;
   font-display: swap;
   src: url('sentry-fonts/roboto-mono-variable-vietnamese.woff2') format('woff2');
   unicode-range:
@@ -88,6 +112,10 @@
   font-family: 'Roboto Mono';
   font-style: normal;
   font-weight: 425 600;
+  size-adjust: 98.46154%;
+  ascent-override: 94.96094%;
+  descent-override: 23.35938%;
+  line-gap-override: 0%;
   font-display: swap;
   src: url('sentry-fonts/roboto-mono-variable-greek.woff2') format('woff2');
   unicode-range: U+0370-03FF;
@@ -98,6 +126,10 @@
   font-family: 'Roboto Mono';
   font-style: normal;
   font-weight: 425 600;
+  size-adjust: 98.46154%;
+  ascent-override: 94.96094%;
+  descent-override: 23.35938%;
+  line-gap-override: 0%;
   font-display: swap;
   src: url('sentry-fonts/roboto-mono-variable-cyrillic.woff2') format('woff2');
   unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
@@ -108,9 +140,81 @@
   font-family: 'Roboto Mono';
   font-style: normal;
   font-weight: 425 600;
+  size-adjust: 98.46154%;
+  ascent-override: 94.96094%;
+  descent-override: 23.35938%;
+  line-gap-override: 0%;
   font-display: swap;
   src: url('sentry-fonts/roboto-mono-variable-cyrillic-ext.woff2') format('woff2');
   unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+
+/* Local fallbacks with the same line metrics as Rubik and Roboto Mono. */
+
+@font-face {
+  font-family: 'Rubik Arial';
+  font-style: normal;
+  font-weight: 400 499;
+  src: local('ArialMT'), local('Arial');
+  size-adjust: 103.18287%;
+  ascent-override: 90.61582%;
+  descent-override: 22.29052%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Rubik Arial';
+  font-style: normal;
+  font-weight: 500 599;
+  src: local('ArialMT'), local('Arial');
+  size-adjust: 106.80257%;
+  ascent-override: 87.54471%;
+  descent-override: 21.53506%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Rubik Arial';
+  font-style: normal;
+  font-weight: 600 700;
+  src: local('Arial-BoldMT'), local('Arial Bold');
+  size-adjust: 100.15483%;
+  ascent-override: 93.35546%;
+  descent-override: 22.96444%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Roboto Mono Andale';
+  font-style: normal;
+  font-weight: 400;
+  src: local('AndaleMono'), local('Andale Mono');
+  size-adjust: 98.46154%;
+  ascent-override: 94.96094%;
+  descent-override: 23.35938%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Roboto Mono Courier';
+  font-style: normal;
+  font-weight: 400 500;
+  src: local('CourierNewPSMT'), local('Courier New');
+  size-adjust: 98.46154%;
+  ascent-override: 94.96094%;
+  descent-override: 23.35938%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Roboto Mono Courier';
+  font-style: normal;
+  font-weight: 501 700;
+  src: local('CourierNewPS-BoldMT'), local('Courier New Bold');
+  size-adjust: 98.46154%;
+  ascent-override: 94.96094%;
+  descent-override: 23.35938%;
+  line-gap-override: 0%;
 }
 
 /* Sentry icon font */

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from enum import StrEnum
 from typing import Literal, get_args
 
@@ -15,7 +15,7 @@ from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_se
 
 from sentry import features, seer_credit
 from sentry.models.organization import Organization
-from sentry.seer.agent.client_models import SeerRunState
+from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 
 # Seer's failure_reason and pr_creation_error_code when the org ran out of credits.
 OUT_OF_CREDITS = "out_of_credits"
@@ -102,9 +102,18 @@ def get_denial_reason(response: CheckSeerCreditsResponse) -> SeerCreditDenialRea
     return _DENIAL_REASONS.get(response.denial_reason)
 
 
+def _first_known_denial_reason(reasons: Iterable[str | None]) -> SeerCreditDenialReason | None:
+    known = (_RUN_DENIAL_REASONS.get(reason or "") for reason in reasons)
+    return next((reason for reason in known if reason), None)
+
+
 def get_run_denial_reason(state: SeerRunState) -> SeerCreditDenialReason | None:
     """Why billing refused credit for the run or, failing that, for one of its PR pushes."""
     reasons = [state.credit_denial_reason]
     reasons += [pr.credit_denial_reason for pr in state.repo_pr_states.values()]
-    known = (_RUN_DENIAL_REASONS.get(reason or "") for reason in reasons)
-    return next((reason for reason in known if reason), None)
+    return _first_known_denial_reason(reasons)
+
+
+def get_pr_denial_reason(prs: Iterable[RepoPRState]) -> SeerCreditDenialReason | None:
+    """Why billing refused credit for the first of these PR pushes that says."""
+    return _first_known_denial_reason(pr.credit_denial_reason for pr in prs)

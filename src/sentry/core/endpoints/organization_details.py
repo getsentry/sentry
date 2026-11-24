@@ -76,6 +76,7 @@ from sentry.constants import (
 )
 from sentry.core.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.integrations.services.integration import integration_service
@@ -693,6 +694,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.flags.enhanced_privacy = data["enhancedPrivacy"]
         if "isEarlyAdopter" in data:
             org.flags.early_adopter = data["isEarlyAdopter"]
+        require_2fa_before = org.flags.require_2fa.is_set
         if "require2FA" in data:
             org.flags.require_2fa = data["require2FA"]
         if "allowMemberProjectCreation" in data:
@@ -734,7 +736,12 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                     if flag_has_changed(org, f):
                         changed_data[f] = f"to {v}"
 
-        org.save()
+        # Control reads require_2fa to stop members removing their last authenticator.
+        with outbox_context(
+            transaction.atomic(router.db_for_write(Organization)),
+            flush=True if org.flags.require_2fa.is_set != require_2fa_before else None,
+        ):
+            org.save()
 
         if "avatar" in data or "avatarType" in data:
             OrganizationAvatar.save_avatar(
