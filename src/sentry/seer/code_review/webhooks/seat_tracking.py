@@ -36,13 +36,6 @@ the code-review handler's preflight billing check runs. Without that
 ordering, the first MR open from a new contributor would be denied with
 ``ORG_CONTRIBUTOR_NOT_FOUND`` even though the same delivery seeds the row
 seconds later.
-
-Known gap: ``MergeEventWebhook.__call__`` short-circuits before ``_handle``
-when the payload is missing ``last_commit`` or the author's email
-(``test_merge_event_no_last_commit``). In that case these processors never
-run, so the MR author is not seeded on that delivery, though a later
-non-short-circuited event for the same MR will. Tracked on SCM-99 as a
-follow-up.
 """
 
 from __future__ import annotations
