@@ -28,6 +28,7 @@ import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -448,6 +449,7 @@ function ConnectedMonitors({
   onChange: (monitorIds: string[]) => void;
 }) {
   const {openDrawer} = useDrawer();
+  const {pathname} = useLocation();
   const selected = monitors.filter(monitor => monitorIds.includes(monitor.id));
   const projectCount = new Set(selected.map(monitor => monitor.projectId)).size;
 
@@ -477,7 +479,7 @@ function ConnectedMonitors({
                 drawerWidth: '70%',
                 // The drawer's project filter writes to the URL
                 shouldCloseOnLocationChange: nextLocation =>
-                  nextLocation.pathname !== window.location.pathname,
+                  nextLocation.pathname !== pathname,
               }
             )
           }

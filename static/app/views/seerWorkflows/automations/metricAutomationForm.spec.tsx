@@ -338,6 +338,27 @@ describe('MetricAutomationForm', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('closes the connect drawer when leaving the page', async () => {
+    const {router} = render(<NewAutomationPage />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/seer/automations/new/'},
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Connect monitors'}));
+    const drawer = await screen.findByRole('complementary', {name: 'Connect monitors'});
+    await within(drawer).findByRole('row', {name: /Checkout error rate/});
+
+    router.navigate('/organizations/org-slug/seer/automations/');
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('complementary', {name: 'Connect monitors'})
+      ).not.toBeInTheDocument()
+    );
+  });
+
   it('shows the API error when saving fails', async () => {
     MockApiClient.addMockResponse({
       url: `${configsUrl}42/`,
