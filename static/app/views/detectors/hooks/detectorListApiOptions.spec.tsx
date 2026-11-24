@@ -21,9 +21,7 @@ describe('detectorListApiOptions', () => {
 
     it('does not exclude issue_stream when includeIssueStreamDetectors is true', () => {
       const {options} = parseQueryKey(
-        detectorListApiOptions(organization, {
-          includeIssueStreamDetectors: true,
-        }).queryKey
+        detectorListApiOptions(organization, {includeIssueStreamDetectors: true}).queryKey
       );
       expect(options?.query?.query).toBeUndefined();
     });
@@ -37,10 +35,8 @@ describe('detectorListApiOptions', () => {
 
     it('combines type filter with custom query', () => {
       const {options} = parseQueryKey(
-        detectorListApiOptions(organization, {
-          type: 'uptime',
-          query: 'my-search',
-        }).queryKey
+        detectorListApiOptions(organization, {type: 'uptime', query: 'my-search'})
+          .queryKey
       );
       expect(options?.query?.query).toBe('!type:issue_stream type:uptime my-search');
     });
@@ -111,20 +107,20 @@ describe('detectorListApiOptions', () => {
     it('produces a prefix key that matches all detector list queries', () => {
       const prefixKey = allDetectorListsQueryKey(organization);
 
-      // Should be a 3-element key (empty options) so it prefix-matches everything
-      expect(prefixKey).toHaveLength(3);
+      // Only path params in options, so it partially matches every filter
       expect(prefixKey).toEqual([
-        `/organizations/${organization.slug}/detectors/`,
-        {},
-        {infinite: false},
+        '_api',
+        {
+          url: `/organizations/${organization.slug}/detectors/`,
+          urlParts: ['organizations', '$organizationIdOrSlug', 'detectors'],
+          options: {path: {organizationIdOrSlug: organization.slug}},
+        },
       ]);
     });
 
     it('prefix-matches queries with different filters', () => {
       const prefixKey = allDetectorListsQueryKey(organization);
-      const uptimeKey = detectorListApiOptions(organization, {
-        type: 'uptime',
-      }).queryKey;
+      const uptimeKey = detectorListApiOptions(organization, {type: 'uptime'}).queryKey;
       const defaultKey = detectorListApiOptions(organization).queryKey;
 
       // The prefix should match both

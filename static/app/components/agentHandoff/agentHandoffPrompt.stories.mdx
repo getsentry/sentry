@@ -1,6 +1,6 @@
 ---
 title: Agent Handoff Prompt
-description: A private prompt that hands Sentry setup to a coding agent.
+description: A prompt that hands Sentry setup to a coding agent.
 category: components
 source: sentry/components/agentHandoff/agentHandoffPrompt
 ---
@@ -8,8 +8,9 @@ source: sentry/components/agentHandoff/agentHandoffPrompt
 import {Container} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
+import {AgentHandoffProductPrompt} from './agentHandoffProductPrompt';
 import {AgentHandoffPrompt} from './agentHandoffPrompt';
-import {AgentHandoffFlow} from './useAgentHandoff';
+import {AgentHandoffFlow} from './types';
 
 ## Default
 
@@ -19,6 +20,24 @@ import {AgentHandoffFlow} from './useAgentHandoff';
       context={{runId: '00000000000000000000000000000000'}}
       feedbackSource="agent-handoff-prompt-story"
       flow={AgentHandoffFlow.ONBOARDING}
+    />
+  </Container>
+</Storybook.Demo>
+
+## Product prompt (empty states)
+
+Used as the agent tab inside `ProductEmptyState`. Always wired to the `add_feature` flow.
+
+<Storybook.Demo>
+  <Container maxWidth="700px">
+    <AgentHandoffProductPrompt
+      agentSteps={[
+        'Install the Sentry CLI (if not already installed)',
+        'Add tracing to your project',
+        'Confirm traces arrive in Sentry',
+      ]}
+      context={{product: 'tracing', projectId: 'my-project'}}
+      feedbackSource="agent-handoff-product-prompt-story"
     />
   </Container>
 </Storybook.Demo>

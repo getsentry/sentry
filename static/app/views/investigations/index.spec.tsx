@@ -5,6 +5,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   act,
+  cleanup,
   render,
   renderGlobalModal,
   screen,
@@ -44,10 +45,7 @@ function renderView({
     ),
     organization: renderOrganization,
     initialRouterConfig: {
-      location: {
-        pathname: '/organizations/org-slug/seer/investigations/',
-        query,
-      },
+      location: {pathname: '/organizations/org-slug/seer/investigations/', query},
     },
   });
 
@@ -62,9 +60,7 @@ describe('Explore Investigations', () => {
   });
 
   it('shows the standard feature-disabled state without the feature', () => {
-    renderView({
-      renderOrganization: OrganizationFixture({features: []}),
-    });
+    renderView({renderOrganization: OrganizationFixture({features: []})});
 
     expect(
       screen.getByText('This feature is not enabled on your Sentry installation.')
@@ -98,10 +94,7 @@ describe('Explore Investigations', () => {
       organizationUrl: 'https://org-slug.sentry.io',
       sentryUrl: 'https://sentry.io',
     });
-    MockApiClient.addMockResponse({
-      url: listUrl,
-      body: [InvestigationFixture()],
-    });
+    MockApiClient.addMockResponse({url: listUrl, body: [InvestigationFixture()]});
 
     renderView();
 
@@ -117,10 +110,7 @@ describe('Explore Investigations', () => {
       body: [
         InvestigationFixture({
           id: '1',
-          trigger: {
-            type: 'user',
-            user: UserFixture({name: 'Ivy Sanders Schneider'}),
-          },
+          trigger: {type: 'user', user: UserFixture({name: 'Ivy Sanders Schneider'})},
         }),
         InvestigationFixture({
           id: '2',
@@ -134,7 +124,11 @@ describe('Explore Investigations', () => {
           id: '3',
           trigger: {
             type: 'automation',
-            automation: {id: '8', name: 'Telemetry audit', strategy: 'agentic_triage_v2'},
+            automation: {
+              id: '8',
+              name: 'Telemetry audit',
+              strategy: 'scheduled_investigation',
+            },
             runId: '43',
           },
         }),
@@ -149,7 +143,7 @@ describe('Explore Investigations', () => {
     });
 
     expect(await screen.findByText('Ivy Sanders Schneider')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Breached metrics · Run 42'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Breached Metrics · Run 42'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/seer/automations/7/runs/'
     );
@@ -175,9 +169,9 @@ describe('Explore Investigations', () => {
 
     renderView();
 
-    expect(await screen.findByText('Breached metrics · Run 42')).toBeInTheDocument();
+    expect(await screen.findByText('Breached Metrics · Run 42')).toBeInTheDocument();
     expect(
-      screen.queryByRole('link', {name: 'Breached metrics · Run 42'})
+      screen.queryByRole('link', {name: 'Breached Metrics · Run 42'})
     ).not.toBeInTheDocument();
   });
 
@@ -269,9 +263,7 @@ describe('Explore Investigations', () => {
     MockApiClient.addMockResponse({
       url: listUrl,
       body: [InvestigationFixture()],
-      headers: {
-        Link: getPaginationPageLink({numRows: 20, pageSize: 10, offset: 0}),
-      },
+      headers: {Link: getPaginationPageLink({numRows: 20, pageSize: 10, offset: 0})},
     });
 
     const {router} = renderView();
@@ -281,10 +273,7 @@ describe('Explore Investigations', () => {
   });
 
   it('prefetches the investigation when opening it', async () => {
-    MockApiClient.addMockResponse({
-      url: listUrl,
-      body: [InvestigationFixture()],
-    });
+    MockApiClient.addMockResponse({url: listUrl, body: [InvestigationFixture()]});
     const detailRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/notebooks/1/',
       body: {
@@ -313,6 +302,7 @@ describe('Explore Investigations', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
@@ -361,10 +351,7 @@ describe('Explore Investigations', () => {
   });
 
   it('toggles an investigation favorite and refreshes the list', async () => {
-    MockApiClient.addMockResponse({
-      url: listUrl,
-      body: [InvestigationFixture()],
-    });
+    MockApiClient.addMockResponse({url: listUrl, body: [InvestigationFixture()]});
     const favoriteRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/notebooks/1/favorite/',
       method: 'PUT',
@@ -435,10 +422,7 @@ describe('Explore Investigations', () => {
   });
 
   it('duplicates from the overflow menu', async () => {
-    MockApiClient.addMockResponse({
-      url: listUrl,
-      body: [InvestigationFixture()],
-    });
+    MockApiClient.addMockResponse({url: listUrl, body: [InvestigationFixture()]});
     const duplicateRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/notebooks/1/duplicate/',
       method: 'POST',
@@ -480,10 +464,7 @@ describe('Explore Investigations', () => {
       value: {writeText},
       writable: true,
     });
-    MockApiClient.addMockResponse({
-      url: listUrl,
-      body: [InvestigationFixture()],
-    });
+    MockApiClient.addMockResponse({url: listUrl, body: [InvestigationFixture()]});
 
     renderView();
     await userEvent.click(
@@ -500,10 +481,7 @@ describe('Explore Investigations', () => {
   });
 
   it('deletes only after confirmation and sends the current version', async () => {
-    MockApiClient.addMockResponse({
-      url: listUrl,
-      body: [InvestigationFixture()],
-    });
+    MockApiClient.addMockResponse({url: listUrl, body: [InvestigationFixture()]});
     const deleteRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/notebooks/1/',
       method: 'DELETE',
@@ -523,7 +501,7 @@ describe('Explore Investigations', () => {
     await waitFor(() =>
       expect(deleteRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/notebooks/1/',
-        expect.objectContaining({data: {investigationVersion: 3}})
+        expect.objectContaining({data: {notebookVersion: 3}})
       )
     );
     await waitFor(() =>
@@ -568,12 +546,7 @@ describe('Explore Investigations', () => {
     const {queryClient} = renderView();
     const candidateOptions = investigationCandidatesQueryOptions({
       organizationSlug: 'org-slug',
-      sources: [
-        {
-          type: 'metric_open_period',
-          ref: {groupId: '123', openPeriodId: '456'},
-        },
-      ],
+      sources: [{type: 'metric_open_period', ref: {groupId: '123', openPeriodId: '456'}}],
     });
     queryClient.setQueryData(candidateOptions.queryKey, {
       json: {items: [{status: 'view', investigationId: '1'}]},
@@ -594,10 +567,7 @@ describe('Explore Investigations', () => {
   });
 
   it('reports a favorite failure', async () => {
-    MockApiClient.addMockResponse({
-      url: listUrl,
-      body: [InvestigationFixture()],
-    });
+    MockApiClient.addMockResponse({url: listUrl, body: [InvestigationFixture()]});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/notebooks/1/favorite/',
       method: 'PUT',
@@ -615,10 +585,7 @@ describe('Explore Investigations', () => {
   });
 
   it('reports a duplicate failure', async () => {
-    MockApiClient.addMockResponse({
-      url: listUrl,
-      body: [InvestigationFixture()],
-    });
+    MockApiClient.addMockResponse({url: listUrl, body: [InvestigationFixture()]});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/notebooks/1/duplicate/',
       method: 'POST',
@@ -637,10 +604,7 @@ describe('Explore Investigations', () => {
   });
 
   it('reports a delete failure', async () => {
-    MockApiClient.addMockResponse({
-      url: listUrl,
-      body: [InvestigationFixture()],
-    });
+    MockApiClient.addMockResponse({url: listUrl, body: [InvestigationFixture()]});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/notebooks/1/',
       method: 'DELETE',

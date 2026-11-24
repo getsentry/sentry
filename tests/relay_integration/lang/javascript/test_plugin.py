@@ -16,7 +16,6 @@ from sentry.models.artifactbundle import (
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
-    SourceFileType,
 )
 from sentry.models.files.file import File
 from sentry.models.project import Project
@@ -1540,13 +1539,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
             organization_id=self.organization.id,
             debug_id=debug_id,
             artifact_bundle=artifact_bundle,
-            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
-        )
-        DebugIdArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            debug_id=debug_id,
-            artifact_bundle=artifact_bundle,
-            source_file_type=SourceFileType.SOURCE_MAP.value,
         )
 
         data = {
@@ -1707,13 +1699,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
             organization_id=self.organization.id,
             debug_id=debug_id,
             artifact_bundle=artifact_bundle,
-            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
-        )
-        DebugIdArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            debug_id=debug_id,
-            artifact_bundle=artifact_bundle,
-            source_file_type=SourceFileType.SOURCE_MAP.value,
         )
 
         data = {
@@ -1862,13 +1847,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
             organization_id=self.organization.id,
             debug_id=debug_id,
             artifact_bundle=artifact_bundle,
-            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
-        )
-        DebugIdArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            debug_id=debug_id,
-            artifact_bundle=artifact_bundle,
-            source_file_type=SourceFileType.SOURCE_MAP.value,
         )
 
         data = {

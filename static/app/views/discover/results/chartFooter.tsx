@@ -1,5 +1,9 @@
 import type {SelectValue} from '@sentry/scraps/select';
 
+import {
+  ChartLayersControl,
+  type ChartLayersControlProps,
+} from 'sentry/components/charts/chartLayersControl';
 import {IntervalSelector} from 'sentry/components/charts/intervalSelector';
 import {OptionSelector} from 'sentry/components/charts/optionSelector';
 import {
@@ -12,10 +16,6 @@ import {
   DroppedDataFilterNote,
   type DroppedDataFilterNoteProps,
 } from 'sentry/components/droppedData/droppedDataFilterNote';
-import {
-  DroppedDataLayerControl,
-  type DroppedDataLayerControlProps,
-} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {t} from 'sentry/locale';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
@@ -33,7 +33,7 @@ type Props = {
   yAxisOptions: Array<SelectValue<string>>;
   yAxisValue: string[];
   droppedDataFilterNote?: Pick<DroppedDataFilterNoteProps, 'dataset'>;
-  droppedDataLayer?: DroppedDataLayerControlProps;
+  droppedDataLayer?: ChartLayersControlProps;
 };
 
 export function ChartFooter({
@@ -81,7 +81,7 @@ export function ChartFooter({
     <ChartControls>
       <InlineContainer>{elements}</InlineContainer>
       <InlineContainer>
-        {droppedDataLayer ? <DroppedDataLayerControl {...droppedDataLayer} /> : null}
+        {droppedDataLayer ? <ChartLayersControl {...droppedDataLayer} /> : null}
         <IntervalSelector
           key={
             // this key forces the IntervalSelector to re-set it’s internal state

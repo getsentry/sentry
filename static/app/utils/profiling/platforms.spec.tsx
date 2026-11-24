@@ -42,6 +42,8 @@ describe('getDocsPlatformSDKForPlatform', () => {
     ['node-hapi', 'node'],
     ['node-koa', 'node'],
     ['node-nestjs', 'node'],
+    ['react-native', 'react-native'],
+    ['expo', 'react-native'],
   ])('gets docs platform for %s', (platform, docsPlatform) => {
     expect(getDocsPlatformSDKForPlatform(platform)).toEqual(docsPlatform);
   });
@@ -85,6 +87,8 @@ describe('getProfilingDocsForPlatform', () => {
     ['node-hapi', 'https://docs.sentry.io/platforms/node/profiling/'],
     ['node-koa', 'https://docs.sentry.io/platforms/node/profiling/'],
     ['node-nestjs', 'https://docs.sentry.io/platforms/node/profiling/'],
+    ['react-native', 'https://docs.sentry.io/platforms/react-native/profiling/'],
+    ['expo', 'https://docs.sentry.io/platforms/react-native/profiling/'],
   ])('gets profiling docs for %s', (platform, docs) => {
     expect(getProfilingDocsForPlatform(platform)).toEqual(docs);
   });

@@ -1162,6 +1162,22 @@
             "type": "string"
           }
         },
+        "transformations": {
+          "description": "Ordered transformations indexed by yAxes, including duplicate axes. Use [] for a raw axis. Steps use events-timeseries syntax, e.g. [[], [\"fill(locf)\", \"smooth(sma,3)\"]]. With no yAxes, transformations apply to the default aggregate.",
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "interval": {
+          "description": "Bucket interval shared by all axes, e.g. \"5m\" or \"1h\".",
+          "type": "string",
+          "pattern": "^[1-9]\\d*[smhdw]$"
+        },
         "sort": {
           "type": "string"
         },
@@ -1269,6 +1285,22 @@
             "type": "string"
           }
         },
+        "transformations": {
+          "description": "Ordered transformations indexed by yAxes, including duplicate axes. Use [] for a raw axis. Steps use events-timeseries syntax, e.g. [[], [\"fill(locf)\", \"smooth(sma,3)\"]]. With no yAxes, transformations apply to the default aggregate.",
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "interval": {
+          "description": "Bucket interval shared by all axes, e.g. \"5m\" or \"1h\".",
+          "type": "string",
+          "pattern": "^[1-9]\\d*[smhdw]$"
+        },
         "sort": {
           "type": "string"
         },
@@ -1350,8 +1382,7 @@
           "end": "2026-08-25T16:39:02Z"
         }
       }
-    ],
-    "featureFlag": "organizations:gen-ai-conversations"
+    ]
   },
   {
     "name": "conversationsQuery",
@@ -1413,8 +1444,7 @@
           "title": "Conversations using tools"
         }
       }
-    ],
-    "featureFlag": "organizations:gen-ai-conversations"
+    ]
   },
   {
     "name": "replaysQuery",
@@ -1528,6 +1558,22 @@
           "items": {
             "type": "string"
           }
+        },
+        "transformations": {
+          "description": "Ordered transformations indexed by yAxes, including duplicate axes. Use [] for a raw axis. Steps use events-timeseries syntax, e.g. [[], [\"fill(locf)\", \"smooth(sma,3)\"]]. With no yAxes, transformations apply to the default aggregate.",
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "interval": {
+          "description": "Bucket interval shared by all axes, e.g. \"5m\" or \"1h\".",
+          "type": "string",
+          "pattern": "^[1-9]\\d*[smhdw]$"
         },
         "sort": {
           "type": "string"

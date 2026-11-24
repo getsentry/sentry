@@ -48,11 +48,7 @@ export function useAutomationListDetectors(): UseAutomationListDetectorsResult {
   const organization = useOrganization();
   const {queryOptions, enabled} = useAutomationListQueryOptions();
 
-  const {data: automations} = useQuery({
-    ...queryOptions,
-    enabled,
-    staleTime: Infinity,
-  });
+  const {data: automations} = useQuery({...queryOptions, enabled, staleTime: Infinity});
 
   const detectorIds = useMemo(() => {
     if (!automations) {
@@ -68,10 +64,7 @@ export function useAutomationListDetectors(): UseAutomationListDetectorsResult {
 
   const detectorQueries = useQueries({
     queries: chunks.map(ids =>
-      detectorListApiOptions(organization, {
-        ids,
-        limit: MAX_DETECTORS_PER_REQUEST,
-      })
+      detectorListApiOptions(organization, {ids, limit: MAX_DETECTORS_PER_REQUEST})
     ),
   });
 

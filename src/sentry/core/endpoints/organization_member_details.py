@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, TypedDict
 
 from django.db import router, transaction
 from django.db.models import Q
@@ -24,6 +24,7 @@ from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
+    RESPONSE_TOO_MANY_REQUESTS,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
@@ -33,16 +34,23 @@ from sentry.apidocs.response_types import (
     DetailResponse,
     ValidationErrorResponse,
 )
+from sentry.auth.access import has_member_scope
 from sentry.auth.principal import has_user, require_user
 from sentry.auth.services.auth import auth_service
 from sentry.auth.superuser import is_active_superuser
-from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
+from sentry.core.endpoints.organization_member_index import (
+    OrganizationMemberRequestSerializer,
+    TeamAssignmentsField,
+)
 from sentry.core.endpoints.organization_member_utils import (
     ROLE_CHOICES,
     RelaxedMemberPermission,
+    TeamAssignment,
+    TeamAssignmentDiff,
     get_allowed_org_roles,
     save_team_assignments,
 )
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -113,13 +121,14 @@ class UpdateOrgMemberRolesSerializer(OrganizationMemberRequestSerializer):
         choices=ROLE_CHOICES,
         required=False,
     )
-    teamRoles = serializers.ListField(
+    teamRoles = TeamAssignmentsField(
         help_text=_team_roles_description,
         required=False,
-        allow_null=True,
-        default=list,
-        child=serializers.JSONField(),
     )
+
+
+class _RoleErrorResponse(TypedDict):
+    role: str
 
 
 @extend_schema(tags=["Organizations"])
@@ -195,6 +204,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
+            429: RESPONSE_TOO_MANY_REQUESTS,
         },
         examples=OrganizationExamples.UPDATE_ORG_MEMBER,
     )
@@ -207,6 +217,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         Response[OrganizationMemberResponse]
         | Response[None]
         | Response[DetailResponse]
+        | Response[_RoleErrorResponse]
         | Response[ValidationErrorResponse]
     ):
         """
@@ -240,6 +251,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         auth_provider = auth_service.get_auth_provider(organization_id=organization.id)
 
         result = serializer.validated_data
+        team_assignments: tuple[TeamAssignment, ...] | None = result.get("teamRoles")
 
         if getattr(member.flags, "partnership:restricted"):
             return Response(
@@ -249,8 +261,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 status=403,
             )
 
-        is_member = not request.access.has_scope("member:admin") and (
-            request.access.has_scope("member:invite")
+        is_member = not has_member_scope(request.access, "member:admin") and (
+            has_member_scope(request.access, "member:invite")
         )
         members_can_invite = not organization.flags.disable_member_invite
         # Members can only resend invites
@@ -286,7 +298,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     return Response({"detail": ERR_RATE_LIMITED}, status=429)
 
                 if result.get("regenerate"):
-                    if request.access.has_scope("member:admin"):
+                    if has_member_scope(request.access, "member:admin"):
                         with transaction.atomic(router.db_for_write(OrganizationMember)):
                             member.regenerate_token()
                             member.save()
@@ -321,13 +333,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         # Set the team-role before org-role. If the org-role has elevated permissions
         # on the teams, the team-roles can be overwritten later
-        team_roles = teams = None
-        if "teamRoles" in result:
+        team_roles: tuple[TeamAssignment, ...] | None = None
+        teams = None
+        if team_assignments is not None:
             # If orgs do not have the flag, we'll set their team-roles to None
             team_roles = (
-                result.get("teamRoles")
+                team_assignments
                 if features.has("organizations:team-roles", organization)
-                else [(team, None) for team, _ in result.get("teamRoles", [])]
+                else tuple(TeamAssignment(assignment.team, None) for assignment in team_assignments)
             )
         elif "teams" in result:
             teams = result.get("teams")
@@ -342,10 +355,12 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     status=400,
                 )
 
-        if team_roles:
-            diff = save_team_assignments(member, None, team_roles)  # type: ignore[arg-type]
-        else:
+        if team_roles is not None:
+            diff = save_team_assignments(member, None, team_roles)
+        elif "teams" in result:
             diff = save_team_assignments(member, teams)
+        else:
+            diff = TeamAssignmentDiff([], [])
 
         for change in diff.added:
             self.create_audit_entry(
@@ -446,8 +461,15 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 omt.role = None
             OrganizationMemberTeam.objects.bulk_update(omts, fields=["role"])
             omt_update_count = len(omts)
+            # Control reads the owner role, so changes to or from owner replicate right away.
+            top_dog = organization_roles.get_top_dog().id
+            owner_change = member.role != role and top_dog in (member.role, role)
             member.role = role
-            member.save()
+            with outbox_context(
+                transaction.atomic(router.db_for_write(OrganizationMember)),
+                flush=True if owner_change else None,
+            ):
+                member.save()
         if omt_update_count > 0:
             metrics.incr(
                 "team_roles.update_to_minimum",
@@ -489,6 +511,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -514,10 +537,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
             else:
                 if acting_member != member:
-                    if not request.access.has_scope("member:admin"):
-                        if (
-                            not organization.flags.disable_member_invite
-                            and request.access.has_scope("member:invite")
+                    if not has_member_scope(request.access, "member:admin"):
+                        if not organization.flags.disable_member_invite and has_member_scope(
+                            request.access, "member:invite"
                         ):
                             return self._handle_deletion_by_member(
                                 request, organization, member, acting_member
@@ -530,7 +552,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                             return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
         # TODO(dcramer): do we even need this check?
-        elif not request.access.has_scope("member:admin"):
+        elif not has_member_scope(request.access, "member:admin"):
             return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
 
         if member.is_only_member_with_org_write():

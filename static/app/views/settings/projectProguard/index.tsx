@@ -15,6 +15,7 @@ import {t, tct} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {getPaginationProps} from 'sentry/utils/pagination';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -50,11 +51,7 @@ export default function ProjectProguard() {
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
       {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-        query: {
-          query,
-          file_formats: 'proguard',
-          cursor,
-        },
+        query: {query, file_formats: 'proguard', cursor},
         staleTime: 0,
       }
     ),
@@ -82,9 +79,7 @@ export default function ProjectProguard() {
               projectIdOrSlug: project.slug,
             },
           })}?id=${encodeURIComponent(id)}`,
-          {
-            method: 'DELETE',
-          }
+          {method: 'DELETE'}
         );
         setLoading(false);
         toast.success('Successfully deleted the mapping file');
@@ -141,9 +136,9 @@ export default function ProjectProguard() {
           )}
           {!isLoading && mappings?.length
             ? mappings.map(mapping => {
-                const downloadUrl = `${api.baseUrl}/projects/${
-                  organization.slug
-                }/${project.slug}/files/dsyms/?id=${encodeURIComponent(mapping.id)}`;
+                const downloadUrl = resolveHostname(
+                  `/api/0/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${encodeURIComponent(mapping.id)}`
+                );
 
                 return (
                   <ProjectProguardRow

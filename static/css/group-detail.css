@@ -1,0 +1,187 @@
+/**
+* Event Details
+* ============================================================================
+*/
+
+.event-details-container {
+  display: flex;
+  margin: -20px -40px;
+  background: #fff;
+  flex-direction: column;
+  flex: 1;
+
+  @media (min-width: 1200px) {
+    flex-direction: row;
+  }
+}
+
+/**
+* Traceback
+* ============================================================================
+*/
+
+.traceback {
+  list-style-type: none;
+  padding-left: 0;
+  border: 1px solid var(--legacy-trim-dark);
+  border-radius: 0 6px 6px 6px;
+  margin-bottom: 20px;
+}
+
+/* TODO(dcramer): we probably shouldn't overload these */
+pre.traceback {
+  margin: 0 0 20px;
+}
+
+div.traceback > ul {
+  padding: 0;
+  margin-bottom: 0;
+
+  li:first-child {
+    border-top: none;
+  }
+}
+
+/**
+* Frame
+* ============================================================================
+*/
+
+.exception {
+  margin: 0 0 20px;
+
+  &:last-child {
+    border-bottom: 0;
+    margin-bottom: 0;
+  }
+
+  h5 {
+    line-height: 1.2;
+  }
+
+  .traceback {
+    margin-top: 15px;
+  }
+}
+
+.traceback {
+  &.no-exception .frame:first-child {
+    border-top: 0;
+  }
+
+  .frame {
+    list-style-type: none;
+    position: relative;
+    margin: 0;
+    border-top: 1px solid var(--legacy-trim);
+
+    h3 {
+      font-size: 22px;
+    }
+
+    .in-at {
+      opacity: 0.6;
+      margin: 0 2px;
+    }
+
+    code {
+      padding: 0;
+      background: inherit;
+      font-size: inherit;
+      color: inherit;
+    }
+
+    .context {
+      display: none;
+      background: #fff;
+
+      &.expanded {
+        display: block;
+      }
+    }
+  }
+
+  &.in-app-traceback .frame.leads-to-app {
+    .leads-to-app-hint {
+      display: none;
+    }
+
+    &.collapsed {
+      .in-at-line,
+      .lineno {
+        display: none;
+      }
+
+      .leads-to-app-hint {
+        display: inline;
+        color: var(--legacy-gray-light);
+      }
+    }
+  }
+
+  &.full-traceback {
+    .leads-to-app-hint {
+      display: none !important;
+    }
+  }
+
+  ol.context {
+    margin: 0;
+    padding-left: 0;
+  }
+}
+
+/**
+* Shared Group Detail
+* ============================================================================
+*/
+
+.shared-group {
+  padding: 40px 0;
+  background: none;
+
+  .app > .container {
+    max-width: 960px;
+
+    > .box {
+      > .box-header {
+        padding: 15px 30px 13px;
+        display: flex;
+        align-items: center;
+
+        a {
+          &.logo {
+            font-size: 20px;
+            flex: 1;
+          }
+
+          &:hover {
+            color: var(--legacy-gray-dark);
+          }
+        }
+      }
+    }
+  }
+
+  .container {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .event-details-container {
+    display: block;
+    margin: 0;
+  }
+}
+
+/**
+* Responsive small screen
+* ============================================================================
+*/
+
+@media (max-width: 767px) {
+  .event-details-container {
+    flex-direction: column;
+    margin: 0;
+  }
+}

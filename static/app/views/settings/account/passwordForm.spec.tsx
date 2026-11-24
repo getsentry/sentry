@@ -9,10 +9,7 @@ describe('PasswordForm', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    putMock = MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'PUT',
-    });
+    putMock = MockApiClient.addMockResponse({url: ENDPOINT, method: 'PUT'});
   });
 
   it('has 3 text inputs', () => {
@@ -54,11 +51,7 @@ describe('PasswordForm', () => {
       ENDPOINT,
       expect.objectContaining({
         method: 'PUT',
-        data: {
-          password: 'test',
-          passwordNew: 'nottest',
-          passwordVerify: 'nottest',
-        },
+        data: {password: 'test', passwordNew: 'nottest', passwordVerify: 'nottest'},
       })
     );
 

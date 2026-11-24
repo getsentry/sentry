@@ -783,7 +783,9 @@ class QueryTests(ExportTestCase):
         replica = ServiceAccountReplica.objects.get(service_account_id=account.id)
         assert replica.id != account.id
         config = Factories.create_seer_workflow_config(
-            org, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, service_account_id=account.id
+            org,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
+            service_account_id=account.id,
         )
         Factories.create_seer_workflow_config_project(config, project)
 

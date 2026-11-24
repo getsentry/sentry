@@ -9,7 +9,6 @@ interface SlashCommandHandlers {
   /** `/investigate` runs when sent, since it takes a question, so the menu only completes it. */
   canInvestigate?: boolean;
   onBashMode?: (value: boolean) => void;
-  onCodeMode?: (value: 'off' | 'only') => void;
   onConversations?: () => void;
   onMaxSize?: () => void;
   onMedSize?: () => void;
@@ -170,10 +169,7 @@ export function useExplorerMenu({
     }
 
     if (!inputAnchorRef?.current) {
-      setMenuPosition({
-        bottom: '100%',
-        left: '16px',
-      });
+      setMenuPosition({bottom: '100%', left: '16px'});
       return;
     }
 
@@ -217,11 +213,7 @@ export function useExplorerMenu({
     </Activity>
   );
 
-  return {
-    menu,
-    isMenuOpen: isVisible,
-    closeMenu: close,
-  };
+  return {menu, isMenuOpen: isVisible, closeMenu: close};
 }
 
 function useSlashCommands({
@@ -231,19 +223,13 @@ function useSlashCommands({
   onNew,
   onFeedback,
   onConversations,
-  onCodeMode,
   canInvestigate,
 }: SlashCommandHandlers): MenuItemProps[] {
   const isSentryEmployee = useIsSentryEmployee();
 
   return useMemo(
     (): MenuItemProps[] => [
-      {
-        title: '/new',
-        key: '/new',
-        description: 'Start a new session',
-        handler: onNew,
-      },
+      {title: '/new', key: '/new', description: 'Start a new session', handler: onNew},
       ...(canInvestigate
         ? [
             {
@@ -284,22 +270,6 @@ function useSlashCommands({
             },
           ]
         : []),
-      ...(isSentryEmployee && onCodeMode
-        ? [
-            {
-              title: '/code-mode-off',
-              key: '/code-mode-off',
-              description: 'Disable code mode tools',
-              handler: () => onCodeMode('off'),
-            },
-            {
-              title: '/code-mode-only',
-              key: '/code-mode-only',
-              description: 'Use only code mode tools (no standard tools)',
-              handler: () => onCodeMode('only'),
-            },
-          ]
-        : []),
       ...(isSentryEmployee && onBashMode
         ? [
             {
@@ -333,7 +303,6 @@ function useSlashCommands({
       onMedSize,
       onFeedback,
       onBashMode,
-      onCodeMode,
       onConversations,
       canInvestigate,
       isSentryEmployee,
@@ -341,9 +310,7 @@ function useSlashCommands({
   );
 }
 
-const MenuPanel = styled('div')<{
-  panelSize: 'max' | 'med';
-}>`
+const MenuPanel = styled('div')<{panelSize: 'max' | 'med'}>`
   position: absolute;
   width: 300px;
   background: ${p => p.theme.tokens.background.primary};

@@ -58,14 +58,7 @@ export function getAnomalyMarkerSeries(
       } else {
         if (start && end) {
           // If we've hit a non-anomaly type, push the block
-          anomalyBlocks.push([
-            {
-              xAxis: start,
-            },
-            {
-              xAxis: end,
-            },
-          ]);
+          anomalyBlocks.push([{xAxis: start}, {xAxis: end}]);
           // Create a marker line for the start of the anomaly
           series.push(
             createAnomalyMarkerSeries(opts.theme.tokens.dataviz.semantic.accent, start)
@@ -82,14 +75,7 @@ export function getAnomalyMarkerSeries(
     series.push(
       createAnomalyMarkerSeries(opts.theme.tokens.dataviz.semantic.accent, start)
     );
-    anomalyBlocks.push([
-      {
-        xAxis: start,
-      },
-      {
-        xAxis: end,
-      },
-    ]);
+    anomalyBlocks.push([{xAxis: start}, {xAxis: end}]);
   }
 
   // NOTE: if timerange is too small - highlighted area will not be visible
@@ -101,9 +87,7 @@ export function getAnomalyMarkerSeries(
     smooth: true,
     data: [],
     markArea: {
-      itemStyle: {
-        color: 'rgba(255, 173, 177, 0.4)',
-      },
+      itemStyle: {color: 'rgba(255, 173, 177, 0.4)'},
       silent: true, // potentially don't make this silent if we want to render the `anomaly detected` in the tooltip
       data: anomalyBlocks,
     },
@@ -132,25 +116,12 @@ function createAnomalyMarkerSeries(
     markLine: markLine({
       silent: false,
       lineStyle: {color: lineColor, type: 'dashed'},
-      label: {
-        silent: true,
-        show: false,
-      },
-      data: [
-        {
-          xAxis: timestamp,
-        },
-      ],
-      tooltip: {
-        formatter,
-      },
+      label: {silent: true, show: false},
+      data: [{xAxis: timestamp}],
+      tooltip: {formatter},
     }),
     data: [],
-    tooltip: {
-      trigger: 'item',
-      alwaysShowContent: true,
-      formatter,
-    },
+    tooltip: {trigger: 'item', alwaysShowContent: true, formatter},
   };
 }
 

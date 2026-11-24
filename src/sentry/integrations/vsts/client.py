@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from time import time
-from typing import TYPE_CHECKING, Any, Union, cast
+from typing import TYPE_CHECKING, Any, Union
 from urllib.parse import quote
 
 from requests import PreparedRequest
@@ -436,20 +436,17 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
         )
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
-        return cast(
-            "object | None",
-            self.get_cached(
-                path=VstsApiPath.items.format(
-                    instance=repo.config["instance"],
-                    project=quote(repo.config["project"]),
-                    repo_id=quote(repo.config["name"]),
-                ),
-                params={
-                    "path": path,
-                    "api-version": "7.0",
-                    "versionDescriptor.version": version,
-                },
+        return self.get_cached(
+            path=VstsApiPath.items.format(
+                instance=repo.config["instance"],
+                project=quote(repo.config["project"]),
+                repo_id=quote(repo.config["name"]),
             ),
+            params={
+                "path": path,
+                "api-version": "7.0",
+                "versionDescriptor.version": version,
+            },
         )
 
     def get_file(

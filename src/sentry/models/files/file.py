@@ -36,6 +36,14 @@ class File(AbstractFile[FileBlobIndex, FileBlob]):
     def _create_blob_index(self, blob: FileBlob, offset: int) -> FileBlobIndex:
         return FileBlobIndex.objects.create(file=self, blob=blob, offset=offset)
 
+    def _bulk_create_blob_indexes(self, blobs_with_offsets: Sequence[tuple[FileBlob, int]]) -> None:
+        FileBlobIndex.objects.bulk_create(
+            [
+                FileBlobIndex(file=self, blob=blob, offset=offset)
+                for blob, offset in blobs_with_offsets
+            ]
+        )
+
     def _create_blob_from_file(self, contents: "ContentFile[bytes]", logger: Any) -> FileBlob:
         return FileBlob.from_file(contents, logger)
 

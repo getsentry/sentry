@@ -210,8 +210,8 @@ def build_metric_alert_chart(
         ),
     }
 
-    # translate_aggregate_field can't resolve equations. Only trace metric queries
-    # accept them, and the validator never translates those aggregates.
+    # translate_aggregate_field can't resolve equations. Only trace metric and span
+    # queries accept them, and the validator never translates those aggregates.
     aggregate = (
         snuba_query.aggregate
         if is_equation(snuba_query.aggregate)

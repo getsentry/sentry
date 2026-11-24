@@ -505,55 +505,6 @@ class SearchResolver:
             return parsed_terms[0], resolved_contexts
         return None, []
 
-    def resolve_virtual_context_term(
-        self,
-        term: str,
-        raw_value: str | list[str],
-        resolved_column: ResolvedAttribute,
-        context: VirtualColumnDefinition,
-    ) -> list[str] | str:
-        # Convert the term to the expected values
-        final_raw_value: str | list[str] = []
-        resolved_context = context.constructor(self.params, self)
-        reversed_context = {v: k for k, v in resolved_context.value_map.items()}
-        if isinstance(raw_value, list):
-            new_value = []
-            for raw_iterable in raw_value:
-                if context.default_value and context.default_value == raw_iterable:
-                    # Avoiding this for now, while this could work with the Unknown:"" mapping
-                    # But that won't work once we use the VirtualColumnContext.default_value
-                    raise InvalidSearchQuery(
-                        f"Using {raw_iterable} in an IN filter is not currently supported"
-                    )
-                elif raw_iterable not in reversed_context:
-                    valid_values = list(reversed_context.keys())[:5]
-                    if len(valid_values) > 5:
-                        valid_values.append("...")
-                    raise InvalidSearchQuery(
-                        constants.REVERSE_CONTEXT_ERROR.format(
-                            raw_value, term, ", ".join(valid_values)
-                        )
-                    )
-                else:
-                    new_value.append(reversed_context[raw_iterable])
-            final_raw_value = new_value
-        elif raw_value in reversed_context:
-            final_raw_value = reversed_context[raw_value]
-        elif context.default_value and context.default_value == raw_value:
-            # Avoiding this for now, while this could work with the Unknown:"" mapping
-            # But that won't work once we use the VirtualColumnContext.default_value
-            raise InvalidSearchQuery(f"Using {raw_value} is not currently supported")
-        else:
-            valid_values = list(reversed_context.keys())[:5]
-            if len(valid_values) > 5:
-                valid_values.append("...")
-            raise InvalidSearchQuery(
-                constants.REVERSE_CONTEXT_ERROR.format(
-                    raw_value, term, ", ".join(list(reversed_context.keys())[:5])
-                )
-            )
-        return final_raw_value
-
     def convert_term(self, term: event_search.SearchFilter) -> list[event_search.SearchFilter]:
         name = term.key.name
 
@@ -642,6 +593,7 @@ class SearchResolver:
                                 ),  # tell this function the single operator since its being ORed
                                 event_search.translate_wildcard_as_clickhouse_pattern(str(value)),
                             ),
+                            ignore_case=self._ignores_case(resolved_column),
                         )
                     )
                     for value in raw_value

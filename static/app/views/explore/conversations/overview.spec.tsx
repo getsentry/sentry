@@ -16,9 +16,7 @@ import ConversationsOverviewPage from './overview';
 
 jest.mock('sentry/utils/analytics');
 
-const organization = OrganizationFixture({
-  features: ['gen-ai-conversations'],
-});
+const organization = OrganizationFixture();
 
 const MISSING_AGENT_SPANS_MESSAGE =
   'You’re sending LLM calls only — no agent or tool spans yet. Running agents in your app?';
@@ -112,7 +110,6 @@ describe('ConversationsOverviewPage', () => {
 
   afterEach(() => {
     localStorage.clear();
-    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 
@@ -131,13 +128,9 @@ describe('ConversationsOverviewPage', () => {
         Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
 
-    const chartInterval = screen.getByRole('button', {
-      name: /^Chart interval:/,
-    });
+    const chartInterval = screen.getByRole('button', {name: /^Chart interval:/});
     const tabList = screen.getByRole('tablist');
-    const tableSearch = screen.getByRole('combobox', {
-      name: 'Add a search term',
-    });
+    const tableSearch = screen.getByRole('combobox', {name: 'Add a search term'});
     expect(
       chartInterval.compareDocumentPosition(tabList) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
@@ -269,21 +262,13 @@ describe('ConversationsOverviewPage', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      match: [
-        MockApiClient.matchQuery({
-          referrer: Referrer.CHART,
-          query: LLM_QUERY,
-        }),
-      ],
+      match: [MockApiClient.matchQuery({referrer: Referrer.CHART, query: LLM_QUERY})],
       body: {data: [{id: 'llm-span-id'}]},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       match: [
-        MockApiClient.matchQuery({
-          referrer: Referrer.CHART,
-          query: AGENT_OR_TOOL_QUERY,
-        }),
+        MockApiClient.matchQuery({referrer: Referrer.CHART, query: AGENT_OR_TOOL_QUERY}),
       ],
       body: {data: []},
       asyncDelay: agentOrToolRequestGate,
@@ -325,21 +310,13 @@ describe('ConversationsOverviewPage', () => {
     );
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      match: [
-        MockApiClient.matchQuery({
-          referrer: Referrer.CHART,
-          query: LLM_QUERY,
-        }),
-      ],
+      match: [MockApiClient.matchQuery({referrer: Referrer.CHART, query: LLM_QUERY})],
       body: {data: [{id: 'llm-span-id'}]},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       match: [
-        MockApiClient.matchQuery({
-          referrer: Referrer.CHART,
-          query: AGENT_OR_TOOL_QUERY,
-        }),
+        MockApiClient.matchQuery({referrer: Referrer.CHART, query: AGENT_OR_TOOL_QUERY}),
       ],
       body: {data: []},
     });
@@ -369,11 +346,7 @@ describe('ConversationsOverviewPage', () => {
   it('does not apply the table search to agent charts', async () => {
     const chartRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
-      match: [
-        MockApiClient.matchQuery({
-          referrer: 'api.dashboards.widget.bar-chart',
-        }),
-      ],
+      match: [MockApiClient.matchQuery({referrer: 'api.dashboards.widget.bar-chart'})],
       body: {timeSeries: []},
     });
 
@@ -696,16 +669,8 @@ describe('ConversationsOverviewPage', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       body: [
-        {
-          key: 'ai.toolCall.args',
-          name: 'ai.toolCall.args',
-          attributeType: 'string',
-        },
-        {
-          key: 'ai.toolCall.result',
-          name: 'ai.toolCall.result',
-          attributeType: 'string',
-        },
+        {key: 'ai.toolCall.args', name: 'ai.toolCall.args', attributeType: 'string'},
+        {key: 'ai.toolCall.result', name: 'ai.toolCall.result', attributeType: 'string'},
         {
           key: 'ai.response.toolCalls',
           name: 'ai.response.toolCalls',
@@ -770,9 +735,7 @@ describe('ConversationsOverviewPage', () => {
       screen.getByRole('option', {name: 'conversation.generationDuration'})
     );
     expect(
-      await screen.findByRole('row', {
-        name: 'conversation.generationDuration:>10ms',
-      })
+      await screen.findByRole('row', {name: 'conversation.generationDuration:>10ms'})
     ).toBeInTheDocument();
   });
 });

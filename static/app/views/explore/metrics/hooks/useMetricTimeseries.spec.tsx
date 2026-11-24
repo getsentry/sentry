@@ -64,10 +64,6 @@ describe('useMetricTimeseries', () => {
     jest.clearAllMocks();
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it.each([true, false])(
     'forwards metric transformations with the feature enabled=%s',
     async featureEnabled => {
@@ -123,16 +119,8 @@ describe('useMetricTimeseries', () => {
           {
             ...mockTimeSeries,
             yAxis: 'sum(value)',
-            values: [
-              {
-                ...mockTimeSeries.values[0]!,
-                value: 0,
-              },
-            ],
-            meta: {
-              ...mockTimeSeries.meta,
-              dataScanned: 'partial',
-            },
+            values: [{...mockTimeSeries.values[0]!, value: 0}],
+            meta: {...mockTimeSeries.meta, dataScanned: 'partial'},
           },
         ],
       },
@@ -154,10 +142,7 @@ describe('useMetricTimeseries', () => {
     });
 
     renderHookWithProviders(useMetricTimeseries, {
-      initialProps: {
-        traceMetric: {name: 'test metric', type: 'counter'},
-        enabled: true,
-      },
+      initialProps: {traceMetric: {name: 'test metric', type: 'counter'}, enabled: true},
       additionalWrapper: MockMetricQueryParamsContext,
     });
 
@@ -165,9 +150,7 @@ describe('useMetricTimeseries', () => {
     expect(mockNormalRequestUrl).toHaveBeenCalledWith(
       '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
-        query: expect.objectContaining({
-          sampling: SAMPLING_MODE.NORMAL,
-        }),
+        query: expect.objectContaining({sampling: SAMPLING_MODE.NORMAL}),
       })
     );
 
@@ -177,11 +160,47 @@ describe('useMetricTimeseries', () => {
     expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
-        query: expect.objectContaining({
-          sampling: SAMPLING_MODE.HIGH_ACCURACY,
-        }),
+        query: expect.objectContaining({sampling: SAMPLING_MODE.HIGH_ACCURACY}),
       })
     );
+  });
+
+  it('uses low priority sampling when the explore url requests a faster query', async () => {
+    const lowPriorityRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.sampling === SAMPLING_MODE.LOW_PRIORITY;
+        },
+      ],
+    });
+    const normalRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.sampling === SAMPLING_MODE.NORMAL;
+        },
+      ],
+    });
+
+    renderHookWithProviders(useMetricTimeseries, {
+      organization: OrganizationFixture({features: ['low-priority-queries']}),
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/metrics/',
+          query: {queryPriority: 'faster'},
+        },
+      },
+      initialProps: {traceMetric: {name: 'test metric', type: 'counter'}, enabled: true},
+      additionalWrapper: MockMetricQueryParamsContext,
+    });
+
+    await waitFor(() => {
+      expect(lowPriorityRequest).toHaveBeenCalledTimes(1);
+    });
+    expect(normalRequest).not.toHaveBeenCalled();
   });
 
   it('requests multiple yAxis values from the API', async () => {
@@ -193,18 +212,9 @@ describe('useMetricTimeseries', () => {
       url: '/organizations/org-slug/events-timeseries/',
       body: {
         timeSeries: [
-          {
-            ...mockTimeSeries1,
-            yAxis: 'p50(value,test_metric,distribution,none)',
-          },
-          {
-            ...mockTimeSeries2,
-            yAxis: 'p75(value,test_metric,distribution,none)',
-          },
-          {
-            ...mockTimeSeries3,
-            yAxis: 'p99(value,test_metric,distribution,none)',
-          },
+          {...mockTimeSeries1, yAxis: 'p50(value,test_metric,distribution,none)'},
+          {...mockTimeSeries2, yAxis: 'p75(value,test_metric,distribution,none)'},
+          {...mockTimeSeries3, yAxis: 'p99(value,test_metric,distribution,none)'},
         ],
       },
       method: 'GET',
@@ -246,44 +256,20 @@ describe('useMetricTimeseries', () => {
           {
             ...mockTimeSeries,
             yAxis: 'p50(value,test_metric,distribution,none)',
-            values: [
-              {
-                ...mockTimeSeries.values[0]!,
-                value: 0,
-              },
-            ],
-            meta: {
-              ...mockTimeSeries.meta,
-              dataScanned: 'partial',
-            },
+            values: [{...mockTimeSeries.values[0]!, value: 0}],
+            meta: {...mockTimeSeries.meta, dataScanned: 'partial'},
           },
           {
             ...mockTimeSeries,
             yAxis: 'p75(value,test_metric,distribution,none)',
-            values: [
-              {
-                ...mockTimeSeries.values[0]!,
-                value: 0,
-              },
-            ],
-            meta: {
-              ...mockTimeSeries.meta,
-              dataScanned: 'partial',
-            },
+            values: [{...mockTimeSeries.values[0]!, value: 0}],
+            meta: {...mockTimeSeries.meta, dataScanned: 'partial'},
           },
           {
             ...mockTimeSeries,
             yAxis: 'p99(value,test_metric,distribution,none)',
-            values: [
-              {
-                ...mockTimeSeries.values[0]!,
-                value: 0,
-              },
-            ],
-            meta: {
-              ...mockTimeSeries.meta,
-              dataScanned: 'partial',
-            },
+            values: [{...mockTimeSeries.values[0]!, value: 0}],
+            meta: {...mockTimeSeries.meta, dataScanned: 'partial'},
           },
         ],
       },

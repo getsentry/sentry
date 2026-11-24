@@ -14,17 +14,12 @@ describe('Redeem promo code', () => {
   });
 
   it('renders redeem promo code page', () => {
-    const subscription = SubscriptionFixture({
-      plan: 'am1_f',
-      organization,
-    });
+    const subscription = SubscriptionFixture({plan: 'am1_f', organization});
     SubscriptionStore.set(organization.slug, subscription);
     render(<RedeemPromoCode />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: `/settings/${organization.slug}/subscription/redeem-code/`,
-        },
+        location: {pathname: `/settings/${organization.slug}/subscription/redeem-code/`},
         route: '/settings/:orgId/subscription/redeem-code/',
       },
     });
@@ -39,11 +34,7 @@ describe('Redeem promo code', () => {
       partner: {
         externalId: 'x123x',
         name: 'YY Org',
-        partnership: {
-          id: 'YY',
-          displayName: 'YY',
-          supportNote: 'foo',
-        },
+        partnership: {id: 'YY', displayName: 'YY', supportNote: 'foo'},
         isActive: true,
       },
       organization,
@@ -52,9 +43,7 @@ describe('Redeem promo code', () => {
     render(<RedeemPromoCode />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: `/settings/${organization.slug}/subscription/redeem-code/`,
-        },
+        location: {pathname: `/settings/${organization.slug}/subscription/redeem-code/`},
         route: '/settings/:orgId/subscription/redeem-code/',
       },
     });
@@ -63,10 +52,7 @@ describe('Redeem promo code', () => {
   });
 
   it('submits promo code successfully', async () => {
-    const subscription = SubscriptionFixture({
-      plan: 'am1_f',
-      organization,
-    });
+    const subscription = SubscriptionFixture({plan: 'am1_f', organization});
     SubscriptionStore.set(organization.slug, subscription);
 
     const mockPut = MockApiClient.addMockResponse({
@@ -96,9 +82,7 @@ describe('Redeem promo code', () => {
     render(<RedeemPromoCode />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: `/settings/${organization.slug}/subscription/redeem-code/`,
-        },
+        location: {pathname: `/settings/${organization.slug}/subscription/redeem-code/`},
         route: '/settings/:orgId/subscription/redeem-code/',
       },
     });
@@ -112,10 +96,7 @@ describe('Redeem promo code', () => {
     await waitFor(() => {
       expect(mockPut).toHaveBeenCalledWith(
         `/customers/${organization.slug}/redeem-promo/`,
-        expect.objectContaining({
-          method: 'PUT',
-          data: {code: 'TEST-PROMO-123'},
-        })
+        expect.objectContaining({method: 'PUT', data: {code: 'TEST-PROMO-123'}})
       );
     });
   });

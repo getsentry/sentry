@@ -182,6 +182,16 @@ Without a spread window, that is just `scheduled_for`.
   meantime are skipped, not caught up. If a very late firing should be handled differently,
   compare `scheduled_for` with the current time, allowing for the spread window.
 
+Each `TriggerFiring` also carries `next_scheduled_for`: the next nominal scheduled time,
+excluding spreading, calculated when the firing was claimed. Consumers can use it to see
+how close the next firing is. It is informational and can change after schedule edits or
+between duplicate deliveries; use the original `scheduled_for` to deduplicate.
+
+`cadence.trigger.missed`, tagged by `trigger_type`, counts the intervening firings skipped
+when a trigger catches up. Interval counts are exact. Cron counts are capped at 1,000 per
+claimed firing to bound counting work after a long outage; a
+`cadence.trigger.missed_count_capped` warning indicates that the metric is a lower bound.
+
 These cover only when `dispatch` is called. When the dispatched work happens,
 such as when a scheduled task is picked up, depends on the consumer and isn't covered.
 
@@ -190,9 +200,10 @@ such as when a scheduled task is picked up, depends on the consumer and isn't co
 `ScheduledTrigger` rows store each trigger: its schedule, its next scheduled time
 (`next_scheduled_for`) and when that firing is due (`next_fire_at`, the scheduled time plus
 the offset). Every 10 seconds the `cadence_tick` task claims rows whose `next_fire_at` has
-passed, in batches (`SELECT ... FOR UPDATE SKIP LOCKED`, so overlapping ticks split the
-work), moves both times forward, commits, and then calls each trigger type's `dispatch` with
-that type's firings.
+passed in the last 10 minutes, in batches (`SELECT ... FOR UPDATE SKIP LOCKED`, so
+overlapping ticks split the work), moves both times forward, commits, and then calls each
+trigger type's `dispatch` with that type's firings. Every minute, `cadence_sweep` does the
+same for older rows.
 
 - A trigger that fell behind fires once, late, and then resumes its schedule; firings it
   missed are skipped, not caught up (see "Timing").

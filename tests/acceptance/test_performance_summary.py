@@ -10,8 +10,6 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
-FEATURES = {"organizations:performance-view": True}
-
 pytestmark = pytest.mark.sentry_metrics
 
 
@@ -57,10 +55,9 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        with self.feature(FEATURES):
-            self.browser.get(self.path)
-            self.page.wait_until_loaded()
-            # The threshold action lives in the page title's actions menu.
-            self.browser.click('[aria-label="Transaction Actions"]')
-            self.browser.click('[data-test-id="set-transaction-threshold"]')
-            self.browser.wait_until('[role="dialog"]')
+        self.browser.get(self.path)
+        self.page.wait_until_loaded()
+        # The threshold action lives in the page title's actions menu.
+        self.browser.click('[aria-label="Transaction Actions"]')
+        self.browser.click('[data-test-id="set-transaction-threshold"]')
+        self.browser.wait_until('[role="dialog"]')

@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import Mock, patch
 
 from django.test import override_settings
@@ -25,10 +26,20 @@ from sentry.notifications.platform.slack.renderers.seer_agent_write_approval imp
     SeerAgentWriteApprovalSlackRenderer,
 )
 from sentry.notifications.platform.templates.seer import (
+    AGENT_DAILY_LIMIT_MESSAGE,
+    AGENT_OUT_OF_CREDITS_MESSAGE,
+    AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
+    AUTOFIX_DAILY_LIMIT_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
     SeerAgentError,
+    SeerAgentOutOfCredits,
+    SeerAgentOutOfCreditsTemplate,
     SeerAgentResponse,
     SeerAgentWriteApproval,
     SeerAutofixCodeChange,
+    SeerAutofixOutOfCredits,
+    SeerAutofixOutOfCreditsTemplate,
     SeerAutofixPullRequest,
     SeerAutofixUpdate,
     SeerInvestigationConclusionTemplate,
@@ -45,7 +56,9 @@ from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSource,
 )
+from sentry.seer.agent.client_models import RepoPRState
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -331,6 +344,111 @@ class SeerSlackRendererTest(TestCase):
         assert isinstance(actions_block.elements[0], LinkButtonElement)
 
 
+def assert_out_of_credits_message(renderable: SlackRenderable, message: str) -> None:
+    assert renderable["text"] == message
+    section = renderable["blocks"][0]
+    assert isinstance(section, SectionBlock)
+    assert section.text is not None
+    assert section.text.text == message
+
+
+def assert_billing_button(
+    renderable: SlackRenderable, *, organization_id: int, billing_slug: str
+) -> None:
+    blocks = renderable["blocks"]
+    assert len(blocks) == 2
+    assert isinstance(blocks[1], ActionsBlock)
+    assert len(blocks[1].elements) == 1
+    button = blocks[1].elements[0]
+    assert isinstance(button, ButtonElement)
+    assert button.text is not None
+    assert button.text.text == "Configure auto-reload"
+    assert button.url is not None
+    assert f"/settings/{billing_slug}/billing/overview/" in button.url
+    assert button.action_id is not None
+    routing = decode_action_id(button.action_id)
+    assert routing.action == SlackAction.SEER_VIEW_BILLING.value
+    assert routing.organization_id == organization_id
+
+
+class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
+    def _render(self, **kwargs: Any) -> SlackRenderable:
+        data = SeerAutofixOutOfCredits(organization_id=self.organization.id, **kwargs)
+        return render_seer(
+            data=data, rendered_template=SeerAutofixOutOfCreditsTemplate().render(data)
+        )
+
+    def test_daily_limit_links_to_billing(self) -> None:
+        renderable = self._render(denial_reason="daily_cap_exceeded")
+        assert_out_of_credits_message(renderable, AUTOFIX_DAILY_LIMIT_MESSAGE)
+        assert_billing_button(
+            renderable,
+            organization_id=self.organization.id,
+            billing_slug=self.organization.slug,
+        )
+
+    def test_links_to_auto_reload_settings(self) -> None:
+        renderable = self._render()
+        assert_out_of_credits_message(renderable, AUTOFIX_OUT_OF_CREDITS_MESSAGE)
+        assert_billing_button(
+            renderable,
+            organization_id=self.organization.id,
+            billing_slug=self.organization.slug,
+        )
+
+    def test_auto_reload_already_on(self) -> None:
+        renderable = self._render(auto_reload_enabled=True)
+        assert_out_of_credits_message(renderable, AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE)
+        assert_billing_button(
+            renderable,
+            organization_id=self.organization.id,
+            billing_slug=self.organization.slug,
+        )
+
+    def test_missing_organization(self) -> None:
+        data = SeerAutofixOutOfCredits(organization_id=0)
+        renderable = render_seer(
+            data=data, rendered_template=SeerAutofixOutOfCreditsTemplate().render(data)
+        )
+        assert_out_of_credits_message(renderable, AUTOFIX_OUT_OF_CREDITS_MESSAGE)
+        assert len(renderable["blocks"]) == 1
+
+
+class SeerSlackRendererAgentOutOfCreditsTest(TestCase):
+    def _render(self, **kwargs: Any) -> SlackRenderable:
+        data = SeerAgentOutOfCredits(organization_id=self.organization.id, **kwargs)
+        return render_seer(
+            data=data, rendered_template=SeerAgentOutOfCreditsTemplate().render(data)
+        )
+
+    def test_daily_limit_links_to_billing(self) -> None:
+        renderable = self._render(denial_reason="daily_cap_exceeded")
+        assert_out_of_credits_message(renderable, AGENT_DAILY_LIMIT_MESSAGE)
+        assert_billing_button(
+            renderable,
+            organization_id=self.organization.id,
+            billing_slug=self.organization.slug,
+        )
+
+    def test_links_to_auto_reload_settings(self) -> None:
+        renderable = self._render()
+        assert_out_of_credits_message(renderable, AGENT_OUT_OF_CREDITS_MESSAGE)
+        assert_billing_button(
+            renderable,
+            organization_id=self.organization.id,
+            billing_slug=self.organization.slug,
+        )
+
+    def test_auto_reload_already_on(self) -> None:
+        renderable = self._render(auto_reload_enabled=True)
+        assert_out_of_credits_message(renderable, AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE)
+        assert_billing_button(
+            renderable,
+            organization_id=self.organization.id,
+            billing_slug=self.organization.slug,
+        )
+
+
 class SeerSlackRendererAgentErrorTest(TestCase):
     def test_render_agent_error(self) -> None:
         data = SeerAgentError(
@@ -454,6 +572,16 @@ class SeerSlackRendererAgentTest(TestCase):
         assert "Reinstall" in footer_text
         assert "I can't read the whole thread" in footer_text
 
+    def test_render_agent_pr_state_out_of_credits(self) -> None:
+        pr = RepoPRState(
+            repo_name="acme/web",
+            pr_creation_status="error",
+            pr_creation_error_code="out_of_credits",
+        )
+        assert SeerSlackRenderer._render_agent_pr_state(pr) == (
+            "Couldn't push to `acme/web`: your organization is out of Seer credits"
+        )
+
     def test_render_agent_response_no_footer_when_url_not_set(self) -> None:
         data = self._create_agent_response(summary="Some analysis")
         assert data.missing_scope_settings_url is None
@@ -501,6 +629,23 @@ class SeerAgentWriteApprovalSlackRendererTest(TestCase):
 
 
 class SeerSlackRendererInvestigationTest(TestCase):
+    def test_render_investigation_started_without_user(self) -> None:
+        renderable, links = NotificationService.render_template(
+            data=SeerInvestigationStarted(
+                organization_id=1,
+                investigation_url="https://example.sentry.io/seer/investigations/1/",
+            ),
+            template=SeerInvestigationStartedTemplate(),
+            provider=SlackNotificationProvider,
+        )
+
+        text = "Sentry started a Seer investigation for this alert."
+        assert renderable["text"] == text
+        (message,) = renderable["blocks"]
+        assert isinstance(message, MarkdownBlock)
+        assert message.text == text
+        assert links == set()
+
     def test_render_investigation_started(self) -> None:
         renderable, _ = NotificationService.render_template(
             data=SeerInvestigationStarted(
@@ -525,16 +670,16 @@ class SeerSlackRendererInvestigationTest(TestCase):
         }
     )
     def test_render_investigation_link_button(self) -> None:
-        url = "https://acme.sentry.io/seer/investigations/1/"
-        data = SeerInvestigationStarted(
-            organization_id=1, slack_user_id="U0123456789", investigation_url=url
+        url = "https://example.sentry.io/seer/investigations/1/"
+        data = NotificationData(
+            organization_id=1, source=NotificationSource.SEER_INVESTIGATION_STARTED
         )
         link_decorator = NotificationLinkDecorator(
             data=data, provider=NotificationProviderKey.SLACK
         )
 
         button = SeerSlackRenderer.render_investigation_link_button(
-            data=data, link_decorator=link_decorator
+            investigation_url=url, link_decorator=link_decorator
         )
 
         assert button.text is not None

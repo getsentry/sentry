@@ -8,7 +8,6 @@ import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
-import * as qs from 'query-string';
 import {useStore} from 'zustand';
 
 import type {FeatureBadgeProps} from '@sentry/scraps/badge';
@@ -31,6 +30,7 @@ import type {PageFilterDatetime} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -47,6 +47,7 @@ import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRo
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -72,10 +73,8 @@ import type {IssueUpdateData} from './types';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
   DEFAULT_QUERY,
-  FOR_REVIEW_QUERIES,
   getStoredIssueSort,
   setStoredIssueSort,
-  isForReviewQuery,
   IssueSortOptions,
   Query,
 } from './utils';
@@ -270,11 +269,7 @@ function IssueListOverviewInner({
   }, [selection, query, sort, getGroupStatsPeriod]);
 
   const requestParams = useMemo(() => {
-    const params: any = {
-      ...getEndpointParams(),
-      limit: MAX_ITEMS,
-      shortIdLookup: 1,
-    };
+    const params: any = {...getEndpointParams(), limit: MAX_ITEMS, shortIdLookup: 1};
 
     const cursor = decodeScalar(location.query.cursor);
     if (cursor) {
@@ -286,7 +281,7 @@ function IssueListOverviewInner({
       params.statsPeriod = DEFAULT_STATS_PERIOD;
     }
 
-    params.expand = ['owners', 'inbox', ...(hasIssueInbox ? ['derivedData'] : [])];
+    params.expand = ['owners', ...(hasIssueInbox ? ['derivedData'] : [])];
     params.collapse = ['stats', 'unhandled'];
 
     return params;
@@ -348,10 +343,7 @@ function IssueListOverviewInner({
           getApiUrl('/organizations/$organizationIdOrSlug/issues-stats/', {
             path: {organizationIdOrSlug: organization.slug},
           }),
-          {
-            method: 'GET',
-            data: qs.stringify(statsRequestParams),
-          }
+          {method: 'GET', data: qs.stringify(statsRequestParams)}
         );
 
         if (data) {
@@ -381,17 +373,8 @@ function IssueListOverviewInner({
   const resetNewViewQueryParam = useCallback(() => {
     if (location.query.new) {
       navigate(
-        {
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            new: undefined,
-          },
-        },
-        {
-          replace: true,
-          preventScrollReset: true,
-        }
+        {pathname: location.pathname, query: {...location.query, new: undefined}},
+        {replace: true, preventScrollReset: true}
       );
     }
   }, [location.pathname, navigate, location.query]);
@@ -420,11 +403,7 @@ function IssueListOverviewInner({
         getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {
-          method: 'GET',
-          data: qs.stringify(requestParams),
-          includeAllArgs: true,
-        }
+        {method: 'GET', data: qs.stringify(requestParams), includeAllArgs: true}
       );
 
       if (!resp) {
@@ -649,20 +628,14 @@ function IssueListOverviewInner({
       numPreviousIssues = 0;
     }
 
-    return {
-      numPreviousIssues,
-      numIssuesOnPage: groupIds.length,
-    };
+    return {numPreviousIssues, numIssuesOnPage: groupIds.length};
   }, [pageLinks, location, queryCount, allResultsVisible, groupIds.length]);
 
   const onRealtimeChange = useCallback(
     (realtime: boolean) => {
       Cookies.set('realtimeActive', realtime.toString());
       setRealtimeActive(realtime);
-      trackAnalytics('issues_stream.realtime_clicked', {
-        organization,
-        enabled: realtime,
-      });
+      trackAnalytics('issues_stream.realtime_clicked', {organization, enabled: realtime});
     },
     [organization]
   );
@@ -674,17 +647,7 @@ function IssueListOverviewInner({
       ...getEndpointParams(),
       ...newParams,
     };
-    if (
-      queryData.sort === IssueSortOptions.INBOX &&
-      !FOR_REVIEW_QUERIES.includes(queryData.query || '')
-    ) {
-      delete queryData.sort;
-    }
-
-    navigate({
-      pathname: location.pathname,
-      query: queryData,
-    });
+    navigate({pathname: location.pathname, query: queryData});
   };
 
   const onSearch = (newQuery: string) => {
@@ -697,10 +660,7 @@ function IssueListOverviewInner({
   };
 
   const onSortChange = (newSort: string) => {
-    trackAnalytics('issues_stream.sort_changed', {
-      organization,
-      sort: newSort,
-    });
+    trackAnalytics('issues_stream.sort_changed', {organization, sort: newSort});
     if (!urlParams.viewId) {
       setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
     }
@@ -734,13 +694,11 @@ function IssueListOverviewInner({
   };
 
   const invalidateIssueCounts = () => {
-    queryClient.invalidateQueries({
-      queryKey: [
-        getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-      ],
-    });
+    queryClient.invalidateQueries(
+      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues-count/', {
+        path: {organizationIdOrSlug: organization.slug},
+      })
+    );
   };
 
   const undoAction = async ({
@@ -759,19 +717,16 @@ function IssueListOverviewInner({
       const response = await api.requestPromise(endpoint, {
         method: 'PUT',
         data,
-        query: {
-          project: projectIds,
-          id: groupItems.map(group => group.id),
-        },
+        query: {project: projectIds, id: groupItems.map(group => group.id)},
       });
 
       invalidateIssueCounts();
 
       if (response) {
-        // If on the Ignore or For Review tab, adding back to the GroupStore will make the issue show up
+        // If on the Ignore tab, adding back to the GroupStore will make the issue show up
         // on this page for a second and then be removed (will show up on All Unresolved). This is to
         // stop this from happening and avoid confusion.
-        if (!query.includes('is:ignored') && !isForReviewQuery(query)) {
+        if (!query.includes('is:ignored')) {
           GroupStore.add(groupItems);
         }
         actionTakenRef.current = true;
@@ -791,7 +746,7 @@ function IssueListOverviewInner({
     skipRefetch,
     undo,
   }: {
-    actionType: 'Reviewed' | 'Resolved' | 'Ignored' | 'Archived' | 'Reprioritized';
+    actionType: 'Resolved' | 'Ignored' | 'Archived' | 'Reprioritized';
     itemIds: string[];
     shouldRemove: boolean;
     skipRefetch?: boolean;
@@ -850,10 +805,7 @@ function IssueListOverviewInner({
         onIssueAction({
           itemIds,
           actionType: 'Resolved',
-          shouldRemove:
-            query.includes('is:unresolved') ||
-            query.includes('is:ignored') ||
-            isForReviewQuery(query),
+          shouldRemove: query.includes('is:unresolved') || query.includes('is:ignored'),
           skipRefetch: realtimeActive,
           undo: realtimeActive
             ? undefined
@@ -870,7 +822,7 @@ function IssueListOverviewInner({
         onIssueAction({
           itemIds,
           actionType: 'Archived',
-          shouldRemove: query.includes('is:unresolved') || isForReviewQuery(query),
+          shouldRemove: query.includes('is:unresolved'),
           skipRefetch: realtimeActive,
           undo: realtimeActive
             ? undefined
@@ -882,16 +834,6 @@ function IssueListOverviewInner({
         });
         return;
       }
-    }
-
-    if ('inbox' in data && !data.inbox) {
-      onIssueAction({
-        itemIds,
-        actionType: 'Reviewed',
-        shouldRemove: isForReviewQuery(query),
-        skipRefetch: realtimeActive,
-      });
-      return;
     }
 
     if ('priority' in data && typeof data.priority === 'string') {
@@ -914,10 +856,7 @@ function IssueListOverviewInner({
   };
 
   const paginationAnalyticsEvent = (direction: string) => {
-    trackAnalytics('issues_stream.paginate', {
-      organization,
-      direction,
-    });
+    trackAnalytics('issues_stream.paginate', {organization, direction});
   };
 
   const modifiedQueryCount = Math.max(queryCount, 0);

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal, TypedDict, cast
+from typing import Any, Literal, TypedDict
 
 import orjson
 from django.utils.dateparse import parse_datetime
@@ -27,7 +27,7 @@ def json_byte_size(value: Any) -> int:
 
 class RelaxedContractSerializer(serializers.Serializer[Any]):
     def to_internal_value(self, data: Any) -> dict[str, Any]:
-        validated = cast("dict[str, Any]", super().to_internal_value(data))
+        validated = super().to_internal_value(data)
         if not isinstance(data, dict):
             return validated
         passthrough = {key: value for key, value in data.items() if key not in self.fields}

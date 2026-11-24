@@ -1,10 +1,12 @@
+import {useStore} from 'zustand';
+
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {PageFilterAdjustments} from 'sentry/components/pageFilters/adjustments';
 import {getPageFilterAdjustmentMessage} from 'sentry/components/pageFilters/adjustments';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 
@@ -26,7 +28,7 @@ interface AdjustedFiltersAlertProps {
  * happened and why.
  */
 export function AdjustedFiltersAlert({hasUnsavedChanges}: AdjustedFiltersAlertProps) {
-  const {adjustments} = usePageFilters();
+  const adjustments = useStore(PageFiltersStore, state => state.adjustments);
 
   const sentences = FILTER_ORDER.map(filter => adjustments[filter])
     .filter(defined)

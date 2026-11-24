@@ -8,7 +8,6 @@ import {
   STATIC_FIELD_TAGS,
   STATIC_FIELD_TAGS_SET,
   STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
-  STATIC_FIELD_TAGS_WITHOUT_TRACING,
   STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS,
   STATIC_SEMVER_TAGS,
   STATIC_SPAN_TAGS,
@@ -271,7 +270,6 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
 
   const getTagList = useMemo(() => {
     const measurementsWithKind = getMeasurementTags(measurements, customMeasurements);
-    const orgHasPerformanceView = organization.features.includes('performance-view');
 
     const combinedTags: TagCollection =
       dataset === DiscoverDatasets.ERRORS
@@ -285,15 +283,13 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
               STATIC_SPAN_TAGS,
               STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS
             )
-          : orgHasPerformanceView
-            ? Object.assign(
-                {},
-                measurementsWithKind,
-                functionTags,
-                STATIC_SPAN_TAGS,
-                STATIC_FIELD_TAGS
-              )
-            : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
+          : Object.assign(
+              {},
+              measurementsWithKind,
+              functionTags,
+              STATIC_SPAN_TAGS,
+              STATIC_FIELD_TAGS
+            );
 
     Object.assign(combinedTags, filteredTags, STATIC_SEMVER_TAGS, featureFlagTags);
 
@@ -312,7 +308,6 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
     customMeasurements,
     functionTags,
     filteredTags,
-    organization.features,
     featureFlagTags,
   ]);
 
@@ -456,10 +451,7 @@ const getMeasurementTags = (
 ) => {
   const measurementsWithKind = Object.keys(measurements).reduce((tags, key) => {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    tags[key] = {
-      ...measurements[key],
-      kind: FieldKind.MEASUREMENT,
-    };
+    tags[key] = {...measurements[key], kind: FieldKind.MEASUREMENT};
     return tags;
   }, {});
 
@@ -469,10 +461,7 @@ const getMeasurementTags = (
 
   return Object.keys(customMeasurements).reduce((tags, key) => {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    tags[key] = {
-      ...customMeasurements[key],
-      kind: FieldKind.MEASUREMENT,
-    };
+    tags[key] = {...customMeasurements[key], kind: FieldKind.MEASUREMENT};
     return tags;
   }, measurementsWithKind);
 };

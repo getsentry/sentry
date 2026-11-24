@@ -1,3 +1,11 @@
+export {
+  annotate,
+  hasAnnotations,
+  splitAnnotations,
+  stripAnnotations,
+  truncateAnnotated,
+  type AnnotationSegment,
+} from './annotation';
 export {Markdown, type MarkdownProps, type MarkdownTableColumn} from './markdown';
 export {
   asyncSanitizedMarked,

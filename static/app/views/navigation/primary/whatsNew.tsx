@@ -115,7 +115,7 @@ function WhatsNewBroadcastList({
             </Flex>
             <Placeholder height="124px" width="100%" />
 
-            {item < 3 && <Stack.Separator border="muted" />}
+            {item < 3 && <Stack.Separator border="secondary" />}
           </Stack>
         ))}
       </Stack>
@@ -252,10 +252,7 @@ export function PrimaryNavigationWhatsNew() {
         analyticsKey="broadcasts"
         label={t("What's New")}
         indicator={unseenPostIds.length > 0 ? 'accent' : undefined}
-        buttonProps={{
-          ...overlayTriggerProps,
-          icon: <IconBroadcast />,
-        }}
+        buttonProps={{...overlayTriggerProps, icon: <IconBroadcast />}}
       />
       {isOpen && (
         <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>

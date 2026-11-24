@@ -17,7 +17,6 @@ import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {User} from 'sentry/types/user';
 import {shutdownIntercom} from 'sentry/utils/intercom';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
@@ -53,7 +52,7 @@ export function OrganizationContextProvider({children}: Props) {
     ConfigStore,
     useShallow(state => ({lastOrganization: state.lastOrganization, user: state.user}))
   );
-  const {organizations} = useLegacyStore(OrganizationsStore);
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
   const {organization, error} = useStore(
     OrganizationStore,
     useShallow(state => ({organization: state.organization, error: state.error}))
@@ -115,11 +114,7 @@ export function OrganizationContextProvider({children}: Props) {
       // If the user has an active staff session, the response will not return a
       // 403 but access scopes will be an empty list.
       if (user?.isSuperuser && user?.isStaff && organization?.access?.length === 0) {
-        openSudo({
-          accessMode: 'superuser',
-          closeEvents: 'none',
-          closeButton: false,
-        });
+        openSudo({accessMode: 'superuser', closeEvents: 'none', closeButton: false});
       }
 
       return;

@@ -67,9 +67,7 @@ const StyledIdentityIconContainer = styled('div')`
   justify-content: center;
 `;
 
-const StyledIdentityIcon = styled('div')<{
-  identitySrc: string;
-}>`
+const StyledIdentityIcon = styled('div')<{identitySrc: string}>`
   position: relative;
   height: 80%;
   width: 80%;

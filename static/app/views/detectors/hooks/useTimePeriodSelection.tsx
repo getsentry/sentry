@@ -46,10 +46,7 @@ export function useTimePeriodSelection({
       return [];
     }
 
-    return getTimePeriodOptions({
-      dataset,
-      timeWindow,
-    });
+    return getTimePeriodOptions({dataset, timeWindow});
   }, [dataset, interval]);
 
   // Derive the actual selected time period from available options

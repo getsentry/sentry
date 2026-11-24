@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Generator, Mapping
 from enum import StrEnum
-from typing import Any, MutableMapping, TypedDict, cast
+from typing import Any, MutableMapping, TypedDict
 from urllib.parse import urljoin
 
 from django.conf import settings
@@ -232,7 +232,7 @@ class IntegrationProxyRequestValidator:
                 status=ObjectStatus.ACTIVE,
             )
             .select_related("integration")
-            .first()
+            .get_or_none()
         )
         if org_integration is None:
             raise IntegrationProxyRequestValidationException(
@@ -373,17 +373,14 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         # default timeout when the header is absent or unparseable.
         timeout = decode_proxy_timeout(request.headers.get(PROXY_TIMEOUT_HEADER))
 
-        resp = cast(
-            "Response",
-            self.client.request(
-                request.method,
-                self.proxy_path,
-                allow_text=True,
-                prepared_request=prepared_request,
-                raw_response=True,
-                stream=True,
-                timeout=timeout,
-            ),
+        resp = self.client.request(
+            request.method,
+            self.proxy_path,
+            allow_text=True,
+            prepared_request=prepared_request,
+            raw_response=True,
+            stream=True,
+            timeout=timeout,
         )
 
         def iter_response(response: Response) -> Generator[bytes]:

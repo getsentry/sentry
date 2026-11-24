@@ -10,7 +10,7 @@ function Example({onCopy}: {onCopy: () => void}) {
   return (
     <Fragment>
       <input aria-label="Prior input" />
-      <div {...promptProps}>Fetch the guide. Your secret token is sntryh_****.</div>
+      <div {...promptProps}>Open the instructions. Your handoff code is sntryh_****.</div>
     </Fragment>
   );
 }
@@ -20,7 +20,7 @@ describe('useHandoffPromptInteractions', () => {
 
   it('selects the complete displayed prompt on primary pointer down', async () => {
     render(<Example onCopy={jest.fn()} />);
-    const prompt = screen.getByText(/Fetch the guide/);
+    const prompt = screen.getByText(/Open the instructions/);
     screen.getByRole('textbox', {name: 'Prior input'}).focus();
 
     await userEvent.pointer({keys: '[MouseLeft>]', target: prompt});
@@ -32,7 +32,7 @@ describe('useHandoffPromptInteractions', () => {
 
   it('leaves the selection unchanged for non-primary pointers', async () => {
     render(<Example onCopy={jest.fn()} />);
-    const prompt = screen.getByText(/Fetch the guide/);
+    const prompt = screen.getByText(/Open the instructions/);
 
     await userEvent.pointer({keys: '[MouseRight]', target: prompt});
 
@@ -43,7 +43,7 @@ describe('useHandoffPromptInteractions', () => {
     const onCopy = jest.fn();
     render(<Example onCopy={onCopy} />);
 
-    const copiedNatively = fireEvent.copy(screen.getByText(/Fetch the guide/));
+    const copiedNatively = fireEvent.copy(screen.getByText(/Open the instructions/));
 
     expect(copiedNatively).toBe(false);
     expect(onCopy).toHaveBeenCalledTimes(1);

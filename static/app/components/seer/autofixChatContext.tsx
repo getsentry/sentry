@@ -9,12 +9,18 @@ import {
   type ReactNode,
 } from 'react';
 
+import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
+
 export type SendMessageOptions = {
   /** Start a fresh conversation instead of adding to the one already open. */
   newChat?: boolean;
 };
 
-type ReportOutOfCredits = (embedId: string, isOutOfCredits: boolean) => void;
+type ReportOutOfCredits = (
+  embedId: string,
+  isOutOfCredits: boolean,
+  denialReason: SeerCreditDenialReason | null
+) => void;
 
 type AutofixChatContextValue = {
   /**
@@ -76,21 +82,26 @@ export function useAutofixChat(): AutofixChatContextValue {
 
 /**
  * For the chat: whether any of its embeds can't afford the step it offers
- * next, so the chat shows one notice for all of them. Pass
+ * next, and why, so the chat shows one notice for all of them. Pass
  * `reportOutOfCredits` to `AutofixChatProvider`.
  */
 export function useAutofixOutOfCreditsEmbeds() {
-  const [embedIds, setEmbedIds] = useState<ReadonlySet<string>>(() => new Set());
+  // The denial reason each embed that can't afford its next step reported.
+  const [denials, setDenials] = useState<
+    ReadonlyMap<string, SeerCreditDenialReason | null>
+  >(() => new Map());
 
   const reportOutOfCredits = useCallback<ReportOutOfCredits>(
-    (embedId, isOutOfCredits) => {
-      setEmbedIds(current => {
-        if (current.has(embedId) === isOutOfCredits) {
+    (embedId, isOutOfCredits, denialReason) => {
+      setDenials(current => {
+        // Every embed reports on mount, and most can afford their step. Skip
+        // those so the chat doesn't re-render for nothing.
+        if (!isOutOfCredits && !current.has(embedId)) {
           return current;
         }
-        const next = new Set(current);
+        const next = new Map(current);
         if (isOutOfCredits) {
-          next.add(embedId);
+          next.set(embedId, denialReason);
         } else {
           next.delete(embedId);
         }
@@ -100,15 +111,26 @@ export function useAutofixOutOfCreditsEmbeds() {
     []
   );
 
-  return {isAutofixOutOfCredits: embedIds.size > 0, reportOutOfCredits};
+  const reasons = [...denials.values()];
+  return {
+    isAutofixOutOfCredits: denials.size > 0,
+    // The daily usage limit is the org's, so one embed hitting it means they
+    // all have.
+    autofixDenialReason:
+      reasons.find(reason => reason === 'daily_cap_exceeded') ?? reasons[0] ?? null,
+    reportOutOfCredits,
+  };
 }
 
 /**
  * For an embed: tells the chat around it whether it can't afford the step it
- * offers next. Returns whether the embed has to show the notice itself, which
- * it does only outside the chat, where nothing else would.
+ * offers next, and why. Returns whether the embed has to show the notice
+ * itself, which it does only outside the chat, where nothing else would.
  */
-export function useReportAutofixOutOfCredits(isOutOfCredits: boolean): boolean {
+export function useReportAutofixOutOfCredits(
+  isOutOfCredits: boolean,
+  denialReason: SeerCreditDenialReason | null
+): boolean {
   const {reportOutOfCredits} = useAutofixChat();
   const embedId = useId();
 
@@ -116,9 +138,9 @@ export function useReportAutofixOutOfCredits(isOutOfCredits: boolean): boolean {
     if (!reportOutOfCredits) {
       return;
     }
-    reportOutOfCredits(embedId, isOutOfCredits);
-    return () => reportOutOfCredits(embedId, false);
-  }, [embedId, isOutOfCredits, reportOutOfCredits]);
+    reportOutOfCredits(embedId, isOutOfCredits, denialReason);
+    return () => reportOutOfCredits(embedId, false, null);
+  }, [embedId, isOutOfCredits, denialReason, reportOutOfCredits]);
 
   return isOutOfCredits && !reportOutOfCredits;
 }

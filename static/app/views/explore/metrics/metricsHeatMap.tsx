@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {useQueryStates} from 'nuqs';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -6,8 +7,7 @@ import {Text} from '@sentry/scraps/text';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {
   HeatMapWidgetVisualization,
@@ -15,6 +15,7 @@ import {
 } from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
 import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {parseAsFieldList} from 'sentry/views/explore/queryParams/parsers';
 import {prettifyAggregation} from 'sentry/views/explore/utils';
 import {setExploreAttributeBounds} from 'sentry/views/explore/utils/setExploreAttributeBounds';
 
@@ -29,6 +30,13 @@ import {
 } from './metricsQueryParams';
 import {useMultiMetricsQueryParams} from './multiMetricsQueryParams';
 import {STACKED_GRAPH_HEIGHT} from './settings';
+
+const ZOOM_QUERY_PARSERS = {
+  metric: parseAsFieldList,
+  start: pageFilterParsers.start,
+  end: pageFilterParsers.end,
+  statsPeriod: pageFilterParsers.statsPeriod,
+};
 
 interface MetricsHeatMapProps {
   actions: React.ReactNode;
@@ -52,8 +60,7 @@ export function MetricsHeatMap({
   const metricLabel = useMetricLabel();
   const metricName = useMetricName();
   const metricQueries = useMultiMetricsQueryParams();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [, setZoomQueryParams] = useQueryStates(ZOOM_QUERY_PARSERS, {history: 'push'});
 
   const {series: heatMapSeries, isPending, isPartial, isFetching, error} = heatMapData;
 
@@ -63,22 +70,7 @@ export function MetricsHeatMap({
       ? metricName
       : (title ?? metricLabel ?? prettifyAggregation(aggregate) ?? aggregate);
 
-  // Drag-to-zoom changes two independent URL params at once: this row's `value`
-  // filter (encoded inside the `metric` param) and the page time range
-  // (`start`/`end`/`statsPeriod`). They have to land in a single `navigate`:
-  // two navigations would each rebuild the whole query from the same stale
-  // `location` snapshot and clobber each other, dropping one of the changes.
-  //
-  // So we hand-assemble that one navigation here — re-encode every metric row,
-  // swapping the new `value` bounds into the row this heat map belongs to. That
-  // row is found by its stable label ("A", "B", ...) rather than object
-  // identity, because the metric queries are decoded fresh from the URL on
-  // every render and share no reference across navigations.
-  //
-  // This is more manual than it should be. A URL-state library like Nuqs
-  // (batched, functional param updates) would let a `value`-filter setter and a
-  // datetime setter each update independently and coalesce into one URL write,
-  // removing both the re-encode loop and the label lookup.
+  // One write: a separate updateDateTime navigate would drop the pending `metric` write.
   const handleZoom = useCallback(
     ({timestampStart, timestampEnd, valueMin, valueMax}: HeatMapZoomContext) => {
       const metric = metricQueries
@@ -101,21 +93,14 @@ export function MetricsHeatMap({
         })
         .filter(Boolean);
 
-      navigate(
-        {
-          ...location,
-          query: {
-            ...location.query,
-            metric,
-            start: getUtcDateString(Math.floor(timestampStart / 60_000) * 60_000),
-            end: getUtcDateString(Math.ceil(timestampEnd / 60_000) * 60_000),
-            statsPeriod: undefined,
-          },
-        },
-        {preventScrollReset: true}
-      );
+      void setZoomQueryParams({
+        metric,
+        start: getUtcDateString(Math.floor(timestampStart / 60_000) * 60_000),
+        end: getUtcDateString(Math.ceil(timestampEnd / 60_000) * 60_000),
+        statsPeriod: null,
+      });
     },
-    [metricQueries, location, navigate, queryLabel]
+    [metricQueries, setZoomQueryParams, queryLabel]
   );
 
   const hasChart =

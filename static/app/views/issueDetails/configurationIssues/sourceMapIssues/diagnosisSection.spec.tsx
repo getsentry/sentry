@@ -1,3 +1,4 @@
+import {useQuery} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {
   SourceMapDebugFrameFixture,
@@ -8,7 +9,8 @@ import {
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {useSourceMapDebugQuery} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
+import {sourceMapDebugApiOptions} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {DiagnosisSection} from './diagnosisSection';
 
@@ -16,10 +18,14 @@ const PROJECT_SLUG = 'project-slug';
 const EVENT_ID = 'event-abc123';
 
 function TestWrapper() {
-  const sourceMapQuery = useSourceMapDebugQuery(
-    PROJECT_SLUG,
-    EVENT_ID,
-    'sentry.javascript.browser'
+  const organization = useOrganization();
+  const sourceMapQuery = useQuery(
+    sourceMapDebugApiOptions({
+      organizationSlug: organization.slug,
+      projectSlug: PROJECT_SLUG,
+      eventId: EVENT_ID,
+      sdkName: 'sentry.javascript.browser',
+    })
   );
   return (
     <DiagnosisSection

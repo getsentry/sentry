@@ -5,6 +5,7 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 
 import {toast} from '@sentry/scraps/toast';
 
+import {useSeerCreditCheck} from 'sentry/utils/seer/useSeerCreditCheck';
 import type {Artifact, Block, ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 import {DiffFileType, DiffLineType} from './types';
@@ -13,10 +14,12 @@ import {
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   getPollInterval,
+  getSingleRunStop,
   hideErroredPrIteration,
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
   isLastStepPrIteration,
+  isOutOfCreditsSection,
   isPrIterationBlock,
   isPullRequestsArtifact,
   isRootCauseArtifact,
@@ -37,11 +40,7 @@ jest.mock('sentry/serviceWorker/client/serviceWorkerContext', () => ({
 }));
 
 function makeValidArtifact<T>(data: T): Artifact<T> {
-  return {
-    key: 'artifact-1',
-    reason: 'Found a root cause',
-    data,
-  };
+  return {key: 'artifact-1', reason: 'Found a root cause', data};
 }
 
 describe('getPollInterval', () => {
@@ -192,12 +191,7 @@ describe('isSolutionArtifact', () => {
 
   it('returns true when steps is an empty array', () => {
     expect(
-      isSolutionArtifact(
-        makeValidArtifact({
-          one_line_summary: 'Fix it',
-          steps: [],
-        })
-      )
+      isSolutionArtifact(makeValidArtifact({one_line_summary: 'Fix it', steps: []}))
     ).toBe(true);
   });
 });
@@ -483,11 +477,7 @@ describe('getOrderedAutofixSections', () => {
     return {
       id: `block-${blockId++}`,
       timestamp: '2026-01-01T00:00:00Z',
-      message: {
-        content: 'hello',
-        role: 'assistant',
-        ...message,
-      },
+      message: {content: 'hello', role: 'assistant', ...message},
       ...rest,
     };
   }
@@ -509,12 +499,7 @@ describe('getOrderedAutofixSections', () => {
   }
 
   function makeState(blocks: Block[]): ExplorerAutofixState {
-    return {
-      run_id: 1,
-      status: 'completed',
-      updated_at: '2026-01-01T00:00:00Z',
-      blocks,
-    };
+    return {run_id: 1, status: 'completed', updated_at: '2026-01-01T00:00:00Z', blocks};
   }
 
   it('returns an empty array for null state or no blocks', () => {
@@ -596,9 +581,7 @@ describe('getOrderedAutofixSections', () => {
           message: {metadata: {step: 'code_changes'}},
           merged_file_patches: [makePatch('org/repo', 'a.py', 'old')],
         }),
-        makeBlock({
-          merged_file_patches: [makePatch('org/repo', 'a.py', 'new')],
-        }),
+        makeBlock({merged_file_patches: [makePatch('org/repo', 'a.py', 'new')]}),
       ])
     );
 
@@ -639,14 +622,39 @@ describe('getOrderedAutofixSections', () => {
     expect(prSection.artifacts).toEqual([[prState]]);
   });
 
+  it('marks only the section the run stopped in with its failure reason', () => {
+    const sections = getOrderedAutofixSections({
+      ...makeState([
+        makeBlock({message: {metadata: {step: 'root_cause'}}}),
+        makeBlock({message: {metadata: {step: 'solution'}}}),
+      ]),
+      status: 'error',
+      failure_reason: 'out_of_credits',
+    });
+
+    expect(sections.map(s => [s.status, s.failureReason])).toEqual([
+      ['completed', undefined],
+      ['error', 'out_of_credits'],
+    ]);
+    expect(sections.map(isOutOfCreditsSection)).toEqual([false, true]);
+  });
+
+  it('does not treat other failures as out of credits', () => {
+    const [section] = getOrderedAutofixSections({
+      ...makeState([makeBlock({message: {metadata: {step: 'root_cause'}}})]),
+      status: 'error',
+      failure_reason: 'timeout',
+    });
+
+    expect(section!.status).toBe('error');
+    expect(isOutOfCreditsSection(section!)).toBe(false);
+  });
+
   it('marks the synthetic pull_request section as processing while a PR is creating', () => {
     const sections = getOrderedAutofixSections({
       ...makeState([makeBlock({message: {metadata: {step: 'code_changes'}}})]),
       repo_pr_states: {
-        'org/repo': {
-          repo_name: 'org/repo',
-          pr_creation_status: 'creating',
-        } as any,
+        'org/repo': {repo_name: 'org/repo', pr_creation_status: 'creating'} as any,
       },
     });
 
@@ -681,17 +689,37 @@ describe('getOrderedAutofixSections', () => {
       );
     });
 
+    it('keeps single-run sections when a reply carries PR feedback', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun([
+          makeBlock({message: {role: 'user', metadata: {step: 'single_run'}}}),
+          makeBlock({artifacts: [rootCause('H', 'C')]}),
+          makeBlock({merged_file_patches: [makePatch('org/repo', 'a.py')]}),
+          makeBlock({
+            message: {
+              role: 'user',
+              metadata: {step: 'pr_iteration', iteration_index: '1'},
+            },
+          }),
+          makeBlock({merged_file_patches: [makePatch('org/repo', 'a.py', 'diff2')]}),
+        ])
+      );
+
+      expect(sections.map(s => s.step)).toEqual(['root_cause', 'code_changes']);
+      expect(getAutofixArtifactFromSection(sections[0]!)).toEqual(
+        expect.objectContaining({
+          data: {one_line_description: 'H', cause: 'C', five_whys: []},
+        })
+      );
+    });
+
     it('reads the root cause the API returns under the root_cause key', () => {
       const sections = getOrderedAutofixSections(
         makeSingleRun([
           makeBlock({message: {metadata: {step: 'single_run'}}}),
           makeBlock({
             artifacts: [
-              {
-                key: 'root_cause',
-                reason: 'found',
-                data: {headline: 'H', cause: 'C'},
-              },
+              {key: 'root_cause', reason: 'found', data: {headline: 'H', cause: 'C'}},
             ],
           }),
         ])
@@ -702,6 +730,37 @@ describe('getOrderedAutofixSections', () => {
           data: {one_line_description: 'H', cause: 'C', five_whys: []},
         })
       );
+    });
+
+    it('keeps why the run stopped on the root cause section', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun([
+          makeBlock({message: {metadata: {step: 'single_run'}}}),
+          makeBlock({
+            artifacts: [
+              {key: 'stop', reason: 'stop', data: {reason: 'R', suggestion: 'N'}},
+            ],
+          }),
+        ])
+      );
+
+      expect(getSingleRunStop(sections[0]!)).toEqual({reason: 'R', suggestion: 'N'});
+    });
+
+    it('drops the stop once the run has code changes', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun([
+          makeBlock({message: {metadata: {step: 'single_run'}}}),
+          makeBlock({
+            artifacts: [
+              {key: 'stop', reason: 'stop', data: {reason: 'R', suggestion: 'N'}},
+            ],
+            merged_file_patches: [makePatch('org/repo', 'a.py')],
+          }),
+        ])
+      );
+
+      expect(getSingleRunStop(sections[0]!)).toBeNull();
     });
 
     it('has only a root cause section without patches', () => {
@@ -761,7 +820,7 @@ describe('getOrderedAutofixSections', () => {
       expect(sections.map(s => s.status)).toEqual(['error']);
     });
 
-    it('shows an error on the root cause when the run failed after finding it', () => {
+    it('keeps the root cause and shows an error on code changes when the run failed after finding it', () => {
       const sections = getOrderedAutofixSections(
         makeSingleRun(
           [
@@ -772,7 +831,15 @@ describe('getOrderedAutofixSections', () => {
         )
       );
 
-      expect(sections.map(s => s.status)).toEqual(['error']);
+      expect(sections.map(s => [s.step, s.status])).toEqual([
+        ['root_cause', 'completed'],
+        ['code_changes', 'error'],
+      ]);
+      expect(getAutofixArtifactFromSection(sections[0]!)).toEqual(
+        expect.objectContaining({
+          data: {one_line_description: 'H', cause: 'C', five_whys: []},
+        })
+      );
     });
 
     it('shows an error on code changes when the run failed after editing', () => {
@@ -788,6 +855,24 @@ describe('getOrderedAutofixSections', () => {
       );
 
       expect(sections.map(s => s.status)).toEqual(['completed', 'error']);
+    });
+
+    it('marks the section the run stopped in with its failure reason', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun(
+          [
+            makeBlock({message: {metadata: {step: 'single_run'}}}),
+            makeBlock({artifacts: [rootCause('H', 'C')]}),
+            makeBlock({merged_file_patches: [makePatch('org/repo', 'a.py')]}),
+          ],
+          {status: 'error', failure_reason: 'out_of_credits'}
+        )
+      );
+
+      expect(sections.map(s => [s.step, s.failureReason])).toEqual([
+        ['root_cause', undefined],
+        ['code_changes', 'out_of_credits'],
+      ]);
     });
 
     it('keeps code changes completed once a PR exists', () => {
@@ -866,20 +951,11 @@ describe('isLastStepPrIteration', () => {
     return {
       id: `block-${blockId++}`,
       timestamp: '2026-01-01T00:00:00Z',
-      message: {
-        content: 'hello',
-        role: 'assistant',
-        metadata: step ? {step} : undefined,
-      },
+      message: {content: 'hello', role: 'assistant', metadata: step ? {step} : undefined},
     };
   }
   function state(blocks: Block[]): ExplorerAutofixState {
-    return {
-      run_id: 1,
-      status: 'completed',
-      updated_at: '2026-01-01T00:00:00Z',
-      blocks,
-    };
+    return {run_id: 1, status: 'completed', updated_at: '2026-01-01T00:00:00Z', blocks};
   }
 
   it('is true when the last block carrying a step is pr_iteration', () => {
@@ -918,10 +994,7 @@ describe('hideErroredPrIteration', () => {
         content: 'hello',
         role: 'assistant',
         metadata: step
-          ? {
-              step,
-              ...(feedback ? {feedback: JSON.stringify(feedback)} : {}),
-            }
+          ? {step, ...(feedback ? {feedback: JSON.stringify(feedback)} : {})}
           : undefined,
       },
     };
@@ -930,12 +1003,7 @@ describe('hideErroredPrIteration', () => {
     blocks: Block[],
     status: ExplorerAutofixState['status']
   ): ExplorerAutofixState {
-    return {
-      run_id: 1,
-      status,
-      updated_at: '2026-01-01T00:00:00Z',
-      blocks,
-    };
+    return {run_id: 1, status, updated_at: '2026-01-01T00:00:00Z', blocks};
   }
 
   it('leaves a failed bot-review pr_iteration untouched', () => {
@@ -1090,9 +1158,7 @@ describe('useExplorerAutofix - startStep', () => {
       method: 'POST',
       body: {run_id: 776, feature_id: 'autofix_single_run'},
     });
-    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP), {
-      organization: OrganizationFixture({features: ['autofix-browser-notifications']}),
-    });
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
     const run = await act(() => result.current.startStep('root_cause'));
 
     expect(run).toEqual({runId: 776, isSingleRun: true});
@@ -1181,6 +1247,84 @@ describe('useExplorerAutofix - createPR', () => {
       })
     );
   });
+
+  it.each([
+    [
+      null,
+      "Seer couldn't push changes to org/repo#7 because your organization is out of credits.",
+    ],
+    [
+      'not_enough_credits',
+      "Seer couldn't push changes to org/repo#7 because your organization is out of credits.",
+    ],
+    [
+      'daily_cap_exceeded',
+      "Seer couldn't push changes to org/repo#7 because your organization hit its daily usage limit.",
+    ],
+  ] as const)(
+    'says a push was refused for credits (denialReason %s) and rechecks credits',
+    async (denialReason, message) => {
+      const errorSpy = jest.spyOn(toast, 'error');
+      const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
+      const creditCheck = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/credit-check/`,
+        body: {hasEnoughCredits: true},
+      });
+      MockApiClient.addMockResponse({
+        url: AUTOFIX_URL,
+        method: 'GET',
+        body: {
+          autofix: {
+            run_id: 42,
+            blocks: [],
+            status: 'completed',
+            updated_at: '2026-01-01T00:00:00Z',
+            repo_pr_states: {
+              'org/repo': {
+                repo_name: 'org/repo',
+                branch_name: 'seer/fix',
+                commit_sha: 'abc1234',
+                pr_creation_status: 'error',
+                pr_creation_error: null,
+                pr_id: 7,
+                pr_number: 7,
+                pr_url: 'https://github.com/org/repo/pull/7',
+                title: 'Fix',
+              },
+            },
+          },
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: AUTOFIX_URL,
+        method: 'POST',
+        statusCode: 402,
+        body: {
+          detail:
+            'Your organization does not have enough credits to continue your Autofix run.',
+          code: 'seer_out_of_credits',
+          denialReason,
+        },
+      });
+
+      const {result} = renderHookWithProviders(
+        () => ({
+          autofix: useExplorerAutofix(MOCK_GROUP),
+          credits: useSeerCreditCheck('autofix_open_pr'),
+        }),
+        {organization}
+      );
+      await waitFor(() => expect(result.current.autofix.runState?.run_id).toBe(42));
+      await waitFor(() => expect(creditCheck).toHaveBeenCalledTimes(1));
+
+      await expect(
+        act(() => result.current.autofix.createPR(42, 'org/repo'))
+      ).rejects.toThrow();
+
+      expect(errorSpy).toHaveBeenCalledWith(message);
+      await waitFor(() => expect(creditCheck).toHaveBeenCalledTimes(2));
+    }
+  );
 
   it('shows an error toast and throws on API error', async () => {
     MockApiClient.addMockResponse({
@@ -1278,11 +1422,7 @@ describe('useExplorerAutofix - startStep pr_iteration', () => {
   });
 
   it('awaits the refetch so queued feedback is present once it resolves', async () => {
-    MockApiClient.addMockResponse({
-      url: AUTOFIX_URL,
-      method: 'POST',
-      body: {run_id: 42},
-    });
+    MockApiClient.addMockResponse({url: AUTOFIX_URL, method: 'POST', body: {run_id: 42}});
 
     const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
 
@@ -1305,6 +1445,50 @@ describe('useExplorerAutofix - startStep pr_iteration', () => {
     );
 
     expect(result.current.runState?.queued_feedback).toHaveLength(1);
+  });
+
+  it('refetches the run when feedback is refused for credits', async () => {
+    const errorSpy = jest.spyOn(toast, 'error');
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 402,
+      body: {
+        detail:
+          'Your organization does not have enough credits to continue your Autofix run.',
+        code: 'seer_out_of_credits',
+      },
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+    await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
+
+    // The backend holds the refused feedback on the queue.
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {
+        autofix: {
+          ...baseState,
+          status: 'completed',
+          pr_iteration_out_of_credits: {unfinished_action: null, denial_reason: null},
+          queued_feedback: [{text: 'make it blue', source: {type: 'user-ui'}}],
+        },
+      },
+    });
+
+    await expect(
+      act(() =>
+        result.current.startStep('pr_iteration', {runId: 42, userContext: 'make it blue'})
+      )
+    ).rejects.toThrow();
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Seer couldn't start on this feedback because your organization is out of credits. Seer continues the next time it iterates on the pull request."
+    );
+    await waitFor(() =>
+      expect(result.current.runState?.pr_iteration_out_of_credits).toBeTruthy()
+    );
   });
 });
 
@@ -1646,6 +1830,65 @@ describe('useExplorerAutofix - startStep errors', () => {
       'Cannot re-run a step after a pull request or coding agent has started'
     );
   });
+
+  it.each([
+    [
+      null,
+      "Seer couldn't start on the root cause because your organization is out of credits.",
+    ],
+    [
+      'not_enough_credits',
+      "Seer couldn't start on the root cause because your organization is out of credits.",
+    ],
+    [
+      'daily_cap_exceeded',
+      "Seer couldn't start on the root cause because your organization hit its daily usage limit.",
+    ],
+  ] as const)(
+    'says a kickoff was refused for credits (denialReason %s), rechecks credits, and paints no failed run',
+    async (denialReason, message) => {
+      const errorSpy = jest.spyOn(toast, 'error');
+      const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
+      const creditCheck = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/credit-check/`,
+        body: {hasEnoughCredits: true},
+      });
+      MockApiClient.addMockResponse({
+        url: AUTOFIX_URL,
+        method: 'GET',
+        body: {autofix: null},
+      });
+      MockApiClient.addMockResponse({
+        url: AUTOFIX_URL,
+        method: 'POST',
+        statusCode: 402,
+        body: {
+          detail:
+            'Your organization does not have enough credits to start an Autofix run.',
+          code: 'seer_out_of_credits',
+          denialReason,
+        },
+      });
+
+      const {result} = renderHookWithProviders(
+        () => ({
+          autofix: useExplorerAutofix(MOCK_GROUP),
+          credits: useSeerCreditCheck('autofix_root_cause'),
+        }),
+        {organization}
+      );
+      await waitFor(() => expect(result.current.autofix.isLoading).toBe(false));
+      await waitFor(() => expect(creditCheck).toHaveBeenCalledTimes(1));
+
+      await expect(
+        act(() => result.current.autofix.startStep('root_cause'))
+      ).rejects.toThrow();
+
+      expect(errorSpy).toHaveBeenCalledWith(message);
+      expect(result.current.autofix.runState).toBeNull();
+      await waitFor(() => expect(creditCheck).toHaveBeenCalledTimes(2));
+    }
+  );
 
   it('falls back to the error state when a kickoff fails with no existing run', async () => {
     MockApiClient.addMockResponse({

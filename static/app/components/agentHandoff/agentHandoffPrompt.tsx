@@ -1,37 +1,26 @@
-import {useState, type PointerEventHandler} from 'react';
-import {ThemeProvider} from '@emotion/react';
+import {useId} from 'react';
 import styled from '@emotion/styled';
 import {IconCopy} from '@sentry/icons/copy';
-import {IconSettings} from '@sentry/icons/settings';
-import {useStore} from 'zustand';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {InfoText} from '@sentry/scraps/info';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {InfoTip} from '@sentry/scraps/info';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {darkTheme} from '@sentry/scraps/theme';
-import {toast} from '@sentry/scraps/toast';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {t, tct} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
+import {t} from 'sentry/locale';
 
-import {
-  AgentHandoffFlow,
-  type AgentHandoffContext,
-  useAgentHandoff,
-} from './useAgentHandoff';
-import {useHandoffPromptInteractions} from './useHandoffPromptInteractions';
+import {HandoffPromptAlerts, HandoffPromptBox} from './handoffPromptParts';
+import {AgentHandoffFlow, type AgentHandoffContext} from './types';
+import {useHandoffPromptCopy} from './useHandoffPromptCopy';
 
 interface AgentHandoffPromptProps<Flow extends AgentHandoffFlow> {
   context: AgentHandoffContext<Flow> | null;
   feedbackSource: string;
   flow: Flow;
-  onCopySuccess?: () => void;
+  /** Receives the ID of the handoff whose prompt was copied, for analytics. */
+  onCopySuccess?: (handoffId: string) => void;
   onSelect?: () => void;
 }
 
@@ -42,159 +31,71 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
   onCopySuccess,
   onSelect,
 }: AgentHandoffPromptProps<Flow>) {
-  const links = useStore(ConfigStore, state => state.links);
-  const urlPrefix = useStore(ConfigStore, state => state.urlPrefix);
-  const [useIpPinning, setUseIpPinning] = useState(true);
-  const handoff = useAgentHandoff(flow, context);
-  const copyDisabled = !context || handoff.isPending;
-  const guideUrl = `${urlPrefix.replace(/\/$/, '')}/agent-handoff/`;
-  const previewUrl = new URL(`/agent-handoff/?preview=1&flow=${flow}`, links.sentryUrl)
-    .href;
-
-  function copyPrompt() {
-    if (handoff.isPending) {
-      return;
-    }
-
-    void handoff
-      .copyPrompt({disableIpPinning: !useIpPinning})
-      .then(() => {
-        toast.success(t('Agent prompt copied to clipboard'));
-        onCopySuccess?.();
-      })
-      .catch(() => null);
-  }
-
-  const {
-    promptProps: {onCopy, onPointerDown, ref: promptRef, tabIndex},
-  } = useHandoffPromptInteractions(copyPrompt);
-  const handlePointerDown: PointerEventHandler<HTMLDivElement> = event => {
-    onPointerDown(event);
-    if (event.button === 0) {
-      onSelect?.();
-    }
-  };
-
-  function toggleIpPinning() {
-    setUseIpPinning(enabled => !enabled);
-    handoff.reset();
-  }
+  const {copyPrompt, copyDisabled, handoff, useIpPinning, toggleIpPinning} =
+    useHandoffPromptCopy({flow, context, onCopySuccess});
+  const ipPinningId = useId();
+  const ipPinningDescriptionId = useId();
 
   return (
     <Stack gap="md">
-      <ThemeProvider theme={darkTheme}>
-        <Container
-          background="secondary"
-          radius="md"
-          padding="lg"
-          paddingRight="3xl"
-          position="relative"
-          onCopy={onCopy}
-        >
-          <Text
-            ref={promptRef}
-            as="div"
-            monospace
-            size="sm"
-            tabIndex={tabIndex}
-            textWrap="wrap"
-            onPointerDown={handlePointerDown}
-          >
-            {tct(
-              'Follow the instructions verbatim at [guideUrl]. Your secret token is [token].',
-              {
-                guideUrl,
-                token: (
-                  <MaskedToken
-                    monospace
-                    variant="warning"
-                    title={t('The secret token authenticates the CLI via this prompt')}
-                  >
-                    sntryh_****
-                  </MaskedToken>
-                ),
-              }
-            )}
-          </Text>
-          <Container position="absolute" top="8px" right="8px">
-            <Button
-              aria-label={t('Copy agent prompt')}
-              busy={handoff.isPending}
-              disabled={copyDisabled}
-              icon={<IconCopy />}
-              size="zero"
-              variant="transparent"
-              onClick={copyPrompt}
+      <HandoffPromptBox
+        flow={flow}
+        context={context}
+        onCopyPrompt={copyPrompt}
+        onSelect={onSelect}
+        size="md"
+      />
+
+      <Flex align="start" gap="md" padding="xs 0">
+        <Checkbox
+          id={ipPinningId}
+          aria-describedby={ipPinningDescriptionId}
+          checked={useIpPinning}
+          disabled={copyDisabled}
+          onChange={toggleIpPinning}
+        />
+        <Stack gap="sm">
+          <Flex align="center" gap="xs">
+            <Text as="label" htmlFor={ipPinningId} size="md">
+              {t('Only allow this network')}
+            </Text>
+            <InfoTip
+              size="xs"
+              title={t('Keeps your secret token safe if the prompt leaks.')}
             />
-          </Container>
-        </Container>
-      </ThemeProvider>
-
-      <Flex align="center" justify="between" gap="lg">
-        <Text size="sm">
-          <ExternalLink href={previewUrl}>{t('See the full instructions')}</ExternalLink>
-        </Text>
-
-        <Flex align="center" gap="sm">
-          <FeedbackButton
-            size="xs"
-            feedbackOptions={{
-              tags: {'feedback.source': feedbackSource},
-            }}
-          />
-
-          <DropdownMenu
-            closeOnSelect={false}
-            items={[
-              {
-                key: 'ip-pinning',
-                label: t('Use IP pinning'),
-                details: t(
-                  'Only allows this prompt to be claimed from your IP address. Disable this when your agent runs on a different network than your local machine.'
-                ),
-                textValue: t('Use IP pinning'),
-                disabled: copyDisabled,
-                isSelected: useIpPinning,
-                closeOnSelect: false,
-                onAction: toggleIpPinning,
-              },
-            ]}
-            maxWidth={360}
-            position="bottom-end"
-            shouldApplyMinWidth={false}
-            size="xs"
-            usePortal
-            trigger={triggerProps => (
-              <OverlayTrigger.Button
-                {...triggerProps}
-                aria-label={t('Advanced options')}
-                icon={<IconSettings />}
-                showChevron={false}
-                size="xs"
-                variant="transparent"
-              >
-                {t('Advanced')}
-              </OverlayTrigger.Button>
+          </Flex>
+          <Description id={ipPinningDescriptionId} size="sm" variant="muted">
+            {t(
+              'Uncheck if your agent runs in the cloud, or you use iCloud Private Relay.'
             )}
-          />
-        </Flex>
+          </Description>
+        </Stack>
       </Flex>
 
-      {!useIpPinning && (
-        <Alert variant="warning">
-          {t(
-            'Without IP pinning, anyone with this prompt can use it from any IP address to authenticate the Sentry CLI to your account. Avoid pasting your prompt when streaming or screen sharing.'
-          )}
-        </Alert>
-      )}
-      {handoff.error && <Alert variant="danger">{handoff.error.message}</Alert>}
+      <HandoffPromptAlerts useIpPinning={useIpPinning} error={handoff.error} />
+
+      <Button
+        disabled={copyDisabled}
+        icon={<IconCopy />}
+        variant="primary"
+        onClick={copyPrompt}
+      >
+        {t('Copy prompt')}
+      </Button>
+
+      <Flex justify="end" paddingTop="xs">
+        <FeedbackButton
+          size="xs"
+          feedbackOptions={{tags: {'feedback.source': feedbackSource}}}
+        >
+          {t('Give feedback')}
+        </FeedbackButton>
+      </Flex>
     </Stack>
   );
 }
 
-const MaskedToken = styled(InfoText)`
-  background: ${p => p.theme.tokens.background.transparent.warning.muted};
-  border-radius: ${p => p.theme.radius.sm};
-  padding: 0 ${p => p.theme.space['2xs']};
-  text-decoration: none;
+// Help text reads best a little looser than the largest density token (1.4).
+const Description = styled(Text)`
+  line-height: 1.5;
 `;

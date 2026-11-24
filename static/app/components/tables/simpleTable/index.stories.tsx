@@ -5,7 +5,7 @@ import moment from 'moment-timezone';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {t} from 'sentry/locale';
@@ -20,22 +20,10 @@ interface Data {
 }
 
 const headers = [
-  {
-    key: 'name',
-    label: 'Name',
-  },
-  {
-    key: 'monitors',
-    label: 'Monitors',
-  },
-  {
-    key: 'action',
-    label: 'Action',
-  },
-  {
-    key: 'lastTriggered',
-    label: 'Last Triggered',
-  },
+  {key: 'name', label: 'Name'},
+  {key: 'monitors', label: 'Monitors'},
+  {key: 'action', label: 'Action'},
+  {key: 'lastTriggered', label: 'Last Triggered'},
 ];
 
 const data: Data[] = [

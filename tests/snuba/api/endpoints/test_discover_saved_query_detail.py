@@ -274,7 +274,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
                     "conditions": [],
                     "aggregations": [],
                     "orderby": "-time",
-                    "queryDataset": "transaction-like",
+                    "queryDataset": "error-events",
                 },
             )
 
@@ -284,7 +284,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["fields"] == []
         assert response.data["conditions"] == []
         assert response.data["limit"] == 20
-        assert response.data["queryDataset"] == "transaction-like"
+        assert response.data["queryDataset"] == "error-events"
 
     def test_put_dataset_with_discover_dataset_returns_validation_error(self) -> None:
         with self.feature(self.feature_name):
