@@ -82,14 +82,21 @@ class AssembleTask:
 
 
 class AssembleResult(NamedTuple):
-    # File object stored in the database, or `None` if the chunks were only assembled into the temporary file.
-    bundle: File | None
+    # File object stored in the database.
+    bundle: File
     # Temporary in-memory object representing the file used for efficiency.
     bundle_temp_file: IO[bytes]
 
     def delete_bundle(self) -> None:
-        if self.bundle is not None:
-            self.bundle.delete()
+        self.bundle.delete()
+        self.bundle_temp_file.close()
+
+
+class ObjectstoreAssembleResult(NamedTuple):
+    # Temporary in-memory object holding the assembled chunks, to be uploaded to Objectstore.
+    bundle_temp_file: IO[bytes]
+
+    def delete_bundle(self) -> None:
         self.bundle_temp_file.close()
 
 
@@ -464,7 +471,7 @@ def get_placeholder_release_kind(release: str) -> str | None:
 class ArtifactBundlePostAssembler:
     def __init__(
         self,
-        assemble_result: AssembleResult,
+        assemble_result: AssembleResult | ObjectstoreAssembleResult,
         checksum: str,
         organization: Organization,
         release: str | None,
@@ -472,7 +479,6 @@ class ArtifactBundlePostAssembler:
         project_ids: list[int],
         is_release_bundle_migration: bool = False,
     ) -> None:
-        # Without a legacy `File` in the result, the bundle is stored in Objectstore instead.
         self.assemble_result = assemble_result
         self.checksum = checksum
         # Set once the bundle is uploaded to Objectstore.
@@ -610,9 +616,8 @@ class ArtifactBundlePostAssembler:
         # debug-ID rows keep their `date_added`, which nothing reads.
         date_only_on_bundle = options.get("sourcemaps.artifact-bundles.date-only-on-bundle")
 
-        # Without a legacy `File`, the bundle goes to Objectstore. We upload it before opening the transaction, to
-        # not hold row locks during network I/O.
-        if self.assemble_result.bundle is None:
+        # We upload the bundle before opening the transaction, to not hold row locks during network I/O.
+        if isinstance(self.assemble_result, ObjectstoreAssembleResult):
             self._upload_to_objectstore()
 
         # We want to run everything in a transaction, since we don't want the database to be in an inconsistent
@@ -814,7 +819,11 @@ class ArtifactBundlePostAssembler:
 
             # The bundle is backed by either the legacy `File` or the Objectstore object, and the remaining fields
             # are only set for the latter.
-            file = self.assemble_result.bundle
+            file = (
+                self.assemble_result.bundle
+                if isinstance(self.assemble_result, AssembleResult)
+                else None
+            )
             payload: dict[str, Any] = {
                 "file": file,
                 "storage_path": self.storage_path,
@@ -963,13 +972,13 @@ def assemble_artifacts(
         # If nothing is returned, the file failed to assemble because of bad input data, and the assemble status
         # has been set already.
         name = f"bundle-artifacts-{uuid.uuid4().hex}.zip"
-        assemble_result: AssembleResult | None = None
+        assemble_result: AssembleResult | ObjectstoreAssembleResult | None = None
         if features.has("organizations:objectstore-artifact-bundles-exclusive-write", organization):
             temp_file = assemble_file_blobs(
                 AssembleTask.ARTIFACT_BUNDLE, organization, name, checksum, chunks
             )
             if temp_file is not None:
-                assemble_result = AssembleResult(bundle=None, bundle_temp_file=temp_file)
+                assemble_result = ObjectstoreAssembleResult(bundle_temp_file=temp_file)
         else:
             assemble_result = assemble_file(
                 task=AssembleTask.ARTIFACT_BUNDLE,

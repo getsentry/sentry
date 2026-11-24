@@ -121,8 +121,6 @@ def assemble_preprod_artifact(
             raise RuntimeError(
                 f"Assemble result is None for preprod artifact assembly (project_id={project_id}, organization_id={org_id}, checksum={checksum}, preprod_artifact_id={artifact_id})"
             )
-        # `bundle` is only `None` when chunks are assembled without a `File`, which `assemble_file` never does.
-        assert assemble_result.bundle is not None
 
         logger.info(
             "Finished preprod artifact assembly",
@@ -399,8 +397,6 @@ def _assemble_preprod_artifact_file(
 def _assemble_preprod_artifact_size_analysis(
     assemble_result: AssembleResult, project: Project, artifact_id: int | None, org_id: int
 ) -> None:
-    # `bundle` is only `None` when chunks are assembled without a `File`, which `assemble_file` never does.
-    assert assemble_result.bundle is not None
     if artifact_id is None:
         logger.error(
             "PreprodArtifact artifact_id is None in size analysis assembly",
@@ -727,8 +723,6 @@ def assemble_preprod_artifact_size_analysis(
 def _assemble_preprod_artifact_installable_app(
     assemble_result: AssembleResult, project: Project, artifact_id: int, org_id: int
 ) -> None:
-    # `bundle` is only `None` when chunks are assembled without a `File`, which `assemble_file` never does.
-    assert assemble_result.bundle is not None
     try:
         preprod_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
             project=project,
