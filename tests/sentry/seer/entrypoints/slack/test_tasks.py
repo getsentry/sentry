@@ -933,6 +933,72 @@ class LinkedMessagesContextTest(TestCase):
         assert "<@ULINK>: rich body" in on_page_context
         assert "fallback flat text" not in on_page_context
 
+    def _alert_unfurl(self, block_id: str) -> list[dict[str, Any]]:
+        return [
+            {
+                "is_msg_unfurl": True,
+                "channel_id": "C9999LINKED",
+                "ts": "1700000000.222222",
+                "author_id": "U0BOT",
+                "message_blocks": [
+                    {
+                        "message": {
+                            "blocks": [
+                                {
+                                    "type": "section",
+                                    "block_id": block_id,
+                                    "text": {"type": "mrkdwn", "text": "unfurled alert"},
+                                }
+                            ]
+                        }
+                    }
+                ],
+            }
+        ]
+
+    def test_alert_unfurl_is_fetched_for_trusted_metadata(self) -> None:
+        group = self.create_group(project=self.project)
+
+        def history(*, channel_id: str, thread_ts: str, **kwargs: object) -> list[dict[str, Any]]:
+            if channel_id == "C9999LINKED":
+                return [
+                    {
+                        "user": "U0BOT",
+                        "blocks": [
+                            {
+                                "type": "section",
+                                "block_id": f'{{"issue": {group.id}}}',
+                                "text": {"type": "mrkdwn", "text": "fetched alert"},
+                            }
+                        ],
+                        "ts": "1700000000.222222",
+                    }
+                ]
+            return []
+
+        self._build_mocks(thread_history_side_effect=history)
+        # The unfurl's own block_id is never read; only the fetched message's is.
+        attachments = self._alert_unfurl('{"issue": 999999}')
+
+        self._run(text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>", attachments=attachments)
+
+        on_page_context = self.mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        assert f"issue_id: {group.id}, short_id: {group.qualified_short_id}" in on_page_context
+        assert "Sentry alert: fetched alert" in on_page_context
+        assert "unfurled alert" not in on_page_context
+
+    def test_alert_unfurl_in_private_channel_falls_back_to_its_text(self) -> None:
+        self._build_mocks(
+            conversations_info_side_effect=lambda **_: {"channel": {"is_private": True}}
+        )
+        attachments = self._alert_unfurl('{"issue": 999999}')
+
+        self._run(text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>", attachments=attachments)
+
+        on_page_context = self.mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        assert "unfurled alert" in on_page_context
+        assert "Sentry issues referenced" not in on_page_context
+
     def test_attachment_for_other_link_falls_through_to_api(self) -> None:
         """When the attachment's (channel_id, ts) doesn't match any link in
         the message, we fall through to the API path."""

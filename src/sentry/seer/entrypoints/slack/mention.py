@@ -114,6 +114,18 @@ def _parse_slack_permalink(url: str, expected_host: str | None) -> SlackMessageL
     )
 
 
+def _find_unfurl(
+    link: SlackMessageLink,
+    attachments: Sequence[Mapping[str, Any]] | None,
+) -> Mapping[str, Any] | None:
+    for attachment in attachments or []:
+        if not isinstance(attachment, dict):
+            continue
+        if attachment.get("channel_id") == link.channel_id and attachment.get("ts") == link.ts:
+            return attachment
+    return None
+
+
 def find_message_in_attachments(
     link: SlackMessageLink,
     attachments: Sequence[Mapping[str, Any]] | None,
@@ -122,25 +134,35 @@ def find_message_in_attachments(
     auto-unfurl that Slack generates when a permalink is shared.
 
     The shape mirrors what ``conversations.replies`` returns so callers can
-    feed it to ``build_thread_context``.
+    feed it to ``build_thread_context``. Block metadata is left out: the
+    poster of the mention controls its attachments.
     """
-    if not attachments:
+    attachment = _find_unfurl(link, attachments)
+    if attachment is None:
         return None
+    return {
+        "user": attachment.get("author_id", ""),
+        "ts": attachment.get("ts", ""),
+        "text": _extract_attachment_text(attachment),
+    }
 
-    for attachment in attachments:
-        if not isinstance(attachment, dict):
-            continue
-        if attachment.get("channel_id") != link.channel_id:
-            continue
-        if attachment.get("ts") != link.ts:
-            continue
-        return {
-            "user": attachment.get("author_id", ""),
-            "ts": attachment.get("ts", ""),
-            "text": _extract_attachment_text(attachment),
-        }
 
-    return None
+def unfurl_has_block_metadata(
+    link: SlackMessageLink,
+    attachments: Sequence[Mapping[str, Any]] | None,
+) -> bool:
+    """Whether the unfurl of ``link`` shows JSON ``block_id`` metadata, as Sentry alerts carry.
+
+    Callers should fetch such a message from Slack to read metadata they can trust.
+    """
+    attachment = _find_unfurl(link, attachments)
+    if attachment is None:
+        return False
+    for message_block in attachment.get("message_blocks") or []:
+        inner = message_block.get("message") if isinstance(message_block, dict) else None
+        if isinstance(inner, dict) and _block_id_payloads(inner):
+            return True
+    return False
 
 
 def extract_slack_message_links(
