@@ -2012,14 +2012,6 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Fraction of events for which post-processing checks for pending attachments, attachments
-# to relink and user reports to link in one statement instead of three.
-register(
-    "post_process.consolidated-link-probe.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "api.organization.disable-last-deploys",
     type=Sequence,
