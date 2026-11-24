@@ -7,6 +7,7 @@ import type {CSS} from '@sentry/scraps/cssTypes';
 import type {
   BackgroundToken,
   BorderVariant,
+  BorderWidthToken,
   RadiusSize,
   SpaceSize,
 } from '@sentry/scraps/theme';
@@ -15,6 +16,7 @@ import {
   ContainerQueryProvider,
   getBackground,
   getBorder,
+  getBorderWidth,
   getMargin,
   getRadius,
   getSpacing,
@@ -92,6 +94,11 @@ interface ContainerLayoutProps {
   borderBottom?: Responsive<BorderVariant>;
   borderLeft?: Responsive<BorderVariant>;
   borderRight?: Responsive<BorderVariant>;
+  /**
+   * Border width on all sides, as a key of `theme.border`. Overrides the 1px
+   * width set by the border props; sides without a border stay hidden.
+   */
+  borderWidth?: Responsive<BorderWidthToken>;
 
   // Grid Item Properties
   area?: Responsive<CSS['gridArea']>;
@@ -218,6 +225,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'borderBottom',
   'borderLeft',
   'borderRight',
+  'borderWidth',
   'bottom',
   'column',
   'contain',
@@ -377,6 +385,7 @@ export const Container = styled(
   ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
   ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
   ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
+  ${p => rc('border-width', p.borderWidth, p.theme, getBorderWidth)};
 
   ${p => rc('visibility', p.visibility, p.theme)};
   ${p => rc('white-space', p.whiteSpace, p.theme)};

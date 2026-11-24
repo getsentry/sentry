@@ -145,6 +145,29 @@ Any border token works, written as its path in `tokens.border`, for example `neu
 </Container>
 ```
 
+### Border Width
+
+`borderWidth` sets the width of the border on all sides. Any border width token works, written as its key in `theme.border`: `0`, `md` (1px), `lg` (1.5px), `xl` (2px) or `2xl` (4px). It only changes the width, so pair it with `border` or a single-side border prop for the color.
+
+<Storybook.Demo>
+  <Flex gap="md">
+    <Container padding="md" radius="md" border="accent.vibrant" borderWidth="xl">
+      xl
+    </Container>
+    <Container padding="md" radius="md" borderBottom="accent.vibrant" borderWidth="2xl">
+      bottom 2xl
+    </Container>
+  </Flex>
+</Storybook.Demo>
+```jsx
+<Container border="accent.vibrant" borderWidth="xl" radius="md">
+  xl
+</Container>
+<Container borderBottom="accent.vibrant" borderWidth="2xl" radius="md">
+  bottom 2xl
+</Container>
+```
+
 ### Background
 
 `background` sets the background color. Any background token works, written as its path in `tokens.background`, for example `secondary`, `accent.vibrant` or `transparent.neutral.muted`. Values match the token names in the theme exactly.

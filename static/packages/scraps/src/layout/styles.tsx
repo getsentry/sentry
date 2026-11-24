@@ -14,6 +14,7 @@ import type {
   BackgroundToken,
   BorderToken,
   BorderVariant,
+  BorderWidthToken,
   BreakpointSize,
   ContainerBreakpointSize,
   RadiusSize,
@@ -264,6 +265,18 @@ export function getBorder(
     .split(' ')
     .map(b => `1px solid ${borderValue(b as BorderToken, theme)}`)
     .join(' ');
+}
+
+export function getBorderWidth(
+  borderWidth: BorderWidthToken | undefined,
+  _breakpoint: ResponsiveBreakpoint | undefined,
+  theme: Theme
+): string | undefined {
+  if (borderWidth === undefined) {
+    return undefined;
+  }
+
+  return theme.border[borderWidth];
 }
 
 export function getRadius(

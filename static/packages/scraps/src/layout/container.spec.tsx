@@ -37,7 +37,11 @@ describe('Container', () => {
 
   it('does not forward border props to the DOM', () => {
     render(
-      <Container border="transparent.neutral.muted" borderTop="danger.vibrant">
+      <Container
+        border="transparent.neutral.muted"
+        borderTop="danger.vibrant"
+        borderWidth="xl"
+      >
         Hello
       </Container>,
       {wrapper: ThemeWrapper}
@@ -46,6 +50,18 @@ describe('Container', () => {
     const element = screen.getByText('Hello');
     expect(element).not.toHaveAttribute('border');
     expect(element).not.toHaveAttribute('borderTop');
+    expect(element).not.toHaveAttribute('borderWidth');
+  });
+
+  it('borderWidth overrides the width set by border', () => {
+    render(
+      <Container border="primary" borderWidth="xl">
+        Hello
+      </Container>,
+      {wrapper: ThemeWrapper}
+    );
+
+    expect(screen.getByText('Hello')).toHaveStyle({borderWidth: '2px'});
   });
 
   it('render prop guards against invalid attributes', () => {

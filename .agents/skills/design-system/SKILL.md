@@ -39,6 +39,7 @@ Base layout component that supports all common layout properties. Flex, Grid, an
 - `margin`, `marginTop`, etc.: SpaceSize tokens (deprecated, prefer gap)
 - `width`, `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight`
 - `border`, `borderTop`, `borderBottom`, `borderLeft`, `borderRight`: BorderVariant tokens
+- `borderWidth`: BorderWidthToken (a key of `theme.border`)
 - `radius`: RadiusSize tokens
 - `overflow`, `overflowX`, `overflowY`: "visible" | "hidden" | "scroll" | "auto"
 - `background`: BackgroundToken (a path into `tokens.background`)
@@ -485,6 +486,12 @@ Use these for the `border` props. A value is a path into `tokens.border`, matchi
 - `"transparent.<color>.<step>"` with the same colors and steps (e.g. `"transparent.neutral.muted"`)
 - `"onVibrant.light"`, `"onVibrant.dark"`
 - `"none"` removes a border, e.g. at a breakpoint or on one side
+
+### Border Width Tokens (BorderWidthToken)
+
+Use these for the `borderWidth` prop. A value is a key of `theme.border`; pair it with a `border` prop for the color:
+
+- `"0"` (0px), `"md"` (1px), `"lg"` (1.5px), `"xl"` (2px), `"2xl"` (4px)
 
 ### Radius Tokens (RadiusSize)
 
