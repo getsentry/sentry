@@ -329,7 +329,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                     repo_name="owner/repo",
                     pr_creation_status="error",
                     pr_creation_error_code="out_of_credits",
-                    credit_denial_reason="daily_cap_exceeded",
+                    # A PR keeps the reason from its own push, which can differ from the run's.
+                    credit_denial_reason="not_enough_credits",
                 )
             },
             updated_at="2023-07-18T12:00:00Z",
@@ -342,7 +343,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         autofix = response.data["autofix"]
         assert autofix["credit_denial_reason"] == "daily_cap_exceeded"
         assert autofix["repo_pr_states"]["owner/repo"]["credit_denial_reason"] == (
-            "daily_cap_exceeded"
+            "not_enough_credits"
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
