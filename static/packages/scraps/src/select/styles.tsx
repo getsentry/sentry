@@ -125,15 +125,16 @@ export function getSelectStyles(
     chipLabel: {
       display: 'flex',
       alignItems: 'center',
-      fontSize: '85%',
       minHeight: chipLabelHeights[size],
-      paddingInline: size === 'md' ? theme.space.xs : theme.space['2xs'],
+      paddingInlineEnd: size === 'md' ? theme.space.xs : theme.space['2xs'],
+      paddingInlineStart: theme.space[size],
     },
     chipRemove: {
       display: 'flex',
       alignItems: 'center',
       alignSelf: 'stretch',
       padding: `0 ${theme.space.xs}`,
+      paddingRight: theme.space[size],
       border: 0,
       background: 'transparent',
       color: 'inherit',
