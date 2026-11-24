@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import logging
 from dataclasses import replace
 from enum import StrEnum
@@ -122,7 +123,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         ]
 
     @property
-    def settings(self) -> type[WorkflowSettings]:
+    def settings(self) -> builtins.type[WorkflowSettings]:
         try:
             return workflow_settings_registry.get(self.type)
         except NoRegistrationExistsError:
