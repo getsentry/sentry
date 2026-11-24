@@ -29,7 +29,10 @@ from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
+from sentry.workflow_engine.defaults.workflows import ensure_inbox_workflow
 from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.tasks.actions import trigger_action
+from sentry.workflow_engine.tasks.workflows import process_workflow_activity
 from sentry.workflow_engine.types import ActionInvocation, UnsupportedActionEvent, WorkflowEventData
 
 
@@ -543,6 +546,141 @@ class IssueProducerRecordingTest(TestCase):
         assert note is not None
         assert Activity.objects.filter(id=note.id).exists()
         assert not InboxItem.objects.exists()
+
+
+@with_feature("organizations:workflow-engine-activity-workflows")
+class IssueActivityWorkflowTest(TestCase):
+    def setUp(self) -> None:
+        project = self.create_project(
+            organization=self.organization, create_default_detectors=False
+        )
+        self.group = self.create_group(project=project)
+        self.recipient = self.create_user()
+        self.create_member(organization=self.organization, user=self.recipient, teams=[self.team])
+        self.workflow = ensure_inbox_workflow(self.organization)
+
+    def run_committed_activity(self, delay: Mock, activity: Activity) -> None:
+        delay.assert_called_once_with(
+            activity_id=activity.id, group_id=self.group.id, detector_id=None
+        )
+        assert not InboxItemEvent.objects.exists()
+        with patch.object(trigger_action, "apply_async") as enqueue:
+            process_workflow_activity(**delay.call_args.kwargs)
+        enqueue.assert_called_once()
+        params = enqueue.call_args.kwargs["kwargs"]
+        assert params["workflow_id"] == self.workflow.id
+        assert params["activity_id"] == activity.id
+        assert params["group_id"] == self.group.id
+        with self.feature("organizations:universal-inbox-recording"):
+            trigger_action(**params)
+
+    def test_user_assignment(self) -> None:
+        with patch.object(process_workflow_activity, "delay") as delay:
+            with transaction.atomic(using=router.db_for_write(Activity)):
+                GroupAssignee.objects.assign(self.group, self.recipient, acting_user=self.user)
+                delay.assert_not_called()
+            GroupAssignee.objects.assign(self.group, self.recipient, acting_user=self.user)
+        activity = Activity.objects.get(group=self.group, type=ActivityType.ASSIGNED.value)
+        self.run_committed_activity(delay, activity)
+        event = InboxItemEvent.objects.get(type="issue.user_assigned")
+        assert event.inbox_item.subject_id == str(self.group.id)
+        assert event.inbox_item.user_id == self.recipient.id
+        assert event.data["activity_id"] == activity.id
+
+    def test_team_assignment(self) -> None:
+        with patch.object(process_workflow_activity, "delay") as delay:
+            GroupAssignee.objects.assign(self.group, self.team, acting_user=self.user)
+        activity = Activity.objects.get(group=self.group, type=ActivityType.ASSIGNED.value)
+        self.run_committed_activity(delay, activity)
+        assert (
+            InboxItemEvent.objects.get(type="issue.team_assigned").inbox_item.user_id
+            == self.recipient.id
+        )
+
+    def test_mixed_mentions_enqueue_one_activity(self) -> None:
+        with patch.object(process_workflow_activity, "delay") as delay:
+            note = create_comment(
+                group=self.group,
+                user=self.user,
+                source="web",
+                data={
+                    "text": "Please take a look",
+                    "mentions": [
+                        {"id": self.recipient.id, "actor_type": "User"},
+                        {"id": self.team.id, "actor_type": "Team"},
+                    ],
+                },
+            )
+        assert note is not None
+        self.run_committed_activity(delay, note)
+        assert set(InboxItemEvent.objects.values_list("type", flat=True)) == {
+            "issue.user_mentioned",
+            "issue.team_mentioned",
+        }
+        assert (
+            InboxItemEvent.objects.filter(
+                data__comment_id=note.id, inbox_item__subject_id=str(self.group.id)
+            ).count()
+            == 2
+        )
+
+    def test_rollback_and_plain_notes_do_not_enqueue(self) -> None:
+        with patch.object(process_workflow_activity, "delay") as delay:
+            create_comment(
+                group=self.group, user=self.user, source="web", data={"text": "No mentions"}
+            )
+            with transaction.atomic(using=router.db_for_write(Activity)):
+                GroupAssignee.objects.assign(self.group, self.recipient, acting_user=self.user)
+                create_comment(
+                    group=self.group,
+                    user=self.user,
+                    source="web",
+                    data={
+                        "text": "Rolled back",
+                        "mentions": [{"id": self.recipient.id, "actor_type": "User"}],
+                    },
+                )
+                transaction.set_rollback(True, using=router.db_for_write(Activity))
+            delay.assert_not_called()
+
+    def test_routing_off_uses_direct_recording(self) -> None:
+        with (
+            self.feature(
+                {
+                    "organizations:workflow-engine-activity-workflows": False,
+                    "organizations:universal-inbox-recording": True,
+                }
+            ),
+            patch.object(process_workflow_activity, "delay") as delay,
+        ):
+            GroupAssignee.objects.assign(self.group, self.recipient, acting_user=self.user)
+            create_comment(
+                group=self.group,
+                user=self.user,
+                source="web",
+                data={
+                    "text": "Direct recording",
+                    "mentions": [{"id": self.recipient.id, "actor_type": "User"}],
+                },
+            )
+        delay.assert_not_called()
+        assert set(InboxItemEvent.objects.values_list("type", flat=True)) == {
+            "issue.user_assigned",
+            "issue.user_mentioned",
+        }
+
+    def test_seer_and_resolution_do_not_match_the_default(self) -> None:
+        for kind in (ActivityType.SEER_PR_READY_FOR_REVIEW, ActivityType.SET_RESOLVED):
+            with patch.object(process_workflow_activity, "delay") as delay:
+                activity = Activity.objects.create_group_activity(
+                    self.group, type=kind, send_notification=False
+                )
+            delay.assert_called_once_with(
+                activity_id=activity.id, group_id=self.group.id, detector_id=None
+            )
+            with patch.object(trigger_action, "apply_async") as enqueue:
+                process_workflow_activity(**delay.call_args.kwargs)
+            enqueue.assert_not_called()
 
 
 @with_feature("organizations:universal-inbox-recording")

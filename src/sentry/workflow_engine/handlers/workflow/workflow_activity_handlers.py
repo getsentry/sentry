@@ -8,8 +8,12 @@ from sentry.models.group import Group
 from sentry.seer.smart_assignment.models import SMART_ASSIGNMENT_ACTIVITIES
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
+from sentry.workflow_engine.handlers.condition.activity_type_in_handler import (
+    get_issue_activity_kind,
+)
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.processors.detector import get_preferred_detector
+from sentry.workflow_engine.processors.workflow import is_activity_workflow_enabled
 from sentry.workflow_engine.registry import workflow_activity_registry
 from sentry.workflow_engine.tasks.workflows import process_workflow_activity
 from sentry.workflow_engine.types import DetectorId, GroupId, WorkflowEventData
@@ -18,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 def schedule_process_workflow_activity(
-    *, activity_id: int, group_id: GroupId, detector_id: DetectorId
+    *, activity_id: int, group_id: GroupId, detector_id: DetectorId | None
 ) -> None:
     transaction.on_commit(
         partial(
@@ -41,6 +45,8 @@ SEER_WORKFLOW_ACTIVITIES = [
 
 # Activity types handled by the generic activity_handler.
 SUPPORTED_ACTIVITIES = [
+    ActivityType.ASSIGNED,
+    ActivityType.NOTE,
     ActivityType.SET_RESOLVED,
     ActivityType.SET_RESOLVED_IN_RELEASE,
     ActivityType.SET_RESOLVED_BY_AGE,
@@ -48,6 +54,17 @@ SUPPORTED_ACTIVITIES = [
     # We omit SET_RESOLVED_IN_PULL_REQUEST because it's a misnomer.
     # When it fires, it means the issue was referenced in a pull request, not resolved.
 ]
+
+
+def _schedule_gated_activity(
+    group: Group, activity: Activity, detector_id: DetectorId | None
+) -> bool:
+    if not is_activity_workflow_enabled(group.project.organization):
+        return False
+    schedule_process_workflow_activity(
+        activity_id=activity.id, group_id=group.id, detector_id=detector_id
+    )
+    return True
 
 
 @workflow_activity_registry.register("seer_activity")
@@ -82,6 +99,8 @@ def seer_activity_handler(
         else:
             detector = get_preferred_detector(event_data=event_data)
     except Detector.DoesNotExist:
+        if _schedule_gated_activity(group, activity, None):
+            return
         logger.exception(
             "workflow_engine.seer_activity_handler.missing_detector", extra=logging_ctx
         )
@@ -157,7 +176,7 @@ def activity_handler(
     detector_id: DetectorId | None = None,
 ) -> None:
     """
-    Generic handler for group status change activities.
+    Handle resolution activities and gated issue assignments and mentions.
 
     To add a new activity, add it to SUPPORTED_ACTIVITIES.
     Then, add a roll out flag after the supported activity filter.
@@ -185,6 +204,11 @@ def activity_handler(
     if activity_type not in SUPPORTED_ACTIVITIES:
         return
 
+    if activity_type in (ActivityType.ASSIGNED, ActivityType.NOTE):
+        if get_issue_activity_kind(activity) is not None:
+            _schedule_gated_activity(group, activity, detector_id)
+        return
+
     event_data = WorkflowEventData(event=activity, group=group)
 
     try:
@@ -193,6 +217,8 @@ def activity_handler(
         else:
             detector = get_preferred_detector(event_data=event_data)
     except Detector.DoesNotExist:
+        if _schedule_gated_activity(group, activity, None):
+            return
         logger.exception(
             "workflow_engine.activity_handler.missing_detector",
             extra=logging_ctx,
