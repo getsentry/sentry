@@ -33,35 +33,35 @@ export interface EntityHeaderProps {
   /**
    * Supporting facts, rendered as a wrapping row beneath the title.
    *
-   * The row is a list, and `label` names it — "Replay properties". Without it a
-   * screen reader meets a run of unrelated strings with nothing saying they
-   * belong together or to what.
+   * The row is a list named by `label`, such as "Replay properties". Without a
+   * label, a screen reader reads the values with nothing saying what they
+   * belong to.
    *
    * `null` items are dropped so callers can inline conditionals.
    */
   metadata?: {items: Array<EntityHeaderMetadataItemProps | null>; label: string};
   /**
-   * People related to this entity — who viewed it, who is participating in it.
-   * Rendered as an avatar stack at the head of the stats row.
+   * People related to this entity, such as who viewed it or who participates
+   * in it. Rendered as an avatar stack at the start of the stats row.
    */
   people?: EntityHeaderPeopleProps;
   /**
    * Measurements about the entity. Right-aligned beside the title when there is
-   * room; below the metadata row when there is not.
+   * room, and below the metadata row when there is not.
    *
-   * The row is a list, and `label` names it — "Replay stats". Without it a
-   * screen reader meets a run of numbers with nothing saying what they count.
+   * The row is a list named by `label`, such as "Replay stats". Without a
+   * label, a screen reader reads the numbers with nothing saying what they
+   * count.
    *
    * `null` items are dropped so callers can inline conditionals.
    */
   stats?: {items: Array<EntityHeaderStatProps | null>; label: string};
   /**
-   * A single line of secondary text under the title, e.g. an error message.
+   * A single line of secondary text under the title, such as an error message.
    *
-   * Unlike `metadata`, this row follows the content rather than the
-   * declaration: there is no way to tell a subtitle that has not loaded from
-   * one that was never passed. A subtitle arriving after the first paint adds
-   * its line then.
+   * Unlike `metadata`, this row renders only when it has content. A subtitle
+   * that has not loaded looks the same as one that was never passed, so a
+   * subtitle that arrives after the first paint adds its line then.
    */
   subtitle?: React.ReactNode;
 }
@@ -94,14 +94,14 @@ function getGridTemplate({
 }
 
 /**
- * The band of entity context that sits directly below the TopBar on a detail
- * page: what this thing is, how it is doing, and a few facts about it.
+ * The header directly below the TopBar on a detail page. It shows the entity's
+ * title, plus an optional subtitle, stats, people and metadata.
  *
- * Breadcrumbs, the page `h1`, and global actions belong to the TopBar and its
- * slots — this component deliberately does not duplicate them.
+ * Breadcrumbs, the page `h1` and global actions belong to the TopBar and its
+ * slots, so this component does not render them.
  *
- * Every slot except `title` is optional, and the layout adapts to whichever are
- * present.
+ * Every slot except `title` is optional, and the layout is built from the
+ * slots that are passed.
  */
 export function EntityHeader({
   isLoading,
@@ -120,25 +120,25 @@ export function EntityHeader({
     );
 
   const peopleLoading = Boolean(people) && (isLoading || Boolean(people?.isLoading));
-  // A slot that loads on its own schedule still leaves the region in flux, so
-  // it has to count towards `aria-busy` as much as the header's own flag does.
+  // A slot's own `isLoading` counts towards `aria-busy` the same as the
+  // header's `isLoading`.
   const isAnyLoading =
     Boolean(isLoading) ||
     peopleLoading ||
     visibleStats.some(({stat}) => Boolean(stat.isLoading));
   const hasPeople = Boolean(people) && (peopleLoading || (people?.users.length ?? 0) > 0);
   const hasStats = visibleStats.length > 0;
-  // People and stats share the trailing row, but neither needs the other: the
-  // row is there if either one is.
+  // People and stats share the trailing row. The row renders if either one is
+  // present.
   const hasStatsRow = hasStats || hasPeople;
   const hasSubtitle = Boolean(subtitle);
-  // While loading, declared, not resolved. A caller whose items are all gated
-  // on a request has none of them on the first paint, and keying the row off
-  // that would bring the whole row — and the height of the page below it — in
-  // late. So every declared slot holds a skeleton, nulls included, and none is
-  // resolved, since a value is often empty until its data lands. Once loaded,
-  // each item is resolved here, once, so one that draws nothing never counts
-  // as the row's last item.
+  // While loading, every declared item gets a skeleton, `null` items included,
+  // and no item is resolved, since a value is often empty until its data
+  // arrives. A caller whose items all wait on one request has none of them on
+  // the first paint. Basing the row on resolved items would add the row, and
+  // push the page below it down, only when the data arrives. Once loaded, each
+  // item is resolved here once, so an item that renders nothing is never
+  // treated as the row's last item.
   const metadataSlots: Array<{
     hasGraphic: boolean;
     index: number;
@@ -165,8 +165,8 @@ export function EntityHeader({
       background="primary"
       borderBottom="primary"
       flexShrink={0}
-      // Otherwise the band is simply empty until the data lands, and then
-      // silently is not.
+      // Without it, screen readers get no signal that content is still
+      // loading.
       aria-busy={isAnyLoading}
     >
       <Grid columns={columns} areas={areas} gap="md" align="start">
@@ -228,9 +228,8 @@ export function EntityHeader({
               <EntityHeaderPeople {...people} isLoading={peopleLoading} />
             )}
             {/*
-              People are not a stat, so they sit beside the list rather than
-              inside it — a list whose items are not all stats cannot be named
-              for them.
+              People sit beside the stats list, not inside it, so the list
+              named by `stats.label` holds only stats.
             */}
             {hasStats && stats && (
               <Flex

@@ -15,26 +15,25 @@ import type {
 import {EntityHeaderText} from './entityHeaderText';
 
 /**
- * Required rather than optional, so a stat with nothing to show is written on
- * purpose as `null`, never arrived at by leaving the value out.
+ * Required rather than optional, so a stat with nothing to show is passed as
+ * `null` on purpose, not by leaving the value out.
  */
 type EntityHeaderStatValue = number | string | null;
 
 /**
- * How one half of a stat behaves, apart from what it shows. Each half declares
- * what it is, rather than the component inferring it from whether a
- * destination happens to be defined. The content may change as often as it
- * likes; the type may not, so a link half stays a link when its count is zero
- * or empty.
+ * How one half of a stat behaves, separate from what it shows. Each half
+ * declares its type rather than the component inferring it from whether a
+ * destination is defined. The content can change, but the type should not, so
+ * a link half stays a link when its count is zero or empty.
  */
 type EntityHeaderStatPartBehavior = EntityHeaderStatPartTooltip &
   (EntityHeaderStatTextBehavior | EntityHeaderStatLinkBehavior);
 
 type EntityHeaderStatPartTooltip = {
   /**
-   * Takes structured content as readily as a string, so it can be built from
-   * `Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Row`. Keep it readable
-   * without links: nothing inside a tooltip can be reached by keyboard.
+   * A string, or content built from `Tooltip.Header`, `Tooltip.Grid` and
+   * `Tooltip.Row`. Don't rely on links inside it, because nothing inside a
+   * tooltip can be reached by keyboard.
    */
   tooltip?: React.ReactNode;
 };
@@ -47,8 +46,8 @@ type EntityHeaderStatLinkBehavior = {
 } & LinkDestination;
 
 /**
- * One half of a stat — its label or its value: what it shows, and how it
- * behaves.
+ * One half of a stat, either its label or its value, with its content and
+ * behavior.
  */
 type EntityHeaderStatPart<TContent> = {content: TContent} & EntityHeaderStatPartBehavior;
 
@@ -57,36 +56,34 @@ export interface EntityHeaderStatProps {
    * Short, static label such as "Dead Clicks". A string is shorthand for a
    * `text` label.
    *
-   * Link the label when the destination is about what the stat measures —
-   * the tab where dead clicks are listed. Its tooltip explains a label that is
-   * jargon on its own.
+   * Link the label when the destination is about what the stat measures, such
+   * as the tab that lists dead clicks. Use its tooltip to explain jargon.
    */
   label: string | EntityHeaderStatPart<string>;
   /**
-   * The measurement itself. Text, not a node: the row is built for single
-   * numbers, and any breakdown belongs in the value's `tooltip`. A number,
-   * string or `null` is shorthand for a `text` value.
+   * The measurement. A number or string rather than a node, because the row
+   * shows single numbers and any breakdown belongs in the value's `tooltip`. A
+   * number, string or `null` is shorthand for a `text` value.
    *
-   * Link the value when the destination is the things it counts — the errors
-   * behind an error count. Its tooltip carries what the value is made of, or,
-   * when the content is `null`, why there is none.
+   * Link the value when the destination is the things it counts, such as the
+   * errors behind an error count. Its tooltip shows what the value is made of
+   * or, when the content is `null`, why there is none.
    *
-   * `null` means the data was never collected for this entity — no cost
-   * recorded, no size reported. It renders a "—" and is read "No data". Never
-   * pass a placeholder such as `'-'` or `'—'` yourself: a screen reader reads it
+   * `null` means the data was never collected for this entity, such as a build
+   * with no recorded cost. It renders a "—" and is read as "No data". Never
+   * pass a placeholder such as `'-'` or `'—'`, because a screen reader reads it
    * aloud as the data ("dash").
    *
-   * Not for a real zero (pass `0`), a value still loading (pass `isLoading`),
-   * or a stat that does not apply to this entity (pass `null` for the whole
-   * item instead).
+   * Don't use `null` for a real zero (pass `0`), a value still loading (pass
+   * `isLoading`) or a stat that does not apply to this entity (pass `null` for
+   * the whole item).
    */
   value: EntityHeaderStatValue | EntityHeaderStatPart<EntityHeaderStatValue>;
   /**
-   * Hold this one stat as a skeleton while the rest of the header is live. Use
-   * it when the value comes from a request that settles after the entity does;
-   * without it a stat renders whatever it has, which asserts a zero before the
-   * real count lands. Independent of, and additive to, the header's own
-   * `isLoading`.
+   * Shows this stat as a skeleton after the rest of the header has loaded. Use
+   * it when the value comes from a request that finishes after the entity's.
+   * Without it, the stat renders whatever it holds, often a `0` before the
+   * real count arrives. Applies in addition to the header's `isLoading`.
    */
   isLoading?: boolean;
 }
@@ -143,11 +140,11 @@ function muteText(
 
 function EmptyValue() {
   const {t} = useTranslation();
-  // Translators: read by a screen reader in place of the dash shown for a stat that has nothing to show, e.g. no cost recorded
+  // Translators: read by a screen reader in place of the dash shown for a stat that has nothing to show, such as a build with no recorded cost
   const noData = t('No data');
 
-  // The dash is for the eye only; read aloud it would be "dash", which sounds
-  // like a value.
+  // The dash is hidden from screen readers, which would read it as "dash" and
+  // make it sound like a value.
   return (
     <Fragment>
       <span aria-hidden>{EMPTY_VALUE}</span>
@@ -184,8 +181,9 @@ export function EntityHeaderStat(props: EntityHeaderStatProps) {
         </EntityHeaderText>
         {/*
           An empty value keeps the value's typography, so the row's height and
-          baseline do not move, and is muted so it does not read as a
-          measurement — unless it links, where the colour says it navigates.
+          baseline do not move. It is muted so it does not look like a
+          measurement, unless it is a link, which stays accent to show it
+          navigates.
         */}
         <EntityHeaderText {...STAT_PART_STYLES.value} behavior={muteText(value, isEmpty)}>
           {isEmpty ? <EmptyValue /> : value.content}

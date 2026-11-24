@@ -12,19 +12,19 @@ import {userDisplayName} from 'sentry/utils/formatters';
 
 export interface EntityHeaderPeopleProps {
   /**
-   * How these people relate to the entity, e.g. "Viewed by" or "Participants".
-   * Required because a stack of faces says nothing on its own — it heads the
-   * text a screen reader reads in place of the stack.
+   * How these people relate to the entity, such as "Viewed by" or
+   * "Participants". Required because the avatars alone don't say what they
+   * represent. It starts the text a screen reader reads in place of the
+   * avatars.
    */
   label: string;
   /**
-   * The people themselves. Pass an empty array for "nobody yet" — the slot then
-   * renders nothing.
+   * The people to show. With an empty array, the slot renders nothing.
    */
   users: AvatarUser[];
   /**
-   * Independent of the header's `isLoading`: these usually load on their own
-   * schedule, separate from the entity.
+   * Separate from the header's `isLoading`, because people usually come from a
+   * different request than the entity.
    */
   isLoading?: boolean;
   /**
@@ -46,16 +46,15 @@ export function EntityHeaderPeople({
     return null;
   }
 
-  // The stack is read as text, not as a group of images.
+  // Screen readers get the people as text, not as a group of images.
   //
-  // An uploaded avatar reaches the accessibility tree as an `img` with the
-  // person's name; a letter avatar reaches it as a `span` with a `title` and an
-  // svg of initials, which is not a reliable name. Most people have no uploaded
-  // avatar, so the stack announced as a run of single letters. The avatars are
-  // not focusable either, so their tooltips were mouse-only and the overflow
-  // chip was unreachable by anyone.
+  // An uploaded avatar is an `img` named after the person. A letter avatar is a
+  // `span` with a `title` and an SVG of initials, which is not a reliable name.
+  // Most people have no uploaded avatar, so the avatars were announced as
+  // single letters. The avatars are also not focusable, so their tooltips and
+  // the overflow chip were mouse-only.
   //
-  // Naming everyone here fixes all three at once, and does not depend on a
+  // Listing every name as text fixes these problems, and does not depend on a
   // screen reader announcing a `group` role.
   const names = users.map(user => userDisplayName(user, false)).join(', ');
 
@@ -67,8 +66,8 @@ export function EntityHeaderPeople({
         <Fragment>
           <VisuallyHidden>{`${label}: ${names}`}</VisuallyHidden>
           {/*
-            Decorative once the names are spoken above — otherwise a screen
-            reader reads the list and then the initials behind it.
+            Hidden because the names are already read above. Otherwise a
+            screen reader reads the names and then the initials.
           */}
           <Flex aria-hidden>
             <AvatarList
