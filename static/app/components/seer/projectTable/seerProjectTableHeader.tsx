@@ -160,11 +160,7 @@ export function ProjectTableHeader({
 
   const setStoppingPoint = (value: SeerAutofixStoppingPoint) => {
     mutate(
-      {
-        query: mutableSearch.formatString(),
-        selectedIds,
-        stoppingPoint: value,
-      },
+      {query: mutableSearch.formatString(), selectedIds, stoppingPoint: value},
       {
         onError: () =>
           toast.error(

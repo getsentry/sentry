@@ -319,9 +319,7 @@ describe('AutofixAgent', () => {
     const putMock = mockEndpoints({repos: [seerRepo({provider: 'github'})]});
 
     render(<AutofixAgent canWrite project={project} />, {
-      organization: OrganizationFixture({
-        features: ['autofix-single-run'],
-      }),
+      organization: OrganizationFixture({features: ['autofix-single-run']}),
     });
 
     await userEvent.click(await screen.findByRole('checkbox', {name: 'Open PRs'}));
