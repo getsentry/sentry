@@ -1126,7 +1126,6 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
     def test_enablement_request_rejected_at_limit(self, mock_get_limit: mock.MagicMock) -> None:
         self.create_static_detector()
         self.create_static_detector()
-        self.create_static_detector()
         disabled = self.create_static_detector()
         disabled.update(enabled=False)
         mock_get_limit.return_value = 2
