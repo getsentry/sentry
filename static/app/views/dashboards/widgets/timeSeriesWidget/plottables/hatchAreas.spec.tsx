@@ -32,7 +32,7 @@ describe('HatchAreas', () => {
     expect(new HatchAreas([], config).isEmpty).toBe(true);
   });
 
-  it('draws stripes behind the data and fading stripes over it', () => {
+  it('draws stripes behind the data, and a wash with stripes over it', () => {
     const series = new HatchAreas([{start: 1_000, end: 3_000}], config).toSeries();
 
     expect(series.map(({z}) => z)).toEqual([1, 3]);
@@ -61,28 +61,30 @@ describe('HatchAreas', () => {
       )
     );
 
-    for (const element of [background, foreground]) {
-      expect(element).toEqual(
-        expect.objectContaining({
-          type: 'rect',
-          shape: {x: 100, y: 10, width: 200, height: 200},
-        })
-      );
-    }
     expect(background).toEqual(
       expect.objectContaining({
+        type: 'rect',
+        shape: {x: 100, y: 10, width: 200, height: 200},
         style: expect.objectContaining({
           decal: expect.objectContaining({color: '#f0f0f2', dashArrayY: [2, 2]}),
         }),
       })
     );
-    expect(foreground).toEqual(
-      expect.objectContaining({
-        style: expect.objectContaining({
-          opacity: 0.6,
-          decal: expect.objectContaining({color: '#ffffff', dashArrayY: [0, 2, 2, 0]}),
+    expect(foreground).toEqual({
+      type: 'group',
+      children: [
+        expect.objectContaining({
+          type: 'rect',
+          shape: {x: 100, y: 10, width: 200, height: 200},
+          style: {fill: '#ffffff', opacity: 0.5},
         }),
-      })
-    );
+        expect.objectContaining({
+          style: expect.objectContaining({
+            opacity: 0.6,
+            decal: expect.objectContaining({color: '#ffffff', dashArrayY: [0, 2, 2, 0]}),
+          }),
+        }),
+      ],
+    });
   });
 });

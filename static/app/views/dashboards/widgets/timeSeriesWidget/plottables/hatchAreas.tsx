@@ -27,9 +27,9 @@ type HatchAreasConfig = {
    */
   dataType: PlottableTimeSeriesValueType;
   /**
-   * Color of the stripes drawn over the data, in the gaps between the stripes
-   * behind it. They're translucent, so a background color fades the data
-   * without changing its hue
+   * Color of the translucent wash and stripes drawn over the data. The stripes
+   * sit in the gaps between the stripes behind it. Use a background color, so
+   * the data fades without changing its hue
    */
   fadeColor: string;
   /**
@@ -139,13 +139,32 @@ export class HatchAreas implements Plottable {
       opacity: 1,
     });
 
-  // Starting with an empty dash shifts these stripes into the background's gaps
-  private renderForeground: CustomSeriesRenderItem = (params, api) =>
-    this.renderStripes(params, api, {
+  // A translucent wash dims the data so its colors don't clash with the
+  // hatch, and stripes over it fade the data further in the background's gaps
+  private renderForeground: CustomSeriesRenderItem = (params, api) => {
+    const stripes = this.renderStripes(params, api, {
       color: this.config.fadeColor,
+      // Starting with an empty dash shifts these stripes into the background's gaps
       dashArrayY: [0, 2, 2, 0],
-      opacity: FADE_OPACITY,
+      opacity: STRIPE_OPACITY,
     });
+    if (!stripes) {
+      return null;
+    }
+
+    return {
+      type: 'group',
+      children: [
+        {
+          type: 'rect',
+          silent: true,
+          shape: stripes.shape,
+          style: {fill: this.config.fadeColor, opacity: WASH_OPACITY},
+        },
+        stripes,
+      ],
+    };
+  };
 
   // A custom series rather than a `markArea`, because only custom series render
   // a `decal`, which ECharts redraws at the device pixel ratio so the stripes
@@ -184,4 +203,5 @@ export class HatchAreas implements Plottable {
   }
 }
 
-const FADE_OPACITY = 0.6;
+const WASH_OPACITY = 0.5;
+const STRIPE_OPACITY = 0.6;
