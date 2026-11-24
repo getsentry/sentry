@@ -464,6 +464,16 @@ def _resolve_linked_messages(
             continue
         msgs_to_include.append((link, [message]))
 
+    seer_reply_ts: set[str] = set()
+    if bot_user_id:
+        for link, link_messages in msgs_to_include:
+            seer_reply_ts |= _find_seer_reply_ts(
+                integration_id=entrypoint.integration.id,
+                channel_id=link.channel_id,
+                messages=link_messages,
+                bot_user_id=bot_user_id,
+            )
+
     _logger.info(
         "seer.slack.process_mention.linked_messages_resolved",
         extra={
@@ -473,7 +483,11 @@ def _resolve_linked_messages(
     )
 
     return _LinkedMessagesResult(
-        block=build_linked_messages_context(msgs_to_include, bot_user_id=bot_user_id),
+        block=build_linked_messages_context(
+            msgs_to_include,
+            bot_user_id=bot_user_id,
+            seer_reply_ts=seer_reply_ts,
+        ),
         unresolved_channel_ids=list(unresolved),
         private_channel_ids=list(private_channels),
     )

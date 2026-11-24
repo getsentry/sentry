@@ -475,6 +475,7 @@ def build_linked_messages_context(
     blocks: Sequence[tuple[SlackMessageLink, Sequence[Mapping[str, Any]]]],
     *,
     bot_user_id: str | None = None,
+    seer_reply_ts: Collection[str] = (),
 ) -> str:
     """Render messages fetched from Slack permalinks into a Seer context block.
 
@@ -487,7 +488,7 @@ def build_linked_messages_context(
     """
     sections: list[str] = []
     for link, messages in blocks:
-        body = build_thread_context(messages, bot_user_id=bot_user_id)
+        body = build_thread_context(messages, bot_user_id=bot_user_id, seer_reply_ts=seer_reply_ts)
         if not body:
             continue
         sections.append(f"User linked a Slack message in <#{link.channel_id}>:\n{body}")

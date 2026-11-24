@@ -773,6 +773,26 @@ class LinkedMessagesContextTest(TestCase):
         assert "User linked a Slack message in <#C9999LINKED>:" in on_page_context
         assert "<@ULINK>: linked body" in on_page_context
 
+    def test_linked_seer_reply_is_labeled_as_own_reply(self) -> None:
+        def history(*, channel_id: str, thread_ts: str, **kwargs: object) -> list[dict[str, str]]:
+            if channel_id == "C9999LINKED":
+                return [{"user": "U0BOT", "text": "earlier answer", "ts": "1700000000.222222"}]
+            return []
+
+        self._build_mocks(thread_history_side_effect=history)
+        self.mock_entrypoint.integration.id = TASK_KWARGS["integration_id"]
+        SlackSeerAgentMessageCache.set(
+            integration_id=TASK_KWARGS["integration_id"],
+            channel_id="C9999LINKED",
+            message_ts="1700000000.222222",
+            payload={"thread_ts": "1700000000.222222", "run_id": 3},
+        )
+
+        self._run(text=f"<@U0BOT> what about <{self.LINKED_PERMALINK}>", thread_ts=None)
+
+        on_page_context = self.mock_operator.trigger_agent.call_args[1]["on_page_context"]
+        assert "Sentry (you), earlier reply: earlier answer" in on_page_context
+
     def test_threaded_permalink_fetches_only_the_linked_reply(self) -> None:
         """A permalink into a thread reply must NOT pull the whole thread —
         we only ship the single targeted reply to Seer.
