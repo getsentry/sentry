@@ -1,13 +1,15 @@
-import {
-  getDiffInMinutes,
-  getInterval,
-  type DateTimeObject,
-} from 'sentry/components/charts/utils';
+import {getDiffInMinutes, type DateTimeObject} from 'sentry/components/charts/utils';
 
 /**
  * Horizontal space each bar needs, gap included, to stay readable.
  */
 const MIN_BAR_SLOT_PX = 6;
+
+/**
+ * Bar budget for a chart that hasn't been measured yet, like one mounted
+ * while hidden. It's replaced once the chart has a real width.
+ */
+const DEFAULT_MAX_BARS = 100;
 
 /**
  * Intervals the graph can use, smallest first, with their length in minutes.
@@ -49,17 +51,12 @@ export function getMaxBars(chartWidth: number): number {
 }
 
 /**
- * Picks the smallest interval whose bars fit in the chart. Without a measured
- * width (for example, while the chart is hidden), it falls back to the issues
- * granularity ladder.
+ * Picks the smallest interval whose bars fit in the chart.
  */
 export function getEventGraphInterval(datetime: DateTimeObject, maxBars: number): string {
-  if (maxBars <= 0) {
-    return getInterval(datetime, 'issues');
-  }
-
+  const barBudget = maxBars > 0 ? maxBars : DEFAULT_MAX_BARS;
   const periodMinutes = getDiffInMinutes(datetime);
-  const fitting = INTERVALS.find(([, minutes]) => periodMinutes / minutes <= maxBars);
+  const fitting = INTERVALS.find(([, minutes]) => periodMinutes / minutes <= barBudget);
   // Even weekly bars don't fit, so use the longest interval anyway
   return fitting?.[0] ?? '7d';
 }

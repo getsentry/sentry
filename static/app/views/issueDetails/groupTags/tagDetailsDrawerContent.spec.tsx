@@ -308,7 +308,6 @@ describe('TagDetailsDrawerContent', () => {
     expect(discoverQueryParams).toEqual({
       dataset: 'errors',
       field: ['title', 'release', 'environment', 'user.display', 'timestamp'],
-      interval: '1m',
       name: 'RequestError: GET /issues/ 404',
       project: '2',
       query: 'issue.id:1 (user.username:david)',

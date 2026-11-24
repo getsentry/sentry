@@ -30,7 +30,7 @@ describe('getEventGraphInterval', () => {
     expect(getEventGraphInterval({period: '90d'}, 5)).toBe('7d');
   });
 
-  it('falls back to the issues ladder without a measured width', () => {
+  it('uses a default bar budget without a measured width', () => {
     expect(getEventGraphInterval({period: '14d'}, 0)).toBe('4h');
   });
 });

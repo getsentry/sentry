@@ -34,7 +34,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {
   RELEASE_BUBBLE_SERIES_NAME,
   useReleaseBubbles,
@@ -137,11 +136,12 @@ export function EventGraph({
 
   // Size the bars to the chart. Only the stats queries use this interval, so
   // resizing doesn't refetch anything else.
-  const graphEventView = eventView.clone();
-  graphEventView.interval = getEventGraphInterval(
+  const interval = getEventGraphInterval(
     {start: eventView.start, end: eventView.end, period: eventView.statsPeriod},
     maxBars ?? 0
   );
+  const graphEventView = eventView.clone();
+  graphEventView.interval = interval;
 
   const statsOptions = issueDetailsEventsStatsApiOptions({
     eventView: graphEventView,
@@ -426,9 +426,7 @@ export function EventGraph({
     currentTab,
   ]);
 
-  const bucketSize = graphEventView.interval
-    ? intervalToMilliseconds(graphEventView.interval)
-    : getBucketSize(series);
+  const bucketSize = intervalToMilliseconds(interval);
 
   const legendConfig = legend({
     theme,

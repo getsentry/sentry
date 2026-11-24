@@ -1,7 +1,6 @@
 import {hashKey} from '@tanstack/react-query';
 import type {Location} from 'history';
 
-import {getInterval} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {
@@ -48,10 +47,6 @@ export function useIssueDetailsEventView({
         })
       : defaultStatsPeriod;
 
-  const interval = getInterval(
-    {start: periodQuery?.start, end: periodQuery?.end, period: periodQuery?.statsPeriod},
-    'issues'
-  );
   const config = getConfigForIssueType(group, group.project);
 
   // Group each filter so OR branches cannot escape the issue or other filters.
@@ -62,7 +57,6 @@ export function useIssueDetailsEventView({
 
   const discoverQuery: NewQuery = {
     ...periodQuery,
-    interval,
     environment: environments,
     dataset: config.usesIssuePlatform
       ? DiscoverDatasets.ISSUE_PLATFORM
