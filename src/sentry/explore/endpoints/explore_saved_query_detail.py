@@ -189,12 +189,21 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         return Response(status=204)
 
 
+class ExploreSavedQueryVisitPermission(ExploreSavedQueryPermission):
+    # Recording a visit is the requesting user's own state, not a change to the query.
+    scope_map = {
+        **ExploreSavedQueryPermission.scope_map,
+        "POST": ["org:read", "org:write", "org:admin", "user_preference:write"],
+    }
+
+
 @extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
+    permission_classes = (ExploreSavedQueryVisitPermission,)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(

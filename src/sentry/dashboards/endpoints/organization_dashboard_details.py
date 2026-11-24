@@ -256,12 +256,21 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         return self.respond(body, status=200)
 
 
+class OrganizationDashboardVisitPermission(OrganizationDashboardsPermission):
+    # Recording a visit is the requesting user's own state, not a change to the dashboard.
+    scope_map = {
+        **OrganizationDashboardsPermission.scope_map,
+        "POST": ["org:read", "org:write", "org:admin", "user_preference:write"],
+    }
+
+
 @extend_schema(tags=["Dashboards"])
 @cell_silo_endpoint
 class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
+    permission_classes = (OrganizationDashboardVisitPermission,)
 
     @extend_schema(
         operation_id="visitOrganizationDashboard",
