@@ -262,7 +262,12 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                 models.F("config__organization_id"),
                 name="detector_all_projects_org_idx",
                 condition=models.Q(project__isnull=True, type=IssueStreamGroupType.slug),
-            )
+            ),
+            models.Index(
+                models.F("config__organization_id"),
+                name="detector_org_activity_idx",
+                condition=models.Q(project__isnull=True, type=DetectorType.ORGANIZATION_ACTIVITY),
+            ),
         ]
 
     error_detector_project_options = {

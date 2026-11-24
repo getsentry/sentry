@@ -785,6 +785,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     "feature_id": SINGLE_RUN_FEATURE_ID if single_run else AUTOFIX_FEATURE_ID,
                     "status": state.status,
                     "failure_reason": state.failure_reason,
+                    "credit_denial_reason": state.credit_denial_reason,
                     "billing_feature": state.billing_feature,
                     "blocks": blocks,
                     "updated_at": state.updated_at,

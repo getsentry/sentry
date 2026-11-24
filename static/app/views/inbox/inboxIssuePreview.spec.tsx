@@ -8,7 +8,7 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {GroupStatus} from 'sentry/types/group';
+import {GroupStatus, ProgressState} from 'sentry/types/group';
 
 import {InboxIssuePreview} from './inboxIssuePreview';
 
@@ -106,6 +106,97 @@ describe('InboxIssuePreview', () => {
     expect(
       within(sidebar).queryByRole('button', {name: 'Collapse Section'})
     ).not.toBeInTheDocument();
+  });
+
+  it('shows the impact assessment in the sidebar', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: {
+        ...group,
+        derivedData: {
+          hasOpenFixPr: false,
+          hasRootCause: false,
+          isAssigned: false,
+          lastProgressedAt: null,
+          progress: ProgressState.IDENTIFIED,
+          status: 'open',
+          viewCount: 0,
+          impact: {
+            level: 'super_high',
+            score: 91,
+            description: 'Checkout is broken for all users.',
+            citations: [],
+            sourceEventId: event.id,
+          },
+        },
+      },
+    });
+
+    render(<InboxIssuePreview groupId={group.id} />, {
+      organization: OrganizationFixture({features: ['seer-impact-assessment']}),
+    });
+
+    const sidebar = await screen.findByRole('complementary', {name: 'Issue overview'});
+    expect(within(sidebar).getByRole('heading', {name: 'Impact'})).toBeInTheDocument();
+    expect(within(sidebar).getByText('Super High (91)')).toBeInTheDocument();
+    expect(within(sidebar).getByLabelText('alpha')).toBeInTheDocument();
+    // Once in the header and once in the sidebar.
+    expect(screen.getAllByText('Super High (91)')).toHaveLength(2);
+    expect(sidebar).toHaveTextContent(/Assignee.*Impact.*Priority/);
+    expect(
+      within(sidebar).queryByRole('button', {name: 'Assess impact'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('starts an impact assessment from the sidebar', async () => {
+    const assessRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/impact/assess/`,
+      method: 'POST',
+      body: {runId: '1'},
+    });
+
+    render(<InboxIssuePreview groupId={group.id} />, {
+      organization: OrganizationFixture({features: ['seer-impact-assessment']}),
+    });
+
+    const sidebar = await screen.findByRole('complementary', {name: 'Issue overview'});
+    await userEvent.click(within(sidebar).getByRole('button', {name: 'Assess impact'}));
+
+    expect(await screen.findByText('Starting impact assessment…')).toBeInTheDocument();
+    expect(assessRequest).toHaveBeenCalled();
+  });
+
+  it('hides impact assessments without the impact assessment feature', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: {
+        ...group,
+        derivedData: {
+          hasOpenFixPr: false,
+          hasRootCause: false,
+          isAssigned: false,
+          lastProgressedAt: null,
+          progress: ProgressState.IDENTIFIED,
+          status: 'open',
+          viewCount: 0,
+          impact: {
+            level: 'super_high',
+            score: 91,
+            description: 'Checkout is broken for all users.',
+            citations: [],
+            sourceEventId: event.id,
+          },
+        },
+      },
+    });
+
+    render(<InboxIssuePreview groupId={group.id} />, {organization});
+
+    const sidebar = await screen.findByRole('complementary', {name: 'Issue overview'});
+    expect(
+      within(sidebar).queryByRole('heading', {name: 'Impact'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Super High (91)')).not.toBeInTheDocument();
   });
 
   it('pairs each timestamp with its release', async () => {

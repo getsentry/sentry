@@ -217,8 +217,9 @@ describe('GroupActions', () => {
       expect(screen.getByLabelText('alpha')).toBeInTheDocument();
       await userEvent.click(screen.getByRole('menuitemradio', {name: /Assess impact/}));
 
+      expect(await screen.findByText('Starting impact assessment…')).toBeInTheDocument();
       await waitFor(() => expect(request).toHaveBeenCalled());
-      expect(await screen.findByText('Impact assessment started')).toBeInTheDocument();
+      expect(screen.queryByText('Impact assessment started')).not.toBeInTheDocument();
     });
 
     it('shows an error when the impact assessment cannot be started', async () => {

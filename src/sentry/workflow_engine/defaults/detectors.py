@@ -259,6 +259,28 @@ def ensure_performance_detectors(project: Project) -> dict[str, Detector]:
     return detectors
 
 
+def ensure_organization_activity_detector(organization_id: int) -> Detector:
+    """Return the internal execution context for organization activity workflows."""
+    db = router.db_for_write(Detector)
+    detectors = Detector.objects.using(db).filter(
+        type=DetectorType.ORGANIZATION_ACTIVITY,
+        project__isnull=True,
+        config__organization_id=organization_id,
+    )
+    if detector := detectors.get_or_none():
+        return detector
+    with transaction.atomic(using=db):
+        # Serialize first-time creation even before the lookup index is deployed.
+        Organization.objects.using(db).select_for_update(no_key=True).get(id=organization_id)
+        if detector := detectors.get_or_none():
+            return detector
+        return Detector.objects.using(db).create(
+            type=DetectorType.ORGANIZATION_ACTIVITY,
+            name="Organization activity",
+            config={"organization_id": organization_id},
+        )
+
+
 def ensure_default_all_projects_detector(organization_id: int) -> Detector:
     """
     Ensure that an org-scoped all-project detector exists for the organization.
