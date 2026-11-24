@@ -142,6 +142,8 @@ def should_use_single_run(
 
 
 def manual_single_run_stopping_point(project: Project) -> AutofixStoppingPoint:
+    # Turning Open PRs off sets tuning to off but keeps open_pr stored, so check both, matching
+    # how the settings page shows the switch.
     opens_prs = (
         project.get_option("sentry:autofix_automation_tuning")
         != AutofixAutomationTuningSettings.OFF
