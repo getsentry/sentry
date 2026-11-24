@@ -1,0 +1,3 @@
+# Firefox's regex engine throws this when its own stack check or allocation fails, even for trivial
+# regexes. The title is always the same, so split these by the frame that threw.
+family:javascript error.type:"InternalError" error.value:"too much recursion" -> too-much-recursion, {{stack.filename}}, {{function}}
