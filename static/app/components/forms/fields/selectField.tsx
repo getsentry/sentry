@@ -168,12 +168,12 @@ export class SelectField<
                 id={id}
                 clearable={allowClear}
                 multiple={multiple}
-                controlTrailingItems={
+                trailingItems={
                   <Fragment>
                     {!hideControlState && props.components?.Indicators === undefined && (
                       <FormFieldControlState model={model} name={name} />
                     )}
-                    {props.controlTrailingItems}
+                    {props.trailingItems}
                   </Fragment>
                 }
                 styles={{

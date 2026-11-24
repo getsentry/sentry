@@ -35,7 +35,7 @@ export function SelectField<
   disabled,
   multiple,
   clearable,
-  controlTrailingItems,
+  trailingItems,
   value,
   ref,
   ...props
@@ -61,10 +61,10 @@ export function SelectField<
             id={id}
             inputRef={fieldRef}
             blurInputOnSelect={false}
-            controlTrailingItems={
+            trailingItems={
               <Fragment>
                 {indicator}
-                {controlTrailingItems}
+                {trailingItems}
               </Fragment>
             }
             onOpenChange={isOpen => {

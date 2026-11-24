@@ -552,7 +552,7 @@ export function ScmPlatformFeaturesCore({
               onChange={handleManualPickerChange}
               onInputChange={handleManualPickerSearch}
               searchable
-              controlLeadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
+              leadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
               virtualized
             />
           ) : (
@@ -566,7 +566,7 @@ export function ScmPlatformFeaturesCore({
               onInputChange={handleManualPickerSearch}
               clearable
               searchable
-              controlLeadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
+              leadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
               virtualized
             />
           )}

@@ -156,12 +156,12 @@ Use the `disabled` prop to disable the select, preventing user interaction.
 
 ## Leading Content
 
-Pass an icon or text to `controlLeadingItems`. Select adds padding and centers the content vertically before the value and search input.
+Pass an icon or text to `leadingItems`. Select adds padding and centers the content vertically before the value and search input.
 
 <Storybook.Demo>
   <Storybook.Grid>
     <SingleSelectDemo
-      controlLeadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
+      leadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
       size="md"
       placeholder="medium"
       options={[
@@ -172,7 +172,7 @@ Pass an icon or text to `controlLeadingItems`. Select adds padding and centers t
     <SingleSelectDemo
       size="sm"
       placeholder="small"
-      controlLeadingItems={<Text bold>Environment</Text>}
+      leadingItems={<Text bold>Environment</Text>}
       initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1'},
@@ -182,7 +182,7 @@ Pass an icon or text to `controlLeadingItems`. Select adds padding and centers t
     <SingleSelectDemo
       size="xs"
       placeholder="x-small"
-      controlLeadingItems={<IconSearch size="xs" variant="muted" aria-hidden />}
+      leadingItems={<IconSearch size="xs" variant="muted" aria-hidden />}
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
@@ -196,7 +196,7 @@ Pass an icon or text to `controlLeadingItems`. Select adds padding and centers t
   value={value}
   onChange={option => setValue(option?.value ?? null)}
   aria-label="Environment"
-  controlLeadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
+  leadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
   placeholder="Choose environment"
   options={options}
 />
@@ -583,8 +583,8 @@ option, and chip behavior; callers do not need implementation components or thei
 | `components.Value`           | Selected value content. Receives `option`.                      |
 | `components.OptionLabel`     | Option label content. Receives `option`.                        |
 | `components.MultiValueLabel` | Chip content. Receives `option` and `children`.                 |
-| `controlLeadingItems`        | Add content before the value and search input.                  |
-| `controlTrailingItems`       | Add content beside the clear button and dropdown icon.          |
+| `leadingItems`               | Add content before the value and search input.                  |
+| `trailingItems`              | Add content beside the clear button and dropdown icon.          |
 | `dropdownIndicator`          | Replace the dropdown icon, or pass `null` to hide it.           |
 | `components.Indicators`      | Indicator wrapper. Receives `children`; pass `null` to hide it. |
 | `menuFooter`                 | Add content after the options, outside the scroll container.    |
@@ -639,7 +639,7 @@ The component follows the [WAI-ARIA Combobox](https://www.w3.org/WAI/ARIA/apg/pa
 
 - Every select must have an associated label
 - Use a `<label>` element with `htmlFor`, wrap the select in a `<label>`, or provide `aria-label`
-- Leading content (`controlLeadingItems`) does not replace an accessible label
+- Leading content (`leadingItems`) does not replace an accessible label
 
 ```jsx
 // Good: Visible label with htmlFor

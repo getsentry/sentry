@@ -178,7 +178,7 @@ export function ScmRepoSelector({
       blurInputOnSelect={false}
       clearable
       searchable
-      controlLeadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
+      leadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
       virtualized
       styles={{container: base => ({...base, width: '100%'})}}
     />

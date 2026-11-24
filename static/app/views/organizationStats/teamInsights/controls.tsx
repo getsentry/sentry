@@ -145,7 +145,7 @@ export function TeamStatsControls({
     >
       <TeamSelector
         name="select-team"
-        controlLeadingItems={
+        leadingItems={
           <Text bold wrap="nowrap">
             {t('Team:')}
           </Text>
@@ -161,7 +161,7 @@ export function TeamStatsControls({
           options={[{value: '', label: t('All')}, ...environmentOptions]}
           value={currentEnvironment ?? ''}
           onChange={handleEnvironmentChange}
-          controlLeadingItems={
+          leadingItems={
             <Text bold wrap="nowrap">
               {t('Environment:')}
             </Text>

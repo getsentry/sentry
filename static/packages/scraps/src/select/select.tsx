@@ -63,10 +63,6 @@ export interface BaseSelectProps<
   className?: string;
   /** Customize content while Select retains input, option, and chip behavior. */
   components?: SelectComponents<TOption>;
-  /** Centered content inside the control, before the selected value and input. */
-  controlLeadingItems?: React.ReactNode;
-  /** Content beside the clear button and dropdown indicator. Each item is centered in a slot at least 24px wide. */
-  controlTrailingItems?: React.ReactNode;
   /** Allow values that are not in `options`. */
   creatable?: boolean;
   disabled?: boolean;
@@ -85,6 +81,8 @@ export interface BaseSelectProps<
   isOpen?: boolean;
   /** Compare object values. Values are compared with === by default. */
   isValueEqual?: (a: TValue, b: TValue) => boolean;
+  /** Centered content inside the control, before the selected value and input. */
+  leadingItems?: React.ReactNode;
   loadingMessage?: () => React.ReactNode;
   maxMenuHeight?: number;
   maxMenuWidth?: number | string;
@@ -111,6 +109,8 @@ export interface BaseSelectProps<
   size?: FormSize;
   styles?: StylesConfig<NoInfer<TValue>, NoInfer<TOption>>;
   tabIndex?: number;
+  /** Content beside the clear button and dropdown indicator. Each item is centered in a slot at least 24px wide. */
+  trailingItems?: React.ReactNode;
   /** Virtualize large lists, including lists with sections. */
   virtualized?: boolean;
 }
@@ -150,8 +150,8 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     inputRef: providedInputRef,
     isLoading,
     dropdownIndicator,
-    controlLeadingItems,
-    controlTrailingItems,
+    leadingItems,
+    trailingItems,
     placeholder,
     isValueEqual,
     multiple = false,
@@ -594,7 +594,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
           }
         `}
       >
-        {controlTrailingItems}
+        {trailingItems}
         {clearable && selected.length > 0 && !disabled && (
           <Button
             size="zero"
@@ -750,9 +750,9 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
           }
         }}
       >
-        {controlLeadingItems != null && typeof controlLeadingItems !== 'boolean' && (
+        {leadingItems != null && typeof leadingItems !== 'boolean' && (
           <Flex align="center" flexShrink={0} gap="xs" css={selectStyles.leadingItems}>
-            {controlLeadingItems}
+            {leadingItems}
           </Flex>
         )}
         <div css={selectStyles.values}>

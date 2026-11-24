@@ -47,7 +47,7 @@ describe('Select', () => {
           options={options}
           value="production"
           size={size}
-          controlTrailingItems={<IconCheckmark variant="success" size="sm" aria-hidden />}
+          trailingItems={<IconCheckmark variant="success" size="sm" aria-hidden />}
           onChange={() => {}}
         />
       </Stack>
@@ -82,7 +82,7 @@ describe('Select', () => {
           options={options}
           value={null}
           size={size}
-          controlLeadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
+          leadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
           onChange={() => {}}
         />
       </Stack>
