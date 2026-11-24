@@ -55,6 +55,12 @@ interface GridListProps<T extends ListItemBase>
    * Text label to be rendered as heading on top of grid list.
    */
   label?: React.ReactNode;
+  /**
+   * Reserves the scrollbar's space from the first render, for a list that will
+   * overflow. A menu that measures its width before the list has overflowed
+   * then includes the scrollbar, so it does not cut off the options.
+   */
+  reserveScrollbar?: boolean;
   size?: GridListOptionProps<ListItemBase>['size'];
   /**
    * Message to be displayed when some options are hidden due to `sizeLimit`.
@@ -82,6 +88,7 @@ function GridList<T extends ListItemBase>({
   label,
   sizeLimitMessage,
   keyDownHandler,
+  reserveScrollbar,
   virtualized,
   ...props
 }: GridListProps<T>) {
@@ -130,6 +137,7 @@ function GridList<T extends ListItemBase>({
           ref={setScrollElement}
           overflowY="auto"
           margin="xs 0"
+          style={reserveScrollbar ? {scrollbarGutter: 'stable'} : undefined}
         >
           <ListWrap
             {...mergedProps}

@@ -211,6 +211,9 @@ export function CompactSelect<Value extends SelectKey>({
         size={size}
         sizeLimit={sizeLimit}
         sizeLimitMessage={sizeLimitMessage}
+        // The menu measures its width with only the longest option, before the
+        // list has overflowed, so reserve the scrollbar a long list will have.
+        reserveScrollbar={shouldVirtualize(options, virtualizeThreshold)}
         virtualized={shouldVirtualize(itemsWithKey, virtualizeThreshold)}
         aria-labelledby={triggerId}
       >

@@ -74,6 +74,12 @@ interface ListBoxProps<T extends ListItemBase>
   overlayIsOpen?: boolean;
   ref?: React.Ref<HTMLUListElement>;
   /**
+   * Reserves the scrollbar's space from the first render, for a list that will
+   * overflow. A menu that measures its width before the list has overflowed
+   * then includes the scrollbar, so it does not cut off the options.
+   */
+  reserveScrollbar?: boolean;
+  /**
    * Ref forwarded to the inner scroll container div (the element the virtualizer
    * uses as its scroll element). Useful for callers that need to reset scrollTop.
    */
@@ -136,6 +142,7 @@ export function ListBox<T extends ListItemBase>({
   showSectionHeaders = true,
   showDetails = true,
   onAction,
+  reserveScrollbar,
   virtualized,
   scrollContainerRef,
   className,
@@ -267,7 +274,11 @@ export function ListBox<T extends ListItemBase>({
           margin="xs 0"
           ref={refs}
           className={className}
-          style={hasEverOverflowed ? {scrollbarGutter: 'stable'} : undefined}
+          style={
+            hasEverOverflowed || reserveScrollbar
+              ? {scrollbarGutter: 'stable'}
+              : undefined
+          }
         >
           <ListWrap
             {...mergedProps}

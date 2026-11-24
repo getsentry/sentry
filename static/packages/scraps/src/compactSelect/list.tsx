@@ -73,6 +73,12 @@ interface BaseListProps<Value extends SelectKey>
    *   interactive child elements (buttons/links) that need to be keyboard-reachable.
    */
   mode?: 'list' | 'grid';
+  /**
+   * Reserves the scrollbar's space from the first render, for a list that will
+   * overflow. A menu that measures its width before the list has overflowed
+   * then includes the scrollbar, so it does not cut off the options.
+   */
+  reserveScrollbar?: boolean;
   size?: FormSize;
   /**
    * Upper limit for the number of options to display in the menu at a time. Users can
