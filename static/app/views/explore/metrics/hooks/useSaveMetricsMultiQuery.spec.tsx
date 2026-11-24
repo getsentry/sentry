@@ -18,10 +18,11 @@ import {
   useGetSavedQuery,
   type ReadableSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {MockMetricQueryParamsContext} from 'sentry/views/explore/metrics/hooks/testUtils';
-import {useSaveMetricsMultiQuery} from 'sentry/views/explore/metrics/hooks/useSaveMetricsMultiQuery';
 import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
+
+import {MockMetricQueryParamsContext} from './testUtils';
+import {useSaveMetricsMultiQuery} from './useSaveMetricsMultiQuery';
 
 const organization = OrganizationFixture();
 
@@ -37,12 +38,7 @@ function savedQuery(metricName: string): ReadableSavedQuery {
         orderby: '',
         query: '',
         metric: {name: metricName, type: 'gauge', unit: 'none'},
-        aggregateField: [
-          {
-            yAxes: [`max(value,${metricName},gauge,none)`],
-            chartType: 1,
-          },
-        ],
+        aggregateField: [{yAxes: [`max(value,${metricName},gauge,none)`], chartType: 1}],
       },
     ],
     dateAdded: '2024-01-01T00:00:00.000Z',
@@ -84,7 +80,6 @@ describe('useSaveMetricsMultiQuery', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
   });
 
@@ -100,10 +95,7 @@ describe('useSaveMetricsMultiQuery', () => {
       body: [],
     });
     const {result} = renderHookWithProviders(
-      () => ({
-        ...useSaveMetricsMultiQuery(),
-        queries: useGetSavedQueries({}),
-      }),
+      () => ({...useSaveMetricsMultiQuery(), queries: useGetSavedQueries({})}),
       {organization, additionalWrapper: Wrapper}
     );
     await waitFor(() => expect(result.current.queries.data).toEqual([]));
@@ -134,7 +126,7 @@ describe('useSaveMetricsMultiQuery', () => {
   });
 
   it.each(['save', 'update'])(
-    'preserves each transformation pipeline on %s',
+    'preserves each set of transformations on %s',
     async action => {
       const request = MockApiClient.addMockResponse({
         url:
@@ -221,10 +213,7 @@ describe('useSaveMetricsMultiQuery', () => {
         body: {detail: 'Unable to save query'},
       });
       const {result} = renderHookWithProviders(
-        () => ({
-          ...useSaveMetricsMultiQuery(),
-          queries: useGetSavedQueries({}),
-        }),
+        () => ({...useSaveMetricsMultiQuery(), queries: useGetSavedQueries({})}),
         {
           organization,
           additionalWrapper: Wrapper,

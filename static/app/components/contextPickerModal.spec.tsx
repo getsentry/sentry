@@ -7,11 +7,12 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {makeCloseButton, ModalBody, ModalFooter} from '@sentry/scraps/modal';
 
-import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
+import {ContextPickerModalContainer as ContextPickerModal} from './contextPickerModal';
 
 describe('ContextPickerModal', () => {
   let project!: Project;
@@ -27,10 +28,7 @@ describe('ContextPickerModal', () => {
     project = ProjectFixture();
     org = OrganizationFixture();
     project2 = ProjectFixture({slug: 'project2'});
-    org2 = OrganizationFixture({
-      slug: 'org2',
-      id: '21',
-    });
+    org2 = OrganizationFixture({slug: 'org2', id: '21'});
     project4 = ProjectFixture({slug: 'project4', isMember: false});
 
     OrganizationsStore.load([]);
@@ -128,12 +126,7 @@ describe('ContextPickerModal', () => {
       body: [project, project2, project4],
     });
 
-    render(
-      getComponent({
-        needOrg: true,
-        needProject: true,
-      })
-    );
+    render(getComponent({needOrg: true, needProject: true}));
 
     await waitFor(() => {
       expect(fetchProjectsForOrg).toHaveBeenCalled();
@@ -156,14 +149,8 @@ describe('ContextPickerModal', () => {
 
   it('can select org and project', async () => {
     const organizations = [
-      {
-        ...org,
-        projects: [project],
-      },
-      {
-        ...org2,
-        projects: [project2, ProjectFixture({slug: 'project3'})],
-      },
+      {...org, projects: [project]},
+      {...org2, projects: [project2, ProjectFixture({slug: 'project3'})]},
     ];
     const fetchProjectsForOrg = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/projects/`,

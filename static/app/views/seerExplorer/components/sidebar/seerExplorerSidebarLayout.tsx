@@ -10,7 +10,6 @@ import {useIsSeerExplorerSidebarEnabled} from 'sentry/utils/seer/isSeerExplorerE
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SeerExplorerPanel} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerPanel';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {
   getSeerExplorerAnalyticsBrowserSize,
@@ -18,6 +17,8 @@ import {
   SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY,
   useSeerExplorerSidebarOrientation,
 } from 'sentry/views/seerExplorer/utils';
+
+import {SeerExplorerPanel} from './seerExplorerPanel';
 
 // Minimum widths/heights so neither the app content nor Seer collapses to nothing.
 const MIN_CONTENT_WIDTH = 480;
@@ -78,14 +79,19 @@ function SeerExplorerSidebarLayoutInSidebarMode({
   const {isOpen, sidebarPosition, sidebarContainerRef} = useSeerExplorerContext();
   const {isAnyDrawerOpen} = useDrawer();
   const {width, height} = useDimensions({elementRef: sidebarContainerRef});
+  // A phone-width container can't hold the app's minimum width, let alone Seer
+  // beside it: a right dock would push Seer out of view. Dock to the bottom and
+  // let Seer cover the whole pane; the divider stays, so the app can still be
+  // dragged back into view.
+  const isCompact = width > 0 && width < MIN_CONTENT_WIDTH;
   const orientation = useSeerExplorerSidebarOrientation(
-    sidebarPosition,
+    isCompact ? 'bottom' : sidebarPosition,
     width >= MIN_CONTENT_WIDTH + MIN_SEER_WIDTH
   );
 
   const isRight = orientation === 'right';
   const available = isRight ? width : height;
-  const minContent = isRight ? MIN_CONTENT_WIDTH : MIN_CONTENT_HEIGHT;
+  const minContent = isCompact ? 0 : isRight ? MIN_CONTENT_WIDTH : MIN_CONTENT_HEIGHT;
   const minSeer = isRight ? MIN_SEER_WIDTH : MIN_SEER_HEIGHT;
   const defaultSeerSize = isRight ? DEFAULT_SEER_WIDTH : DEFAULT_SEER_HEIGHT;
   const seerSizeKey = SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY[orientation];
@@ -97,8 +103,10 @@ function SeerExplorerSidebarLayoutInSidebarMode({
   // The app (sized) pane size = available − Seer's size, floored at `minContent`
   // (so a persisted Seer size larger than the viewport can't make it negative).
   // The double-click reset target uses the *default* Seer size.
-  const contentSize = Math.max(minContent, available - seerSize);
-  const defaultContentSize = Math.max(minContent, available - defaultSeerSize);
+  const contentSize = isCompact ? 0 : Math.max(minContent, available - seerSize);
+  const defaultContentSize = isCompact
+    ? 0
+    : Math.max(minContent, available - defaultSeerSize);
 
   // Seed the panel's size via a callback ref rather than gating the whole panel
   // on measurement (which would remount the routed app when dimensions arrive).
@@ -124,7 +132,8 @@ function SeerExplorerSidebarLayoutInSidebarMode({
   // only on drag end, never on programmatic/measure resizes, so a saved size is
   // never overwritten by a clamped one.
   const persistSeerSize = (contentEndSize: number) => {
-    if (available <= 0) {
+    // A drag on a phone shouldn't overwrite the size saved for wider screens.
+    if (available <= 0 || isCompact) {
       return;
     }
     const exactSeerSize = Math.round(Math.max(minSeer, available - contentEndSize));

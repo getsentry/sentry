@@ -9,16 +9,17 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {DisplayOptions} from 'sentry/components/stackTrace/displayOptions';
-import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
-import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
-import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
-import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
-import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
-import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
+
+import {FrameContent} from './frame/frameContent';
+import {IssueFrameActions} from './issueStackTrace/issueFrameActions';
+import {DisplayOptions} from './displayOptions';
+import {StackTraceViewStateProvider} from './stackTraceContext';
+import {StackTraceFrames} from './stackTraceFrames';
+import {StackTraceProvider} from './stackTraceProvider';
+import type {StackTraceViewStateProviderProps} from './types';
 
 type StacktraceWithFrames = StacktraceType & {
   frames: NonNullable<StacktraceType['frames']>;
@@ -31,19 +32,12 @@ function makeStackTraceData(): {
   const entry = EventEntryStacktraceFixture();
 
   return {
-    event: EventFixture({
-      platform: 'python',
-      projectID: '1',
-      entries: [entry],
-    }),
+    event: EventFixture({platform: 'python', projectID: '1', entries: [entry]}),
     stacktrace: {
       ...entry.data,
       hasSystemFrames: true,
       frames:
-        entry.data.frames?.map((frame, index) => ({
-          ...frame,
-          inApp: index >= 2,
-        })) ?? [],
+        entry.data.frames?.map((frame, index) => ({...frame, inApp: index >= 2})) ?? [],
     },
   };
 }
@@ -104,18 +98,11 @@ describe('Core StackTrace', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
-      body: {
-        dismissed_ts: undefined,
-        snoozed_ts: undefined,
-      },
+      body: {dismissed_ts: undefined, snoozed_ts: undefined},
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/stacktrace-link/',
-      body: {
-        config: null,
-        sourceUrl: null,
-        integrations: [],
-      },
+      body: {config: null, sourceUrl: null, integrations: []},
     });
   });
 
@@ -271,9 +258,7 @@ describe('Core StackTrace', () => {
 
   it('renders captured frame variables through the tree', async () => {
     render(<ExampleStackTrace />, {
-      organization: OrganizationFixture({
-        features: ['native-variable-extraction'],
-      }),
+      organization: OrganizationFixture({features: ['native-variable-extraction']}),
     });
 
     expect(await screen.findByText('args')).toBeInTheDocument();
@@ -308,15 +293,7 @@ describe('Core StackTrace', () => {
         event={event}
         stacktrace={{
           ...stacktrace,
-          frames: [
-            {
-              ...frame,
-              inApp: true,
-              vars: {
-                "'client'": '',
-              },
-            },
-          ],
+          frames: [{...frame, inApp: true, vars: {"'client'": ''}}],
         }}
         meta={{
           frames: [
@@ -327,12 +304,7 @@ describe('Core StackTrace', () => {
                     rem: [['project:0', 's', 0, 0]],
                     len: 41,
                     chunks: [
-                      {
-                        type: 'redaction',
-                        text: '',
-                        rule_id: 'project:0',
-                        remark: 's',
-                      },
+                      {type: 'redaction', text: '', rule_id: 'project:0', remark: 's'},
                     ],
                   },
                 },
@@ -344,10 +316,7 @@ describe('Core StackTrace', () => {
         <DisplayOptions />
         <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
 
     expect(screen.getByText(/redacted/i)).toBeInTheDocument();
@@ -394,10 +363,7 @@ describe('Core StackTrace', () => {
     render(
       <TestStackTraceProvider
         event={event}
-        stacktrace={{
-          ...stacktrace,
-          frames: [singleNonAppFrame],
-        }}
+        stacktrace={{...stacktrace, frames: [singleNonAppFrame]}}
       >
         <DisplayOptions />
         <StackTraceFrames frameContextComponent={FrameContent} />
@@ -551,6 +517,56 @@ describe('Core StackTrace', () => {
     ).toBeInTheDocument();
   });
 
+  it('skips the source map debug request when no frame can show the unminify action', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const javascriptEvent = EventFixture({
+      ...event,
+      sdk: {name: 'sentry.javascript.react', version: '10.0.0'},
+    });
+    const organization = OrganizationFixture({slug: 'org-slug'});
+    const project = DetailedProjectFixture({
+      id: javascriptEvent.projectID,
+      slug: 'project-slug',
+      platform: 'javascript',
+    });
+    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+    ProjectsStore.loadInitialData([project]);
+    const sourceMapDebugRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/events/${javascriptEvent.id}/source-map-debug/`,
+      body: {},
+    });
+
+    render(
+      <TestStackTraceProvider
+        event={javascriptEvent}
+        stacktrace={{
+          ...stacktrace,
+          frames: [
+            {
+              ...frame,
+              filename: 'runner.js',
+              absPath: '/home/ubuntu/runner.js',
+              context: [[1, 'const x = 1;']],
+              inApp: true,
+            },
+          ],
+        }}
+        exceptionIndex={0}
+      >
+        <DisplayOptions />
+        <StackTraceFrames
+          frameContextComponent={FrameContent}
+          frameActionsComponent={IssueFrameActions}
+        />
+      </TestStackTraceProvider>,
+      {organization}
+    );
+
+    expect(await screen.findByText('runner.js')).toBeInTheDocument();
+    expect(sourceMapDebugRequest).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', {name: 'Unminify Code'})).not.toBeInTheDocument();
+  });
+
   it('renders sentry app frame links with line context', async () => {
     const {event, stacktrace} = makeStackTraceData();
     MockApiClient.addMockResponse({
@@ -656,11 +672,7 @@ describe('Core StackTrace', () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
       match: [MockApiClient.matchQuery({lineNo: 77})],
-      body: {
-        config: null,
-        sourceUrl: null,
-        integrations: [integration],
-      },
+      body: {config: null, sourceUrl: null, integrations: [integration]},
     });
 
     render(
@@ -718,10 +730,7 @@ describe('Core StackTrace', () => {
   it('displays module name instead of filename for Java frames', async () => {
     const {stacktrace} = makeStackTraceData();
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
-    const event = EventFixture({
-      platform: 'java',
-      projectID: '1',
-    });
+    const event = EventFixture({platform: 'java', projectID: '1'});
 
     render(
       <TestStackTraceProvider
@@ -788,13 +797,7 @@ describe('Core StackTrace', () => {
         stacktrace={{
           ...stacktrace,
           frames: [
-            {
-              ...frame,
-              filename: 'native_module.c',
-              lineNo: 0,
-              colNo: 0,
-              inApp: true,
-            },
+            {...frame, filename: 'native_module.c', lineNo: 0, colNo: 0, inApp: true},
           ],
         }}
       >
@@ -903,10 +906,7 @@ describe('Core StackTrace', () => {
     render(
       <TestStackTraceProvider
         event={event}
-        stacktrace={{
-          ...stacktrace,
-          frames: [...appFrames, ...systemFrames],
-        }}
+        stacktrace={{...stacktrace, frames: [...appFrames, ...systemFrames]}}
         maxDepth={4}
       >
         <StackTraceFrames frameContextComponent={FrameContent} />
@@ -928,14 +928,7 @@ describe('Core StackTrace', () => {
         event={event}
         stacktrace={{
           ...stacktrace,
-          frames: [
-            {
-              ...frame,
-              context: [],
-              vars: null,
-              package: null,
-            },
-          ],
+          frames: [{...frame, context: [], vars: null, package: null}],
           registers: {},
         }}
       >

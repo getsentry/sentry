@@ -3,14 +3,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {SlowestFunctionsWidget} from 'sentry/views/explore/profiling/landing/slowestFunctionsWidget';
+
+import {SlowestFunctionsWidget} from './slowestFunctionsWidget';
 
 describe('SlowestFunctionsWidget', () => {
   beforeEach(() => {
-    const project = ProjectFixture({
-      id: '1',
-      slug: 'proj-slug',
-    });
+    const project = ProjectFixture({id: '1', slug: 'proj-slug'});
 
     ProjectsStore.loadInitialData([project]);
   });
@@ -39,9 +37,7 @@ describe('SlowestFunctionsWidget', () => {
     // for the slowest functions query
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-      },
+      body: {data: []},
       match: [
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',

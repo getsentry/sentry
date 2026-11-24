@@ -12,10 +12,10 @@ import type {
 } from 'sentry/views/seerWorkflows/types';
 
 const STATUS_VARIANT = {
-  succeeded: {Icon: IconCheckmark, label: 'Succeeded', text: 'success'},
-  failed: {Icon: IconClose, label: 'Failed', text: 'danger'},
-  skipped: {Icon: IconWarning, label: 'Skipped', text: 'muted'},
-  partial: {Icon: IconWarning, label: 'Incomplete', text: 'warning'},
+  succeeded: {Icon: IconCheckmark, label: t('Succeeded'), text: 'success'},
+  failed: {Icon: IconClose, label: t('Failed'), text: 'danger'},
+  skipped: {Icon: IconWarning, label: t('Skipped'), text: 'muted'},
+  partial: {Icon: IconWarning, label: t('Incomplete'), text: 'warning'},
 } as const satisfies Record<
   Exclude<WorkflowDisplayStatus, 'running'>,
   {
@@ -44,6 +44,10 @@ export function getRunDisplayStatus(
     case null:
       return null;
   }
+}
+
+export function getStatusLabel(status: WorkflowDisplayStatus): string {
+  return status === 'running' ? t('Running') : STATUS_VARIANT[status].label;
 }
 
 export function StatusIcon({status}: {status: WorkflowDisplayStatus}) {

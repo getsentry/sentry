@@ -2,7 +2,7 @@ import {CommitFixture} from 'sentry-fixture/commit';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {LastCommit} from 'sentry/components/lastCommit';
+import {LastCommit} from './lastCommit';
 
 describe('LastCommit', () => {
   let mockedCommit!: ReturnType<typeof CommitFixture>;

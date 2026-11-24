@@ -4,13 +4,14 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {TraceAiSpans} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceAiSpans';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {
   makeEAPSpan,
   makeEAPTrace,
 } from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
+
+import {TraceAiSpans} from './traceAiSpans';
 
 function makeAiNodes(ids: string[]): AITraceSpanNode[] {
   const tree = TraceTree.FromTrace(

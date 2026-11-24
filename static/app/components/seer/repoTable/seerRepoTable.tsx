@@ -15,21 +15,22 @@ import {
   useSeerSupportedProviderIds,
 } from 'sentry/components/events/autofix/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {repositoryWithSettingsApiOptions} from 'sentry/components/repositories/repositoryWithSettingsApiOptions';
 import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
-import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
-import {SeerRepoTableHeader} from 'sentry/components/seer/repoTable/seerRepoTableHeader';
-import {SeerRepoTableRow} from 'sentry/components/seer/repoTable/seerRepoTableRow';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {SeerRepoTableHeader} from './seerRepoTableHeader';
+import {SeerRepoTableRow} from './seerRepoTableRow';
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'select', width: 'max-content'},
@@ -154,7 +155,8 @@ export function SeerRepoTable() {
         });
         (mutations ?? []).forEach(mutation => {
           queryClient.invalidateQueries({
-            queryKey: getRepositoryWithSettingsQueryKey(organization, mutation.id),
+            queryKey: repositoryWithSettingsApiOptions(organization, mutation.id)
+              .queryKey,
           });
         });
       },
@@ -202,7 +204,7 @@ export function SeerRepoTable() {
       <ListItemCheckboxProvider
         hits={repositories?.length ?? 0}
         knownIds={knownIds}
-        endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
+        endpointOptions={parseQueryKey(queryOptions.queryKey).options}
       >
         <SimpleTable
           aria-label={t('Repositories')}

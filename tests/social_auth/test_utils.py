@@ -1,7 +1,7 @@
 from django.contrib.contenttypes.models import ContentType
 
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import control_silo_test, no_silo_test
+from sentry.testutils.silo import control_silo_test
 from sentry.users.services.user.serial import serialize_rpc_user
 from social_auth.backends import SocialAuthBackend
 from social_auth.utils import ctype_to_model, model_to_ctype
@@ -29,7 +29,7 @@ class TestSocialAuthBackendGetUser(TestCase):
         assert result is None
 
 
-@no_silo_test
+@control_silo_test
 class TestSocialAuthUtils(TestCase):
     def test_model_to_ctype(self) -> None:
         val = model_to_ctype(1)

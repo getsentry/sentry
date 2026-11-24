@@ -2,13 +2,14 @@ import {useMemo} from 'react';
 import {skipToken} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 
-import {useMailbox} from 'sentry/components/feedback/useMailbox';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {coaleseIssueStatsPeriodQuery} from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
+
+import {useMailbox} from './useMailbox';
 
 interface Props {
   listHeadTime: number;
@@ -33,12 +34,7 @@ function useFeedbackListQuery({listHeadTime, organization, prefetch}: Props) {
   );
 
   const fixedQueryView = useMemo(
-    () =>
-      coaleseIssueStatsPeriodQuery({
-        listHeadTime,
-        prefetch,
-        queryView,
-      }),
+    () => coaleseIssueStatsPeriodQuery({listHeadTime, prefetch, queryView}),
     [listHeadTime, prefetch, queryView]
   );
 

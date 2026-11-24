@@ -1,26 +1,27 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 import type {Query} from 'history';
+import {useStore} from 'zustand';
 
 import {ProjectAvatar, TeamAvatar} from '@sentry/scraps/avatar';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import type {SelectHandle, StylesConfig} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
 import {Heading} from '@sentry/scraps/text';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationSummary, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+import {LoadingIndicator} from './loadingIndicator';
 
 type SharedProps = ModalRenderProps & {
   /**
@@ -54,7 +55,7 @@ type SharedProps = ModalRenderProps & {
 };
 
 type ContentProps = SharedProps & {
-  organizations: OrganizationSummary[];
+  organizations: readonly OrganizationSummary[];
   selectedOrgSlug: string | undefined;
   setSelectedOrgSlug: (slug: string) => void;
   projectSlugs?: string[];
@@ -458,8 +459,8 @@ export function ContextPickerModalContainer({
   projectSlugs,
   ...sharedProps
 }: ContainerProps) {
-  const {organizations} = useLegacyStore(OrganizationsStore);
-  const {organization} = useLegacyStore(OrganizationStore);
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
+  const organization = useStore(OrganizationStore, state => state.organization);
   const [selectedOrgSlug, setSelectedOrgSlug] = useState(organization?.slug);
 
   return (

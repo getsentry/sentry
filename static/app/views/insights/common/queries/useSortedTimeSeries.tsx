@@ -18,9 +18,10 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
-import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
-import {isEventViewEndInFuture} from 'sentry/views/insights/common/queries/useSpansQuery';
 import type {SpanFields, SpanFunctions} from 'sentry/views/insights/types';
+
+import {getSeriesEventView} from './getSeriesEventView';
+import {isEventViewEndInFuture} from './useSpansQuery';
 
 type SeriesMap = Record<string, TimeSeries[]>;
 
@@ -120,10 +121,7 @@ export const useSortedTimeSeries = <
       interval,
       sampling: samplingMode,
       extrapolate: !disableAggregateExtrapolation,
-      queryOptions: {
-        enabled: enabled && pageFilters.isReady,
-        staleTime,
-      },
+      queryOptions: {enabled: enabled && pageFilters.isReady, staleTime},
     },
     referrer
   );
@@ -144,11 +142,7 @@ export const useSortedTimeSeries = <
     return Object.groupBy(series, ts => ts.yAxis) as SeriesMap;
   }, [result.data, transformations, yAxis]);
 
-  return {
-    ...result,
-    data,
-    meta: result.data?.meta,
-  };
+  return {...result, data, meta: result.data?.meta};
 };
 
 export type SortedTimeSeries = ReturnType<typeof useSortedTimeSeries>;

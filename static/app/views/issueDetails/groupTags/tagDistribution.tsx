@@ -10,7 +10,8 @@ import {DeviceName} from 'sentry/components/deviceName';
 import {Version} from 'sentry/components/version';
 import {t, tct} from 'sentry/locale';
 import {percent} from 'sentry/utils';
-import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+
+import type {GroupTag} from './useGroupTags';
 
 /**
  * How many values a panel draws before folding the rest into "Other". Not a

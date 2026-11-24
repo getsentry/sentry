@@ -6,13 +6,14 @@ import type {
 } from 'sentry/utils/discover/fields';
 import {decodeList} from 'sentry/utils/queryString';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {MetricSelectRow} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricSelectRow';
 import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {serializeFields} from 'sentry/views/dashboards/widgetBuilder/utils/serialization.ts';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+
+import {MetricSelectRow} from './metricSelectRow';
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
@@ -76,10 +77,7 @@ describe('MetricSelectRow', () => {
           '-',
         ],
       },
-      {
-        kind: 'function',
-        function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
-      },
+      {kind: 'function', function: ['sum', 'value', 'alpha_metric', 'counter', 'none']},
     ];
     render(
       <WidgetBuilderProvider>
@@ -532,10 +530,7 @@ describe('MetricSelectRow', () => {
     render(
       <WidgetBuilderProvider>
         <MetricSelectRow
-          field={{
-            kind: 'function',
-            function: ['count', 'value', undefined, undefined],
-          }}
+          field={{kind: 'function', function: ['count', 'value', undefined, undefined]}}
           index={0}
           disabled={false}
         />

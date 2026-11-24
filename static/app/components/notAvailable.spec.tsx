@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {NotAvailable} from 'sentry/components/notAvailable';
+import {NotAvailable} from './notAvailable';
 
 describe('NotAvailable', () => {
   it('renders', () => {

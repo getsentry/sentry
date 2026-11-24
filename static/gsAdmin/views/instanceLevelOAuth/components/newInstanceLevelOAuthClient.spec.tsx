@@ -6,7 +6,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
 
 import {InstanceLevelOAuth} from 'admin/views/instanceLevelOAuth/instanceLevelOAuth';
 
@@ -167,7 +167,7 @@ describe('create instance level OAuth client', () => {
   });
 
   it('shows an error message when the API error does not match a form field', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
     MockApiClient.addMockResponse({
       url: '/_admin/instance-level-oauth/',
       method: 'POST',
@@ -194,9 +194,7 @@ describe('create instance level OAuth client', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Create Client'}));
 
     await waitFor(() =>
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-        'Unable to create OAuth client.'
-      )
+      expect(toast.error).toHaveBeenCalledWith('Unable to create OAuth client.')
     );
   });
 });

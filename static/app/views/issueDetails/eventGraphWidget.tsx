@@ -12,9 +12,10 @@ import {useParams} from 'sentry/utils/useParams';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {EventGraph} from 'sentry/views/issueDetails/eventGraph';
-import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
+
+import {useIssueDetailsEventView} from './hooks/issueDetailsEventsQuery';
+import {EventGraph} from './eventGraph';
+import {GroupDataContextProvider} from './groupDataContext';
 
 export default function EventGraphWidget({
   pageFilters,
@@ -31,11 +32,7 @@ export default function EventGraphWidget({
     group: groupData,
     isPending,
     isError,
-  } = useFetchGroupAndEvent({
-    eventId,
-    groupId,
-    enabled: Boolean(eventId && groupId),
-  });
+  } = useFetchGroupAndEvent({eventId, groupId, enabled: Boolean(eventId && groupId)});
 
   if (isPending) {
     return (

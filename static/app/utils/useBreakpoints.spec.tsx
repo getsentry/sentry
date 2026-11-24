@@ -2,11 +2,7 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {
-  type Breakpoints,
-  checkBreakpoints,
-  useBreakpoints,
-} from 'sentry/utils/useBreakpoints';
+import {type Breakpoints, checkBreakpoints, useBreakpoints} from './useBreakpoints';
 
 jest.unmock('@tanstack/react-pacer');
 

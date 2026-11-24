@@ -5,7 +5,8 @@ import type {
   UseFeedbackOptions,
 } from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import * as useFeedbackSDKIntegration from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
-import {GlobalFeedbackForm, useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+
+import {GlobalFeedbackForm, useFeedbackForm} from './useFeedbackForm';
 
 const mockForm = {
   appendToDom: jest.fn(),

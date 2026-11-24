@@ -7,13 +7,14 @@ import {
   SENTRY_TRACEMETRIC_NUMBER_TAGS,
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
-import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+
+import type {TraceMetric} from './metricQuery';
 import {
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
   type SampleTableColumnKey,
   type TraceMetricFieldKey,
-} from 'sentry/views/explore/metrics/types';
+} from './types';
 
 export const NONE_UNIT = 'none';
 
@@ -126,98 +127,32 @@ export function getTraceSamplesTableFields(
 
 export const OPTIONS_BY_TYPE: Record<string, Array<SelectOption<string>>> = {
   counter: [
-    {
-      label: 'per_second',
-      value: 'per_second',
-    },
-    {
-      label: 'per_minute',
-      value: 'per_minute',
-    },
-    {
-      label: 'sum',
-      value: 'sum',
-    },
+    {label: 'per_second', value: 'per_second'},
+    {label: 'per_minute', value: 'per_minute'},
+    {label: 'sum', value: 'sum'},
   ],
   distribution: [
-    {
-      label: 'p50',
-      value: 'p50',
-    },
-    {
-      label: 'p75',
-      value: 'p75',
-    },
-    {
-      label: 'p90',
-      value: 'p90',
-    },
-    {
-      label: 'p95',
-      value: 'p95',
-    },
-    {
-      label: 'p99',
-      value: 'p99',
-    },
-    {
-      label: 'avg',
-      value: 'avg',
-    },
-    {
-      label: 'min',
-      value: 'min',
-    },
-    {
-      label: 'max',
-      value: 'max',
-    },
-    {
-      label: 'sum',
-      value: 'sum',
-    },
-    {
-      label: 'count',
-      value: 'count',
-    },
-    {
-      label: 'per_second',
-      value: 'per_second',
-    },
-    {
-      label: 'per_minute',
-      value: 'per_minute',
-    },
+    {label: 'p50', value: 'p50'},
+    {label: 'p75', value: 'p75'},
+    {label: 'p90', value: 'p90'},
+    {label: 'p95', value: 'p95'},
+    {label: 'p99', value: 'p99'},
+    {label: 'avg', value: 'avg'},
+    {label: 'min', value: 'min'},
+    {label: 'max', value: 'max'},
+    {label: 'sum', value: 'sum'},
+    {label: 'count', value: 'count'},
+    {label: 'per_second', value: 'per_second'},
+    {label: 'per_minute', value: 'per_minute'},
   ],
   gauge: [
-    {
-      label: 'min',
-      value: 'min',
-    },
-    {
-      label: 'max',
-      value: 'max',
-    },
-    {
-      label: 'avg',
-      value: 'avg',
-    },
-    {
-      label: 'sum',
-      value: 'sum',
-    },
-    {
-      label: 'count',
-      value: 'count',
-    },
-    {
-      label: 'per_second',
-      value: 'per_second',
-    },
-    {
-      label: 'per_minute',
-      value: 'per_minute',
-    },
+    {label: 'min', value: 'min'},
+    {label: 'max', value: 'max'},
+    {label: 'avg', value: 'avg'},
+    {label: 'sum', value: 'sum'},
+    {label: 'count', value: 'count'},
+    {label: 'per_second', value: 'per_second'},
+    {label: 'per_minute', value: 'per_minute'},
   ],
 };
 
@@ -227,14 +162,8 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
       key: 'rate',
       label: t('Rate'),
       options: [
-        {
-          label: 'per_second',
-          value: 'per_second',
-        },
-        {
-          label: 'per_minute',
-          value: 'per_minute',
-        },
+        {label: 'per_second', value: 'per_second'},
+        {label: 'per_minute', value: 'per_minute'},
       ],
     },
     {
@@ -254,28 +183,16 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
       key: 'rate',
       label: t('Rate'),
       options: [
-        {
-          label: 'per_second',
-          value: 'per_second',
-        },
-        {
-          label: 'per_minute',
-          value: 'per_minute',
-        },
+        {label: 'per_second', value: 'per_second'},
+        {label: 'per_minute', value: 'per_minute'},
       ],
     },
     {
       key: 'stats',
       label: t('Stats'),
       options: [
-        {
-          label: 'min',
-          value: 'min',
-        },
-        {
-          label: 'max',
-          value: 'max',
-        },
+        {label: 'min', value: 'min'},
+        {label: 'max', value: 'max'},
         {
           label: 'avg',
           value: 'avg',
@@ -287,14 +204,8 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
       key: 'math',
       label: t('Math'),
       options: [
-        {
-          label: 'sum',
-          value: 'sum',
-        },
-        {
-          label: 'count',
-          value: 'count',
-        },
+        {label: 'sum', value: 'sum'},
+        {label: 'count', value: 'count'},
       ],
     },
   ],
@@ -303,38 +214,14 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
       key: 'percentiles',
       label: t('Percentiles'),
       options: [
-        {
-          label: 'p50',
-          value: 'p50',
-        },
-        {
-          label: 'p75',
-          value: 'p75',
-        },
-        {
-          label: 'p90',
-          value: 'p90',
-        },
-        {
-          label: 'p95',
-          value: 'p95',
-        },
-        {
-          label: 'p99',
-          value: 'p99',
-        },
-        {
-          label: 'avg',
-          value: 'avg',
-        },
-        {
-          label: 'min',
-          value: 'min',
-        },
-        {
-          label: 'max',
-          value: 'max',
-        },
+        {label: 'p50', value: 'p50'},
+        {label: 'p75', value: 'p75'},
+        {label: 'p90', value: 'p90'},
+        {label: 'p95', value: 'p95'},
+        {label: 'p99', value: 'p99'},
+        {label: 'avg', value: 'avg'},
+        {label: 'min', value: 'min'},
+        {label: 'max', value: 'max'},
       ],
     },
     {
@@ -346,24 +233,15 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
           value: 'sum',
           trailingItems: <Text size="xs">{t('Default')}</Text>,
         },
-        {
-          label: 'count',
-          value: 'count',
-        },
+        {label: 'count', value: 'count'},
       ],
     },
     {
       key: 'rate',
       label: t('Rate'),
       options: [
-        {
-          label: 'per_second',
-          value: 'per_second',
-        },
-        {
-          label: 'per_minute',
-          value: 'per_minute',
-        },
+        {label: 'per_second', value: 'per_second'},
+        {label: 'per_minute', value: 'per_minute'},
       ],
     },
   ],

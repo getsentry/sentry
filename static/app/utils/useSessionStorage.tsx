@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useState, type SetStateAction} from 'react';
 
-import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
+import {sessionStorageWrapper} from './sessionStorage';
 
 const isBrowser = typeof window !== 'undefined';
 

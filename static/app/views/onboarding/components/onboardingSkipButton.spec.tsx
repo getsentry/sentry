@@ -8,16 +8,13 @@ import {
 
 import {OnboardingDrawerStore} from 'sentry/stores/onboardingDrawerStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {OnboardingSkipButton} from 'sentry/views/onboarding/components/onboardingSkipButton';
 import {OnboardingStepId} from 'sentry/views/onboarding/types';
+
+import {OnboardingSkipButton} from './onboardingSkipButton';
 
 jest.mock('sentry/utils/analytics');
 
-type MappedCase = {
-  referrer: string;
-  sidebarSource: string;
-  stepId: OnboardingStepId;
-};
+type MappedCase = {referrer: string; sidebarSource: string; stepId: OnboardingStepId};
 
 const MAPPED_CASES: MappedCase[] = [
   {
@@ -71,11 +68,13 @@ describe('OnboardingSkipButton', () => {
         );
 
         const dialog = within(screen.getByRole('dialog'));
+        expect(dialog.getByRole('button', {name: 'Explore Sandbox'})).toHaveAttribute(
+          'href',
+          `https://sandbox.sentry.io/?utm_source=onboarding_skip&utm_content=${stepId}`
+        );
         expect(openSpy).not.toHaveBeenCalled();
         await userEvent.click(
-          dialog.getByRole('button', {
-            name: "I'll read the docs myself",
-          }),
+          dialog.getByRole('button', {name: "I'll read the docs myself"}),
           {delay: null}
         );
 

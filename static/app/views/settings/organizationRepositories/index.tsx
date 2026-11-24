@@ -41,19 +41,19 @@ import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {ConnectProviderDropdown} from 'sentry/views/settings/organizationRepositories/components/connectProviderDropdown';
-import {NoIntegrationsEmptyState} from 'sentry/views/settings/organizationRepositories/components/noIntegrationsEmptyState';
+
+import {ConnectProviderDropdown} from './components/connectProviderDropdown';
+import {NoIntegrationsEmptyState} from './components/noIntegrationsEmptyState';
 import {
   InstallationOverrideProvider,
   type InstallationWrapperProps,
   ScmRepositoryTable,
-} from 'sentry/views/settings/organizationRepositories/components/scmRepositoryTable';
-import {useRepoSearch} from 'sentry/views/settings/organizationRepositories/hooks/useRepoSearch';
-
+} from './components/scmRepositoryTable';
 import {organizationConfigIntegrationsQueryOptions} from './hooks/organizationConfigIntegrationsQueryOptions';
 import {organizationIntegrationsQueryOptions} from './hooks/organizationIntegrationsQueryOptions';
 import {useDeleteIntegration} from './hooks/useDeleteIntegration';
 import {useInstallationSettings} from './hooks/useInstallationSettings';
+import {useRepoSearch} from './hooks/useRepoSearch';
 import {useSyncRepositories} from './hooks/useSyncRepositories';
 import {getProviderConfigUrl} from './getProviderConfigUrl';
 import type {ScmInstallation} from './types';
@@ -98,9 +98,7 @@ function ConnectedInstallation({installation, children}: InstallationWrapperProp
     organization,
     staleTime: 0,
   });
-  const integrationsOptions = organizationIntegrationsQueryOptions({
-    organization,
-  });
+  const integrationsOptions = organizationIntegrationsQueryOptions({organization});
 
   // XXX: We have to fetch each integration to load the configData. This is not
   // provided by the integrations list query.
@@ -133,9 +131,7 @@ function ConnectedInstallation({installation, children}: InstallationWrapperProp
   useAutoSyncOnConnect(installation.integration.id, syncNow, hasAccess);
 
   // Settings cannot be opened until we've loaded the integrationWithConfig
-  const settingsButtonProps = {
-    disabled: integrationWithConfig === undefined,
-  };
+  const settingsButtonProps = {disabled: integrationWithConfig === undefined};
 
   const uninstallButtonProps = hasAccess
     ? undefined
@@ -277,8 +273,7 @@ export default function OrganizationRepositories() {
     }
     return integrationsQuery.data.filter(
       i =>
-        i !== null &&
-        i.organizationIntegrationStatus === 'active' &&
+        i?.organizationIntegrationStatus === 'active' &&
         i.status === 'active' &&
         scmProviderKeys.includes(i.provider.key)
     );

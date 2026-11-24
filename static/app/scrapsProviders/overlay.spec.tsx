@@ -72,10 +72,7 @@ describe('GlobalDrawer', () => {
     await userEvent.click(screen.getByTestId('drawer-test-open'));
 
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
-    expect(document.body).toHaveStyle({
-      position: 'fixed',
-      width: '100%',
-    });
+    expect(document.body).toHaveStyle({position: 'fixed', width: '100%'});
   });
 
   it('locks document scroll on mobile when opening the drawer', async () => {
@@ -95,10 +92,7 @@ describe('GlobalDrawer', () => {
     await userEvent.click(screen.getByTestId('drawer-test-open'));
 
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
-    expect(document.body).toHaveStyle({
-      position: 'fixed',
-      width: '100%',
-    });
+    expect(document.body).toHaveStyle({position: 'fixed', width: '100%'});
   });
 
   it('useDrawer hook can open and close the Drawer', async () => {
@@ -255,11 +249,7 @@ describe('GlobalDrawer', () => {
               <DrawerBody data-test-id="drawer-test-content">passive mode</DrawerBody>
             </Fragment>
           ),
-          options: {
-            onClose: closeSpy,
-            mode: 'passive',
-            ariaLabel,
-          },
+          options: {onClose: closeSpy, mode: 'passive', ariaLabel},
         }}
       />
     );
@@ -471,7 +461,7 @@ describe('GlobalDrawer', () => {
       ).not.toBeInTheDocument();
     }
   );
-  it('keeps the drawer open when a modal portal is clicked', async () => {
+  it('keeps the drawer open when another overlay is clicked', async () => {
     render(
       <GlobalDrawerTestComponent
         config={{
@@ -484,7 +474,7 @@ describe('GlobalDrawer', () => {
     expect(await screen.findByText('Drawer content')).toBeInTheDocument();
 
     const portal = document.createElement('div');
-    portal.id = 'modal-portal';
+    portal.dataset.overlay = 'modal';
     const button = document.createElement('button');
     button.textContent = 'Modal action';
     portal.append(button);

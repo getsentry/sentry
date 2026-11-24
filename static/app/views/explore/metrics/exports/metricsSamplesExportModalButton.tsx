@@ -5,10 +5,6 @@ import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatExportSort} from 'sentry/views/explore/components/exports/formatExportSort';
 import {
-  MetricsExportModalButton,
-  useMetricsQueryInfo,
-} from 'sentry/views/explore/metrics/exports/metricsExportModalButton';
-import {
   getMetricSamplesFields,
   useMetricSamplesQueryString,
 } from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
@@ -19,6 +15,8 @@ import {
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
+
+import {MetricsExportModalButton, useMetricsQueryInfo} from './metricsExportModalButton';
 
 type MetricsSamplesExportModalButtonProps = {
   fields: string[];

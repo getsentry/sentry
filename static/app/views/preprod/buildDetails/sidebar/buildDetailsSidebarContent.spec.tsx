@@ -3,9 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {BuildDetailsSidebarContent} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarContent';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
+
+import {BuildDetailsSidebarContent} from './buildDetailsSidebarContent';
 
 const mockBuildDetailsData: BuildDetailsApiResponse = {
   id: '123',
@@ -57,18 +58,14 @@ function TestComponent({
 }
 
 describe('BuildDetailsSidebarContent', () => {
-  const {organization} = initializeOrg({
-    organization: OrganizationFixture(),
-  });
+  const {organization} = initializeOrg({organization: OrganizationFixture()});
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
   it('renders loading skeleton when data is pending', () => {
-    render(<TestComponent isBuildDetailsPending />, {
-      organization,
-    });
+    render(<TestComponent isBuildDetailsPending />, {organization});
 
     expect(screen.getAllByTestId('loading-placeholder').length).toBeGreaterThan(0);
   });
@@ -79,9 +76,7 @@ describe('BuildDetailsSidebarContent', () => {
       state: BuildDetailsState.PROCESSED,
     };
 
-    render(<TestComponent buildDetailsData={buildDetailsData} />, {
-      organization,
-    });
+    render(<TestComponent buildDetailsData={buildDetailsData} />, {organization});
 
     // Build Metadata should show VCS data
     await waitFor(() => {
@@ -104,9 +99,7 @@ describe('BuildDetailsSidebarContent', () => {
     (_name, state) => {
       const buildDetailsData = {...mockBuildDetailsData, state};
 
-      render(<TestComponent buildDetailsData={buildDetailsData} />, {
-        organization,
-      });
+      render(<TestComponent buildDetailsData={buildDetailsData} />, {organization});
 
       expect(screen.queryByText('Status check info')).not.toBeInTheDocument();
       expect(screen.queryByText('Build Metadata')).not.toBeInTheDocument();
@@ -117,15 +110,10 @@ describe('BuildDetailsSidebarContent', () => {
     it('does not render Base Build row when base_sha is null', async () => {
       const buildDetailsData: BuildDetailsApiResponse = {
         ...mockBuildDetailsData,
-        vcs_info: {
-          ...mockBuildDetailsData.vcs_info,
-          base_sha: null,
-        },
+        vcs_info: {...mockBuildDetailsData.vcs_info, base_sha: null},
       };
 
-      render(<TestComponent buildDetailsData={buildDetailsData} />, {
-        organization,
-      });
+      render(<TestComponent buildDetailsData={buildDetailsData} />, {organization});
 
       await waitFor(() => {
         expect(screen.getByText('Build Metadata')).toBeInTheDocument();
@@ -138,16 +126,11 @@ describe('BuildDetailsSidebarContent', () => {
     it('renders Base Build row with dash when base_sha exists but no base_build_info', async () => {
       const buildDetailsData = {
         ...mockBuildDetailsData,
-        vcs_info: {
-          ...mockBuildDetailsData.vcs_info,
-          base_sha: 'def456',
-        },
+        vcs_info: {...mockBuildDetailsData.vcs_info, base_sha: 'def456'},
         base_build_info: null,
       };
 
-      render(<TestComponent buildDetailsData={buildDetailsData} />, {
-        organization,
-      });
+      render(<TestComponent buildDetailsData={buildDetailsData} />, {organization});
 
       await waitFor(() => {
         expect(screen.getByText('Build Metadata')).toBeInTheDocument();
@@ -168,20 +151,12 @@ describe('BuildDetailsSidebarContent', () => {
     it('renders Base Build row with link when base_sha and base_build_info exist', async () => {
       const buildDetailsData: BuildDetailsApiResponse = {
         ...mockBuildDetailsData,
-        vcs_info: {
-          ...mockBuildDetailsData.vcs_info,
-          base_sha: 'def456',
-        },
+        vcs_info: {...mockBuildDetailsData.vcs_info, base_sha: 'def456'},
         base_artifact_id: 'base-artifact-id',
-        base_build_info: {
-          version: '1.0',
-          build_number: '2',
-        },
+        base_build_info: {version: '1.0', build_number: '2'},
       };
 
-      render(<TestComponent buildDetailsData={buildDetailsData} />, {
-        organization,
-      });
+      render(<TestComponent buildDetailsData={buildDetailsData} />, {organization});
 
       await waitFor(() => {
         expect(screen.getByText('Build Metadata')).toBeInTheDocument();

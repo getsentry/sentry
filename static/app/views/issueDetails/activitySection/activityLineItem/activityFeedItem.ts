@@ -1,6 +1,7 @@
 import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
-import {deduplicatePullRequestActivities} from 'sentry/views/issueDetails/activitySection/activityLineItem/deduplicatePullRequestActivities';
+
+import {deduplicatePullRequestActivities} from './deduplicatePullRequestActivities';
 
 type ActivityOfType<Type extends GroupActivityType> = Extract<
   GroupActivity,
@@ -27,16 +28,9 @@ export type CollapsedSeerActivity = {
 }[CollapsedSeerActivityType];
 
 export type ActivityFeedItem = (
-  | {
-      activity: GroupActivity;
-      type: 'activity';
-      actorActivity?: GroupActivity;
-    }
+  | {activity: GroupActivity; type: 'activity'; actorActivity?: GroupActivity}
   | CollapsedSeerActivity
-) & {
-  body?: React.ReactNode;
-  variant?: 'card';
-};
+) & {body?: React.ReactNode; variant?: 'card'};
 
 interface CollapsedStatusActivity {
   activities: ActivityFeedItem[];
@@ -132,35 +126,19 @@ function collapseSeerActivityPair(
   switch (completedActivity.type) {
     case GroupActivityType.SEER_RCA_COMPLETED:
       return startedActivity.type === GroupActivityType.SEER_RCA_STARTED
-        ? {
-            activity: completedActivity,
-            startedActivity,
-            type: completedActivity.type,
-          }
+        ? {activity: completedActivity, startedActivity, type: completedActivity.type}
         : null;
     case GroupActivityType.SEER_SOLUTION_COMPLETED:
       return startedActivity.type === GroupActivityType.SEER_SOLUTION_STARTED
-        ? {
-            activity: completedActivity,
-            startedActivity,
-            type: completedActivity.type,
-          }
+        ? {activity: completedActivity, startedActivity, type: completedActivity.type}
         : null;
     case GroupActivityType.SEER_CODING_COMPLETED:
       return startedActivity.type === GroupActivityType.SEER_CODING_STARTED
-        ? {
-            activity: completedActivity,
-            startedActivity,
-            type: completedActivity.type,
-          }
+        ? {activity: completedActivity, startedActivity, type: completedActivity.type}
         : null;
     case GroupActivityType.SEER_ITERATION_COMPLETED:
       return startedActivity.type === GroupActivityType.SEER_ITERATION_STARTED
-        ? {
-            activity: completedActivity,
-            startedActivity,
-            type: completedActivity.type,
-          }
+        ? {activity: completedActivity, startedActivity, type: completedActivity.type}
         : null;
   }
 

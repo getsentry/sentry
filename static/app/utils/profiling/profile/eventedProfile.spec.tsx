@@ -1,8 +1,8 @@
 import {Frame} from 'sentry/utils/profiling/frame';
-import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
-import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
+import {EventedProfile} from './eventedProfile';
 import {firstCallee, makeTestingBoilerplate} from './testUtils';
+import {createFrameIndex} from './utils';
 
 describe('EventedProfile', () => {
   it('imports the base properties', () => {
@@ -385,10 +385,7 @@ describe('EventedProfile - flamegraph', () => {
     const profile = EventedProfile.FromProfile(
       trace,
       createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
-      {
-        type: 'flamegraph',
-        frameFilter: frame => frame.name === 'f0',
-      }
+      {type: 'flamegraph', frameFilter: frame => frame.name === 'f0'}
     );
 
     expect(profile.callTree.frame).toBe(Frame.Root);

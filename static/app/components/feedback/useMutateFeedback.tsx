@@ -1,14 +1,15 @@
 import {useCallback} from 'react';
 import {useMutation, type MutateOptions} from '@tanstack/react-query';
 
-import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
-import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
 import type {Actor} from 'sentry/types/core';
 import type {GroupStatus} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+
+import {useFeedbackApiOptions} from './useFeedbackApiOptions';
+import {useFeedbackCache} from './useFeedbackCache';
 
 type TFeedbackIds = 'all' | string[];
 type TPayload =
@@ -44,10 +45,10 @@ export function useMutateFeedback({feedbackIds, organization, projectIds}: Props
           });
 
       // TODO: it would be excellent if `PUT /issues/` could return the same data
-      // as `GET /issues/` when query params are set. IE: it should expand inbox & owners
+      // as `GET /issues/` when query params are set, including suggested owners.
       // Then we could push new data into the cache instead of re-fetching it again
 
-      const listQueryKeyOptions = parseQueryKey(listApiOptions.queryKey).options ?? {};
+      const listQueryKeyOptions = parseQueryKey(listApiOptions.queryKey).options;
       const options = isSingleId
         ? {}
         : ids === 'all'
@@ -75,8 +76,5 @@ export function useMutateFeedback({feedbackIds, organization, projectIds}: Props
     [mutate, feedbackIds]
   );
 
-  return {
-    markAsRead,
-    resolve,
-  };
+  return {markAsRead, resolve};
 }

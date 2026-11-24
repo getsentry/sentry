@@ -2,13 +2,11 @@ import {lazy, useMemo} from 'react';
 import {IconIssues} from '@sentry/icons/issues';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
-import {
-  ResourceLink,
-  type ResourceLinkFormatProps,
-} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';
+
+import {ResourceLink, type ResourceLinkFormatProps} from './resourceLink';
+import {SeerEmbedBlock} from './seerEmbedBlock';
 
 const LazyGroupList = lazy(async () => {
   const {GroupList} = await import('sentry/components/issues/groupList');
@@ -33,10 +31,7 @@ function isGroupId(value: string) {
 function normalizeIds({id, shortId}: {id: string | number; shortId?: string}) {
   // A numeric `shortId` is the group ID under the wrong name. Dropping it beats
   // passing it to `issue:`, which resolves short IDs only and would reject it.
-  return {
-    id: String(id),
-    shortId: shortId && !isGroupId(shortId) ? shortId : undefined,
-  };
+  return {id: String(id), shortId: shortId && !isGroupId(shortId) ? shortId : undefined};
 }
 
 /** Shared by the inline link and the block's header link, so the two cannot drift. */

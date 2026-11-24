@@ -1,12 +1,12 @@
 import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getTimeStampFromTableDateField, getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
@@ -55,14 +55,11 @@ export function useReplayTraceMeta(
     });
   }, [replayRecord, start, end]);
 
-  const {data: eventsData, isPending: eventsIsLoading} = useApiQuery<{
-    data: TableDataRow[];
-  }>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const {data: eventsData, isPending: eventsIsLoading} = useQuery({
+    ...apiOptions.as<{data: TableDataRow[]}>()(
+      '/organizations/$organizationIdOrSlug/events/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: eventView
           ? {
               ...eventView.getEventsAPIPayload({
@@ -75,13 +72,11 @@ export function useReplayTraceMeta(
               sort: ['min_precise_start_ts', 'trace'],
             }
           : {},
-      },
-    ],
-    {
-      staleTime: Infinity,
-      enabled: !!eventView && !!replayRecord,
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+    enabled: !!eventView && !!replayRecord,
+  });
 
   const replayTraces = useMemo(() => {
     const traces: TraceMetaTrace[] = [];

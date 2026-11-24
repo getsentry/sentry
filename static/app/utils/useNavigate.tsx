@@ -4,11 +4,7 @@ import type {LocationDescriptor} from 'history';
 
 import {legacyLocationDescriptorToTo} from 'sentry/router/legacy/location';
 
-type NavigateOptions = {
-  preventScrollReset?: boolean;
-  replace?: boolean;
-  state?: any;
-};
+type NavigateOptions = {preventScrollReset?: boolean; replace?: boolean; state?: any};
 
 export interface ReactRouter3Navigate {
   (to: LocationDescriptor, options?: NavigateOptions): void;

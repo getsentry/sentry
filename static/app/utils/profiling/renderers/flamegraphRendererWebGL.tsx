@@ -17,13 +17,13 @@ import {
   resizeCanvasToDisplaySize,
   safeGetContext,
 } from 'sentry/utils/profiling/gl/utils';
-import type {FlamegraphRendererOptions} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
+
+import type {FlamegraphRendererOptions} from './flamegraphRenderer';
 import {
   DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS,
   FlamegraphRenderer,
-} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
-import {Rect} from 'sentry/utils/profiling/speedscope';
-
+} from './flamegraphRenderer';
 import {fragment, vertex} from './shaders';
 
 // These are both mutable and are used to avoid unnecessary allocations during rendering.
@@ -56,12 +56,7 @@ export class FlamegraphRendererWebGL extends FlamegraphRenderer {
     a_color: number | null;
     a_is_search_result: number | null;
     a_position: number | null;
-  } = {
-    a_position: null,
-    a_color: null,
-    a_bounds: null,
-    a_is_search_result: null,
-  };
+  } = {a_position: null, a_color: null, a_bounds: null, a_is_search_result: null};
 
   uniforms: {
     u_border_width: WebGLUniformLocation | null;

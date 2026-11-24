@@ -1,8 +1,9 @@
 {
   "get": {
     "tags": ["Projects"],
-    "description": "Return a service hook bound to a project.",
-    "operationId": "Retrieve a Service Hook",
+    "description": "Return a service hook bound to a project.\n\nThe secret field is an empty string. The signing secret is only returned when the hook is created.",
+    "operationId": "getProjectHook",
+    "summary": "Retrieve a Service Hook",
     "parameters": [
       {
         "name": "organization_id_or_slug",
@@ -44,9 +45,9 @@
               "dateCreated": "2018-11-06T21:20:08.143Z",
               "events": ["event.alert", "event.created"],
               "id": "4f9d73e63b7144ecb8944c41620a090b",
-              "secret": "8fcac28aaa4c4f5fa572b61d40a8e084364db25fd37449c299e5a41c0504cbc2",
               "status": "active",
-              "url": "https://empowerplant.io/sentry-hook"
+              "url": "https://empowerplant.io/sentry-hook",
+              "secret": ""
             }
           }
         }
@@ -66,8 +67,9 @@
   },
   "put": {
     "tags": ["Projects"],
-    "description": "Update a service hook.",
-    "operationId": "Update a Service Hook",
+    "description": "Update a service hook.\n\nThe secret field is an empty string. The signing secret is only returned when the hook is created.",
+    "operationId": "updateProjectHook",
+    "summary": "Update a Service Hook",
     "parameters": [
       {
         "name": "organization_id_or_slug",
@@ -137,9 +139,9 @@
               "dateCreated": "2018-11-06T21:20:08.143Z",
               "events": ["event.alert", "event.created"],
               "id": "4f9d73e63b7144ecb8944c41620a090b",
-              "secret": "8fcac28aaa4c4f5fa572b61d40a8e084364db25fd37449c299e5a41c0504cbc2",
               "status": "active",
-              "url": "https://empowerplant.io/sentry-hook"
+              "url": "https://empowerplant.io/sentry-hook",
+              "secret": ""
             }
           }
         }
@@ -163,7 +165,8 @@
   "delete": {
     "tags": ["Projects"],
     "description": "Remove a service hook.",
-    "operationId": "Remove a Service Hook",
+    "operationId": "deleteProjectHook",
+    "summary": "Remove a Service Hook",
     "parameters": [
       {
         "name": "organization_id_or_slug",

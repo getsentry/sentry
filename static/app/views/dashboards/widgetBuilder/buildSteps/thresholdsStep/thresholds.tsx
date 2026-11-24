@@ -15,10 +15,8 @@ import {SelectField} from 'sentry/components/forms/fields/selectField';
 import type {Polarity} from 'sentry/components/percentChange';
 import {t} from 'sentry/locale';
 import {getThresholdUnitSelectOptions} from 'sentry/views/dashboards/utils';
-import {
-  NEGATIVE_POLARITY_COLOR_ORDER,
-  POSITIVE_POLARITY_COLOR_ORDER,
-} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/constants';
+
+import {NEGATIVE_POLARITY_COLOR_ORDER, POSITIVE_POLARITY_COLOR_ORDER} from './constants';
 
 type ThresholdErrors = Partial<Record<ThresholdMaxKeys, string>>;
 
@@ -172,11 +170,7 @@ export function Thresholds({
   const thresholdRowProps: ThresholdRowProp[] = [
     {
       maxKey: ThresholdMaxKeys.MAX_1,
-      minInputProps: {
-        name: 'firstMinimum',
-        value: 0,
-        'aria-label': 'First Minimum',
-      },
+      minInputProps: {name: 'firstMinimum', value: 0, 'aria-label': 'First Minimum'},
       maxInputProps: {
         name: 'firstMaximum',
         value: maxOneValue,
@@ -185,10 +179,7 @@ export function Thresholds({
       },
       color: bottomColor,
       unitOptions,
-      unitSelectProps: {
-        name: 'First unit select',
-        value: unit,
-      },
+      unitSelectProps: {name: 'First unit select', value: unit},
     },
     {
       maxKey: ThresholdMaxKeys.MAX_2,
@@ -205,11 +196,7 @@ export function Thresholds({
       },
       color: middleColor,
       unitOptions,
-      unitSelectProps: {
-        name: 'Second unit select',
-        value: unit,
-        disabled: true,
-      },
+      unitSelectProps: {name: 'Second unit select', value: unit, disabled: true},
     },
     {
       minInputProps: {
@@ -225,11 +212,7 @@ export function Thresholds({
       },
       color: topColor,
       unitOptions,
-      unitSelectProps: {
-        name: 'Third unit select',
-        value: unit,
-        disabled: true,
-      },
+      unitSelectProps: {name: 'Third unit select', value: unit, disabled: true},
     },
   ];
 

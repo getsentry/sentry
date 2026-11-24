@@ -4,7 +4,8 @@ import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 import {parseAsString, useQueryStates, type Values} from 'nuqs';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {
@@ -206,11 +207,9 @@ class ReleasesRequest extends Component<Props, State> {
         totalCountByProjectInPeriod: totalCountByProjectInPeriod!,
       });
     } catch (error: any) {
-      addErrorMessage(error.responseJSON?.detail ?? t('Error loading health data'));
-      this.setState({
-        loading: false,
-        errored: true,
-      });
+      const detail: unknown = error.responseJSON?.detail;
+      toast.error(typeof detail === 'string' ? detail : t('Error loading health data'));
+      this.setState({loading: false, errored: true});
     }
   };
 

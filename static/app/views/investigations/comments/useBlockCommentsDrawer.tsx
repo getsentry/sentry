@@ -6,9 +6,10 @@ import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import {BlockCommentsDrawer} from 'sentry/views/investigations/comments/blockCommentsDrawer';
-import {COMMENTS_DRAWER_PARSERS} from 'sentry/views/investigations/comments/utils';
 import {getBlockElementId} from 'sentry/views/investigations/detail/block';
+
+import {BlockCommentsDrawer} from './blockCommentsDrawer';
+import {COMMENTS_DRAWER_PARSERS} from './utils';
 
 const loadCommentsDrawerQuery = createLoader(COMMENTS_DRAWER_PARSERS);
 
@@ -65,8 +66,7 @@ export function useBlockCommentsDrawer(investigationId: string) {
     if (
       !isDrawerOpen ||
       !(target instanceof Element) ||
-      target.closest('[data-overlay], [data-block-comments-trigger]') ||
-      document.getElementById('modal-portal')?.contains(target)
+      target.closest('[data-overlay], [data-block-comments-trigger]')
     ) {
       return;
     }

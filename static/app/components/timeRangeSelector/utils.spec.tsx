@@ -1,9 +1,14 @@
+import {Fragment} from 'react';
 import moment from 'moment-timezone';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {
-  getArbitraryRelativePeriod,
-  parseStatsPeriod,
-} from 'sentry/components/timeRangeSelector/utils';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+
+import {DateTimeProvider} from '@sentry/scraps/dateTime';
+
+import {ConfigStore} from 'sentry/stores/configStore';
+
+import {getAbsoluteSummary, getArbitraryRelativePeriod, parseStatsPeriod} from './utils';
 
 describe('getArbitraryRelativePeriod', () => {
   it('parses a well-formed range of hours', () => {
@@ -46,5 +51,63 @@ describe('parseStatsPeriod', () => {
 
   it('throws when the period is malformed', () => {
     expect(() => parseStatsPeriod('hello')).toThrow('Invalid stats period');
+  });
+});
+
+describe('getAbsoluteSummary', () => {
+  it('formats offset-less UTC page filters in UTC', () => {
+    render(
+      <Fragment>
+        {getAbsoluteSummary('2025-01-01T01:00:00', '2025-01-02T02:00:00', true)}
+      </Fragment>
+    );
+
+    expect(screen.getByText('Jan 1, 2025 1:00 AM UTC')).toBeInTheDocument();
+    expect(screen.getByText('Jan 2, 2025 2:00 AM UTC')).toBeInTheDocument();
+  });
+
+  it('keeps a full UTC day date-only when the viewer uses another timezone', () => {
+    const user = UserFixture();
+    user.options.timezone = 'America/Los_Angeles';
+    ConfigStore.set('user', user);
+
+    render(
+      <Fragment>
+        {getAbsoluteSummary('2025-01-01T00:00:00', '2025-01-02T23:59:59', true)}
+      </Fragment>
+    );
+
+    expect(screen.getByText('Jan 1, 2025')).toBeInTheDocument();
+    expect(screen.getByText('Jan 2, 2025')).toBeInTheDocument();
+  });
+
+  it('checks full days in the provider timezone', () => {
+    const user = UserFixture();
+    user.options.timezone = 'America/Los_Angeles';
+    ConfigStore.set('user', user);
+
+    render(
+      <DateTimeProvider value={{timezone: 'Asia/Tokyo'}}>
+        {getAbsoluteSummary('2025-01-01T08:00:00', '2025-01-02T07:59:59')}
+        {getAbsoluteSummary('2025-01-04T15:00:00', '2025-01-05T14:59:59')}
+      </DateTimeProvider>
+    );
+
+    // A full day in the user's timezone is not a full day in Tokyo.
+    expect(screen.getByText('Jan 1, 2025 5:00 PM')).toBeInTheDocument();
+    expect(screen.getByText('Jan 2, 2025 4:59 PM')).toBeInTheDocument();
+    // A full day in Tokyo shows only the dates.
+    expect(screen.getAllByText('Jan 5, 2025')).toHaveLength(2);
+  });
+
+  it('converts offset-less UTC page filters to the viewer timezone', () => {
+    render(
+      <DateTimeProvider value={{timezone: 'America/Los_Angeles'}}>
+        {getAbsoluteSummary('2025-01-01T01:00:00', '2025-01-02T02:00:00')}
+      </DateTimeProvider>
+    );
+
+    expect(screen.getByText('Dec 31, 2024 5:00 PM')).toBeInTheDocument();
+    expect(screen.getByText('Jan 1, 2025 6:00 PM')).toBeInTheDocument();
   });
 });

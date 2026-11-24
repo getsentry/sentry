@@ -5,6 +5,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -16,8 +17,6 @@ import {
 } from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
-import {AgentsChartsBanner} from 'sentry/views/explore/conversations/components/agentsChartsBanner';
-import {useAgentsChartsState} from 'sentry/views/explore/conversations/components/agentsChartsControls';
 import {useAgentFilter} from 'sentry/views/insights/pages/agents/hooks/useAgentFilter';
 import {
   getAgentRunsFilter,
@@ -25,6 +24,9 @@ import {
   getToolSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {AgentsChartsBanner} from './agentsChartsBanner';
+import {useAgentsChartsState} from './agentsChartsControls';
 
 const COUNT = `count(${SpanFields.SPAN_DURATION})`;
 const COST = `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`;
@@ -58,6 +60,7 @@ function createGroupedWidget({
     widgetType: WidgetType.SPANS,
     interval,
     limit: 3,
+    legendType: 'breakdown',
     queries: [
       {
         name: '',
@@ -154,13 +157,7 @@ export function AgentsCharts() {
   );
 
   const widgetLegendState = useMemo(
-    () =>
-      new WidgetLegendSelectionState({
-        dashboard,
-        location,
-        navigate,
-        organization,
-      }),
+    () => new WidgetLegendSelectionState({dashboard, location, navigate, organization}),
     [dashboard, location, navigate, organization]
   );
 
@@ -169,7 +166,7 @@ export function AgentsCharts() {
       <Stack gap="sm">
         <AgentsChartsBanner show={showMissingAgentDataBanner} />
         {isChartDataPending ? (
-          <Flex align="center" justify="center" minHeight="240px">
+          <Flex align="center" justify="center" minHeight="400px">
             <LoadingIndicator />
           </Flex>
         ) : (
@@ -182,7 +179,7 @@ export function AgentsCharts() {
             gap="md"
           >
             {widgets.map(widget => (
-              <Container key={widget.id} minHeight="240px" minWidth="0">
+              <Container key={widget.id} minHeight="400px" minWidth="0">
                 <WidgetCard
                   disableFullscreen
                   disableTableActions
@@ -190,6 +187,16 @@ export function AgentsCharts() {
                   dashboardFilters={dashboard.filters}
                   selection={selection}
                   showContextMenu
+                  onContextMenuAction={key => {
+                    const saveType = getSaveType(key);
+                    if (saveType && widget.id) {
+                      trackAnalytics('conversations.save_as', {
+                        organization,
+                        chart: widget.id,
+                        save_type: saveType,
+                      });
+                    }
+                  }}
                   widget={widget}
                   widgetInterval={chartInterval}
                   widgetLegendState={widgetLegendState}
@@ -202,4 +209,14 @@ export function AgentsCharts() {
       </Stack>
     </Container>
   );
+}
+
+function getSaveType(menuKey: string): 'alert' | 'dashboard' | null {
+  if (menuKey === 'add-to-dashboard') {
+    return 'dashboard';
+  }
+  if (menuKey.startsWith('create-alert')) {
+    return 'alert';
+  }
+  return null;
 }

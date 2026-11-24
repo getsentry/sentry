@@ -5,11 +5,12 @@ import {IconSearch} from '@sentry/icons/search';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -99,8 +100,7 @@ export function useNextAction({
     {
       enabled: false,
       codingAgentAnalyticsSource: 'overview',
-      onCodingAgentError: messages =>
-        messages.forEach(message => addErrorMessage(message)),
+      onCodingAgentError: messages => messages.forEach(message => toast.error(message)),
     }
   );
 
@@ -115,25 +115,23 @@ export function useNextAction({
     });
     try {
       await config.trigger(autofix, run.seerRunId);
-      queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/seer/autofix-overview/', {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-        ],
-      });
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter(
+          '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
+          {path: {organizationIdOrSlug: organization.slug}}
+        )
+      );
     } catch (error) {
       if (config.errorFallback) {
         const detail = (error as RequestError)?.responseJSON?.detail;
-        addErrorMessage(typeof detail === 'string' ? detail : config.errorFallback);
+        toast.error(typeof detail === 'string' ? detail : config.errorFallback);
       }
-      queryClient.removeQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
-            path: {organizationIdOrSlug: organization.slug, issueId: run.groupId},
-          }),
-        ],
-      });
+      queryClient.removeQueries(
+        apiOptions.queryFilter(
+          '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/',
+          {path: {organizationIdOrSlug: organization.slug, issueId: run.groupId}}
+        )
+      );
       setIsDispatched(false);
     }
   }, [

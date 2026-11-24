@@ -16,10 +16,7 @@ import {AutogroupNodeDetails} from './index';
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
-): TraceTreeNodeExtra => ({
-  organization: OrganizationFixture(),
-  ...overrides,
-});
+): TraceTreeNodeExtra => ({organization: OrganizationFixture(), ...overrides});
 
 describe('AutogroupNodeDetails', () => {
   it('renders autogroup details with title and description', () => {
@@ -27,10 +24,7 @@ describe('AutogroupNodeDetails', () => {
     const extra = createMockExtra({organization});
     const autogroupValue = makeSiblingAutogroup({
       span_id: 'test-span-id',
-      autogrouped_by: {
-        op: 'db.query',
-        description: 'SELECT * FROM users',
-      },
+      autogrouped_by: {op: 'db.query', description: 'SELECT * FROM users'},
     });
 
     const childSpanValue = makeEAPSpan({event_id: 'child-span-1'});

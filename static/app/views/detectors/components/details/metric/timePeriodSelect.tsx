@@ -3,18 +3,19 @@ import moment from 'moment-timezone';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DateTime} from '@sentry/scraps/dateTime';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
-import {
-  useDetectorResolvedStatsPeriod,
-  useDetectorTimePeriodOptions,
-} from 'sentry/views/detectors/components/details/metric/utils/useDetectorTimePeriods';
 import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {
   getTimePeriodLabel,
   MetricDetectorTimePeriod,
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
+
+import {
+  useDetectorResolvedStatsPeriod,
+  useDetectorTimePeriodOptions,
+} from './utils/useDetectorTimePeriods';
 
 type BaseOption = {label: React.ReactNode; value: string};
 
@@ -67,8 +68,8 @@ export function MetricTimePeriodSelect({dataset, interval}: TimePeriodSelectProp
       const custom = {
         label: (
           <Fragment>
-            {t('Custom time')}: <DateTime date={moment.utc(start)} /> {' — '}
-            <DateTime date={moment.utc(end)} />
+            {t('Custom time')}: <DateTime date={moment.utc(start).toDate()} /> {' — '}
+            <DateTime date={moment.utc(end).toDate()} />
           </Fragment>
         ),
         value: CUSTOM_TIME_VALUE,

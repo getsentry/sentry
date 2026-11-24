@@ -20,7 +20,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
-import {IdBadge} from 'sentry/components/idBadge';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
@@ -30,6 +29,8 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
+
+import {IdBadge} from './idBadge';
 
 const StyledIconUser = styled(IconUser)`
   margin-left: ${p => p.theme.space['2xs']};
@@ -83,10 +84,7 @@ const getPlaceholderSelectStyles = (theme: Theme): StylesConfig => ({
       display: 'block',
     },
   }),
-  placeholder: provided => ({
-    ...provided,
-    paddingLeft: 32,
-  }),
+  placeholder: provided => ({...provided, paddingLeft: 32}),
 });
 
 type Props = DistributedOmit<
@@ -121,11 +119,7 @@ type Props = DistributedOmit<
   useTeamDefaultIfOnlyOne?: boolean;
 };
 
-type TeamActor = {
-  id: string;
-  name: string;
-  type: 'team';
-};
+type TeamActor = {id: string; name: string; type: 'team'};
 
 export interface TeamOption extends SelectValue<string | null> {
   actor: TeamActor | null;
@@ -172,11 +166,7 @@ export function TeamSelector(props: Props) {
       label: `#${team.slug}`,
       leadingItems: <IdBadge team={team} hideName />,
       searchKey: team.slug,
-      actor: {
-        type: 'team',
-        id: team.id,
-        name: team.slug,
-      },
+      actor: {type: 'team', id: team.id, name: team.slug},
     }),
     [useId]
   );

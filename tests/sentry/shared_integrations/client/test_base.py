@@ -7,7 +7,7 @@ from requests import PreparedRequest, Request
 from sentry.exceptions import RestrictedIPAddress
 from sentry.net.http import Session
 from sentry.shared_integrations.client.base import BaseApiClient
-from sentry.shared_integrations.exceptions import ApiHostError
+from sentry.shared_integrations.exceptions import ApiHostError, ApiRateLimitedError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.socket import override_blocklist
 
@@ -74,6 +74,20 @@ class BaseApiClientTest(TestCase):
         with raises(ApiHostError):
             self.api_client.get("https://172.31.255.255")
         assert mock_finalize_request.called
+
+    @responses.activate
+    def test_rate_limit_error_includes_retry_after(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://example.com/rate-limited",
+            status=429,
+            headers={"Retry-After": "123"},
+        )
+
+        with raises(ApiRateLimitedError) as exc_info:
+            self.api_client.get("https://example.com/rate-limited")
+
+        assert exc_info.value.retry_after == 123
 
     @patch.object(Session, "send")
     def test_default_timeout(self, mock_session_send: MagicMock) -> None:

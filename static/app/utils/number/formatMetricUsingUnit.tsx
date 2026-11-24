@@ -13,7 +13,8 @@ import {
   SECOND,
   WEEK,
 } from 'sentry/utils/formatters';
-import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
+
+import {formatNumberWithDynamicDecimalPoints} from './formatNumberWithDynamicDecimalPoints';
 
 function formatDuration(seconds: number): string {
   if (!seconds) {

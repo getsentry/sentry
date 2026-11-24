@@ -1,5 +1,4 @@
 from datetime import timedelta
-from typing import cast
 
 from django.utils import timezone
 
@@ -118,7 +117,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
         assert response.json()["error"] == "Install link expired"
 
     def test_no_installable_file(self) -> None:
-        self.preprod_artifact.installable_app_file_id = cast("int", None)
+        self.preprod_artifact.installable_app_file_id = None
         self.preprod_artifact.save()
 
         url = self._get_url()

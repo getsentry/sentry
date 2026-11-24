@@ -2,7 +2,8 @@ import {useEffect, useRef, useState} from 'react';
 import {useDebouncer} from '@tanstack/react-pacer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -11,9 +12,10 @@ import {
   investigationTitleGenerationQueryOptions,
   useRenameInvestigationMutation,
 } from 'sentry/views/investigations/api';
-import {isTitleGenerationActive} from 'sentry/views/investigations/detail/utils';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import type {InvestigationDetail} from 'sentry/views/investigations/types';
+
+import {isTitleGenerationActive} from './utils';
 
 const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
 
@@ -64,9 +66,8 @@ export function useInvestigationTitle(investigation: InvestigationDetail) {
       titleGenerationSettledFor.current = investigation.id;
       void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
       void queryClient.invalidateQueries({
-        queryKey: investigationListQueryOptions({
-          organizationSlug: organization.slug,
-        }).queryKey,
+        queryKey: investigationListQueryOptions({organizationSlug: organization.slug})
+          .queryKey,
       });
     }
   }, [
@@ -84,7 +85,7 @@ export function useInvestigationTitle(investigation: InvestigationDetail) {
       onSuccess: updated => {
         persistedTitle.current = updated.title;
       },
-      onError: () => addErrorMessage(t('Unable to rename investigation.')),
+      onError: () => toast.error(t('Unable to rename investigation.')),
     }
   );
   const renameDebouncer = useDebouncer(

@@ -9,7 +9,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import SentryAppDetailedView from 'sentry/views/settings/organizationIntegrations/sentryAppDetailedView';
+
+import SentryAppDetailedView from './sentryAppDetailedView';
 
 describe('SentryAppDetailedView', () => {
   const organization = OrganizationFixture({features: ['events']});

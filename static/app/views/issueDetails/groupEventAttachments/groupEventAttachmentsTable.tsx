@@ -5,7 +5,8 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
-import {GroupEventAttachmentsTableRow} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsTableRow';
+
+import {GroupEventAttachmentsTableRow} from './groupEventAttachmentsTableRow';
 
 const ATTACHMENT_COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: '1fr'},

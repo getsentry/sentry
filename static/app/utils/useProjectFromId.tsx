@@ -1,4 +1,4 @@
-import {useProjects} from 'sentry/utils/useProjects';
+import {useProjects} from './useProjects';
 
 interface Props {
   project_id: string | undefined;

@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 
-import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {t} from 'sentry/locale';
+
+import {OverrideOrDefault} from './overrideOrDefault';
 
 const LabelHook = OverrideOrDefault({
   overrideName: 'sidebar:item-label',

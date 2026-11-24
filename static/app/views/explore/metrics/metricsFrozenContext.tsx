@@ -4,7 +4,8 @@ import {createContext, useContext, useMemo} from 'react';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {DateString} from 'sentry/types/core';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
+
+import {TraceMetricKnownFieldKey} from './types';
 
 export interface TracePeriod {
   end?: DateString;

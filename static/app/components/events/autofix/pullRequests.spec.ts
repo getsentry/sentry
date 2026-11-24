@@ -1,13 +1,14 @@
+import type {
+  ExplorerCodingAgentState,
+  RepoPRState,
+} from 'sentry/views/seerExplorer/types';
+
 import {
   getCodingAgentResultLink,
   getRepoPullRequestLink,
   hasCreatedPullRequests,
   isCreatedPullRequestState,
-} from 'sentry/components/events/autofix/pullRequests';
-import type {
-  ExplorerCodingAgentState,
-  RepoPRState,
-} from 'sentry/views/seerExplorer/types';
+} from './pullRequests';
 
 type CodingAgentResult = NonNullable<ExplorerCodingAgentState['results']>[number];
 
@@ -72,11 +73,7 @@ describe('isCreatedPullRequestState', () => {
   it('is false for a failed create with no PR number', () => {
     expect(
       isCreatedPullRequestState(
-        makeRepoPRState({
-          pr_creation_status: 'error',
-          pr_number: null,
-          pr_url: null,
-        })
+        makeRepoPRState({pr_creation_status: 'error', pr_number: null, pr_url: null})
       )
     ).toBe(false);
   });

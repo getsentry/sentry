@@ -1,7 +1,8 @@
 import * as Sentry from '@sentry/react';
 
-import {isServiceWorkerSupported} from 'sentry/serviceWorker/client/isServiceWorkerSupported';
 import type {EventMessage, RequestMessage} from 'sentry/serviceWorker/types';
+
+import {isServiceWorkerSupported} from './isServiceWorkerSupported';
 
 type RequestCallback = (error: unknown, result: unknown) => void;
 

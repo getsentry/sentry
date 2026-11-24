@@ -9,9 +9,9 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {NoIssuesMatched} from 'sentry/views/issueList/noGroupsHandler/noIssuesMatched';
-import {DEFAULT_QUERY, FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
+import {DEFAULT_QUERY} from 'sentry/views/issueList/utils';
 
+import {NoIssuesMatched} from './noIssuesMatched';
 import {NoUnresolvedIssues} from './noUnresolvedIssues';
 
 const WaitingForEvents = lazy(() => import('sentry/components/waitingForEvents'));
@@ -58,6 +58,7 @@ const UPDATED_EMPTY_STATE_PLATFORMS = new Set([
   'python-fastapi',
   'python-flask',
   'react-native',
+  'expo',
   'ruby',
   'ruby-rails',
   'unity',
@@ -76,9 +77,10 @@ export function NoGroupsHandler({
   query,
   selectedProjectIds,
 }: NoGroupsHandlerProps) {
-  // If no projects are selected, then we must check every project the user is a
-  // member of and make sure there are no first events for all of the projects.
-  // Set project to -1 for all projects. Do not pass a project id for "my projects".
+  // Omitting `project` means "My Projects" (team membership only). Pass -1 for
+  // "All Projects" so users who aren't on a team don't get onboarding for an org
+  // that already has events.
+  const firstEventProjectIds = selectedProjectIds.length ? selectedProjectIds : undefined;
   const explicitSelectedProjectIds =
     selectedProjectIds.length && !selectedProjectIds.includes(ALL_ACCESS_PROJECTS)
       ? selectedProjectIds
@@ -92,7 +94,7 @@ export function NoGroupsHandler({
       '/organizations/$organizationIdOrSlug/sent-first-event/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {project: explicitSelectedProjectIds},
+        query: {project: firstEventProjectIds},
         staleTime: 0,
       }
     ),
@@ -143,7 +145,7 @@ interface AwaitingEventsProps {
 
 function AwaitingEvents({groupIds, organization, projects}: AwaitingEventsProps) {
   const project = projects?.[0];
-  const sampleIssueId = groupIds.length > 0 ? groupIds[0] : undefined;
+  const sampleIssueId = groupIds[0];
 
   const hasUpdatedEmptyState =
     project?.platform && UPDATED_EMPTY_STATE_PLATFORMS.has(project.platform);
@@ -168,17 +170,6 @@ function EmptyResult({emptyMessage, query}: EmptyResultProps) {
       <NoUnresolvedIssues
         title={t("We couldn't find any issues that matched your filters.")}
         subtitle={t('Get out there and write some broken code!')}
-      />
-    );
-  }
-
-  if (FOR_REVIEW_QUERIES.includes(query || '')) {
-    return (
-      <NoUnresolvedIssues
-        title={t('Well, would you look at that.')}
-        subtitle={t(
-          'No more issues to review. Better get back out there and write some broken code.'
-        )}
       />
     );
   }

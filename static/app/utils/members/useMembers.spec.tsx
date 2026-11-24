@@ -3,7 +3,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useMembers} from 'sentry/utils/members/useMembers';
+import {useMembers} from './useMembers';
 
 describe('useMembers', () => {
   const org = OrganizationFixture();
@@ -17,9 +17,7 @@ describe('useMembers', () => {
       body: mockUsers.map(user => ({user})),
     });
 
-    const {result} = renderHookWithProviders(useMembers, {
-      organization: org,
-    });
+    const {result} = renderHookWithProviders(useMembers, {organization: org});
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 

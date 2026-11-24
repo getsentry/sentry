@@ -93,7 +93,7 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
 
   const collapseToDefaultWidth = useCallback(() => {
     const el = ref.current;
-    if (!el || el.dataset.expanded !== 'true') {
+    if (el?.dataset.expanded !== 'true') {
       return;
     }
     el.style.width = '';

@@ -6,17 +6,6 @@ import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
-  SearchQueryBuilderProvider,
-  useSearchQueryBuilderConfig,
-} from 'sentry/components/searchQueryBuilder/context';
-import {AggregateKeyVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKeyVisual';
-import {FilterValueText} from 'sentry/components/searchQueryBuilder/tokens/filter/filterValueText';
-import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/getOperatorInfo';
-import {isAggregateFilterToken} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
-import {SearchQueryBuilderParenIcon} from 'sentry/components/searchQueryBuilder/tokens/paren';
-import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
-import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import {
   FilterType,
   Token,
   type ParseResultToken,
@@ -25,6 +14,15 @@ import {
 import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
 import type {TagCollection} from 'sentry/types/group';
 import {getFieldDefinition as defaultGetFieldDefinition} from 'sentry/utils/fields';
+
+import {AggregateKeyVisual} from './tokens/filter/aggregateKeyVisual';
+import {FilterValueText} from './tokens/filter/filterValueText';
+import {getOperatorInfo} from './tokens/filter/getOperatorInfo';
+import {isAggregateFilterToken} from './tokens/filter/utils';
+import {SearchQueryBuilderParenIcon} from './tokens/paren';
+import {SearchQueryBuilderProvider, useSearchQueryBuilderConfig} from './context';
+import type {FieldDefinitionGetter} from './types';
+import {parseQueryBuilderValue} from './utils';
 
 export type FormattedQueryProps = {
   query: string;
@@ -35,13 +33,9 @@ export type FormattedQueryProps = {
   getFilterTokenWarning?: (key: string) => React.ReactNode;
 };
 
-type ProvidedFormattedQueryProps = FormattedQueryProps & {
-  allowRegexOperators?: boolean;
-};
+type ProvidedFormattedQueryProps = FormattedQueryProps & {allowRegexOperators?: boolean};
 
-type TokenProps = {
-  token: ParseResultToken;
-};
+type TokenProps = {token: ParseResultToken};
 
 const EMPTY_FILTER_KEYS: TagCollection = {};
 const defaultFieldDefinitionGetter: FieldDefinitionGetter = key =>
@@ -82,7 +76,7 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
   );
 }
 
-function Boolean({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
+function BooleanToken({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
   const label = token.text.toUpperCase();
   return <Chip size="sm" value={label} aria-label={label} />;
 }
@@ -104,7 +98,7 @@ function QueryToken({token}: TokenProps) {
         </Paren>
       );
     case Token.LOGIC_BOOLEAN:
-      return <Boolean token={token} />;
+      return <BooleanToken token={token} />;
     default:
       return null;
   }

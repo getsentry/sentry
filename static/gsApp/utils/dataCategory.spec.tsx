@@ -306,9 +306,7 @@ describe('formatCategoryQuantityWithDisplayName', () => {
         quantity: MILLISECONDS_IN_HOUR,
         formattedQuantity: '1',
         subscription,
-        options: {
-          capitalize: false,
-        },
+        options: {capitalize: false},
       })
     ).toBe('1 hour');
 
@@ -318,9 +316,7 @@ describe('formatCategoryQuantityWithDisplayName', () => {
         quantity: MILLISECONDS_IN_HOUR * 2,
         formattedQuantity: '2',
         subscription,
-        options: {
-          capitalize: false,
-        },
+        options: {capitalize: false},
       })
     ).toBe('2 hours');
 
@@ -330,9 +326,7 @@ describe('formatCategoryQuantityWithDisplayName', () => {
         quantity: MILLISECONDS_IN_HOUR * 1.5,
         formattedQuantity: '1.5',
         subscription,
-        options: {
-          capitalize: false,
-        },
+        options: {capitalize: false},
       })
     ).toBe('1.5 hours');
 
@@ -342,9 +336,7 @@ describe('formatCategoryQuantityWithDisplayName', () => {
         quantity: MILLISECONDS_IN_HOUR * 2,
         formattedQuantity: '2',
         subscription,
-        options: {
-          title: true,
-        },
+        options: {title: true},
       })
     ).toBe('2 Hours');
 
@@ -354,9 +346,7 @@ describe('formatCategoryQuantityWithDisplayName', () => {
         quantity: UNLIMITED_RESERVED,
         formattedQuantity: 'Unlimited',
         subscription,
-        options: {
-          capitalize: false,
-        },
+        options: {capitalize: false},
       })
     ).toBe('Unlimited hours');
   });
@@ -368,9 +358,7 @@ describe('formatCategoryQuantityWithDisplayName', () => {
         quantity: 1,
         formattedQuantity: '1',
         subscription,
-        options: {
-          capitalize: false,
-        },
+        options: {capitalize: false},
       })
     ).toBe('1 active contributor');
 
@@ -380,9 +368,7 @@ describe('formatCategoryQuantityWithDisplayName', () => {
         quantity: 2,
         formattedQuantity: '2',
         subscription,
-        options: {
-          capitalize: false,
-        },
+        options: {capitalize: false},
       })
     ).toBe('2 active contributors');
 
@@ -392,9 +378,7 @@ describe('formatCategoryQuantityWithDisplayName', () => {
         quantity: 2,
         formattedQuantity: '2',
         subscription,
-        options: {
-          capitalize: true,
-        },
+        options: {capitalize: true},
       })
     ).toBe('2 Active contributors');
 
@@ -404,9 +388,7 @@ describe('formatCategoryQuantityWithDisplayName', () => {
         quantity: 2,
         formattedQuantity: '2',
         subscription,
-        options: {
-          title: true,
-        },
+        options: {title: true},
       })
     ).toBe('2 Active Contributors');
 
@@ -416,9 +398,7 @@ describe('formatCategoryQuantityWithDisplayName', () => {
         quantity: UNLIMITED_RESERVED,
         formattedQuantity: 'Unlimited',
         subscription,
-        options: {
-          capitalize: false,
-        },
+        options: {capitalize: false},
       })
     ).toBe('Unlimited active contributors');
   });

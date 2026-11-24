@@ -15,6 +15,16 @@ Existing issue events can enter at post-processing without first running a Workf
 Engine detector. This is how error and issue-stream workflows participate in the same
 workflow pipeline.
 
+## Evaluation without an issue
+
+`_evaluate_workflows()` evaluates selected workflows using `WorkflowEventData` with
+organization context, a required detector, and an optional issue group. It returns
+passing action groups, delayed items, and evaluation artifacts. Workflow selection and
+action dispatch remain the caller's responsibility; `process_workflows()` handles these
+for issue events.
+
+See [Conditions](conditions.md#workflows) for group-less condition requirements.
+
 ## Detection Pipeline
 
 ### 1. Build a packet
@@ -142,8 +152,7 @@ therefore use the stateful handler's default `OK` priority. A missing trigger gr
 invalid and produces no transition.
 
 Detectors that decide without the trigger condition group inherit `BaseDetectorHandler` and
-implement `evaluate`. Detectors that extend the condition evaluation override `evaluate` and
-call `super().evaluate()`, then own the orchestration they add.
+implement `evaluate`.
 
 ### 5. Produce detector output
 
@@ -239,12 +248,24 @@ expected to degrade safely.
 ### 2. Resolve environment and workflows
 
 The processor resolves the event environment, then
-[`get_workflows_by_detectors`](../caches/workflow.py) loads workflows connected to any
-selected detector. Eligible workflows must be enabled and either global
-(`environment=None`) or connected to the event's environment.
+[`select_workflows`](../processors/workflow.py) selects:
 
-The workflow cache is keyed by detector and environment. Relationship receivers
-invalidate it after committed changes.
+- `GroupEvent`: detector-linked workflows.
+- `Activity`: detector-linked workflows plus the organization's Inbox workflows
+  when `organizations:workflow-engine-activity-workflows` is enabled.
+
+Candidates must be enabled and either global (`environment=None`) or match the
+event's environment. Each workflow is evaluated once. Workflow conditions decide
+which activity kinds match.
+
+The backend routing flag defaults off and is independent of Inbox recording/UI
+flags. Producers and cutover code should check `is_activity_workflow_enabled()`.
+
+`get_activity_workflows()` supports organization-only candidate lookup for future
+investigation events; evaluation still requires a detector.
+
+Detector workflow caches are keyed by detector and environment; the activity
+workflow cache is keyed by organization. Both are invalidated after committed changes.
 
 ### 3. Evaluate WHEN conditions
 
@@ -316,9 +337,21 @@ batches so asynchronous task messages contain identifiers rather than large payl
 4. Combines equivalent conditions into bulk queries.
 5. Evaluates query results for each issue group.
 6. Combines delayed results with fast results retained in the buffer key.
-7. Reconstructs representative group events.
+7. Reconstructs representative group events from eligible buffered entries.
 8. Sends passing action groups through the normal action path.
 9. Deletes successfully processed Redis items.
+
+Hydration first uses `EventRedisData.filter_to_group_dcgs` to keep only buffered entries
+whose condition-group IDs intersect the passing condition-group IDs for their issue
+group. The method returns a new container without modifying the original buffered data.
+Hydration loads unique group, event, and occurrence IDs from those entries only,
+retaining 100-key event payload batches. No
+eligible entries means no group-cache, event payload, or occurrence reads; evaluation
+reporting and successful Redis cleanup still run. Eligible entries retain their buffer
+iteration order: the last successfully hydrated event for each issue group supplies the
+event, attached occurrence, and original timestamp. A later missing event payload does
+not replace an earlier successfully hydrated event. Required read failures still propagate
+after the existing retries, leaving buffered work for a task retry.
 
 Snuba rate limits are retried by the task. A missing per-group query result becomes a
 tainted non-triggered evaluation. If a slow condition has no registered query handler,

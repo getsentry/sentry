@@ -6,14 +6,14 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useDashboardRevisions} from './hooks/useDashboardRevisions';
@@ -42,9 +42,7 @@ function DashboardRevisionsModal({
   Footer,
   closeModal,
   dashboard,
-}: ModalRenderProps & {
-  dashboard: DashboardDetails;
-}) {
+}: ModalRenderProps & {dashboard: DashboardDetails}) {
   const dashboardId = dashboard.id;
   const [selectedRevisionId, setSelectedRevisionId] = useState(NEWEST_VERSION_ID);
   const {data: revisions, isPending, isError} = useDashboardRevisions({dashboardId});
@@ -54,7 +52,6 @@ function DashboardRevisionsModal({
     ? null
     : (displayedRevisions.find(r => r.id === selectedRevisionId) ?? null);
 
-  const api = useApi();
   const organization = useOrganization();
   const {
     mutate: restore,
@@ -65,8 +62,8 @@ function DashboardRevisionsModal({
       if (!selectedRevision) {
         return Promise.reject(new Error('No revision selected'));
       }
-      return api.requestPromise(
-        getApiUrl(
+      return fetchMutation({
+        url: getApiUrl(
           '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/revisions/$revisionId/restore/',
           {
             path: {
@@ -76,8 +73,8 @@ function DashboardRevisionsModal({
             },
           }
         ),
-        {method: 'POST'}
-      );
+        method: 'POST',
+      });
     },
     onSuccess: () => {
       closeModal();

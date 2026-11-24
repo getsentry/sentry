@@ -41,7 +41,7 @@ info_logger = logging.getLogger("sentry.symbolication")
 
 
 def get_symbolication_functions(
-    data: Mapping[str, Any], stacktraces: list[StacktraceInfo]
+    data: Mapping[str, Any], stacktraces: list[StacktraceInfo], project: Project
 ) -> list[SymbolicatorFunction]:
     """Returns a list of Symbolicator platforms
     that apply to this event."""
@@ -56,7 +56,7 @@ def get_symbolication_functions(
     if is_js_event(data, stacktraces):
         functions.append(SymbolicatorFunction.js)
 
-    functions.extend(get_native_symbolication_functions(data, stacktraces))
+    functions.extend(get_native_symbolication_functions(data, stacktraces, project))
 
     return functions
 

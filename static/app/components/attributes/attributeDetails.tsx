@@ -6,10 +6,11 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {AttributeDescription} from 'sentry/components/attributes/attributeDescription';
 import {t} from 'sentry/locale';
 import type {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
+
+import {AttributeDescription} from './attributeDescription';
 
 export interface AttributeDetailsProps {
   name: React.ReactNode;

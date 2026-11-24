@@ -10,8 +10,9 @@ import {
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import {SectionKey} from 'sentry/views/issueDetails/context';
-import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+import {SectionKey} from './context';
+import {FoldSection} from './foldSection';
 
 export interface HangProfileData {
   exceptionValue: string;
@@ -27,30 +28,21 @@ export function getHangProfileData(event: Event): HangProfileData | null {
     if (entry.type === EntryType.EXCEPTION) {
       for (const value of entry.data.values ?? []) {
         if (hasFlamegraphData(value.stacktrace?.frames)) {
-          return {
-            frames: value.stacktrace!.frames!,
-            exceptionValue: value.value ?? '',
-          };
+          return {frames: value.stacktrace!.frames!, exceptionValue: value.value ?? ''};
         }
       }
     }
 
     if (entry.type === EntryType.STACKTRACE) {
       if (hasFlamegraphData(entry.data.frames)) {
-        return {
-          frames: entry.data.frames!,
-          exceptionValue: '',
-        };
+        return {frames: entry.data.frames!, exceptionValue: ''};
       }
     }
 
     if (entry.type === EntryType.THREADS) {
       for (const thread of entry.data.values ?? []) {
         if (hasFlamegraphData(thread.stacktrace?.frames)) {
-          return {
-            frames: thread.stacktrace!.frames!,
-            exceptionValue: '',
-          };
+          return {frames: thread.stacktrace!.frames!, exceptionValue: ''};
         }
       }
     }

@@ -115,9 +115,11 @@ class RepoPRState(BaseModel):
     pr_creation_status: Literal["creating", "completed", "error"] | None = None
     pr_creation_error: str | None = None
     pr_creation_error_code: str | None = None
+    credit_denial_reason: str | None = None
     title: str | None = None
     description: str | None = None
     integration_id: str | None = None
+    idempotency_key: str | None = Field(default=None, exclude=True)
 
     class Config:
         extra = "ignore"
@@ -129,7 +131,7 @@ class PushRequest(BaseModel):
     repo_name: str
     # typing the following fields as strings makes it easy to add more values later
     action: str
-    source: str = "api"
+    source: str | None = None
     idempotency_key: str | None = None
     # Set for an update: the PR the push lands on.
     target_pr_number: int | None = None
@@ -394,9 +396,11 @@ class SeerRunState(BaseModel):
     owner_user_id: int | None = None
     pending_user_input: PendingUserInput | None = None
     repo_pr_states: dict[str, RepoPRState] = Field(default_factory=dict)
+    credit_denial_reason: str | None = None
     # exclude=True omits these from .dict() so they're not exposed via the public
     # chat API. Internal callers (autofix, agentic triage) still access them directly.
     metadata: dict[str, Any] | None = Field(default=None, exclude=True)
+    billing_feature: int | None = Field(default=None, exclude=True)
     coding_agents: dict[str, CodingAgentState] = Field(default_factory=dict, exclude=True)
     usage: UsageAccumulator = Field(default_factory=UsageAccumulator, exclude=True)
     pr_push_log: list[PushLogEntry] | None = Field(default=None, exclude=True)
@@ -524,15 +528,6 @@ class SeerRunState(BaseModel):
         # Check if all repos with changes are synced
         all_changes_pushed = all(self._is_repo_synced(repo) for repo in diffs_by_repo.keys())
         return (has_changes, all_changes_pushed)
-
-
-class CustomToolDefinition(BaseModel):
-    """Definition of a custom tool to be sent to Seer."""
-
-    name: str
-    module_path: str
-    description: str
-    param_schema: dict[str, Any]  # JSON schema from Pydantic model
 
 
 class AgentRun(BaseModel):

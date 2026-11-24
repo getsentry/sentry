@@ -6,10 +6,10 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {makeDetailedProjectApiOptions} from 'sentry/utils/project/useDetailedProject';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {RequestError} from 'sentry/utils/requestError/requestError';
+
+import {apiOptions} from './api/apiOptions';
+import {makeDetailedProjectApiOptions} from './project/useDetailedProject';
+import {RequestError} from './requestError/requestError';
 
 const DEFAULT_POLL_INTERVAL = 5000;
 
@@ -61,6 +61,31 @@ function maybeUpdateProjectsStore(eventType: EventType, projectData: Project): v
 }
 
 /**
+ * `Project.firstEvent` and `Group.firstSeen` are written separately during
+ * ingestion, so they can disagree: concurrent first events race to set the
+ * project field, and `firstSeen` moves earlier when an older event arrives
+ * later. The issue nearest in time is the best guess at where the first
+ * event landed.
+ */
+export function findFirstIssue(issues: Group[], firstEvent: string): Group | undefined {
+  const firstEventTime = new Date(firstEvent).getTime();
+  if (Number.isNaN(firstEventTime)) {
+    return undefined;
+  }
+
+  let closest: Group | undefined;
+  let closestDistance = Infinity;
+  for (const issue of issues) {
+    const distance = Math.abs(new Date(issue.firstSeen).getTime() - firstEventTime);
+    if (distance < closestDistance) {
+      closest = issue;
+      closestDistance = distance;
+    }
+  }
+  return closest;
+}
+
+/**
  * Hook that polls for the first event of a project.
  * Returns null until the first event is detected, then returns the
  * resolved event (a Group for errors, or true for other event types).
@@ -73,16 +98,6 @@ export function useEventWaiter({
   disabled,
 }: UseEventWaiterOptions): EventWaiterResult {
   const shouldPoll = !disabled && !!organization && !!project;
-
-  const issuesUrl = getApiUrl(
-    '/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        projectIdOrSlug: project.slug,
-      },
-    }
-  );
 
   // Poll the project endpoint to detect when the first event arrives
   const projectQuery = useQuery({
@@ -120,9 +135,15 @@ export function useEventWaiter({
     : null;
 
   // For errors, fetch the first issue group once we know the first event exists
-  const issuesQuery = useApiQuery<Group[]>([issuesUrl], {
+  const issuesQuery = useQuery({
+    ...apiOptions.as<Group[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/',
+      {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+        staleTime: 0,
+      }
+    ),
     enabled: eventType === 'error' && !!projectEventValue,
-    staleTime: 0,
   });
 
   useEffect(() => {
@@ -145,10 +166,7 @@ export function useEventWaiter({
         return;
       }
 
-      Sentry.setExtras({
-        status: err.status,
-        detail: err.responseJSON?.detail,
-      });
+      Sentry.setExtras({status: err.status, detail: err.responseJSON?.detail});
     }
 
     Sentry.captureException(
@@ -167,7 +185,7 @@ export function useEventWaiter({
     // The event may have expired, default to true
     const group =
       typeof projectEventValue === 'string'
-        ? issuesQuery.data.find((issue: Group) => issue.firstSeen === projectEventValue)
+        ? findFirstIssue(issuesQuery.data, projectEventValue)
         : undefined;
     return group || true;
   }

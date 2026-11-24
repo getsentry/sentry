@@ -1,7 +1,7 @@
 import {IconBuilding} from '@sentry/icons/building';
 import {IconUser} from '@sentry/icons/user';
 
-import {getSettingsFieldSections} from 'sentry/views/settings/settingsCommandPaletteActions';
+import {getSettingsFieldSections} from './settingsCommandPaletteActions';
 
 function getSection(sections: ReturnType<typeof getSettingsFieldSections>, key: string) {
   const section = sections.find(s => s.key === key);
@@ -16,7 +16,7 @@ describe('getSettingsFieldSections', () => {
     const sections = getSettingsFieldSections('org-slug', true);
 
     expect(getSection(sections, '/settings/:orgId/').title).toBe(
-      'Org Settings › General'
+      'Organization Settings › General'
     );
     expect(getSection(sections, '/settings/account/details/').title).toBe(
       'Account Settings › General'

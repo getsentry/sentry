@@ -1,10 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {useRefetchFeedbackList} from 'sentry/components/feedback/list/useRefetchFeedbackList';
 import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
 import {useMutateFeedback} from 'sentry/components/feedback/useMutateFeedback';
@@ -28,10 +25,10 @@ export function useFeedbackActions({feedbackItem}: Props) {
   const mutationOptions = useMemo(
     () => ({
       onError: () => {
-        addErrorMessage(t('An error occurred while updating the feedback.'));
+        toast.error(t('An error occurred while updating the feedback.'));
       },
       onSuccess: () => {
-        addSuccessMessage(t('Updated feedback'));
+        toast.success(t('Updated feedback'));
         refetchFeedbackList();
       },
     }),
@@ -51,7 +48,7 @@ export function useFeedbackActions({feedbackItem}: Props) {
 
   const isResolved = feedbackItem.status === GroupStatus.RESOLVED;
   const onResolveClick = useCallback(() => {
-    addLoadingMessage(t('Updating feedback...'));
+    toast.loading(t('Updating feedback...'));
     const newStatus = isResolved ? GroupStatus.UNRESOLVED : GroupStatus.RESOLVED;
     resolve(newStatus, mutationOptions);
   }, [isResolved, resolve, mutationOptions]);
@@ -59,21 +56,18 @@ export function useFeedbackActions({feedbackItem}: Props) {
   // reuse the issues ignored category for spam feedbacks
   const isSpam = feedbackItem.status === GroupStatus.IGNORED;
   const onSpamClick = useCallback(() => {
-    addLoadingMessage(t('Updating feedback...'));
+    toast.loading(t('Updating feedback...'));
     const newStatus = isSpam ? GroupStatus.UNRESOLVED : GroupStatus.IGNORED;
     resolve(newStatus, mutationOptions);
     if (!isSpam) {
       // not currently spam, clicking the button will turn it into spam
-      trackAnalytics('feedback.mark-spam-clicked', {
-        organization,
-        type: 'details',
-      });
+      trackAnalytics('feedback.mark-spam-clicked', {organization, type: 'details'});
     }
   }, [isSpam, organization, resolve, mutationOptions]);
 
   const hasSeen = feedbackItem.hasSeen;
   const onMarkAsReadClick = useCallback(() => {
-    addLoadingMessage(t('Updating feedback...'));
+    toast.loading(t('Updating feedback...'));
     markAsRead(!hasSeen, mutationOptions);
   }, [hasSeen, markAsRead, mutationOptions]);
 

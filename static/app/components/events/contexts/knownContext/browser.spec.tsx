@@ -3,10 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getBrowserContextData,
-  type BrowserContext,
-} from 'sentry/components/events/contexts/knownContext/browser';
+
+import {getBrowserContextData, type BrowserContext} from './browser';
 
 const MOCK_BROWSER_CONTEXT: BrowserContext = {
   version: '83.0.4103',
@@ -20,14 +18,7 @@ const MOCK_BROWSER_CONTEXT: BrowserContext = {
 const MOCK_REDACTION = {
   name: {
     '': {
-      chunks: [
-        {
-          remark: 'x',
-          rule_id: 'project:0',
-          text: '',
-          type: 'redaction',
-        },
-      ],
+      chunks: [{remark: 'x', rule_id: 'project:0', text: '', type: 'redaction'}],
       len: 7,
       rem: [['organization:0', 'x', 0, 0]],
     },
@@ -39,23 +30,13 @@ describe('BrowserContext', () => {
     expect(getBrowserContextData({data: MOCK_BROWSER_CONTEXT})).toEqual([
       {key: 'version', subject: 'Version', value: '83.0.4103'},
       {key: 'name', subject: 'Name', value: ''},
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-      },
-      {
-        key: 'unknown_key',
-        subject: 'unknown_key',
-        value: 123,
-      },
+      {key: 'extra_data', subject: 'extra_data', value: 'something'},
+      {key: 'unknown_key', subject: 'unknown_key', value: 123},
     ]);
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = EventFixture({
-      _meta: {contexts: {browser: MOCK_REDACTION}},
-    });
+    const event = EventFixture({_meta: {contexts: {browser: MOCK_REDACTION}}});
 
     render(
       <ContextCard

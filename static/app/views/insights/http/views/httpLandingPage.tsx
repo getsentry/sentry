@@ -1,4 +1,4 @@
-import {PlatformizedHttpOverview} from 'sentry/views/insights/http/views/platformizedOverview';
+import {PlatformizedHttpOverview} from './platformizedOverview';
 
 function PageWithProviders() {
   return <PlatformizedHttpOverview />;

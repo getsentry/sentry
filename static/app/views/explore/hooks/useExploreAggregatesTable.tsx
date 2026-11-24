@@ -8,8 +8,6 @@ import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
-import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {validateAggregateSort} from 'sentry/views/explore/queryParams/aggregateSortBy';
 import {
   useQueryParamsAggregateCursor,
@@ -25,6 +23,10 @@ import {
 } from 'sentry/views/explore/utils/conditionalAggregate';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {useExploreQuerySpeed} from './useExploreQuerySpeed';
+import type {RPCQueryExtras} from './useProgressiveQuery';
+import {useProgressiveQuery} from './useProgressiveQuery';
 
 interface UseExploreAggregatesTableOptions {
   enabled: boolean;
@@ -51,6 +53,7 @@ export function useExploreAggregatesTable({
   queryExtras,
 }: UseExploreAggregatesTableOptions) {
   const extrapolate = useQueryParamsExtrapolate();
+  const {isReady: querySpeedReady, samplingMode} = useExploreQuerySpeed();
 
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useSpansQuery<any[]>>) => {
@@ -62,10 +65,11 @@ export function useExploreAggregatesTable({
   );
   return useProgressiveQuery<typeof useExploreAggregatesTableImp>({
     queryHookImplementation: useExploreAggregatesTableImp, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
-    queryHookArgs: {enabled, limit, query, queryExtras},
+    queryHookArgs: {enabled: enabled && querySpeedReady, limit, query, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,
       disableExtrapolation: !extrapolate,
+      samplingMode,
     },
   });
 }
@@ -164,7 +168,6 @@ function useExploreAggregatesTableImp({
     initialData: [],
     limit,
     referrer: 'api.explore.spans-aggregates-table',
-    trackResponseAnalytics: false,
     queryExtras,
   });
 

@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
-import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
+
+import type {IssueCategoryConfigMapping} from './types';
 
 export const uptimeConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -26,10 +27,7 @@ export const uptimeConfig: IssueCategoryConfigMapping = {
       title: t('Uptime Monitor'),
       ctaText: t('View monitor details'),
     },
-    customCopy: {
-      eventUnits: t('Events'),
-      resolution: t('Resolved'),
-    },
+    customCopy: {eventUnits: t('Events'), resolution: t('Resolved')},
     pages: {
       landingPage: Tab.EVENTS,
       events: {enabled: true},

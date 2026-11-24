@@ -1,6 +1,6 @@
-import {downloadAsJsonl} from 'sentry/components/exports/downloadAsJsonl';
-import {downloadRowsAsCsv} from 'sentry/components/exports/downloadRowsAsCsv';
-import type {DataExportFormat} from 'sentry/components/exports/useDataExport';
+import {downloadAsJsonl} from './downloadAsJsonl';
+import {downloadRowsAsCsv} from './downloadRowsAsCsv';
+import type {DataExportFormat} from './useDataExport';
 
 export type ExportableRow = Record<string, unknown>;
 

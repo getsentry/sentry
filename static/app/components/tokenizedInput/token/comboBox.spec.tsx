@@ -3,7 +3,7 @@ import {Item} from '@react-stately/collections';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
+import {ComboBox} from './comboBox';
 
 function ComboBoxWrapper(props: Omit<ComponentProps<typeof ComboBox>, 'children'>) {
   return (
@@ -26,11 +26,7 @@ describe('ComboBox', () => {
         filterValue=""
         inputLabel="combobox"
         inputValue=""
-        items={['foo', 'bar', 'qux'].map(item => ({
-          key: item,
-          label: item,
-          value: item,
-        }))}
+        items={['foo', 'bar', 'qux'].map(item => ({key: item, label: item, value: item}))}
         onClick={onClick}
         onOptionSelected={onOptionSelected}
       />
@@ -76,11 +72,7 @@ describe('ComboBox', () => {
         filterValue="nomatch"
         inputLabel="combobox"
         inputValue="nomatch"
-        items={['foo', 'bar', 'qux'].map(item => ({
-          key: item,
-          label: item,
-          value: item,
-        }))}
+        items={['foo', 'bar', 'qux'].map(item => ({key: item, label: item, value: item}))}
         onOpenChange={onOpenChange}
       />
     );
@@ -96,11 +88,7 @@ describe('ComboBox', () => {
         filterValue=""
         inputLabel="combobox"
         inputValue=""
-        items={['foo', 'bar'].map(item => ({
-          key: item,
-          label: item,
-          value: item,
-        }))}
+        items={['foo', 'bar'].map(item => ({key: item, label: item, value: item}))}
         keepMenuOpenOnSelect={() => false}
       />
     );
@@ -119,11 +107,7 @@ describe('ComboBox', () => {
         filterValue=""
         inputLabel="combobox"
         inputValue=""
-        items={['foo', 'bar'].map(item => ({
-          key: item,
-          label: item,
-          value: item,
-        }))}
+        items={['foo', 'bar'].map(item => ({key: item, label: item, value: item}))}
         keepMenuOpenOnSelect={() => true}
       />
     );

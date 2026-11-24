@@ -12,9 +12,10 @@ import {t} from 'sentry/locale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TabItemContainer} from 'sentry/views/explore/replays/detail/tabItemContainer';
-import {TagFilters} from 'sentry/views/explore/replays/detail/tagPanel/tagFilters';
-import {useTagFilters} from 'sentry/views/explore/replays/detail/tagPanel/useTagFilters';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+
+import {TagFilters} from './tagFilters';
+import {useTagFilters} from './useTagFilters';
 
 export function TagPanel() {
   const organization = useOrganization();
@@ -53,10 +54,7 @@ export function TagPanel() {
 
   const generateUrl = useCallback(
     (name: string, value: string): LocationDescriptor => ({
-      pathname: makeReplaysPathname({
-        path: '/',
-        organization,
-      }),
+      pathname: makeReplaysPathname({path: '/', organization}),
       query: {
         // The replay index endpoint treats unknown filters as tags, by default. Therefore we don't need the tags[] syntax, whether `name` is a tag or not.
         query: `${name}:"${value}"`,

@@ -6,11 +6,6 @@ import {Text} from '@sentry/scraps/text';
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  getActionKind,
-  type ApplyBlockReason,
-} from 'sentry/views/investigations/actionRequests/actionKinds';
-import type {ApplyCheck} from 'sentry/views/investigations/actionRequests/applyButton';
-import {
   actionRequestDryRunQueryOptions,
   type ActionRequestError,
 } from 'sentry/views/investigations/api';
@@ -20,6 +15,9 @@ import type {
   InvestigationActionRequest,
   InvestigationDetail,
 } from 'sentry/views/investigations/types';
+
+import {getActionKind, type ApplyBlockReason} from './actionKinds';
+import type {ApplyCheck} from './applyButton';
 
 type ActionRequestDetailsProps = {
   actionRequest: InvestigationActionRequest;
@@ -56,6 +54,7 @@ type ActionRequestApplyProps = {
   check: ApplyCheck;
   finishing: boolean;
   onApply: () => void;
+  onLinkClick: (link: string) => void;
   onRecheck: () => void;
   rechecking: boolean;
 };
@@ -66,6 +65,7 @@ export function ActionRequestApply({
   check,
   finishing,
   onApply,
+  onLinkClick,
   onRecheck,
   rechecking,
 }: ActionRequestApplyProps) {
@@ -82,6 +82,7 @@ export function ActionRequestApply({
       finishing={finishing}
       message={getApplyMessage(actionRequest, check, finishing)}
       onApply={onApply}
+      onLinkClick={onLinkClick}
       onRecheck={onRecheck}
       rechecking={rechecking}
     />

@@ -3,9 +3,10 @@ import {DetailedProjectFixture, ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ClaudeCodeIntegrationCta} from 'sentry/components/events/autofix/claudeCodeIntegrationCta';
-import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+import {ClaudeCodeIntegrationCta} from './claudeCodeIntegrationCta';
+import {CodingAgentProvider} from './types';
 
 describe('ClaudeCodeIntegrationCta', () => {
   const project = ProjectFixture();
@@ -26,10 +27,7 @@ describe('ClaudeCodeIntegrationCta', () => {
   // The CTA reads handoff state from the project's seer setting. Only fires
   // once an integration exists, so the install-stage tests don't need it.
   const mockSeerSettings = (
-    overrides: Partial<{
-      agent: string;
-      integrationId: string | null;
-    }> = {}
+    overrides: Partial<{agent: string; integrationId: string | null}> = {}
   ) =>
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
@@ -56,17 +54,13 @@ describe('ClaudeCodeIntegrationCta', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
-      body: {
-        integrations: [],
-      },
+      body: {integrations: []},
     });
   });
 
   describe('Availability', () => {
     it('renders without a feature flag', async () => {
-      render(<ClaudeCodeIntegrationCta project={project} />, {
-        organization,
-      });
+      render(<ClaudeCodeIntegrationCta project={project} />, {organization});
 
       expect(await screen.findByText('Claude Agent Integration')).toBeInTheDocument();
     });
@@ -74,17 +68,13 @@ describe('ClaudeCodeIntegrationCta', () => {
 
   describe('Loading State', () => {
     it('shows loading placeholder while fetching preferences', () => {
-      render(<ClaudeCodeIntegrationCta project={project} />, {
-        organization,
-      });
+      render(<ClaudeCodeIntegrationCta project={project} />, {organization});
 
       expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
     });
 
     it('shows loading placeholder while fetching integrations', () => {
-      render(<ClaudeCodeIntegrationCta project={project} />, {
-        organization,
-      });
+      render(<ClaudeCodeIntegrationCta project={project} />, {organization});
 
       expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
     });
@@ -92,9 +82,7 @@ describe('ClaudeCodeIntegrationCta', () => {
 
   describe('Stage 1: Integration Not Installed', () => {
     it('shows install stage when claude integration is not installed', async () => {
-      render(<ClaudeCodeIntegrationCta project={project} />, {
-        organization,
-      });
+      render(<ClaudeCodeIntegrationCta project={project} />, {organization});
 
       expect(await screen.findByText('Claude Agent Integration')).toBeInTheDocument();
       expect(
@@ -106,9 +94,7 @@ describe('ClaudeCodeIntegrationCta', () => {
     });
 
     it('links to claude integration settings', async () => {
-      render(<ClaudeCodeIntegrationCta project={project} />, {
-        organization,
-      });
+      render(<ClaudeCodeIntegrationCta project={project} />, {organization});
 
       const installLink = await screen.findByRole('button', {
         name: 'Install Claude Integration',
@@ -120,9 +106,7 @@ describe('ClaudeCodeIntegrationCta', () => {
     });
 
     it('includes documentation link', async () => {
-      render(<ClaudeCodeIntegrationCta project={project} />, {
-        organization,
-      });
+      render(<ClaudeCodeIntegrationCta project={project} />, {organization});
 
       await screen.findByText('Claude Agent Integration');
       const docsLink = screen.getByRole('link', {name: 'Read the docs'});
@@ -137,15 +121,7 @@ describe('ClaudeCodeIntegrationCta', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/coding-agents/`,
-        body: {
-          integrations: [
-            {
-              id: '456',
-              provider: 'claude_code',
-              name: 'Claude',
-            },
-          ],
-        },
+        body: {integrations: [{id: '456', provider: 'claude_code', name: 'Claude'}]},
       });
 
       // Setting still points at Seer — handoff not configured for this agent.
@@ -153,9 +129,7 @@ describe('ClaudeCodeIntegrationCta', () => {
     });
 
     it('shows configure stage when integration installed but not configured', async () => {
-      render(<ClaudeCodeIntegrationCta project={project} />, {
-        organization,
-      });
+      render(<ClaudeCodeIntegrationCta project={project} />, {organization});
 
       expect(await screen.findByText('Claude Agent Integration')).toBeInTheDocument();
       expect(
@@ -173,9 +147,7 @@ describe('ClaudeCodeIntegrationCta', () => {
         body: {},
       });
 
-      render(<ClaudeCodeIntegrationCta project={project} />, {
-        organization,
-      });
+      render(<ClaudeCodeIntegrationCta project={project} />, {organization});
 
       const setupButton = await screen.findByRole('button', {
         name: 'Set Seer to hand off to Claude',
@@ -200,9 +172,7 @@ describe('ClaudeCodeIntegrationCta', () => {
     });
 
     it('includes link to project seer settings', async () => {
-      render(<ClaudeCodeIntegrationCta project={project} />, {
-        organization,
-      });
+      render(<ClaudeCodeIntegrationCta project={project} />, {organization});
 
       await screen.findByText('Claude Agent Integration');
       const settingsLink = screen.getByRole('link', {
@@ -247,9 +217,7 @@ describe('ClaudeCodeIntegrationCta', () => {
       await waitFor(() => {
         expect(settingsUpdateMock).toHaveBeenCalledWith(
           `/projects/${organization.slug}/${projectWithAutomation.slug}/seer/settings/`,
-          expect.objectContaining({
-            method: 'PUT',
-          })
+          expect.objectContaining({method: 'PUT'})
         );
       });
     });
@@ -295,10 +263,7 @@ describe('ClaudeCodeIntegrationCta', () => {
           `/projects/${organization.slug}/${projectWithoutAutomation.slug}/`,
           expect.objectContaining({
             method: 'PUT',
-            data: {
-              autofixAutomationTuning: 'low',
-              seerScannerAutomation: true,
-            },
+            data: {autofixAutomationTuning: 'low', seerScannerAutomation: true},
           })
         );
       });
@@ -331,15 +296,7 @@ describe('ClaudeCodeIntegrationCta', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/coding-agents/`,
-        body: {
-          integrations: [
-            {
-              id: '456',
-              provider: 'claude_code',
-              name: 'Claude',
-            },
-          ],
-        },
+        body: {integrations: [{id: '456', provider: 'claude_code', name: 'Claude'}]},
       });
 
       // Handoff is set to Claude, but the project's automation is disabled.
@@ -375,15 +332,7 @@ describe('ClaudeCodeIntegrationCta', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/coding-agents/`,
-        body: {
-          integrations: [
-            {
-              id: '456',
-              provider: 'claude_code',
-              name: 'Claude',
-            },
-          ],
-        },
+        body: {integrations: [{id: '456', provider: 'claude_code', name: 'Claude'}]},
       });
 
       // Handoff is configured to Claude.

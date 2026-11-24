@@ -2,7 +2,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {Column} from 'sentry/utils/discover/fields';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
-import {ArithmeticInput} from 'sentry/views/discover/table/arithmeticInput';
+
+import {ArithmeticInput} from './arithmeticInput';
 
 describe('ArithmeticInput', () => {
   const operators = ['+', '-', '*', '/', '(', ')'];
@@ -129,9 +130,7 @@ describe('ArithmeticInput', () => {
       await userEvent.keyboard('{ArrowUp}');
       expect(
         screen.getByRole('listitem', {name: generateFieldAsString(column)})
-      ).toHaveClass('active', {
-        exact: false,
-      });
+      ).toHaveClass('active', {exact: false});
     }
 
     // the update is buffered until blur happens

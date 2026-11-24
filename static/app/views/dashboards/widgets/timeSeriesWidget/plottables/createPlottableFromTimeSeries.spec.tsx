@@ -1,11 +1,11 @@
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
-import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
-import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 
+import {Area} from './area';
+import {Bars} from './bars';
 import {createPlottableFromTimeSeriesAndWidget} from './createPlottableFromTimeSeries';
+import {Line} from './line';
 
 describe('createPlottableFromTimeSeriesAndWidget', () => {
   const mockTimeSeries = {
@@ -14,11 +14,7 @@ describe('createPlottableFromTimeSeriesAndWidget', () => {
       {timestamp: 1729796400000, value: 100, incomplete: false},
       {timestamp: 1729800000000, value: 200, incomplete: false},
     ],
-    meta: {
-      valueType: 'number' as const,
-      valueUnit: null,
-      interval: 3600,
-    },
+    meta: {valueType: 'number' as const, valueUnit: null, interval: 3600},
   };
 
   it('creates Line instance for LINE display type', () => {

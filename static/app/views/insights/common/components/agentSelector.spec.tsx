@@ -1,6 +1,6 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
+import {AgentSelector} from './agentSelector';
 
 const AGENTS = ['Alpha', 'Bravo', 'Charlie', 'Delta'];
 
@@ -71,9 +71,7 @@ describe('AgentSelector', () => {
     const {router} = renderSelector({agent: 'Alpha,Bravo'});
     await openMenu();
 
-    const allAgents = screen.getByRole('checkbox', {
-      name: 'Select All Agents',
-    });
+    const allAgents = screen.getByRole('checkbox', {name: 'Select All Agents'});
     expect(allAgents).not.toBeChecked();
 
     await userEvent.click(allAgents);

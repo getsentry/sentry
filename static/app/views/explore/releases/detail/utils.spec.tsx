@@ -2,10 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {
-  generateReleaseMarkLines,
-  releaseMarkLinesLabels,
-} from 'sentry/views/explore/releases/detail/utils';
+import {generateReleaseMarkLines, releaseMarkLinesLabels} from './utils';
 
 const theme = ThemeFixture();
 
@@ -31,30 +28,15 @@ describe('releases/detail/utils', () => {
       expect(marklines).toEqual([
         expect.objectContaining({
           seriesName: created,
-          data: [
-            {
-              name: 1584925320000,
-              value: null,
-            },
-          ],
+          data: [{name: 1584925320000, value: null}],
         }),
         expect.objectContaining({
           seriesName: adopted,
-          data: [
-            {
-              name: 1585011750000,
-              value: null,
-            },
-          ],
+          data: [{name: 1585011750000, value: null}],
         }),
         expect.objectContaining({
           seriesName: unadopted,
-          data: [
-            {
-              name: 1585015350000,
-              value: null,
-            },
-          ],
+          data: [{name: 1585015350000, value: null}],
         }),
       ]);
     });
@@ -64,10 +46,7 @@ describe('releases/detail/utils', () => {
         {...release, projects: [{...release.projects[0]!, platform: 'javascript'}]},
         {...project, platform: 'javascript'},
         theme,
-        {
-          ...location,
-          query: {environment: 'prod'},
-        }
+        {...location, query: {environment: 'prod'}}
       );
 
       expect(marklines.map(markline => markline.seriesName)).toEqual([created]);

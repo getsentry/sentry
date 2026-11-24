@@ -1,4 +1,4 @@
-import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
+import {getWorkflowEngineResponseErrorMessage} from './getWorkflowEngineResponseErrorMessage';
 
 describe('getWorkflowEngineResponseErrorMessage', () => {
   it('returns undefined for undefined', () => {
@@ -29,9 +29,7 @@ describe('getWorkflowEngineResponseErrorMessage', () => {
 
   it('handles {actions: [{field: "message"}]} shape', () => {
     expect(
-      getWorkflowEngineResponseErrorMessage({
-        actions: [{repo: 'Repository is required'}],
-      })
+      getWorkflowEngineResponseErrorMessage({actions: [{repo: 'Repository is required'}]})
     ).toBe('Repository is required');
   });
 

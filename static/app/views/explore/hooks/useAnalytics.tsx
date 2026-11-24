@@ -1,5 +1,6 @@
 import {useEffect, useEffectEvent, useMemo, useRef, type RefObject} from 'react';
 import * as Sentry from '@sentry/react';
+import {useQueryState} from 'nuqs';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -10,19 +11,13 @@ import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalytics
 import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {useChartSelection} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
-import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
-import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
-import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
-import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {type LogsAggregatesTableResult} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
@@ -40,6 +35,7 @@ import {
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import type {CrossEventQueryExtras} from 'sentry/views/explore/queryParams/crossEvent';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   isVisualizeEquation,
@@ -53,6 +49,11 @@ import {
 } from 'sentry/views/explore/utils';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/traceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
+
+import type {AggregatesTableResult} from './useExploreAggregatesTable';
+import type {SpansTableResult} from './useExploreSpansTable';
+import type {TracesTableResult} from './useExploreTracesTable';
+import {useTopEvents} from './useTopEvents';
 
 const {info, fmt} = Sentry.logger;
 
@@ -602,17 +603,12 @@ export function useCompareAnalytics({
   | 'timeseriesResult'
   | 'interval'
   | 'isTopN'
-> & {
-  query: ReadableExploreQueryParts;
-}) {
+> & {query: ReadableExploreQueryParts}) {
   const dataset = DiscoverDatasets.SPANS;
   const query = queryParts.query;
   const fields = queryParts.fields;
   const visualizes = queryParts.yAxes.flatMap(yAxis =>
-    Visualize.fromJSON({
-      yAxes: [yAxis],
-      chartType: queryParts.chartType,
-    })
+    Visualize.fromJSON({yAxes: [yAxis], chartType: queryParts.chartType})
   );
 
   return useTrackAnalytics({
@@ -1137,8 +1133,7 @@ export function useMetricsAnalytics({
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const location = useLocation();
-  const title = decodeScalar(location.query.title);
+  const [title] = useQueryState('title', parseAsScalar);
 
   const {
     data: {hasExceededPerformanceUsageLimit},

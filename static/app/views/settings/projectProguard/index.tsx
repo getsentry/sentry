@@ -1,22 +1,23 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
@@ -33,8 +34,12 @@ export default function ProjectProguard() {
   const api = useApi();
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [queryParams, setQueryParams] = useQueryStates({
+    query: parseAsString,
+    cursor: parseAsString,
+  });
+  const query = queryParams.query ?? undefined;
+  const cursor = queryParams.cursor ?? undefined;
   const [loading, setLoading] = useState(false);
 
   const {
@@ -46,11 +51,7 @@ export default function ProjectProguard() {
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
       {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-        query: {
-          query: location.query.query,
-          file_formats: 'proguard',
-          cursor: location.query.cursor,
-        },
+        query: {query, file_formats: 'proguard', cursor},
         staleTime: 0,
       }
     ),
@@ -61,13 +62,10 @@ export default function ProjectProguard() {
   const mappingsPageLinks = mappingsResp?.headers.Link;
 
   const handleSearch = useCallback(
-    (query: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, query: query || undefined},
-      });
+    (newQuery: string) => {
+      setQueryParams({cursor: null, query: newQuery || null}, {history: 'push'});
     },
-    [location, navigate]
+    [setQueryParams]
   );
 
   const handleDelete = useCallback(
@@ -81,23 +79,18 @@ export default function ProjectProguard() {
               projectIdOrSlug: project.slug,
             },
           })}?id=${encodeURIComponent(id)}`,
-          {
-            method: 'DELETE',
-          }
+          {method: 'DELETE'}
         );
         setLoading(false);
-        addSuccessMessage('Successfully deleted the mapping file');
+        toast.success('Successfully deleted the mapping file');
         fetchData();
       } catch {
         setLoading(false);
-        addErrorMessage('An error occurred while deleting the mapping file');
+        toast.error('An error occurred while deleting the mapping file');
       }
     },
     [api, fetchData, organization.slug, project.slug]
   );
-
-  const query =
-    typeof location.query.query === 'string' ? location.query.query : undefined;
 
   const isLoading = loading || dataLoading;
 
@@ -143,9 +136,9 @@ export default function ProjectProguard() {
           )}
           {!isLoading && mappings?.length
             ? mappings.map(mapping => {
-                const downloadUrl = `${api.baseUrl}/projects/${
-                  organization.slug
-                }/${project.slug}/files/dsyms/?id=${encodeURIComponent(mapping.id)}`;
+                const downloadUrl = resolveHostname(
+                  `/api/0/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${encodeURIComponent(mapping.id)}`
+                );
 
                 return (
                   <ProjectProguardRow
@@ -159,7 +152,7 @@ export default function ProjectProguard() {
               })
             : null}
         </SimpleTable>
-        <Pagination pageLinks={mappingsPageLinks} />
+        <Pagination {...getPaginationProps(mappingsPageLinks)} />
       </Stack>
     </Fragment>
   );

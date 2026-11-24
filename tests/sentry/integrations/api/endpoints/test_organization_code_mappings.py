@@ -293,6 +293,24 @@ class OrganizationCodeMappingsTest(APITestCase):
             project=self.project1, repository=self.repo1
         ).exists()
 
+    def test_basic_post_with_snake_case_keys(self) -> None:
+        # The keys the published schema documents.
+        response = self.client.post(
+            self.url,
+            data={
+                "repository_id": self.repo1.id,
+                "project_id": self.project1.id,
+                "stack_root": "/stack/root",
+                "source_root": "/source/root",
+                "default_branch": "master",
+                "integration_id": self.integration.id,
+            },
+            format="json",
+        )
+        assert response.status_code == 201, response.content
+        assert response.data["projectId"] == str(self.project1.id)
+        assert response.data["integrationId"] == str(self.integration.id)
+
     def test_basic_post_from_member_permissions(self) -> None:
         self.login_as(user=self.user2)
         response = self.make_post()

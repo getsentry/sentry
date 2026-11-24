@@ -51,15 +51,15 @@ export function Space() {
           as="div"
           width={value}
           height="16px"
-          borderLeft="accent"
-          borderRight="accent"
+          borderLeft="accent.vibrant"
+          borderRight="accent.vibrant"
           style={{boxSizing: 'border-box'}}
         >
           <Container
             as="div"
             width="100%"
             height="1px"
-            borderTop="accent"
+            borderTop="accent.vibrant"
             style={{boxSizing: 'border-box'}}
           />
         </Flex>
@@ -83,7 +83,7 @@ export function Radius() {
             height: '48px',
             background: theme.tokens.background.transparent.accent.muted,
           }}
-          border="accent"
+          border="accent.vibrant"
           radius={token}
         />
       )}
@@ -174,8 +174,8 @@ export function LineHeight() {
           justify="center"
           as="div"
           height={typeof value === 'number' ? `${value * 16}px` : value}
-          borderTop="accent"
-          borderBottom="accent"
+          borderTop="accent.vibrant"
+          borderBottom="accent.vibrant"
           style={{boxSizing: 'border-box'}}
         >
           <Text size="md" density={token} variant="accent">
@@ -224,7 +224,7 @@ export function ShadowOffset() {
             background: theme.tokens.background.primary,
             boxShadow: value,
           }}
-          border="accent"
+          border="accent.vibrant"
           radius="xs"
         />
       )}
@@ -255,10 +255,7 @@ export function BackgroundColors() {
         'success.vibrant': bg.success.vibrant,
       },
     },
-    {
-      label: 'transparent',
-      tokens: flattenTokens(bg.transparent),
-    },
+    {label: 'transparent', tokens: flattenTokens(bg.transparent)},
   ];
   return (
     <Storybook.ColorReference
@@ -274,7 +271,7 @@ export function BackgroundColors() {
             height: '48px',
             background: value,
           }}
-          border="muted"
+          border="secondary"
           radius="sm"
         />
       )}
@@ -330,13 +327,7 @@ export function BorderColors() {
   const theme = useTheme();
   const bd = theme.tokens.border;
   const groups: ColorGroup[] = [
-    {
-      label: 'base',
-      tokens: {
-        primary: bd.primary,
-        secondary: bd.secondary,
-      },
-    },
+    {label: 'base', tokens: {primary: bd.primary, secondary: bd.secondary}},
     {label: 'neutral', tokens: flattenTokens(bd.neutral)},
     {label: 'accent', tokens: flattenTokens(bd.accent)},
     {label: 'promotion', tokens: flattenTokens(bd.promotion)},
@@ -439,13 +430,7 @@ export function FocusColors() {
   const theme = useTheme();
   const fc = theme.tokens.focus;
   const groups: ColorGroup[] = [
-    {
-      label: 'states',
-      tokens: {
-        default: fc.default,
-        invalid: fc.invalid,
-      },
-    },
+    {label: 'states', tokens: {default: fc.default, invalid: fc.invalid}},
     {
       label: 'onVibrant',
       tokens: {

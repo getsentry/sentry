@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconArrow} from '@sentry/icons/arrow';
+import {useQuery} from '@tanstack/react-query';
 
 import type {BarChartSeries} from 'sentry/components/charts/barChart';
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -14,8 +15,7 @@ import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import {ProjectBadge, ProjectBadgeContainer, TeamInsightsTable} from './styles';
 import {barAxisLabel, convertDayValueObjectToSeries, sortSeriesByDay} from './utils';
@@ -77,20 +77,19 @@ export function TeamIssuesBreakdown({
     isPending,
     isError,
     refetch,
-  } = useApiQuery<IssuesBreakdown>(
-    [
-      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/issue-breakdown/', {
-        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
-      }),
+  } = useQuery(
+    apiOptions.as<IssuesBreakdown>()(
+      '/teams/$organizationIdOrSlug/$teamIdOrSlug/issue-breakdown/',
       {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
         query: {
           ...normalizeDateTimeParams({start, end, period, utc}),
           statuses,
           environment,
         },
-      },
-    ],
-    {staleTime: 5000}
+        staleTime: 5000,
+      }
+    )
   );
 
   const allReviewedByDay: Record<string, Record<string, number>> = {};

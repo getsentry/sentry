@@ -1,5 +1,9 @@
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
+
 import {Tag} from '@sentry/scraps/badge';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DisplayField, FieldGroup} from '@sentry/scraps/form';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {NotFound} from 'sentry/components/errors/notFound';
@@ -7,15 +11,44 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {MetricAutomationForm} from 'sentry/views/seerWorkflows/automations/metricAutomationForm';
+import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
+import type {WorkflowStrategy} from 'sentry/views/seerWorkflows/types';
 import {
   getAutomationsPath,
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
 
-export default function NewMetricAutomation() {
+import {FormSection} from './baseForm';
+import {MetricAutomationForm} from './metricAutomationForm';
+import {ScheduledInvestigationForm} from './scheduledInvestigationForm';
+
+const STRATEGIES = [
+  'breached_metric_investigation',
+  'scheduled_investigation',
+] as const satisfies WorkflowStrategy[];
+
+const strategyParser = parseAsStringLiteral(STRATEGIES)
+  .withDefault('breached_metric_investigation')
+  .withOptions({clearOnDefault: false});
+
+/**
+ * Empty for strategies without a subtitle
+ */
+function getSubtitle(strategy: WorkflowStrategy): string {
+  if (strategy === 'scheduled_investigation') {
+    return t('Configure Seer to periodically investigate your issues.');
+  }
+  if (strategy === 'breached_metric_investigation') {
+    return t('Connect metric monitors so Seer can investigate what caused a breach.');
+  }
+  return '';
+}
+
+export default function NewAutomationPage() {
   const organization = useOrganization();
   const enabled = useAutomationsEnabled();
+  // Synced with ?strategy=
+  const [strategy, setStrategy] = useQueryState('strategy', strategyParser);
 
   if (!enabled) {
     return <NotFound />;
@@ -40,13 +73,34 @@ export default function NewMetricAutomation() {
             <Heading as="h1" size="xl">
               {t('Create automation')}
             </Heading>
-            <Tag variant="muted">{t('Breached metrics')}</Tag>
+            <Tag variant="muted">{STRATEGY_META[strategy].label}</Tag>
           </Flex>
-          <Text variant="muted">
-            {t('Connect metric monitors so Seer can investigate what caused a breach.')}
-          </Text>
+          <Text variant="muted">{getSubtitle(strategy)}</Text>
         </Stack>
-        <MetricAutomationForm mode="create" />
+        <Container maxWidth="960px" width="100%" containerType="inline-size">
+          <FormSection title={t('Strategy')}>
+            <FieldGroup>
+              <DisplayField.Row
+                label={t('Strategy')}
+                hintText={t('Decides what this automation does and when it runs.')}
+              >
+                <CompactSelect
+                  value={strategy}
+                  onChange={option => setStrategy(option.value)}
+                  options={STRATEGIES.map(value => ({
+                    value,
+                    label: STRATEGY_META[value].label,
+                  }))}
+                />
+              </DisplayField.Row>
+            </FieldGroup>
+          </FormSection>
+        </Container>
+        {strategy === 'scheduled_investigation' ? (
+          <ScheduledInvestigationForm mode="create" />
+        ) : (
+          <MetricAutomationForm mode="create" />
+        )}
       </Stack>
     </SentryDocumentTitle>
   );

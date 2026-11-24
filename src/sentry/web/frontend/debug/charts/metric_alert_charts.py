@@ -183,7 +183,7 @@ detector = {
         ],
         "actions": [],
     },
-    "config": {"detectionType": "static", "comparisonDelta": None},
+    "config": {"detectionType": "static"},
     "enabled": True,
     "alertRuleId": None,
     "ruleId": None,
@@ -236,7 +236,6 @@ metric_alert = {
         "resolveThreshold": 3,
         "timeWindow": 1440,
         "resolution": 1,
-        "thresholdPeriod": 1,
         "triggers": [
             {
                 "id": "1",
@@ -489,7 +488,6 @@ crash_free_metric_alert = {
         "resolveThreshold": None,
         "timeWindow": 60,
         "resolution": 1,
-        "thresholdPeriod": 1,
         "triggers": [
             {
                 "id": "1",

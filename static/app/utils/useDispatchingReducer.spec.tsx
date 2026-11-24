@@ -1,7 +1,7 @@
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {makeCombinedReducers} from 'sentry/utils/makeCombinedReducer';
-import {useDispatchingReducer} from 'sentry/utils/useDispatchingReducer';
+import {makeCombinedReducers} from './makeCombinedReducer';
+import {useDispatchingReducer} from './useDispatchingReducer';
 
 describe('useDispatchingReducer', () => {
   beforeEach(() => {
@@ -90,10 +90,7 @@ describe('useDispatchingReducer', () => {
         .mockImplementation((state, action: string) => {
           switch (action) {
             default:
-              return {
-                ...state,
-                [action]: 1,
-              };
+              return {...state, [action]: 1};
           }
         });
       const {result} = renderHook(() =>
@@ -127,10 +124,7 @@ describe('useDispatchingReducer', () => {
       return {...state, [action]: 1};
     }
 
-    const finalReducer = makeCombinedReducers({
-      a: reducerA,
-      b: reducerB,
-    });
+    const finalReducer = makeCombinedReducers({a: reducerA, b: reducerB});
 
     const initialState = {a: {}, b: {}};
     const {result} = renderHook(() => useDispatchingReducer(finalReducer, initialState));

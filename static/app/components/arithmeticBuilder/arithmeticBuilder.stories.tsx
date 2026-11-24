@@ -1,9 +1,10 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
-import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Storybook from 'sentry/stories';
+
+import {Expression} from './expression';
 
 export default Storybook.story('ArithmeticBuilder', story => {
   story('With References', () => {

@@ -4,9 +4,10 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
-import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
 import * as Storybook from 'sentry/stories';
+
+import {useServiceWorker} from './serviceWorkerContext';
+import {useNotificationPermission} from './useNotificationPermission';
 
 export default Storybook.story('ServiceWorker', story => {
   story('Support & Permissions', () => {

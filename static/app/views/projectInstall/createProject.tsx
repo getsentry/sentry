@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
+import {parseAsString, useQueryStates} from 'nuqs';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
@@ -10,9 +11,9 @@ import {Input} from '@sentry/scraps/input';
 import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConsoleModal} from 'sentry/actionCreators/modal';
 import {Access} from 'sentry/components/acl/access';
 import {List} from 'sentry/components/list';
@@ -31,35 +32,29 @@ import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {slugify} from 'sentry/utils/slugify';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import type {
-  AlertRuleOptions,
-  RequestDataFragment,
-} from 'sentry/views/projectInstall/issueAlertOptions';
-import {
-  getRequestDataFragment,
-  IssueAlertOptions,
-  RuleAction,
-} from 'sentry/views/projectInstall/issueAlertOptions';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+import {FROM_PROJECT_CREATION_STATE} from './gettingStartedLocationState';
+import {useCreateNotificationAction} from './issueAlertNotificationOptions';
+import type {AlertRuleOptions, RequestDataFragment} from './issueAlertOptions';
+import {getRequestDataFragment, IssueAlertOptions, RuleAction} from './issueAlertOptions';
 import {
   MultipleCheckboxOptions,
   type IntegrationChannel,
-} from 'sentry/views/projectInstall/messagingIntegrationTypes';
-import {useProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
-import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
-import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+} from './messagingIntegrationTypes';
+import {useProjectCreationPageOrigin} from './projectCreationOrigin';
+import {validateChannelQueryOptions} from './useValidateChannel';
 
 type FormData = {
   projectName: string;
@@ -87,10 +82,7 @@ function getMissingValues({
   platform,
 }: {
   isOrgMemberWithNoAccess: boolean;
-  notificationProps: {
-    actions?: string[];
-    channel?: IntegrationChannel;
-  };
+  notificationProps: {actions?: string[]; channel?: IntegrationChannel};
   projectName: string;
   team: string | undefined;
   platform?: OnboardingSelectedSDK;
@@ -119,9 +111,7 @@ function getSubmitTooltipText({
   isMissingMessagingIntegrationChannel,
   isMissingPlatform,
   formErrorCount,
-}: ReturnType<typeof getMissingValues> & {
-  formErrorCount: number;
-}): string {
+}: ReturnType<typeof getMissingValues> & {formErrorCount: number}): string {
   if (formErrorCount > 1) {
     return t('Please fill out all the required fields');
   }
@@ -141,18 +131,19 @@ function getSubmitTooltipText({
   return t('Please select a team');
 }
 
+const autoFillParsers = {referrer: parseAsString, project: parseAsScalar};
+
 export function CreateProject() {
   const {openModal, visible: isModalVisible} = useModal();
   const navigate = useNavigate();
   const organization = useOrganization();
-  const location = useLocation();
   const canUserCreateProject = useCanCreateProject();
   const createProjectAndRules = useCreateProjectAndRules();
 
   const {teams} = useTeams();
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
-  const referrer = decodeScalar(location.query.referrer);
-  const projectId = decodeScalar(location.query.project);
+  const [{referrer, project: projectParam}] = useQueryStates(autoFillParsers);
+  const projectId = projectParam ?? undefined;
   const [createdProject, setCreatedProject] = useLocalStorageState<CreatedProject | null>(
     'created-project-context',
     null
@@ -198,11 +189,7 @@ export function CreateProject() {
       };
     }
 
-    return {
-      projectName: '',
-      platform: undefined,
-      team: defaultTeam,
-    };
+    return {projectName: '', platform: undefined, team: defaultTeam};
   }, [autoFill, defaultTeam, createdProject]);
 
   const [formData, setFormData] = useState(initialData);
@@ -261,17 +248,11 @@ export function CreateProject() {
   const submitTooltipText =
     isNotifyingViaIntegration && validateChannelError
       ? validateChannelError
-      : getSubmitTooltipText({
-          ...missingValues,
-          formErrorCount,
-        });
+      : getSubmitTooltipText({...missingValues, formErrorCount});
 
   const updateFormData = useCallback(
     <K extends keyof FormData>(field: K, value: FormData[K]) => {
-      setFormData(prev => ({
-        ...prev,
-        [field]: value,
-      }));
+      setFormData(prev => ({...prev, [field]: value}));
     },
     []
   );
@@ -338,7 +319,7 @@ export function CreateProject() {
           variant: 'legacy',
         });
 
-        addSuccessMessage(
+        toast.success(
           team
             ? t('Created project %s', project.slug)
             : t('Created %s under new team %s', project.slug, `#${project.team.slug}`)
@@ -354,17 +335,20 @@ export function CreateProject() {
           wasNameManuallyModified: hasUserModifiedProjectName.current,
         });
 
-        navigate({
-          pathname: normalizeUrl(
-            makeProjectsPathname({
-              path: `/${project.slug}/getting-started/`,
-              organization,
-            })
-          ),
-          query: {projectCreationVariant: 'legacy'},
-        });
+        navigate(
+          {
+            pathname: normalizeUrl(
+              makeProjectsPathname({
+                path: `/${project.slug}/getting-started/`,
+                organization,
+              })
+            ),
+            query: {projectCreationVariant: 'legacy'},
+          },
+          {state: FROM_PROJECT_CREATION_STATE}
+        );
       } catch (error: any) {
-        addErrorMessage(t('Failed to create project %s', projectName));
+        toast.error(t('Failed to create project %s', projectName));
 
         // Unfiltered, unlike captureProjectCreationFailure below: both variants
         // count every caught failure, so filtering here would skew the rate.
@@ -432,11 +416,7 @@ export function CreateProject() {
           onClose: () => {
             trackAnalytics(
               'project_creation.select_framework_modal_close_button_clicked',
-              {
-                platform: platform.key,
-                organization,
-                variant: 'legacy',
-              }
+              {platform: platform.key, organization, variant: 'legacy'}
             );
           },
         }
@@ -539,10 +519,7 @@ export function CreateProject() {
             threshold={formData.alertRule?.threshold}
             notificationProps={notificationProps}
             onFieldChange={(field, value) => {
-              updateFormData('alertRule', {
-                ...formData.alertRule,
-                [field]: value,
-              });
+              updateFormData('alertRule', {...formData.alertRule, [field]: value});
               if (field === 'alertSetting') {
                 const optionMap: Record<number, string> = {
                   [RuleAction.DEFAULT_ALERT]: 'high_priority',

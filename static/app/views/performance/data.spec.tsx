@@ -1,9 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {
-  DEFAULT_STATS_PERIOD,
-  generateGenericPerformanceEventView,
-} from 'sentry/views/performance/data';
+import {DEFAULT_STATS_PERIOD, generateGenericPerformanceEventView} from './data';
 
 describe('generateGenericPerformanceEventView()', () => {
   it('generates default values', () => {
@@ -106,11 +103,7 @@ describe('generateGenericPerformanceEventView()', () => {
 
   it('removes unsupported tokens for limited search', () => {
     const result = generateGenericPerformanceEventView(
-      LocationFixture({
-        query: {
-          query: 'tag:value transaction:*auth*',
-        },
-      }),
+      LocationFixture({query: {query: 'tag:value transaction:*auth*'}}),
       true
     );
     expect(result.query).toBe('transaction:*auth*');

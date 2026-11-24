@@ -12,16 +12,11 @@ import {
   useLogsRefreshInterval,
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {
-  MAX_LOG_INGEST_DELAY,
-  VIRTUAL_STREAMED_INTERVAL_MS,
-} from 'sentry/views/explore/logs/constants';
-import type {
-  EventsLogsResult,
-  OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {useLogsApiOptionsWithInfinite} from 'sentry/views/explore/logs/useLogsApiOptions';
+
+import {MAX_LOG_INGEST_DELAY, VIRTUAL_STREAMED_INTERVAL_MS} from './constants';
+import type {EventsLogsResult, OurLogsResponseItem} from './types';
+import {OurLogKnownFieldKey} from './types';
+import {useLogsApiOptionsWithInfinite} from './useLogsApiOptions';
 /**
  * Virtual Streaming
  *
@@ -257,9 +252,7 @@ export function useVirtualStreaming({
           warnRef.current();
           logger.info(
             'No most recent page data timestamp found, setting auto-refresh to error',
-            {
-              organization: organizationRef.current.slug,
-            }
+            {organization: organizationRef.current.slug}
           );
           setLogsAutoRefresh('error');
           return;
@@ -292,9 +285,7 @@ export function useVirtualStreaming({
     };
   }, [autoRefresh, getMostRecentPageDataTimestamp, refreshInterval, setLogsAutoRefresh]);
 
-  return {
-    virtualStreamedTimestamp: virtualTimestamp,
-  };
+  return {virtualStreamedTimestamp: virtualTimestamp};
 }
 
 /**

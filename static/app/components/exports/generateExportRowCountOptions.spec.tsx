@@ -1,4 +1,4 @@
-import {generateExportRowCountOptions} from 'sentry/components/exports/generateExportRowCountOptions';
+import {generateExportRowCountOptions} from './generateExportRowCountOptions';
 
 describe('generateExportRowCountOptions', () => {
   it('adds an abbreviated (All) option when estimate is between predefined thresholds', () => {

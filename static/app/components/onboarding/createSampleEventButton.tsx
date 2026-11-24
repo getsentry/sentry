@@ -4,12 +4,8 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -19,6 +15,8 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {useOnboardingContext} from './onboardingContext';
 
 type CreateSampleEventButtonProps = ButtonProps & {
   source: string;
@@ -38,6 +36,7 @@ export function CreateSampleEventButton({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const organization = useOrganization();
+  const {discardOnboardingSession} = useOnboardingContext();
   const pollingAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -60,9 +59,7 @@ export function CreateSampleEventButton({
     mutationFn: () => {
       const url = getApiUrl(
         '/projects/$organizationIdOrSlug/$projectIdOrSlug/create-sample/',
-        {
-          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project!.slug},
-        }
+        {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project!.slug}}
       );
       return fetchMutation<{groupID: string}>({method: 'POST', url});
     },
@@ -83,7 +80,7 @@ export function CreateSampleEventButton({
         });
       }
 
-      addLoadingMessage(t('Processing sample event...'), {
+      toast.loading(t('Processing sample event...'), {
         duration: EVENT_POLL_RETRIES * EVENT_POLL_INTERVAL,
       });
     },
@@ -95,7 +92,10 @@ export function CreateSampleEventButton({
       const t0 = performance.now();
       let retries = 0;
 
-      queryClient
+      // Returning the poll keeps the mutation pending, and the button disabled,
+      // until the event is ready. A second click during the poll would create a
+      // duplicate sample event.
+      return queryClient
         .fetchQuery({
           ...apiOptions.as<unknown>()(
             '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
@@ -121,7 +121,7 @@ export function CreateSampleEventButton({
           if (abortController.signal.aborted) {
             return;
           }
-          clearIndicators();
+          toast.dismiss();
 
           trackAnalytics('sample_event.created', {
             organization,
@@ -133,6 +133,9 @@ export function CreateSampleEventButton({
             source,
           });
 
+          // Outside onboarding the context is a no-op. Inside it, this click leaves
+          // the flow, so the next onboarding visit must not resume this session.
+          discardOnboardingSession();
           navigate(
             normalizeUrl(
               `/organizations/${organization.slug}/issues/${groupID}/?project=${project!.id}&referrer=sample-error`
@@ -143,7 +146,7 @@ export function CreateSampleEventButton({
           if (abortController.signal.aborted) {
             return;
           }
-          clearIndicators();
+          toast.dismiss();
 
           const duration = Math.ceil(performance.now() - t0);
           trackAnalytics('sample_event.failed', {
@@ -156,7 +159,7 @@ export function CreateSampleEventButton({
             source,
           });
 
-          addErrorMessage(t('Failed to load sample event'));
+          toast.error(t('Failed to load sample event'));
 
           Sentry.withScope(scope => {
             scope.setTag('groupID', groupID);
@@ -175,8 +178,8 @@ export function CreateSampleEventButton({
         scope.setExtra('error', error);
         Sentry.captureException(new Error('Failed to create sample event'));
       });
-      clearIndicators();
-      addErrorMessage(t('Failed to create a new sample event'));
+      toast.dismiss();
+      toast.error(t('Failed to create a new sample event'));
     },
   });
 

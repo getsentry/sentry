@@ -1,39 +1,24 @@
 import {useQuery} from '@tanstack/react-query';
-import moment from 'moment-timezone';
 
-import type {OutcomeRow} from 'sentry/components/droppedData/types';
+import {chartStaleTime} from 'sentry/components/charts/chartStaleTime';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
 
+import type {OutcomeRow} from './types';
+
 const REFERRER = 'api.explore.dropped-data-annotations';
 
 interface DroppedEventsResponse {
   acceptedEvents: OutcomeRow[];
   droppedEvents: OutcomeRow[];
-  meta: {
-    dataset: string;
-    end: number;
-    interval: number;
-    start: number;
-  };
-}
-
-export function makeDroppedDataQueryKeyPrefix(organizationSlug: string) {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/events-dropped/', {
-      path: {organizationIdOrSlug: organizationSlug},
-    }),
-  ] as const;
+  meta: {dataset: string; end: number; interval: number; start: number};
 }
 
 export interface UseDroppedDataParams {
@@ -59,20 +44,7 @@ export function useDroppedData(
   );
   const {isReady: arePageFiltersReady, selection} = usePageFilters();
 
-  // Keep in sync with useSortedTimeSeries so the band refetches with the chart
-  const {period, start, end} = selection.datetime;
-  const intervalInMilliseconds = intervalToMilliseconds(interval);
-  let staleTime = defined(end) && moment.utc(end).isAfter() ? 0 : Infinity;
-  if (
-    defined(period) &&
-    !defined(start) &&
-    !defined(end) &&
-    intervalInMilliseconds !== 0
-  ) {
-    staleTime = intervalInMilliseconds;
-  }
-
-  const {data, isPending, isError, refetch} = useQuery({
+  const {data, isPending, isLoading, isError, refetch} = useQuery({
     ...apiOptions.as<DroppedEventsResponse>()(
       '/organizations/$organizationIdOrSlug/events-dropped/',
       {
@@ -85,7 +57,7 @@ export function useDroppedData(
           project: projects ?? selection.projects,
           environment: selection.environments,
         },
-        staleTime,
+        staleTime: chartStaleTime(selection.datetime, interval),
       }
     ),
     retry: shouldRetryHandler,
@@ -98,6 +70,7 @@ export function useDroppedData(
     droppedEvents: data?.droppedEvents,
     acceptedEvents: data?.acceptedEvents,
     isPending,
+    isLoading,
     isError,
     refetch,
   };

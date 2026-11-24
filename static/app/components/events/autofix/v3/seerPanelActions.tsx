@@ -1,15 +1,16 @@
 import {IconBot} from '@sentry/icons/bot';
-import {IconCopy} from '@sentry/icons/copy';
+import {IconMarkdown} from '@sentry/icons/markdown';
 import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {AutofixDebugMenu} from 'sentry/components/events/autofix/v3/autofixDebugMenu';
 import {t} from 'sentry/locale';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {AutofixDebugMenu} from './autofixDebugMenu';
 
 export interface SeerPanelActionsProps {
   autofixState?: ExplorerAutofixState | null;
@@ -33,7 +34,7 @@ export function SeerPanelActions({
   const isSentryEmployee = useIsSentryEmployee();
 
   return (
-    <Flex align="center" gap="xs">
+    <Flex align="center">
       <AutofixDebugMenu autofixState={autofixState} />
       <Button
         size="xs"
@@ -46,7 +47,7 @@ export function SeerPanelActions({
       />
       <Button
         size="xs"
-        icon={<IconCopy />}
+        icon={<IconMarkdown />}
         onClick={onCopyMarkdown}
         disabled={!onCopyMarkdown}
         tooltipProps={{title: t('Copy analysis as Markdown')}}

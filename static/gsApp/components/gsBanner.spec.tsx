@@ -24,11 +24,9 @@ import GSBanner from 'getsentry/components/gsBanner';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 jest.mock('getsentry/actionCreators/modal');
-const mockGuideStore = {state: {} as GuideStoreState};
+const mockGuideState = {} as GuideStoreState;
 jest.mock('sentry/stores/guideStore', () => ({
-  get GuideStore() {
-    return mockGuideStore;
-  },
+  GuideStore: {getState: () => mockGuideState},
 }));
 
 function setUpTests() {
@@ -41,22 +39,10 @@ function setUpTests() {
     url: '/_experiment/log_exposure/',
     body: {},
   });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/projects/',
-    body: [],
-  });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/teams/',
-    body: [],
-  });
-  MockApiClient.addMockResponse({
-    url: '/customers/org-slug/',
-    body: {},
-  });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/',
-    body: {},
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/teams/', body: []});
+  MockApiClient.addMockResponse({url: '/customers/org-slug/', body: {}});
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/', body: {}});
 
   [
     'another-slug-1',
@@ -75,7 +61,10 @@ function setUpTests() {
     'past-due-3',
     'past-due-4',
   ].forEach(slug => {
-    SubscriptionStore.set(slug, {});
+    SubscriptionStore.set(
+      slug,
+      SubscriptionFixture({organization: OrganizationFixture({slug})})
+    );
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${slug}/prompts-activity/`,
@@ -91,11 +80,9 @@ describe('GSBanner', () => {
 
   it('renders empty', async () => {
     const organization = OrganizationFixture();
-    SubscriptionStore.set(organization.slug, {});
+    SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}));
 
-    const {container} = render(<GSBanner organization={organization} />, {
-      organization,
-    });
+    const {container} = render(<GSBanner organization={organization} />, {organization});
 
     // wait for requests to finish
     await act(tick);
@@ -110,9 +97,7 @@ describe('GSBanner', () => {
       SubscriptionFixture({organization, isSuspended: true})
     );
 
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
+    render(<GSBanner organization={organization} />, {organization});
     renderGlobalModal();
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
@@ -129,9 +114,7 @@ describe('GSBanner', () => {
 
   it('opens the trialEndingModal within 3 days of ending', async () => {
     const now = moment();
-    const organization = OrganizationFixture({
-      slug: 'trial-ending',
-    });
+    const organization = OrganizationFixture({slug: 'trial-ending'});
     SubscriptionStore.set(
       organization.slug,
       SubscriptionFixture({
@@ -143,9 +126,7 @@ describe('GSBanner', () => {
       })
     );
 
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
+    render(<GSBanner organization={organization} />, {organization});
 
     await waitFor(() => expect(openTrialEndingModal).toHaveBeenCalled());
   });
@@ -163,9 +144,7 @@ describe('GSBanner', () => {
       })
     );
 
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
+    render(<GSBanner organization={organization} />, {organization});
 
     await act(tick);
     expect(openTrialEndingModal).not.toHaveBeenCalled();
@@ -182,9 +161,7 @@ describe('GSBanner', () => {
       })
     );
 
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
+    render(<GSBanner organization={organization} />, {organization});
 
     await act(tick);
     expect(openTrialEndingModal).not.toHaveBeenCalled();
@@ -203,9 +180,7 @@ describe('GSBanner', () => {
       })
     );
 
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
+    render(<GSBanner organization={organization} />, {organization});
 
     await act(tick);
     expect(openTrialEndingModal).not.toHaveBeenCalled();
@@ -213,9 +188,7 @@ describe('GSBanner', () => {
 
   it('does not display trial ending modal to enterprise trial', async () => {
     const now = moment();
-    const organization = OrganizationFixture({
-      slug: 'trial-ending',
-    });
+    const organization = OrganizationFixture({slug: 'trial-ending'});
     SubscriptionStore.set(
       organization.slug,
       SubscriptionFixture({
@@ -228,30 +201,21 @@ describe('GSBanner', () => {
       })
     );
 
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
+    render(<GSBanner organization={organization} />, {organization});
 
     await act(tick);
     expect(openTrialEndingModal).not.toHaveBeenCalled();
   });
 
   it('shows disabled member header', async () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
+    const organization = OrganizationFixture({access: ['org:billing']});
 
     SubscriptionStore.set(
       organization.slug,
-      SubscriptionFixture({
-        organization,
-        membersDeactivatedFromLimit: 2,
-      })
+      SubscriptionFixture({organization, membersDeactivatedFromLimit: 2})
     );
 
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
+    render(<GSBanner organization={organization} />, {organization});
 
     expect(
       await screen.findByText(textWithMarkupMatcher(/2 members have been deactivated/i))
@@ -259,11 +223,8 @@ describe('GSBanner', () => {
   });
 
   it('loads pendo', async () => {
-    mockGuideStore.state.currentGuide = null;
-    const organization = OrganizationFixture({
-      slug: 'forced-trial',
-      orgRole: 'admin',
-    });
+    mockGuideState.currentGuide = null;
+    const organization = OrganizationFixture({slug: 'forced-trial', orgRole: 'admin'});
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_business_auf',
@@ -274,27 +235,16 @@ describe('GSBanner', () => {
     subscription.categories.transactions!.reserved = 10_000_001;
     subscription.planDetails.totalPrice = 100_000 * 12;
     SubscriptionStore.set(organization.slug, subscription);
-    window.pendo = {
-      initialize: jest.fn(),
-    };
+    window.pendo = {initialize: jest.fn()};
 
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/pendo-details/`,
-      body: {
-        userDetails: {
-          fieldA: 'valueA',
-        },
-        organizationDetails: {
-          fieldB: 'valueB',
-        },
-      },
+      body: {userDetails: {fieldA: 'valueA'}, organizationDetails: {fieldB: 'valueB'}},
     });
     const user = ConfigStore.get('user');
 
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
+    render(<GSBanner organization={organization} />, {organization});
 
     await waitFor(() => {
       expect(window.pendo.initialize).toHaveBeenCalledWith({
@@ -315,9 +265,7 @@ describe('GSBanner', () => {
           fieldB: 'valueB',
           plan: 'am1_business_auf',
         }),
-        guides: {
-          delay: false,
-        },
+        guides: {delay: false},
       });
     });
 
@@ -325,52 +273,29 @@ describe('GSBanner', () => {
   });
 
   it('delays pendo guides if other guides are active', async () => {
-    mockGuideStore.state.currentGuide = {} as Guide;
+    mockGuideState.currentGuide = {} as Guide;
     const organization = OrganizationFixture();
-    SubscriptionStore.set(
-      organization.slug,
-      SubscriptionFixture({
-        organization,
-      })
-    );
+    SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}));
 
-    window.pendo = {
-      initialize: jest.fn(),
-    };
+    window.pendo = {initialize: jest.fn()};
 
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/pendo-details/`,
-      body: {
-        userDetails: {
-          fieldA: 'valueA',
-        },
-        organizationDetails: {
-          fieldB: 'valueB',
-        },
-      },
+      body: {userDetails: {fieldA: 'valueA'}, organizationDetails: {fieldB: 'valueB'}},
     });
 
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
+    render(<GSBanner organization={organization} />, {organization});
 
     await waitFor(() => {
       expect(window.pendo.initialize).toHaveBeenCalledWith(
-        expect.objectContaining({
-          guides: {
-            delay: true,
-          },
-        })
+        expect.objectContaining({guides: {delay: true}})
       );
     });
   });
 
   it('shows correct past due modal and banner for billing admins', async () => {
-    const organization = OrganizationFixture({
-      slug: 'past-due',
-      access: ['org:billing'],
-    });
+    const organization = OrganizationFixture({slug: 'past-due', access: ['org:billing']});
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_team',
@@ -381,10 +306,7 @@ describe('GSBanner', () => {
     render(<GSBanner organization={organization} />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/settings/past-due/billing/details/',
-          query: {},
-        },
+        location: {pathname: '/settings/past-due/billing/details/', query: {}},
         route: '/settings/past-due/billing/details/',
       },
     });
@@ -411,19 +333,14 @@ describe('GSBanner', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: '/settings/past-due/billing/details/',
-          query: {
-            referrer: 'banner-billing-failure',
-          },
+          query: {referrer: 'banner-billing-failure'},
         })
       );
     });
   });
 
   it('shows past due modal and banner for non-billing users', async () => {
-    const organization = OrganizationFixture({
-      slug: 'past-due-4',
-      access: ['org:read'],
-    });
+    const organization = OrganizationFixture({slug: 'past-due-4', access: ['org:read']});
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_team',
@@ -431,9 +348,7 @@ describe('GSBanner', () => {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
+    render(<GSBanner organization={organization} />, {organization});
     renderGlobalModal();
 
     expect(await screen.findByTestId('banner-alert-past-due')).toBeInTheDocument();
@@ -443,10 +358,7 @@ describe('GSBanner', () => {
   });
 
   it('does not show past due modal for users without access', async () => {
-    const organization = OrganizationFixture({
-      slug: 'past-due-4',
-      access: [],
-    });
+    const organization = OrganizationFixture({slug: 'past-due-4', access: []});
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_team',
@@ -454,9 +366,7 @@ describe('GSBanner', () => {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
+    render(<GSBanner organization={organization} />, {organization});
     renderGlobalModal();
 
     await act(tick);
@@ -478,9 +388,7 @@ describe('GSBanner', () => {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
+    render(<GSBanner organization={organization} />, {organization});
     renderGlobalModal();
 
     await act(tick);

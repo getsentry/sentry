@@ -19,7 +19,6 @@ import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/platform';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useCronDetectorFormField} from 'sentry/views/detectors/components/forms/cron/fields';
 import {
   platformGuides,
   type GuideKey,
@@ -28,6 +27,8 @@ import {
   toSupportedPlatform,
   useCronsUpsertGuideState,
 } from 'sentry/views/insights/crons/components/useCronsUpsertGuideState';
+
+import {useCronDetectorFormField} from './fields';
 
 const [genericPlatforms, regularPlatforms] = partition(platformGuides, p =>
   ['cli', 'http'].includes(p.platform)
@@ -118,10 +119,7 @@ export function InstrumentationGuide({
 
     // If platform has exactly one guide, select it directly
     if (c.guides.length === 1) {
-      return {
-        ...item,
-        onAction: () => setPlatformGuide(c.platform, c.guides[0].key),
-      };
+      return {...item, onAction: () => setPlatformGuide(c.platform, c.guides[0].key)};
     }
 
     const children = c.guides.map(g => ({

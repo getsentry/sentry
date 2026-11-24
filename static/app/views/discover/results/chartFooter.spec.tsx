@@ -4,7 +4,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
-import {ChartFooter} from 'sentry/views/discover/results/chartFooter';
+
+import {ChartFooter} from './chartFooter';
 
 describe('Discover > ChartFooter', () => {
   const yAxisValue = ['count()', 'failure_count()'];
@@ -128,9 +129,9 @@ describe('Discover > ChartFooter', () => {
           topEvents="5"
           eventView={queryEventView}
           droppedDataLayer={{
-            dataset: DiscoverDatasets.ERRORS,
-            hasDroppedData: true,
-            showDroppedData: hasFilterNote,
+            layers: [
+              {value: 'dropped-data', label: 'Dropped Errors', selected: hasFilterNote},
+            ],
             onChange: () => {},
           }}
           droppedDataFilterNote={

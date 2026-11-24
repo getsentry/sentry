@@ -1,5 +1,3 @@
-import {useMemo} from 'react';
-
 import {Badge} from '@sentry/scraps/badge';
 import {
   CompactSelect,
@@ -16,18 +14,18 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {mergeGlobalFilters} from 'sentry/views/dashboards/globalFilter/utils';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
+
 import {
   buildNavigationTypeGlobalFilter,
   getBucketsFromGlobalFilters,
+  getNavigationTypeDataset,
   isAllBucketsSelected,
-  isNavigationTypeGlobalFilter,
   NAVIGATION_TYPE_BUCKET_ORDER,
   NAVIGATION_TYPE_BUCKETS,
   normalizeBuckets,
   type NavigationTypeBucket,
-} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
-import {useNavigationTypeCounts} from 'sentry/views/insights/browser/webVitals/navigationType/useNavigationTypeCounts';
-import {spanFilterQueryFromGlobalFilters} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
+} from './settings';
+import {useNavigationTypeCounts} from './useNavigationTypeCounts';
 
 type Props = {
   globalFilters: GlobalFilter[];
@@ -39,17 +37,9 @@ export function NavigationTypeSwitcher({globalFilters, onChange}: Props) {
   const organization = useOrganization();
   const buckets = getBucketsFromGlobalFilters(globalFilters);
   const isAll = isAllBucketsSelected(buckets);
+  const dataset = getNavigationTypeDataset(globalFilters);
 
-  // So the counts match what the widgets render.
-  const additionalQuery = useMemo(
-    () =>
-      spanFilterQueryFromGlobalFilters(
-        globalFilters.filter(filter => !isNavigationTypeGlobalFilter(filter))
-      ),
-    [globalFilters]
-  );
-
-  const {counts, untaggedCount, isPending} = useNavigationTypeCounts({additionalQuery});
+  const {counts, untaggedCount, isPending} = useNavigationTypeCounts({globalFilters});
 
   const options: Array<SelectOption<NavigationTypeBucket>> =
     NAVIGATION_TYPE_BUCKET_ORDER.map(candidate => {
@@ -82,7 +72,7 @@ export function NavigationTypeSwitcher({globalFilters, onChange}: Props) {
         untaggedCount > 0 ? (
           <MenuComponents.Alert variant="info">
             {tct(
-              '[count] spans have no navigation type (sent before the SDK started tagging it). They are counted as page loads.',
+              '[count] web vitals have no navigation type (sent before the SDK started tagging it). They are counted as page loads.',
               {count: <strong>{formatAbbreviatedNumber(untaggedCount)}</strong>}
             )}
           </MenuComponents.Alert>
@@ -92,7 +82,7 @@ export function NavigationTypeSwitcher({globalFilters, onChange}: Props) {
         const nextBuckets = normalizeBuckets(selected.map(option => option.value));
         onChange(
           mergeGlobalFilters(globalFilters, [
-            buildNavigationTypeGlobalFilter(nextBuckets),
+            buildNavigationTypeGlobalFilter(nextBuckets, dataset),
           ])
         );
         trackAnalytics('insight.vital.select_navigation_type', {

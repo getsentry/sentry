@@ -14,7 +14,11 @@ from sentry_sdk import traces
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.exceptions import (
+    IncompatibleMetricsQuery,
+    InvalidFunctionArgumentQuery,
+    InvalidSearchQuery,
+)
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
@@ -1273,24 +1277,6 @@ class NumericColumn(ColumnArg):
         return "number"
 
 
-class DurationColumn(ColumnArg):
-    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
-        snuba_column = SEARCH_MAP.get(value)
-        if not snuba_column and is_duration_measurement(value):
-            return value
-        if not snuba_column and is_span_op_breakdown(value):
-            return value
-        if not snuba_column:
-            raise InvalidFunctionArgument(f"{value} is not a valid column")
-        elif snuba_column != "duration":
-            raise InvalidFunctionArgument(f"{value} is not a duration column")
-
-        if self.validate_only:
-            return value
-        else:
-            return snuba_column
-
-
 class StringArrayColumn(ColumnArg):
     string_array_columns = {
         "tags.key",
@@ -1482,7 +1468,11 @@ class DiscoverFunction:
                         normalized_value = ["arrayJoin", [normalized_value]]
                 arguments[argument.name] = normalized_value
             except InvalidFunctionArgument as e:
-                raise InvalidSearchQuery(f"{field}: {argument.name} argument invalid: {e}")
+                raise InvalidFunctionArgumentQuery(
+                    f"{field}: {argument.name} argument invalid: {e}",
+                    function=self.name,
+                    argument=column,
+                )
 
         # populate any computed args
         for calculation in self.calculated_args:

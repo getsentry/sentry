@@ -1,14 +1,10 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {TextCopyInput} from 'sentry/components/textCopyInput';
+import {TextCopyInput} from './textCopyInput';
 
 describe('TextCopyInput', () => {
   beforeEach(() => {
-    Object.assign(navigator, {
-      clipboard: {
-        writeText: jest.fn().mockResolvedValue(''),
-      },
-    });
+    Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
   });
 
   it('copies text to clipboard on click', async () => {

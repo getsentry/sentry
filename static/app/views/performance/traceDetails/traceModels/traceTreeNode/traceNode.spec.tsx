@@ -7,15 +7,10 @@ import {type TraceTreeNodeExtra} from './baseNode';
 import {RootNode} from './rootNode';
 import {TraceNode} from './traceNode';
 
-const createMockExtra = (): TraceTreeNodeExtra => ({
-  organization: OrganizationFixture(),
-});
+const createMockExtra = (): TraceTreeNodeExtra => ({organization: OrganizationFixture()});
 
 const createMockTraceValue = (): TraceTree.EAPTrace => [
-  makeEAPSpan({
-    event_id: 'test-trace-id',
-    project_slug: 'test-project',
-  }),
+  makeEAPSpan({event_id: 'test-trace-id', project_slug: 'test-project'}),
 ];
 
 describe('TraceNode', () => {
@@ -59,9 +54,7 @@ describe('TraceNode', () => {
     it('should return title object for traceHeaderTitle', () => {
       const traceNode = new TraceNode(null, createMockTraceValue(), createMockExtra());
 
-      expect(traceNode.traceHeaderTitle).toEqual({
-        title: 'Trace',
-      });
+      expect(traceNode.traceHeaderTitle).toEqual({title: 'Trace'});
     });
   });
 

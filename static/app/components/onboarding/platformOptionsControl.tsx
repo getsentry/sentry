@@ -3,13 +3,14 @@ import {useMemo} from 'react';
 import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+
 import type {
   BasePlatformOptions,
   PlatformOption,
   SelectedPlatformOptions,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+} from './gettingStartedDoc/types';
 
 /**
  * Hook that returns the currently selected platform option values from the URL
@@ -85,14 +86,10 @@ export function PlatformOptionsControl({
   const handleChange = (key: string, value: string) => {
     onChange?.({[key]: value});
     navigate(
-      {
-        ...location,
-        query: {
-          ...location.query,
-          [key]: value,
-        },
-      },
-      {replace: true}
+      {...location, query: {...location.query, [key]: value}},
+      // The location descriptor drops history state, and the getting-started
+      // page reads it to know it was reached from project creation.
+      {replace: true, state: location.state}
     );
   };
 

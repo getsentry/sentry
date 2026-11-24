@@ -1,8 +1,7 @@
 import {useEffect, useMemo} from 'react';
 import type {mat3} from 'gl-matrix';
 
-import type {CanvasView} from 'sentry/utils/profiling/canvasView';
-
+import type {CanvasView} from './canvasView';
 import type {FlamegraphFrame} from './flamegraphFrame';
 import type {SpanChartNode} from './spanChart';
 import type {Rect} from './speedscope';

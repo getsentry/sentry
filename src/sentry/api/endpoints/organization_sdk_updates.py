@@ -17,7 +17,13 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_sdk_index, get_suggested_updates
+from sentry.sdk_updates import (
+    SdkIndexState,
+    SdkSetupState,
+    SdkUpdateSuggestionResponse,
+    get_sdk_index,
+    get_suggested_updates,
+)
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
 from sentry.utils.numbers import format_grouped_length
@@ -39,7 +45,7 @@ class SdkLatest(TypedDict):
 
 
 class SdkUpdate(SdkLatest):
-    suggestions: list[dict[str, object]]
+    suggestions: list[SdkUpdateSuggestionResponse]
 
 
 def by_sdk_name(sdk: SdkUsageRow) -> str:

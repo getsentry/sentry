@@ -8,16 +8,14 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {
-  EVENT_CHOICES,
-  WebhookSubscription,
-} from 'sentry/views/settings/organizationDeveloperSettings/constants';
+
+import type {EVENT_CHOICES, WebhookSubscription} from './constants';
 import {
   PERMISSIONS_MAP,
   RESOURCE_EVENTS,
   webhookEventLabel,
   webhookResourceLabel,
-} from 'sentry/views/settings/organizationDeveloperSettings/constants';
+} from './constants';
 
 type Resource = (typeof EVENT_CHOICES)[number];
 

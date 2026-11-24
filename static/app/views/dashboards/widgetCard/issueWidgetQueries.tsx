@@ -3,8 +3,8 @@ import type {Group} from 'sentry/types/group';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {IssuesConfig} from 'sentry/views/dashboards/datasetConfig/issues';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import type {IssuesSeriesResponse} from 'sentry/views/dashboards/widgetCard/hooks/useIssuesWidgetQuery';
 
+import type {IssuesSeriesResponse} from './hooks/useIssuesWidgetQuery';
 import type {
   GenericWidgetQueriesResult,
   OnDataFetchedProps,
@@ -50,11 +50,5 @@ export function IssueWidgetQueries({
     widgetInterval,
   });
 
-  return getDynamicText({
-    value: children({
-      loading,
-      ...rest,
-    }),
-    fixed: <div />,
-  });
+  return getDynamicText({value: children({loading, ...rest}), fixed: <div />});
 }

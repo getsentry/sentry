@@ -18,6 +18,8 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
+from sentry.seer.autofix.feature.dispatch import get_run_billing_feature
 from sentry.seer.autofix.feature.models import FEATURE_ID, LEGACY_FEATURE_ID
 from sentry.seer.autofix.on_completion_hook import PIPELINE_ORDER
 from sentry.seer.models import SeerRun
@@ -118,8 +120,11 @@ def _retry_run(organization: Organization, run_id: int) -> dict[str, Any]:
             step=step,
             referrer=step_referrer or run_referrer or AutofixReferrer.UNKNOWN,
             run_id=run_id,
+            billing_feature=get_run_billing_feature(state),
             insert_index=insert_index,
         )
+    except SeerOutOfCreditsException:
+        return _skipped(run_id, "Organization does not have enough Seer credits")
     except Exception:
         logger.exception(
             "autofix.admin_retry.trigger_failed",

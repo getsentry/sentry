@@ -1,4 +1,4 @@
-import {PlatformizedMobileVitalsOverview} from 'sentry/views/insights/mobile/screens/views/platformizedOverview';
+import {PlatformizedMobileVitalsOverview} from './platformizedOverview';
 
 function ScreensLandingPageWithPlatformization() {
   return <PlatformizedMobileVitalsOverview />;

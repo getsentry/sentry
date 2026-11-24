@@ -1,13 +1,21 @@
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {
   InvestigationHypothesisFixture,
   InvestigationOrchestrationFixture,
   InvestigationVerificationStepFixture,
 } from 'sentry/views/investigations/fixtures';
-import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
-import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 import type {InvestigationToolActivity} from 'sentry/views/investigations/types';
+
+import {getSeerStatusBlock} from './getSeerStatusBlock';
+import {SeerStatusBlock} from './seerStatusBlock';
 
 describe('SeerStatusBlock', () => {
   it('omits the elapsed time when there is nothing to count from', () => {
@@ -132,6 +140,7 @@ describe('SeerStatusBlock', () => {
 
     afterEach(() => {
       try {
+        cleanup();
         act(() => jest.runOnlyPendingTimers());
       } finally {
         jest.useRealTimers();

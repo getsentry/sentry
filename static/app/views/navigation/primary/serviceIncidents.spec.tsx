@@ -4,14 +4,12 @@ import {ServiceIncidentFixture} from 'sentry-fixture/serviceIncident';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {PrimaryNavigationServiceIncidents} from 'sentry/views/navigation/primary/serviceIncidents';
+
+import {PrimaryNavigationServiceIncidents} from './serviceIncidents';
 
 describe('PrimaryNavigationServiceIncidents', () => {
   beforeEach(() => {
-    ConfigStore.set('statuspage', {
-      id: 'sentry',
-      api_host: 'status.sentry.io',
-    });
+    ConfigStore.set('statuspage', {id: 'sentry', api_host: 'status.sentry.io'});
   });
 
   afterEach(() => {

@@ -11,7 +11,7 @@ import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
-import AddEventsCTA from 'getsentry/components/addEventsCTA';
+import {AddEventsCTA} from 'getsentry/components/addEventsCTA';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import OrgStatsBanner from 'getsentry/overrides/orgStatsBanner';
 import type {CustomerUsage, Subscription} from 'getsentry/types';
@@ -34,10 +34,7 @@ import {ButtonWrapper, SubscriptionBody} from './styles';
 
 type ProjectedOverages = string[];
 
-type Props = {
-  subscription: Subscription;
-  usage: CustomerUsage;
-};
+type Props = {subscription: Subscription; usage: CustomerUsage};
 
 type ExceededInfoProps = {
   getActionSentence: () => string;
@@ -123,9 +120,7 @@ function PrimaryCTA({
           subscription,
           source: `subscription-usage-alert-${alertType}`,
           referrer: `subscription-usage-alert-${alertType}`,
-          buttonProps: {
-            size: 'sm',
-          },
+          buttonProps: {size: 'sm'},
         }}
       />
     </ButtonWrapper>
@@ -164,9 +159,7 @@ export function UsageAlert({subscription, usage}: Props) {
     const categoryInfo = getCategoryInfoFromPlural(category);
     const isAbbreviated = categoryInfo?.formatting.projectedAbbreviated ?? true;
 
-    const formattedAmount = formatReservedWithUnits(projected, category, {
-      isAbbreviated,
-    });
+    const formattedAmount = formatReservedWithUnits(projected, category, {isAbbreviated});
 
     return isAbbreviated
       ? `${formattedAmount} ${displayName}`

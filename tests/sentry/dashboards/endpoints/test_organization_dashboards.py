@@ -97,6 +97,91 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
+    def _dashboard_with_query(self, title: str, **query_kwargs: object) -> Dashboard:
+        dashboard = Dashboard.objects.create(
+            title=title, created_by_id=self.user.id, organization=self.organization
+        )
+        widget = self.create_dashboard_widget(dashboard=dashboard, title=title)
+        self.create_dashboard_widget_query(widget=widget, order=0, **query_kwargs)
+        return dashboard
+
+    def _formula_titles(self, formula: str = "formula.apdex") -> set[str]:
+        with self.feature("organizations:explore-saved-formulas"):
+            response = self.do_request("get", self.url, data={"formula": formula})
+        assert response.status_code == 200, response.content
+        return {dashboard["title"] for dashboard in response.data}
+
+    def test_get_filters_by_formula_aggregate(self) -> None:
+        dashboard = self._dashboard_with_query(
+            "Formula dashboard",
+            aggregates=["formula.apdex(span.duration,300)"],
+            fields=["span.duration"],
+            columns=[],
+            conditions="",
+        )
+
+        assert self._formula_titles() == {dashboard.title}
+
+    def test_get_filters_by_formula_condition(self) -> None:
+        dashboard = self._dashboard_with_query(
+            "Formula condition dashboard",
+            aggregates=["count()"],
+            fields=["count()"],
+            columns=[],
+            conditions="formula.apdex(span.duration,300):>0.7",
+        )
+
+        assert self._formula_titles() == {dashboard.title}
+
+    def test_get_formula_filter_ignores_fields(self) -> None:
+        self._dashboard_with_query(
+            "Formula in fields",
+            aggregates=["count()"],
+            fields=["formula.apdex(span.duration,300)"],
+            columns=[],
+            conditions="",
+        )
+
+        assert self._formula_titles() == set()
+
+    def test_get_formula_filter_ignores_columns(self) -> None:
+        self._dashboard_with_query(
+            "Formula in columns",
+            aggregates=["count()"],
+            fields=["count()"],
+            columns=["formula.apdex(span.duration,300)"],
+            conditions="",
+        )
+
+        assert self._formula_titles() == set()
+
+    def test_get_formula_filter_ignores_similar_name(self) -> None:
+        self._dashboard_with_query(
+            "Similar formula name",
+            aggregates=["formula.apdex_score(span.duration,300)"],
+            fields=["span.duration"],
+            columns=[],
+            conditions="",
+        )
+
+        assert self._formula_titles() == set()
+
+    def test_get_formula_filter_ignores_similar_condition(self) -> None:
+        self._dashboard_with_query(
+            "Similar dashboard",
+            aggregates=["count()"],
+            fields=["count()"],
+            columns=[],
+            conditions="field:formula.apdex(span.duration,300)",
+        )
+
+        assert self._formula_titles() == set()
+
+    def test_get_formula_filter_rejects_invalid_prefix(self) -> None:
+        with self.feature("organizations:explore-saved-formulas"):
+            response = self.do_request("get", self.url, data={"formula": "not-a-formula"})
+        assert response.status_code == 400, response.content
+
     def test_get_sortby(self) -> None:
         Dashboard.objects.create(
             title="A", created_by_id=self.user.id, organization=self.organization
@@ -1088,17 +1173,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
         assert response.status_code == 201
 
-    def test_post_features_required(self) -> None:
-        with self.feature(
-            {"organizations:dashboards-basic": False, "organizations:dashboards-edit": False}
-        ):
-            response = self.do_request(
-                "post",
-                self.url,
-                data={"title": "Dashboard from Post"},
-            )
-            assert response.status_code == 404
-
     def test_post_with_widgets(self) -> None:
         data: dict[str, Any] = {
             "title": "Dashboard from Post",
@@ -2036,21 +2110,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                     "widgetType": "error-events",
                 },
                 {
-                    "title": "Transaction Op Count",
-                    "displayType": "table",
-                    "interval": "5m",
-                    "queries": [
-                        {
-                            "name": "Transaction Op Count",
-                            "fields": ["count()", "transaction.op"],
-                            "columns": ["transaction.op"],
-                            "aggregates": ["count()"],
-                            "conditions": "",
-                        }
-                    ],
-                    "widgetType": "transaction-like",
-                },
-                {
                     "title": "Irrelevant widget type",
                     "displayType": "table",
                     "interval": "5m",
@@ -2077,15 +2136,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             "error-events"
         )
 
-        assert widgets[1].widget_type == DashboardWidgetTypes.get_id_for_type_name(
-            "transaction-like"
-        )
-        assert widgets[1].discover_widget_split == DashboardWidgetTypes.get_id_for_type_name(
-            "transaction-like"
-        )
-
-        assert widgets[2].widget_type == DashboardWidgetTypes.get_id_for_type_name("issue")
-        assert widgets[2].discover_widget_split is None
+        assert widgets[1].widget_type == DashboardWidgetTypes.get_id_for_type_name("issue")
+        assert widgets[1].discover_widget_split is None
 
     def test_add_widget_with_selected_aggregate(self) -> None:
         data: dict[str, Any] = {
@@ -3280,13 +3332,7 @@ class OrganizationDashboardsGranularScopesTest(OrganizationDashboardWidgetTestCa
         assert response.status_code == 201, response.content
 
 
-@with_feature(
-    [
-        "organizations:dashboards-basic",
-        "organizations:dashboards-edit",
-        "organizations:explore-interpolation-and-smoothing",
-    ]
-)
+@with_feature("organizations:explore-interpolation-and-smoothing")
 class OrganizationDashboardTransformationsTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -3377,7 +3423,7 @@ class OrganizationDashboardTransformationsTest(APITestCase):
             "1": ["fill(zero)"],
         }
 
-    def test_create_and_read_latest_smoothing_pipelines(self) -> None:
+    def test_create_and_read_latest_smoothing_transformations(self) -> None:
         transformations = {
             "0": ["fill( linear )", "smooth( ema , 7 , 0.25 )"],
             "1": ["smooth(asap,7)", "fill(zero)"],
@@ -3428,14 +3474,14 @@ class OrganizationDashboardTransformationsTest(APITestCase):
             organization=self.organization, title="Transformed dashboard"
         ).exists()
 
-    def test_rejects_invalid_pipeline_on_create_and_update(self) -> None:
+    def test_rejects_invalid_transformations_on_create_and_update(self) -> None:
         response = self.client.post(self.url, self.data)
         assert response.status_code == 201, response.data
         dashboard_id = response.data["id"]
         widget = response.data["widgets"][0]
         query_id = widget["queries"][0]["id"]
 
-        invalid_pipelines: list[tuple[list[str], str]] = [
+        invalid_transformation_cases: list[tuple[list[str], str]] = [
             (
                 ["fill(locf)", "fill(zero)"],
                 "Only one transformation per function type is allowed per yAxis",
@@ -3457,8 +3503,8 @@ class OrganizationDashboardTransformationsTest(APITestCase):
                 "fill(invalid): mode argument invalid: expected one of locf, zero, linear",
             ),
         ]
-        for pipeline, message in invalid_pipelines:
-            self.data["widgets"][0]["queries"][0]["transformations"] = {"0": pipeline}
+        for transformations, message in invalid_transformation_cases:
+            self.data["widgets"][0]["queries"][0]["transformations"] = {"0": transformations}
             response = self.client.post(self.url, self.data)
             assert response.status_code == 400, response.data
             assert response.data["widgets"][0]["queries"][0]["transformations"] == {"0": [message]}
@@ -3470,7 +3516,9 @@ class OrganizationDashboardTransformationsTest(APITestCase):
                     "widgets": [
                         {
                             "id": widget["id"],
-                            "queries": [{"id": query_id, "transformations": {"0": pipeline}}],
+                            "queries": [
+                                {"id": query_id, "transformations": {"0": transformations}}
+                            ],
                         }
                     ]
                 },

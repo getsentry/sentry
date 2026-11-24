@@ -20,35 +20,21 @@ const rootDir = path.resolve(import.meta.dirname, '../..');
 
 const swcConfig: SwcOptions = {
   isModule: true,
-  module: {
-    type: 'commonjs',
-  },
+  module: {type: 'commonjs'},
   sourceMaps: 'inline',
   jsc: {
     target: 'esnext',
-    parser: {
-      syntax: 'typescript',
-      tsx: true,
-      dynamicImport: true,
-    },
+    parser: {syntax: 'typescript', tsx: true, dynamicImport: true},
     transform: {
-      react: {
-        runtime: 'automatic',
-        importSource: '@emotion/react',
-      },
-      optimizer: {
-        globals: {vars: {'import.meta.hot': 'undefined'}},
-      },
+      react: {runtime: 'automatic', importSource: '@emotion/react'},
+      optimizer: {globals: {vars: {'import.meta.hot': 'undefined'}}},
     },
     experimental: {
       plugins: [
         [fileURLToPath(import.meta.resolve('@swc-contrib/mut-cjs-exports')), {}],
         [
           fileURLToPath(import.meta.resolve('@swc/plugin-emotion')),
-          {
-            sourceMap: false,
-            autoLabel: 'never',
-          },
+          {sourceMap: false, autoLabel: 'never'},
         ],
       ],
     },
@@ -66,6 +52,10 @@ const ESM_NODE_MODULES = [
   'cbor2',
   'nuqs',
   'color',
+  // App views reach these through shared components such as DetectorLink. Keep in
+  // sync with createJestConfig.ts.
+  'marked',
+  '@sentry\\+sqlish',
   '@tanstack\\+(?:react-)?hotkeys@',
 ];
 
@@ -120,6 +110,11 @@ const config: Config.InitialOptions = {
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/mocks/svgMock.js',
     '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
     '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
+
+    // @sentry/sqlish is ESM-only with `exports` that only define `import`
+    // conditions. Jest's CJS resolver can't follow them without explicit mapping.
+    '^@sentry/sqlish/react$': '<rootDir>/node_modules/@sentry/sqlish/dist/react.js',
+    '^@sentry/sqlish$': '<rootDir>/node_modules/@sentry/sqlish/dist/index.js',
   },
 
   transform: {

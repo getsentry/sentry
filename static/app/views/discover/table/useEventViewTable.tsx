@@ -21,8 +21,9 @@ import {
 import {fieldAlignment, type Sort} from 'sentry/utils/discover/fields';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {CellAction, type Actions} from 'sentry/views/discover/table/cellAction';
-import type {TableColumn} from 'sentry/views/discover/table/types';
+
+import {CellAction, type Actions} from './cellAction';
+import type {TableColumn} from './types';
 
 type EventViewTableColumn = TableColumn<keyof TableDataRow>;
 
@@ -285,10 +286,7 @@ export function useEventViewTable({
 
   const {columnOrder, onResizeColumn} =
     resize === 'query'
-      ? {
-          columnOrder: queryResize.columns,
-          onResizeColumn: queryResize.handleResizeColumn,
-        }
+      ? {columnOrder: queryResize.columns, onResizeColumn: queryResize.handleResizeColumn}
       : resize === 'state'
         ? {columnOrder: stateColumns, onResizeColumn: handleStateResizeColumn}
         : {columnOrder: filteredColumns, onResizeColumn: undefined};

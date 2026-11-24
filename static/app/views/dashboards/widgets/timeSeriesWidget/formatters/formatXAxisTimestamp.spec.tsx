@@ -1,4 +1,3 @@
-import moment from 'moment-timezone';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -35,7 +34,7 @@ describe('formatXAxisTimestamp', () => {
     user.options.clock24Hours = false;
     ConfigStore.set('user', user);
 
-    const timestamp = moment.tz(raw, 'UTC').valueOf();
+    const timestamp = Date.parse(`${raw}Z`);
     expect(formatXAxisTimestamp(timestamp, 'UTC')).toEqual(formatted);
   });
 
@@ -52,7 +51,7 @@ describe('formatXAxisTimestamp', () => {
     user.options.clock24Hours = true;
     ConfigStore.set('user', user);
 
-    const timestamp = moment.tz(raw, 'UTC').valueOf();
+    const timestamp = Date.parse(`${raw}Z`);
     expect(formatXAxisTimestamp(timestamp, 'UTC')).toEqual(formatted);
   });
 
@@ -75,7 +74,7 @@ describe('formatXAxisTimestamp', () => {
       ['2025-02-05T06:30:00', 'Asia/Kolkata', '12:00 PM'], // 06:30 UTC = noon IST → time
       ['2025-02-05T00:00:00', 'Asia/Kolkata', '5:30 AM'], // 00:00 UTC = 5:30 AM IST → time
     ])('formats %s in %s as %s', (raw, timezone, formatted) => {
-      const timestamp = moment.tz(raw, 'UTC').valueOf();
+      const timestamp = Date.parse(`${raw}Z`);
       expect(formatXAxisTimestamp(timestamp, timezone)).toEqual(formatted);
     });
   });

@@ -60,7 +60,7 @@ export default function SeerAutomationRepos() {
         )}
       />
       <Stack gap="lg" flex="1" minHeight="0" contain="size">
-        <SeerSettingsPageBanners />
+        <SeerSettingsPageBanners isCodeReviewPage />
         <SeerRepoTable />
       </Stack>
       <Outlet />

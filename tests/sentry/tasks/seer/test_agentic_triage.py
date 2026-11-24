@@ -1,6 +1,6 @@
 import time
 from collections.abc import Iterator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from inspect import unwrap
 from typing import Any
 from unittest.mock import Mock, patch
@@ -27,11 +27,14 @@ from sentry.seer.models.agentic_triage import (
 )
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.models.workflow import (
+    SeerWorkflowConfig,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
     SeerWorkflowStrategy,
 )
 from sentry.tasks.seer.agentic_triage.cron import (
+    TOKEN_BILLING_CUTOFF,
+    TOKEN_BILLING_PRIOR_RUN_WINDOW,
     AgenticTriageShardPlan,
     ShardDispatchStatus,
     _agentic_triage_cron_expr,
@@ -181,7 +184,7 @@ class AgenticTriageFixtures(Fixtures):
 
 @django_db_all
 class TestBuildRunOptions(TestCase):
-    """Precedence: manual_overrides > project tweaks > org overrides > defaults."""
+    """Precedence: manual_overrides > org overrides > defaults."""
 
     def test_defaults_only(self) -> None:
         with self.options({"seer.night_shift.issues_per_org": 8}):
@@ -206,32 +209,12 @@ class TestBuildRunOptions(TestCase):
         assert resolved["intelligence_level"] == "medium"
         assert resolved["reasoning_effort"] == "medium"
 
-    def test_project_tweaks_override_org_overrides(self) -> None:
-        project = self.create_project(organization=self.organization)
-        project.update_option("sentry:seer_nightshift_tweaks", {"intelligence_level": "low"})
-
-        with self.options(
-            {"seer.night_shift.org_tweaks": {str(self.organization.id): {"max_candidates": 15}}}
-        ):
-            resolved = build_run_options(
-                organization_id=self.organization.id, project_id=project.id
-            )
-
-        # Project only set intelligence_level, so the org's max_candidates still
-        # shows through (the project layer no longer clobbers it with a default).
-        assert resolved["max_candidates"] == 15
-        assert resolved["intelligence_level"] == "low"
-
     def test_manual_overrides_win(self) -> None:
-        project = self.create_project(organization=self.organization)
-        project.update_option("sentry:seer_nightshift_tweaks", {"max_candidates": 25})
-
         with self.options(
             {"seer.night_shift.org_tweaks": {str(self.organization.id): {"max_candidates": 15}}}
         ):
             resolved = build_run_options(
                 organization_id=self.organization.id,
-                project_id=project.id,
                 manual_overrides={"source": "manual", "max_candidates": 3},
             )
 
@@ -311,6 +294,30 @@ class TestScheduleAgenticTriage(TestCase):
             assert _get_eligible_orgs_from_batch([org]) == [org]
             with override_settings(SENTRY_SELF_HOSTED=True):
                 assert _get_eligible_orgs_from_batch([org]) == []
+
+    def test_eligible_orgs_by_billing(self) -> None:
+        seat_based = self.create_organization()
+        token_billed = self.create_organization()
+        free_cohort = self.create_organization()
+        free_cohort.update_option("agentic-triage-free-cohort", True)
+        no_seer = self.create_organization()
+        all_orgs = [seat_based, token_billed, free_cohort, no_seer]
+
+        with (
+            self.options({"seer.night_shift.enable_for_legacy_orgs": False}),
+            self.feature(
+                {
+                    "organizations:seer-night-shift": [org.slug for org in all_orgs],
+                    "organizations:seat-based-seer-enabled": [seat_based.slug],
+                    "organizations:token-billed-seer-enabled": [token_billed.slug],
+                }
+            ),
+        ):
+            assert _get_eligible_orgs_from_batch(all_orgs) == [
+                seat_based,
+                token_billed,
+                free_cohort,
+            ]
 
     def test_disabled_by_option(self) -> None:
         with (
@@ -424,6 +431,30 @@ class TestScheduleAgenticTriage(TestCase):
         ):
             schedule_agentic_triage()
             mock_worker.apply_async.assert_not_called()
+
+    def test_dispatches_token_billed_orgs(self) -> None:
+        org = self.create_org_with_seer()
+
+        with (
+            self.options(
+                {
+                    "seer.night_shift.enable": True,
+                    "seer.night_shift.enable_for_legacy_orgs": False,
+                }
+            ),
+            self.feature(
+                {
+                    "organizations:seer-night-shift": [org.slug],
+                    "organizations:token-billed-seer-enabled": [org.slug],
+                }
+            ),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_for_org"
+            ) as mock_worker,
+        ):
+            schedule_agentic_triage()
+            mock_worker.apply_async.assert_called_once()
+            assert mock_worker.apply_async.call_args.kwargs["args"] == [org.id]
 
     def test_dispatches_legacy_orgs_when_enabled(self) -> None:
         org = self.create_org_with_seer()
@@ -572,15 +603,6 @@ class TestGetEligibleProjects(AgenticTriageFixtures, TestCase):
         assert tuning_by_slug[low.slug] == AutofixAutomationTuningSettings.LOW
         assert tuning_by_slug[always.slug] == AutofixAutomationTuningSettings.ALWAYS
 
-    def test_filters_by_project_id(self) -> None:
-        org = self.create_organization()
-        target = self._make_eligible(self.create_project(organization=org))
-        self._make_eligible(self.create_project(organization=org))
-
-        result = _get_eligible_projects(org, "manual", project_ids=[target.id])
-
-        assert [ep.project for ep in result] == [target]
-
     def test_cron_filters_disabled_tweaks_manual_keeps_them(self) -> None:
         org = self.create_organization()
         for slug, enabled in (("on", True), ("off", False)):
@@ -684,7 +706,7 @@ class TestGetEligibleProjects(AgenticTriageFixtures, TestCase):
                 return_value=True,
             ),
             patch(
-                "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_based_tier_enabled",
+                "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_or_token_billed_enabled",
                 return_value=True,
             ),
         ):
@@ -700,11 +722,42 @@ class TestGetEligibleProjects(AgenticTriageFixtures, TestCase):
         )
 
         with patch(
-            "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_based_tier_enabled",
+            "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_or_token_billed_enabled",
             return_value=True,
         ):
             result = _get_eligible_projects(org, "manual")
 
+        assert result[0].automation_tuning is None
+
+    def test_token_billed_orgs_are_not_legacy(self) -> None:
+        org = self.create_organization()
+        project = self._make_eligible(self.create_project(organization=org))
+        project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.LOW
+        )
+        # Token-billed orgs use the project's linked repos.
+        integration = self.create_integration(
+            organization=org, provider="github", external_id="github:1"
+        )
+        linked_repo = self.create_repo(
+            project=project,
+            provider="integrations:github",
+            integration_id=integration.id,
+            external_id="1",
+            name="owner/linked",
+        )
+        self.create_project_repository(project=project, repository=linked_repo)
+
+        with (
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.is_seer_autotriggered_autofix_rate_limited",
+                return_value=True,
+            ),
+            self.feature("organizations:token-billed-seer-enabled"),
+        ):
+            result = _get_eligible_projects(org, "manual")
+
+        assert [ep.project for ep in result] == [project]
         assert result[0].automation_tuning is None
 
 
@@ -954,6 +1007,86 @@ class TestRunAgenticTriageForOrg(AgenticTriageFixtures, TestCase, SnubaTestCase)
         assert run_id is not None
         mock_quota.assert_not_called()
 
+    def _create_prior_run(
+        self, org: Organization, *, date_added: datetime, trigger_key: str | None
+    ) -> None:
+        run = SeerWorkflowRun.objects.create(
+            organization=org,
+            workflow_config=SeerWorkflowConfig.get_or_create_for_strategy(
+                organization_id=org.id, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
+            ),
+            trigger_key=trigger_key,
+        )
+        SeerWorkflowRun.objects.filter(id=run.id).update(date_added=date_added)
+
+    def test_token_billed_org_without_prior_runs_is_not_scheduled(self) -> None:
+        org = self.create_organization()
+        window_start = TOKEN_BILLING_CUTOFF - TOKEN_BILLING_PRIOR_RUN_WINDOW
+        self._create_prior_run(
+            org, date_added=window_start - timedelta(days=1), trigger_key="old-schedule"
+        )
+        self._create_prior_run(org, date_added=window_start + timedelta(days=1), trigger_key=None)
+        self._create_prior_run(
+            org, date_added=TOKEN_BILLING_CUTOFF + timedelta(days=1), trigger_key="after-cutoff"
+        )
+
+        with (
+            self.feature("organizations:token-billed-seer-enabled"),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.quotas.backend.check_seer_quota",
+                return_value=True,
+            ),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
+            ) as mock_execution,
+        ):
+            run_id = run_agentic_triage_for_org(org.id, schedule_id="2024-07-22T22:00")
+
+        assert run_id is None
+        assert not SeerWorkflowRun.objects.filter(trigger_key="2024-07-22T22:00").exists()
+        mock_execution.assert_not_called()
+
+    def test_token_billed_org_with_prior_scheduled_run_keeps_running(self) -> None:
+        org = self.create_organization()
+        self._create_prior_run(
+            org,
+            date_added=TOKEN_BILLING_CUTOFF - timedelta(days=1),
+            trigger_key="2024-07-21T22:00",
+        )
+
+        with (
+            self.feature("organizations:token-billed-seer-enabled"),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.quotas.backend.check_seer_quota",
+                return_value=True,
+            ),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
+            ) as mock_execution,
+        ):
+            run_id = run_agentic_triage_for_org(org.id, schedule_id="2024-07-22T22:00")
+
+        assert run_id is not None
+        mock_execution.assert_called_once()
+
+    def test_token_billed_manual_run_skips_prior_run_check(self) -> None:
+        org = self.create_organization()
+
+        with (
+            self.feature("organizations:token-billed-seer-enabled"),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.quotas.backend.check_seer_quota",
+                return_value=True,
+            ),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
+            ) as mock_execution,
+        ):
+            run_id = run_agentic_triage_for_org(org.id, options={"source": "manual"})
+
+        assert run_id is not None
+        mock_execution.assert_called_once()
+
     def test_max_candidates_defaults_to_global_option(self) -> None:
         org = self.create_organization()
         low = self.create_project(organization=org, slug="low")
@@ -1175,7 +1308,7 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
 
         with (
             patch(
-                "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_based_tier_enabled",
+                "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_or_token_billed_enabled",
                 return_value=True,
             ),
         ):
@@ -1435,25 +1568,21 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
 @django_db_all
 class TestRunAgenticTriageForOrgManualPath(AgenticTriageFixtures, TestCase):
     """Manual-path coverage for run_agentic_triage_for_org — invoked from the
-    project-settings "Run Now" endpoint with source="manual" and project_ids."""
+    admin trigger with source="manual"."""
 
     def test_inactive_org_skipped(self) -> None:
         org = self.create_organization()
-        project = self.create_project(organization=org)
         org.update(status=OrganizationStatus.PENDING_DELETION)
 
         with patch(
             "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
         ) as mock_execute:
-            run_agentic_triage_for_org(
-                org.id, options={"source": "manual"}, project_ids=[project.id]
-            )
+            run_agentic_triage_for_org(org.id, options={"source": "manual"})
             mock_execute.assert_not_called()
             mock_execute.apply_async.assert_not_called()
 
-    def test_delegates_to_shared_pipeline_with_project_ids(self) -> None:
+    def test_delegates_to_shared_pipeline(self) -> None:
         org = self.create_organization()
-        project = self.create_project(organization=org)
 
         with patch(
             "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution",
@@ -1461,11 +1590,10 @@ class TestRunAgenticTriageForOrgManualPath(AgenticTriageFixtures, TestCase):
             result = run_agentic_triage_for_org(
                 org.id,
                 options={"source": "manual", "dry_run": True, "max_candidates": 3},
-                project_ids=[project.id],
             )
 
         mock_execute.assert_called_once()
-        # Sync invocation passes run_id as the positional arg, options + project_ids as kwargs.
+        # Sync invocation passes run_id as the positional arg and options as a kwarg.
         run_id = mock_execute.call_args.args[0]
         assert result == run_id
         run = SeerWorkflowRun.objects.get(id=run_id)
@@ -1482,11 +1610,9 @@ class TestRunAgenticTriageForOrgManualPath(AgenticTriageFixtures, TestCase):
             "reasoning_effort": "medium",
             "extra_triage_instructions": "",
         }
-        assert kwargs["project_ids"] == [project.id]
 
     def test_enqueues_execution_when_requested(self) -> None:
         org = self.create_organization()
-        project = self.create_project(organization=org)
 
         with patch(
             "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
@@ -1494,7 +1620,6 @@ class TestRunAgenticTriageForOrgManualPath(AgenticTriageFixtures, TestCase):
             run_id = run_agentic_triage_for_org(
                 org.id,
                 options={"source": "manual"},
-                project_ids=[project.id],
                 execute_in_task=True,
             )
 
@@ -1503,12 +1628,11 @@ class TestRunAgenticTriageForOrgManualPath(AgenticTriageFixtures, TestCase):
         mock_execute.assert_not_called()
         mock_execute.apply_async.assert_called_once_with(
             args=[run_id],
-            kwargs={"options": run.extras["options"], "project_ids": [project.id]},
+            kwargs={"options": run.extras["options"]},
         )
 
     def test_no_seer_quota_records_failed_run(self) -> None:
         org = self.create_organization()
-        project = self.create_project(organization=org)
 
         with (
             patch(
@@ -1519,9 +1643,7 @@ class TestRunAgenticTriageForOrgManualPath(AgenticTriageFixtures, TestCase):
                 "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
             ) as mock_execute,
         ):
-            run_id = run_agentic_triage_for_org(
-                org.id, options={"source": "manual"}, project_ids=[project.id]
-            )
+            run_id = run_agentic_triage_for_org(org.id, options={"source": "manual"})
 
         assert run_id is not None
         run = SeerWorkflowRun.objects.get(id=run_id)
@@ -1529,14 +1651,12 @@ class TestRunAgenticTriageForOrgManualPath(AgenticTriageFixtures, TestCase):
         assert run.extras["error_type"] == SeerAgenticTriageRunErrorType.NO_QUOTA.value
         mock_execute.assert_not_called()
 
-    def test_extras_contain_options_and_target_project_ids(self) -> None:
+    def test_extras_contain_options(self) -> None:
         org = self.create_organization()
-        project = self.create_project(organization=org)
 
         run_agentic_triage_for_org(
             org.id,
             options={"source": "manual", "dry_run": True, "max_candidates": 5},
-            project_ids=[project.id],
         )
 
         run = SeerWorkflowRun.objects.get(organization=org)
@@ -1550,23 +1670,8 @@ class TestRunAgenticTriageForOrgManualPath(AgenticTriageFixtures, TestCase):
                 "reasoning_effort": "medium",
                 "extra_triage_instructions": "",
             },
-            "target_project_ids": [project.id],
             "num_eligible_projects": 0,
         }
-
-    def test_extras_contain_triggering_user_id_when_provided(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-
-        run_agentic_triage_for_org(
-            org.id,
-            options={"source": "manual", "dry_run": True},
-            project_ids=[project.id],
-            triggering_user_id=4242,
-        )
-
-        run = SeerWorkflowRun.objects.get(organization=org)
-        assert run.extras["triggering_user_id"] == 4242
 
     def test_manual_runs_even_when_project_tweak_is_disabled(self) -> None:
         org = self.create_organization()
@@ -1576,9 +1681,7 @@ class TestRunAgenticTriageForOrgManualPath(AgenticTriageFixtures, TestCase):
             "sentry.tasks.seer.agentic_triage.cron.fixability_score_strategy",
             return_value=[],
         ) as mock_score:
-            run_agentic_triage_for_org(
-                org.id, options={"source": "manual"}, project_ids=[project.id]
-            )
+            run_agentic_triage_for_org(org.id, options={"source": "manual"})
 
         mock_score.assert_called_once()
         assert [p.id for p in mock_score.call_args.args[0]] == [project.id]

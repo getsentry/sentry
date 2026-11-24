@@ -1,9 +1,9 @@
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
-import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
-import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {BACKEND_LANDING_SUB_PATH} from './backend/settings';
+import {FRONTEND_LANDING_SUB_PATH} from './frontend/settings';
+import {DOMAIN_VIEW_BASE_URL} from './settings';
+import {useDomainViewFilters} from './useFilters';
 
 const frontendBasePath = `/${DOMAIN_VIEW_BASE_URL}/${FRONTEND_LANDING_SUB_PATH}`;
 const backendBasePath = `/${DOMAIN_VIEW_BASE_URL}/${BACKEND_LANDING_SUB_PATH}`;

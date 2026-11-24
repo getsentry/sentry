@@ -5,6 +5,7 @@ from .apidevicecode import *  # NOQA
 from .apigrant import *  # NOQA
 from .apikey import *  # NOQA
 from .apiscopes import *  # NOQA
+from .apisetupcode import *  # NOQA
 from .apitoken import *  # NOQA
 from .artifactbundle import *  # NOQA
 from .assistant import *  # NOQA

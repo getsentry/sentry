@@ -7,15 +7,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
-import type {
-  SeerRawResponse,
-  SeerRawResponseItem,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {
-  buildSeerMutationResult,
-  mapSeerResponseItem,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderAI,
@@ -29,6 +20,10 @@ import {
   AsyncSDKIntegrationContextProvider,
   useAsyncSDKIntegrationStore,
 } from 'sentry/views/app/asyncSDKIntegrationProvider';
+
+import {AskSeerComboBox} from './askSeerComboBox';
+import type {SeerRawResponse, SeerRawResponseItem} from './types';
+import {buildSeerMutationResult, mapSeerResponseItem} from './useSeerComboBoxSetup';
 
 const defaultProps = {
   enableAISearch: true,
@@ -47,10 +42,7 @@ const askSeerMutationOptions = mutationOptions({
         path: {organizationIdOrSlug: 'org-slug'},
       }),
       method: 'POST',
-      data: {
-        natural_language_query: queryToSubmit,
-        project_ids: SELECTED_PROJECT_IDS,
-      },
+      data: {natural_language_query: queryToSubmit, project_ids: SELECTED_PROJECT_IDS},
     });
 
     return buildSeerMutationResult(data, SELECTED_PROJECT_IDS, response =>
@@ -78,13 +70,9 @@ function seerResponse(
   };
 }
 
-const {organization} = initializeOrg({
-  organization: {hideAiFeatures: false},
-});
+const {organization} = initializeOrg({organization: {hideAiFeatures: false}});
 
-const feedbackIntegration = {
-  createForm: jest.fn(),
-} as unknown as FeedbackIntegration;
+const feedbackIntegration = {createForm: jest.fn()} as unknown as FeedbackIntegration;
 
 function FeedbackProvider({children}: {children: React.ReactNode}) {
   return (
@@ -248,14 +236,10 @@ describe('AskSeerComboBox', () => {
     expect(screen.queryByText('How did we do?')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
 
-    const input = screen.getByRole('combobox', {
-      name: 'Ask Seer with Natural Language',
-    });
+    const input = screen.getByRole('combobox', {name: 'Ask Seer with Natural Language'});
     await userEvent.type(input, 'test{Enter}');
 
-    const regenerateButton = await screen.findByRole('button', {
-      name: 'Generate again',
-    });
+    const regenerateButton = await screen.findByRole('button', {name: 'Generate again'});
     expect(regenerateButton).toBeEnabled();
     expect(screen.getByText('How did we do?')).toBeInTheDocument();
 
@@ -325,9 +309,7 @@ describe('AskSeerComboBox', () => {
     const openSeerSearchButton = await screen.findByText('Open Seer Search');
     await userEvent.click(openSeerSearchButton);
 
-    const closeButton = await screen.findByRole('button', {
-      name: 'Close Seer Search',
-    });
+    const closeButton = await screen.findByRole('button', {name: 'Close Seer Search'});
     await userEvent.click(closeButton);
 
     const notSeerSearch = await screen.findByText('Not Seer Search');
@@ -476,10 +458,7 @@ describe('AskSeerComboBox', () => {
           applySeerSearchQuery={applySeerSearchQuery}
         />
       </SearchQueryBuilderProvider>,
-      {
-        organization,
-        initialRouterConfig: {location: {pathname: '/foo/'}},
-      }
+      {organization, initialRouterConfig: {location: {pathname: '/foo/'}}}
     );
 
     const input = await screen.findByRole('combobox', {

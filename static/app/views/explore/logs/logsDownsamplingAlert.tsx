@@ -6,10 +6,11 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
-import {useLogsQueryHighFidelity} from 'sentry/views/explore/logs/useLogsQueryHighFidelity';
 import {useQueryParamsTopEventsLimit} from 'sentry/views/explore/queryParams/context';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+
+import type {UseInfiniteLogsQueryResult} from './useLogsQuery';
+import {useLogsQueryHighFidelity} from './useLogsQueryHighFidelity';
 
 interface LogsDownSamplingAlertProps {
   tableResult: UseInfiniteLogsQueryResult;

@@ -11,8 +11,9 @@ import {
   DataConditionGroupLogicType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {AutomationAlertPreview} from 'sentry/views/automations/components/automationAlertPreview';
-import {AutomationBuilderTestProvider} from 'sentry/views/automations/components/testUtils';
+
+import {AutomationAlertPreview} from './automationAlertPreview';
+import {AutomationBuilderTestProvider} from './testUtils';
 
 jest.unmock('@tanstack/react-pacer');
 
@@ -251,10 +252,7 @@ describe('AutomationAlertPreview', () => {
 
   it('paginates issues locally and resets when the alert changes', async () => {
     const groups = Array.from({length: 11}, (_, index) =>
-      GroupFixture({
-        id: String(index + 1),
-        title: `Preview issue ${index + 1}`,
-      })
+      GroupFixture({id: String(index + 1), title: `Preview issue ${index + 1}`})
     );
     const results = groups.map(group => ({
       groupId: group.id,

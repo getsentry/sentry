@@ -16,10 +16,6 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {useProjects} from 'sentry/utils/useProjects';
-import {
-  PREPROD_DETECTOR_FORM_FIELDS,
-  usePreprodDetectorFormField,
-} from 'sentry/views/detectors/components/forms/mobileBuild/mobileBuildFormData';
 import {PriorityDot} from 'sentry/views/detectors/components/priorityDot';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import {
@@ -29,6 +25,11 @@ import {
   MEASUREMENT_OPTIONS,
   METRIC_OPTIONS,
 } from 'sentry/views/settings/project/preprod/types';
+
+import {
+  PREPROD_DETECTOR_FORM_FIELDS,
+  usePreprodDetectorFormField,
+} from './mobileBuildFormData';
 
 function getMetricOptions(platform: Platform | undefined): Array<[string, string]> {
   return METRIC_OPTIONS.map(({value}) => [

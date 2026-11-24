@@ -1,10 +1,11 @@
+import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import type {OnboardingRecentCreatedProject} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {isRetryableRequestError} from 'sentry/utils/queryClientConfig';
 import {useProjects} from 'sentry/utils/useProjects';
 
 // Refetch the data every second
@@ -46,41 +47,33 @@ export function useRecentCreatedProject({
       ? projects.find(p => p.slug === projectSlug)
       : undefined;
 
-  const {isPending: isProjectLoading, data: freshProject} = useApiQuery<Project>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/overview/', {
-        path: {
-          organizationIdOrSlug: orgSlug,
-          projectIdOrSlug: projectSlug!,
-        },
-      }),
-    ],
-    {
-      staleTime: 0,
-      enabled: !!projectSlug,
-      refetchInterval: query => {
-        if (!query.state.data) {
-          return false;
-        }
-        const projectData = query.state.data.json;
+  const {isPending: isProjectLoading, data: freshProject} = useQuery({
+    ...apiOptions.as<Project>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/overview/',
+      {path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug!}, staleTime: 0}
+    ),
+    enabled: !!projectSlug,
+    refetchInterval: query => {
+      if (!query.state.data) {
+        // A failed first fetch leaves no data. Keep polling through transient
+        // errors so the page still sees the first event; client errors fail
+        // the same way on every attempt, so stop on those.
+        return query.state.error && !isRetryableRequestError(query.state.error)
+          ? false
+          : DEFAULT_POLL_INTERVAL_MS;
+      }
+      const projectData = query.state.data.json;
 
-        if (pollUntilFirstEvent) {
-          return projectData.firstEvent ? false : DEFAULT_POLL_INTERVAL_MS;
-        }
-        return isProjectActive(projectData) ? false : DEFAULT_POLL_INTERVAL_MS;
-      },
-    }
-  );
+      if (pollUntilFirstEvent) {
+        return projectData.firstEvent ? false : DEFAULT_POLL_INTERVAL_MS;
+      }
+      return isProjectActive(projectData) ? false : DEFAULT_POLL_INTERVAL_MS;
+    },
+  });
 
   if (isProjectLoading || !freshProject) {
-    return {
-      isProjectActive: project ? isProjectActive(project) : false,
-      project,
-    };
+    return {isProjectActive: project ? isProjectActive(project) : false, project};
   }
 
-  return {
-    isProjectActive: isProjectActive(freshProject),
-    project: freshProject,
-  };
+  return {isProjectActive: isProjectActive(freshProject), project: freshProject};
 }

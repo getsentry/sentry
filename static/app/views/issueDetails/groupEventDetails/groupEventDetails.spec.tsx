@@ -1,6 +1,7 @@
 import {QueryClientProvider} from '@tanstack/react-query';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
+import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -31,8 +32,6 @@ import {
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useParams} from 'sentry/utils/useParams';
-import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
@@ -42,11 +41,11 @@ import {
   makeEAPSpan,
 } from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 
+import GroupEventDetails from './groupEventDetails';
+
 const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
 
-// Issue details provides the group ID from the route.
-function GroupEventDetailsInRoute() {
-  const {groupId} = useParams<{groupId: string}>();
+function GroupEventDetailsWithProvider({groupId}: {groupId: string}) {
   return (
     <GroupIdProvider groupId={groupId}>
       <GroupEventDetails />
@@ -127,9 +126,7 @@ const makeDefaultMockData = (
           op: 'ui.action.click',
           type: 'trace',
         },
-        profile: {
-          profiler_id: 'a0f6f14c42c36b13',
-        },
+        profile: {profiler_id: 'a0f6f14c42c36b13'},
       },
     }),
   };
@@ -185,6 +182,10 @@ const mockGroupApis = (
   replayId?: string,
   trace?: TraceTree.EAPSpan
 ) => {
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/issues/`,
+    body: [],
+  });
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/issues/1/events/',
     body: [],
@@ -249,11 +250,6 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/has-mobile-app-events/`,
-    body: null,
-  });
-
-  MockApiClient.addMockResponse({
     url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/grouping-info/`,
     body: {},
   });
@@ -268,16 +264,11 @@ const mockGroupApis = (
   });
   MockApiClient.addMockResponse({
     url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/actionable-items/`,
-    body: {
-      errors: [],
-    },
+    body: {errors: []},
   });
 
   // Sentry related mocks
-  MockApiClient.addMockResponse({
-    url: '/sentry-apps/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/sentry-apps/', body: []});
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/sentry-apps/`,
@@ -290,23 +281,14 @@ const mockGroupApis = (
     match: [MockApiClient.matchQuery({projectId: project.id})],
   });
 
-  MockApiClient.addMockResponse({
-    url: '/projects/org-slug/project-slug/',
-    body: project,
-  });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/users/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/projects/org-slug/project-slug/', body: project});
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/projects/',
     body: [project],
   });
 
-  MockApiClient.addMockResponse({
-    url: '/customers/org-slug/policies/',
-    body: {},
-  });
+  MockApiClient.addMockResponse({url: '/customers/org-slug/policies/', body: {}});
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
@@ -314,10 +296,7 @@ const mockGroupApis = (
   });
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events/`,
-    body: {
-      data: [],
-      meta: {fields: {}, units: {}},
-    },
+    body: {data: [], meta: {fields: {}, units: {}}},
   });
   MockApiClient.addMockResponse({
     url: `/projects/${organization.slug}/${project.slug}/`,
@@ -327,33 +306,18 @@ const mockGroupApis = (
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
     method: 'GET',
-    body: AutofixSetupFixture({
-      integration: {
-        ok: true,
-        reason: null,
-      },
-    }),
+    body: AutofixSetupFixture({integration: {ok: true, reason: null}}),
   });
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
-    body: {
-      steps: [],
-    },
+    body: {steps: []},
   });
 
-  MockApiClient.addMockResponse({
-    url: '/customers/org-slug/',
-    method: 'GET',
-    body: {},
-  });
+  MockApiClient.addMockResponse({url: '/customers/org-slug/', method: 'GET', body: {}});
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/profiling/chunks/`,
-    body: {
-      chunk: {
-        profiler_id: event.contexts?.profile?.profiler_id,
-      },
-    },
+    body: {chunk: {profiler_id: event.contexts?.profile?.profiler_id}},
   });
 };
 
@@ -365,6 +329,88 @@ describe('groupEventDetails', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });
+
+  it.each([
+    {entryType: EntryType.EXCEPTION, enabled: true},
+    {entryType: EntryType.EXCEPTION, enabled: false},
+    {entryType: EntryType.STACKTRACE, enabled: true},
+    {entryType: EntryType.STACKTRACE, enabled: false},
+  ])(
+    'renders native $entryType with the new renderer only when enabled=$enabled',
+    async ({entryType, enabled}) => {
+      const props = makeDefaultMockData(
+        OrganizationFixture({
+          features: enabled ? ['issue-details-native-stack-trace'] : [],
+        })
+      );
+      const stacktrace = {
+        frames: [
+          FrameFixture({
+            platform: 'cocoa',
+            function: 'causeCrash',
+            rawFunction: null,
+            module: null,
+          }),
+        ],
+        framesOmitted: null,
+        hasSystemFrames: false,
+        registers: null,
+      };
+      props.event = EventFixture({
+        platform: 'cocoa',
+        projectID: props.project.id,
+        entries:
+          entryType === EntryType.STACKTRACE
+            ? [{type: EntryType.STACKTRACE, data: stacktrace}]
+            : [
+                {
+                  type: EntryType.EXCEPTION,
+                  data: {
+                    values: [
+                      {
+                        type: 'EXC_BAD_ACCESS',
+                        value: 'invalid address',
+                        module: null,
+                        mechanism: null,
+                        threadId: null,
+                        rawStacktrace: null,
+                        stacktrace,
+                      },
+                    ],
+                  },
+                },
+              ],
+      });
+      ProjectsStore.loadInitialData([props.project]);
+      mockGroupApis(props.organization, props.project, props.group, props.event);
+      MockApiClient.addMockResponse({
+        url: `/projects/${props.organization.slug}/${props.project.slug}/events/${props.event.id}/committers/`,
+        body: {committers: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {dismissed_ts: undefined, snoozed_ts: undefined},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/sentry-app-components/',
+        body: [],
+      });
+      const stacktraceLinkMock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/stacktrace-link/',
+        body: {config: null, sourceUrl: null, integrations: []},
+      });
+      render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
+        organization: props.organization,
+        initialRouterConfig: props.initialRouterConfig,
+      });
+
+      expect(await screen.findByText('causeCrash')).toBeInTheDocument();
+      expect(screen.queryAllByTestId('native-stack-trace-frame-title')).toHaveLength(
+        enabled ? 1 : 0
+      );
+      await waitFor(() => expect(stacktraceLinkMock).toHaveBeenCalled());
+    }
+  );
 
   describe('source-map issue content', () => {
     const eventUrl = '/organizations/org-slug/issues/1/events/recommended/';
@@ -399,7 +445,7 @@ describe('groupEventDetails', () => {
         body: props.event,
         asyncDelay: sampleResponse.promise,
       });
-      render(<GroupEventDetailsInRoute />, {
+      render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
         organization: props.organization,
         initialRouterConfig: props.initialRouterConfig,
       });
@@ -446,7 +492,7 @@ describe('groupEventDetails', () => {
       'keeps project content visible after $statusCode from $url',
       async ({url, statusCode, message}) => {
         MockApiClient.addMockResponse({url, statusCode});
-        render(<GroupEventDetailsInRoute />, {
+        render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
           organization: props.organization,
           initialRouterConfig: props.initialRouterConfig,
         });
@@ -487,7 +533,7 @@ describe('groupEventDetails', () => {
 
         render(
           <QueryClientProvider client={queryClient}>
-            <GroupEventDetailsInRoute />
+            <GroupEventDetailsWithProvider groupId={props.group.id} />
           </QueryClientProvider>,
           {
             organization: props.organization,
@@ -503,7 +549,7 @@ describe('groupEventDetails', () => {
 
     it('retries the sample request and displays its diagnosis', async () => {
       MockApiClient.addMockResponse({url: eventUrl, statusCode: 500});
-      render(<GroupEventDetailsInRoute />, {
+      render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
         organization: props.organization,
         initialRouterConfig: props.initialRouterConfig,
       });
@@ -522,7 +568,7 @@ describe('groupEventDetails', () => {
         url: eventUrl,
         body: EventFixture({...props.event, sdk: undefined}),
       });
-      render(<GroupEventDetailsInRoute />, {
+      render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
         organization: props.organization,
         initialRouterConfig: props.initialRouterConfig,
       });
@@ -555,11 +601,13 @@ describe('groupEventDetails', () => {
       body: props.event,
     });
 
-    const {router} = render(<GroupEventDetailsInRoute />, {
+    const {router} = render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
       organization: props.organization,
       initialRouterConfig: eventRouterConfig,
     });
-    expect(await screen.findByTestId('group-event-details')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'Copy Event ID'})
+    ).toBeInTheDocument();
 
     router.navigate(`${router.location.pathname}?environment=prod`);
 
@@ -567,9 +615,7 @@ describe('groupEventDetails', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: `/organizations/${props.organization.slug}/issues/${props.group.id}/`,
-          query: expect.objectContaining({
-            environment: 'prod',
-          }),
+          query: expect.objectContaining({environment: 'prod'}),
         })
       );
     });
@@ -579,7 +625,7 @@ describe('groupEventDetails', () => {
     const props = makeDefaultMockData();
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
-    const {router} = render(<GroupEventDetailsInRoute />, {
+    const {router} = render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
       organization: props.organization,
       initialRouterConfig: props.initialRouterConfig,
     });
@@ -593,9 +639,7 @@ describe('groupEventDetails', () => {
     expect(router.location).toEqual(
       expect.objectContaining({
         pathname: initialPathname,
-        query: expect.objectContaining({
-          environment: '',
-        }),
+        query: expect.objectContaining({environment: ''}),
       })
     );
   });
@@ -610,7 +654,7 @@ describe('groupEventDetails', () => {
 
     const query = {query: 'release:1.0', environment: 'dev', statsPeriod: '7d'};
 
-    render(<GroupEventDetailsInRoute />, {
+    render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
       organization: props.organization,
       initialRouterConfig: {
         ...props.initialRouterConfig,
@@ -670,12 +714,9 @@ describe('groupEventDetails', () => {
 
       render(
         <QueryClientProvider client={queryClient}>
-          <GroupEventDetailsInRoute />
+          <GroupEventDetailsWithProvider groupId={props.group.id} />
         </QueryClientProvider>,
-        {
-          organization: props.organization,
-          initialRouterConfig: props.initialRouterConfig,
-        }
+        {organization: props.organization, initialRouterConfig: props.initialRouterConfig}
       );
 
       expect(await screen.findByRole('button', {name: buttonName})).toBeInTheDocument();
@@ -700,7 +741,7 @@ describe('groupEventDetails', () => {
         body: {detail},
       });
 
-      render(<GroupEventDetailsInRoute />, {
+      render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
         organization: props.organization,
         initialRouterConfig: props.initialRouterConfig,
       });
@@ -725,7 +766,7 @@ describe('groupEventDetails', () => {
         statusCode: 404,
       });
 
-      render(<GroupEventDetailsInRoute />, {
+      render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
         organization: props.organization,
         initialRouterConfig: {
           location: {
@@ -760,7 +801,7 @@ describe('groupEventDetails', () => {
       statusCode: 500,
     });
 
-    render(<GroupEventDetailsInRoute />, {
+    render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
       organization: props.organization,
       initialRouterConfig: props.initialRouterConfig,
     });
@@ -779,18 +820,12 @@ describe('groupEventDetails', () => {
     });
     const transactionEvent = EventFixture({
       entries: [{type: EntryType.SPANS, data: []}],
-      contexts: {
-        trace: {
-          trace_id: TRACE_ID,
-          span_id: 'b0e6f15b45c36b12',
-          type: 'trace',
-        },
-      },
+      contexts: {trace: {trace_id: TRACE_ID, span_id: 'b0e6f15b45c36b12', type: 'trace'}},
     });
 
     mockGroupApis(props.organization, props.project, group, transactionEvent);
 
-    render(<GroupEventDetailsInRoute />, {
+    render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
       organization: props.organization,
       initialRouterConfig: props.initialRouterConfig,
     });
@@ -813,16 +848,14 @@ describe('groupEventDetails', () => {
       entries: [],
       occurrence: {
         evidenceDisplay: [],
-        evidenceData: {
-          templateName: 'profile',
-        },
+        evidenceData: {templateName: 'profile'},
         type: 2001,
       },
     });
 
     mockGroupApis(props.organization, props.project, group, transactionEvent);
 
-    render(<GroupEventDetailsInRoute />, {
+    render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
       organization: props.organization,
       initialRouterConfig: props.initialRouterConfig,
     });
@@ -839,7 +872,7 @@ describe('groupEventDetails', () => {
     const {organization, project, group, event, initialRouterConfig} =
       makeDefaultMockData();
     mockGroupApis(organization, project, group, event);
-    render(<GroupEventDetailsInRoute />, {
+    render(<GroupEventDetailsWithProvider groupId={group.id} />, {
       organization,
       initialRouterConfig,
     });
@@ -870,7 +903,7 @@ describe('groupEventDetails', () => {
         mockedTrace(props.project)
       );
 
-      render(<GroupEventDetailsInRoute />, {
+      render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
         organization: props.organization,
         initialRouterConfig: props.initialRouterConfig,
       });
@@ -897,7 +930,7 @@ describe('groupEventDetails', () => {
         mockedTrace(props.project)
       );
 
-      render(<GroupEventDetailsInRoute />, {
+      render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
         organization: props.organization,
         initialRouterConfig: props.initialRouterConfig,
       });
@@ -922,7 +955,7 @@ describe('groupEventDetails', () => {
         mockedTrace(props.project)
       );
 
-      render(<GroupEventDetailsInRoute />, {
+      render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
         organization: props.organization,
         initialRouterConfig: props.initialRouterConfig,
       });
@@ -947,7 +980,7 @@ describe('groupEventDetails', () => {
         mockedTrace(props.project)
       );
 
-      render(<GroupEventDetailsInRoute />, {
+      render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
         organization: props.organization,
         initialRouterConfig: props.initialRouterConfig,
       });
@@ -970,13 +1003,10 @@ describe('groupEventDetails', () => {
         props.group,
         props.event,
         undefined,
-        {
-          ...trace,
-          occurrences: [],
-        }
+        {...trace, occurrences: []}
       );
 
-      render(<GroupEventDetailsInRoute />, {
+      render(<GroupEventDetailsWithProvider groupId={props.group.id} />, {
         organization: props.organization,
         initialRouterConfig: props.initialRouterConfig,
       });

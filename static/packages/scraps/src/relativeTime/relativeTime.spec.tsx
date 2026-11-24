@@ -1,0 +1,232 @@
+import type * as React from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {act, render, screen} from '@testing-library/react';
+import moment from 'moment-timezone';
+
+import {
+  configureFormatting,
+  type DateTimePreferences,
+  DateTimeProvider,
+} from '@sentry/scraps/dateTime';
+import {RelativeTime} from '@sentry/scraps/relativeTime';
+import {lightTheme} from '@sentry/scraps/theme';
+
+import {getSnapshot} from '../dateTime/config';
+
+afterEach(() => {
+  try {
+    jest.runOnlyPendingTimers();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+// Midnight UTC on New Year's Day, which is still the previous year in Los
+// Angeles. Rows straddling a date boundary is the case the card exists for.
+const DATE = '2026-01-01T00:00:00Z';
+
+function renderInTimezone(
+  children: NonNullable<React.ReactNode>,
+  timezone: string,
+  clock: DateTimePreferences['clock'] = '12'
+) {
+  return render(
+    <ThemeProvider theme={lightTheme}>
+      <DateTimeProvider value={{timezone, clock}}>{children}</DateTimeProvider>
+    </ThemeProvider>
+  );
+}
+
+describe('RelativeTime', () => {
+  let restore: () => void;
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-09-01T00:00:00Z'));
+    const snapshot = {
+      ...getSnapshot(),
+      getTimezoneAbbreviation: (epochMilliseconds: number, timezone: string) =>
+        moment.tz.zone(timezone)?.abbr(epochMilliseconds),
+    };
+    restore = configureFormatting({
+      getSnapshot: () => snapshot,
+      subscribe: () => () => {},
+    });
+  });
+
+  afterEach(() => act(() => restore()));
+
+  it('renders the label and relative time in the header', () => {
+    renderInTimezone(
+      <RelativeTime date={DATE} label="Last Seen" suffix="ago" />,
+      'America/Los_Angeles'
+    );
+
+    expect(screen.getByText('Last Seen')).toBeInTheDocument();
+    expect(screen.getByText('8 months ago')).toBeInTheDocument();
+  });
+
+  it('renders no header when it has no label', () => {
+    // Most timestamps in the app are already labelled by what they sit next to,
+    // so the rows are the whole card.
+    renderInTimezone(<RelativeTime date={DATE} suffix="ago" />, 'America/Los_Angeles');
+
+    expect(screen.queryByText('8 months ago')).not.toBeInTheDocument();
+    expect(screen.getByText('PST')).toBeInTheDocument();
+    expect(screen.getByText('UTC')).toBeInTheDocument();
+  });
+
+  it('renders the viewer timezone and UTC rows', () => {
+    renderInTimezone(
+      <RelativeTime date={DATE} label="Last Seen" />,
+      'America/Los_Angeles'
+    );
+
+    expect(screen.getByText('PST')).toBeInTheDocument();
+    expect(screen.getByText('Dec 31, 2025')).toBeInTheDocument();
+    expect(screen.getByText('4:00 PM')).toBeInTheDocument();
+
+    expect(screen.getByText('UTC')).toBeInTheDocument();
+    expect(screen.getByText('Jan 1, 2026')).toBeInTheDocument();
+    expect(screen.getByText('12:00 AM')).toBeInTheDocument();
+  });
+
+  it('follows the viewer timezone', () => {
+    renderInTimezone(<RelativeTime date={DATE} label="Last Seen" />, 'Australia/Sydney');
+
+    expect(screen.getByText('AEDT')).toBeInTheDocument();
+    expect(screen.getByText('11:00 AM')).toBeInTheDocument();
+    // Midnight UTC is mid-morning in Sydney, so unlike Los Angeles both rows
+    // land on the same calendar date
+    expect(screen.getAllByText('Jan 1, 2026')).toHaveLength(2);
+  });
+
+  it('honors the 24 hour clock preference', () => {
+    renderInTimezone(
+      <RelativeTime date={DATE} label="Last Seen" />,
+      'America/Los_Angeles',
+      '24'
+    );
+
+    expect(screen.getByText('16:00')).toBeInTheDocument();
+    expect(screen.getByText('00:00')).toBeInTheDocument();
+  });
+
+  it('shows seconds when asked', () => {
+    // Spans in a trace are not identified by the minute alone, so dropping the
+    // seconds the old tooltip showed would lose what the row is for.
+    renderInTimezone(
+      <RelativeTime date={DATE} label="Last Seen" showSeconds />,
+      'America/Los_Angeles'
+    );
+
+    expect(screen.getByText('4:00:00 PM')).toBeInTheDocument();
+    expect(screen.getByText('12:00:00 AM')).toBeInTheDocument();
+  });
+
+  it('collapses to one row when the viewer is already in UTC', () => {
+    renderInTimezone(<RelativeTime date={DATE} label="Last Seen" />, 'UTC');
+
+    expect(screen.getByText('UTC')).toBeInTheDocument();
+    expect(screen.getByText('Jan 1, 2026')).toBeInTheDocument();
+    expect(screen.getByText('12:00 AM')).toBeInTheDocument();
+  });
+
+  it('keeps both rows for a zone that only shares UTC current offset', () => {
+    // Reykjavik is GMT year round. Same instant as UTC, different label.
+    renderInTimezone(
+      <RelativeTime date={DATE} label="Last Seen" />,
+      'Atlantic/Reykjavik'
+    );
+
+    expect(screen.getByText('GMT')).toBeInTheDocument();
+    expect(screen.getByText('UTC')).toBeInTheDocument();
+    expect(screen.getAllByText('12:00 AM')).toHaveLength(2);
+  });
+
+  it('renders zones that have no abbreviation', () => {
+    renderInTimezone(<RelativeTime date={DATE} label="Last Seen" />, 'Asia/Kathmandu');
+
+    expect(screen.getByText('+0545')).toBeInTheDocument();
+    expect(screen.getByText('5:45 AM')).toBeInTheDocument();
+  });
+
+  it('matches the trigger for dates in the future', () => {
+    // The header must read the same as the <TimeSince> it expands on, which
+    // defaults prefix to "in" — omitting it here must not print `undefined`.
+    renderInTimezone(
+      <RelativeTime
+        date="2026-09-04T00:00:00Z"
+        label="Last Seen"
+        suffix="ago"
+        rounding="unit"
+        style="short"
+      />,
+      'America/Los_Angeles'
+    );
+
+    expect(screen.getByText('in 3d')).toBeInTheDocument();
+  });
+
+  it('matches the trigger by respecting unit width', () => {
+    renderInTimezone(
+      <RelativeTime
+        date={DATE}
+        label="Last Seen"
+        suffix="ago"
+        rounding="unit"
+        style="short"
+      />,
+      'America/Los_Angeles'
+    );
+
+    expect(screen.getByText('8mo ago')).toBeInTheDocument();
+  });
+});
+
+describe('localized preferences', () => {
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:05Z'));
+  });
+  it('updates localized duration and clock preferences through the date provider', () => {
+    const snapshot = {
+      ...getSnapshot(),
+      messages: {
+        ...getSnapshot().messages,
+        tn: (_singular: string, plural: string) => `translated ${plural}`,
+      },
+    };
+    const restore = configureFormatting({
+      getSnapshot: () => snapshot,
+      subscribe: () => () => {},
+    });
+    const {rerender} = render(
+      <ThemeProvider theme={lightTheme}>
+        <DateTimeProvider value={{timezone: 'UTC', clock: '12'}}>
+          <RelativeTime
+            date={DATE}
+            label="Last seen"
+            suffix="elapsed"
+            rounding="unit"
+            style="long"
+          />
+        </DateTimeProvider>
+      </ThemeProvider>
+    );
+    expect(screen.getByText('5 translated seconds elapsed')).toBeInTheDocument();
+    expect(screen.getByText('12:00 AM')).toBeInTheDocument();
+    rerender(
+      <ThemeProvider theme={lightTheme}>
+        <DateTimeProvider value={{timezone: 'UTC', clock: '24'}}>
+          <RelativeTime
+            date={DATE}
+            label="Last seen"
+            suffix="elapsed"
+            rounding="unit"
+            style="long"
+          />
+        </DateTimeProvider>
+      </ThemeProvider>
+    );
+    expect(screen.getByText('00:00')).toBeInTheDocument();
+    restore();
+  });
+});

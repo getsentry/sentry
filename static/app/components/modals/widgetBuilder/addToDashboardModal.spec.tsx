@@ -4,8 +4,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import AddToDashboardModal from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import type {
@@ -18,6 +18,8 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+
+import AddToDashboardModal from './addToDashboardModal';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
@@ -58,12 +60,7 @@ describe('add to dashboard modal', () => {
   const defaultSelection = {
     projects: [],
     environments: [],
-    datetime: {
-      start: null,
-      end: null,
-      period: '24h',
-      utc: false,
-    },
+    datetime: {start: null, end: null, period: '24h', utc: false},
   };
 
   beforeEach(() => {
@@ -601,6 +598,74 @@ describe('add to dashboard modal', () => {
     });
   });
 
+  it('saves sort when clicking Add + Stay on this Page with a table widget', async () => {
+    const dashboardDetailGetMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      body: {id: '1', widgets: []},
+    });
+    const dashboardDetailPutMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      method: 'PUT',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [], meta: {fields: {}}},
+    });
+    widget = {
+      ...widget,
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          conditions: '',
+          fields: ['project', 'count()'],
+          aggregates: ['count()'],
+          fieldAliases: [],
+          columns: ['project'],
+          orderby: 'count()',
+          name: '',
+        },
+      ],
+    };
+    render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => {}}
+        organization={initialData.organization}
+        widgets={[widget]}
+        selection={defaultSelection}
+        location={LocationFixture()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+    await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
+
+    await userEvent.click(screen.getByText('Add + Stay on this Page'));
+    expect(dashboardDetailGetMock).toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(dashboardDetailPutMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            widgets: [
+              expect.objectContaining({
+                displayType: 'table',
+                queries: [expect.objectContaining({orderby: 'count()'})],
+              }),
+            ],
+          }),
+        })
+      );
+    });
+  });
+
   it('disables Add + Stay in Discover when a new dashboard is selected', async () => {
     render(
       <AddToDashboardModal
@@ -644,9 +709,7 @@ describe('add to dashboard modal', () => {
       {
         initialRouterConfig: {
           route: '/organizations/:orgId/dashboard/:dashboardId/',
-          location: {
-            pathname: '/organizations/org-slug/dashboard/1/',
-          },
+          location: {pathname: '/organizations/org-slug/dashboard/1/'},
         },
       }
     );
@@ -756,12 +819,7 @@ describe('add to dashboard modal', () => {
     const customSelection = {
       projects: [2, 3],
       environments: ['production', 'staging'],
-      datetime: {
-        start: null,
-        end: null,
-        period: '7d',
-        utc: false,
-      },
+      datetime: {start: null, end: null, period: '7d', utc: false},
     };
 
     const {router} = render(
@@ -814,12 +872,7 @@ describe('add to dashboard modal', () => {
     const customSelection = {
       projects: [2, 3],
       environments: ['production', 'staging'],
-      datetime: {
-        start: null,
-        end: null,
-        period: '7d',
-        utc: false,
-      },
+      datetime: {start: null, end: null, period: '7d', utc: false},
     };
 
     const {router} = render(

@@ -2,21 +2,22 @@ import {useMemo} from 'react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 
 import {Tag} from '@sentry/scraps/badge';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useTraceMetricItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HIDDEN_TRACEMETRIC_GROUP_BY_FIELDS_SET} from 'sentry/views/explore/metrics/constants';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
-import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
 import {
   createTraceMetricFilter,
   hasDisplayMetricUnit,
 } from 'sentry/views/explore/metrics/utils';
+
+import type {MetricSelectorOption} from './types';
 
 const METRIC_ATTRIBUTES_DEBOUNCE_DURATION = 200;
 
@@ -53,7 +54,7 @@ export function MetricDetailPanel({metric}: {metric: MetricSelectorOption | null
           <Text variant="muted" size="md">
             {t('Last seen')}
           </Text>
-          <DateTime date={metric.lastSeen} timeZone />
+          <DateTime date={metric.lastSeen} showTimezone />
         </Flex>
       ) : null}
       {metric.count === undefined ? null : (
@@ -79,10 +80,7 @@ function MetricAttributesSection({
   metricName: string;
   metricType: string;
 }) {
-  const traceMetricFilter = createTraceMetricFilter({
-    name: metricName,
-    type: metricType,
-  });
+  const traceMetricFilter = createTraceMetricFilter({name: metricName, type: metricType});
 
   const [debouncedTraceMetricFilter] = useDebouncedValue(traceMetricFilter, {
     wait: METRIC_ATTRIBUTES_DEBOUNCE_DURATION,

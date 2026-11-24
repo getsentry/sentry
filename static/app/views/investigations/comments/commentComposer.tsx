@@ -1,26 +1,32 @@
 import {useEffect, useRef, useState} from 'react';
+import isEqual from 'lodash/isEqual';
 
 import {Button} from '@sentry/scraps/button';
 import {Composer, type ComposerValue} from '@sentry/scraps/composer';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {serializeMentions} from 'sentry/utils/mentions/serializeMentions';
+import {useOrgMentionPlugins} from 'sentry/utils/mentions/useOrgMentionPlugins';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useCreateInvestigationCommentMutation,
   useUpdateInvestigationCommentMutation,
 } from 'sentry/views/investigations/api';
-import {
-  loadCommentDraft,
-  saveCommentDraft,
-} from 'sentry/views/investigations/comments/commentDrafts';
 import type {InvestigationComment} from 'sentry/views/investigations/types';
+
+import {loadCommentDraft, saveCommentDraft} from './commentDrafts';
 
 const EMPTY_VALUE: ComposerValue = {text: '', mentions: []};
 
 function isSubmitKey(event: React.KeyboardEvent) {
   return event.key === 'Enter' && !event.shiftKey && !event.altKey;
+}
+
+function serializeComment(value: ComposerValue) {
+  const {text, mentions} = serializeMentions(value);
+  return {body: text.trim(), mentions};
 }
 
 export function CommentComposer({
@@ -35,22 +41,27 @@ export function CommentComposer({
   inputRef?: React.Ref<HTMLDivElement>;
 }) {
   const organization = useOrganization();
+  const plugins = useOrgMentionPlugins({team: {trigger: '#'}});
   const [value, setValue] = useState<ComposerValue>(() =>
-    blockId
-      ? {text: loadCommentDraft(investigationId, blockId), mentions: []}
-      : EMPTY_VALUE
+    blockId ? loadCommentDraft(investigationId, blockId) : EMPTY_VALUE
   );
   const {mutate, isPending} = useCreateInvestigationCommentMutation(
     organization.slug,
     investigationId,
     {
-      onSuccess: (_comment, {body: submitted}) => {
-        setValue(current => (current.text.trim() === submitted ? EMPTY_VALUE : current));
-        if (blockId && loadCommentDraft(investigationId, blockId).trim() === submitted) {
-          saveCommentDraft(investigationId, blockId, '');
+      onSuccess: (_comment, {body, mentions}) => {
+        const submitted = {body, mentions: mentions ?? []};
+        setValue(current =>
+          isEqual(serializeComment(current), submitted) ? EMPTY_VALUE : current
+        );
+        if (
+          blockId &&
+          isEqual(serializeComment(loadCommentDraft(investigationId, blockId)), submitted)
+        ) {
+          saveCommentDraft(investigationId, blockId, EMPTY_VALUE);
         }
       },
-      onError: () => addErrorMessage(t('Unable to post comment.')),
+      onError: () => toast.error(t('Unable to post comment.')),
     }
   );
   const body = value.text.trim();
@@ -59,7 +70,7 @@ export function CommentComposer({
     if (!body || isPending) {
       return;
     }
-    mutate({body, blockId});
+    mutate({...serializeComment(value), blockId});
   };
 
   return (
@@ -72,10 +83,10 @@ export function CommentComposer({
         onChange={next => {
           setValue(next);
           if (blockId) {
-            saveCommentDraft(investigationId, blockId, next.text);
+            saveCommentDraft(investigationId, blockId, next);
           }
         }}
-        plugins={[]}
+        plugins={plugins}
         minHeight={56}
         onKeyDown={event => {
           if (isSubmitKey(event)) {
@@ -138,10 +149,10 @@ export function EditCommentForm({
       {commentId: comment.id, body},
       {
         onSuccess: () => {
-          addSuccessMessage(t('Comment updated.'));
+          toast.success(t('Comment updated.'));
           onDone();
         },
-        onError: () => addErrorMessage(t('Unable to save comment.')),
+        onError: () => toast.error(t('Unable to save comment.')),
       }
     );
   };

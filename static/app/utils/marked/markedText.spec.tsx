@@ -4,7 +4,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {loadPrismLanguage} from '@sentry/scraps/codeBlock';
 
-import {MarkedText} from 'sentry/utils/marked/markedText';
+import {MarkedText} from './markedText';
 
 jest.unmock('prismjs');
 

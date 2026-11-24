@@ -1,4 +1,3 @@
-import {IconChevron} from '@sentry/icons/chevron';
 import {IconDownload} from '@sentry/icons/download';
 import {IconSettings} from '@sentry/icons/settings';
 
@@ -6,14 +5,15 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
+import {ExploreSidebarToggle} from 'sentry/views/explore/components/exploreSidebarToggle';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {
   ExploreContentSection,
   ExploreControlSection,
 } from 'sentry/views/explore/components/styles';
-import {ErrorsCharts} from 'sentry/views/explore/errors/charts';
-import {ErrorsToolbar} from 'sentry/views/explore/errors/toolbar';
-import {ChevronButton} from 'sentry/views/explore/spans/spansTab';
+
+import {ErrorsCharts} from './charts';
+import {ErrorsToolbar} from './toolbar';
 
 interface ErrorsControlSectionProps {
   controlSectionExpanded: boolean;
@@ -41,23 +41,10 @@ export function ErrorsContentSection({
   return (
     <ExploreContentSection gap="md">
       <OverChartButtonGroup>
-        <ChevronButton
-          aria-label={
-            controlSectionExpanded ? t('Collapse sidebar') : t('Expand sidebar')
-          }
+        <ExploreSidebarToggle
           expanded={controlSectionExpanded}
-          size="xs"
-          icon={
-            <IconChevron
-              isDouble
-              direction={controlSectionExpanded ? 'left' : 'right'}
-              size="xs"
-            />
-          }
-          onClick={() => setControlSectionExpanded(!controlSectionExpanded)}
-        >
-          {controlSectionExpanded ? null : t('Advanced')}
-        </ChevronButton>
+          onExpandedChange={setControlSectionExpanded}
+        />
         <Flex gap="xs">
           <Button size="xs" aria-label={t('Export data')} icon={<IconDownload />}>
             {t('Export')}

@@ -1,6 +1,6 @@
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useWidgetViewportVisibility} from 'sentry/views/dashboards/contexts/widgetViewportContext';
+import {useWidgetViewportVisibility} from './widgetViewportContext';
 
 describe('useWidgetViewportVisibility', () => {
   const originalIntersectionObserver = window.IntersectionObserver;

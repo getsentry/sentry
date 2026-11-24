@@ -2,17 +2,18 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {
-  decodeMetricsQueryParams,
-  defaultMetricQuery,
-  encodeMetricQueryParams,
-  stripMetricParamsFromLocation,
-} from 'sentry/views/explore/metrics/metricQuery';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+
+import {
+  decodeMetricsQueryParams,
+  defaultMetricQuery,
+  encodeMetricQueryParams,
+  stripMetricParamsFromLocation,
+} from './metricQuery';
 
 describe('decodeMetricsQueryParams', () => {
   it('parses all visualizes', () => {

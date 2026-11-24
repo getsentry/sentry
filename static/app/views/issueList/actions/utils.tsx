@@ -4,26 +4,22 @@ import type {QueryClient} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import type {ResponsiveKey} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t, tct, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import {BULK_LIMIT, BULK_LIMIT_STR} from 'sentry/views/issueList/actions/constants';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
+import {BULK_LIMIT, BULK_LIMIT_STR} from './constants';
 import {ExtraDescription} from './extraDescription';
 
 export enum ConfirmAction {
@@ -41,19 +37,13 @@ function getBulkConfirmMessage(action: string, queryCount: number) {
   if (queryCount > BULK_LIMIT) {
     return tct(
       'Are you sure you want to [action] the first [bulkNumber] issues that match the search?',
-      {
-        action,
-        bulkNumber: BULK_LIMIT_STR,
-      }
+      {action, bulkNumber: BULK_LIMIT_STR}
     );
   }
 
   return tct(
     'Are you sure you want to [action] all [bulkNumber] issues that match the search?',
-    {
-      action,
-      bulkNumber: queryCount,
-    }
+    {action, bulkNumber: queryCount}
   );
 }
 
@@ -215,23 +205,20 @@ export function invalidateIssueQueries({
 }) {
   if (itemIds !== undefined) {
     for (const itemId of itemIds) {
-      queryClient.invalidateQueries({
-        queryKey: [`/organizations/${organizationSlug}/issues/${itemId}/`],
-        exact: false,
-      });
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+          path: {organizationIdOrSlug: organizationSlug, issueId: itemId},
+        })
+      );
     }
     return;
   }
 
-  queryClient.invalidateQueries({
-    predicate: apiQuery => {
-      const queryKey = safeParseQueryKey(apiQuery.queryKey);
-      if (!queryKey) {
-        return false;
-      }
-      return queryKey.url.startsWith(`/organizations/${organizationSlug}/issues/`);
-    },
-  });
+  queryClient.invalidateQueries(
+    apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/*', {
+      path: {organizationIdOrSlug: organizationSlug},
+    })
+  );
 }
 
 function getBulkUpdateErrorMessage(error: unknown): string {
@@ -267,7 +254,7 @@ export async function performBulkUpdate({
     project: getSelectedProjectIds({selectedGroupIds: itemIds, selection}),
   };
 
-  addLoadingMessage(t('Saving changes…'));
+  toast.loading(t('Saving changes…'));
 
   try {
     await bulkUpdate(api, {
@@ -281,10 +268,10 @@ export async function performBulkUpdate({
       ...projectConstraints,
       ...selection.datetime,
     });
-    clearIndicators();
+    toast.dismiss();
     onSuccess?.(itemIds);
   } catch (error) {
-    clearIndicators();
-    addErrorMessage(getBulkUpdateErrorMessage(error));
+    toast.dismiss();
+    toast.error(getBulkUpdateErrorMessage(error));
   }
 }

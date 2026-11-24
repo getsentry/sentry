@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {NodeRuntimeMetricsOnboarding} from 'sentry/views/insights/pages/nodeRuntime/onboarding';
+import {NodeRuntimeMetricsOnboarding} from './onboarding';
 
 describe('NodeRuntimeMetricsOnboarding', () => {
   it('renders setup instructions with the SDK version requirement', () => {

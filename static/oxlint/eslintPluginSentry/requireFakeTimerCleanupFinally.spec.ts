@@ -30,6 +30,26 @@ ruleTester.run('require-fake-timer-cleanup', requireFakeTimerCleanup, {
       name: 'finally restores timers after awaited asynchronous act cleanup',
       code: `beforeEach(() => jest.useFakeTimers()); afterEach(async () => {try {cleanup(); await act(async () => {await jest.runOnlyPendingTimersAsync();});} finally {jest.useRealTimers();}});`,
     },
+    {
+      name: 'uninitialized declaration inside try',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {try {let pending; jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}});`,
+    },
+    {
+      name: 'empty statement inside try',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {try {; jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}});`,
+    },
+    {
+      name: 'declarations before try',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {function helper() {}; let pending; try {jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}});`,
+    },
+    {
+      name: 'async flush returned from awaited act',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(async () => {try {await act(async () => {return jest.runOnlyPendingTimersAsync();});} finally {jest.useRealTimers();}});`,
+    },
+    {
+      name: 'act with a function expression',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {try {act(function () {jest.runOnlyPendingTimers();});} finally {jest.useRealTimers();}});`,
+    },
   ],
   invalid: [
     {
@@ -96,6 +116,26 @@ ruleTester.run('require-fake-timer-cleanup', requireFakeTimerCleanup, {
       name: 'try without finally does not count',
       code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {try {jest.runOnlyPendingTimers(); jest.useRealTimers();} catch (error) {}});`,
       errors: [{messageId: 'missingCleanup'}],
+    },
+    {
+      name: 'awaited unrelated call in try does not count',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(async () => {try {await cleanup();} finally {jest.useRealTimers();}});`,
+      errors: [{messageId: 'missingRunOnlyPendingTimers'}],
+    },
+    {
+      name: 'flush inside a non-act callback does not count',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {try {helper(() => {jest.runOnlyPendingTimers();});} finally {jest.useRealTimers();}});`,
+      errors: [{messageId: 'missingRunOnlyPendingTimers'}],
+    },
+    {
+      name: 'expression-bodied act teardown is not protected',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => act(() => {jest.runOnlyPendingTimers(); jest.useRealTimers();}));`,
+      errors: [{messageId: 'missingFinally'}],
+    },
+    {
+      name: 'partially initialized declaration before try is not protected',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {let pending, value = cleanup(); try {jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}});`,
+      errors: [{messageId: 'missingFinally'}],
     },
   ],
 });

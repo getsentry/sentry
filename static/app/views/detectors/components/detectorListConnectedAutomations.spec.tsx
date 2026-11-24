@@ -3,8 +3,8 @@ import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DetectorListConnectedAutomations} from 'sentry/views/detectors/components/detectorListConnectedAutomations';
-import {IssueStreamDetectorContextProvider} from 'sentry/views/detectors/components/detectorListTable/issueStreamDetectorContext';
+import {IssueStreamDetectorContextProvider} from './detectorListTable/issueStreamDetectorContext';
+import {DetectorListConnectedAutomations} from './detectorListConnectedAutomations';
 
 describe('DetectorListConnectedAutomations', () => {
   beforeEach(() => {
@@ -47,10 +47,7 @@ describe('DetectorListConnectedAutomations', () => {
   });
 
   it('renders empty cell when no automations are connected', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/workflows/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/workflows/', body: []});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
@@ -126,10 +123,7 @@ describe('DetectorListConnectedAutomations', () => {
     expect(batchDetectorsRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/detectors/',
       expect.objectContaining({
-        query: expect.objectContaining({
-          project: [1, 2],
-          query: 'type:issue_stream',
-        }),
+        query: expect.objectContaining({project: [1, 2], query: 'type:issue_stream'}),
       })
     );
   });

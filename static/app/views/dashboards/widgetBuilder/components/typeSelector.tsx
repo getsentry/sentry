@@ -17,7 +17,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
-import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
@@ -27,6 +26,8 @@ import {
   canUseMetricsDashboardTable,
   canUseMetricsHeatMap,
 } from 'sentry/views/explore/metrics/metricsFlags';
+
+import {SectionHeader} from './common/sectionHeader';
 
 export const DISPLAY_TYPE_ICONS: Partial<Record<DisplayType, React.ReactNode>> = {
   [DisplayType.AREA]: <IconGraph key="area" type="area" />,
@@ -60,11 +61,7 @@ export function WidgetBuilderTypeSelector({
   const hasTraceMetricsTableWidget = canUseMetricsDashboardTable(organization);
   // Use an array to define display type order explicitly.
   // Object key ordering in JS is technically specified but easy to break accidentally.
-  const displayTypeOrder: Array<{
-    details: string;
-    label: string;
-    type: DisplayType;
-  }> = [
+  const displayTypeOrder: Array<{details: string; label: string; type: DisplayType}> = [
     {
       type: DisplayType.AREA,
       label: t('Area'),
@@ -128,10 +125,7 @@ export function WidgetBuilderTypeSelector({
       const oldDisplayIsChart = usesTimeSeriesData(state.displayType);
       if (newDisplayIsChart === oldDisplayIsChart) {
         // Data source does not change, so we just do a normal display type change.
-        dispatch({
-          type: BuilderStateAction.SET_DISPLAY_TYPE,
-          payload: newValue,
-        });
+        dispatch({type: BuilderStateAction.SET_DISPLAY_TYPE, payload: newValue});
       } else {
         // Data source changed between table and series, so we need to reset the query.
         dispatch({
@@ -210,10 +204,7 @@ export function WidgetBuilderTypeSelector({
             } else if (state.dataset === WidgetType.ISSUE) {
               handleIssueWidgetDisplayTypeChange(newValue);
             } else {
-              dispatch({
-                type: BuilderStateAction.SET_DISPLAY_TYPE,
-                payload: newValue,
-              });
+              dispatch({type: BuilderStateAction.SET_DISPLAY_TYPE, payload: newValue});
             }
             trackAnalytics('dashboards_views.widget_builder.change', {
               from: source,

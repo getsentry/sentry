@@ -23,12 +23,25 @@ def update_monitor_environment(
     next_checkin = monitor_env.monitor.get_next_expected_checkin(expected_ts)
     next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(expected_ts)
 
+    status = monitor_env.status if monitor_status is None else monitor_status
+
+    # Skip the write when nothing changed (common for crontab monitors)
+    if (
+        monitor_env.last_checkin == last_checkin
+        and monitor_env.next_checkin == next_checkin
+        and monitor_env.next_checkin_latest == next_checkin_latest
+        and monitor_env.status == status
+    ):
+        return
+
     monitor_env.last_checkin = last_checkin
     monitor_env.next_checkin = next_checkin
     monitor_env.next_checkin_latest = next_checkin_latest
+
+    update_fields = ["last_checkin", "next_checkin", "next_checkin_latest"]
+    # This copy's status can be stale, so only write one the caller set.
     if monitor_status is not None:
         monitor_env.status = monitor_status
+        update_fields.append("status")
 
-    monitor_env.save(
-        update_fields=["last_checkin", "next_checkin", "next_checkin_latest", "status"]
-    )
+    monitor_env.save(update_fields=update_fields)

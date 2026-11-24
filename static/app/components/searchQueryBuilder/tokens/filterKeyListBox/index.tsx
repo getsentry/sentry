@@ -13,7 +13,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Overlay} from '@sentry/scraps/overlay';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {AskSeerSetupLoading} from 'sentry/components/searchQueryBuilder/askSeer/askSeerSetupLoading';
 import {OpenAskSeerButton} from 'sentry/components/searchQueryBuilder/askSeer/openAskSeerButton';
 import {
@@ -23,17 +23,18 @@ import {
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
-import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
-import type {Section} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
-import {
-  createRecentFilterOptionKey,
-  LOGIC_CATEGORY_VALUE,
-  RECENT_SEARCH_CATEGORY_VALUE,
-} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {usePrevious} from 'sentry/utils/usePrevious';
+
+import {KeyDescription} from './keyDescription';
+import type {Section} from './types';
+import {
+  createRecentFilterOptionKey,
+  LOGIC_CATEGORY_VALUE,
+  RECENT_SEARCH_CATEGORY_VALUE,
+} from './utils';
 
 interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
   recentFilters: Array<TokenResult<Token.FILTER>>;
@@ -96,7 +97,7 @@ function FeedbackFooter({
       align="center"
       justify={enableAISearch ? 'between' : 'end'}
       padding={enableAISearch ? 'sm' : 'md'}
-      borderTop="muted"
+      borderTop="secondary"
     >
       {enableAISearch ? (
         <OpenAskSeerButton ref={askSeerButtonRef} onTabForward={onAskSeerTabForward} />

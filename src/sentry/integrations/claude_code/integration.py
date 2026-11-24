@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from collections.abc import Mapping, MutableMapping
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 from django.conf import settings as django_settings
 from django.http.request import HttpRequest
@@ -424,10 +424,7 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         client = self.get_client()
         vault_id = self._resolve_vault(client, request)
 
-        state = cast(
-            "CodingAgentState",
-            client.launch(webhook_url=webhook_url, request=request, vault_id=vault_id),
-        )
+        state = client.launch(webhook_url=webhook_url, request=request, vault_id=vault_id)
         state.integration_id = self.model.id
 
         self._sync_client_ids(client)

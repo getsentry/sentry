@@ -35,10 +35,6 @@ import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 import {HiddenTraceMetricDetailFields} from 'sentry/views/explore/metrics/constants';
 import {useMetricTraceDetail} from 'sentry/views/explore/metrics/hooks/useMetricTraceDetail';
 import {
-  DetailsContent,
-  MetricsDetailsWrapper,
-} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
-import {
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
@@ -46,6 +42,8 @@ import {useMetricAttributesTreeActions} from 'sentry/views/explore/metrics/useMe
 import type {EAPTraceMeta} from 'sentry/views/performance/traceDetails/traceApi/types';
 import {useTraceMeta} from 'sentry/views/performance/traceDetails/traceApi/useTraceMeta';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
+
+import {DetailsContent, MetricsDetailsWrapper} from './metricInfoTabStyles';
 
 const MetricAttributesRendererMap = {
   ...LogAttributesRendererMap,

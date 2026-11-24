@@ -1,11 +1,5 @@
-import {
-  InvestigationDetailFixture,
-  InvestigationMetricSourceFixture,
-} from 'sentry/views/investigations/fixtures';
-import {
-  getInvestigationSource,
-  getSourceMonitor,
-} from 'sentry/views/investigations/source';
+import {InvestigationDetailFixture, InvestigationMetricSourceFixture} from './fixtures';
+import {getInvestigationSource, getSourceMonitor} from './source';
 
 describe('getInvestigationSource', () => {
   it('reads the issue and monitor name of a metric source', () => {

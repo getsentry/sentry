@@ -12,9 +12,10 @@ import type EChartsReact from 'echarts-for-react';
 import type {EChartsInstance} from 'echarts-for-react';
 import {connect, disconnect} from 'echarts/core';
 
-import {getToolBox} from 'sentry/components/charts/components/toolBox';
 import type {EChartBrushEndHandler, EChartBrushStartHandler} from 'sentry/types/echarts';
 import {usePrevious} from 'sentry/utils/usePrevious';
+
+import {getToolBox} from './components/toolBox';
 
 export type Selection = {
   /**
@@ -203,12 +204,7 @@ export function useChartXRangeSelection({
       }
 
       tooltipFrameRef.current = requestAnimationFrame(() => {
-        chartInstance.setOption(
-          {
-            tooltip: {show: false},
-          },
-          {silent: true}
-        );
+        chartInstance.setOption({tooltip: {show: false}}, {silent: true});
       });
 
       onSelectionStart?.(callbackParams);
@@ -240,11 +236,7 @@ export function useChartXRangeSelection({
         setSelectionState(newState);
 
         if (newState) {
-          onSelectionEnd?.({
-            selectionState: newState,
-            setSelectionState,
-            clearSelection,
-          });
+          onSelectionEnd?.({selectionState: newState, setSelectionState, clearSelection});
         }
       }
     },
@@ -473,11 +465,7 @@ export function useChartXRangeSelection({
       {
         show: false, // Prevent the toolbox from being shown, we enable selection on load
       },
-      {
-        brush: {
-          type: ['lineX'],
-        },
-      }
+      {brush: {type: ['lineX']}}
     );
   }, [disabled]);
 
@@ -518,13 +506,7 @@ export function useChartXRangeSelection({
   }, [selectionState, actionMenuRenderer, callbackParams]);
 
   const options: BoxSelectionOptions = useMemo(() => {
-    return {
-      brush,
-      onBrushEnd,
-      onBrushStart,
-      toolBox,
-      ActionMenu: renderedActionMenu,
-    };
+    return {brush, onBrushEnd, onBrushStart, toolBox, ActionMenu: renderedActionMenu};
   }, [onBrushEnd, brush, toolBox, onBrushStart, renderedActionMenu]);
 
   return options;
@@ -591,10 +573,7 @@ function calculateNewState({
 
   return {
     actionMenuPosition,
-    selection: {
-      range: clampedCoordRange,
-      panelId,
-    },
+    selection: {range: clampedCoordRange, panelId},
     isActionMenuVisible: true,
   };
 }

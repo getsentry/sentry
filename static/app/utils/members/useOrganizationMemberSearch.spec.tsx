@@ -3,7 +3,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useOrganizationMemberSearch} from 'sentry/utils/members/useOrganizationMemberSearch';
+import {useOrganizationMemberSearch} from './useOrganizationMemberSearch';
 
 describe('useOrganizationMemberSearch', () => {
   const org = OrganizationFixture();

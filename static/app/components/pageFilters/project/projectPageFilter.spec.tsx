@@ -12,10 +12,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {updateProjects} from 'sentry/components/pageFilters/actions';
-import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+import {ProjectPageFilter} from './projectPageFilter';
 
 const organization = OrganizationFixture({features: ['open-membership']});
 const projects = [
@@ -46,8 +47,6 @@ describe('ProjectPageFilter', () => {
     OrganizationStore.onUpdate(organization, {replace: true});
     ProjectsStore.loadInitialData(projects);
   });
-
-  afterEach(() => PageFiltersStore.reset());
 
   it('renders & handles single selection', async () => {
     const {router} = render(<ProjectPageFilter />, {
@@ -160,9 +159,7 @@ describe('ProjectPageFilter', () => {
     ).toHaveAttribute('aria-pressed', 'true');
     expect(mockApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project-1/`,
-      expect.objectContaining({
-        data: {isBookmarked: true},
-      })
+      expect.objectContaining({data: {isBookmarked: true}})
     );
 
     MockApiClient.clearMockResponses();
@@ -568,10 +565,7 @@ describe('ProjectPageFilter', () => {
     render(<ProjectPageFilter />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/issues/',
-          query: {project: '-1'},
-        },
+        location: {pathname: '/organizations/org-slug/issues/', query: {project: '-1'}},
       },
     });
 
@@ -602,10 +596,7 @@ describe('ProjectPageFilter', () => {
     const {router} = render(<ProjectPageFilter />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/issues/',
-          query: {project: '-1'},
-        },
+        location: {pathname: '/organizations/org-slug/issues/', query: {project: '-1'}},
       },
     });
 
@@ -641,10 +632,7 @@ describe('ProjectPageFilter', () => {
     render(<ProjectPageFilter />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/issues/',
-          query: {project: '1'},
-        },
+        location: {pathname: '/organizations/org-slug/issues/', query: {project: '1'}},
       },
     });
 
@@ -749,10 +737,7 @@ describe('ProjectPageFilter', () => {
     render(<ProjectPageFilter />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/issues/',
-          query: {project: '-1'},
-        },
+        location: {pathname: '/organizations/org-slug/issues/', query: {project: '-1'}},
       },
     });
 
@@ -912,9 +897,7 @@ describe('ProjectPageFilter', () => {
     // Verify the API was called
     expect(mockApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/regular-project-a/`,
-      expect.objectContaining({
-        data: {isBookmarked: true},
-      })
+      expect.objectContaining({data: {isBookmarked: true}})
     );
 
     // Verify sort order DOES NOT change while menu is still open (stable sorting)
@@ -1062,10 +1045,7 @@ describe('ProjectPageFilter', () => {
       const {router} = render(<ProjectPageFilter />, {
         organization: closedOrg,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/issues/',
-            query: {project: '1'},
-          },
+          location: {pathname: '/organizations/org-slug/issues/', query: {project: '1'}},
         },
       });
 
@@ -1097,10 +1077,7 @@ describe('ProjectPageFilter', () => {
       render(<ProjectPageFilter />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/issues/',
-            query: {project: '42'},
-          },
+          location: {pathname: '/organizations/org-slug/issues/', query: {project: '42'}},
         },
       });
 
@@ -1125,10 +1102,7 @@ describe('ProjectPageFilter', () => {
       render(<ProjectPageFilter />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/issues/',
-            query: {project: '42'},
-          },
+          location: {pathname: '/organizations/org-slug/issues/', query: {project: '42'}},
         },
       });
 
@@ -1158,10 +1132,7 @@ describe('ProjectPageFilter', () => {
       render(<ProjectPageFilter />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/issues/',
-            query: {project: '-1'},
-          },
+          location: {pathname: '/organizations/org-slug/issues/', query: {project: '-1'}},
         },
       });
 
@@ -1190,10 +1161,7 @@ describe('ProjectPageFilter', () => {
       render(<ProjectPageFilter />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/issues/',
-            query: {},
-          },
+          location: {pathname: '/organizations/org-slug/issues/', query: {}},
         },
       });
 

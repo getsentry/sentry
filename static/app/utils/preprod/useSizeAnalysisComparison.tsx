@@ -1,7 +1,8 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SizeAnalysisComparisonResults} from 'sentry/views/preprod/types/appSizeTypes';
 
@@ -24,27 +25,21 @@ export function useSizeAnalysisComparison({
   baseMetricId,
   headMetricId,
   project,
-}: MetricIds & {
-  project: Project;
-}) {
+}: MetricIds & {project: Project}) {
   const organization = useOrganization();
 
-  return useApiQuery<SizeAnalysisComparisonResults>(
-    [
-      getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headSizeMetricId/$baseSizeMetricId/download/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: project.id,
-            headSizeMetricId: headMetricId,
-            baseSizeMetricId: baseMetricId,
-          },
-        }
-      ),
-    ],
-    {
-      staleTime: 0,
-    }
+  return useQuery(
+    apiOptions.as<SizeAnalysisComparisonResults>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headSizeMetricId/$baseSizeMetricId/download/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project.id,
+          headSizeMetricId: headMetricId,
+          baseSizeMetricId: baseMetricId,
+        },
+        staleTime: 0,
+      }
+    )
   );
 }

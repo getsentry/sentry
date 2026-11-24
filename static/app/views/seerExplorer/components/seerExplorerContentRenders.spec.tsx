@@ -4,10 +4,11 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
-import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import type {Block} from 'sentry/views/seerExplorer/types';
+
+import {SeerExplorerContent} from './seerExplorerContent';
 
 const mockMarkdownRender = jest.fn();
 
@@ -69,6 +70,7 @@ function makeTurn(turn: number): Block[] {
 
 const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer> = {
   sessionData: null,
+  featureId: null,
   isPolling: false,
   isError: false,
   hasSessionLoadError: false,
@@ -76,7 +78,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   isTimedOut: false,
   runId: 1,
   overrideBashModeEnabled: false,
-  overrideCodeModeEnable: 'off',
   hasSentInterrupt: false,
   sendMessage: jest.fn(),
   requestError: null,
@@ -85,12 +86,11 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   interruptRun: jest.fn(),
   respondToUserInput: jest.fn(),
   setOverrideBashModeEnabled: jest.fn(),
-  setOverrideCodeModeEnable: jest.fn(),
 };
 
 describe('SeerExplorerContent re-renders', () => {
   const organization = OrganizationFixture({
-    features: ['seer-explorer', 'seer-explorer-code-mode-tools'],
+    features: ['seer-explorer'],
     hideAiFeatures: false,
   });
   const getPageReferrer = () => '/issues/';
@@ -127,14 +127,16 @@ describe('SeerExplorerContent re-renders', () => {
   });
 
   it('does not re-render the transcript while typing', async () => {
-    jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
-      ...defaultHookReturn,
-      sessionData: {
-        blocks: completedBlocks,
-        status: 'completed',
-        updated_at: '2024-01-01T01:00:00Z',
-      },
-    });
+    jest
+      .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+      .mockReturnValue({
+        ...defaultHookReturn,
+        sessionData: {
+          blocks: completedBlocks,
+          status: 'completed',
+          updated_at: '2024-01-01T01:00:00Z',
+        },
+      });
 
     renderContent();
     const editor = await screen.findByRole('combobox');

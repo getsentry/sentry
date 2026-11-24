@@ -1,5 +1,5 @@
-import type {MetaType} from 'sentry/utils/discover/eventView';
-import {AGGREGATIONS, isEquation} from 'sentry/utils/discover/fields';
+import type {MetaType} from './eventView';
+import {AGGREGATIONS, isEquation} from './fields';
 
 // Sorting metadata for the fields `fieldRenderers` formats. It lives apart from the
 // renderers so that code which only sorts, like EventView, doesn't load them and
@@ -41,8 +41,10 @@ const SPECIAL_FIELD_SORT_FIELDS = {
   'span.status_code': 'span.status_code',
   'performance_score(measurements.score.total)':
     'performance_score(measurements.score.total)',
+  'performance_score()': 'performance_score()',
   'opportunity_score(measurements.score.total)':
     'opportunity_score(measurements.score.total)',
+  'opportunity_score()': 'opportunity_score()',
   'browser.name': 'browser.name',
   browser: 'browser',
   'os.name': 'os.name',

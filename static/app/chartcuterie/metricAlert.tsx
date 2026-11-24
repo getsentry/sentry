@@ -1,16 +1,16 @@
 import type {Theme} from '@emotion/react';
 import type {LineSeriesOption, YAXisComponentOption} from 'echarts';
 
-import type {MetricChartData} from 'sentry/chartcuterie/metricChartOption';
-import {
-  getMetricAlertChartOption,
-  transformSessionResponseToSeries,
-} from 'sentry/chartcuterie/metricChartOption';
 import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
 import {createXAxisOptions} from 'sentry/components/charts/components/xAxis';
 import {createAreaSeries} from 'sentry/components/charts/series/areaSeries';
 import type {SessionApiResponse} from 'sentry/types/organization';
 
+import type {MetricChartData} from './metricChartOption';
+import {
+  getMetricAlertChartOption,
+  transformSessionResponseToSeries,
+} from './metricChartOption';
 import {DEFAULT_FONT_FAMILY, makeSlackChartDefaults, slackChartSize} from './slack';
 import type {RenderDescriptor} from './types';
 import {ChartType} from './types';
@@ -20,13 +20,8 @@ function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
     const areaSeries = createAreaSeries({
       name: seriesName,
       data: data.map(({name, value}) => [name, value]),
-      lineStyle: {
-        opacity: 1,
-        width: 0.4,
-      },
-      areaStyle: {
-        opacity: 1,
-      },
+      lineStyle: {opacity: 1, width: 0.4},
+      areaStyle: {opacity: 1},
       animation: false,
       animationThreshold: 1,
       animationDuration: 0,
@@ -54,12 +49,7 @@ export function makeMetricAlertCharts(theme: Theme): Array<RenderDescriptor<Char
   });
   const metricAlertYaxis: YAXisComponentOption = {
     axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
-    splitLine: {
-      lineStyle: {
-        color: theme.colors.gray300,
-        opacity: 0.3,
-      },
-    },
+    splitLine: {lineStyle: {color: theme.colors.gray300, opacity: 0.3}},
   };
 
   metricAlertCharts.push({
@@ -75,10 +65,7 @@ export function makeMetricAlertCharts(theme: Theme): Array<RenderDescriptor<Char
         yAxis: {
           ...chartOption.yAxis,
           ...metricAlertYaxis,
-          axisLabel: {
-            ...chartOption.yAxis!.axisLabel,
-            ...metricAlertYaxis.axisLabel,
-          },
+          axisLabel: {...chartOption.yAxis!.axisLabel, ...metricAlertYaxis.axisLabel},
         },
         grid: slackChartDefaults.grid,
       };
@@ -111,10 +98,7 @@ export function makeMetricAlertCharts(theme: Theme): Array<RenderDescriptor<Char
         yAxis: {
           ...chartOption.yAxis,
           ...metricAlertYaxis,
-          axisLabel: {
-            ...chartOption.yAxis!.axisLabel,
-            ...metricAlertYaxis.axisLabel,
-          },
+          axisLabel: {...chartOption.yAxis!.axisLabel, ...metricAlertYaxis.axisLabel},
         },
         grid: slackChartDefaults.grid,
       };

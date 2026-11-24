@@ -3,9 +3,9 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {closeModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {closeModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
@@ -106,11 +106,7 @@ function distributionToTableData(
         [t('Count')]: 'integer',
         [t('Percentage')]: 'percentage',
       },
-      units: {
-        [t('Value')]: null,
-        [t('Count')]: null,
-        [t('Percentage')]: null,
-      },
+      units: {[t('Value')]: null, [t('Count')]: null, [t('Percentage')]: null},
     },
   };
 }
@@ -230,11 +226,7 @@ function computeComparisonModeData(
 }
 
 // Extract population indicator component
-type PopulationIndicatorProps = {
-  color: string;
-  percentage: number;
-  tooltipTitle: string;
-};
+type PopulationIndicatorProps = {color: string; percentage: number; tooltipTitle: string};
 
 function PopulationIndicatorComponent({
   color,

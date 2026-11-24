@@ -16,12 +16,10 @@ import {
 import {Container} from '@sentry/scraps/layout';
 
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
-import {
-  DebugMetaSearchProvider,
-  useDebugMetaSearch,
-} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import type {Image} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
+
+import {DebugMetaSearchProvider, useDebugMetaSearch} from './debugMetaSearchContext';
 
 let mockRowSize = 60;
 
@@ -165,9 +163,7 @@ describe('DebugMeta', () => {
       image_size: 123,
       candidates: [],
       debug_status: ImageStatus.MISSING,
-      features: {
-        ...eventEntryDebugMeta.data.images![0]!.features,
-      },
+      features: {...eventEntryDebugMeta.data.images![0]!.features},
       unwind_status: ImageStatus.MISSING,
       type: 'elf',
     };
@@ -239,9 +235,7 @@ describe('DebugMeta', () => {
     };
     const eventEntryDebugMeta = {
       ...EntryDebugMetaFixture(),
-      data: {
-        images: [firstImage, secondImage],
-      },
+      data: {images: [firstImage, secondImage]},
     };
 
     const event = EventFixture({entries: [eventEntryDebugMeta]});
@@ -282,9 +276,7 @@ describe('DebugMeta', () => {
     });
     const eventEntryDebugMeta = {
       ...EntryDebugMetaFixture(),
-      data: {
-        images: [firstImage, secondImage],
-      },
+      data: {images: [firstImage, secondImage]},
     };
 
     const event = EventFixture({entries: [eventEntryDebugMeta]});
@@ -314,10 +306,7 @@ describe('DebugMeta', () => {
 
   it('renders each image as a row under the column headers', async () => {
     const image = ImageFixture();
-    const eventEntryDebugMeta = {
-      ...EntryDebugMetaFixture(),
-      data: {images: [image]},
-    };
+    const eventEntryDebugMeta = {...EntryDebugMetaFixture(), data: {images: [image]}};
     const event = EventFixture({entries: [eventEntryDebugMeta]});
 
     render(

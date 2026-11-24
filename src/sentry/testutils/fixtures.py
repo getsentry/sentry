@@ -39,6 +39,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.team import Team
+from sentry.monitors.logic.checkin_config import get_checkin_config_id
 from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
@@ -61,6 +62,7 @@ from sentry.replays.models import ReplayDeletionJobModel
 from sentry.service_accounts.models import ServiceAccount
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
+from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
@@ -848,6 +850,9 @@ class Fixtures:
         return MonitorIncident.objects.create(**kwargs)
 
     def create_monitor_checkin(self, **kwargs: Any) -> MonitorCheckIn:
+        if "checkin_config" not in kwargs and "checkin_config_id" not in kwargs:
+            monitor = kwargs["monitor_environment"].monitor
+            kwargs["checkin_config_id"] = get_checkin_config_id(monitor.config)
         return MonitorCheckIn.objects.create(**kwargs)
 
     def create_external_user(
@@ -1009,6 +1014,13 @@ class Fixtures:
 
     def create_dashboard(self, *args: Any, **kwargs: Any) -> Dashboard:
         return Factories.create_dashboard(*args, **kwargs)
+
+    def create_telemetry_classifier(
+        self, project: Project | None = None, **kwargs: Any
+    ) -> TelemetryClassifier:
+        if project is None:
+            project = self.project
+        return Factories.create_telemetry_classifier(project=project, **kwargs)
 
     def create_explore_saved_formula(
         self, organization: Organization | None = None, *args: Any, **kwargs: Any

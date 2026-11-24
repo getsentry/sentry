@@ -1,7 +1,8 @@
 import {t} from 'sentry/locale';
 import {IssueType} from 'sentry/types/group';
-import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
+
+import type {IssueCategoryConfigMapping} from './types';
 
 const staticConfigurationIssueDetails = {
   evidence: null,
@@ -34,10 +35,7 @@ export const configurationIssuesConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     defaultTimePeriod: {sinceFirstSeen: false},
-    customCopy: {
-      resolution: t('Auto-resolved'),
-      eventUnits: t('Open Periods'),
-    },
+    customCopy: {resolution: t('Auto-resolved'), eventUnits: t('Open Periods')},
     usesIssuePlatform: true,
     useOpenPeriodChecks: true,
     evidence: {title: t('Details')},

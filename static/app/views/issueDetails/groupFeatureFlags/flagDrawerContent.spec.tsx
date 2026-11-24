@@ -7,7 +7,8 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {OrderBy} from 'sentry/components/events/featureFlags/utils';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
-import {FlagDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
+
+import {FlagDrawerContent} from './flagDrawerContent';
 
 describe('GroupFeatureFlagsDrawerContent', () => {
   function getEmptyState() {
@@ -51,9 +52,7 @@ describe('GroupFeatureFlagsDrawerContent', () => {
 
     expect(mockTagsEndpoint).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/1/tags/',
-      expect.objectContaining({
-        query: expect.objectContaining({useFlagsBackend: '1'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({useFlagsBackend: '1'})})
     );
 
     expect(screen.getByText('feature.organizations:my-feature')).toBeInTheDocument();
@@ -64,9 +63,7 @@ describe('GroupFeatureFlagsDrawerContent', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/',
       statusCode: 400,
-      body: {
-        detail: 'Bad request',
-      },
+      body: {detail: 'Bad request'},
     });
 
     const group = GroupFixture();

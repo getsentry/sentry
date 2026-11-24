@@ -2,7 +2,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useCurrentProjectState} from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {
   feedbackOnboardingPlatforms,
@@ -13,28 +12,21 @@ import {OnboardingDrawerKey} from 'sentry/stores/onboardingDrawerStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 
+import {useCurrentProjectState} from './useCurrentProjectState';
+
 function mockPageFilterStore(projects: Project[]) {
   PageFiltersStore.init();
   PageFiltersStore.onInitializeUrlState({
     projects: projects.map(p => parseInt(p.id, 10)),
     environments: [],
-    datetime: {
-      period: '7d',
-      start: null,
-      end: null,
-      utc: null,
-    },
+    datetime: {period: '7d', start: null, end: null, utc: null},
   });
 }
 
 describe('useCurrentProjectState', () => {
   const rust_1 = ProjectFixture({id: '1', platform: 'rust', slug: 'project-a'});
   const rust_2 = ProjectFixture({id: '2', platform: 'rust', slug: 'project-b'});
-  const javascript = ProjectFixture({
-    id: '3',
-    platform: 'javascript',
-    slug: 'project-c',
-  });
+  const javascript = ProjectFixture({id: '3', platform: 'javascript', slug: 'project-c'});
   const angular = ProjectFixture({
     id: '4',
     platform: 'javascript-angular',
@@ -65,9 +57,7 @@ describe('useCurrentProjectState', () => {
         onboardingPlatforms: replayOnboardingPlatforms,
         allPlatforms: replayOnboardingPlatforms,
       },
-      initialRouterConfig: {
-        location: {pathname: '/', query: {project: angular.id}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {project: angular.id}}},
     });
     expect(result.current.currentProject).toBeUndefined();
   });
@@ -96,9 +86,7 @@ describe('useCurrentProjectState', () => {
         onboardingPlatforms: replayOnboardingPlatforms,
         allPlatforms: replayOnboardingPlatforms,
       },
-      initialRouterConfig: {
-        location: {pathname: '/', query: {project: angular.id}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {project: angular.id}}},
     });
     expect(result.current.currentProject).toBe(angular);
   });

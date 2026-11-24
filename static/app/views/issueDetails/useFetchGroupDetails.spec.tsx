@@ -9,8 +9,9 @@ import {setWindowLocation} from 'sentry-test/utils';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useParams} from 'sentry/utils/useParams';
-import {useFetchGroupDetails} from 'sentry/views/issueDetails/groupDetails';
-import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
+
+import {useFetchGroupDetails} from './groupDetails';
+import {GroupIdProvider} from './groupIdContext';
 
 function GroupRouteProvider({children}: {children?: React.ReactNode}) {
   const {groupId} = useParams<{groupId: string}>();

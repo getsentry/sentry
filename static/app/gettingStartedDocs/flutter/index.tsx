@@ -1,10 +1,11 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {crashReport} from 'sentry/gettingStartedDocs/dart/crashReport';
-import {logs} from 'sentry/gettingStartedDocs/flutter/logs';
-import {metrics} from 'sentry/gettingStartedDocs/flutter/metrics';
-import {onboarding} from 'sentry/gettingStartedDocs/flutter/onboarding';
-import {sessionReplay} from 'sentry/gettingStartedDocs/flutter/sessionReplay';
-import {userFeedback} from 'sentry/gettingStartedDocs/flutter/userFeedback';
+
+import {logs} from './logs';
+import {metrics} from './metrics';
+import {onboarding} from './onboarding';
+import {sessionReplay} from './sessionReplay';
+import {userFeedback} from './userFeedback';
 
 export const docs: Docs = {
   onboarding,

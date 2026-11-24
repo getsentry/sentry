@@ -18,20 +18,18 @@ import type {
   FormulaParamType,
 } from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
-import {
-  BuilderSection,
-  FIELD_MAX_WIDTH,
-} from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
+import {FormulaEquationInput} from 'sentry/views/explore/savedFormulas/formulaEquationInput';
+
+import {BuilderSection, FIELD_MAX_WIDTH} from './builderSection';
 import {
   isInvalidSuggestedNumber,
   MAX_INPUT_PARAMS,
   MAX_PARAMS,
   newParam,
   type DraftParam,
-} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
-import {OptionSizedLabel} from 'sentry/views/explore/savedFormulas/formulaBuilder/optionSizedLabel';
-import {TRACE_ITEM_DATASET_MAP} from 'sentry/views/explore/savedFormulas/formulaBuilder/referencesSection';
-import {FormulaEquationInput} from 'sentry/views/explore/savedFormulas/formulaEquationInput';
+} from './draft';
+import {OptionSizedLabel} from './optionSizedLabel';
+import {TRACE_ITEM_DATASET_MAP} from './referencesSection';
 
 const SIGMA = '\u03A3';
 

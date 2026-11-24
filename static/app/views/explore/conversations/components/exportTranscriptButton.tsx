@@ -36,16 +36,8 @@ export function ExportTranscriptButton({conversation}: ExportTranscriptButtonPro
         </OverlayTrigger.Button>
       )}
       items={[
-        {
-          key: 'copy',
-          label: t('Copy to clipboard'),
-          onAction: copyConversation,
-        },
-        {
-          key: 'download',
-          label: t('Download .md'),
-          onAction: downloadConversation,
-        },
+        {key: 'copy', label: t('Copy to clipboard'), onAction: copyConversation},
+        {key: 'download', label: t('Download .md'), onAction: downloadConversation},
       ]}
     />
   );

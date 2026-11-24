@@ -7,7 +7,8 @@ import type {
   CrossEvent,
   CrossEventType,
 } from 'sentry/views/explore/queryParams/crossEvent';
-import type {CrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
+
+import type {CrossEventDatasetAvailability} from './useCrossEventDatasetAvailability';
 
 export function getCrossEventDropdownItems(
   availability: CrossEventDatasetAvailability

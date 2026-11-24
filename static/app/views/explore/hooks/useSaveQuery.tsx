@@ -1,38 +1,34 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {QuerySpeed} from 'sentry/components/querySpeedMenu';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {encodeSort} from 'sentry/utils/queryString';
-import {useApi} from 'sentry/utils/useApi';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {
-  isExploreSavedQuery,
-  useInvalidateSavedQueries,
-  useInvalidateSavedQuery,
-  type CombinedSavedQuery,
-} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {serializeAggregateFields} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 
+import {useExploreQuerySpeed} from './useExploreQuerySpeed';
+import {
+  isExploreSavedQuery,
+  useInvalidateSavedQueries,
+  useInvalidateSavedQuery,
+  type CombinedSavedQuery,
+} from './useGetSavedQueries';
+
 export type ExploreQueryChangedReason = {
   columns: string[];
-  equations: Array<{
-    equation: string;
-    reason: string | string[];
-  }> | null;
-  orderby: Array<{
-    orderby: string;
-    reason: string | string[];
-  }> | null;
+  equations: Array<{equation: string; reason: string | string[]}> | null;
+  orderby: Array<{orderby: string; reason: string | string[]}> | null;
 };
 
 type ExploreSavedQueryRequest = {
@@ -59,11 +55,9 @@ type ExploreSavedQueryRequest = {
     groupby?: string[];
     orderby?: string;
     query?: string;
-    visualize?: Array<{
-      yAxes: string[];
-      chartType?: number;
-    }>;
+    visualize?: Array<{yAxes: string[]; chartType?: number}>;
   }>;
+  queryPriority?: QuerySpeed;
   start?: DateString;
   statsPeriod?: string;
 };
@@ -75,21 +69,53 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
   const {id, title} = queryParams;
 
   const [caseInsensitive] = useCaseInsensitivity();
+  const {
+    enabled: canSaveQueryPriority,
+    isReady: canSaveQuerySpeed,
+    loadFailed,
+    lockedToBalanced,
+    speed,
+  } = useExploreQuerySpeed();
   const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useFromSavedQuery();
   const organization = useOrganization();
   const invalidateSavedQueries = useInvalidateSavedQueries();
   const invalidateSavedQuery = useInvalidateSavedQuery(id);
 
   const requestData = useMemo((): ExploreSavedQueryRequest => {
-    return convertQueryParamsToRequest({
-      dataset,
-      queryParams,
-      pageFilters,
-      interval,
-      title: title ?? '',
-      caseInsensitive: caseInsensitive ? '1' : undefined,
-    });
-  }, [dataset, queryParams, pageFilters, interval, title, caseInsensitive]);
+    return {
+      ...convertQueryParamsToRequest({
+        dataset,
+        queryParams,
+        pageFilters,
+        interval,
+        title: title ?? '',
+        caseInsensitive: caseInsensitive ? '1' : undefined,
+      }),
+      // Replays have no Query Speed control. Spans and logs omit the field while
+      // the flag is off, while a saved priority is loading, when that load
+      // failed, or while extrapolation locks the control to Balanced. An update
+      // then keeps the stored priority.
+      ...(dataset !== 'replays' &&
+      canSaveQueryPriority &&
+      canSaveQuerySpeed &&
+      !loadFailed &&
+      !lockedToBalanced
+        ? {queryPriority: speed}
+        : {}),
+    };
+  }, [
+    canSaveQueryPriority,
+    canSaveQuerySpeed,
+    caseInsensitive,
+    loadFailed,
+    lockedToBalanced,
+    dataset,
+    interval,
+    pageFilters,
+    queryParams,
+    speed,
+    title,
+  ]);
 
   const {mutateAsync: saveQuery} = useMutation({
     mutationFn: ({name, starred = true}: {name: string; starred?: boolean}) =>
@@ -98,11 +124,7 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'POST',
-        data: {
-          ...requestData,
-          name,
-          starred,
-        },
+        data: {...requestData, name, starred},
       }),
     onSuccess: () => {
       invalidateSavedQueries();
@@ -136,78 +158,68 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
  * For updating or duplicating queries, agnostic to dataset since it's operating on existing data
  */
 export function useFromSavedQuery() {
-  const api = useApi();
   const organization = useOrganization();
   const invalidateSavedQueries = useInvalidateSavedQueries();
 
-  const saveQueryFromSavedQuery = useCallback(
-    async (savedQuery: CombinedSavedQuery) => {
-      const response = isExploreSavedQuery(savedQuery)
-        ? await api.requestPromise(
-            getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+  const {mutateAsync: saveQueryFromSavedQuery} = useMutation({
+    mutationFn: (savedQuery: CombinedSavedQuery) =>
+      isExploreSavedQuery(savedQuery)
+        ? fetchMutation<{id: string}>({
+            url: getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
               path: {organizationIdOrSlug: organization.slug},
             }),
-            {
-              method: 'POST',
-              data: {
-                ...savedQuery,
-                // we want to make sure no new queries are saved with the segment_spans dataset
-                dataset:
-                  savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
-              },
-            }
-          )
-        : await api.requestPromise(
-            getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/', {
+            method: 'POST',
+            data: {
+              ...savedQuery,
+              // we want to make sure no new queries are saved with the segment_spans dataset
+              dataset:
+                savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
+            },
+          })
+        : fetchMutation<{id: string}>({
+            url: getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/', {
               path: {organizationIdOrSlug: organization.slug},
             }),
-            {
-              method: 'POST',
-              data: savedQuery,
-            }
-          );
-
+            method: 'POST',
+            data: {...savedQuery},
+          }),
+    onSuccess: () => {
       invalidateSavedQueries();
-      return response;
     },
-    [api, organization.slug, invalidateSavedQueries]
-  );
+  });
 
-  const updateQueryFromSavedQuery = useCallback(
-    async (savedQuery: CombinedSavedQuery) => {
-      const response = isExploreSavedQuery(savedQuery)
-        ? await api.requestPromise(
-            getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
+  const {mutateAsync: updateQueryFromSavedQuery} = useMutation({
+    mutationFn: (savedQuery: CombinedSavedQuery) =>
+      isExploreSavedQuery(savedQuery)
+        ? fetchMutation<{id: string}>({
+            url: getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
               path: {organizationIdOrSlug: organization.slug, id: String(savedQuery.id)},
             }),
-            {
-              method: 'PUT',
-              data: {
-                ...savedQuery,
-                // we want to make sure queries are locked in as spans once they're updated
-                dataset:
-                  savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
-              },
-            }
-          )
-        : await api.requestPromise(
-            getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/', {
-              path: {
-                organizationIdOrSlug: organization.slug,
-                queryId: String(savedQuery.id),
-              },
-            }),
-            {
-              method: 'PUT',
-              data: savedQuery,
-            }
-          );
-
+            method: 'PUT',
+            data: {
+              ...savedQuery,
+              // we want to make sure queries are locked in as spans once they're updated
+              dataset:
+                savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
+            },
+          })
+        : fetchMutation<{id: string}>({
+            url: getApiUrl(
+              '/organizations/$organizationIdOrSlug/discover/saved/$queryId/',
+              {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  queryId: String(savedQuery.id),
+                },
+              }
+            ),
+            method: 'PUT',
+            data: {...savedQuery},
+          }),
+    onSuccess: () => {
       invalidateSavedQueries();
-      return response;
     },
-    [api, organization.slug, invalidateSavedQueries]
-  );
+  });
 
   return {saveQueryFromSavedQuery, updateQueryFromSavedQuery};
 }
@@ -257,10 +269,7 @@ function convertQueryParamsToRequest({
     if (isGroupBy(aggregateField)) {
       return {groupBy: aggregateField.groupBy};
     }
-    return {
-      ...aggregateField,
-      yAxes: [...aggregateField.yAxes],
-    };
+    return {...aggregateField, yAxes: [...aggregateField.yAxes]};
   });
 
   return {

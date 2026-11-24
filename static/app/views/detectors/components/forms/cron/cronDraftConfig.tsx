@@ -8,9 +8,10 @@ import {
   draftOptionalNumber,
   type DetectorDraftSchema,
 } from 'sentry/views/detectors/components/forms/common/detectorDraft';
-import type {CronDetectorFormData} from 'sentry/views/detectors/components/forms/cron/fields';
 import {ScheduleType, type MonitorIntervalUnit} from 'sentry/views/insights/crons/types';
 import {getScheduleIntervals} from 'sentry/views/insights/crons/utils';
+
+import type {CronDetectorFormData} from './fields';
 
 const intervalUnits = new Set(getScheduleIntervals(1).map(({value}) => value));
 

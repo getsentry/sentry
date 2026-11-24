@@ -7,12 +7,8 @@ import {defaultFormOptions, DisplayField, useScrapsForm} from '@sentry/scraps/fo
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -20,6 +16,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {
   DISTRIBUTION_SENTRY_APP_PERMISSION,
   SENTRY_APP_PERMISSIONS,
+  SERVICE_ACCOUNT_SENTRY_APP_PERMISSION,
 } from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Permissions} from 'sentry/types/integrations';
@@ -31,11 +28,6 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  GranularPermissionSelection,
-  granularPermissionsToScopes,
-  type GranularPermissions,
-} from 'sentry/views/settings/account/granularPermissionSelection';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {
@@ -43,11 +35,16 @@ import {
   permissionStateToList,
 } from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
+import {apiTokensOptions} from './apiTokensOptions';
+import {
+  GranularPermissionSelection,
+  granularPermissionsToScopes,
+  type GranularPermissions,
+} from './granularPermissionSelection';
+
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
 
-const schema = z.object({
-  name: z.string(),
-});
+const schema = z.object({name: z.string()});
 
 const INITIAL_PERMISSIONS: Permissions = {
   Event: 'no-access',
@@ -58,6 +55,7 @@ const INITIAL_PERMISSIONS: Permissions = {
   Organization: 'no-access',
   Alerts: 'no-access',
   Distribution: 'no-access',
+  ServiceAccount: 'no-access',
 };
 
 // Personal tokens can't be used for Distribution. The point of
@@ -82,6 +80,9 @@ export default function ApiNewToken() {
   // the organization currently in context.
   const hasGranularPermissions =
     organization?.features.includes('granular-permission-scopes-ui') ?? false;
+  const displayedPermissions = organization?.features.includes('service-accounts')
+    ? [...DISPLAYED_PERMISSIONS, SERVICE_ACCOUNT_SENTRY_APP_PERMISSION]
+    : DISPLAYED_PERMISSIONS;
 
   const handleGoBack = useCallback(
     () => navigate(normalizeUrl(API_INDEX_ROUTE)),
@@ -105,20 +106,17 @@ export default function ApiNewToken() {
       fetchMutation<NewInternalAppApiToken>({
         url: getApiUrl('/api-tokens/'),
         method: 'POST',
-        data: {
-          ...data,
-          scopes,
-        },
+        data: {...data, scopes},
       }),
     onSuccess: token => {
-      addSuccessMessage(t('Created personal token.'));
-      queryClient.invalidateQueries({queryKey: [getApiUrl('/api-tokens/')]});
+      toast.success(t('Created personal token.'));
+      queryClient.invalidateQueries({queryKey: apiTokensOptions.queryKey});
       displayNewToken(token.token, handleGoBack);
     },
     onError: (error: RequestError) => {
       const message = t('Failed to create a new personal token.');
       handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      toast.error(message);
     },
   });
 
@@ -127,7 +125,7 @@ export default function ApiNewToken() {
     defaultValues: {name: ''},
     validators: {onDynamic: schema},
     onSubmit: ({value}) => {
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       return mutation.mutateAsync(value).catch(() => {});
     },
   });
@@ -149,9 +147,7 @@ export default function ApiNewToken() {
               <div>
                 {tct(
                   'For more information on how to use the web API, see our [link:documentation].',
-                  {
-                    link: <ExternalLink href="https://docs.sentry.io/api/" />,
-                  }
+                  {link: <ExternalLink href="https://docs.sentry.io/api/" />}
                 )}
               </div>
             </Stack>
@@ -186,7 +182,7 @@ export default function ApiNewToken() {
                   onChange={nextPermissions => {
                     setPermissions({...nextPermissions});
                   }}
-                  displayedPermissions={DISPLAYED_PERMISSIONS}
+                  displayedPermissions={displayedPermissions}
                 />
               )}
               <DisplayField.Row

@@ -3,44 +3,43 @@ import type {QueryClient} from '@tanstack/react-query';
 import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
-import {parseQueryKey, type QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {useExploreQuerySpeed} from 'sentry/views/explore/hooks/useExploreQuerySpeed';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
+import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
+
 import {
   LOCAL_LOG_ROWS_FOR_EXPANDED_INFINITE_PAGES,
   MAX_LOGS_INFINITE_QUERY_PAGES,
   MAX_LOGS_INFINITE_QUERY_PAGES_EXPANDED,
   QUERY_PAGE_LIMIT,
   QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
-} from 'sentry/views/explore/logs/constants';
+} from './constants';
 import {
   getInitialLogPageParam,
   getLogPageParam,
   getParamBasedQuery,
   isAnchoredPageParam,
   type LogPageParam,
-} from 'sentry/views/explore/logs/logsInfinitePageParams';
+} from './logsInfinitePageParams';
 import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
   type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
-import {useAutoFetchWindow} from 'sentry/views/explore/logs/useAutoFetchWindow';
-import {useLogAnchor} from 'sentry/views/explore/logs/useLogAnchor';
+} from './types';
+import {useAutoFetchWindow} from './useAutoFetchWindow';
+import {useLogAnchor} from './useLogAnchor';
 import {
   useLogsApiOptionsWithInfinite,
   type LogsInfiniteQueryKey,
-} from 'sentry/views/explore/logs/useLogsApiOptions';
-import {
-  isRowVisibleInVirtualStream,
-  useVirtualStreaming,
-} from 'sentry/views/explore/logs/useVirtualStreaming';
-import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
-import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
-import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
+} from './useLogsApiOptions';
+import {isRowVisibleInVirtualStream, useVirtualStreaming} from './useVirtualStreaming';
+import {getTimeBasedSortBy} from './utils';
 
 /**
  * `maxPages` is evaluated before `useInfiniteQuery` returns `data`, so we base it on the
@@ -62,19 +61,17 @@ export function useInfiniteLogsQuery({
   disabled,
   highFidelity,
   staleTime: staleTimeOverride,
-}: {
-  disabled?: boolean;
-  highFidelity?: boolean;
-  staleTime?: number;
-} = {}) {
+}: {disabled?: boolean; highFidelity?: boolean; staleTime?: number} = {}) {
   const _referrer = 'api.explore.logs-table';
   const autoRefresh = useLogsAutoRefreshEnabled();
+  const {isReady: querySpeedReady} = useExploreQuerySpeed();
 
-  const {infiniteApiOptions: anchoredApiOptions} = useLogsApiOptionsWithInfinite({
-    referrer: _referrer,
-    autoRefresh: false,
-    highAccuracy: true,
-  });
+  const {infiniteApiOptions: anchoredApiOptions, pageApiOptions: anchoredPageApiOptions} =
+    useLogsApiOptionsWithInfinite({
+      referrer: _referrer,
+      autoRefresh: false,
+      highAccuracy: true,
+    });
   const {anchor, anchorToLog, clearAnchor} = useLogAnchor({
     autoRefresh,
     queryKey: anchoredApiOptions.queryKey,
@@ -82,12 +79,13 @@ export function useInfiniteLogsQuery({
 
   highFidelity = anchor ? false : highFidelity;
 
-  const {infiniteApiOptions: baseApiOptions, other} = useLogsApiOptionsWithInfinite({
-    referrer: _referrer,
-    autoRefresh,
-    highFidelity,
-  });
+  const {
+    infiniteApiOptions: baseApiOptions,
+    pageApiOptions: basePageApiOptions,
+    other,
+  } = useLogsApiOptionsWithInfinite({referrer: _referrer, autoRefresh, highFidelity});
   const infiniteApiOptions = anchor ? anchoredApiOptions : baseApiOptions;
+  const pageApiOptions = anchor ? anchoredPageApiOptions : basePageApiOptions;
   const queryKeyWithInfinite = infiniteApiOptions.queryKey;
   const queryClient = useQueryClient();
 
@@ -122,48 +120,31 @@ export function useInfiniteLogsQuery({
   const queryResult = useInfiniteQuery({
     queryKey: queryKeyWithInfinite,
     queryFn: async ({pageParam, queryKey, client, signal, meta}) => {
-      const {url, options: baseOptions} = parseQueryKey(queryKey);
+      const {options: baseOptions} = parseQueryKey(queryKey);
 
-      // Build a v2 (non-infinite) query key for apiFetch — we drive pagination via
+      // Fetch each page with a non-infinite key — we drive pagination via
       // the query body, not via Link cursors, so we don't need apiFetchInfinite.
-      const fetchContext = {
-        client,
-        signal,
-        meta,
-      };
+      const fetchContext = {client, signal, meta};
 
       async function fetchPage(param: LogPageParam) {
         let response = await apiFetch<EventsLogsResult>({
           ...fetchContext,
-          queryKey: [
-            url,
-            {
-              ...baseOptions,
-              query: getParamBasedQuery(baseOptions?.query, param),
-            },
-            {infinite: false},
-          ],
+          queryKey: pageApiOptions(getParamBasedQuery(baseOptions.query, param)).queryKey,
         });
 
         if (
           !response.json?.data?.length && // no matches found
           response.json?.meta?.dataScanned === 'partial' && // partial scan performed
-          !baseOptions?.data?.highFidelity // not high fidelity mode
+          !baseOptions.data?.highFidelity && // not high fidelity mode
+          baseOptions.query?.sampling !== SAMPLING_MODE.LOW_PRIORITY
         ) {
-          const retryOptions: QueryKeyEndpointOptions = {
-            ...baseOptions,
-            query: {...baseOptions?.query, sampling: SAMPLING_MODE.HIGH_ACCURACY},
+          const retryQuery = {
+            ...baseOptions.query,
+            sampling: SAMPLING_MODE.HIGH_ACCURACY,
           };
           response = await apiFetch<EventsLogsResult>({
             ...fetchContext,
-            queryKey: [
-              url,
-              {
-                ...retryOptions,
-                query: getParamBasedQuery(retryOptions.query, param),
-              },
-              {infinite: false},
-            ],
+            queryKey: pageApiOptions(getParamBasedQuery(retryQuery, param)).queryKey,
           });
         }
 
@@ -200,7 +181,7 @@ export function useInfiniteLogsQuery({
     getPreviousPageParam,
     getNextPageParam,
     initialPageParam,
-    enabled: !disabled,
+    enabled: !disabled && querySpeedReady,
     staleTime:
       staleTimeOverride ??
       (autoRefresh ? Infinity : getStaleTimeForEventView(other.eventView)),
@@ -246,10 +227,7 @@ export function useInfiniteLogsQuery({
         const pages = oldData.pages.filter((_, index) => keepPages[index]);
         const pageParams = oldData.pageParams.filter((_, index) => keepPages[index]);
 
-        return {
-          pages,
-          pageParams,
-        };
+        return {pages, pageParams};
       }
 
       const pageIndexWithMostRecentTimestamp =

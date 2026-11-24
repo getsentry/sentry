@@ -12,7 +12,6 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {Threads} from 'sentry/components/events/interfaces/threads';
 import {stackTraceDisplayOptionLabels} from 'sentry/components/events/traceEventDataSection';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -21,16 +20,14 @@ import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
+import {Threads} from './threads';
+
 describe('Threads', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   const integration = GitHubIntegrationFixture();
   const repo = RepositoryFixture({integrationId: integration.id});
-  const config = RepositoryProjectPathConfigFixture({
-    project,
-    repo,
-    integration,
-  });
+  const config = RepositoryProjectPathConfigFixture({project, repo, integration});
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -38,21 +35,14 @@ describe('Threads', () => {
       url: '/organizations/org-slug/sentry-app-components/',
       body: [],
     });
-    const promptResponse = {
-      dismissed_ts: undefined,
-      snoozed_ts: undefined,
-    };
+    const promptResponse = {dismissed_ts: undefined, snoozed_ts: undefined};
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: promptResponse,
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
-      body: {
-        config,
-        sourceUrl: 'https://something.io',
-        integrations: [integration],
-      },
+      body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -91,9 +81,7 @@ describe('Threads', () => {
     };
 
     beforeEach(() => {
-      Object.assign(navigator, {
-        clipboard: {writeText: jest.fn().mockResolvedValue('')},
-      });
+      Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
     });
 
     it('copies a thread without an exception entry', async () => {
@@ -348,11 +336,7 @@ describe('Threads', () => {
           entries: {
             0: {
               data: {
-                values: {
-                  1: {
-                    value: {'': {rem: [['project:0', 's', 0, 0]], len: 43}},
-                  },
-                },
+                values: {1: {value: {'': {rem: [['project:0', 's', 0, 0]], len: 43}}}},
               },
             },
           },
@@ -734,9 +718,7 @@ describe('Threads', () => {
       };
 
       it('renders', async () => {
-        render(<Threads {...props} />, {
-          organization,
-        });
+        render(<Threads {...props} />, {organization});
 
         // Title
         expect(
@@ -840,7 +822,6 @@ describe('Threads', () => {
 
       it('renders suspect commits', async () => {
         const user = UserFixture();
-        user.options.prefersIssueDetailsStreamlinedUI = true;
         ConfigStore.set('user', user);
         const group = GroupFixture();
         const committers = [
@@ -860,13 +841,9 @@ describe('Threads', () => {
         MockApiClient.addMockResponse({
           method: 'GET',
           url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
-          body: {
-            committers,
-          },
+          body: {committers},
         });
-        render(<Threads {...props} group={group} />, {
-          organization,
-        });
+        render(<Threads {...props} group={group} />, {organization});
         expect(await screen.findByText('Stack Trace')).toBeInTheDocument();
 
         // Suspect commits
@@ -1505,11 +1482,7 @@ describe('Threads', () => {
                     },
                   ],
                   framesOmitted: null,
-                  registers: {
-                    cpsr: '0x60000000',
-                    fp: '0x16fd79870',
-                    lr: '0x10008c5ac',
-                  },
+                  registers: {cpsr: '0x60000000', fp: '0x16fd79870', lr: '0x10008c5ac'},
                   hasSystemFrames: true,
                 },
                 rawStacktrace: null,
@@ -1562,15 +1535,7 @@ describe('Threads', () => {
           rawStacktrace: null,
           state: 'WaitingPerformingGc',
         };
-        threadsEntry.values = [
-          {
-            ...thread,
-          },
-          {
-            ...thread,
-            id: 1,
-          },
-        ];
+        threadsEntry.values = [{...thread}, {...thread, id: 1}];
 
         const newProps = {...props, event: newEvent};
         render(<Threads {...newProps} />, {organization});
@@ -1772,15 +1737,7 @@ describe('Threads', () => {
           },
           rawStacktrace: null,
         };
-        threadsEntry.values = [
-          {
-            ...thread,
-          },
-          {
-            ...thread,
-            id: 1,
-          },
-        ];
+        threadsEntry.values = [{...thread}, {...thread, id: 1}];
         const newProps = {...props, event: newEvent};
         render(<Threads {...newProps} />, {organization});
         // Title
@@ -1854,7 +1811,7 @@ describe('Threads', () => {
         // (crashed) thread id so the report is sorted with that thread first.
         expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
           'href',
-          `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=false&thread_id=${activeThreadId}&download=1`
+          `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=false&thread_id=${activeThreadId}&download=1`
         );
 
         // Click on minified option
@@ -1866,7 +1823,7 @@ describe('Threads', () => {
         // Download button should now have minified=true
         expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
           'href',
-          `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=true&thread_id=${activeThreadId}&download=1`
+          `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=true&thread_id=${activeThreadId}&download=1`
         );
       });
     });

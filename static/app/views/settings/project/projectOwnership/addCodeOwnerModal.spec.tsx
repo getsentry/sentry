@@ -13,7 +13,7 @@ import {
   ModalFooter,
 } from '@sentry/scraps/modal';
 
-import {AddCodeOwnerModal} from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
+import {AddCodeOwnerModal} from './addCodeOwnerModal';
 
 describe('AddCodeOwnerModal', () => {
   const org = OrganizationFixture({features: ['integrations-codeowners']});
@@ -169,9 +169,7 @@ describe('AddCodeOwnerModal', () => {
     await waitFor(() => {
       expect(addFileRequest).toHaveBeenCalledWith(
         `/projects/${org.slug}/${project.slug}/codeowners/`,
-        expect.objectContaining({
-          data: {codeMappingId: '2', raw: '* @MeredithAnya\n'},
-        })
+        expect.objectContaining({data: {codeMappingId: '2', raw: '* @MeredithAnya\n'}})
       );
     });
 

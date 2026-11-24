@@ -6,8 +6,8 @@ import {
   parseEvaluationInput,
   parseEvaluationOutput,
   type ScoreAnswer,
-} from 'sentry/views/insights/pages/agents/utils/evaluation';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+} from './evaluation';
+import type {AITraceSpanNode} from './types';
 
 function makeNode(attributes: Record<string, string>): AITraceSpanNode {
   return {errors: new Set(), attributes} as unknown as AITraceSpanNode;
@@ -17,17 +17,12 @@ const RAW_INPUT = JSON.stringify([
   {
     type: 'evaluation',
     state: 'I cannot log in.',
-    questions: {
-      urgency: {type: 'score', criteria: ['low', 'medium', 'high']},
-    },
+    questions: {urgency: {type: 'score', criteria: ['low', 'medium', 'high']}},
   },
 ]);
 
 const RAW_OUTPUT = JSON.stringify([
-  {
-    type: 'evaluation',
-    answers: {urgency: {type: 'score', score: 1.6}},
-  },
+  {type: 'evaluation', answers: {urgency: {type: 'score', score: 1.6}}},
 ]);
 
 describe('parseEvaluationInput', () => {
@@ -322,10 +317,7 @@ describe('getNodeEvaluation', () => {
   it('returns null for other spans, even with an evaluation message', () => {
     expect(
       getNodeEvaluation(
-        makeNode({
-          'gen_ai.operation.name': 'chat',
-          'gen_ai.input.messages': RAW_INPUT,
-        })
+        makeNode({'gen_ai.operation.name': 'chat', 'gen_ai.input.messages': RAW_INPUT})
       )
     ).toBeNull();
   });

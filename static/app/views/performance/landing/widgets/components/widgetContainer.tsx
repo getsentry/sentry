@@ -1,9 +1,7 @@
 import {useEffect, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
-import * as qs from 'query-string';
 
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -16,6 +14,7 @@ import type {EventView} from 'sentry/utils/discover/eventView';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {encodeSort} from 'sentry/utils/queryString';
+import * as qs from 'sentry/utils/url/qs';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -32,13 +31,11 @@ import type {
   ChartDefinition,
   PerformanceWidgetSetting,
 } from 'sentry/views/performance/landing/widgets/widgetDefinitions';
-import {WIDGET_DEFINITIONS} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {useWidgetDefinitions} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {LineChartListWidget} from 'sentry/views/performance/landing/widgets/widgets/lineChartListWidget';
 import {MobileReleaseComparisonListWidget} from 'sentry/views/performance/landing/widgets/widgets/mobileReleaseComparisonListWidget';
 import {PerformanceScoreListWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreListWidget';
-import {PerformanceScoreWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreWidget';
 import {SingleFieldAreaWidget} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
-import {StackedAreaChartListWidget} from 'sentry/views/performance/landing/widgets/widgets/stackedAreaChartListWidget';
 
 import type {ChartRowProps} from './widgetChartRow';
 
@@ -70,7 +67,6 @@ function trackChartSettingChange(
 export function WidgetContainer(props: Props) {
   const organization = useOrganization();
   const {index, chartHeight, rowChartSettings, setRowChartSettings, ...rest} = props;
-  const theme = useTheme();
   const performanceType = usePerformanceDisplayType();
   let _chartSetting = getChartSetting(
     index,
@@ -85,6 +81,7 @@ export function WidgetContainer(props: Props) {
   }
 
   const [chartSetting, setChartSettingState] = useState(_chartSetting);
+  const widgetDefinitions = useWidgetDefinitions();
 
   const setChartSetting = (setting: PerformanceWidgetSetting) => {
     _setChartSetting(index, chartHeight, performanceType, setting);
@@ -106,7 +103,7 @@ export function WidgetContainer(props: Props) {
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [rest.defaultChartSetting, _chartSetting]);
 
-  const chartDefinition = WIDGET_DEFINITIONS({theme})[chartSetting];
+  const chartDefinition = widgetDefinitions[chartSetting];
 
   // Construct an EventView that matches this widget's definition. The
   // `eventView` from the props is the _landing page_ EventView, which is different
@@ -141,12 +138,8 @@ export function WidgetContainer(props: Props) {
       return <SingleFieldAreaWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.LINE_LIST:
       return <LineChartListWidget {...passedProps} {...widgetProps} />;
-    case GenericPerformanceWidgetDataType.STACKED_AREA:
-      return <StackedAreaChartListWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.PERFORMANCE_SCORE_LIST:
       return <PerformanceScoreListWidget {...passedProps} {...widgetProps} />;
-    case GenericPerformanceWidgetDataType.PERFORMANCE_SCORE:
-      return <PerformanceScoreWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_TTID:
     case GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_COLD_START:
     case GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_WARM_START:
@@ -169,13 +162,12 @@ function WidgetInteractiveTitle({
   rowChartSettings: PerformanceWidgetSetting[];
   setChartSetting: (setting: PerformanceWidgetSetting) => void;
 }) {
-  const theme = useTheme();
   const navigate = useNavigate();
   const organization = useOrganization();
   const menuOptions: Array<SelectOption<string>> = [];
   const useEap = useInsightsEap();
 
-  const settingsMap = WIDGET_DEFINITIONS({theme});
+  const settingsMap = useWidgetDefinitions();
   for (const setting of allowedCharts) {
     const options = settingsMap[setting];
     menuOptions.push({
@@ -185,16 +177,13 @@ function WidgetInteractiveTitle({
     });
   }
 
-  const chartDefinition = WIDGET_DEFINITIONS({theme})[chartSetting];
+  const chartDefinition = settingsMap[chartSetting];
 
   if (chartDefinition.allowsOpenInDiscover) {
     if (useEap) {
       menuOptions.push({label: t('Open in Explore'), value: 'open_in_explore'});
     } else {
-      menuOptions.push({
-        label: t('Open in Explore'),
-        value: 'open_in_discover',
-      });
+      menuOptions.push({label: t('Open in Explore'), value: 'open_in_discover'});
     }
   }
 
@@ -206,10 +195,7 @@ function WidgetInteractiveTitle({
         getExploreUrl({
           selection: eventView.getPageFilters(),
           organization,
-          visualize: yAxis?.map(y => ({
-            chartType: ChartType.LINE,
-            yAxes: [y],
-          })),
+          visualize: yAxis?.map(y => ({chartType: ChartType.LINE, yAxes: [y]})),
           mode: Mode.AGGREGATE,
           title: eventView.name,
           query: eventView.getQueryWithAdditionalConditions(),

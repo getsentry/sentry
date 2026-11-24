@@ -201,19 +201,21 @@ def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
     config: dict[str, Any] | None,
+    monitor: Monitor | None = None,
 ) -> tuple[Monitor | None, ProcessingErrorsException | None]:
-    non_fatal_processing_error = None
-    try:
-        monitor = Monitor.objects.get(
-            slug=monitor_slug,
-            project_id=project.id,
-            organization_id=project.organization_id,
-        )
-    except Monitor.DoesNotExist:
-        monitor = None
+    non_fatal_errors: list[ProcessingError] = []
+    if monitor is None:
+        try:
+            monitor = Monitor.objects.get(
+                slug=monitor_slug,
+                project_id=project.id,
+                organization_id=project.organization_id,
+            )
+        except Monitor.DoesNotExist:
+            monitor = None
 
     if not config:
-        return (monitor, non_fatal_processing_error)
+        return (monitor, None)
 
     # The upsert payload doesn't quite match the api one. Pop out the owner here since
     # it's not part of the monitor config
@@ -229,7 +231,7 @@ def _ensure_monitor_with_config(
                 "errors": {str(owner): [str(e.detail)]},
             }
         )
-        non_fatal_processing_error = ProcessingErrorsException([validation_error])
+        non_fatal_errors.append(validation_error)
     except Exception:
         logger.exception(
             "Error attempting to resolve owner",
@@ -266,7 +268,7 @@ def _ensure_monitor_with_config(
                 "errors": validator.errors,
             }
             raise ProcessingErrorsException([error])
-        return (monitor, non_fatal_processing_error)
+        return (monitor, _non_fatal_exception(non_fatal_errors, monitor))
 
     validated_config = validator.validated_data
     created = False
@@ -300,7 +302,13 @@ def _ensure_monitor_with_config(
         ):
             monitor.update(owner_user_id=owner_user_id, owner_team_id=owner_team_id)
 
-    return (monitor, non_fatal_processing_error)
+    return (monitor, _non_fatal_exception(non_fatal_errors, monitor))
+
+
+def _non_fatal_exception(
+    errors: list[ProcessingError], monitor: Monitor | None
+) -> ProcessingErrorsException | None:
+    return ProcessingErrorsException(errors, monitor) if errors else None
 
 
 def check_killswitch(
@@ -776,12 +784,19 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
     monitor = None
     # 01
     # Retrieve or upsert monitor for this check-in
+    existing_monitor_environment = MonitorEnvironment.objects.get_existing(
+        project, monitor_slug, environment
+    )
     try:
-        (monitor, non_fatal_processing_errors) = _ensure_monitor_with_config(
-            project,
-            monitor_slug,
-            monitor_config,
-        )
+        if existing_monitor_environment and not monitor_config:
+            monitor = existing_monitor_environment.monitor
+        else:
+            (monitor, non_fatal_processing_errors) = _ensure_monitor_with_config(
+                project,
+                monitor_slug,
+                monitor_config,
+                existing_monitor_environment.monitor if existing_monitor_environment else None,
+            )
     except ProcessingErrorsException as e:
         ensure_config_errors = list(e.processing_errors)
     except MonitorLimitsExceeded as e:
@@ -810,11 +825,18 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
         raise ProcessingErrorsException([limit_error])
 
     # When accepting for upsert attempt to assign a seat for the monitor,
-    # otherwise the monitor is marked as disabled
-    if monitor and quotas_outcome == PermitCheckInStatus.ACCEPTED_FOR_UPSERT:
+    # otherwise the monitor is marked as disabled. A disabled monitor gets its
+    # seat when it is enabled.
+    seat_refused = False
+    if (
+        monitor
+        and monitor.status != ObjectStatus.DISABLED
+        and quotas_outcome == PermitCheckInStatus.ACCEPTED_FOR_UPSERT
+    ):
         seat_outcome = quotas.backend.assign_seat(seat_object=monitor)
         if seat_outcome != Outcome.ACCEPTED:
             update_monitor_status(monitor, ObjectStatus.DISABLED)
+            seat_refused = True
 
     if not monitor:
         metrics.incr(
@@ -841,12 +863,9 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
         ensure_config_errors.append(monitor_missing_error)
         raise ProcessingErrorsException(ensure_config_errors)
 
-    # When a monitor was accepted for upsert but is disabled we were unable to
-    # assign a seat. Discard the check-in in this case.
-    if (
-        quotas_outcome == PermitCheckInStatus.ACCEPTED_FOR_UPSERT
-        and monitor.status == ObjectStatus.DISABLED
-    ):
+    # When a monitor was accepted for upsert but we were unable to assign a
+    # seat, discard the check-in.
+    if seat_refused:
         metrics.incr(
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "monitor_disabled_no_quota"},
@@ -894,9 +913,14 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
     # 02
     # Retrieve or upsert monitor environment for this check-in
     try:
-        monitor_environment = MonitorEnvironment.objects.ensure_environment(
-            project, monitor, environment
-        )
+        if existing_monitor_environment:
+            # Use the monitor the upsert may have just updated
+            existing_monitor_environment.monitor = monitor
+            monitor_environment = existing_monitor_environment
+        else:
+            monitor_environment = MonitorEnvironment.objects.ensure_environment(
+                project, monitor, environment
+            )
     except MonitorEnvironmentLimitsExceeded as e:
         metrics.incr(
             "monitors.checkin.result",

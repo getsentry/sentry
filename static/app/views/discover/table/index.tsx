@@ -5,7 +5,7 @@ import type {Location} from 'history';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -17,15 +17,14 @@ import {isAPIPayloadSimilar, isFieldsSimilar} from 'sentry/utils/discover/eventV
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {Measurements} from 'sentry/utils/measurements/measurements';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import {withApi} from 'sentry/utils/withApi';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import {TableView} from './tableView';
 
 type TableProps = {
-  api: Client;
   confirmedQuery: boolean;
   eventView: EventView;
   location: Location;
@@ -59,7 +58,7 @@ type TableState = {
  * It will pass the data it fetched to `TableView`, where the state of the
  * Table is maintained and controlled
  */
-class Table extends PureComponent<TableProps, TableState> {
+export class Table extends PureComponent<TableProps, TableState> {
   static getDerivedStateFromProps(
     nextProps: Readonly<TableProps>,
     prevState: TableState
@@ -112,6 +111,12 @@ class Table extends PureComponent<TableProps, TableState> {
       this.fetchData();
     }
   }
+
+  componentWillUnmount() {
+    this.api.clear();
+  }
+
+  api = new Client();
 
   didViewChange = (): boolean => {
     const {prevView} = this.state;
@@ -195,13 +200,9 @@ class Table extends PureComponent<TableProps, TableState> {
 
     this.setState({isLoading: true, tableFetchID});
 
-    this.props.api.clear();
-    this.props.api
-      .requestPromise(url, {
-        method: 'GET',
-        includeAllArgs: true,
-        query: apiPayload,
-      })
+    this.api.clear();
+    this.api
+      .requestPromise(url, {method: 'GET', includeAllArgs: true, query: apiPayload})
       .then(([data, _, resp]) => {
         if (this.state.tableFetchID !== tableFetchID) {
           // invariant: a different request was initiated after this request
@@ -210,10 +211,7 @@ class Table extends PureComponent<TableProps, TableState> {
 
         const {fields, ...nonFieldsMeta} = data.meta ?? {};
         // events api uses a different response format so we need to construct tableData differently
-        const tableData = {
-          ...data,
-          meta: {...fields, ...nonFieldsMeta, fields},
-        };
+        const tableData = {...data, meta: {...fields, ...nonFieldsMeta, fields}};
 
         trackAnalytics('discover_search.success', {
           has_results: tableData.data.length > 0,
@@ -306,13 +304,11 @@ class Table extends PureComponent<TableProps, TableState> {
             );
           }}
         </Measurements>
-        <Pagination pageLinks={pageLinks} onCursor={onCursor} />
+        <Pagination {...getPaginationProps(pageLinks)} onCursor={onCursor} />
       </Container>
     );
   }
 }
-
-export default withApi(Table);
 
 const Container = styled('div')`
   min-width: 0;

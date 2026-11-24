@@ -1,6 +1,7 @@
 import cloneDeep from 'lodash/cloneDeep';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {downloadObjectAsJson} from 'sentry/utils/downloadObjectAsJson';
 
 import type {DashboardDetails} from './types';
@@ -9,11 +10,7 @@ type ExcludedProperties = 'createdBy' | 'dateCreated' | 'id' | 'dashboardId' | '
 
 export async function exportDashboard() {
   try {
-    const structure = {
-      base_url: null,
-      dashboard_id: null,
-      org_slug: null,
-    };
+    const structure = {base_url: null, dashboard_id: null, org_slug: null};
 
     const params = getAPIParams(structure);
     const apiUrl = `https://${params.base_url}/api/0/organizations/${params.org_slug}/dashboards/${params.dashboard_id}/`;
@@ -24,7 +21,7 @@ export async function exportDashboard() {
 
     downloadObjectAsJson(normalized, cleanTitle(normalized.title));
   } catch (error) {
-    addErrorMessage(
+    toast.error(
       'Could not export dashboard. Please wait or try again with a different dashboard'
     );
   }

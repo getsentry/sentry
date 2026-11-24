@@ -1,10 +1,11 @@
 import re
-from typing import TypedDict, cast
+from typing import Annotated, TypedDict
 
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.project import Project
 from sentry.utils.platform_categories import MOBILE
 
@@ -19,7 +20,7 @@ class HighlightContextField(
         if not isinstance(data, dict):
             raise serializers.ValidationError("Expected a dictionary.")
         for key, value in data.items():
-            if not VALID_KEY_PATTERN.match(cast(str, key)):
+            if not VALID_KEY_PATTERN.match(key):
                 raise serializers.ValidationError(f"Key '{key}' is invalid.")
             if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
                 raise serializers.ValidationError(f"Value for '{key}' must be a list of strings.")
@@ -33,8 +34,11 @@ class HighlightContextField(
 
 
 class HighlightPreset(TypedDict):
-    tags: list[str]
-    context: dict[str, list[str]]
+    tags: Annotated[list[str], ApiDescription("Tag keys to highlight by default")]
+    context: Annotated[
+        dict[str, list[str]],
+        ApiDescription("Context keys to highlight by default, by context name"),
+    ]
 
 
 DEFAULT_HIGHLIGHT_TAGS = ["handled", "level", "transaction"]

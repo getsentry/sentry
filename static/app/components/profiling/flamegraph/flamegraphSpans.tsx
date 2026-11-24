@@ -1,14 +1,12 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
-import * as qs from 'query-string';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {SpansContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphSpansContextMenu';
 import {t} from 'sentry/locale';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {useCanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
@@ -26,6 +24,7 @@ import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRendere
 import {SpansTextRenderer} from 'sentry/utils/profiling/renderers/spansTextRenderer';
 import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import * as qs from 'sentry/utils/url/qs';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -42,6 +41,7 @@ import {
   CollapsibleTimelineLoadingIndicator,
   CollapsibleTimelineMessage,
 } from './collapsibleTimeline';
+import {SpansContextMenu} from './flamegraphSpansContextMenu';
 import {FlamegraphSpanTooltip} from './flamegraphSpanTooltip';
 
 interface FlamegraphSpansProps {
@@ -306,10 +306,7 @@ export function FlamegraphSpans({
     renderer: selectedSpanRenderer,
   });
 
-  useInteractionViewCheckPoint({
-    view: spansView,
-    lastInteraction,
-  });
+  useInteractionViewCheckPoint({view: spansView, lastInteraction});
 
   useEffect(() => {
     window.addEventListener('mouseup', onMinimapCanvasMouseUp);
@@ -396,17 +393,17 @@ export function FlamegraphSpans({
     const value =
       hoveredNodeOnContextMenuOpen.current?.node.span[SpanFields.SPAN_DESCRIPTION] ?? '';
     if (!value) {
-      addErrorMessage(t('Event description value is empty.'));
+      toast.error(t('Event description value is empty.'));
       return;
     }
 
     navigator.clipboard
       .writeText(value)
       .then(() => {
-        addSuccessMessage(t('Description copied to clipboard'));
+        toast.success(t('Description copied to clipboard'));
       })
       .catch(() => {
-        addErrorMessage(t('Failed to copy description to clipboard'));
+        toast.error(t('Failed to copy description to clipboard'));
       });
   }, [hoveredNodeOnContextMenuOpen]);
 
@@ -414,17 +411,17 @@ export function FlamegraphSpans({
     const value =
       hoveredNodeOnContextMenuOpen.current?.node.span[SpanFields.SPAN_OP] ?? '';
     if (!value) {
-      addErrorMessage(t('Event operation value is empty.'));
+      toast.error(t('Event operation value is empty.'));
       return;
     }
 
     navigator.clipboard
       .writeText(value)
       .then(() => {
-        addSuccessMessage(t('Operation copied to clipboard'));
+        toast.success(t('Operation copied to clipboard'));
       })
       .catch(() => {
-        addErrorMessage(t('Failed to copy operation to clipboard'));
+        toast.error(t('Failed to copy operation to clipboard'));
       });
   }, [hoveredNodeOnContextMenuOpen]);
 
@@ -434,24 +431,24 @@ export function FlamegraphSpans({
       hoveredNodeOnContextMenuOpen.current?.node.span[SpanFields.SPAN_ID] ??
       '';
     if (!value) {
-      addErrorMessage(t('Event ID value is empty.'));
+      toast.error(t('Event ID value is empty.'));
       return;
     }
 
     navigator.clipboard
       .writeText(value)
       .then(() => {
-        addSuccessMessage(t('Event ID copied to clipboard'));
+        toast.success(t('Event ID copied to clipboard'));
       })
       .catch(() => {
-        addErrorMessage(t('Failed to copy event ID to clipboard'));
+        toast.error(t('Failed to copy event ID to clipboard'));
       });
   }, [hoveredNodeOnContextMenuOpen]);
 
   const onOpenInTraceView = useCallback(() => {
     const node = hoveredNodeOnContextMenuOpen.current?.node;
     if (!node) {
-      addErrorMessage(t('No event ID or span ID found'));
+      toast.error(t('No event ID or span ID found'));
       return;
     }
 

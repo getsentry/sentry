@@ -4,6 +4,7 @@ import trimStart from 'lodash/trimStart';
 
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {toArray} from 'sentry/utils/array/toArray';
 import {defined} from 'sentry/utils/defined';
 import type {
@@ -37,13 +38,6 @@ import {
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
-  combineWidgetJsonQueryResults,
-  combineWidgetQueryResults,
-} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
-import {getSeriesConfidenceInformation} from 'sentry/views/dashboards/widgetCard/hooks/utils/getSeriesConfidenceInformation';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
-import {
   getConditionalFilterInvalidSeriesMessageForAggregates,
   getValidAggregatesForRequest,
   hasNoValidAggregatesForRequest,
@@ -51,6 +45,14 @@ import {
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {
+  combineWidgetJsonQueryResults,
+  combineWidgetQueryResults,
+} from './utils/combineWidgetQueryResults';
+import {getSeriesConfidenceInformation} from './utils/getSeriesConfidenceInformation';
+import {getWidgetStaleTime} from './utils/getStaleTime';
+import {getTimeseriesWidgetQueryOptions} from './utils/getTimeseriesWidgetQueryOptions';
 
 type SpansTableResponse = TableData | EventsTableData;
 
@@ -276,11 +278,7 @@ export function useSpansSeriesQuery(
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const timeseriesResults: WidgetTimeSeries[] = [];
@@ -426,10 +424,7 @@ export function useSpansTableQuery(
 
       if (hasStarredField && !alreadySortedByStarred) {
         requestParams.sort = [
-          encodeSort({
-            field: SpanFields.IS_STARRED_TRANSACTION,
-            kind: 'desc',
-          }),
+          encodeSort({field: SpanFields.IS_STARRED_TRANSACTION, kind: 'desc'}),
           ...existingSort,
         ];
       }
@@ -450,27 +445,23 @@ export function useSpansTableQuery(
         }
       );
 
+      const baseQueryKey: ApiQueryKey = baseOptions.queryKey;
+
       // eslint-disable-next-line @tanstack/query/exhaustive-deps
       return queryOptions({
         ...baseOptions,
-        queryKey: [...STARRED_SEGMENT_TABLE_QUERY_KEY, ...baseOptions.queryKey] as never,
+        queryKey: [...baseQueryKey, ...STARRED_SEGMENT_TABLE_QUERY_KEY] as const,
         queryFn: (context): Promise<ApiResponse<SpansTableResponse>> => {
-          const modifiedContext = {
-            ...context,
-            // remove the STARRED_SEGMENT_TABLE_QUERY_KEY prefix, it's only used for the cache key, not the api call
-            queryKey: baseOptions.queryKey,
-          };
-
           if (queue) {
             return new Promise((resolve, reject) => {
               const fetchFnRef = {
                 current: () =>
-                  apiFetch<SpansTableResponse>(modifiedContext).then(resolve, reject),
+                  apiFetch<SpansTableResponse>(context).then(resolve, reject),
               };
               queue.addItem({fetchDataRef: fetchFnRef});
             });
           }
-          return apiFetch<SpansTableResponse>(modifiedContext);
+          return apiFetch<SpansTableResponse>(context);
         },
         enabled: enabled && !skippedForInvalidConditionalFilter,
         retry: false,
@@ -507,11 +498,7 @@ export function useSpansTableQuery(
     if (!allHaveData || isFetching) {
       // If there's an error and we're not fetching, we're done loading
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const tableResults: TableDataWithTitle[] = [];
@@ -541,9 +528,7 @@ export function useSpansTableQuery(
       const meta = transformedDataItem.meta;
       const fieldMeta = queryForTransform.fieldMeta;
       if (fieldMeta && meta) {
-        // oxlint-disable-next-line react/todo
         const units = (meta.units ??= {});
-        // oxlint-disable-next-line react/todo
         const fields = (meta.fields ??= {});
         fieldMeta.forEach((m, index) => {
           const field = queryForTransform.fields?.[index];

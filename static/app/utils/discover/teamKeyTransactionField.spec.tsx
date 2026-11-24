@@ -7,7 +7,8 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {TeamKeyTransactionFieldWrapper as TeamKeyTransactionField} from 'sentry/utils/discover/teamKeyTransactionField';
+
+import {TeamKeyTransactionFieldWrapper as TeamKeyTransactionField} from './teamKeyTransactionField';
 
 describe('TeamKeyTransactionField', () => {
   const organization = OrganizationFixture();
@@ -108,11 +109,7 @@ describe('TeamKeyTransactionField', () => {
     const getTeamKeyTransactionsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/key-transactions-list/`,
-      body: teams.map(({id}) => ({
-        team: id,
-        count: 0,
-        keyed: [],
-      })),
+      body: teams.map(({id}) => ({team: id, count: 0, keyed: []})),
     });
 
     render(
@@ -147,11 +144,7 @@ describe('TeamKeyTransactionField', () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/key-transactions-list/`,
-      body: teams.map(({id}) => ({
-        team: id,
-        count: 0,
-        keyed: [],
-      })),
+      body: teams.map(({id}) => ({team: id, count: 0, keyed: []})),
     });
 
     const postTeamKeyTransactionsMock = MockApiClient.addMockResponse({
@@ -255,11 +248,7 @@ describe('TeamKeyTransactionField', () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/key-transactions-list/`,
-      body: teams.map(({id}) => ({
-        team: id,
-        count: 0,
-        keyed: [],
-      })),
+      body: teams.map(({id}) => ({team: id, count: 0, keyed: []})),
     });
 
     const postTeamKeyTransactionsMock = MockApiClient.addMockResponse({

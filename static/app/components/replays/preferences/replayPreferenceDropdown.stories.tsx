@@ -1,17 +1,18 @@
 import {Fragment} from 'react';
 
-import {ReplayPreferenceDropdown} from 'sentry/components/replays/preferences/replayPreferenceDropdown';
-import {
-  LocalStorageReplayPreferences,
-  StaticNoSkipReplayPreferences,
-  StaticReplayPreferences,
-} from 'sentry/components/replays/preferences/replayPreferences';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
 import {
   ReplayPreferencesContextProvider,
   useReplayPrefs,
 } from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+
+import {ReplayPreferenceDropdown} from './replayPreferenceDropdown';
+import {
+  LocalStorageReplayPreferences,
+  StaticNoSkipReplayPreferences,
+  StaticReplayPreferences,
+} from './replayPreferences';
 
 export default Storybook.story('ReplayPreferenceDropdown', story => {
   story('Default - LocalStorageReplayPreferences', () => {

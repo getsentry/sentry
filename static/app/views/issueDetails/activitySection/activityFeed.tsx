@@ -1,14 +1,26 @@
 import type {TimeSince} from 'sentry/components/timeSince';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivityNote} from 'sentry/types/group';
-import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
-import type {DisplayedActivityFeedItem} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
-import {CollapsedStatusActivityRow} from 'sentry/views/issueDetails/activitySection/activityLineItem/collapsedStatusActivityRow';
+import {useHasImpactAssessment} from 'sentry/views/issueDetails/groupImpact';
+
 import {
-  ActivityLineNote,
-  isActivityNote,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
-import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
+  getActorActivity,
+  type ActivityFeedItem,
+  type DisplayedActivityFeedItem,
+} from './activityLineItem/activityFeedItem';
+import {CollapsedStatusActivityRow} from './activityLineItem/collapsedStatusActivityRow';
+import {ActivityLineImpact, isImpactActivity} from './activityLineItem/impact';
+import {
+  ActivityLineInvestigationLinked,
+  isInvestigationLinkedActivity,
+} from './activityLineItem/investigationLinked';
+import {ActivityLineNote, isActivityNote} from './activityLineItem/note';
+import {
+  ActivityLinePullRequestReference,
+  isPullRequestReferenceActivity,
+} from './activityLineItem/pullRequestReference';
+import {ActivityLine} from './activityLineItem';
+import {Timeline} from './timeline';
 
 interface ActivityFeedProps {
   group: Group;
@@ -17,6 +29,7 @@ interface ActivityFeedProps {
   onCommentDelete: (item: GroupActivityNote) => Promise<void>;
   onCommentUpdate: (item: GroupActivityNote, data: NoteType) => Promise<void>;
   children?: React.ReactNode;
+  highlightedActivityId?: string;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
@@ -24,29 +37,46 @@ export function ActivityFeed({
   items,
   children,
   group,
+  highlightedActivityId,
   inputVariant,
   onCommentDelete,
   onCommentUpdate,
   timestampUnitStyle,
 }: ActivityFeedProps) {
-  function renderActivity(item: DisplayedActivityFeedItem): React.ReactNode {
-    const {activity} = item;
-    const key = isActivityNote(activity)
-      ? `comment:${activity.commentId}`
-      : `activity:${activity.id}`;
+  const hasImpactAssessment = useHasImpactAssessment();
 
+  function isHighlighted(item: ActivityFeedItem) {
+    return (
+      highlightedActivityId !== undefined &&
+      (item.activity.id === highlightedActivityId ||
+        getActorActivity(item).id === highlightedActivityId)
+    );
+  }
+
+  function renderActivity(item: DisplayedActivityFeedItem): React.ReactNode {
     if (item.type === 'collapsed_status_activities') {
+      const containsHighlight = item.activities.some(isHighlighted);
+      const key = `activity:${item.activity.id}`;
       return (
-        <CollapsedStatusActivityRow key={key} eventCount={item.activities.length}>
+        <CollapsedStatusActivityRow
+          key={containsHighlight ? `${key}:${highlightedActivityId}` : key}
+          defaultExpanded={containsHighlight}
+          eventCount={item.activities.length}
+        >
           {item.activities.map(renderActivity)}
         </CollapsedStatusActivityRow>
       );
     }
 
+    const {activity} = item;
+    const key = isActivityNote(activity)
+      ? `comment:${activity.commentId}`
+      : `activity:${activity.id}`;
+
+    let line: React.ReactNode;
     if (isActivityNote(activity)) {
-      return (
+      line = (
         <ActivityLineNote
-          key={key}
           activity={activity}
           inputVariant={inputVariant}
           onDelete={() => onCommentDelete(activity)}
@@ -54,17 +84,50 @@ export function ActivityFeed({
           timestampUnitStyle={timestampUnitStyle}
         />
       );
+    } else if (isImpactActivity(activity)) {
+      if (!hasImpactAssessment) {
+        return null;
+      }
+      line = (
+        <ActivityLineImpact
+          activity={activity}
+          group={group}
+          timestampUnitStyle={timestampUnitStyle}
+        />
+      );
+    } else if (isInvestigationLinkedActivity(activity)) {
+      line = (
+        <ActivityLineInvestigationLinked
+          activity={activity}
+          variant={inputVariant}
+          timestampUnitStyle={timestampUnitStyle}
+        />
+      );
+    } else if (inputVariant === 'full' && isPullRequestReferenceActivity(activity)) {
+      // The compact sidebar feed leaves out the linked pull request.
+      line = (
+        <ActivityLinePullRequestReference
+          activity={activity}
+          group={group}
+          item={item}
+          timestampUnitStyle={timestampUnitStyle}
+        />
+      );
+    } else {
+      line = (
+        <ActivityLine item={item} group={group} timestampUnitStyle={timestampUnitStyle}>
+          {item.body}
+        </ActivityLine>
+      );
     }
 
     return (
-      <ActivityLine
+      <Timeline.Highlight
         key={key}
-        item={item}
-        group={group}
-        timestampUnitStyle={timestampUnitStyle}
+        value={isHighlighted(item) ? highlightedActivityId : undefined}
       >
-        {item.body}
-      </ActivityLine>
+        {line}
+      </Timeline.Highlight>
     );
   }
 

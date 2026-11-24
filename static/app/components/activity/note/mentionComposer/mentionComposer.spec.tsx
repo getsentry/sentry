@@ -4,8 +4,9 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {MentionComposer} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
 import {TeamStore} from 'sentry/stores/teamStore';
+
+import {MentionComposer} from './mentionComposer';
 
 function getEditor(name = 'Add a comment') {
   const editor = screen.getByRole('combobox', {name});
@@ -22,11 +23,7 @@ describe('MentionComposer', () => {
     TeamStore.loadInitialData([TeamFixture({id: '1', slug: 'frontend'})]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: [
-        MemberFixture({
-          user: UserFixture({id: '1', name: 'Alice Example'}),
-        }),
-      ],
+      body: [MemberFixture({user: UserFixture({id: '1', name: 'Alice Example'})})],
     });
   });
 
@@ -227,10 +224,7 @@ describe('MentionComposer', () => {
 
     act(() => {
       editor.dispatchEvent(
-        new CompositionEvent('compositionend', {
-          bubbles: true,
-          data: '日本語',
-        })
+        new CompositionEvent('compositionend', {bubbles: true, data: '日本語'})
       );
     });
 

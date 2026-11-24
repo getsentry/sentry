@@ -26,8 +26,9 @@ import type {
   SearchBarDataProviderProps,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {fetchIssueTagValues} from 'sentry/views/issueDetails/utils';
-import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
-import {useIssueListFilterKeys} from 'sentry/views/issueList/utils/useIssueListFilterKeys';
+
+import {makeGetIssueTagValues} from './utils/getIssueTagValues';
+import {useIssueListFilterKeys} from './utils/useIssueListFilterKeys';
 
 interface Props extends Partial<SearchQueryBuilderProps> {
   organization: Organization;
@@ -114,21 +115,9 @@ export function useIssueListSearchBarDataProvider(
     ).map(tag => tag.key);
 
     const sections = [
-      {
-        value: FieldKind.ISSUE_FIELD,
-        label: t('Issues'),
-        children: issueFields,
-      },
-      {
-        value: FieldKind.EVENT_FIELD,
-        label: t('Event Filters'),
-        children: eventFields,
-      },
-      {
-        value: FieldKind.TAG,
-        label: t('Event Tags'),
-        children: eventTags,
-      },
+      {value: FieldKind.ISSUE_FIELD, label: t('Issues'), children: issueFields},
+      {value: FieldKind.EVENT_FIELD, label: t('Event Filters'), children: eventFields},
+      {value: FieldKind.TAG, label: t('Event Tags'), children: eventTags},
     ];
 
     if (eventFeatureFlags.length > 0) {

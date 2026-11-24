@@ -1,22 +1,19 @@
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSignupLocalities} from 'sentry/utils/cells';
@@ -60,8 +57,16 @@ const schema = z.object({
 });
 
 function OrganizationCreate() {
-  const {termsUrl, privacyUrl, isSelfHosted, features, links} =
-    useLegacyStore(ConfigStore);
+  const {termsUrl, privacyUrl, isSelfHosted, features, links} = useStore(
+    ConfigStore,
+    useShallow(state => ({
+      termsUrl: state.termsUrl,
+      privacyUrl: state.privacyUrl,
+      isSelfHosted: state.isSelfHosted,
+      features: state.features,
+      links: state.links,
+    }))
+  );
   const relocationUrl = normalizeUrl('/relocation/');
   const localityOptions = getSignupLocalities();
 
@@ -110,7 +115,7 @@ function OrganizationCreate() {
     },
     validators: {onDynamic: schema},
     onSubmit: ({value, formApi}) => {
-      addLoadingMessage(t('Creating Organization\u2026'));
+      toast.loading(t('Creating Organization\u2026'));
 
       const data: CreateOrganizationPayload = {
         name: schema.parse(value).name,
@@ -132,14 +137,14 @@ function OrganizationCreate() {
           error instanceof RequestError &&
           setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values))
         ) {
-          clearIndicators();
+          toast.dismiss();
           return;
         }
         const detail =
           error instanceof RequestError ? error.responseJSON?.detail : undefined;
-        addErrorMessage(
-          (typeof detail === 'string' ? detail : detail?.message) ??
-            t('Unable to create organization.')
+        const message = typeof detail === 'string' ? detail : detail?.message;
+        toast.error(
+          typeof message === 'string' ? message : t('Unable to create organization.')
         );
       });
     },

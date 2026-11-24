@@ -181,7 +181,7 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             monitor=monitor,
             environment_id=env.id,
         )
-        checkin = MonitorCheckIn.objects.create(
+        checkin = self.create_monitor_checkin(
             monitor_environment=monitor_env,
             date_added=monitor.date_added,
             status=CheckInStatus.OK,

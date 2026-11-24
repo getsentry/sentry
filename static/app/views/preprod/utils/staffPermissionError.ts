@@ -1,11 +1,12 @@
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 
 type StaffErrorDetail = string | {code?: string; message?: string} | null | undefined;
 
 export function handleStaffPermissionError(responseDetail: StaffErrorDetail) {
   if (typeof responseDetail !== 'string' && responseDetail?.code === 'staff-required') {
-    addErrorMessage(
+    toast.error(
       t(
         'Re-authenticate as staff first and then return to this page and try again. Redirecting...'
       )
@@ -16,5 +17,5 @@ export function handleStaffPermissionError(responseDetail: StaffErrorDetail) {
     return;
   }
 
-  addErrorMessage(t('Access denied. You may need to re-authenticate as staff.'));
+  toast.error(t('Access denied. You may need to re-authenticate as staff.'));
 }

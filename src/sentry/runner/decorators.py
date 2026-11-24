@@ -18,6 +18,15 @@ class CaseInsensitiveChoice(click.Choice[str]):
 
 def configuration(f: Callable[P, R]) -> Callable[P, R]:
     "Load and configure Sentry."
+    return _configured(f, settings_only=False)
+
+
+def settings_configuration(f: Callable[P, R]) -> Callable[P, R]:
+    "Load Sentry's settings only, for commands that don't need the app initialized."
+    return _configured(f, settings_only=True)
+
+
+def _configured(f: Callable[P, R], *, settings_only: bool) -> Callable[P, R]:
     from functools import update_wrapper
 
     import click
@@ -30,7 +39,7 @@ def configuration(f: Callable[P, R]) -> Callable[P, R]:
         if os.environ.get("_SENTRY_SKIP_CONFIGURATION") != "1":
             from sentry.runner import configure
 
-            configure()
+            configure(settings_only=settings_only)
         return ctx.invoke(f, *args, **kwargs)
 
     return update_wrapper(inner, f)

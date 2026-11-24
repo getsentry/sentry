@@ -7,7 +7,8 @@ import {IconSubtract} from '@sentry/icons/subtract';
 
 import type {Token, TokenOperator} from 'sentry/components/arithmeticBuilder/token';
 import {Operator} from 'sentry/components/arithmeticBuilder/token';
-import {DeletableToken} from 'sentry/components/arithmeticBuilder/token/deletableToken';
+
+import {DeletableToken} from './deletableToken';
 
 interface ArithmeticTokenOperatorProps {
   item: Node<Token>;

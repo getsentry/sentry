@@ -10,9 +10,9 @@ import {
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {
   ExternalActorMapping,
@@ -42,14 +42,9 @@ type BaseProps = {
   onSubmitSuccess?: (data: ExternalActorMapping) => void | Promise<void>;
 };
 
-type InlineProps = BaseProps & {
-  isInline: true;
-};
+type InlineProps = BaseProps & {isInline: true};
 
-type ModalProps = BaseProps &
-  ModalRenderProps & {
-    isInline?: false;
-  };
+type ModalProps = BaseProps & ModalRenderProps & {isInline?: false};
 
 type Props = InlineProps | ModalProps;
 
@@ -66,11 +61,7 @@ function mapMembers(members: Member[]) {
     .filter(member => member.user)
     .map(({user, email, name}) => {
       const label = email === name ? email : `${name} - ${email}`;
-      return {
-        value: {id: user?.id!, name: label},
-        label,
-        textValue: label,
-      };
+      return {value: {id: user?.id!, name: label}, label, textValue: label};
     });
 }
 
@@ -192,7 +183,7 @@ function InlineMappingForm({
           },
           onSuccess: data => onSubmitSuccess?.(data),
           onError: () => {
-            addErrorMessage(t('Unable to save changes'));
+            toast.error(t('Unable to save changes'));
           },
         }}
       >
@@ -280,7 +271,7 @@ function ModalMappingForm({
       closeModal();
     },
     onError: () => {
-      addErrorMessage(t('Unable to save changes'));
+      toast.error(t('Unable to save changes'));
     },
   });
 

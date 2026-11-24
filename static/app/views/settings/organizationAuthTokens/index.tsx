@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 import {IconAdd} from '@sentry/icons/add';
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -18,20 +18,16 @@ import type {OrgAuthToken} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organizationAuthTokens/authTokenRow';
+
+import {OrganizationAuthTokensAuthTokenRow} from './authTokenRow';
 
 type FetchOrgAuthTokensResponse = OrgAuthToken[];
-type FetchOrgAuthTokensParameters = {
-  orgSlug: string;
-};
-type RevokeTokenQueryVariables = {
-  token: OrgAuthToken;
-};
+type FetchOrgAuthTokensParameters = {orgSlug: string};
+type RevokeTokenQueryVariables = {token: OrgAuthToken};
 
 const TOKEN_COLUMNS: TableColumnConfig[] = [
   {key: 'token', width: 'minmax(0, 1fr)'},
@@ -40,14 +36,11 @@ const TOKEN_COLUMNS: TableColumnConfig[] = [
   {key: 'actions', width: {zero: '1fr', xl: 'auto'}},
 ];
 
-export const makeFetchOrgAuthTokensForOrgQueryKey = ({
-  orgSlug,
-}: FetchOrgAuthTokensParameters) =>
-  [
-    getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/', {
-      path: {organizationIdOrSlug: orgSlug},
-    }),
-  ] as const;
+export const orgAuthTokensOptions = ({orgSlug}: FetchOrgAuthTokensParameters) =>
+  apiOptions.as<FetchOrgAuthTokensResponse>()(
+    '/organizations/$organizationIdOrSlug/org-auth-tokens/',
+    {path: {organizationIdOrSlug: orgSlug}, staleTime: Infinity}
+  );
 
 function TokenList({
   organization,
@@ -71,10 +64,7 @@ function TokenList({
   const {data: projects, isPending: isLoadingProjects} = useQuery({
     ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {
-        query: idQueryParams,
-        collapse: ['latestDeploys', 'unusedFeatures'],
-      },
+      query: {query: idQueryParams, collapse: ['latestDeploys', 'unusedFeatures']},
       staleTime: 0,
     }),
     enabled: hasProjects,
@@ -104,7 +94,6 @@ function TokenList({
 
 function OrganizationAuthTokensIndex() {
   const organization = useOrganization();
-  const api = useApi();
   const queryClient = useQueryClient();
 
   const {
@@ -112,12 +101,7 @@ function OrganizationAuthTokensIndex() {
     isError,
     data: tokenList,
     refetch: refetchTokenList,
-  } = useApiQuery<FetchOrgAuthTokensResponse>(
-    makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug}),
-    {
-      staleTime: Infinity,
-    }
-  );
+  } = useQuery(orgAuthTokensOptions({orgSlug: organization.slug}));
 
   const {mutate: handleRevokeToken, isPending: isRevoking} = useMutation<
     unknown,
@@ -125,34 +109,34 @@ function OrganizationAuthTokensIndex() {
     RevokeTokenQueryVariables
   >({
     mutationFn: ({token}) =>
-      api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/', {
+      fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/', {
           path: {organizationIdOrSlug: organization.slug, tokenId: token.id},
         }),
-        {
-          method: 'DELETE',
-        }
-      ),
+        method: 'DELETE',
+      }),
 
     onSuccess: (_data, {token}) => {
-      addSuccessMessage(t('Revoked auth token for the organization.'));
+      toast.success(t('Revoked auth token for the organization.'));
 
-      setApiQueryData(
-        queryClient,
-        makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug}),
+      queryClient.setQueryData(
+        orgAuthTokensOptions({orgSlug: organization.slug}).queryKey,
         oldData => {
-          if (!Array.isArray(oldData)) {
+          if (!oldData) {
             return oldData;
           }
 
-          return oldData.filter(oldToken => oldToken.id !== token.id);
+          return {
+            ...oldData,
+            json: oldData.json.filter(oldToken => oldToken.id !== token.id),
+          };
         }
       );
     },
     onError: error => {
       const message = t('Failed to revoke the auth token for the organization.');
       handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      toast.error(message);
     },
   });
 
@@ -189,9 +173,7 @@ function OrganizationAuthTokensIndex() {
                 <div>
                   {tct(
                     'For more information on how to use the web API, see our [link:documentation].',
-                    {
-                      link: <ExternalLink href="https://docs.sentry.io/api/" />,
-                    }
+                    {link: <ExternalLink href="https://docs.sentry.io/api/" />}
                   )}
                 </div>
               </Stack>

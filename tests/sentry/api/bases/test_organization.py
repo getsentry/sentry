@@ -11,6 +11,7 @@ from django.contrib.sessions.backends.base import SessionBase
 from django.db.models import F
 from django.http import HttpRequest
 from django.test import RequestFactory, override_settings
+from django.urls import get_resolver
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -36,6 +37,7 @@ from sentry.api.exceptions import (
     SuperuserRequired,
     TwoFactorRequired,
 )
+from sentry.api.permissions import SentryPermission
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, ServiceAccountAccess, from_request
 from sentry.auth.authenticators.totp import TotpInterface
@@ -43,11 +45,21 @@ from sentry.auth.principal import set_request_principal
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import Superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
-from sentry.dashboards.endpoints import organization_dashboards_starred
+from sentry.dashboards.endpoints import (
+    organization_dashboard_details,
+    organization_dashboards_starred,
+)
+from sentry.dashboards.endpoints.organization_dashboard_generate import (
+    OrganizationDashboardGeneratePermission,
+)
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
-from sentry.discover.endpoints import discover_saved_query_starred
+from sentry.discover.endpoints import discover_saved_query_detail, discover_saved_query_starred
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
-from sentry.explore.endpoints import explore_saved_query_starred, saved_query_starred_order
+from sentry.explore.endpoints import (
+    explore_saved_query_detail,
+    explore_saved_query_starred,
+    saved_query_starred_order,
+)
 from sentry.explore.endpoints.bases import (
     ExploreSavedFormulaPermission,
     ExploreSavedQueryPermission,
@@ -56,7 +68,6 @@ from sentry.insights.endpoints import starred_segments
 from sentry.issues.endpoints import (
     organization_group_search_view_details_starred,
     organization_group_search_view_starred_order,
-    organization_group_search_view_visit,
     organization_group_search_views_starred,
 )
 from sentry.issues.endpoints.bases.group_search_view import GroupSearchViewPermission
@@ -102,11 +113,6 @@ class MockSuperUser:
     @property
     def is_active(self) -> bool:
         return True
-
-
-class LightweightControlSiloOrganizationEndpoint(ControlSiloOrganizationEndpoint):
-    include_organization_projects = False
-    include_organization_teams = False
 
 
 class PermissionBaseTestCase(TestCase):
@@ -592,6 +598,7 @@ class RejectsDeprecatedScopesTest(TestCase):
 # Every permission class that stops accepting deprecated scopes in orgs with granular scopes.
 OPTED_IN_PERMISSIONS: list[type[OrganizationPermission]] = [
     OrganizationDashboardsPermission,
+    OrganizationDashboardGeneratePermission,
     DiscoverSavedQueryPermission,
     ExploreSavedQueryPermission,
     ExploreSavedFormulaPermission,
@@ -605,7 +612,9 @@ OPTED_IN_PERMISSIONS: list[type[OrganizationPermission]] = [
     starred_segments.MemberPermission,
     organization_group_search_view_details_starred.MemberPermission,
     organization_group_search_view_starred_order.MemberPermission,
-    organization_group_search_view_visit.MemberPermission,
+    organization_dashboard_details.OrganizationDashboardVisitPermission,
+    discover_saved_query_detail.DiscoverSavedQueryVisitPermission,
+    explore_saved_query_detail.ExploreSavedQueryVisitPermission,
     organization_group_search_views_starred.MemberPermission,
 ]
 
@@ -640,6 +649,54 @@ def test_granular_roles_keep_access(permission_cls: type[OrganizationPermission]
         if not set(role["scopes"]) & (set(scopes) - settings.DEPRECATED_SCOPES)
     }
     assert without_access == set()
+
+
+def _permission_classes(cls: type[SentryPermission]) -> list[type[SentryPermission]]:
+    return [cls, *(sub for direct in cls.__subclasses__() for sub in _permission_classes(direct))]
+
+
+MEMBER_SCOPES = ("member:read", "member:invite", "member:write", "member:admin")
+MEMBERSHIP_SCOPES = ("membership:read", "membership:invite", "membership:write", "membership:admin")
+
+
+def _all_permission_classes() -> list[type[SentryPermission]]:
+    get_resolver().url_patterns  # Import every endpoint module so its permissions are defined.
+    return _permission_classes(SentryPermission)
+
+
+@pytest.mark.parametrize("member_scope", MEMBER_SCOPES)
+def test_membership_scopes_only_replace_member_scope(member_scope: str) -> None:
+    """Each member scope translates to membership scopes, so those must not open anything that
+    the member scope doesn't already open."""
+    translated = settings.DEPRECATED_SCOPE_TRANSLATIONS[member_scope] & set(MEMBERSHIP_SCOPES)
+    broadened = {
+        (permission_cls.__qualname__, method, membership_scope)
+        for permission_cls in _all_permission_classes()
+        for method, scopes in permission_cls.scope_map.items()
+        for membership_scope in translated & set(scopes)
+        if member_scope not in scopes
+    }
+    assert broadened == set()
+
+
+def test_membership_permissions_accept_one_membership_scope() -> None:
+    """A method that accepts member scopes accepts exactly one membership scope, the one it
+    needs, and every member scope it accepts translates to it. So tokens holding only
+    membership scopes keep the same access without listing the whole hierarchy."""
+    wrong = {
+        (permission_cls.__qualname__, method)
+        for permission_cls in _all_permission_classes()
+        if any(set(scopes) & set(MEMBERSHIP_SCOPES) for scopes in permission_cls.scope_map.values())
+        for method, scopes in permission_cls.scope_map.items()
+        if set(scopes) & set(MEMBER_SCOPES)
+        for membership_scopes in [set(scopes) & set(MEMBERSHIP_SCOPES)]
+        if len(membership_scopes) != 1
+        or any(
+            not membership_scopes <= settings.DEPRECATED_SCOPE_TRANSLATIONS[member_scope]
+            for member_scope in set(scopes) & set(MEMBER_SCOPES)
+        )
+    }
+    assert wrong == set()
 
 
 class BaseOrganizationEndpointTest(TestCase):
@@ -727,11 +784,14 @@ class DetermineAccessHydrationTest(TestCase):
         assert request.access.has_scope("org:read")
 
 
+@all_silo_test
 class ControlSiloOrganizationEndpointTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.organization)
+        self.project = self.create_project(organization=self.organization, teams=[self.team])
 
     def build_request(self) -> Request:
         request = RequestFactory().get("/")
@@ -740,62 +800,37 @@ class ControlSiloOrganizationEndpointTest(TestCase):
         request.auth = None
         return drf_request_from_request(request)
 
-    @mock.patch.object(
-        organization_service,
-        "get_organization_by_slug",
-        wraps=organization_service.get_organization_by_slug,
-    )
-    def test_convert_args_includes_projects_and_teams_by_default(
-        self, mock_get_organization: mock.MagicMock
-    ) -> None:
-        ControlSiloOrganizationEndpoint().convert_args(self.build_request(), self.organization.slug)
+    def assert_organization_access(self, organization_id_or_slug: int | str) -> None:
+        request = self.build_request()
+        _, kwargs = ControlSiloOrganizationEndpoint().convert_args(request, organization_id_or_slug)
 
-        mock_get_organization.assert_called_once_with(
-            slug=self.organization.slug,
-            only_visible=False,
-            user_id=self.user.id,
-            include_projects=True,
-            include_teams=True,
-        )
+        assert kwargs["organization"].id == self.organization.id
+        assert request.access.has_scope("org:read")
+        assert request.access.has_project_access(self.project)
+        assert request.access.has_team_access(self.team)
 
-    @mock.patch.object(
-        organization_service,
-        "get_organization_by_slug",
-        wraps=organization_service.get_organization_by_slug,
-    )
-    def test_convert_args_can_omit_projects_and_teams_for_slug(
-        self, mock_get_organization: mock.MagicMock
-    ) -> None:
-        LightweightControlSiloOrganizationEndpoint().convert_args(
-            self.build_request(), self.organization.slug
-        )
+    def test_convert_args_resolves_organization_and_access_by_slug(self) -> None:
+        self.assert_organization_access(self.organization.slug)
 
-        mock_get_organization.assert_called_once_with(
-            slug=self.organization.slug,
-            only_visible=False,
-            user_id=self.user.id,
-            include_projects=False,
-            include_teams=False,
-        )
+    def test_convert_args_resolves_organization_and_access_by_id(self) -> None:
+        self.assert_organization_access(self.organization.id)
 
-    @mock.patch.object(
-        organization_service,
-        "get_organization_by_id",
-        wraps=organization_service.get_organization_by_id,
-    )
-    def test_convert_args_can_omit_projects_and_teams_for_id(
-        self, mock_get_organization: mock.MagicMock
-    ) -> None:
-        LightweightControlSiloOrganizationEndpoint().convert_args(
-            self.build_request(), self.organization.id
+    def test_org_token_enumerates_resources_without_additional_rpcs(self) -> None:
+        request = self.build_request()
+        request.user = AnonymousUser()
+        request.auth = AuthenticatedToken(
+            kind="org_auth_token", organization_id=self.organization.id, scopes=["org:read"]
         )
+        unassigned = self.create_project(organization=self.organization, teams=[])
+        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
+            ControlSiloOrganizationEndpoint().convert_args(request, self.organization.slug)
+            with mock.patch("sentry.hybridcloud.rpc.service.dispatch_remote_call") as rpc:
+                assert request.access.accessible_project_ids == frozenset(
+                    {self.project.id, unassigned.id}
+                )
+                assert request.access.accessible_team_ids == frozenset({self.team.id})
 
-        mock_get_organization.assert_called_once_with(
-            id=self.organization.id,
-            user_id=self.user.id,
-            include_projects=False,
-            include_teams=False,
-        )
+        rpc.assert_not_called()
 
 
 class OrganizationEndpointViewerContextTest(BaseOrganizationEndpointTest):

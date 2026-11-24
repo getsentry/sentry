@@ -6,33 +6,21 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ConfigStore} from 'sentry/stores/configStore';
-import {RelocationOnboarding as Relocation} from 'sentry/views/relocation/relocation';
+import {toast} from '@sentry/scraps/toast';
 
-jest.mock('sentry/actionCreators/indicator');
+import {ConfigStore} from 'sentry/stores/configStore';
+
+import {RelocationOnboarding as Relocation} from './relocation';
 
 const fakeOrgSlug = 'test-org';
 const fakePromoCode = 'free-hugs';
 const fakePublicKey = 'FAKE-PK-ANY';
 
-type FakeRegion = {
-  name: string;
-  publicKey: string;
-  url: string;
-};
+type FakeRegion = {name: string; publicKey: string; url: string};
 
 const fakeLocalities: Record<string, FakeRegion> = {
-  Earth: {
-    name: 'earth',
-    url: 'https://earth.example.com',
-    publicKey: 'FAKE-PK-EARTH',
-  },
-  Moon: {
-    name: 'moon',
-    url: 'https://moon.example.com',
-    publicKey: 'FAKE-PK-MOON',
-  },
+  Earth: {name: 'earth', url: 'https://earth.example.com', publicKey: 'FAKE-PK-EARTH'},
+  Moon: {name: 'moon', url: 'https://moon.example.com', publicKey: 'FAKE-PK-MOON'},
 };
 
 describe('Relocation', () => {
@@ -40,6 +28,8 @@ describe('Relocation', () => {
   let fetchPublicKeys: jest.Mock;
 
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
+    jest.spyOn(toast, 'success').mockClear();
     MockApiClient.clearMockResponses();
     sessionStorage.clear();
 
@@ -57,9 +47,7 @@ describe('Relocation', () => {
     });
     fetchPublicKeys = MockApiClient.addMockResponse({
       url: '/publickeys/relocations/',
-      body: {
-        public_key: fakePublicKey,
-      },
+      body: {public_key: fakePublicKey},
     });
     MockApiClient.addMockResponse({
       url: `/promocodes-external/${fakePromoCode}`,
@@ -75,9 +63,7 @@ describe('Relocation', () => {
   function renderPage(step: string) {
     return render(<Relocation />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/relocation/${step}/`,
-        },
+        location: {pathname: `/relocation/${step}/`},
         route: '/relocation/:step/',
       },
     });
@@ -112,18 +98,11 @@ describe('Relocation', () => {
       MockApiClient.clearMockResponses();
       fetchExistingRelocations = MockApiClient.addMockResponse({
         url: '/relocations/',
-        body: [
-          {
-            uuid: 'ccef828a-03d8-4dd0-918a-487ffecf8717',
-            status: 'IN_PROGRESS',
-          },
-        ],
+        body: [{uuid: 'ccef828a-03d8-4dd0-918a-487ffecf8717', status: 'IN_PROGRESS'}],
       });
       fetchPublicKeys = MockApiClient.addMockResponse({
         url: '/publickeys/relocations/',
-        body: {
-          public_key: fakePublicKey,
-        },
+        body: {public_key: fakePublicKey},
       });
 
       const {router} = renderPage('get-started');
@@ -132,9 +111,7 @@ describe('Relocation', () => {
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(router.location).toEqual(
-        expect.objectContaining({
-          pathname: '/relocation/in-progress/',
-        })
+        expect.objectContaining({pathname: '/relocation/in-progress/'})
       );
     });
 
@@ -167,7 +144,7 @@ describe('Relocation', () => {
       await userEvent.type(screen.getByLabelText('promocode'), fakePromoCode);
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
       await waitFor(() => expect(fetchPromoCode).toHaveBeenCalledTimes(1));
-      expect(addErrorMessage).not.toHaveBeenCalled();
+      expect(toast.error).not.toHaveBeenCalled();
     });
 
     it('should persist form data across reloads', async () => {
@@ -207,7 +184,7 @@ describe('Relocation', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
       await waitFor(() => expect(fetchPromoCode).toHaveBeenCalledTimes(1));
-      expect(addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.'
       );
     });
@@ -228,9 +205,7 @@ describe('Relocation', () => {
       });
       fetchPublicKeys = MockApiClient.addMockResponse({
         url: '/publickeys/relocations/',
-        body: {
-          public_key: fakePublicKey,
-        },
+        body: {public_key: fakePublicKey},
       });
 
       await waitForRenderError('get-started');
@@ -306,9 +281,7 @@ describe('Relocation', () => {
       const successfulFetchMoonPublicKey = MockApiClient.addMockResponse({
         host: fakeLocalities.Moon!.url,
         url: '/publickeys/relocations/',
-        body: {
-          public_key: fakeLocalities.Moon!.publicKey,
-        },
+        body: {public_key: fakeLocalities.Moon!.publicKey},
       });
 
       await waitForRenderError('public-key');
@@ -323,9 +296,7 @@ describe('Relocation', () => {
       const successfulFetchEarthPublicKey = MockApiClient.addMockResponse({
         host: fakeLocalities.Earth!.url,
         url: '/publickeys/relocations/',
-        body: {
-          public_key: fakeLocalities.Earth!.publicKey,
-        },
+        body: {public_key: fakeLocalities.Earth!.publicKey},
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
@@ -353,9 +324,7 @@ describe('Relocation', () => {
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(router.location).toEqual(
-        expect.objectContaining({
-          pathname: '/relocation/get-started/',
-        })
+        expect.objectContaining({pathname: '/relocation/get-started/'})
       );
     });
   });
@@ -364,10 +333,7 @@ describe('Relocation', () => {
     beforeEach(() => {
       sessionStorage.setItem(
         'relocationOnboarding',
-        JSON.stringify({
-          orgSlugs: fakeOrgSlug,
-          localityName: fakeLocalities.Earth!.name,
-        })
+        JSON.stringify({orgSlugs: fakeOrgSlug, localityName: fakeLocalities.Earth!.name})
       );
     });
 
@@ -397,9 +363,7 @@ describe('Relocation', () => {
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(router.location).toEqual(
-        expect.objectContaining({
-          pathname: '/relocation/get-started/',
-        })
+        expect.objectContaining({pathname: '/relocation/get-started/'})
       );
     });
   });
@@ -460,10 +424,7 @@ describe('Relocation', () => {
         url: '/relocations/',
         method: 'POST',
         responseJSON: [
-          {
-            uuid: 'ccef828a-03d8-4dd0-918a-487ffecf8717',
-            status: 'IN_PROGRESS',
-          },
+          {uuid: 'ccef828a-03d8-4dd0-918a-487ffecf8717', status: 'IN_PROGRESS'},
         ],
       });
 
@@ -485,7 +446,7 @@ describe('Relocation', () => {
           expect.objectContaining({host: fakeLocalities.Earth!.url, method: 'POST'})
         )
       );
-      expect(addSuccessMessage).toHaveBeenCalledWith(
+      expect(toast.success).toHaveBeenCalledWith(
         "Your relocation has started - we'll email you with updates as soon as we have 'em!"
       );
 
@@ -512,7 +473,7 @@ describe('Relocation', () => {
       );
       await userEvent.click(await screen.findByText('Start Relocation'));
       await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
-      expect(addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'You already have an in-progress relocation job.'
       );
     });
@@ -537,7 +498,7 @@ describe('Relocation', () => {
       );
       await userEvent.click(await screen.findByText('Start Relocation'));
       await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
-      expect(addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'We have reached the daily limit of relocations - please try again tomorrow, or contact support.'
       );
     });
@@ -562,7 +523,7 @@ describe('Relocation', () => {
       );
       await userEvent.click(await screen.findByText('Start Relocation'));
       await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
-      expect(addErrorMessage).toHaveBeenCalledWith('Your session has expired.');
+      expect(toast.error).toHaveBeenCalledWith('Your session has expired.');
     });
 
     it('throws error for 500 error', async () => {
@@ -585,7 +546,7 @@ describe('Relocation', () => {
       );
       await userEvent.click(await screen.findByText('Start Relocation'));
       await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
-      expect(addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'An error has occurred while trying to start relocation job. Please contact support for further assistance.'
       );
     });
@@ -599,9 +560,7 @@ describe('Relocation', () => {
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(router.location).toEqual(
-        expect.objectContaining({
-          pathname: '/relocation/get-started/',
-        })
+        expect.objectContaining({pathname: '/relocation/get-started/'})
       );
     });
   });
@@ -610,10 +569,7 @@ describe('Relocation', () => {
     beforeEach(() => {
       sessionStorage.setItem(
         'relocationOnboarding',
-        JSON.stringify({
-          orgSlugs: fakeOrgSlug,
-          localityName: fakeLocalities.Earth!.name,
-        })
+        JSON.stringify({orgSlugs: fakeOrgSlug, localityName: fakeLocalities.Earth!.name})
       );
     });
 
@@ -621,18 +577,11 @@ describe('Relocation', () => {
       MockApiClient.clearMockResponses();
       fetchExistingRelocations = MockApiClient.addMockResponse({
         url: '/relocations/',
-        body: [
-          {
-            uuid: 'ccef828a-03d8-4dd0-918a-487ffecf8717',
-            status: 'IN_PROGRESS',
-          },
-        ],
+        body: [{uuid: 'ccef828a-03d8-4dd0-918a-487ffecf8717', status: 'IN_PROGRESS'}],
       });
       fetchPublicKeys = MockApiClient.addMockResponse({
         url: '/publickeys/relocations/',
-        body: {
-          public_key: fakePublicKey,
-        },
+        body: {public_key: fakePublicKey},
       });
 
       await waitForRenderSuccess('in-progress');
@@ -648,9 +597,7 @@ describe('Relocation', () => {
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(router.location).toEqual(
-        expect.objectContaining({
-          pathname: '/relocation/get-started/',
-        })
+        expect.objectContaining({pathname: '/relocation/get-started/'})
       );
     });
 
@@ -658,18 +605,11 @@ describe('Relocation', () => {
       MockApiClient.clearMockResponses();
       fetchExistingRelocations = MockApiClient.addMockResponse({
         url: '/relocations/',
-        body: [
-          {
-            uuid: 'ccef828a-03d8-4dd0-918a-487ffecf8717',
-            status: 'SUCCESS',
-          },
-        ],
+        body: [{uuid: 'ccef828a-03d8-4dd0-918a-487ffecf8717', status: 'SUCCESS'}],
       });
       fetchPublicKeys = MockApiClient.addMockResponse({
         url: '/publickeys/relocations/',
-        body: {
-          public_key: fakePublicKey,
-        },
+        body: {public_key: fakePublicKey},
       });
 
       const {router} = renderPage('in-progress');
@@ -678,9 +618,7 @@ describe('Relocation', () => {
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(router.location).toEqual(
-        expect.objectContaining({
-          pathname: '/relocation/get-started/',
-        })
+        expect.objectContaining({pathname: '/relocation/get-started/'})
       );
     });
   });

@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
+
+import type {WidgetTemplate} from './types';
 
 /**
  * Shared widget definitions for Next.js Overview dashboard
@@ -17,13 +18,6 @@ export const SERVER_TREE_WIDGET_TEMPLATE: WidgetTemplate = {
   displayType: DisplayType.SERVER_TREE,
   interval: '5m',
   queries: [
-    {
-      name: '',
-      conditions: '',
-      aggregates: [],
-      columns: [],
-      fields: [],
-      orderby: '',
-    },
+    {name: '', conditions: '', aggregates: [], columns: [], fields: [], orderby: ''},
   ],
 };

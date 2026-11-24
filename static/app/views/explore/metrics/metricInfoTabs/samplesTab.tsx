@@ -1,5 +1,6 @@
-import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+
+import {MetricsSamplesTable} from './metricsSamplesTable';
 
 interface SamplesTabProps {
   traceMetric: TraceMetric;

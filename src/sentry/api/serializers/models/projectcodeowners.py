@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Collection, Mapping, Sequence
 from datetime import datetime
-from typing import TypedDict, cast
+from typing import Annotated, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -12,6 +12,7 @@ from sentry.api.serializers.models.projectownership import (
     OwnershipSchemaResponse,
 )
 from sentry.api.validators.project_codeowners import CodeOwnersErrors, build_codeowners_associations
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.integrations.api.serializers.models.repository_project_path_config import (
     RepositoryProjectPathConfigSerializer,
     RepositoryProjectPathConfigSerializerResponse,
@@ -57,21 +58,55 @@ class EmptyOwnershipSchemaResponse(TypedDict):
 
 
 class ProjectCodeOwnersResponseOptional(TypedDict, total=False):
-    codeMapping: RepositoryProjectPathConfigSerializerResponse
-    ownershipSyntax: str
-    errors: CodeOwnersErrors
-    schema: OwnershipSchemaResponse | EmptyOwnershipSchemaResponse
-    codeOwnersUrl: str
+    codeMapping: Annotated[
+        RepositoryProjectPathConfigSerializerResponse,
+        ApiDescription(
+            "Code mapping of the CODEOWNERS file. Only set when expand includes codeMapping"
+        ),
+    ]
+    ownershipSyntax: Annotated[
+        str,
+        ApiDescription(
+            "CODEOWNERS rules translated to Sentry ownership rules. Only set when expand includes ownershipSyntax"
+        ),
+    ]
+    errors: Annotated[
+        CodeOwnersErrors,
+        ApiDescription(
+            "Owners that couldn't be associated, by reason. Only set when expand includes errors"
+        ),
+    ]
+    schema: Annotated[
+        OwnershipSchemaResponse | EmptyOwnershipSchemaResponse,
+        ApiDescription(
+            "Parsed rules of the CODEOWNERS file. Only set when expand includes hasTargetingContext"
+        ),
+    ]
+    codeOwnersUrl: Annotated[
+        str,
+        ApiDescription(
+            "URL of the CODEOWNERS file in the repository, or unknown. Only set when expand includes hasTargetingContext"
+        ),
+    ]
 
 
 class ProjectCodeOwnersResponse(ProjectCodeOwnersResponseOptional):
-    id: str
-    raw: str
-    dateCreated: datetime
-    dateUpdated: datetime
-    dateSynced: datetime | None
-    codeMappingId: str
-    provider: str
+    id: Annotated[str, ApiDescription("ID of the CODEOWNERS record")]
+    raw: Annotated[str, ApiDescription("Contents of the CODEOWNERS file")]
+    dateCreated: Annotated[
+        datetime, ApiDescription("When the CODEOWNERS file was added (ISO 8601)")
+    ]
+    dateUpdated: Annotated[datetime, ApiDescription("When the record was last updated (ISO 8601)")]
+    dateSynced: Annotated[
+        datetime | None,
+        ApiDescription(
+            "When the file was last synced from the repository (ISO 8601). Null when it was never synced"
+        ),
+    ]
+    codeMappingId: Annotated[str, ApiDescription("ID of the code mapping of the CODEOWNERS file")]
+    provider: Annotated[
+        str, ApiDescription("Provider of the repository's integration, such as github, or unknown")
+    ]
 
 
 DEFAULT_CODEOWNERS_EXPAND = ("errors", "hasTargetingContext")

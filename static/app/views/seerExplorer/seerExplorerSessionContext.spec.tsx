@@ -1,4 +1,4 @@
-import {buildRunsSearchQuery} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
+import {buildRunsSearchQuery} from './seerExplorerSessionContext';
 
 describe('buildRunsSearchQuery', () => {
   it('scopes to the current user and recorded Explorer sessions when there is no search', () => {

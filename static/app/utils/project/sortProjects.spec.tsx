@@ -1,9 +1,6 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {
-  sortProjects,
-  sortProjectsByBookmarkAndMembership,
-} from 'sentry/utils/project/sortProjects';
+import {sortProjects, sortProjectsByBookmarkAndMembership} from './sortProjects';
 
 describe('sortProjects', () => {
   it('sorts by bookmark and project slug', () => {

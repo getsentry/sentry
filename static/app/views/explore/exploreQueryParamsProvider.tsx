@@ -1,23 +1,25 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo, useRef} from 'react';
 import type {NavigateOptions} from 'react-router';
+import type {Location} from 'history';
 import type {ParserMap} from 'nuqs';
 
 import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
+
+import {QueryParamsContextProvider} from './queryParams/context';
 import {
   applyQueryParamsUpdates,
   loadQueryParamsFromLocation,
   type QueryParamsUpdates,
   type QueryParamsValues,
-} from 'sentry/views/explore/queryParams/parsers';
+} from './queryParams/parsers';
 import type {
   ReadableQueryParams,
   ReadableQueryParamsOptions,
-} from 'sentry/views/explore/queryParams/readableQueryParams';
-import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+} from './queryParams/readableQueryParams';
+import type {WritableQueryParams} from './queryParams/writableQueryParams';
 
 interface ExploreQueryParamsProviderProps<Parsers extends ParserMap> {
   children: ReactNode;
@@ -28,6 +30,7 @@ interface ExploreQueryParamsProviderProps<Parsers extends ParserMap> {
   isDefaultFields: (values: QueryParamsValues<Parsers>) => boolean;
   parsers: Parsers;
   frozenParams?: Partial<ReadableQueryParamsOptions>;
+  getTarget?: (location: Location, target: Location) => Location;
   // Runs before navigation, e.g. to persist params to local storage.
   onSetWritableQueryParams?: (writableQueryParams: WritableQueryParams) => void;
 }
@@ -39,6 +42,7 @@ export function ExploreQueryParamsProvider<Parsers extends ParserMap>({
   isDefaultFields,
   parsers,
   frozenParams,
+  getTarget,
   onSetWritableQueryParams,
 }: ExploreQueryParamsProviderProps<Parsers>) {
   const location = useLocation();
@@ -71,9 +75,14 @@ export function ExploreQueryParamsProvider<Parsers extends ParserMap>({
         getQueryParamsUpdates(writableQueryParams)
       );
 
-      navigateIfQueryChanged(navigate, locationRef.current, target, options);
+      navigateIfQueryChanged(
+        navigate,
+        locationRef.current,
+        getTarget ? getTarget(locationRef.current, target) : target,
+        options
+      );
     },
-    [getQueryParamsUpdates, navigate, onSetWritableQueryParams, parsers]
+    [getQueryParamsUpdates, getTarget, navigate, onSetWritableQueryParams, parsers]
   );
 
   return (

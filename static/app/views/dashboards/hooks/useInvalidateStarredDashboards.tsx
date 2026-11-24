@@ -2,7 +2,8 @@ import {useCallback} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
+
+import {getStarredDashboardsQueryKey} from './useGetStarredDashboards';
 
 export function useInvalidateStarredDashboards() {
   const organization = useOrganization();

@@ -10,11 +10,16 @@ import {
   getIsAiNode,
   getTraceNodeAttribute,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  LEGACY_TOOL_OUTPUT_ATTRIBUTE,
+  TOOL_CALL_RESULT_ATTRIBUTE,
+} from 'sentry/views/insights/pages/agents/utils/toolOutput';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
-import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
+
+import {AIContentRenderer} from './aiContentRenderer';
 
 interface AIOutputData {
   reasoningText: string | null;
@@ -141,9 +146,7 @@ export function getAIOutputData(
     if (!raw) {
       continue;
     }
-    const extracted = extractAssistantOutput(raw.toString(), {
-      defaultRole: 'assistant',
-    });
+    const extracted = extractAssistantOutput(raw.toString(), {defaultRole: 'assistant'});
     if (
       extracted.reasoningText ||
       extracted.responseText ||
@@ -186,13 +189,13 @@ export function getAIToolOutput(
   event?: EventTransaction
 ) {
   const result = getTraceNodeAttribute(
-    'gen_ai.tool.call.result',
+    TOOL_CALL_RESULT_ATTRIBUTE,
     node,
     event,
     attributes
   );
   if (result === undefined || result === null) {
-    return getTraceNodeAttribute('gen_ai.tool.output', node, event, attributes);
+    return getTraceNodeAttribute(LEGACY_TOOL_OUTPUT_ATTRIBUTE, node, event, attributes);
   }
 
   let parsed: unknown = result;

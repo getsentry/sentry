@@ -4,7 +4,8 @@ import {
   type UseMutationOptions,
 } from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -14,9 +15,7 @@ import {groupSearchViewApiOptions} from 'sentry/views/issueList/queries/groupSea
 import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 
-type DeleteGroupSearchViewVariables = {
-  id: string;
-};
+type DeleteGroupSearchViewVariables = {id: string};
 export const useDeleteGroupSearchView = (
   options: Omit<
     UseMutationOptions<GroupSearchView, RequestError, DeleteGroupSearchViewVariables>,
@@ -39,10 +38,7 @@ export const useDeleteGroupSearchView = (
     onSuccess: (data, parameters, onMutateResult, context) => {
       // Invalidate the view in cache
       queryClient.invalidateQueries(
-        groupSearchViewApiOptions({
-          orgSlug: organization.slug,
-          id: parameters.id,
-        })
+        groupSearchViewApiOptions({orgSlug: organization.slug, id: parameters.id})
       );
 
       // Update any matching starred views in cache
@@ -51,16 +47,13 @@ export const useDeleteGroupSearchView = (
       }).queryKey;
       queryClient.setQueryData(starredKey, prevData =>
         prevData
-          ? {
-              ...prevData,
-              json: prevData.json.filter(view => view.id !== parameters.id),
-            }
+          ? {...prevData, json: prevData.json.filter(view => view.id !== parameters.id)}
           : prevData
       );
       options.onSuccess?.(data, parameters, onMutateResult, context);
     },
     onError: (error, variables, onMutateResult, context) => {
-      addErrorMessage(t('Failed to delete view'));
+      toast.error(t('Failed to delete view'));
       options.onError?.(error, variables, onMutateResult, context);
     },
   });

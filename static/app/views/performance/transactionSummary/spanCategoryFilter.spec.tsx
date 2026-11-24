@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
+import {SpanCategoryFilter} from './spanCategoryFilter';
 
 describe('SpanCategoryFilter', () => {
   const organization = OrganizationFixture();
@@ -23,10 +23,7 @@ describe('SpanCategoryFilter', () => {
     const {router} = render(<SpanCategoryFilter segmentSpanName="/api/" />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/insights/summary/',
-          query: {transaction: '/api/'},
-        },
+        location: {pathname: '/insights/summary/', query: {transaction: '/api/'}},
       },
     });
 
@@ -42,10 +39,7 @@ describe('SpanCategoryFilter', () => {
     render(<SpanCategoryFilter segmentSpanName="/api/" />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/insights/summary/',
-          query: {'span.category': 'http'},
-        },
+        location: {pathname: '/insights/summary/', query: {'span.category': 'http'}},
       },
     });
 

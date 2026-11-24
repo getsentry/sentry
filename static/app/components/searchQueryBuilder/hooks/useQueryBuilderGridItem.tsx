@@ -6,9 +6,10 @@ import type {ListState} from '@react-stately/list';
 import type {FocusableElement, Node} from '@react-types/shared';
 
 import {useSearchQueryBuilderLayout} from 'sentry/components/searchQueryBuilder/context';
-import {useKeyboardSelection} from 'sentry/components/searchQueryBuilder/hooks/useKeyboardSelection';
 import {findNearestFreeTextKey} from 'sentry/components/searchQueryBuilder/utils';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
+
+import {useKeyboardSelection} from './useKeyboardSelection';
 
 function isInputElement(target: EventTarget): target is HTMLInputElement {
   return target instanceof HTMLInputElement;

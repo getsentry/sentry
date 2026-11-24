@@ -1,7 +1,8 @@
 import type {Simplify} from 'type-fest';
 
 import type {PlatformKey} from 'sentry/types/platform';
-import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
+
+import type {SupportedDatabaseSystem} from './database/utils/constants';
 
 export enum ModuleName {
   HTTP = 'http',

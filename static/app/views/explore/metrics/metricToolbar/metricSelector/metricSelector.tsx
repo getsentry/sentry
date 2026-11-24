@@ -40,13 +40,6 @@ import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
-import {MetricDetailPanel} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricDetailPanel';
-import {MetricListBoxOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricListBoxOption';
-import {
-  isMetricSelectorOption,
-  type MetricSelectorItem,
-  type MetricSelectorOption,
-} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
 import {
   isTraceMetricTypeValue,
   TraceMetricKnownFieldKey,
@@ -56,6 +49,14 @@ import {
   hasDisplayMetricUnit,
   makeMetricSelectValue,
 } from 'sentry/views/explore/metrics/utils';
+
+import {MetricDetailPanel} from './metricDetailPanel';
+import {MetricListBoxOption} from './metricListBoxOption';
+import {
+  isMetricSelectorOption,
+  type MetricSelectorItem,
+  type MetricSelectorOption,
+} from './types';
 
 const METRIC_SELECTOR_OPTION_HEIGHT = 42;
 const METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT = 400;
@@ -100,22 +101,22 @@ export function MetricSelector({
   usePortal,
   fieldOption,
   getDisabledOptionReason,
+  skipDefaultOption,
 }: {
   onChange: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
   environments?: string[];
   // A field option is a special option that is injected and used to select a field from the dataset.
-  fieldOption?: {
-    isSelected: boolean;
-    onSelect: () => void;
-    disabledReason?: string;
-  };
+  fieldOption?: {isSelected: boolean; onSelect: () => void; disabledReason?: string};
   // Returns a tooltip explaining why a metric option should be disabled, or
   // undefined to leave it enabled. Lets callers constrain the selectable
   // metrics to those their context supports (e.g. only distributions for heat
   // maps). Omitting it leaves every option enabled.
   getDisabledOptionReason?: (option: MetricSelectorOption) => string | undefined;
   projectIds?: number[];
+  // Returns true for options that should not be picked as the default metric
+  // for an empty slot. They stay selectable in the list.
+  skipDefaultOption?: (option: MetricSelectorOption) => boolean;
   usePortal?: boolean;
 }) {
   const theme = useTheme();
@@ -256,6 +257,7 @@ export function MetricSelector({
               return option;
             }
 
+            // oxlint-disable-next-line react/immutability
             hasMatchedSelectedMetric = true;
             return {...option, value: traceMetricSelectValue};
           })
@@ -318,7 +320,8 @@ export function MetricSelector({
       (option): option is MetricSelectorOption =>
         isMetricSelectorOption(option) &&
         option.value !== FIELD_OPTION_VALUE &&
-        !getDisabledOptionReason?.(option)
+        !getDisabledOptionReason?.(option) &&
+        !skipDefaultOption?.(option)
     );
     if (firstSelectable) {
       onChange({
@@ -332,6 +335,7 @@ export function MetricSelector({
     getDisabledOptionReason,
     metricOptions,
     onChange,
+    skipDefaultOption,
     traceMetric.name,
   ]);
 
@@ -666,9 +670,7 @@ export function MetricSelector({
                             paddingLeft="2xs"
                             align="center"
                             justify="center"
-                            style={{
-                              transform: 'translateY(1px) translateX(1px)',
-                            }}
+                            style={{transform: 'translateY(1px) translateX(1px)'}}
                           >
                             <IconSearch size="xs" variant="muted" />
                           </Flex>

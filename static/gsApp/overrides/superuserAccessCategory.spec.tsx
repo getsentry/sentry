@@ -14,11 +14,13 @@ function TestForm() {
     <form.AppForm form={form}>
       <form.AppField name="superuserAccessCategory">
         {field => (
-          <field.Radio.Group value={field.state.value} onChange={field.handleChange}>
-            <field.Layout.Stack label="Categories of Superuser Access" required>
-              <SuperuserAccessCategory RadioItem={field.Radio.Item} />
-            </field.Layout.Stack>
-          </field.Radio.Group>
+          <field.RadioGroup value={field.state.value} onChange={field.handleChange}>
+            {({Item}) => (
+              <field.Layout.Stack label="Categories of Superuser Access" required>
+                <SuperuserAccessCategory RadioItem={Item} />
+              </field.Layout.Stack>
+            )}
+          </field.RadioGroup>
         )}
       </form.AppField>
     </form.AppForm>

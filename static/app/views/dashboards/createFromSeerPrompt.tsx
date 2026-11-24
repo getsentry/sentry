@@ -5,8 +5,8 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -30,9 +30,7 @@ export function CreateFromSeerPrompt() {
 
     try {
       const url = getApiUrl('/organizations/$organizationIdOrSlug/dashboards/generate/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-        },
+        path: {organizationIdOrSlug: organization.slug},
       });
       const response = await fetchMutation<{run_id: string}>({
         url,
@@ -42,7 +40,7 @@ export function CreateFromSeerPrompt() {
 
       const runId = response.run_id;
       if (!runId) {
-        addErrorMessage(t('Failed to start dashboard generation'));
+        toast.error(t('Failed to start dashboard generation'));
         setIsGenerating(false);
         return;
       }
@@ -50,7 +48,7 @@ export function CreateFromSeerPrompt() {
       setSeerRunId(Number(runId));
     } catch (error) {
       setIsGenerating(false);
-      addErrorMessage(t('Failed to start dashboard generation'));
+      toast.error(t('Failed to start dashboard generation'));
     }
   };
 

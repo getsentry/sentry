@@ -7,6 +7,7 @@ import shutil
 import string
 import sys
 import time
+from collections.abc import Generator
 from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
@@ -326,6 +327,7 @@ def pytest_configure(config: pytest.Config) -> None:
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.secret-key": "a" * 52,
+            # getsentry master still reads these through options.get().
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
             "slack.verification-token": "slack-verification-token",
@@ -356,7 +358,30 @@ def pytest_configure(config: pytest.Config) -> None:
             "aws-lambda.python.layer-version": "34",
         }
     )
-    settings.EMAIL_BACKEND = settings.SENTRY_OPTIONS["mail.backend"]
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    settings.SENTRY_GITHUB_CONSOLE_SDK_APP_INSTALLATION_ID = "123123123"
+    settings.SENTRY_GITHUB_CONSOLE_SDK_APP_PRIVATE_KEY = "github-private-key"
+    settings.SENTRY_SLACK_CLIENT_ID = "slack-client-id"
+    settings.SENTRY_SLACK_CLIENT_SECRET = "slack-client-secret"
+    settings.SENTRY_SLACK_VERIFICATION_TOKEN = "slack-verification-token"
+    settings.SENTRY_SLACK_SIGNING_SECRET = "slack-signing-secret"
+    settings.SENTRY_GITHUB_APP_NAME = "sentry-test-app"
+    settings.SENTRY_GITHUB_APP_CLIENT_ID = "github-client-id"
+    settings.SENTRY_GITHUB_APP_CLIENT_SECRET = "github-client-secret"
+    settings.SENTRY_GITHUB_APP_WEBHOOK_SECRET = "b3002c3e321d4b7880360d397db2ccfd"
+    settings.SENTRY_GITHUB_CONSOLE_SDK_APP_ID = 42
+    settings.SENTRY_VSTS_CLIENT_ID = "vsts-client-id"
+    settings.SENTRY_VSTS_CLIENT_SECRET = "vsts-client-secret"
+    settings.SENTRY_VSTS_LIMITED_CLIENT_ID = "vsts-limited-client-id"
+    settings.SENTRY_VSTS_LIMITED_CLIENT_SECRET = "vsts-limited-client-secret"
+    settings.SENTRY_VERCEL_CLIENT_ID = "vercel-client-id"
+    settings.SENTRY_VERCEL_CLIENT_SECRET = "vercel-client-secret"
+    settings.SENTRY_MSTEAMS_CLIENT_ID = "msteams-client-id"
+    settings.SENTRY_MSTEAMS_CLIENT_SECRET = "msteams-client-secret"
+    settings.SENTRY_AWS_LAMBDA_ACCESS_KEY_ID = "aws-key-id"
+    settings.SENTRY_AWS_LAMBDA_SECRET_ACCESS_KEY = "aws-secret-access-key"
+    settings.SENTRY_AWS_LAMBDA_CLOUDFORMATION_URL = "https://example.com/file.json"
+    settings.SENTRY_AWS_LAMBDA_ACCOUNT_NUMBER = "1234"
     settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
 
@@ -371,15 +396,14 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.ASANA_CLIENT_SECRET = "123"
     settings.BITBUCKET_CONSUMER_KEY = "abc"
     settings.BITBUCKET_CONSUMER_SECRET = "123"
-    settings.SENTRY_OPTIONS["github-login.client-id"] = "abc"
-    settings.SENTRY_OPTIONS["github-login.client-secret"] = "123"
+    settings.GITHUB_APP_ID = "abc"
+    settings.GITHUB_API_SECRET = "123"
+    settings.SENTRY_OPTIONS["github-login.client-id"] = settings.GITHUB_APP_ID
+    settings.SENTRY_OPTIONS["github-login.client-secret"] = settings.GITHUB_API_SECRET
 
     # Configure control backend settings for storage
     settings.SENTRY_OPTIONS["filestore.control.backend"] = "filesystem"
     settings.SENTRY_OPTIONS["filestore.control.options"] = {"location": "/tmp/sentry-files"}
-
-    # This is so tests can assume this feature is off by default
-    settings.SENTRY_FEATURES["organizations:performance-view"] = False
 
     # If a request hits the wrong silo, replace the 404 response with an error state
     settings.FAIL_ON_UNAVAILABLE_API_CALL = True
@@ -417,10 +441,9 @@ def pytest_configure(config: pytest.Config) -> None:
     register_extensions()
 
     if not SENTRY_SKIP_SERVICE_VALIDATION:
-        from sentry.utils.redis import clusters
+        from sentry.utils.redis import redis_clusters
 
-        with clusters.get("default").all() as client:
-            client.flushdb()
+        redis_clusters.get("default").flushdb()
 
 
 def register_extensions() -> None:
@@ -480,10 +503,9 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
 
     newsletter.backend.test_only__downcast_to(DummyNewsletter).clear()
 
-    from sentry.utils.redis import clusters, pop_used_key_prefix_clients
+    from sentry.utils.redis import pop_used_key_prefix_clients, redis_clusters
 
-    with clusters.get("default").all() as client:
-        client.flushdb()
+    redis_clusters.get("default").flushdb()
 
     for cluster_client in pop_used_key_prefix_clients():
         try:
@@ -508,6 +530,57 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
     clear_checkin_config_cache()
 
     sentry_sdk.get_global_scope().set_client(None)
+
+
+@pytest.hookimpl(wrapper=True, specname="pytest_runtest_teardown")
+def pytest_runtest_teardown_redis_transaction_violations(
+    item: pytest.Item,
+) -> Generator[None, object, object]:
+    # Our Redis test utils checks for Redis calls in DB transactions. When a call is found inside
+    # a transaction, we raise an error. Often, however, the code under test catches that error
+    # before it makes it to the top-level test. In this wrapper, we record each violation, which has
+    # the end result of failing the test when the problem scenario occurs.
+    from sentry.utils.redis import pop_redis_transaction_violations
+
+    try:
+        result = yield
+    except BaseException as error:
+        violations = pop_redis_transaction_violations()
+        if violations:
+            error.add_note(_format_redis_transaction_violations(violations))
+        raise
+
+    violations = pop_redis_transaction_violations()
+    if violations:
+        pytest.fail(_format_redis_transaction_violations(violations), pytrace=False)
+    return result
+
+
+def _format_redis_transaction_violations(violations: list[tuple[str, tuple[str, ...]]]) -> str:
+    from sentry.utils.redis import _REDIS_LOCK_BACKEND_CALLERS
+
+    stacks: dict[tuple[str, ...], str] = {}
+    for message, callers in violations:
+        stacks.setdefault(callers, message)
+
+    lines = [
+        "Redis calls ran inside a database transaction. The check raises an AssertionError at "
+        "the call, but the code under test can catch it, so the check also fails the test here.",
+    ]
+    for callers, message in stacks.items():
+        if callers and callers[0] in _REDIS_LOCK_BACKEND_CALLERS:
+            kind = "lock call (_REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET)"
+        else:
+            kind = "plain call (_REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET)"
+        lines.append("")
+        lines.append(f"{kind}: {message}")
+        lines.extend(f"    {caller}" for caller in callers or ("unknown",))
+    lines.append("")
+    lines.append(
+        "Move the Redis call out of the transaction. If the test causes the violation on "
+        "purpose, call sentry.utils.redis.pop_redis_transaction_violations() in the test."
+    )
+    return "\n".join(lines)
 
 
 def _shuffle(items: list[pytest.Item], r: random.Random) -> None:

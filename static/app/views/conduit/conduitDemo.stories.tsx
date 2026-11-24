@@ -9,9 +9,7 @@ import * as Storybook from 'sentry/stories';
 import {getCsrfToken} from 'sentry/utils/getCsrfToken';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type Message = {
-  value: string;
-};
+type Message = {value: string};
 
 export default Storybook.story('Conduit Demo', story => {
   story('Streaming Demo', () => {
@@ -19,14 +17,12 @@ export default Storybook.story('Conduit Demo', story => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isEnabled, setIsEnabled] = useState(false);
 
+    // Same-origin on purpose: conduit-client's fetch() sends no credentials, so a
+    // cross-origin request would drop the session cookie.
+    // eslint-disable-next-line @sentry/no-relative-api-url
     const streamUrl = `/api/0/organizations/${organization.slug}/conduit-demo/`;
 
-    const streamHeaders = useMemo(
-      () => ({
-        'X-CSRFToken': getCsrfToken(),
-      }),
-      []
-    );
+    const streamHeaders = useMemo(() => ({'X-CSRFToken': getCsrfToken()}), []);
 
     const {error, isConnected} = useStream({
       enabled: isEnabled,

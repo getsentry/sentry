@@ -1,5 +1,6 @@
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
+
+import {getPackageVersion} from './getPackageVersion';
 
 export function getWizardInstallSnippet({
   platform,

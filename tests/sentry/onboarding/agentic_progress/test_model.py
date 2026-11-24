@@ -7,6 +7,7 @@ import pytest
 from sentry.onboarding.agentic_progress.model import (
     STAGE_DEFINITIONS,
     STAGE_INDEX,
+    ConnectExtra,
     CreateProjectExtra,
     InvalidOnboardingRun,
     InvalidProgressUpdate,
@@ -51,6 +52,10 @@ def test_stage_definitions_are_ordered_and_complete() -> None:
 
 
 def test_extra_stage_definition_preserves_its_type() -> None:
+    assert_type(
+        get_stage_definition(Stage.CONNECT_MCP),
+        StageDefinition[ConnectExtra],
+    )
     assert_type(
         get_stage_definition(Stage.CREATE_PROJECT),
         StageDefinition[CreateProjectExtra],
@@ -188,6 +193,7 @@ def test_from_dict_wraps_invalid_persisted_run_status() -> None:
         (Stage.CREATE_PROJECT, {"project_slugs": ["project"], "unknown": True}),
         (Stage.CREATE_PROJECT, {"issue_ids": ["123"]}),
         (Stage.CONNECT_MCP, {"project_slugs": ["project"]}),
+        (Stage.CONNECT_MCP, {"method": "browser"}),
     ],
 )
 def test_from_dict_rejects_invalid_stage_extra(stage: Stage, extra: dict[str, object]) -> None:
@@ -211,6 +217,33 @@ def test_stage_extra_round_trips() -> None:
     )
 
     assert OnboardingRun.from_dict(run.to_dict()) == run
+
+
+def test_connect_extra_keeps_first_method() -> None:
+    now = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    run = apply_update(
+        make_run(now),
+        ProgressUpdate(
+            stage=Stage.CONNECT_MCP,
+            status=StageStatus.COMPLETED,
+            extra=ConnectExtra(method="cli"),
+        ),
+        now,
+    )
+    run = apply_update(
+        run,
+        ProgressUpdate(
+            stage=Stage.CONNECT_MCP,
+            status=StageStatus.COMPLETED,
+            extra=ConnectExtra(method="mcp"),
+        ),
+        now,
+    )
+
+    extra = get_stage_definition(Stage.CONNECT_MCP).extra_from(
+        run.stages[STAGE_INDEX[Stage.CONNECT_MCP]]
+    )
+    assert extra == ConnectExtra(method="cli")
 
 
 def test_empty_stage_extra_round_trips() -> None:
@@ -403,7 +436,38 @@ def test_bypassed_status_cannot_be_reported() -> None:
         validate_update(ProgressUpdate(stage=Stage.ANALYZE_PROJECT, status=StageStatus.BYPASSED))
 
 
-def test_bypassed_stage_never_regresses() -> None:
+def test_late_completion_replaces_bypassed_stage() -> None:
+    now = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    advanced = apply_update(
+        make_run(now),
+        ProgressUpdate(stage=Stage.CREATE_PROJECT, status=StageStatus.WAITING),
+        now,
+    )
+    index = STAGE_INDEX[Stage.ANALYZE_PROJECT]
+    assert advanced.stages[index].status is StageStatus.BYPASSED
+
+    late = apply_update(
+        advanced,
+        ProgressUpdate(
+            stage=Stage.ANALYZE_PROJECT,
+            status=StageStatus.COMPLETED,
+            event_note="Platform confirmed.",
+        ),
+        now + timedelta(seconds=1),
+    )
+
+    assert late.stages[index] == StageState(
+        stage=Stage.ANALYZE_PROJECT,
+        status=StageStatus.COMPLETED,
+        event_note="Platform confirmed.",
+    )
+    assert late.stages[:index] == advanced.stages[:index]
+    assert late.stages[index + 1 :] == advanced.stages[index + 1 :]
+    assert late.sequence == advanced.sequence + 1
+
+
+@pytest.mark.parametrize("status", [StageStatus.ACTIVE, StageStatus.WAITING, StageStatus.FAILED])
+def test_unfinished_update_does_not_reopen_bypassed_stage(status: StageStatus) -> None:
     now = datetime(2020, 1, 1, tzinfo=timezone.utc)
     advanced = apply_update(
         make_run(now),
@@ -413,7 +477,7 @@ def test_bypassed_stage_never_regresses() -> None:
 
     late = apply_update(
         advanced,
-        ProgressUpdate(stage=Stage.ANALYZE_PROJECT, status=StageStatus.COMPLETED),
+        ProgressUpdate(stage=Stage.ANALYZE_PROJECT, status=status, event_note="Late update."),
         now + timedelta(seconds=1),
     )
 
@@ -457,7 +521,7 @@ def test_inferred_bypass_clears_stale_event_note() -> None:
         ),
     ],
 )
-def test_bypassed_stage_accepts_late_metadata(
+def test_late_completion_of_bypassed_stage_keeps_metadata(
     later_stage: Stage,
     owning_stage: Stage,
     extra: CreateProjectExtra | VerificationErrorExtra,
@@ -480,6 +544,27 @@ def test_bypassed_stage_accepts_late_metadata(
     )
 
     stage = enriched.stages[list(Stage).index(owning_stage)]
+    assert stage.status is StageStatus.COMPLETED
+    assert stage.extra == extra
+    assert enriched.sequence == advanced.sequence + 1
+
+
+def test_unfinished_update_adds_metadata_to_bypassed_stage() -> None:
+    now = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    advanced = apply_update(
+        make_run(now),
+        ProgressUpdate(stage=Stage.INSTRUMENT_APP, status=StageStatus.ACTIVE),
+        now,
+    )
+    extra = CreateProjectExtra(project_slugs=("example-project",))
+
+    enriched = apply_update(
+        advanced,
+        ProgressUpdate(stage=Stage.CREATE_PROJECT, status=StageStatus.ACTIVE, extra=extra),
+        now + timedelta(seconds=1),
+    )
+
+    stage = enriched.stages[STAGE_INDEX[Stage.CREATE_PROJECT]]
     assert stage.status is StageStatus.BYPASSED
     assert stage.extra == extra
     assert enriched.sequence == advanced.sequence + 1
@@ -626,3 +711,8 @@ def test_restore_run_without_origin() -> None:
     persisted = make_run(datetime(2020, 1, 1, tzinfo=timezone.utc)).to_dict()
     del persisted["origin"]
     assert OnboardingRun.from_dict(persisted).origin is None
+
+
+def test_round_trip_run_awaiting_reporting_code() -> None:
+    run = replace(make_run(datetime(2020, 1, 1, tzinfo=timezone.utc)), token_hash=None)
+    assert OnboardingRun.from_dict(run.to_dict()) == run

@@ -1,4 +1,4 @@
-import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
+import {intervalToMilliseconds} from './intervalToMilliseconds';
 
 describe('intervalToMilliseconds()', () => {
   it('can convert standard formats', () => {

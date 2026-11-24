@@ -10,6 +10,12 @@ export enum DataForwarderProviderSlug {
   SPLUNK = 'splunk',
 }
 
+export const PROVIDER_TAB_ORDER = [
+  DataForwarderProviderSlug.SPLUNK,
+  DataForwarderProviderSlug.SEGMENT,
+  DataForwarderProviderSlug.SQS,
+] as const;
+
 export const ProviderLabels: Record<DataForwarderProviderSlug, string> = {
   [DataForwarderProviderSlug.SPLUNK]: 'Splunk',
   [DataForwarderProviderSlug.SEGMENT]: 'Segment',

@@ -38,14 +38,14 @@ class _ProjectRepoLinkResponse(TypedDict):
     created: bool
 
 
-class ProjectRepoSerializer(serializers.Serializer[ProjectRepository]):
+class ProjectRepoLinkRequestSerializer(serializers.Serializer[ProjectRepository]):
     repositoryId = serializers.IntegerField(
         required=True, help_text="The ID of the repository to link."
     )
 
-    def __init__(self, *args: Any, project: Project, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self.project = project
+    @property
+    def project(self) -> Project:
+        return self.context["project"]
 
     def validate_repositoryId(self, value: int) -> int:
         if not Repository.objects.filter(
@@ -144,23 +144,22 @@ class ProjectRepoEndpoint(ProjectEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
         ],
-        request=inline_serializer(
-            "ProjectRepoLinkRequest",
-            fields={
-                "repositoryId": serializers.IntegerField(
-                    help_text="The ID of the repository to link."
-                ),
-            },
-        ),
+        request=ProjectRepoLinkRequestSerializer,
         responses={
             201: inline_serializer(
                 "ProjectRepoLinkResponse",
                 fields={
-                    "id": serializers.CharField(),
-                    "projectId": serializers.CharField(),
-                    "repositoryId": serializers.CharField(),
-                    "source": serializers.CharField(),
-                    "created": serializers.BooleanField(),
+                    "id": serializers.CharField(
+                        help_text="ID of the link between the project and the repository."
+                    ),
+                    "projectId": serializers.CharField(help_text="ID of the project."),
+                    "repositoryId": serializers.CharField(help_text="ID of the repository."),
+                    "source": serializers.CharField(
+                        help_text="How the link was made: manual, scm_onboarding, auto_event, auto_name_match or seer_preference."
+                    ),
+                    "created": serializers.BooleanField(
+                        help_text="Whether the request created the link. False when it already existed."
+                    ),
                 },
             ),
             400: RESPONSE_BAD_REQUEST,
@@ -179,7 +178,9 @@ class ProjectRepoEndpoint(ProjectEndpoint):
         in the organization (connected via a VCS integration). Idempotent:
         returns 200 if the link already exists, 201 if created.
         """
-        serializer = ProjectRepoSerializer(data=request.data, project=project)
+        serializer = ProjectRepoLinkRequestSerializer(
+            data=request.data, context={"project": project}
+        )
         if not serializer.is_valid():
             errors = serializer.errors
             repo_errors = errors.get("repositoryId", [])

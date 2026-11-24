@@ -5,7 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
-import {TabKey, useActiveReplayTab} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import {TabKey, useActiveReplayTab} from './useActiveReplayTab';
 
 describe('useActiveReplayTab', () => {
   beforeEach(() => {
@@ -20,9 +20,7 @@ describe('useActiveReplayTab', () => {
       it('should use AI summary as a default', () => {
         const {result} = renderHookWithProviders(useActiveReplayTab, {
           initialProps: {},
-          organization: OrganizationFixture({
-            features: ['replay-ai-summaries'],
-          }),
+          organization: OrganizationFixture({features: ['replay-ai-summaries']}),
         });
 
         expect(result.current.getActiveTab()).toBe(TabKey.AI);
@@ -33,9 +31,7 @@ describe('useActiveReplayTab', () => {
 
         const {result} = renderHookWithProviders(useActiveReplayTab, {
           initialProps: {},
-          organization: OrganizationFixture({
-            features: ['replay-ai-summaries'],
-          }),
+          organization: OrganizationFixture({features: ['replay-ai-summaries']}),
         });
 
         expect(result.current.getActiveTab()).toBe(TabKey.AI);
@@ -47,9 +43,7 @@ describe('useActiveReplayTab', () => {
           initialRouterConfig: {
             location: {pathname: '/mock-pathname/', query: {query: 'click.tag:button'}},
           },
-          organization: OrganizationFixture({
-            features: ['replay-ai-summaries'],
-          }),
+          organization: OrganizationFixture({features: ['replay-ai-summaries']}),
         });
         expect(result.current.getActiveTab()).toBe(TabKey.AI);
 
@@ -76,9 +70,7 @@ describe('useActiveReplayTab', () => {
       it('should use Breadcrumbs as default for video replays when replay-ai-summaries-mobile is NOT enabled', () => {
         const {result} = renderHookWithProviders(useActiveReplayTab, {
           initialProps: {isVideoReplay: true},
-          organization: OrganizationFixture({
-            features: ['replay-ai-summaries'],
-          }),
+          organization: OrganizationFixture({features: ['replay-ai-summaries']}),
         });
 
         expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
@@ -184,9 +176,7 @@ describe('useActiveReplayTab', () => {
 
     const {result, router} = renderHookWithProviders(useActiveReplayTab, {
       initialProps: {},
-      initialRouterConfig: {
-        location: {pathname: '/mock-pathname/', query: {}},
-      },
+      initialRouterConfig: {location: {pathname: '/mock-pathname/', query: {}}},
       organization: OrganizationFixture({features: []}),
       onNuqsUrlUpdate: onUrlUpdate,
     });

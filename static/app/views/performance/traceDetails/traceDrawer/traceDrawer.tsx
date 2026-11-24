@@ -15,11 +15,6 @@ import {
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
-import {TraceTreeNodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {
-  usePassiveResizableDrawer,
-  type UsePassiveResizableDrawerOptions,
-} from 'sentry/views/performance/traceDetails/traceDrawer/usePassiveResizeableDrawer';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {TraceScheduler} from 'sentry/views/performance/traceDetails/traceRenderers/traceScheduler';
@@ -34,6 +29,12 @@ import {
   useTraceStateDispatch,
 } from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
 import {type TraceTabsReducerState} from 'sentry/views/performance/traceDetails/traceState/traceTabs';
+
+import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
+import {
+  usePassiveResizableDrawer,
+  type UsePassiveResizableDrawerOptions,
+} from './usePassiveResizeableDrawer';
 
 type TraceDrawerProps = {
   manager: VirtualizedViewManager;
@@ -93,10 +94,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         size > min &&
         minimized
       ) {
-        traceDispatch({
-          type: 'minimize drawer',
-          payload: false,
-        });
+        traceDispatch({type: 'minimize drawer', payload: false});
       }
 
       const {width, height} = props.traceGridRef.getBoundingClientRect();
@@ -116,10 +114,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
             ? drawerHeight
             : drawerWidth;
 
-        traceDispatch({
-          type: 'set drawer dimension',
-          payload: drawer_size,
-        });
+        traceDispatch({type: 'set drawer dimension', payload: drawer_size});
       }, 1000);
 
       if (traceStateRef.current.preferences.layout === 'drawer bottom') {
@@ -191,10 +186,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
   const {onMouseDown, size} = usePassiveResizableDrawer(resizableDrawerOptions);
   const onMinimizeClick = useCallback(() => {
     traceAnalytics.trackDrawerMinimize(organization);
-    traceDispatch({
-      type: 'minimize drawer',
-      payload: !isDrawerMinimized,
-    });
+    traceDispatch({type: 'minimize drawer', payload: !isDrawerMinimized});
     if (isDrawerMinimized) {
       if (drawerOptions.initialSize === 0) {
         const userPreference =

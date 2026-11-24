@@ -29,6 +29,7 @@ from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiForbiddenError,
     ApiPaginationTruncated,
+    ApiRateLimitedError,
     ApiUnauthorized,
     IntegrationConfigurationError,
 )
@@ -44,11 +45,19 @@ logger = logging.getLogger(__name__)
 release_debounce = load_redis_script("utils/locking/delete_lock.lua")
 
 MAX_RATE_LIMIT_DEFERRALS = 1000
-# The limiter is region-local. These caps keep two active regions at a combined
-# best-effort ceiling of 20 burst and 4 repositories per second per GitLab identity.
+# The limiter is cell-local and scoped by GitLab host. These caps keep two active
+# cells at a combined best-effort ceiling of 20 burst and 4 tokens per second per host.
 WEBHOOK_RECONCILIATION_MAX_BURST = 10
 WEBHOOK_RECONCILIATION_MAX_PER_SECOND = 2
+WEBHOOK_RECONCILIATION_MAX_FORCED_FANOUT_JITTER_SECONDS = 3600
+WEBHOOK_RECONCILIATION_MAX_RETRY_DELAY_SECONDS = 3600
+WEBHOOK_RECONCILIATION_REPOSITORY_COST = 5
+WEBHOOK_RECONCILIATION_RETRY_AFTER_JITTER_SECONDS = 300
+WEBHOOK_RECONCILIATION_RATE_LIMIT_JITTER_MIN_SECONDS = 11
+WEBHOOK_RECONCILIATION_RATE_LIMIT_JITTER_MAX_SECONDS = 73
 WEBHOOK_RECONCILIATION_FANOUT_JITTER_SECONDS = 5
+WEBHOOK_RECONCILIATION_FORCED_FANOUT_JITTER_MIN_SECONDS = 11
+WEBHOOK_RECONCILIATION_SUCCESS_OUTCOMES = frozenset({"adopted", "created", "recreated", "updated"})
 
 GITLAB_RETRY_CODES = (
     status.HTTP_429_TOO_MANY_REQUESTS,
@@ -193,7 +202,10 @@ def _webhook_reconciliation_rate_limits() -> tuple[int, int]:
     return (
         min(
             WEBHOOK_RECONCILIATION_MAX_BURST,
-            max(1, options.get("gitlab.webhook-reconcile.rate-limit.burst")),
+            max(
+                WEBHOOK_RECONCILIATION_REPOSITORY_COST,
+                options.get("gitlab.webhook-reconcile.rate-limit.burst"),
+            ),
         ),
         min(
             WEBHOOK_RECONCILIATION_MAX_PER_SECOND,
@@ -202,23 +214,62 @@ def _webhook_reconciliation_rate_limits() -> tuple[int, int]:
     )
 
 
-def _consume_webhook_reconciliation_capacity(
-    base_url: str, identity_external_id: str
-) -> LeakyBucketLimitInfo:
+def _webhook_reconciliation_retry_delay_seconds() -> int:
+    return min(
+        WEBHOOK_RECONCILIATION_MAX_RETRY_DELAY_SECONDS,
+        max(1, options.get("gitlab.webhook-reconcile.rate-limit.retry-delay-seconds")),
+    )
+
+
+def _webhook_reconciliation_forced_fanout_jitter_max_seconds() -> int:
+    return min(
+        WEBHOOK_RECONCILIATION_MAX_FORCED_FANOUT_JITTER_SECONDS,
+        max(
+            WEBHOOK_RECONCILIATION_FORCED_FANOUT_JITTER_MIN_SECONDS,
+            options.get("gitlab.webhook-reconcile.forced-fanout-jitter-max-seconds"),
+        ),
+    )
+
+
+def _consume_webhook_reconciliation_capacity(base_url: str) -> LeakyBucketLimitInfo:
     hostname = urlsplit(base_url).hostname or base_url
     burst_limit, drip_rate = _webhook_reconciliation_rate_limits()
     limiter = LeakyBucketRateLimiter(
         burst_limit=burst_limit,
         drip_rate=drip_rate,
-        key=f"gitlab:webhook-reconcile:{hostname}:{identity_external_id}",
+        key=f"gitlab:webhook-reconcile:{hostname}",
         fail_open=False,
     )
     try:
-        return limiter.use_and_get_info()
+        return limiter.use_and_get_info(incr_by=WEBHOOK_RECONCILIATION_REPOSITORY_COST)
     except LeakyBucketRateLimiter.Unavailable as e:
         raise WebhookReconciliationRedisError(
             "Redis is unavailable for GitLab webhook reconciliation rate limiting"
         ) from e
+
+
+def _defer_update_project_webhook(
+    *,
+    integration_id: int,
+    organization_id: int,
+    repository_id: int,
+    rate_limit_deferrals: int,
+    countdown: int,
+) -> None:
+    if rate_limit_deferrals >= MAX_RATE_LIMIT_DEFERRALS:
+        raise WebhookReconciliationRateLimitError(
+            "GitLab webhook reconciliation exceeded its rate-limit deferral budget"
+        )
+
+    update_project_webhook.apply_async(
+        kwargs={
+            "integration_id": integration_id,
+            "organization_id": organization_id,
+            "repository_id": repository_id,
+            "rate_limit_deferrals": rate_limit_deferrals + 1,
+        },
+        countdown=countdown,
+    )
 
 
 @instrumented_task(
@@ -311,29 +362,26 @@ def update_project_webhook(
                 installation = integration.get_installation(organization_id=organization_id)
                 client = installation.get_client()
 
-                limit_info = _consume_webhook_reconciliation_capacity(
-                    client.base_url, client.identity.external_id
-                )
+                limit_info = _consume_webhook_reconciliation_capacity(client.base_url)
                 if limit_info.wait_time:
-                    if rate_limit_deferrals >= MAX_RATE_LIMIT_DEFERRALS:
-                        raise WebhookReconciliationRateLimitError(
-                            "GitLab webhook reconciliation exceeded its rate-limit deferral budget"
-                        )
-
-                    countdown = max(1, ceil(limit_info.wait_time)) + randint(0, 5)
+                    countdown = max(
+                        ceil(limit_info.wait_time),
+                        _webhook_reconciliation_retry_delay_seconds(),
+                    ) + randint(
+                        WEBHOOK_RECONCILIATION_RATE_LIMIT_JITTER_MIN_SECONDS,
+                        WEBHOOK_RECONCILIATION_RATE_LIMIT_JITTER_MAX_SECONDS,
+                    )
                     lifecycle.add_extras(
                         {
                             "rate_limit_countdown": countdown,
                             "rate_limit_deferrals": rate_limit_deferrals + 1,
                         }
                     )
-                    update_project_webhook.apply_async(
-                        kwargs={
-                            "integration_id": integration_id,
-                            "organization_id": organization_id,
-                            "repository_id": repository_id,
-                            "rate_limit_deferrals": rate_limit_deferrals + 1,
-                        },
+                    _defer_update_project_webhook(
+                        integration_id=integration_id,
+                        organization_id=organization_id,
+                        repository_id=repository_id,
+                        rate_limit_deferrals=rate_limit_deferrals,
                         countdown=countdown,
                     )
                     lifecycle.record_halt(GitLabWebhookUpdateHaltReason.RATE_LIMITED)
@@ -523,6 +571,31 @@ def update_project_webhook(
             # Don't retry if we've lost access
             return
 
+        except ApiRateLimitedError as e:
+            if e.retry_after is None:
+                raise
+
+            countdown = max(1, e.retry_after) + randint(
+                0, WEBHOOK_RECONCILIATION_RETRY_AFTER_JITTER_SECONDS
+            )
+            lifecycle.add_extras(
+                {
+                    "rate_limit_countdown": countdown,
+                    "rate_limit_deferrals": rate_limit_deferrals + 1,
+                    "rate_limit_source": "gitlab",
+                }
+            )
+            _defer_update_project_webhook(
+                integration_id=integration_id,
+                organization_id=organization_id,
+                repository_id=repository_id,
+                rate_limit_deferrals=rate_limit_deferrals,
+                countdown=countdown,
+            )
+            outcome = "rate_limited"
+            lifecycle.record_halt(GitLabWebhookUpdateHaltReason.RATE_LIMITED)
+            return
+
         except ApiError as e:
             # Raise for retry on a small number of transient errors
             if e.code in GITLAB_RETRY_CODES:
@@ -536,6 +609,19 @@ def update_project_webhook(
         finally:
             if outcome is not None:
                 metrics.incr("gitlab.project_webhook.reconcile", tags={"outcome": outcome})
+                if outcome in WEBHOOK_RECONCILIATION_SUCCESS_OUTCOMES:
+                    logger.info(
+                        "update-project-webhook.success",
+                        extra={
+                            "integration_id": integration_id,
+                            "interaction_type": str(
+                                GitLabTaskInteractionType.UPDATE_PROJECT_WEBHOOK
+                            ),
+                            "organization_id": organization_id,
+                            "outcome": outcome,
+                            "repository_id": repository_id,
+                        },
+                    )
 
 
 @instrumented_task(
@@ -618,13 +704,22 @@ def update_all_project_webhooks(
 
             lifecycle.add_extra("total_repositories", len(repositories))
             burst_limit, drip_rate = _webhook_reconciliation_rate_limits()
+            fanout_jitter_min = (
+                WEBHOOK_RECONCILIATION_FORCED_FANOUT_JITTER_MIN_SECONDS if force else 0
+            )
+            fanout_jitter_max = (
+                _webhook_reconciliation_forced_fanout_jitter_max_seconds()
+                if force
+                else WEBHOOK_RECONCILIATION_FANOUT_JITTER_SECONDS
+            )
             for index, repo in enumerate(repositories):
-                if index < burst_limit:
+                required_capacity = (index + 1) * WEBHOOK_RECONCILIATION_REPOSITORY_COST
+                if required_capacity <= burst_limit and not force:
                     update_project_webhook.delay(integration_id, organization_id, repo.id)
                     continue
 
-                countdown = ceil((index - burst_limit + 1) / drip_rate) + randint(
-                    0, WEBHOOK_RECONCILIATION_FANOUT_JITTER_SECONDS
+                countdown = max(0, ceil((required_capacity - burst_limit) / drip_rate)) + randint(
+                    fanout_jitter_min, fanout_jitter_max
                 )
                 update_project_webhook.apply_async(
                     args=(integration_id, organization_id, repo.id),

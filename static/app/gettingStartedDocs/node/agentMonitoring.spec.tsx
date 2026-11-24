@@ -3,10 +3,8 @@ import type {
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {reactNodeToText} from 'sentry/components/onboarding/utils/stepsToMarkdown';
-import {
-  agentMonitoring,
-  getMinRequiredVersion,
-} from 'sentry/gettingStartedDocs/node/agentMonitoring';
+
+import {agentMonitoring, getMinRequiredVersion} from './agentMonitoring';
 
 function makeParams(platformOptions: Record<string, string> = {}): DocsParams {
   return {

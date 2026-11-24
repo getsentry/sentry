@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import {useQuery, type QueryClient} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 import {parseAsString, useQueryStates} from 'nuqs';
+import {useStore} from 'zustand';
 
 import {
   bulkUpdate,
@@ -16,7 +17,6 @@ import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -24,9 +24,10 @@ import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {useGroupData} from 'sentry/views/issueDetails/groupDataContext';
-import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
-import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+
+import {useGroupTags} from './groupTags/useGroupTags';
+import {useGroupData} from './groupDataContext';
+import {useGroupId} from './groupIdContext';
 
 export async function markEventSeen(
   api: Client,
@@ -50,7 +51,7 @@ export async function markEventSeen(
 }
 
 export function useDefaultIssueEvent() {
-  const user = useLegacyStore(ConfigStore).user;
+  const user = useStore(ConfigStore, state => state.user);
   const options = user ? user.options : null;
   return options?.defaultIssueEvent ?? 'recommended';
 }
@@ -283,11 +284,7 @@ export function groupEventApiOptions<T = Event>({
   return apiOptions.as<T>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
     {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        issueId: groupId,
-        eventId,
-      },
+      path: {organizationIdOrSlug: orgSlug, issueId: groupId, eventId},
       query: getGroupEventDetailsQueryData({
         environments,
         query,
@@ -306,10 +303,7 @@ export function useIsSampleEvent(): boolean {
   const environments = useEnvironmentsFromUrl();
 
   const {data} = useGroupTags(
-    {
-      groupId: groupId ?? undefined,
-      environment: environments,
-    },
+    {groupId: groupId ?? undefined, environment: environments},
     // Don't want this query to take precedence over the main requests
     {enabled: defined(groupData)}
   );
@@ -340,14 +334,7 @@ export function usePrefetchTagValues(tagKey: string, groupId: string, enabled: b
     enabled,
   });
 
-  useQuery({
-    ...fetchIssueTagApiOptions({
-      organization,
-      groupId,
-      tagKey,
-    }),
-    enabled,
-  });
+  useQuery({...fetchIssueTagApiOptions({organization, groupId, tagKey}), enabled});
 }
 
 export function getUserTagValue(tagValue: TagValue): {

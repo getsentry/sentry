@@ -5,10 +5,11 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
-import {useChartInfosPlottables} from 'sentry/views/explore/components/chart/chartVisualization';
-import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+
+import {useChartInfosPlottables} from './chartVisualization';
+import type {ChartInfo} from './types';
 
 function durationSeries(yAxis: string, group?: string): TimeSeries {
   return TimeSeriesFixture({

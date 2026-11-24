@@ -39,10 +39,6 @@ type DashboardsEventParametersWidgetBuilder = {
     title: string;
     widget_type: string;
   };
-  'dashboards_views.widget_builder.templates.add_to_dashboard.customize': {
-    title: string;
-    widget_type: string;
-  };
   'dashboards_views.widget_builder.templates.open': Record<string, unknown>;
   'dashboards_views.widget_builder.templates.selected': {
     title: string;
@@ -62,8 +58,6 @@ const dashboardsEventMapWidgetBuilder: Record<
     'Widget Builder: Template selected',
   'dashboards_views.widget_builder.templates.add_to_dashboard':
     'Widget Builder: Template added to dashboard',
-  'dashboards_views.widget_builder.templates.add_to_dashboard.customize':
-    'Widget Builder: Template added to dashboard and customized',
   'dashboards_views.engagement.load': 'Dashboard Load: Engagement by Product',
 };
 
@@ -91,61 +85,28 @@ export type DashboardsEventParameters = {
     dashboard_id?: string;
     widget_id?: string;
   };
-  'dashboards_manage.change_sort': {
-    sort: string;
-  };
+  'dashboards_manage.change_sort': {sort: string};
   'dashboards_manage.create.start': Record<string, unknown>;
   'dashboards_manage.delete': {dashboard_id: number; view_type: 'table'};
-  'dashboards_manage.duplicate': {
-    dashboard_id: number;
-    view_type: 'details' | 'table';
-  };
+  'dashboards_manage.duplicate': {dashboard_id: number; view_type: 'details' | 'table'};
   'dashboards_manage.generate.start': Record<string, unknown>;
   'dashboards_manage.paginate': Record<string, unknown>;
   'dashboards_manage.search': Record<string, unknown>;
   'dashboards_manage.toggle_favorite': {dashboard_id: string; favorited: boolean};
-  'dashboards_views.insights_redirect': {
-    dashboard_id: string;
-    prebuilt_id: number;
-  };
-  'dashboards_views.open_in_discover.opened': {
-    widget_type: string;
-  };
-  'dashboards_views.query_selector.opened': {
-    widget_type: string;
-  };
-  'dashboards_views.query_selector.selected': {
-    widget_type: string;
-  };
-  'dashboards_views.widget.delete': {
-    widget_type: string;
-  };
-  'dashboards_views.widget.duplicate': {
-    widget_type: string;
-  };
-  'dashboards_views.widget.edit': {
-    widget_type: string;
-  };
-  'dashboards_views.widget_library.add_widget': {
-    title: string;
-  };
-  'dashboards_views.widget_library.opened': Record<string, unknown>;
-  'dashboards_views.widget_viewer.edit': {
-    display_type: string;
-    widget_type: string;
-  };
-  'dashboards_views.widget_viewer.open': {
-    display_type: string;
-    widget_type: string;
-  };
+  'dashboards_views.insights_redirect': {dashboard_id: string; prebuilt_id: number};
+  'dashboards_views.open_in_discover.opened': {widget_type: string};
+  'dashboards_views.query_selector.opened': {widget_type: string};
+  'dashboards_views.query_selector.selected': {widget_type: string};
+  'dashboards_views.widget.delete': {widget_type: string};
+  'dashboards_views.widget.duplicate': {widget_type: string};
+  'dashboards_views.widget.edit': {widget_type: string};
+  'dashboards_views.widget_viewer.edit': {display_type: string; widget_type: string};
+  'dashboards_views.widget_viewer.open': {display_type: string; widget_type: string};
   'dashboards_views.widget_viewer.open_source': {
     display_type: string;
     widget_type: string;
   };
-  'dashboards_views.widget_viewer.paginate': {
-    display_type: string;
-    widget_type: string;
-  };
+  'dashboards_views.widget_viewer.paginate': {display_type: string; widget_type: string};
   'dashboards_views.widget_viewer.select_query': {
     display_type: string;
     widget_type: string;
@@ -160,10 +121,7 @@ export type DashboardsEventParameters = {
     display_type: string;
     widget_type: string;
   };
-  'dashboards_views.widget_viewer.zoom': {
-    display_type: string;
-    widget_type: string;
-  };
+  'dashboards_views.widget_viewer.zoom': {display_type: string; widget_type: string};
 } & DashboardsEventParametersWidgetBuilder;
 
 type DashboardsEventKey = keyof DashboardsEventParameters;
@@ -188,9 +146,6 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_views.widget.duplicate': 'Dashboards2: dashboard widget duplicated',
   'dashboards_views.widget.delete': 'Dashboards2: dashboard widget deleted',
   'dashboards_views.open_in_discover.opened': 'Dashboards2: Widget Opened In Discover',
-  'dashboards_views.widget_library.add_widget':
-    'Dashboards2: Title of prebuilt widget added',
-  'dashboards_views.widget_library.opened': 'Dashboards2: Add Widget Library opened',
   'dashboards_manage.search': 'Dashboards Manager: Search',
   'dashboards_manage.change_sort': 'Dashboards Manager: Sort By Changed',
   'dashboards_manage.create.start': 'Dashboards Manager: Dashboard Create Started',

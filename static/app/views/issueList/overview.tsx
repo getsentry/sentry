@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {IconRefresh} from '@sentry/icons/refresh';
 import * as Sentry from '@sentry/react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
@@ -7,13 +8,13 @@ import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
-import * as qs from 'query-string';
+import {useStore} from 'zustand';
 
 import type {FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
+import {toast} from '@sentry/scraps/toast';
 
-import {addMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DATE_TIME_KEYS} from 'sentry/components/pageFilters/constants';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
@@ -25,11 +26,11 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -46,18 +47,13 @@ import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRo
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {usePrevious} from 'sentry/utils/usePrevious';
-import {IssueListTable} from 'sentry/views/issueList/issueListTable';
-import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
-import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
-import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
-import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {
@@ -66,15 +62,19 @@ import {
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
+import {parseIssuePrioritySearch} from './utils/parseIssuePrioritySearch';
 import {IssueListFilters} from './filters';
 import {IssueListCommandPaletteActions} from './issueListCommandPaletteActions';
+import {IssueListTable} from './issueListTable';
+import {IssuesDataConsentBanner} from './issuesDataConsentBanner';
+import {IssueSelectionProvider} from './issueSelectionContext';
+import {IssueViewsHeader} from './issueViewsHeader';
+import type {IssueUpdateData} from './types';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
   DEFAULT_QUERY,
-  FOR_REVIEW_QUERIES,
   getStoredIssueSort,
   setStoredIssueSort,
-  isForReviewQuery,
   IssueSortOptions,
   Query,
 } from './utils';
@@ -178,7 +178,7 @@ function IssueListOverviewInner({
   const actionTakenRef = useRef(false);
   const {getRunIdForAnalytics} = useAiQueryContext();
 
-  const groups = useLegacyStore(GroupStore);
+  const groups = useStore(GroupStore);
   useEffect(() => {
     const storeGroupIds = groups.map(group => group.id).slice(0, MAX_ISSUES_COUNT);
     if (!isEqual(groupIds, storeGroupIds)) {
@@ -269,11 +269,7 @@ function IssueListOverviewInner({
   }, [selection, query, sort, getGroupStatsPeriod]);
 
   const requestParams = useMemo(() => {
-    const params: any = {
-      ...getEndpointParams(),
-      limit: MAX_ITEMS,
-      shortIdLookup: 1,
-    };
+    const params: any = {...getEndpointParams(), limit: MAX_ITEMS, shortIdLookup: 1};
 
     const cursor = decodeScalar(location.query.cursor);
     if (cursor) {
@@ -285,7 +281,7 @@ function IssueListOverviewInner({
       params.statsPeriod = DEFAULT_STATS_PERIOD;
     }
 
-    params.expand = ['owners', 'inbox', ...(hasIssueInbox ? ['derivedData'] : [])];
+    params.expand = ['owners', ...(hasIssueInbox ? ['derivedData'] : [])];
     params.collapse = ['stats', 'unhandled'];
 
     return params;
@@ -347,10 +343,7 @@ function IssueListOverviewInner({
           getApiUrl('/organizations/$organizationIdOrSlug/issues-stats/', {
             path: {organizationIdOrSlug: organization.slug},
           }),
-          {
-            method: 'GET',
-            data: qs.stringify(statsRequestParams),
-          }
+          {method: 'GET', data: qs.stringify(statsRequestParams)}
         );
 
         if (data) {
@@ -380,17 +373,8 @@ function IssueListOverviewInner({
   const resetNewViewQueryParam = useCallback(() => {
     if (location.query.new) {
       navigate(
-        {
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            new: undefined,
-          },
-        },
-        {
-          replace: true,
-          preventScrollReset: true,
-        }
+        {pathname: location.pathname, query: {...location.query, new: undefined}},
+        {replace: true, preventScrollReset: true}
       );
     }
   }, [location.pathname, navigate, location.query]);
@@ -419,11 +403,7 @@ function IssueListOverviewInner({
         getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {
-          method: 'GET',
-          data: qs.stringify(requestParams),
-          includeAllArgs: true,
-        }
+        {method: 'GET', data: qs.stringify(requestParams), includeAllArgs: true}
       );
 
       if (!resp) {
@@ -648,20 +628,14 @@ function IssueListOverviewInner({
       numPreviousIssues = 0;
     }
 
-    return {
-      numPreviousIssues,
-      numIssuesOnPage: groupIds.length,
-    };
+    return {numPreviousIssues, numIssuesOnPage: groupIds.length};
   }, [pageLinks, location, queryCount, allResultsVisible, groupIds.length]);
 
   const onRealtimeChange = useCallback(
     (realtime: boolean) => {
       Cookies.set('realtimeActive', realtime.toString());
       setRealtimeActive(realtime);
-      trackAnalytics('issues_stream.realtime_clicked', {
-        organization,
-        enabled: realtime,
-      });
+      trackAnalytics('issues_stream.realtime_clicked', {organization, enabled: realtime});
     },
     [organization]
   );
@@ -673,17 +647,7 @@ function IssueListOverviewInner({
       ...getEndpointParams(),
       ...newParams,
     };
-    if (
-      queryData.sort === IssueSortOptions.INBOX &&
-      !FOR_REVIEW_QUERIES.includes(queryData.query || '')
-    ) {
-      delete queryData.sort;
-    }
-
-    navigate({
-      pathname: location.pathname,
-      query: queryData,
-    });
+    navigate({pathname: location.pathname, query: queryData});
   };
 
   const onSearch = (newQuery: string) => {
@@ -696,17 +660,14 @@ function IssueListOverviewInner({
   };
 
   const onSortChange = (newSort: string) => {
-    trackAnalytics('issues_stream.sort_changed', {
-      organization,
-      sort: newSort,
-    });
+    trackAnalytics('issues_stream.sort_changed', {organization, sort: newSort});
     if (!urlParams.viewId) {
       setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
     }
     transitionTo({sort: newSort});
   };
 
-  const onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
+  const onCursorChange: CursorHandler = (nextCursor, delta) => {
     const queryPageInt = parsePageQueryParam(location, NaN);
     let nextPage: number | undefined = isNaN(queryPageInt) ? delta : queryPageInt + delta;
 
@@ -733,13 +694,11 @@ function IssueListOverviewInner({
   };
 
   const invalidateIssueCounts = () => {
-    queryClient.invalidateQueries({
-      queryKey: [
-        getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-      ],
-    });
+    queryClient.invalidateQueries(
+      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues-count/', {
+        path: {organizationIdOrSlug: organization.slug},
+      })
+    );
   };
 
   const undoAction = async ({
@@ -758,19 +717,16 @@ function IssueListOverviewInner({
       const response = await api.requestPromise(endpoint, {
         method: 'PUT',
         data,
-        query: {
-          project: projectIds,
-          id: groupItems.map(group => group.id),
-        },
+        query: {project: projectIds, id: groupItems.map(group => group.id)},
       });
 
       invalidateIssueCounts();
 
       if (response) {
-        // If on the Ignore or For Review tab, adding back to the GroupStore will make the issue show up
+        // If on the Ignore tab, adding back to the GroupStore will make the issue show up
         // on this page for a second and then be removed (will show up on All Unresolved). This is to
         // stop this from happening and avoid confusion.
-        if (!query.includes('is:ignored') && !isForReviewQuery(query)) {
+        if (!query.includes('is:ignored')) {
           GroupStore.add(groupItems);
         }
         actionTakenRef.current = true;
@@ -790,22 +746,26 @@ function IssueListOverviewInner({
     skipRefetch,
     undo,
   }: {
-    actionType: 'Reviewed' | 'Resolved' | 'Ignored' | 'Archived' | 'Reprioritized';
+    actionType: 'Resolved' | 'Ignored' | 'Archived' | 'Reprioritized';
     itemIds: string[];
     shouldRemove: boolean;
     skipRefetch?: boolean;
     undo?: () => void;
   }) => {
     if (itemIds.length > 1) {
-      addMessage(`${actionType} ${itemIds.length} ${t('Issues')}`, 'success', {
+      toast.success(`${actionType} ${itemIds.length} ${t('Issues')}`, {
         duration: 4000,
-        undo,
+        ...(undo && {
+          action: {label: t('Undo'), icon: <IconRefresh size="xs" />, onClick: undo},
+        }),
       });
     } else {
       const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
-      addMessage(`${actionType} ${shortId}`, 'success', {
+      toast.success(`${actionType} ${shortId}`, {
         duration: 4000,
-        undo,
+        ...(undo && {
+          action: {label: t('Undo'), icon: <IconRefresh size="xs" />, onClick: undo},
+        }),
       });
     }
 
@@ -845,10 +805,7 @@ function IssueListOverviewInner({
         onIssueAction({
           itemIds,
           actionType: 'Resolved',
-          shouldRemove:
-            query.includes('is:unresolved') ||
-            query.includes('is:ignored') ||
-            isForReviewQuery(query),
+          shouldRemove: query.includes('is:unresolved') || query.includes('is:ignored'),
           skipRefetch: realtimeActive,
           undo: realtimeActive
             ? undefined
@@ -865,7 +822,7 @@ function IssueListOverviewInner({
         onIssueAction({
           itemIds,
           actionType: 'Archived',
-          shouldRemove: query.includes('is:unresolved') || isForReviewQuery(query),
+          shouldRemove: query.includes('is:unresolved'),
           skipRefetch: realtimeActive,
           undo: realtimeActive
             ? undefined
@@ -877,16 +834,6 @@ function IssueListOverviewInner({
         });
         return;
       }
-    }
-
-    if ('inbox' in data && !data.inbox) {
-      onIssueAction({
-        itemIds,
-        actionType: 'Reviewed',
-        shouldRemove: isForReviewQuery(query),
-        skipRefetch: realtimeActive,
-      });
-      return;
     }
 
     if ('priority' in data && typeof data.priority === 'string') {
@@ -909,10 +856,7 @@ function IssueListOverviewInner({
   };
 
   const paginationAnalyticsEvent = (direction: string) => {
-    trackAnalytics('issues_stream.paginate', {
-      organization,
-      direction,
-    });
+    trackAnalytics('issues_stream.paginate', {organization, direction});
   };
 
   const modifiedQueryCount = Math.max(queryCount, 0);

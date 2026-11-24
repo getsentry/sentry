@@ -4,8 +4,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {Form} from 'sentry/components/forms/form';
-import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+import {EnvironmentSelector} from './environmentSelector';
 
 describe('EnvironmentSelector', () => {
   it('renders & handles selection', async () => {
@@ -27,9 +28,7 @@ describe('EnvironmentSelector', () => {
     await userEvent.click(screen.getByRole('button', {name: 'All Environments'}));
 
     // Get groups
-    const allEnvironments = screen.getByRole('group', {
-      name: 'All Environments',
-    });
+    const allEnvironments = screen.getByRole('group', {name: 'All Environments'});
     const userProjectEnvironments = screen.getByRole('group', {
       name: 'Environments in My Projects',
     });

@@ -17,6 +17,7 @@ import {
 import {sortCategories} from 'getsentry/utils/dataCategory';
 import {UsageOverviewTableRow} from 'getsentry/views/subscriptionPage/usageOverview/components/tableRow';
 import type {UsageOverviewTableProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
+import {isShownInUsageOverview} from 'getsentry/views/subscriptionPage/usageOverview/utils';
 
 export function UsageOverviewTable({
   organization,
@@ -34,7 +35,9 @@ export function UsageOverviewTable({
 
   // Partition regular categories into enabled and disabled (locked) groups
   const filteredCategories = sortedCategories.filter(
-    categoryInfo => !addOnDataCategories.includes(categoryInfo.category)
+    categoryInfo =>
+      !addOnDataCategories.includes(categoryInfo.category) &&
+      isShownInUsageOverview(categoryInfo)
   );
   const [enabledCategories, disabledCategories] = partition(
     filteredCategories,

@@ -29,6 +29,7 @@ from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import cell_silo_test
@@ -1076,11 +1077,11 @@ class OrganizationDetectorIndexGetAllProjectsTest(OrganizationDetectorIndexBaseT
 @cell_silo_test
 @pytest.mark.snuba_ci
 class OrganizationDetectorIndexSubscriptionFilterTest(OrganizationDetectorIndexBaseTest):
-    """Tests that metric detectors are excluded from lists when their subscription is not allowed."""
+    """Tests that detectors are included when their subscriptions are allowed."""
 
     @requires_snuba
     @requires_kafka
-    def test_list_excludes_disallowed_metric_detectors(self) -> None:
+    def test_list_includes_transaction_metric_detectors(self) -> None:
         with self.tasks():
             snuba_query = create_snuba_query(
                 query_type=SnubaQuery.Type.PERFORMANCE,
@@ -1105,32 +1106,21 @@ class OrganizationDetectorIndexSubscriptionFilterTest(OrganizationDetectorIndexB
         )
         self.create_data_source_detector(data_source=data_source, detector=metric_detector)
 
-        # With performance-view, the metric detector appears in the list
-        with self.feature({"organizations:performance-view": True}):
-            response = self.get_success_response(
-                self.organization.slug, qs_params={"project": self.project.id}
-            )
-            detector_ids = {d["id"] for d in response.data}
-            assert str(metric_detector.id) in detector_ids
-
-        # Without performance-view, the metric detector is excluded
-        with self.feature({"organizations:performance-view": False}):
-            response = self.get_success_response(
-                self.organization.slug, qs_params={"project": self.project.id}
-            )
-            detector_ids = {d["id"] for d in response.data}
-            assert str(metric_detector.id) not in detector_ids
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id}
+        )
+        detector_ids = {d["id"] for d in response.data}
+        assert str(metric_detector.id) in detector_ids
 
     @requires_snuba
     @requires_kafka
     def test_non_metric_detectors_never_excluded(self) -> None:
-        with self.feature({"organizations:performance-view": False}):
-            response = self.get_success_response(
-                self.organization.slug, qs_params={"project": self.project.id}
-            )
-            detector_ids = {d["id"] for d in response.data}
-            assert str(self.error_detector.id) in detector_ids
-            assert str(self.issue_stream_detector.id) in detector_ids
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id}
+        )
+        detector_ids = {d["id"] for d in response.data}
+        assert str(self.error_detector.id) in detector_ids
+        assert str(self.issue_stream_detector.id) in detector_ids
 
     @requires_snuba
     @requires_kafka
@@ -1138,12 +1128,11 @@ class OrganizationDetectorIndexSubscriptionFilterTest(OrganizationDetectorIndexB
         orphan = self.create_detector(
             project=self.project, name="No DataSource", type=MetricIssue.slug
         )
-        with self.feature({"organizations:performance-view": False}):
-            response = self.get_success_response(
-                self.organization.slug, qs_params={"project": self.project.id}
-            )
-            detector_ids = {d["id"] for d in response.data}
-            assert str(orphan.id) in detector_ids
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id}
+        )
+        detector_ids = {d["id"] for d in response.data}
+        assert str(orphan.id) in detector_ids
 
 
 @cell_silo_test
@@ -1336,6 +1325,59 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(self.detector_three.id)
         assert response.data[0]["enabled"] is True
+
+    @patch("sentry.quotas.backend.get_metric_detector_limit", return_value=3)
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_update_detectors_enable_rejected_over_metric_limit(
+        self, mock_get_limit: MagicMock
+    ) -> None:
+        self.detector_two.update(enabled=False)
+        self.detector_three.update(enabled=False)
+
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": [str(self.detector_two.id), str(self.detector_three.id)]},
+            enabled=True,
+            status_code=400,
+        )
+
+        assert (
+            response.data["detail"] == "This would exceed your plan's limit of 3 metric monitors."
+        )
+        self.detector_two.refresh_from_db()
+        self.detector_three.refresh_from_db()
+        assert self.detector_two.enabled is False
+        assert self.detector_three.enabled is False
+
+    @patch("sentry.quotas.backend.get_metric_detector_limit", return_value=3)
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_update_detectors_enable_within_metric_limit(self, mock_get_limit: MagicMock) -> None:
+        self.detector_two.update(enabled=False)
+        self.detector_three.update(enabled=False)
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.detector_three.id)},
+            enabled=True,
+            status_code=200,
+        )
+
+        self.detector_three.refresh_from_db()
+        assert self.detector_three.enabled is True
+
+    @patch("sentry.quotas.backend.get_metric_detector_limit", return_value=4)
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_update_detectors_enable_already_enabled_not_counted(
+        self, mock_get_limit: MagicMock
+    ) -> None:
+        assert self.detector.enabled is True
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.detector.id)},
+            enabled=True,
+            status_code=200,
+        )
 
     def test_update_detectors_no_parameters_error(self) -> None:
         response = self.get_error_response(

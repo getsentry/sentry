@@ -4,10 +4,11 @@ import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryP
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {hasDetectorWriteAccess} from 'sentry/views/detectors/utils/permissions';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
+
+import {useDetectorFormProject} from './useDetectorFormProject';
 
 export function ProjectField() {
   const organization = useOrganization();

@@ -4,16 +4,15 @@ import screenfull from 'screenfull';
 
 import {Button} from '@sentry/scraps/button';
 
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';
 
-type Props = {
-  toggleFullscreen: () => void;
-};
+import {useReplayContext} from './replayContext';
+
+type Props = {toggleFullscreen: () => void};
 
 export function ReplayFullscreenButton({toggleFullscreen}: Props) {
   const organization = useOrganization();

@@ -35,7 +35,7 @@ import type {ReleaseSdkVersion} from 'sentry/views/explore/releases/utils/releas
 import {ReleaseCardCommits} from './releaseCardCommits';
 import {ReleaseCardProjectRow} from './releaseCardProjectRow';
 import {ReleaseCardSdkVersion} from './releaseCardSdkVersion';
-import ReleaseCardStatsPeriod from './releaseCardStatsPeriod';
+import {ReleaseCardStatsPeriod} from './releaseCardStatsPeriod';
 
 function getReleaseProjectId(release: Release, selection: PageFilters) {
   // if a release has only one project
@@ -127,8 +127,14 @@ export function ReleaseCard({
         borderRight={{zero: 'none', '3xl': 'primary'}}
         flexShrink={1}
         gap={{zero: 'md', '3xl': '0'}}
-        maxWidth={{zero: 'none', '3xl': '300px'}}
-        minWidth={{zero: '0', '3xl': '260px'}}
+        maxWidth={{
+          zero: 'none',
+          '3xl': getSidecardWidthBound(300, showReleaseAdoptionStages),
+        }}
+        minWidth={{
+          zero: '0',
+          '3xl': getSidecardWidthBound(260, showReleaseAdoptionStages),
+        }}
         padding="lg xl"
         width={{zero: 'auto', '3xl': '22%'}}
       >
@@ -391,6 +397,14 @@ const AdoptionHeaderCell = styled(Table.HeadCell)`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.secondary};
 `;
+
+function getSidecardWidthBound(
+  baseline: number,
+  showReleaseAdoptionStages: boolean
+): `clamp(${string})` {
+  const reservedTableWidth = showReleaseAdoptionStages ? 1160 : 1024;
+  return `clamp(${baseline}px, 100% - ${reservedTableWidth}px, 30%)`;
+}
 
 function getProjectColumns(showReleaseAdoptionStages: boolean): TableColumnConfig[] {
   return [

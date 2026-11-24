@@ -1,4 +1,4 @@
-import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
+import {middleEllipsis} from './middleEllipsis';
 
 /**
  * Trim slug name with a preference for preserving whole words. Only cut up

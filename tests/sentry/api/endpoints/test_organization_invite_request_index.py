@@ -10,10 +10,13 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
@@ -257,13 +260,13 @@ class OrganizationInviteRequestCreateTest(
             {
                 "type": "button",
                 "text": {"type": "plain_text", "text": "Approve"},
-                "action_id": "approve_request",
+                "action_id": f"approve_request::{self.organization.id}",
                 "value": "approve_member",
             },
             {
                 "type": "button",
                 "text": {"type": "plain_text", "text": "Reject"},
-                "action_id": "reject_request",
+                "action_id": f"reject_request::{self.organization.id}",
                 "value": "reject_member",
             },
             {
@@ -316,8 +319,6 @@ class OrganizationInviteRequestCreateTest(
     def test_disallow_when_sso_required(self) -> None:
         from sentry.models.authidentity import AuthIdentity
         from sentry.models.authprovider import AuthProvider
-        from sentry.silo.base import SiloMode
-        from sentry.testutils.silo import assume_test_silo_mode
         from sentry.utils.auth import SsoSession
 
         self.member.flags["sso:linked"] = True
@@ -341,3 +342,21 @@ class OrganizationInviteRequestCreateTest(
             resp.data["detail"]
             == "Your organization must use its single sign-on provider to register new members."
         )
+
+
+class OrganizationInviteRequestListMembershipScopeTest(OrganizationInviteRequestListTest):
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:read")
+    def test_membership_read_can_list_invite_requests(self) -> None:
+        self._use_token(["membership:read"])
+        response = self.get_success_response(self.org.slug)
+        assert {r["id"] for r in response.data} == {
+            str(self.invite_request.id),
+            str(self.request_to_join.id),
+        }

@@ -1,4 +1,5 @@
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {tct} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -45,9 +46,7 @@ export async function joinTeamPromise(
         },
       }
     ),
-    {
-      method: 'POST',
-    }
+    {method: 'POST'}
   );
 
   TeamStore.onUpdateSuccess(params.teamId, data);
@@ -70,9 +69,7 @@ export async function leaveTeamPromise(
         },
       }
     ),
-    {
-      method: 'DELETE',
-    }
+    {method: 'DELETE'}
   );
 
   TeamStore.onUpdateSuccess(params.teamId, data);
@@ -84,19 +81,14 @@ export function removeTeam(api: Client, params: OrgAndTeamSlug) {
   return api
     .requestPromise(
       getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/', {
-        path: {
-          organizationIdOrSlug: params.orgId,
-          teamIdOrSlug: params.teamId,
-        },
+        path: {organizationIdOrSlug: params.orgId, teamIdOrSlug: params.teamId},
       }),
-      {
-        method: 'DELETE',
-      }
+      {method: 'DELETE'}
     )
     .then(
       data => {
         TeamStore.onRemoveSuccess(params.teamId);
-        addSuccessMessage(
+        toast.success(
           tct('[team] has been removed from the [organization] organization', {
             team: `#${params.teamId}`,
             organization: params.orgId,
@@ -105,7 +97,7 @@ export function removeTeam(api: Client, params: OrgAndTeamSlug) {
         return data;
       },
       err => {
-        addErrorMessage(
+        toast.error(
           tct('Unable to remove [team] from the [organization] organization', {
             team: `#${params.teamId}`,
             organization: params.orgId,

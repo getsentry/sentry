@@ -24,20 +24,15 @@ import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {ChartRenderingContext} from 'sentry/views/insights/common/components/chart';
 import {
-  getAppSizeCategoryInfo,
-  getOpaqueColorFromComposite,
-} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
-import {
-  TreemapControlButtons,
-  type TreemapControlButton,
-} from 'sentry/views/preprod/components/visualizations/treemapControlButtons';
-import {
   TreemapType,
   type FlaggedInsight,
   type TreemapElement,
 } from 'sentry/views/preprod/types/appSizeTypes';
 import {getInsightConfig} from 'sentry/views/preprod/utils/insightProcessing';
 import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering';
+
+import {getAppSizeCategoryInfo, getOpaqueColorFromComposite} from './appSizeTreemapTheme';
+import {TreemapControlButtons, type TreemapControlButton} from './treemapControlButtons';
 
 interface AppSizeTreemapProps {
   highlightInsights: boolean;
@@ -208,10 +203,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
 
   const handleRecenter = () => {
     if (chartRef.current) {
-      chartRef.current.dispatchAction({
-        type: 'treemapRootToNode',
-        seriesIndex: 0,
-      });
+      chartRef.current.dispatchAction({type: 'treemapRootToNode', seriesIndex: 0});
       setIsZoomed(false);
     }
   };
@@ -369,37 +361,13 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       visibleMin: 300,
       levels: [
         {
-          itemStyle: {
-            gapWidth: 4,
-            borderRadius: 6,
-            borderColor: chartSurfaceColor,
-          },
+          itemStyle: {gapWidth: 4, borderRadius: 6, borderColor: chartSurfaceColor},
           colorSaturation: [0.3, 0.5],
         },
-        {
-          itemStyle: {
-            borderRadius: 6,
-          },
-          colorSaturation: [0.4, 0.6],
-        },
-        {
-          itemStyle: {
-            borderRadius: 4,
-          },
-          colorSaturation: [0.4, 0.6],
-        },
-        {
-          itemStyle: {
-            borderRadius: 2,
-          },
-          colorSaturation: [0.4, 0.6],
-        },
-        {
-          itemStyle: {
-            borderRadius: 1,
-          },
-          colorSaturation: [0.4, 0.6],
-        },
+        {itemStyle: {borderRadius: 6}, colorSaturation: [0.4, 0.6]},
+        {itemStyle: {borderRadius: 4}, colorSaturation: [0.4, 0.6]},
+        {itemStyle: {borderRadius: 2}, colorSaturation: [0.4, 0.6]},
+        {itemStyle: {borderRadius: 1}, colorSaturation: [0.4, 0.6]},
       ],
       data: chartData,
     },
@@ -411,9 +379,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     dimension: 1,
     min: 0,
     max: 1000,
-    inRange: {
-      colorSaturation: [0.1, 1],
-    },
+    inRange: {colorSaturation: [0.1, 1]},
     seriesIndex: 0,
   };
 
@@ -425,10 +391,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     transitionDuration: 0,
     padding: [12, 8, 8, 8],
     extraCssText: `border-radius: 6px; border: 1px solid ${theme.tokens.border.secondary}; border-bottom-width: 2px;`,
-    textStyle: {
-      color: theme.tokens.content.primary,
-      fontFamily: 'Rubik',
-    },
+    textStyle: {color: theme.tokens.content.primary, fontFamily: 'Rubik'},
     formatter: function (params: any) {
       const value = typeof params.value === 'number' ? params.value : 0;
       const percent = ((value / totalSize) * 100).toFixed(2);

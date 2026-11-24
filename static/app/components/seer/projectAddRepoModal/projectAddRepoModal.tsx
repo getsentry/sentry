@@ -18,12 +18,12 @@ import {
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useFetchAllPages, type ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -32,12 +32,17 @@ import {useCompactSelectProjectOptions} from 'sentry/utils/project/useCompactSel
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {useCompactSelectRepositoryOptions} from 'sentry/utils/repositories/useCompactSelectRepositoryOptions';
 import {useRepositoriesById} from 'sentry/utils/repositories/useRepositoriesById';
+import {isTokenBilledSeerEnabled} from 'sentry/utils/seer/isTokenBilledSeerEnabled';
 import {
   NON_GITHUB_HANDOFF_WARNING,
   orgDefaultAgentQueryOptions,
   seerAgentIntegrationsSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
-import {isGitHubProvider} from 'sentry/utils/seer/seerProjectRepos';
+import {NON_GITHUB_PR_ITERATION_WARNING} from 'sentry/utils/seer/prIteration';
+import {
+  isGitHubDotComProvider,
+  isGitHubProvider,
+} from 'sentry/utils/seer/seerProjectRepos';
 import {getInfiniteSeerProjectsSettingsQueryOptions} from 'sentry/utils/seer/seerProjectSettings';
 import {
   PROJECT_STOPPING_POINT_OPTIONS,
@@ -77,18 +82,14 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
   const repoEntrySchema = z.object({
     repoId: z
       .string()
-      .refine(id => repositoriesById.has(id), {
-        message: t('Repository not found'),
-      })
+      .refine(id => repositoriesById.has(id), {message: t('Repository not found')})
       .nonempty(),
     branch: z.string(),
   });
   const formSchema = z.object({
     project: z
       .string()
-      .refine(id => projectsById.has(id), {
-        message: t('Please select a project'),
-      })
+      .refine(id => projectsById.has(id), {message: t('Please select a project')})
       .transform(id => projectsById.get(id)!),
     repoEntries: z
       .array(repoEntrySchema)
@@ -109,7 +110,8 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
       repoEntries: [] as Array<{branch: string; repoId: string}>,
       agentOption,
       stoppingPoint,
-      prIteration: true,
+      // Opt-in under token-based billing, matching the backend default.
+      prIteration: !isTokenBilledSeerEnabled(organization),
     },
     validators: {
       onMount: formSchema.extend({
@@ -122,7 +124,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
       return saveMutation
         .mutateAsync(formSchema.parse(value), {
           onSuccess: () => {
-            addSuccessMessage(t('Project saved successfully'));
+            toast.success(t('Project saved successfully'));
             closeModal();
           },
         })
@@ -167,6 +169,22 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
     }
   }, [isOnlyGithubRepos, form]);
 
+  // Auto-Iterate only runs on github.com PRs. Once repos are added and none of
+  // them is on github.com, show it as off and disabled. Unlike the agent, the
+  // form value is left alone, like on the project page: it does nothing without
+  // a github.com repo, and comes back into effect if one is linked later.
+  // Unresolved repos (still loading) might be on github.com, so they don't count.
+  const hasNoGitHubDotComRepo =
+    repoEntries.length > 0 &&
+    repoEntries.every(entry => {
+      const providerId = repositoriesById.get(entry.repoId)?.provider.id;
+      return providerId !== undefined && !isGitHubDotComProvider(providerId);
+    });
+
+  const manageRepositoriesLink = (
+    <ExternalLink href={`/settings/${organization.slug}/repos/`} />
+  );
+
   return (
     <Fragment>
       <Header closeButton>
@@ -176,14 +194,15 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
         <Body>
           <Stack gap="xl">
             <Text size="md">
-              {tct(
-                "Autofix requires you to attach one or more repositories to your project in order to run. If you don't see the repositories you expect, [manage_repositories_link:manage your repository connections].",
-                {
-                  manage_repositories_link: (
-                    <ExternalLink href={`/settings/${organization.slug}/repos/`} />
-                  ),
-                }
-              )}
+              {isTokenBilledSeerEnabled(organization)
+                ? tct(
+                    "Seer uses the repositories linked to your project. If you don't see the repositories you expect, [manage_repositories_link:manage your repository connections].",
+                    {manage_repositories_link: manageRepositoriesLink}
+                  )
+                : tct(
+                    "Autofix requires you to attach one or more repositories to your project in order to run. If you don't see the repositories you expect, [manage_repositories_link:manage your repository connections].",
+                    {manage_repositories_link: manageRepositoriesLink}
+                  )}
             </Text>
 
             <Separator orientation="horizontal" />
@@ -319,10 +338,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
                             }
                             emptyMessage={t('No repositories found')}
                             onChange={option => {
-                              field.pushValue({
-                                repoId: option.value,
-                                branch: '',
-                              });
+                              field.pushValue({repoId: option.value, branch: ''});
                             }}
                             options={repositoryOptions.data ?? []}
                             search
@@ -400,8 +416,9 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
                   )}
                 >
                   <field.Switch
-                    checked={field.state.value}
+                    checked={hasNoGitHubDotComRepo ? false : field.state.value}
                     onChange={field.handleChange}
+                    disabled={hasNoGitHubDotComRepo && NON_GITHUB_PR_ITERATION_WARNING}
                   />
                 </field.Layout.Row>
               )}
@@ -424,9 +441,7 @@ function useUnconfiguredProjects({projects}: {projects: Project[]}) {
   const result = useInfiniteQuery({
     ...getInfiniteSeerProjectsSettingsQueryOptions({
       organization,
-      query: {
-        per_page: 100,
-      },
+      query: {per_page: 100},
     }),
     select: useCallback(
       ({pages}: InfiniteData<ApiResponse<SeerProjectSettingResponse[]>>) => {

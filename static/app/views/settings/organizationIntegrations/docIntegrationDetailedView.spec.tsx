@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import DocIntegrationDetailedView from 'sentry/views/settings/organizationIntegrations/docIntegrationDetailedView';
+import DocIntegrationDetailedView from './docIntegrationDetailedView';
 
 describe('DocIntegrationDetailedView', () => {
   const organization = OrganizationFixture();
@@ -34,6 +34,7 @@ describe('DocIntegrationDetailedView', () => {
     ).toBeInTheDocument();
 
     expect(getMock).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
 
     const docLink = screen.getByRole('link', {name: 'Learn More'});
     expect(docLink).toBeInTheDocument();

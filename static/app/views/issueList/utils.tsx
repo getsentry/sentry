@@ -9,7 +9,6 @@ import {localStorageWrapper} from 'sentry/utils/localStorage';
 export const DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
 
 export enum Query {
-  FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
   PRIORITIZED = DEFAULT_QUERY, // eslint-disable-line @typescript-eslint/prefer-literal-enum-member
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
@@ -20,17 +19,12 @@ export enum Query {
   REPROCESSING = 'is:reprocessing',
 }
 
-export function isForReviewQuery(query: string | undefined) {
-  return !!query && /\bis:for_review\b/.test(query);
-}
-
 export enum IssueSortOptions {
   DATE = 'date',
   NEW = 'new',
   TRENDS = 'trends',
   FREQ = 'freq',
   USER = 'user',
-  INBOX = 'inbox',
   RECOMMENDED = 'recommended',
   // Escape hatches for comparing the two recommended scorers regardless of
   // which one the org's flag serves behind RECOMMENDED. Only reachable via the
@@ -52,8 +46,6 @@ export function getSortLabel(key: string) {
       return t('Events');
     case IssueSortOptions.USER:
       return t('Users');
-    case IssueSortOptions.INBOX:
-      return t('Date Added');
     case IssueSortOptions.RECOMMENDED:
     case IssueSortOptions.RECOMMENDED_V1:
     case IssueSortOptions.RECOMMENDED_EXPERIMENTAL:
@@ -87,8 +79,6 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
   'issue.seer_last_run',
   'monitor',
 ];
-
-export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];
 
 const ISSUE_STREAM_SORT_LOCALSTORAGE_KEY = 'issue-stream-sort';
 

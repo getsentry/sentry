@@ -1,4 +1,4 @@
-import {formatFloat} from 'sentry/utils/number/formatFloat';
+import {formatFloat} from './formatFloat';
 
 describe('formatFloat()', () => {
   it('should format decimals', () => {

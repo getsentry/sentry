@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs import constants
+from sentry.apidocs.examples.inbox_examples import InboxExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
@@ -31,11 +32,12 @@ class OrganizationInboxCountEndpoint(OrganizationInboxEndpoint):
             403: constants.RESPONSE_FORBIDDEN,
             404: constants.RESPONSE_NOT_FOUND,
         },
+        examples=InboxExamples.COUNT_ITEMS,
     )
     def get(
         self, request: AuthenticatedHttpRequest, organization: Organization
     ) -> Response[InboxCountResponse]:
-        """Count your active inbox items matching the filters."""
+        """Return the number of inbox items matching the filters for the authenticated user."""
         filters = InboxFilterSerializer(data=request.GET)
         if not filters.is_valid():
             raise ParseError({"detail": filters.errors})

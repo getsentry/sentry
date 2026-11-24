@@ -14,7 +14,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {AnsiText} from 'sentry/components/ansiText';
 import {Count} from 'sentry/components/count';
 import {EventMessage} from 'sentry/components/events/eventMessage';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
@@ -30,10 +29,8 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
+import {GroupImpactBadge, useAssessedImpact} from 'sentry/views/issueDetails/groupImpact';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
-import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
-import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
-import {useIssueIdBreadcrumbItem} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -41,6 +38,10 @@ import {
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {GroupHeaderAssigneeSelector} from './assigneeSelector';
+import {GroupStatusSubtitle} from './groupStatusSubtitle';
+import {useIssueIdBreadcrumbItem} from './issueIdBreadcrumb';
 
 interface GroupHeaderProps {
   event: Event | null;
@@ -71,6 +72,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
   const issueTypeConfig = getConfigForIssueType(group, project);
 
   const issueItem = useIssueIdBreadcrumbItem({project, group});
+  const hasImpact = useAssessedImpact(group) !== null;
 
   return (
     <Fragment>
@@ -92,10 +94,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                 {
                   type: 'link',
                   label: t('Issues'),
-                  to: {
-                    pathname: `/organizations/${organization.slug}/issues/`,
-                    query,
-                  },
+                  to: {pathname: `/organizations/${organization.slug}/issues/`, query},
                 },
               ]}
             />
@@ -226,6 +225,12 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                   <Text variant="muted">{t('Priority')}</Text>
                   <GroupPriority group={group} />
                 </Flex>
+                {hasImpact && (
+                  <Flex align="center" gap="xs">
+                    <Text variant="muted">{t('Impact')}</Text>
+                    <GroupImpactBadge group={group} />
+                  </Flex>
+                )}
                 <Flex align="center" gap="xs">
                   <Text variant="muted">{t('Assignee')}</Text>
                   <GroupHeaderAssigneeSelector
@@ -282,15 +287,11 @@ function HeaderActions({group}: {group: Group}) {
 
   if (hasFeedbackForm && feedback) {
     return (
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          aria-label={feedbackLabel}
-          feedbackOptions={feedbackOptions}
-          tooltipProps={{title: feedbackLabel}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
+      <TopBar.Slot
+        name="feedback"
+        feedbackOptions={feedbackOptions}
+        aria-label={feedbackLabel}
+      />
     );
   }
 

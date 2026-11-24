@@ -1,8 +1,9 @@
 import {useCallback, useMemo} from 'react';
 
-import {AUTOFIX_TTL_IN_DAYS} from 'sentry/components/events/autofix/types';
 import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {AUTOFIX_TTL_IN_DAYS} from './types';
 
 const BASE_SUPPORTED_PROVIDERS = [
   'github',
@@ -17,10 +18,7 @@ const BASE_SUPPORTED_PROVIDERS = [
  * Feature-gated providers. Each entry maps a feature flag to the provider IDs
  * it unlocks. Add new providers here as they become supported.
  */
-const FEATURE_GATED_PROVIDERS: Array<{
-  flag: string;
-  providerIds: string[];
-}> = [
+const FEATURE_GATED_PROVIDERS: Array<{flag: string; providerIds: string[]}> = [
   {
     flag: 'seer-cursor-origin-support',
     providerIds: ['cursor_origin', 'integrations:cursor_origin'],

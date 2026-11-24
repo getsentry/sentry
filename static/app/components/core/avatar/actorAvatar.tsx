@@ -24,11 +24,7 @@ export function ActorAvatar({
   actor,
   ...props
 }: ActorAvatarProps) {
-  const otherProps = {
-    size,
-    hasTooltip,
-    ...props,
-  };
+  const otherProps = {size, hasTooltip, ...props};
 
   if (actor.type === 'user') {
     return <AsyncMemberAvatar actor={actor} {...otherProps} />;

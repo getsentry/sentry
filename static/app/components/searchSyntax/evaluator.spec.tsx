@@ -3,12 +3,8 @@ import {
   toFlattened,
   toPostFix,
   type ProcessedTokenResult,
-} from 'sentry/components/searchSyntax/evaluator';
-import {
-  parseSearch,
-  Token,
-  type TokenResult,
-} from 'sentry/components/searchSyntax/parser';
+} from './evaluator';
+import {parseSearch, Token, type TokenResult} from './parser';
 
 const tokensToString = (tokens: ProcessedTokenResult[]): string => {
   let str = '';

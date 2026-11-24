@@ -5,11 +5,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {ChartLegend, type LegendItem} from 'sentry/components/charts/chartLegend';
-import {
-  isOutcomeSelected,
-  type OutcomeColors,
-  type OutcomeSelection,
-} from 'sentry/components/droppedData/drawer/outcomeColors';
 import {datasetNoun, outcomeLabel} from 'sentry/components/droppedData/outcomes';
 import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import {t} from 'sentry/locale';
@@ -18,6 +13,12 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+
+import {
+  isOutcomeSelected,
+  type OutcomeColors,
+  type OutcomeSelection,
+} from './outcomeColors';
 
 const STACK_NAME = 'dropped';
 

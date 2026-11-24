@@ -2,8 +2,9 @@ import type {ReactNode} from 'react';
 
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
+
+import {Tab, useTab} from './useTab';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
@@ -11,10 +12,7 @@ function Wrapper({children}: {children: ReactNode}) {
 
 function makeInitialRouterConfig({table}: {table: string}) {
   return {
-    location: {
-      pathname: '/organizations/org-slug/explore/traces/',
-      query: {table},
-    },
+    location: {pathname: '/organizations/org-slug/explore/traces/', query: {table}},
   };
 }
 

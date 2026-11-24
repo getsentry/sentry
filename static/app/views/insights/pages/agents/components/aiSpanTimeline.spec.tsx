@@ -10,11 +10,14 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {annotate, hasAnnotations} from '@sentry/scraps/markdown/annotation';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
-import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
 import {getIsAiAgentNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {AiSpanTimeline} from './aiSpanTimeline';
 function createMockNode(id: string, attributes: Record<string, string | number>) {
   return {
     id,
@@ -168,6 +171,74 @@ describe('AiSpanTimeline', () => {
     expect(onSelectNode).toHaveBeenCalledWith(grandchild);
   });
 
+  describe('nesting', () => {
+    const lead = AiTraceSpanNodeFixture({id: 'lead-agent', operation: 'agent'});
+    const tool = AiTraceSpanNodeFixture({id: 'tool', operation: 'tool', parent: lead});
+    const child = AiTraceSpanNodeFixture({id: 'child', operation: 'agent', parent: tool});
+    const childCall = AiTraceSpanNodeFixture({
+      id: 'child-call',
+      operation: 'ai_client',
+      parent: child,
+    });
+    const nodes = [lead, tool, child, childCall];
+    const row = (name: string) =>
+      screen.queryByRole('button', {name: new RegExp(`^${name}`)});
+
+    it('collapses and expands spans at every level', async () => {
+      render(
+        <AiSpanTimeline nodes={nodes} selectedNodeKey={null} onSelectNode={jest.fn()} />
+      );
+
+      await userEvent.click(screen.getAllByRole('button', {name: 'Collapse'})[1]!);
+      expect(row('child')).not.toBeInTheDocument();
+      expect(row('tool')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+      expect(row('child-call')).toBeInTheDocument();
+    });
+
+    it('collapses from maxDefaultDepth but reveals the selected span', () => {
+      const {rerender} = render(
+        <AiSpanTimeline
+          nodes={nodes}
+          selectedNodeKey={null}
+          onSelectNode={jest.fn()}
+          maxDefaultDepth={1}
+        />
+      );
+      expect(row('tool')).toBeInTheDocument();
+      expect(row('child')).not.toBeInTheDocument();
+
+      rerender(
+        <AiSpanTimeline
+          nodes={nodes}
+          selectedNodeKey="child-call"
+          onSelectNode={jest.fn()}
+          maxDefaultDepth={1}
+        />
+      );
+      expect(row('child-call')).toBeInTheDocument();
+    });
+
+    it('keeps children that load later hidden under a collapsed span', async () => {
+      const {rerender} = render(
+        <AiSpanTimeline
+          nodes={[lead, tool]}
+          selectedNodeKey={null}
+          onSelectNode={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
+      rerender(
+        <AiSpanTimeline nodes={nodes} selectedNodeKey={null} onSelectNode={jest.fn()} />
+      );
+
+      expect(row('lead-agent')).toBeInTheDocument();
+      expect(row('tool')).not.toBeInTheDocument();
+    });
+  });
+
   it('renders an evaluation with its evaluator and result', async () => {
     const onSelectNode = jest.fn();
     const node = createMockNode('eval-1', EVALUATION_ATTRIBUTES);
@@ -185,6 +256,29 @@ describe('AiSpanTimeline', () => {
     await userEvent.click(screen.getByText('typesafe/jev-1.13'));
 
     expect(onSelectNode).toHaveBeenCalledWith(node);
+  });
+
+  it('marks scrubbed values in a tool input preview', () => {
+    const email = annotate(
+      '[email]',
+      JSON.stringify({ruleId: '@email:replace', remark: 's'})
+    );
+    const node = createMockNode('tool-1', {
+      [SpanFields.GEN_AI_OPERATION_TYPE]: 'tool',
+      [SpanFields.GEN_AI_TOOL_NAME]: 'send_mail',
+      'gen_ai.tool.call.arguments': JSON.stringify({to: email}),
+    });
+    const {container} = render(
+      <AiSpanTimeline
+        nodes={[node] as any}
+        selectedNodeKey={null}
+        onSelectNode={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText('send_mail')).toBeInTheDocument();
+    expect(screen.getByText('[email]')).toBeInTheDocument();
+    expect(hasAnnotations(container.textContent ?? '')).toBe(false);
   });
 
   it('renders an extraction with its extractor and the values found', () => {

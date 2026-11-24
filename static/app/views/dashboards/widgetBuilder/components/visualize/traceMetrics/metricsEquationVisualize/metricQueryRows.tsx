@@ -10,9 +10,6 @@ import {defined} from 'sentry/utils/defined';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {supportsWidgetTransformations} from 'sentry/views/dashboards/utils/transformations';
-import {BuilderStateMetricsQueryParamsProvider} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/builderStateMetricsQueryParamsProvider';
-import {MetricToolbar} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/metricToolbar';
-import {dispatchYAxisUpdate} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/constants';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import type {EquationModeSnapshot} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
@@ -43,6 +40,10 @@ import {
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {BuilderStateMetricsQueryParamsProvider} from './builderStateMetricsQueryParamsProvider';
+import {MetricToolbar} from './metricToolbar';
+import {dispatchYAxisUpdate} from './utils';
 
 function computeEquationReferencedLabels(
   equationQuery: MetricQuery | undefined,
@@ -308,7 +309,7 @@ export function MetricQueryRows({
           )}
         </Stack>
       )}
-      <Flex gap="md" align="center">
+      <Flex gap="md" align="baseline">
         <Button
           icon={<IconAdd />}
           onClick={addAggregate}
@@ -322,15 +323,14 @@ export function MetricQueryRows({
           disabled
           variant="link"
           icon={<IconAdd />}
-          tooltipProps={{
-            title: t('Only a single equation is allowed at this time'),
-          }}
+          tooltipProps={{title: t('Only a single equation is allowed at this time')}}
           aria-label={t('Add Equation')}
         >
           {t('Add Equation')}
         </Button>
         {canTransform && (
           <AddTransformationButton
+            variant="link"
             traceItemDataset={TraceItemDataset.TRACEMETRICS}
             analyticsSource="dashboards"
             transformations={plottedTransformations}

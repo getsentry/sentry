@@ -9,10 +9,10 @@ import {LinkButton} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
@@ -133,11 +133,11 @@ function ApplyCodeMappings({
       }),
     onError: err => {
       if (!(err instanceof RequestError)) {
-        addErrorMessage(t('Something went wrong'));
+        toast.error(t('Something went wrong'));
         return;
       }
       if (err.responseJSON && !('raw' in err.responseJSON)) {
-        addErrorMessage(
+        toast.error(
           Object.values(err.responseJSON ?? {})
             .flat()
             .join(' ')

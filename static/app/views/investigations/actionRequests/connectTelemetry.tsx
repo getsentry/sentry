@@ -10,16 +10,14 @@ import {Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {
-  ActionKindApplyProps,
-  ActionKindUI,
-} from 'sentry/views/investigations/actionRequests/actionKinds';
-import {ApplyButton} from 'sentry/views/investigations/actionRequests/applyButton';
 import type {ActionRequestFollowUp} from 'sentry/views/investigations/api';
 import type {
   InvestigationActionRequest,
   InvestigationConnectTelemetryAction,
 } from 'sentry/views/investigations/types';
+
+import type {ActionKindApplyProps, ActionKindUI} from './actionKinds';
+import {ApplyButton} from './applyButton';
 
 export const connectTelemetryUI: ActionKindUI<InvestigationConnectTelemetryAction> = {
   Apply: ConnectTelemetryApply,
@@ -58,6 +56,7 @@ function ConnectTelemetryApply({
   finishing,
   message,
   onApply,
+  onLinkClick,
   onRecheck,
   rechecking,
 }: ActionKindApplyProps<InvestigationConnectTelemetryAction>) {
@@ -110,6 +109,7 @@ function ConnectTelemetryApply({
             openInNewTab
             disabled={!actionRequest.canApply}
             aria-describedby={actionRequest.canApply ? undefined : messageId}
+            onClick={() => onLinkClick('connect_integration')}
           >
             {t('Connect %s', name)}
             <NewTabNote />
@@ -123,7 +123,12 @@ function ConnectTelemetryApply({
       );
     case 'applied':
       return (
-        <LinkButton icon={<IconSettings />} to={to} openInNewTab>
+        <LinkButton
+          icon={<IconSettings />}
+          to={to}
+          openInNewTab
+          onClick={() => onLinkClick('view_integration')}
+        >
           {t('View integration')}
           <NewTabNote />
         </LinkButton>

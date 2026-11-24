@@ -6,8 +6,8 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {Region} from 'sentry/types/system';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -16,6 +16,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {PageHeader} from 'admin/components/pageHeader';
+import {SyntheticMetricBreachForm} from 'admin/views/syntheticMetricBreachForm';
 
 const formSchema = z.object({
   locality: z.string().min(1, 'Select a region'),
@@ -60,11 +61,13 @@ const retryFormSchema = z.object({
     ),
 });
 
-const SINGLE_RUN_ORGANIZATION_SLUG = 'sentry';
+const SINGLE_RUN_ORGANIZATION_SLUGS = ['sentry', 'nico-test-org'] as const;
 
 const singleRunFormSchema = z.object({
   locality: z.string().min(1, 'Select a region'),
+  organizationSlug: z.enum(SINGLE_RUN_ORGANIZATION_SLUGS),
   shortId: z.string().trim().min(1, 'Enter an issue short ID'),
+  automated: z.boolean(),
 });
 
 type SingleRunResponse = {
@@ -78,15 +81,10 @@ type AutofixRetryResult =
   | {retried: true; run_id: number; step: string}
   | {reason: string; retried: false; run_id: number};
 
-type AutofixRetryResponse = {
-  results: AutofixRetryResult[];
-};
+type AutofixRetryResponse = {results: AutofixRetryResult[]};
 
 function regionOptions(localities: Region[]) {
-  return localities.map(locality => ({
-    label: locality.name,
-    value: locality.url,
-  }));
+  return localities.map(locality => ({label: locality.name, value: locality.url}));
 }
 
 function NightShiftForm() {
@@ -114,10 +112,10 @@ function NightShiftForm() {
         variables.organizationId === null
           ? 'all eligible orgs'
           : `organization ${variables.organizationId}`;
-      addSuccessMessage(`Night shift run triggered for ${target}${mode}`);
+      toast.success(`Night shift run triggered for ${target}${mode}`);
     },
     onError: () => {
-      addErrorMessage('Failed to trigger night shift run');
+      toast.error('Failed to trigger night shift run');
     },
   });
 
@@ -238,10 +236,10 @@ function AutofixRetryForm() {
     },
     onSuccess: data => {
       const retried = data.results.filter(result => result.retried).length;
-      addSuccessMessage(`Retried ${retried} of ${data.results.length} autofix runs`);
+      toast.success(`Retried ${retried} of ${data.results.length} autofix runs`);
     },
     onError: () => {
-      addErrorMessage('Failed to retry autofix runs');
+      toast.error('Failed to retry autofix runs');
     },
   });
 
@@ -333,23 +331,29 @@ function SingleRunForm() {
       return fetchMutation<SingleRunResponse>({
         url: getApiUrl('/internal/seer/autofix/single-run/'),
         method: 'POST',
-        data: {organization_slug: SINGLE_RUN_ORGANIZATION_SLUG, short_id: data.shortId},
+        data: {
+          organization_slug: data.organizationSlug,
+          short_id: data.shortId,
+          automated: data.automated,
+        },
         options: {host: data.locality},
       });
     },
     onSuccess: data => {
-      addSuccessMessage(`Started single run ${data.run_id}`);
+      toast.success(`Started single run ${data.run_id}`);
     },
     onError: error => {
       const detail =
         error instanceof RequestError ? error.responseJSON?.detail : undefined;
-      addErrorMessage(typeof detail === 'string' ? detail : 'Failed to start single run');
+      toast.error(typeof detail === 'string' ? detail : 'Failed to start single run');
     },
   });
 
   const defaultValues: z.input<typeof singleRunFormSchema> = {
     locality: localities[0]?.url ?? '',
+    organizationSlug: SINGLE_RUN_ORGANIZATION_SLUGS[0],
     shortId: '',
+    automated: false,
   };
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -363,9 +367,9 @@ function SingleRunForm() {
     <form.AppForm form={form}>
       <Container background="secondary" border="primary" radius="md" padding="lg">
         <Stack gap="lg" align="stretch">
-          <Heading as="h3">Start Single-Run Autofix</Heading>
+          <Heading as="h3">[Temporary, for testing] Start Single-Run Autofix</Heading>
           <Text as="p" variant="muted">
-            Start a single-run Autofix on one issue in the Sentry org, using the
+            Start a single-run Autofix on one issue in an allowed test org, using the
             project&apos;s Autofix settings.
           </Text>
           <form.AppField name="locality">
@@ -379,6 +383,20 @@ function SingleRunForm() {
               </field.Layout.Stack>
             )}
           </form.AppField>
+          <form.AppField name="organizationSlug">
+            {field => (
+              <field.Layout.Stack label="Organization slug" required>
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={SINGLE_RUN_ORGANIZATION_SLUGS.map(slug => ({
+                    label: slug,
+                    value: slug,
+                  }))}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
           <form.AppField name="shortId">
             {field => (
               <field.Layout.Stack label="Issue short ID" required>
@@ -387,6 +405,13 @@ function SingleRunForm() {
                   onChange={field.handleChange}
                   placeholder="SENTRY-5RDF"
                 />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="automated">
+            {field => (
+              <field.Layout.Stack label="Start as automated (no owner)">
+                <field.Switch checked={field.state.value} onChange={field.handleChange} />
               </field.Layout.Stack>
             )}
           </form.AppField>
@@ -418,6 +443,7 @@ export function SeerAdminPage() {
             <NightShiftForm />
             <AutofixRetryForm />
             <SingleRunForm />
+            <SyntheticMetricBreachForm />
           </Stack>
         </Container>
       </Stack>

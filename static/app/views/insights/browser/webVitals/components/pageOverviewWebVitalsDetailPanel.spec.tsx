@@ -6,7 +6,8 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/pageOverviewWebVitalsDetailPanel';
+
+import {PageOverviewWebVitalsDetailPanel} from './pageOverviewWebVitalsDetailPanel';
 
 describe('PageOverviewWebVitalsDetailPanel', () => {
   const organization = OrganizationFixture({
@@ -23,11 +24,7 @@ describe('PageOverviewWebVitalsDetailPanel', () => {
 
   beforeEach(() => {
     ProjectsStore.loadInitialData([project]);
-    PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        projects: [2],
-      })
-    );
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [2]}));
 
     // Mock API responses
     MockApiClient.addMockResponse({
@@ -54,9 +51,7 @@ describe('PageOverviewWebVitalsDetailPanel', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
-      body: {
-        timeSeries: [],
-      },
+      body: {timeSeries: []},
     });
   });
 
@@ -71,10 +66,7 @@ describe('PageOverviewWebVitalsDetailPanel', () => {
         ...initialRouterConfig,
         location: {
           ...initialRouterConfig.location,
-          query: {
-            project: project.id,
-            transaction: 'test-transaction',
-          },
+          query: {project: project.id, transaction: 'test-transaction'},
         },
       },
     });

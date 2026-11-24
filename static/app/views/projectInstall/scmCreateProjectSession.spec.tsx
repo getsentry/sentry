@@ -3,11 +3,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
 import {
   WIZARD_STORAGE_KEY,
   type WizardState,
   useScmCreateProjectProductSync,
-} from 'sentry/views/projectInstall/scmCreateProjectSession';
+} from './scmCreateProjectSession';
 
 const CREATED_PROJECT_ID = '1';
 const CREATED_PROJECT_SLUG = 'my-project';
@@ -46,9 +47,7 @@ describe('useScmCreateProjectProductSync', () => {
 
     const {result} = renderHookWithProviders(
       () => useScmCreateProjectProductSync(project),
-      {
-        organization: {features: ['onboarding-scm-project-creation']},
-      }
+      {organization: {features: ['onboarding-scm-project-creation']}}
     );
 
     expect(result.current).toBeInstanceOf(Function);
@@ -62,9 +61,7 @@ describe('useScmCreateProjectProductSync', () => {
 
     const {result} = renderHookWithProviders(
       () => useScmCreateProjectProductSync(project),
-      {
-        organization: {features: ['onboarding-scm-project-creation']},
-      }
+      {organization: {features: ['onboarding-scm-project-creation']}}
     );
 
     act(() => {
@@ -89,9 +86,7 @@ describe('useScmCreateProjectProductSync', () => {
 
     const {result} = renderHookWithProviders(
       () => useScmCreateProjectProductSync(project),
-      {
-        organization: {features: ['onboarding-scm-project-creation']},
-      }
+      {organization: {features: ['onboarding-scm-project-creation']}}
     );
 
     expect(result.current).toBeUndefined();
@@ -115,9 +110,7 @@ describe('useScmCreateProjectProductSync', () => {
     // No session seeded.
     const {result} = renderHookWithProviders(
       () => useScmCreateProjectProductSync(project),
-      {
-        organization: {features: ['onboarding-scm-project-creation']},
-      }
+      {organization: {features: ['onboarding-scm-project-creation']}}
     );
 
     expect(result.current).toBeUndefined();

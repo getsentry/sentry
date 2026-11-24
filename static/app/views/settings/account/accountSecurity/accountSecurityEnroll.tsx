@@ -3,8 +3,8 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -15,10 +15,10 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-import {RemoveConfirm} from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
+import {RemoveConfirm} from './components/removeConfirm';
 import {SmsEnrollForm} from './components/smsEnrollForm';
 import {TotpEnrollForm} from './components/totpEnrollForm';
 import {U2fEnrollForm} from './components/u2fEnrollForm';
@@ -60,7 +60,7 @@ export default function AccountSecurityEnroll() {
 
     if (alreadyEnrolled) {
       navigate('/settings/account/security/');
-      addErrorMessage(t('Already enrolled'));
+      toast.error(t('Already enrolled'));
     }
   }, [alreadyEnrolled, isError, navigate]);
 

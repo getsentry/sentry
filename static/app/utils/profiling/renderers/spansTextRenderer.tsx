@@ -9,13 +9,14 @@ import {
   getContext,
   resizeCanvasToDisplaySize,
 } from 'sentry/utils/profiling/gl/utils';
-import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
 import {findRangeBinarySearch} from 'sentry/utils/profiling/speedscope';
 import {trimTextCenter} from 'sentry/utils/string/trimTextCenter';
 import {ELLIPSIS} from 'sentry/utils/string/unicode';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {TextRenderer} from './textRenderer';
 
 class SpansTextRenderer extends TextRenderer {
   spanChart: SpanChart;

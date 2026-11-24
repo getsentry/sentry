@@ -4,10 +4,10 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {decodeList} from 'sentry/utils/queryString';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
-import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 import {widgetCanUseTimeSeriesVisualization} from './utils/widgetCanUseTimeSeriesVisualization';
 import {DisplayType, type DashboardDetails, type Widget} from './types';
+import {WidgetLegendNameEncoderDecoder} from './widgetLegendNameEncoderDecoder';
 
 type Props = {
   dashboard: DashboardDetails | null;
@@ -75,13 +75,7 @@ export class WidgetLegendSelectionState {
         !this.widgetRequiresLegendUnselection(widget)
       ) {
         navigate(
-          {
-            ...location,
-            query: {
-              ...location.query,
-              unselectedSeries: newLegendQuery,
-            },
-          },
+          {...location, query: {...location.query, unselectedSeries: newLegendQuery}},
           {replace: true, preventScrollReset: true}
         );
       }
@@ -104,13 +98,7 @@ export class WidgetLegendSelectionState {
             this.encodeLegendQueryParam(widget, selected),
           ];
       navigate(
-        {
-          ...location,
-          query: {
-            ...location.query,
-            unselectedSeries,
-          },
-        },
+        {...location, query: {...location.query, unselectedSeries}},
         {replace: true, preventScrollReset: true}
       );
     } else {

@@ -51,7 +51,6 @@ import {
   type WidgetBuilderStateLocalParams,
   BuilderStateAction,
 } from 'sentry/views/dashboards/widgetBuilder/constants';
-import {useSeededQueryState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSeededQueryState';
 import {
   DISABLED_SORT,
   TAG_SORT_DENY_LIST,
@@ -72,6 +71,8 @@ import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/de
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {useSeededQueryState} from './useSeededQueryState';
 
 export {
   MAX_NUM_Y_AXES,
@@ -123,7 +124,11 @@ type WidgetAction =
   | {payload: string; type: typeof BuilderStateAction.SET_DESCRIPTION}
   | {payload: DisplayType; type: typeof BuilderStateAction.SET_DISPLAY_TYPE}
   | {payload: WidgetType; type: typeof BuilderStateAction.SET_DATASET}
-  | {payload: Column[]; type: typeof BuilderStateAction.SET_FIELDS}
+  | {
+      payload: Column[];
+      type: typeof BuilderStateAction.SET_FIELDS;
+      selectedAggregate?: number;
+    }
   | {
       payload: Column[];
       type: typeof BuilderStateAction.SET_Y_AXIS;
@@ -146,32 +151,24 @@ type WidgetAction =
   | {payload: LinkedDashboard[]; type: typeof BuilderStateAction.SET_LINKED_DASHBOARDS}
   | {payload: number; type: typeof BuilderStateAction.SET_LIMIT}
   | {payload: string[]; type: typeof BuilderStateAction.SET_LEGEND_ALIAS}
-  | {
-      payload: LegendType | undefined;
-      type: typeof BuilderStateAction.SET_LEGEND_TYPE;
-    }
+  | {payload: LegendType | undefined; type: typeof BuilderStateAction.SET_LEGEND_TYPE}
   | {payload: number | undefined; type: typeof BuilderStateAction.SET_SELECTED_AGGREGATE}
   | {payload: WidgetBuilderStateParams; type: typeof BuilderStateAction.SET_STATE}
   | {
       payload: ThresholdsConfig | null | undefined;
       type: typeof BuilderStateAction.SET_THRESHOLDS;
     }
-  | {
-      payload: string;
-      type: typeof BuilderStateAction.SET_CATEGORICAL_X_AXIS;
-    }
+  | {payload: string; type: typeof BuilderStateAction.SET_CATEGORICAL_X_AXIS}
   | {
       payload: Column[];
       type: typeof BuilderStateAction.SET_CATEGORICAL_AGGREGATE;
+      selectedAggregate?: number;
     }
   | {
       payload: number; // index of the field to delete within the visible fields list
       type: typeof BuilderStateAction.DELETE_AGGREGATE;
     }
-  | {
-      payload: AxisRange | undefined;
-      type: typeof BuilderStateAction.SET_AXIS_RANGE;
-    }
+  | {payload: AxisRange | undefined; type: typeof BuilderStateAction.SET_AXIS_RANGE}
   | {payload: string | undefined; type: typeof BuilderStateAction.SET_TEXT_CONTENT};
 type WidgetBuilderStateActionOptions = {
   /**
@@ -598,12 +595,7 @@ export function useWidgetBuilderState(): {
                         },
                       ]
                     : []
-                  : [
-                      {
-                        kind: 'desc',
-                        field: generateFieldAsString(newFields[0]!),
-                      },
-                    ],
+                  : [{kind: 'desc', field: generateFieldAsString(newFields[0]!)}],
                 options
               );
             }
@@ -763,6 +755,19 @@ export function useWidgetBuilderState(): {
             }
             setYAxis(nextAggregates, options);
 
+            // Aggregates past the y-axis cap were dropped above, so a sort on
+            // one of them (e.g. a table's `equation[N]`) would point at nothing.
+            const nextTimeseriesSort = getUpdatedTimeseriesSort(
+              nextAggregates,
+              yAxis,
+              columnsWithoutAlias,
+              dataset,
+              sort
+            );
+            if (nextTimeseriesSort) {
+              setSort(nextTimeseriesSort, options);
+            }
+
             // Reset the limit to a valid value, bias towards the current limit or
             // default if possible
             const maxLimit = getResultsLimit(query?.length ?? 1, nextAggregates.length);
@@ -831,10 +836,7 @@ export function useWidgetBuilderState(): {
 
             // Add aggregate from dataset config
             if (config.defaultField) {
-              categoricalBarFields.push({
-                ...config.defaultField,
-                alias: undefined,
-              });
+              categoricalBarFields.push({...config.defaultField, alias: undefined});
             }
             setFields(categoricalBarFields, options);
 
@@ -889,6 +891,9 @@ export function useWidgetBuilderState(): {
         }
         case BuilderStateAction.SET_FIELDS: {
           setFields(action.payload, options);
+          if (action.selectedAggregate !== undefined) {
+            setSelectedAggregate(action.selectedAggregate, options);
+          }
           const remainingKindFields = action.payload.filter(
             field => field.kind === FieldValueKind.FIELD
           );
@@ -997,15 +1002,7 @@ export function useWidgetBuilderState(): {
 
             // Only update sort if we have a valid field to sort by
             if (sortField) {
-              setSort(
-                [
-                  {
-                    kind: 'desc',
-                    field: sortField,
-                  },
-                ],
-                options
-              );
+              setSort([{kind: 'desc', field: sortField}], options);
             }
           }
 
@@ -1029,8 +1026,8 @@ export function useWidgetBuilderState(): {
                 : (action.sourceIndices?.[index] ?? index)
             );
             setTransformations(
-              transformations.map(pipelines =>
-                remapTransformations(pipelines, sourceIndices)
+              transformations.map(queryTransformations =>
+                remapTransformations(queryTransformations, sourceIndices)
               ),
               options
             );
@@ -1060,16 +1057,16 @@ export function useWidgetBuilderState(): {
           setTransformations(action.payload, options);
           break;
         case BuilderStateAction.SET_AGGREGATE_TRANSFORMATIONS: {
-          const {index, transformations: pipeline} = action.payload;
+          const {index, transformations: aggregateTransformations} = action.payload;
           setTransformations(
             (query?.length ? query : ['']).map((_, queryIndex) => {
-              const pipelines = {...transformations?.[queryIndex]};
-              if (pipeline.length) {
-                pipelines[index] = [...pipeline];
+              const queryTransformations = {...transformations?.[queryIndex]};
+              if (aggregateTransformations.length) {
+                queryTransformations[index] = [...aggregateTransformations];
               } else {
-                delete pipelines[index];
+                delete queryTransformations[index];
               }
-              return pipelines;
+              return queryTransformations;
             }),
             options
           );
@@ -1231,6 +1228,9 @@ export function useWidgetBuilderState(): {
             const existingXAxisFields =
               fields?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
             setFields([...existingXAxisFields, ...action.payload], options);
+            if (action.selectedAggregate !== undefined) {
+              setSelectedAggregate(action.selectedAggregate, options);
+            }
 
             // If the sort was on an aggregate that got edited in-place, fall
             // back to the same index so the sort follows the edit.
@@ -1252,7 +1252,21 @@ export function useWidgetBuilderState(): {
               sortedOldIndex >= 0 ? sortedOldIndex : undefined,
               existingXAxisFields
             );
-            if (fixedSort) {
+            if (
+              action.selectedAggregate !== undefined &&
+              action.payload[action.selectedAggregate]
+            ) {
+              // Bars stay ordered by the displayed metric.
+              setSort(
+                [
+                  {
+                    kind: sort?.[0]?.kind ?? 'desc',
+                    field: generateSortField(action.payload, action.selectedAggregate),
+                  },
+                ],
+                options
+              );
+            } else if (fixedSort) {
               setSort(fixedSort, options);
             }
           }
@@ -1303,8 +1317,8 @@ export function useWidgetBuilderState(): {
                 yAxis?.flatMap((_, index) => (index === deleteIndex ? [] : [index])) ??
                 [];
               setTransformations(
-                transformations.map(pipelines =>
-                  remapTransformations(pipelines, sourceIndices)
+                transformations.map(queryTransformations =>
+                  remapTransformations(queryTransformations, sourceIndices)
                 ),
                 options
               );
@@ -1409,10 +1423,7 @@ export function useWidgetBuilderState(): {
     ]
   );
 
-  return {
-    state,
-    dispatch,
-  };
+  return {state, dispatch};
 }
 
 /**
@@ -1459,10 +1470,7 @@ function deserializeSorts(dataset?: WidgetType) {
         dataset === WidgetType.ISSUE &&
         REVERSED_ORDER_FIELD_SORT_LIST.includes(sort.field)
       ) {
-        return {
-          field: normalizeSortField(sort.field),
-          kind: 'desc',
-        };
+        return {field: normalizeSortField(sort.field), kind: 'desc'};
       }
       return {...sort, field: normalizeSortField(sort.field)};
     });
@@ -1553,10 +1561,7 @@ function parseAsWidgetSorts(datasetRef: RefObject<WidgetType | undefined>) {
 
 // No default here, unlike the other scalars: clearing the limit is meaningful
 // (a table has none), and a default would keep resurrecting it.
-const parseAsLimit = createParser({
-  parse: deserializeLimit,
-  serialize: String,
-});
+const parseAsLimit = createParser({parse: deserializeLimit, serialize: String});
 
 const parseAsSelectedAggregate = createParser({
   parse: (value: string) => deserializeSelectedAggregate(value) ?? null,

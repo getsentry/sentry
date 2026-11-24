@@ -1,6 +1,6 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
+import {CollapsibleContent, CollapsibleExpandAllContext} from './collapsibleContent';
 
 describe('CollapsibleContent', () => {
   it('renders the title and keeps content in the DOM when collapsed', () => {
@@ -29,17 +29,76 @@ describe('CollapsibleContent', () => {
     expect(screen.getByText('body').closest('details')).toHaveAttribute('open');
   });
 
-  it('fires onToggle with the new open state', async () => {
-    const onToggle = jest.fn();
+  it('follows the open prop when controlled', async () => {
+    const onOpenChange = jest.fn();
+    const {rerender} = render(
+      <CollapsibleContent title="Tool calls" open={false} onOpenChange={onOpenChange}>
+        <span>body</span>
+      </CollapsibleContent>
+    );
+    const details = screen.getByText('body').closest('details');
+    expect(details).not.toHaveAttribute('open');
+
+    // A click reports the change; the caller decides the open state.
+    await userEvent.click(screen.getByText('Tool calls'));
+    expect(onOpenChange).toHaveBeenCalledWith(true);
+
+    rerender(
+      <CollapsibleContent title="Tool calls" open onOpenChange={onOpenChange}>
+        <span>body</span>
+      </CollapsibleContent>
+    );
+    expect(details).toHaveAttribute('open');
+  });
+
+  it('fires onOpenChange with the new open state', async () => {
+    const onOpenChange = jest.fn();
     render(
-      <CollapsibleContent title="Thinking..." onToggle={onToggle}>
+      <CollapsibleContent title="Thinking..." onOpenChange={onOpenChange}>
         <span>body</span>
       </CollapsibleContent>
     );
 
     await userEvent.click(screen.getByText('Thinking...'));
 
-    expect(onToggle).toHaveBeenCalledWith(true);
+    expect(onOpenChange).toHaveBeenCalledWith(true);
+  });
+
+  it('follows expand and collapse all, keeping a hand toggle until the next one', async () => {
+    const onOpenChange = jest.fn();
+    const {rerender} = render(
+      <CollapsibleExpandAllContext value={{generation: 1, open: true}}>
+        <CollapsibleContent title="Thinking..." onOpenChange={onOpenChange}>
+          <span>body</span>
+        </CollapsibleContent>
+      </CollapsibleExpandAllContext>
+    );
+    const details = screen.getByText('body').closest('details');
+    expect(details).toHaveAttribute('open');
+
+    await userEvent.click(screen.getByText('Thinking...'));
+    expect(details).not.toHaveAttribute('open');
+
+    rerender(
+      <CollapsibleExpandAllContext value={{generation: 2, open: true}}>
+        <CollapsibleContent title="Thinking..." onOpenChange={onOpenChange}>
+          <span>body</span>
+        </CollapsibleContent>
+      </CollapsibleExpandAllContext>
+    );
+    expect(details).toHaveAttribute('open');
+
+    rerender(
+      <CollapsibleExpandAllContext value={{generation: 3, open: false}}>
+        <CollapsibleContent title="Thinking..." onOpenChange={onOpenChange}>
+          <span>body</span>
+        </CollapsibleContent>
+      </CollapsibleExpandAllContext>
+    );
+    expect(details).not.toHaveAttribute('open');
+
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledTimes(1));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
   it('stops summary clicks from propagating to a wrapping handler', async () => {

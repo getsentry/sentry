@@ -1,5 +1,5 @@
-import {deserializeLinkedDashboards} from 'sentry/views/dashboards/widgetBuilder/utils/linkedDashboards';
-import {serializeLinkedDashboards} from 'sentry/views/dashboards/widgetBuilder/utils/serialization';
+import {deserializeLinkedDashboards} from './linkedDashboards';
+import {serializeLinkedDashboards} from './serialization';
 
 describe('deserializeLinkedDashboards', () => {
   it('returns an empty list when there are no values', () => {

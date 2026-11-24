@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import {RelatedIssues} from 'sentry/views/performance/transactionSummary/transactionOverview/relatedIssues';
+import {RelatedIssues} from './relatedIssues';
 
 describe('RelatedIssues', () => {
   const organization = OrganizationFixture();
@@ -12,11 +12,7 @@ describe('RelatedIssues', () => {
   const transaction = 'test-transaction';
 
   const location = LocationFixture({
-    query: {
-      transaction: 'test-transaction',
-      project: '1',
-      statsPeriod: '14d',
-    },
+    query: {transaction: 'test-transaction', project: '1', statsPeriod: '14d'},
   });
 
   beforeEach(() => {
@@ -26,10 +22,7 @@ describe('RelatedIssues', () => {
       body: issues,
     });
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
   });
 
   afterAll(() => {
@@ -89,6 +82,39 @@ describe('RelatedIssues', () => {
         project: '1',
         statsPeriod: '14d',
         query: 'request.method:GET',
+      },
+    });
+
+    render(
+      <RelatedIssues
+        organization={organization}
+        location={eapLocation}
+        transaction={transaction}
+        statsPeriod="14d"
+      />
+    );
+
+    const placeholders = screen.queryAllByTestId('loading-placeholder');
+    await waitForElementToBeRemoved(placeholders);
+
+    const $openInIssuesButton = screen.getByRole('button', {name: 'Open in Issues'});
+    expect($openInIssuesButton).toHaveAttribute(
+      'href',
+      expect.stringContaining('http.method')
+    );
+    expect($openInIssuesButton).not.toHaveAttribute(
+      'href',
+      expect.stringContaining('request.method')
+    );
+  });
+
+  it('remaps http.request.method to http.method', async () => {
+    const eapLocation = LocationFixture({
+      query: {
+        transaction: 'test-transaction',
+        project: '1',
+        statsPeriod: '14d',
+        query: 'http.request.method:GET',
       },
     });
 

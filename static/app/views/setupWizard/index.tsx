@@ -1,17 +1,15 @@
-import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {useSetupWizardViewedAnalytics} from 'sentry/views/setupWizard/utils/setupWizardAnalytics';
-import {useOrganizationsWithRegion} from 'sentry/views/setupWizard/utils/useOrganizationsWithRegion';
-import {WaitingForWizardToConnect} from 'sentry/views/setupWizard/waitingForWizardToConnect';
-import {WizardProjectSelection} from 'sentry/views/setupWizard/wizardProjectSelection';
 
-type Props = {
-  hash: string;
-  enableProjectSelection?: boolean;
-};
+import {useSetupWizardViewedAnalytics} from './utils/setupWizardAnalytics';
+import {useOrganizationsWithRegion} from './utils/useOrganizationsWithRegion';
+import {WaitingForWizardToConnect} from './waitingForWizardToConnect';
+import {WizardError} from './wizardError';
+import {WizardProjectSelection} from './wizardProjectSelection';
 
-function SetupWizard({hash, enableProjectSelection = false}: Props) {
+type Props = {hash: string; enableProjectSelection?: boolean};
+
+export function SetupWizard({hash, enableProjectSelection = false}: Props) {
   const {data: organizations, isError, isPending} = useOrganizationsWithRegion();
 
   useSetupWizardViewedAnalytics(organizations);
@@ -21,7 +19,7 @@ function SetupWizard({hash, enableProjectSelection = false}: Props) {
   }
 
   if (isError || !organizations) {
-    return <LoadingError message={t('Failed to load organizations')} />;
+    return <WizardError message={t('Failed to load organizations')} />;
   }
 
   return enableProjectSelection ? (
@@ -30,5 +28,3 @@ function SetupWizard({hash, enableProjectSelection = false}: Props) {
     <WaitingForWizardToConnect hash={hash} organizations={organizations} />
   );
 }
-
-export default SetupWizard;
