@@ -23,6 +23,7 @@ from sentry.debug_files.artifact_bundles import (
 )
 from sentry.models.artifactbundle import (
     ArtifactBundle,
+    ArtifactBundleArchive,
     ArtifactBundleIndex,
     ArtifactBundleIndexingState,
     DebugIdArtifactBundle,
