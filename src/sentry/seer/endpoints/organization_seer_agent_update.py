@@ -92,7 +92,14 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
                     data={"detail": "Code generation is disabled for this organization"},
                 )
 
-        resolved = authorize_seer_run(run_id, organization, request.access, user_id, write=True)
+        resolved = authorize_seer_run(
+            run_id,
+            organization,
+            request.access,
+            user_id,
+            write=True,
+            publish=payload_type in CODING_PAYLOAD_TYPES,
+        )
         if isinstance(resolved, Response):
             return resolved
 

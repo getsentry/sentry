@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry.api.authentication import ServiceAccountTokenAuthentication
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import UserRequired
-from sentry.seer.autofix.constants import AUTOFIX_RUN_SCOPES
+from sentry.seer.autofix.constants import AUTOFIX_RUN_SCOPES, PUBLISH_SCOPES
 from sentry.seer.credits import SeerCreditDenialReason
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus
 from sentry.utils.numbers import validate_bigint
@@ -154,6 +154,7 @@ def authorize_seer_run(
     user_id: int | None,
     *,
     write: bool,
+    publish: bool = False,
 ) -> ResolvedSeerRun | Response:
     resolved = resolve_seer_run(run_id, organization, for_continue=write)
     if isinstance(resolved, Response):
@@ -180,7 +181,8 @@ def authorize_seer_run(
         if group is None:
             allowed = is_owner
         elif write:
-            allowed = is_owner or access.has_any_project_scope(group.project, AUTOFIX_RUN_SCOPES)
+            scopes = PUBLISH_SCOPES if publish else AUTOFIX_RUN_SCOPES
+            allowed = is_owner or access.has_any_project_scope(group.project, scopes)
         else:
             allowed = is_owner or access.has_project_access(group.project)
     elif write:
