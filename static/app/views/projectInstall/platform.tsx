@@ -15,6 +15,7 @@ import {platformProductAvailability} from 'sentry/components/onboarding/productS
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {setPageFiltersStorage} from 'sentry/components/pageFilters/persistence';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {PeekingBug} from 'sentry/components/peekingBug/peekingBug';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
@@ -148,28 +149,30 @@ export function ProjectInstallPlatform({project, platform}: Props) {
           marginTop="2xl"
           width={{zero: 'auto', xl: 'max-content'}}
         >
-          <Button
-            variant="primary"
-            onClick={() => {
-              const analyticsParams = {
-                organization,
-                platform: platform.name ?? 'unknown',
-                project_id: project.id,
-                products,
-              };
-              if (projectCreationVariant) {
-                trackAnalytics('project_creation.take_me_to_issues_clicked', {
-                  ...analyticsParams,
-                  variant: projectCreationVariant,
-                });
-              } else {
-                trackAnalytics('onboarding.take_me_to_issues_clicked', analyticsParams);
-              }
-              redirectWithProjectSelection({pathname: issueStreamLink});
-            }}
-          >
-            {t('Take me to Issues')}
-          </Button>
+          <PeekingBug>
+            <Button
+              variant="primary"
+              onClick={() => {
+                const analyticsParams = {
+                  organization,
+                  platform: platform.name ?? 'unknown',
+                  project_id: project.id,
+                  products,
+                };
+                if (projectCreationVariant) {
+                  trackAnalytics('project_creation.take_me_to_issues_clicked', {
+                    ...analyticsParams,
+                    variant: projectCreationVariant,
+                  });
+                } else {
+                  trackAnalytics('onboarding.take_me_to_issues_clicked', analyticsParams);
+                }
+                redirectWithProjectSelection({pathname: issueStreamLink});
+              }}
+            >
+              {t('Take me to Issues')}
+            </Button>
+          </PeekingBug>
         </Grid>
       </div>
     </Fragment>

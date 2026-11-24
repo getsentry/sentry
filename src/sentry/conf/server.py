@@ -3166,6 +3166,17 @@ SENTRY_BUILTIN_SOURCES = {
         "url": "https://proton-archive.steamos.cloud/",
         "is_public": True,
     },
+    # Valve's debuginfod server for SteamOS and all public Steam Linux Runtime versions.
+    # See: https://gitlab.steamos.cloud/steamrt/steam-runtime-tools/-/blob/main/docs/slr-for-game-developers.md#debuginfod
+    "steamos": {
+        "type": "http",
+        "id": "sentry:steamos",
+        "name": "SteamOS / Steam Runtime",
+        "layout": {"type": "debuginfod"},
+        "url": "https://debuginfod.steamos.cloud/buildid/",
+        "filters": {"filetypes": ["elf_code", "elf_debug"]},
+        "is_public": True,
+    },
 }
 
 # Relay
