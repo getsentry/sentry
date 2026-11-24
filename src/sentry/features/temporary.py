@@ -217,8 +217,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:onboarding", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable the agentic setup interstitial on the onboarding welcome step
     manager.add("organizations:onboarding-agentic-setup", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable SCM-first onboarding flow with provider connection, platform detection, and feature selection steps
-    manager.add("organizations:onboarding-scm", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Experiment: SCM onboarding messaging step A/B test (treatment adds a messaging/alerting step before SDK setup)
     manager.add("organizations:onboarding-scm-messaging-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable SCM-first project creation flow
@@ -527,6 +525,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tracemetrics-pii-scrubbing-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace waterfall attribute pinning
     manager.add("organizations:trace-waterfall-attribute-pinning", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable trace waterfall clock drift correction
+    manager.add("organizations:trace-waterfall-clock-drift-correction", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace waterfall time compression
     manager.add("organizations:trace-waterfall-time-compression", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the informational message re: moving the trace waterfall data source from transaction events to EAP spans
@@ -576,10 +576,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:span-v2-attachment-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables experimental trace attachment processing in Relay.
     manager.add("projects:trace-attachment-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enrich spans and errors with ASN data from the client IP address in Relay.
+    manager.add("projects:relay-client-asn-lookup", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables the uploading of minidumps to the objectstore.
     manager.add("projects:relay-minidump-uploads", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enables reshaping Nintendo Switch crash events in Relay so issue titles fall back to the crashing function.
-    manager.add("projects:relay-nintendo-event-rewrite", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables building a stack trace from the crash context for Unreal crash reports without a minidump, such as those from Linux.
     manager.add("projects:relay-unreal-crash-context-stacktrace", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables the uploading of playstation attachments to the objectstore.

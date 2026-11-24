@@ -22,7 +22,7 @@ from rest_framework.serializers import (
 )
 from rest_framework.serializers import Serializer as RequestSerializer
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -736,6 +736,14 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
                     kind=KindItemTypes.REFERENCE,
                 )
 
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=formula.id,
+            event=audit_log.get_event_id("FORMULA_ADD"),
+            data=formula.get_audit_log_data(),
+        )
+
         return Response(
             serialize(formula, request.user, serializer=ExploreSavedFormulaSerializer()),
             status=201,
@@ -797,6 +805,13 @@ class OrganizationExploreFormulasDetail(OrganizationExploreFormulaBase):
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=formula.id,
+            event=audit_log.get_event_id("FORMULA_REMOVE"),
+            data=formula.get_audit_log_data(),
+        )
         formula.delete()
 
         return Response(status=204)
@@ -848,6 +863,13 @@ class OrganizationExploreFormulasDetail(OrganizationExploreFormulaBase):
                 )
 
         formula.refresh_from_db()
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=formula.id,
+            event=audit_log.get_event_id("FORMULA_EDIT"),
+            data=formula.get_audit_log_data(),
+        )
 
         return Response(
             serialize(formula, request.user, serializer=ExploreSavedFormulaSerializer()),

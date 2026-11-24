@@ -12,12 +12,15 @@ import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
+import {
+  getConversationUserIdentity,
+  type ConversationUserIdentity,
+} from 'sentry/views/explore/conversations/utils/conversationUser';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {markScrubbedValue} from 'sentry/views/insights/pages/agents/components/scrubbedText';
 import {buildAiSpanTree} from 'sentry/views/insights/pages/agents/utils/aiSpanTree';
 import {isEvaluationOperation} from 'sentry/views/insights/pages/agents/utils/evaluation';
 import {isExtractionOperation} from 'sentry/views/insights/pages/agents/utils/extraction';
-import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
@@ -134,16 +137,6 @@ export interface ConversationApiResponse {
   title: string | null;
 }
 
-function isGenAiSpan(span: ConversationApiSpan): boolean {
-  if (span['gen_ai.operation.type']) {
-    return true;
-  }
-  return (
-    (span['span.op']?.startsWith('gen_ai.') ?? false) ||
-    (span['span.name']?.startsWith('gen_ai.') ?? false)
-  );
-}
-
 interface UseConversationResult {
   canAutoFetchNextPage: boolean;
   error: boolean;
@@ -157,6 +150,8 @@ interface UseConversationResult {
   nodes: AITraceSpanNode[];
   stats: ConversationStats | null;
   title: string | null;
+  /** Who the conversation was with, from the first span that says. */
+  user: ConversationUserIdentity | null;
 }
 
 /** Marks where PII scrubbing changed the span's values, see `markScrubbedValue`. */
@@ -189,10 +184,6 @@ function createNodeFromApiSpan(
   apiSpan: ConversationApiSpan,
   organization: Organization
 ): AITraceSpanNode {
-  const operationType =
-    apiSpan['gen_ai.operation.type'] ||
-    getGenAiOperationTypeFromSpanName(apiSpan['span.name']);
-
   const duration = apiSpan['precise.finish_ts'] - apiSpan['precise.start_ts'];
   const value: TraceTree.EAPSpan = {
     children: [],
@@ -222,7 +213,7 @@ function createNodeFromApiSpan(
       // Recognizes evaluation, extraction and embeddings spans, which report the
       // ai_client operation type.
       [SpanFields.GEN_AI_OPERATION_NAME]: apiSpan['gen_ai.operation.name'] ?? '',
-      [SpanFields.GEN_AI_OPERATION_TYPE]: operationType ?? '',
+      [SpanFields.GEN_AI_OPERATION_TYPE]: apiSpan['gen_ai.operation.type'] ?? '',
       [SpanFields.GEN_AI_MEMORY_STORE_ID]: apiSpan['gen_ai.memory.store.id'] ?? '',
       [SpanFields.GEN_AI_MEMORY_QUERY_TEXT]: apiSpan['gen_ai.memory.query.text'] ?? '',
       [SpanFields.GEN_AI_MEMORY_RECORD_ID]: apiSpan['gen_ai.memory.record.id'] ?? '',
@@ -384,7 +375,7 @@ export function buildConversationNodes(
   }
 
   const traceMap = new Map<string, string>();
-  const genAiSpans = allSpans.filter(isGenAiSpan);
+  const genAiSpans = allSpans.filter(span => span['gen_ai.operation.type']);
   const nodeMap = new Map<string, AITraceSpanNode>();
   const parentIdBySpanId = new Map<string, string>();
   for (const apiSpan of allSpans) {
@@ -487,6 +478,7 @@ export function useConversation(
     () => buildConversationNodes(allSpans, {organization, markScrubbed: true}),
     [allSpans, organization]
   );
+  const user = useMemo(() => getConversationUserIdentity(allSpans), [allSpans]);
 
   if (!conversation.conversationId) {
     return {
@@ -502,6 +494,7 @@ export function useConversation(
       isNextPageError: false,
       error: false,
       title: null,
+      user: null,
     };
   }
 
@@ -518,5 +511,6 @@ export function useConversation(
     isNextPageError: isFetchNextPageError,
     error: isLoadingError || (autoFetchAll && isFetchNextPageError),
     title,
+    user,
   };
 }

@@ -13,6 +13,11 @@ export type SeerWalletBalance = {
    * Remaining included plus purchased credits. Can go negative.
    */
   balance: number;
+  /**
+   * The daily usage limit and what's left of it today, in credits. `remaining`
+   * can go negative. Null means no daily usage limit.
+   */
+  dailyLimit: {remaining: number; total: number} | null;
   included: {remaining: number; resetsAt: string | null; total: number};
   /**
    * Share of included plus purchased credits used, from 0 to 1.

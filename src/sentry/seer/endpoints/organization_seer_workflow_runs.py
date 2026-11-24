@@ -131,8 +131,8 @@ class MonitorTriggerResponse(TypedDict):
 
 
 class CronTriggerResponse(TypedDict):
-    # TODO: Include triggeredAt (parsed from trigger_key) once cron strategies such as
-    # AGENTIC_TRIAGE_V2 start creating runs.
+    # TODO: Include triggeredAt (parsed from trigger_key) once scheduled investigations
+    # start creating runs.
     type: Literal["cron"]
 
 

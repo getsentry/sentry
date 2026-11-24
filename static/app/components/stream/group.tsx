@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -30,12 +30,7 @@ import {UnreadIndicator} from 'sentry/components/unreadIndicator';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
-import type {
-  Group,
-  GroupReprocessing,
-  InboxDetails,
-  PriorityLevel,
-} from 'sentry/types/group';
+import type {Group, GroupReprocessing, PriorityLevel} from 'sentry/types/group';
 import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {percent} from 'sentry/utils';
@@ -57,11 +52,7 @@ import {
   useOptionalIssueSelectionActions,
   useOptionalIssueSelectionSummary,
 } from 'sentry/views/issueList/issueSelectionContext';
-import {
-  createIssueLink,
-  DISCOVER_EXCLUSION_FIELDS,
-  isForReviewQuery,
-} from 'sentry/views/issueList/utils';
+import {createIssueLink, DISCOVER_EXCLUSION_FIELDS} from 'sentry/views/issueList/utils';
 
 import {
   StreamGroupCell,
@@ -85,7 +76,6 @@ type Props = {
   source?: string;
   statsPeriod?: string;
   useFilteredStats?: boolean;
-  useTintRow?: boolean;
   withChart?: boolean;
   withColumns?: GroupListColumn[];
 };
@@ -279,7 +269,6 @@ export function StreamGroup({
   withChart = true,
   withColumns = COLUMNS,
   useFilteredStats = false,
-  useTintRow = true,
   onPriorityChange,
   onAssigneeChange,
 }: Props) {
@@ -296,7 +285,6 @@ export function StreamGroup({
     withChart,
     withColumns,
   });
-  const originalInboxState = useRef(group.inbox as InboxDetails | null);
   const {selection} = usePageFilters();
 
   const referrer = source ? `${source}-issue-stream` : 'issue-stream';
@@ -439,15 +427,6 @@ export function StreamGroup({
   };
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
-  const reviewed =
-    // Original state had an inbox reason
-    // oxlint-disable-next-line react/refs
-    originalInboxState.current?.reason !== undefined &&
-    // Updated state has been removed from inbox
-    !group.inbox &&
-    // Only apply reviewed on the "for review" tab
-    isForReviewQuery(query);
-
   // Use data.filtered to decide on which value to use
   // In case of the query has filters but we avoid showing both sets of filtered/unfiltered stats
   // we use useFilteredStats param passed to Group for deciding
@@ -637,12 +616,7 @@ export function StreamGroup({
   };
 
   return (
-    <StreamGroupRow
-      data-test-id="group"
-      data-test-reviewed={reviewed}
-      onClick={onClick}
-      variant={useTintRow && reviewed ? 'faded' : 'default'}
-    >
+    <StreamGroupRow data-test-id="group" onClick={onClick}>
       <InteractionStateLayer as="td" />
       {columns.map(column => (
         <StreamGroupCell key={column.key} column={column}>

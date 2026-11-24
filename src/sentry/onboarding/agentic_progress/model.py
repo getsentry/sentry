@@ -72,7 +72,7 @@ class StageStatus(StrEnum):
     """The agent explicitly determined that an optional stage does not apply."""
 
     BYPASSED = "bypassed"
-    """The backend inferred that progress advanced without a stage update."""
+    """Progress advanced before the stage finished. A later completion replaces this."""
 
     FAILED = "failed"
     """The agent reported that the stage could not complete."""
@@ -616,7 +616,13 @@ def apply_update(run: OnboardingRun, update: ProgressUpdate[Any], now: datetime)
         StageStatus.SKIPPED,
         StageStatus.BYPASSED,
     }
-    if current.status in frozen_statuses and update.status is not current.status:
+    # A bypass is only inferred from a later stage's update. Agents may overlap stages, so an
+    # explicit completion that arrives afterwards replaces it.
+    completes_bypassed = (
+        current.status is StageStatus.BYPASSED and update.status is StageStatus.COMPLETED
+    )
+    is_frozen = current.status in frozen_statuses and not completes_bypassed
+    if is_frozen and update.status is not current.status:
         merged_extra = stage_definition.merge_extra(current.extra, update_extra)
         if merged_extra == current.extra:
             return run
@@ -629,7 +635,7 @@ def apply_update(run: OnboardingRun, update: ProgressUpdate[Any], now: datetime)
             sequence=run.sequence + 1,
         )
 
-    if current.status not in frozen_statuses:
+    if not is_frozen:
         stages[update.stage] = StageState(
             stage=update.stage,
             status=update.status,

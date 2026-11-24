@@ -33,6 +33,11 @@ export type ExploreAnalyticsEventParameters = {
     section?: string;
   };
   'explore.chart_context.tab_selected': DroppedDataAnalyticsContext & {tab: string};
+  'explore.confidence.layer_toggled': {
+    organization: Organization;
+    selected: boolean;
+    source: DroppedDataAnalyticsSource;
+  };
   'explore.dropped_data.ask_seer_clicked': DroppedDataAnalyticsContext & {
     outcome: string;
     reason: string;
@@ -107,6 +112,7 @@ export const exploreAnalyticsEventMap = {
     'Explore: Chart Context Changes Layer Toggled',
   'explore.chart_context.drawer_opened': 'Explore: Chart Context Drawer Opened',
   'explore.chart_context.tab_selected': 'Explore: Chart Context Tab Selected',
+  'explore.confidence.layer_toggled': 'Explore: Confidence Layer Toggled',
   'explore.dropped_data.ask_seer_clicked': 'Explore: Dropped Data Ask Seer Clicked',
   'explore.dropped_data.drawer_opened': 'Explore: Dropped Data Drawer Opened',
   'explore.dropped_data.layer_toggled': 'Explore: Dropped Data Layer Toggled',
