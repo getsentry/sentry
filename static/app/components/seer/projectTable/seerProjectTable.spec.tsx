@@ -1,7 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {toast} from '@sentry/scraps/toast';
 
@@ -342,6 +348,10 @@ describe('SeerProjectTable', () => {
 
   function getRowPrIterationSwitch(slug: string) {
     return screen.getByRole('checkbox', {name: `Auto-iterate on PRs for ${slug}`});
+  }
+
+  function getRow(slug: string) {
+    return screen.getByRole('row', {name: new RegExp(slug)});
   }
 
   async function chooseRowPrIteration(slug: string, label: 'On' | 'Off') {
