@@ -19,6 +19,7 @@ READONLY_SCOPES = frozenset(
         "team:read",
         "project:releases",
         "alerts:read",
+        "user_preference:read",
     ]
 )
 
