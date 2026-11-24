@@ -16,6 +16,7 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
+from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.metrics.base import MutableTags
 from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
 from sentry.utils import metrics
@@ -55,6 +56,12 @@ class ReleaseProjectEnvironment(Model):
         indexes = (
             models.Index(fields=("project", "adopted", "environment")),
             models.Index(fields=("project", "unadopted", "environment")),
+            # Latest deploys per project, for the project summary serializer.
+            IndexWithPostgresNameLimits(
+                fields=("project",),
+                condition=models.Q(last_deploy_id__isnull=False),
+                name="sentry_releaseprojectenvironment_project_id_last_deploy_id",
+            ),
         )
         unique_together = (("project", "release", "environment"),)
 
