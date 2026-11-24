@@ -78,7 +78,7 @@ class ReleaseFile(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     # DEPRECATED
     project_id = BoundedBigIntegerField(null=True)
-    release_id = BoundedBigIntegerField(db_index=True)
+    release_id = BoundedBigIntegerField()
     file = FlexibleForeignKey("sentry.File")
     ident = models.CharField(max_length=40)
     name = models.TextField()
@@ -99,7 +99,10 @@ class ReleaseFile(Model):
 
     class Meta:
         unique_together = (("release_id", "ident"),)
-        indexes = (models.Index(fields=("release_id", "name")),)
+        indexes = (
+            models.Index(fields=("release_id", "name")),
+            models.Index(fields=("release_id", "dist_id")),
+        )
         app_label = "sentry"
         db_table = "sentry_releasefile"
 
