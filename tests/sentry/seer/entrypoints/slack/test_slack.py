@@ -190,17 +190,43 @@ class SlackAutofixEntrypointTest(TestCase):
         )
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
-    def test_on_trigger_autofix_out_of_credits(
-        self, mock_send_threaded_ephemeral_message: MagicMock
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
+    def test_on_trigger_autofix_out_of_credits_replies_in_thread_for_new_run(
+        self,
+        mock_send_threaded_message: MagicMock,
+        mock_send_threaded_ephemeral_message: MagicMock,
     ) -> None:
         ep = self._get_entrypoint()
         ep.on_trigger_autofix_out_of_credits(started=False, denial_reason=None)
+        mock_send_threaded_message.assert_called_once_with(
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+            renderable=ANY,
+        )
+        mock_send_threaded_ephemeral_message.assert_not_called()
+        blocks = str(mock_send_threaded_message.call_args.kwargs["renderable"]["blocks"])
+        assert AUTOFIX_OUT_OF_CREDITS_MESSAGE in blocks
+        assert "Configure auto-reload" in blocks
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
+    def test_on_trigger_autofix_out_of_credits_is_ephemeral_for_started_run(
+        self,
+        mock_send_threaded_ephemeral_message: MagicMock,
+        mock_send_threaded_message: MagicMock,
+    ) -> None:
+        ep = self._get_entrypoint()
+        ep.on_trigger_autofix_out_of_credits(started=True, denial_reason=None)
         mock_send_threaded_ephemeral_message.assert_called_once_with(
             channel_id=self.channel_id,
             thread_ts=self.thread_ts,
             renderable=ANY,
             slack_user_id=self.slack_request.user_id,
         )
+        mock_send_threaded_message.assert_not_called()
         blocks = str(mock_send_threaded_ephemeral_message.call_args.kwargs["renderable"]["blocks"])
         assert AUTOFIX_OUT_OF_CREDITS_MESSAGE in blocks
         assert "Configure auto-reload" in blocks
