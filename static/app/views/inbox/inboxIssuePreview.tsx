@@ -314,6 +314,7 @@ function InboxIssueRelated({group}: Pick<InboxIssueSectionProps, 'group'>) {
         key={`investigation-${investigation.id}`}
         icon={<IconSeer size="sm" />}
         to={getInvestigationPath(organization.slug, investigation.id)}
+        label={investigation.title}
         title={investigation.title}
         reason={reason ?? t('Hypothesis: %s', hypothesisStatement)}
       />
@@ -323,8 +324,10 @@ function InboxIssueRelated({group}: Pick<InboxIssueSectionProps, 'group'>) {
         key={`issue-${issue.id}`}
         icon={<IconIssues size="sm" />}
         to={normalizeUrl(`/organizations/${organization.slug}/issues/${issue.id}/`)}
-        shortId={issue.shortId}
-        title={issue.title}
+        label={`${issue.shortId} – ${issue.title}`}
+        // Matches how the issue stream shows an issue: its type, then its message
+        title={getTitle(issue).title ?? issue.title}
+        message={getMessage(issue)}
         reason={relations.map(getRelationLabel).join(' · ')}
       />
     )),
@@ -369,37 +372,47 @@ function getRelationLabel(relation: RelatedIssue['relations'][number]) {
 }
 
 /**
- * A related issue or investigation. The row cuts off a long title, so its tooltip shows the full
- * title and why it's related.
+ * A related issue or investigation. The row cuts off a long label, so its tooltip shows the
+ * title, the message when there is one, and why it's related.
  */
 function InboxIssueRelatedRow({
   icon,
   to,
+  label,
   title,
   reason,
-  shortId,
+  message,
 }: {
   icon: ReactNode;
+  label: string;
   reason: string;
   title: string;
   to: string;
-  shortId?: string;
+  message?: string;
 }) {
   return (
     <Flex gap="sm" align="center" minWidth={0}>
       {linkProps => (
         <Tooltip
           skipWrapper
+          maxWidth={350}
           title={
             <Stack gap="xs">
-              <Text>{title}</Text>
+              <Text bold>
+                <AnsiText>{title}</AnsiText>
+              </Text>
+              {message ? (
+                <Text>
+                  <AnsiText>{message}</AnsiText>
+                </Text>
+              ) : null}
               <Text variant="muted">{reason}</Text>
             </Stack>
           }
         >
           <IssueTitleLink {...linkProps} to={to}>
             {icon}
-            <Text ellipsis>{shortId ? `${shortId} – ${title}` : title}</Text>
+            <Text ellipsis>{label}</Text>
           </IssueTitleLink>
         </Tooltip>
       )}

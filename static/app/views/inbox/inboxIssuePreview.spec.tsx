@@ -127,7 +127,12 @@ describe('InboxIssuePreview', () => {
 
   it('links to the linked investigation and the top related issues', async () => {
     const relatedIssues = ['11', '12', '13'].map(id => ({
-      issue: GroupFixture({id, shortId: `CHECKOUT-${id}`, title: `Checkout error ${id}`}),
+      issue: GroupFixture({
+        id,
+        shortId: `CHECKOUT-${id}`,
+        title: `Checkout error ${id}`,
+        metadata: {type: 'TimeoutError', value: `Checkout timed out after ${id}s`},
+      }),
       relations: [{type: 'similar_stacktrace', score: 0.9432}, {type: 'same_trace'}],
     }));
     MockApiClient.addMockResponse({
@@ -183,7 +188,9 @@ describe('InboxIssuePreview', () => {
     expect(
       await screen.findByText('Similar stack trace (94%) · Same trace')
     ).toBeInTheDocument();
-    expect(screen.getByText('Checkout error 11')).toBeInTheDocument();
+    // Shown like the issue stream: the error type, then the message
+    expect(screen.getByText('TimeoutError')).toBeInTheDocument();
+    expect(screen.getByText('Checkout timed out after 11s')).toBeInTheDocument();
   });
 
   it('shows an error when every related issue type that applies failed', async () => {
