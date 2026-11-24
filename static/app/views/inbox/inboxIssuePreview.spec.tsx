@@ -132,7 +132,9 @@ describe('InboxIssuePreview', () => {
       },
     });
 
-    render(<InboxIssuePreview groupId={group.id} />, {organization});
+    render(<InboxIssuePreview groupId={group.id} />, {
+      organization: OrganizationFixture({features: ['seer-impact-assessment']}),
+    });
 
     const sidebar = await screen.findByRole('complementary', {name: 'Issue overview'});
     expect(within(sidebar).getByRole('heading', {name: 'Impact'})).toBeInTheDocument();
@@ -164,13 +166,37 @@ describe('InboxIssuePreview', () => {
     expect(await screen.findByText('Impact assessment started')).toBeInTheDocument();
   });
 
-  it('hides impact when there is no assessment and the feature is unavailable', async () => {
+  it('hides impact assessments without the impact assessment feature', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: {
+        ...group,
+        derivedData: {
+          hasOpenFixPr: false,
+          hasRootCause: false,
+          isAssigned: false,
+          lastProgressedAt: null,
+          progress: ProgressState.IDENTIFIED,
+          status: 'open',
+          viewCount: 0,
+          impact: {
+            level: 'super_high',
+            score: 91,
+            description: 'Checkout is broken for all users.',
+            citations: [],
+            sourceEventId: event.id,
+          },
+        },
+      },
+    });
+
     render(<InboxIssuePreview groupId={group.id} />, {organization});
 
     const sidebar = await screen.findByRole('complementary', {name: 'Issue overview'});
     expect(
       within(sidebar).queryByRole('heading', {name: 'Impact'})
     ).not.toBeInTheDocument();
+    expect(screen.queryByText('Super High (91)')).not.toBeInTheDocument();
   });
 
   it('pairs each timestamp with its release', async () => {

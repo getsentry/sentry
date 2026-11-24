@@ -38,8 +38,9 @@ import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataConte
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {
   AssessImpactButton,
-  getAssessedImpact,
   GroupImpactBadge,
+  useAssessedImpact,
+  useHasImpactAssessment,
 } from 'sentry/views/issueDetails/groupImpact';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {
@@ -273,9 +274,8 @@ function InboxIssueSidebar({group, project, event}: InboxIssueSectionProps) {
 }
 
 function InboxImpactField({group}: {group: Group}) {
-  const organization = useOrganization();
-  const hasImpact = getAssessedImpact(group) !== null;
-  const canAssessImpact = organization.features.includes('seer-impact-assessment');
+  const hasImpact = useAssessedImpact(group) !== null;
+  const canAssessImpact = useHasImpactAssessment();
 
   if (!hasImpact && !canAssessImpact) {
     return null;

@@ -59,11 +59,21 @@ function ImpactIcon({level, ...rest}: SVGIconProps & {level: ImpactLevel}) {
 }
 
 /**
- * Returns the group's impact assessment when it has a level and score.
+ * Whether the organization can see impact assessments.
+ * Currently, the API won't have impact assessments in the results without the flag,
+ * but that may change, so check the flag on the frontend as well.
  */
-export function getAssessedImpact(group: Group) {
+export function useHasImpactAssessment() {
+  return useOrganization().features.includes('seer-impact-assessment');
+}
+
+/**
+ * Returns the group's impact assessment when it has a level and score, if available
+ */
+export function useAssessedImpact(group: Group) {
+  const hasImpactAssessment = useHasImpactAssessment();
   const impact = group.derivedData?.impact;
-  return impact?.level && impact.score !== null
+  return hasImpactAssessment && impact?.level && impact.score !== null
     ? (impact as ImpactAssessment & {level: ImpactLevel; score: number})
     : null;
 }
@@ -78,7 +88,7 @@ export function ImpactChip({level, score}: {level: ImpactLevel; score: number}) 
 }
 
 export function GroupImpactBadge({group}: {group: Group}) {
-  const impact = getAssessedImpact(group);
+  const impact = useAssessedImpact(group);
   if (!impact) {
     return null;
   }

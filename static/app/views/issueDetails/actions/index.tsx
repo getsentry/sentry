@@ -53,7 +53,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
 import {discardIssueMutationOptions} from 'sentry/views/issueDetails/discardIssueMutationOptions';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {useAssessImpact} from 'sentry/views/issueDetails/groupImpact';
+import {
+  useAssessImpact,
+  useHasImpactAssessment,
+} from 'sentry/views/issueDetails/groupImpact';
 import {GroupPriorityCommandPaletteAction} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeCommandPaletteAction} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {groupQueryFilter} from 'sentry/views/issueDetails/useGroup';
@@ -220,6 +223,7 @@ export function GroupActions({
   const queryClient = useQueryClient();
   const {mutate: discardIssue} = useMutation(discardIssueMutationOptions({navigate}));
   const {mutate: assessImpact, isPending: isAssessingImpact} = useAssessImpact(group);
+  const hasImpactAssessment = useHasImpactAssessment();
 
   const bookmarkKey = group.isBookmarked ? 'unbookmark' : 'bookmark';
   const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
@@ -640,7 +644,7 @@ export function GroupActions({
               key: 'impact-assessment',
               label: t('Assess impact'),
               trailingItems: <FeatureBadge type="alpha" />,
-              hidden: !organization.features.includes('seer-impact-assessment'),
+              hidden: !hasImpactAssessment,
               disabled: disabled || isAssessingImpact,
               details: isAssessingImpact
                 ? t('Impact assessment is being started')

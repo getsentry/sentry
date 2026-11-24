@@ -1,6 +1,7 @@
 import type {TimeSince} from 'sentry/components/timeSince';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivityNote} from 'sentry/types/group';
+import {useHasImpactAssessment} from 'sentry/views/issueDetails/groupImpact';
 
 import {
   getActorActivity,
@@ -42,6 +43,8 @@ export function ActivityFeed({
   onCommentUpdate,
   timestampUnitStyle,
 }: ActivityFeedProps) {
+  const hasImpactAssessment = useHasImpactAssessment();
+
   function isHighlighted(item: ActivityFeedItem) {
     return (
       highlightedActivityId !== undefined &&
@@ -82,6 +85,9 @@ export function ActivityFeed({
         />
       );
     } else if (isImpactActivity(activity)) {
+      if (!hasImpactAssessment) {
+        return null;
+      }
       line = (
         <ActivityLineImpact
           activity={activity}
