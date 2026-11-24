@@ -17,6 +17,7 @@ import {OpenSeerButton} from './openSeerButton';
 import {
   type ActionableSectionKey,
   isActionableSection,
+  opensSingleRunChat,
   sectionKeyForMilestone,
   useNextAction,
 } from './overviewActions';
@@ -91,9 +92,11 @@ export function MilestoneToast({
   return (
     <Flex align="center" gap="md">
       <Text>{t('%s: %s', run.shortId, MILESTONE_ACTION_LABELS[toMilestone])}</Text>
-      {isActionableSection(sectionKey) && run.status !== 'processing' && (
-        <NextActionButton run={run} sectionKey={sectionKey} />
-      )}
+      {isActionableSection(sectionKey) &&
+        run.status !== 'processing' &&
+        !opensSingleRunChat(run, sectionKey) && (
+          <NextActionButton run={run} sectionKey={sectionKey} />
+        )}
       <OpenSeerButton run={run} section={sectionKey} size="xs" />
     </Flex>
   );
