@@ -325,13 +325,7 @@ const ATTRIBUTE_DETAILS_PAGE_TYPES: ReadonlySet<GetFieldDefinitionType> = new Se
 const TRACE_ITEM_ATTRIBUTE_TYPES: Record<
   TraceItemResponseAttribute['type'],
   TraceItemAttributeType
-> = {
-  array: 'array',
-  bool: 'boolean',
-  float: 'number',
-  int: 'number',
-  str: 'string',
-};
+> = {array: 'array', bool: 'boolean', float: 'number', int: 'number', str: 'string'};
 
 function getAttributeDetailsTargetForAttribute(
   attribute: Attribute,
