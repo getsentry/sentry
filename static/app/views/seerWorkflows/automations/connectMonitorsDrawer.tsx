@@ -2,18 +2,18 @@ import {Fragment, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {SortDirection} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
-import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tn} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getPaginationProps, useGetPaginationCaption} from 'sentry/utils/pagination';
+import {useCompactSelectProjectOptions} from 'sentry/utils/project/useCompactSelectProjectOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {canConnectAutomationToDetector} from 'sentry/views/automations/utils/permissions';
@@ -46,9 +46,7 @@ export function ConnectMonitorsDrawer({initialMonitorIds, onChange}: Props) {
           <Text variant="muted">
             {t('Pick the metric monitors this automation investigates when they breach.')}
           </Text>
-          <PageFiltersContainer>
-            <MetricMonitors connectedIds={monitorIds} toggleConnected={toggleMonitor} />
-          </PageFiltersContainer>
+          <MetricMonitors connectedIds={monitorIds} toggleConnected={toggleMonitor} />
           <Text size="sm" variant="muted">
             {tn('%s monitor connected', '%s monitors connected', monitorIds.length)}
             {' · '}
@@ -67,19 +65,20 @@ function MetricMonitors({
   connectedIds: string[];
   toggleConnected: (monitorId: string) => void;
 }) {
-  const {selection} = usePageFilters();
+  const [projectIds, setProjectIds] = useState<string[]>([]);
   const [query, setQuery] = useState('');
   const [lastBreachSort, setLastBreachSort] = useState<SortDirection>('desc');
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const organization = useOrganization();
   const {projects} = useProjects();
   const getPaginationCaption = useGetPaginationCaption();
+  const projectOptions = useCompactSelectProjectOptions({projects});
 
   const {data, isPending, isError} = useQuery({
     ...detectorListApiOptions(organization, {
       type: 'metric_issue',
       query,
-      projects: selection.projects,
+      projects: projectIds.length > 0 ? projectIds.map(Number) : [-1],
       limit: MONITORS_PER_PAGE,
       sortBy: lastBreachSort === 'desc' ? '-latestGroup' : 'latestGroup',
       cursor,
@@ -91,9 +90,22 @@ function MetricMonitors({
   return (
     <Stack gap="lg">
       <Flex gap="md" align="start">
-        <ProjectPageFilter
-          storageNamespace="seerAutomationDrawer"
-          onChange={() => setCursor(undefined)}
+        <CompactSelect
+          multiple
+          clearable
+          search
+          menuWidth="22em"
+          options={projectOptions}
+          value={projectIds}
+          onChange={selected => {
+            setProjectIds(selected.map(option => option.value));
+            setCursor(undefined);
+          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Project')}>
+              {projectIds.length === 0 ? t('All') : triggerProps.children}
+            </OverlayTrigger.Button>
+          )}
         />
         <Container flexGrow={1} minWidth={0}>
           <DetectorSearch
