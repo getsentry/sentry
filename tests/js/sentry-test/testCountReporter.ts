@@ -1,4 +1,4 @@
-import {relative, resolve, sep} from 'node:path';
+import {relative, sep} from 'node:path';
 
 import type {AggregatedResult} from '@jest/test-result';
 import type {Config} from '@jest/types';
@@ -34,8 +34,8 @@ export default class TestCountReporter {
     }
 
     try {
-      const rootDir = resolve(import.meta.dirname, '../../..');
-      const workspace = relative(rootDir, process.cwd()).split(sep).join('/') || 'root';
+      const workspace =
+        relative(this.globalConfig.rootDir, process.cwd()).split(sep).join('/') || 'root';
 
       // A run with a single test file runs in band, where the test environment
       // already initialized Sentry in this process. Every test has finished, so
