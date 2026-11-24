@@ -330,9 +330,8 @@ def run_agentic_triage_for_org(
 ) -> int | None:
     """Run agentic triage for one organization. `options` is a partial dict —
     any missing fields are filled in by build_run_options. Cron dispatches
-    with no options (all defaults); manual triggers (project settings "Run
-    Now", admin endpoint) pass `{"source": "manual", ...}` and may scope the
-    run to specific projects.
+    with no options (all defaults); the admin trigger passes
+    `{"source": "manual", ...}`.
 
     When execute_in_task is True, the heavy execution phase (eligibility,
     triage, autofix) is dispatched to a separate task so the caller doesn't
