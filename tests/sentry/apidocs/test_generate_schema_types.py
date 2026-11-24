@@ -12,7 +12,7 @@ from sentry.apidocs.generate_schema_types import (
     generate,
     stale_files,
 )
-from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.types import WorkflowSettings
 
 DEFINITIONS = {
     "Target": {
@@ -166,7 +166,7 @@ def test_reports_a_schema_change_that_was_not_regenerated() -> None:
     }
     workflow_file = next(file for file in FILES if file.path.startswith("sentry/workflow_engine"))
 
-    with mock.patch.object(Workflow, "config_schema", schema):
+    with mock.patch.object(WorkflowSettings, "config_schema", schema):
         stale = stale_files([workflow_file])
 
     assert list(stale) == [workflow_file.path]
