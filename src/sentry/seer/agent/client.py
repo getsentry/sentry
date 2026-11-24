@@ -633,6 +633,10 @@ class SeerAgentClient:
             agent_run_options=resolved_agent_run_options,
             user_org_context=user_org_context,
             proxy_headers=proxy_headers,
+            monitoring_providers=[
+                connection.dict()
+                for connection in get_monitoring_provider_connections(self.organization, None)
+            ],
         )
 
         response = make_feature_run_request(body, viewer_context=self.viewer_context)
