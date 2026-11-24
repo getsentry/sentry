@@ -49,12 +49,26 @@ type HatchAreasPlottingOptions = {
 
 /**
  * Hatched areas that span the full height of the plot over stretches of time.
- * One set of stripes goes behind the data and a second set goes over it, in the
- * gaps of the first, so the hatch runs unbroken across empty space and data
- * alike. Canvas patterns are anchored to the chart's origin, so the stripes line
- * up across areas, bars, and gaps without any offsets. Unlike time series
- * plottables, it has no data of its own, so it never takes up a Y axis, a legend
- * item, or a tooltip row.
+ *
+ * The hatch is split into two layers, because neither layer alone works:
+ *
+ * - Behind the data, grey stripes hatch the empty space. Data covers them, so
+ *   on their own they'd vanish wherever a bar or area is drawn.
+ * - Over the data, a background-colored wash fades the data, and
+ *   background-colored stripes fade it further. These stripes sit in the gaps
+ *   between the grey stripes behind, so over data they read as the same hatch.
+ *   Over empty space, they land on the background between the grey stripes,
+ *   so only the wash shows there, and it lightens the grey stripes a little.
+ *
+ * Drawing grey stripes over the data instead would mix grey into each series
+ * color and muddy it, and they'd look different over every series. Drawn this
+ * way, the hatch runs unbroken across empty space and data alike, and the data
+ * only fades, without changing its hue. Canvas patterns are anchored to the
+ * chart's origin, so the stripes line up across areas, bars, and gaps without
+ * any offsets.
+ *
+ * Unlike time series plottables, it has no data of its own, so it never takes
+ * up a Y axis, a legend item, or a tooltip row.
  */
 export class HatchAreas implements Plottable {
   ranges: readonly TimeRange[];

@@ -941,23 +941,6 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
         </Storybook.Grid>
 
         <Heading as="h3" size="md">
-          Stacked areas, different low-confidence intervals
-        </Heading>
-        <p>
-          Each series has low confidence data at different times. The areas stay stacked.
-        </p>
-        <LargeWidget>
-          <TimeSeriesWidgetVisualization
-            showConfidence
-            plottables={[
-              withLowConfidenceIntervals(sampleDurationTimeSeries, [[10, 15]]),
-              withLowConfidenceIntervals(sampleDurationTimeSeriesP75, [[20, 25]]),
-              withLowConfidenceIntervals(sampleDurationTimeSeriesP50, [[30, 40]]),
-            ].map(timeSeries => new Area(timeSeries))}
-          />
-        </LargeWidget>
-
-        <Heading as="h3" size="md">
           Multiple lines, five low-confidence intervals
         </Heading>
         <LargeWidget>
