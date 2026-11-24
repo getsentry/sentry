@@ -227,6 +227,39 @@ def _get_channel_info(
     return results
 
 
+def resolve_slack_channel_destination(
+    *, integration_id: int, channel_id: str | None, channel_name: str | None
+) -> tuple[str, str]:
+    if channel_name is not None:
+        channel_name = channel_name.removeprefix("#")
+        if not channel_name:
+            raise ValidationError("Provide a Slack channel name.")
+
+    if channel_id is None:
+        if channel_name is None:
+            raise ValidationError("Provide a Slack channel ID or name.")
+        client = SlackSdkClient(integration_id=integration_id)
+        try:
+            channel_id = check_for_channel(client, channel_name)
+        except SlackApiError as exc:
+            raise ValidationError("Could not look up the Slack channel by name.") from exc
+        if channel_id is None:
+            raise ValidationError("Slack channel not found.")
+
+    info = _get_channel_info(integration_id=integration_id, input_channel_id=channel_id)
+    channel = info.get("channel", {})
+    if not (channel.get("is_channel") or channel.get("is_group")) or channel.get("is_mpim"):
+        raise ValidationError("Choose a Slack channel.")
+    if channel.get("is_archived"):
+        raise ValidationError("Choose an active Slack channel.")
+    resolved_name = channel.get("name")
+    if not isinstance(resolved_name, str) or not resolved_name:
+        raise ValidationError("Did not receive channel name from API results")
+    if channel_name is not None and resolved_name != channel_name:
+        raise ValidationError("Slack channel name from ID does not match input channel name.")
+    return channel_id, resolved_name
+
+
 def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -> None:
     """
     In the case that the user is creating an alert via the API and providing the channel ID and name

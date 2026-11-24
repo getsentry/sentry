@@ -6,7 +6,9 @@ from typing import Any, Literal
 from django.db import models
 from pydantic import BaseModel
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import NormalizedModelName, PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -48,7 +50,14 @@ class SeerSkill(StrEnum):
     AGENTIC_TRIAGE = "agentic_triage"
 
 
+class WorkflowSlackDestination(BaseModel):
+    integration_id: int
+    channel_id: str
+    channel_name: str
+
+
 class SeerWorkflowConfigExtras(BaseModel):
+    slack_destination: WorkflowSlackDestination | None = None
     # The default strategy that seeded this config; unset for user-created configs.
     seeded_default: SeerWorkflowStrategy | None = None
     # The user who most recently updated this config through the API, or "bot" for
@@ -128,6 +137,20 @@ class SeerWorkflowConfig(DefaultFieldsModel):
 
     __repr__ = sane_repr("organization_id", "strategy", "enabled")
 
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is not None and (destination := self.extras.get("slack_destination")):
+            mapped = pk_map.get_pk(
+                NormalizedModelName("sentry.integration"), destination["integration_id"]
+            )
+            if mapped is None:
+                del self.extras["slack_destination"]
+            else:
+                destination["integration_id"] = mapped
+        return old_pk
+
     @classmethod
     def get_or_create_for_strategy(
         cls, organization_id: int, strategy: SeerWorkflowStrategy
@@ -189,6 +212,8 @@ class WorkflowSnapshotFilters(SeerWorkflowFilters):
 
 
 class WorkflowRunSnapshot(BaseModel):
+    slack_destination: WorkflowSlackDestination | None = None
+    automation_name: str | None = None
     config_version: int
     strategy: SeerWorkflowStrategy
     filters: WorkflowSnapshotFilters

@@ -44,6 +44,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentWriteApproval,
     SeerAutofixUpdate,
 )
+from sentry.notifications.platform.threading import ThreadingService
 from sentry.notifications.platform.tracking import NotificationLink, NotificationTrackingContext
 from sentry.notifications.platform.types import (
     NotificationCategory,
@@ -64,7 +65,11 @@ from sentry.seer.entrypoints.cache import (
     SeerOperatorAutofixCache,
     SeerOperatorInvestigationCache,
 )
-from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
+from sentry.seer.entrypoints.operator import (
+    SeerAutofixOperator,
+    process_autofix_updates,
+    process_investigation_updates,
+)
 from sentry.seer.entrypoints.registry import investigation_entrypoint_registry
 from sentry.seer.entrypoints.slack.cache import (
     SlackSeerAgentMessageCache,
@@ -112,7 +117,9 @@ from sentry.shared_integrations.exceptions import (
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.locking import UnableToAcquireLock
@@ -2759,6 +2766,41 @@ class SlackInvestigationEntrypointTest(TestCase):
                 }.get(call.kwargs["text"], "status"),
             )
             for call in self.mock_post_message.call_args_list
+        ]
+
+    @with_feature(
+        [
+            "organizations:investigations",
+            "organizations:investigations-slack",
+        ]
+    )
+    def test_completed_metric_investigation_reaches_both_linked_runs_without_cache(
+        self,
+    ) -> None:
+        self._use_open_period()
+        self._complete_with_conclusion()
+        for ts in ("10.1", "20.1"):
+            run = Factories.create_seer_workflow_run(self.organization)
+            execution = Factories.create_seer_workflow_run_execution(run)
+            Factories.create_seer_workflow_output_link(execution, notebook=self.investigation)
+            ThreadingService.get_or_create_thread(
+                threading_config={
+                    "key_type": NotificationSource.SEER_AUTOMATION_RUN_STARTED,
+                    "provider_key": NotificationProviderKey.SLACK,
+                    "key_data": {"run_id": run.id, "integration_id": self.integration.id},
+                    "object_type": NotificationThreadObjectType.SEER_WORKFLOW_RUN,
+                    "object_id": run.id,
+                    "integration_id": self.integration.id,
+                    "target_id": self.channel_id,
+                    "thread_identifier": ts,
+                    "provider_data": None,
+                }
+            )
+        process_investigation_updates(investigation_id=self.investigation.id)
+        process_investigation_updates(investigation_id=self.investigation.id)
+        assert sorted(self._posts()) == [
+            (self.channel_id, "10.1", "conclusion"),
+            (self.channel_id, "20.1", "conclusion"),
         ]
 
     def test_alert_threads_get_conclusion(self) -> None:

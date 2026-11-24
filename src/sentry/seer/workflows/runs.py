@@ -30,6 +30,7 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.schemas import WorkflowResult, WorkflowResultError, WorkflowRunExtras
 from sentry.utils import json
+from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger(__name__)
 TERMINAL_STATUSES = {"complete", "partial", "failed"}
@@ -87,6 +88,18 @@ class SeerWorkflowRunLifecycle:
                 raise InvalidWorkflowTransition("Only queued workflow runs can start")
             run.status = SeerWorkflowRunStatus.RUNNING
             run.save(update_fields=["status", "date_updated"])
+            if self._parse_extras(run, SeerWorkflowRunExtras).snapshot.slack_destination:
+                from sentry.seer.workflows.slack import announce_workflow_run
+
+                transaction.on_commit(
+                    partial(
+                        safe_execute,
+                        announce_workflow_run.delay,
+                        organization_id=self.organization_id,
+                        run_id=self.run_id,
+                    ),
+                    using=router.db_for_write(SeerWorkflowRun),
+                )
         return run
 
     def create_executions(

@@ -5,6 +5,9 @@ import pytest
 from django.test import override_settings
 from pydantic import BaseModel
 
+from sentry.backup.dependencies import ImportKind, NormalizedModelName, PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.seer.agent.client import SeerAgentClient
@@ -42,6 +45,35 @@ class RunInputs(BaseModel):
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 class WorkflowRunTest(TestCase):
+    def test_relocation_clears_unmapped_slack_destination(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization,
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+            extras={
+                "slack_destination": {
+                    "integration_id": 123,
+                    "channel_id": "C123",
+                    "channel_name": "ops",
+                },
+                "updated_by": "bot",
+            },
+        )
+        pk_map = PrimaryKeyMap()
+        pk_map.insert(
+            NormalizedModelName("sentry.organization"),
+            self.organization.id,
+            self.organization.id,
+            ImportKind.Inserted,
+        )
+        old_id = config.id
+        assert (
+            config.normalize_before_relocation_import(
+                pk_map, ImportScope.Organization, ImportFlags()
+            )
+            == old_id
+        )
+        assert config.extras == {"updated_by": "bot"}
+
     def test_creation_links_execution_and_defers_dispatch(self) -> None:
         with patch("sentry.receivers.outbox.cell.make_feature_run_request") as dispatch:
             run = self.create_run()
