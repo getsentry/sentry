@@ -14,7 +14,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker import namespaces
 from sentry.utils import metrics
 from sentry.utils.exceptions import timeout_grouping_context
-from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.tasks.utils import (
     ProjectNotActiveError,
@@ -120,6 +120,7 @@ def trigger_action(
     group_state: GroupState,
     has_escalated: bool,
     notification_uuid: str | None = None,
+    detector_id: int | None = None,
     **kwargs: dict[str, object],
 ) -> None:
     import uuid
@@ -161,7 +162,16 @@ def trigger_action(
         )
         raise ValueError("Exactly one of event_id or activity_id must be provided")
 
-    detector = get_preferred_detector(event_data)
+    if detector_id is not None:
+        detector = Detector.objects.get_or_none(id=detector_id)
+        if detector is None:
+            logger.info(
+                "workflow_engine.action.detector_deleted", extra={"detector_id": detector_id}
+            )
+            return
+
+    else:
+        detector = get_preferred_detector(event_data)
 
     metrics.incr(
         "workflow_engine.tasks.trigger_action_task_started",
@@ -172,7 +182,12 @@ def trigger_action(
     # in this scope is grouped properly.
     with timeout_grouping_context(action.type), action_context_scope(ActionSource.SYSTEM):
         try:
-            action.trigger(event_data, notification_uuid=notification_uuid, workflow_id=workflow_id)
+            action.trigger(
+                event_data,
+                notification_uuid=notification_uuid,
+                workflow_id=workflow_id,
+                detector=detector,
+            )
         except UnsupportedActionEvent:
             logger.exception(
                 "workflow_engine.action.unsupported_event",
