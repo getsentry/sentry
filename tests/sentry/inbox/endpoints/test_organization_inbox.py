@@ -1,3 +1,4 @@
+import os
 from dataclasses import asdict
 from datetime import timedelta
 from unittest.mock import patch
@@ -8,11 +9,15 @@ from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
+from drf_spectacular.settings import patched_settings
 
 import sentry.apidocs.extensions  # noqa: F401
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.apidocs.response_coverage import find_violations
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_deletion, run_scheduled_deletions
+from sentry.inbox.endpoints.base import OrganizationInboxEndpoint
 from sentry.inbox.endpoints.organization_inbox import OrganizationInboxIndexEndpoint
 from sentry.inbox.endpoints.organization_inbox_count import (
     OrganizationInboxCountEndpoint,
@@ -59,9 +64,32 @@ from tests.sentry.apidocs import generate_schema
         ),
     ],
 )
-def test_read_api_schema(route: str, endpoint: type) -> None:
-    schema = generate_schema(route, view=endpoint)
+def test_api_schema(route: str, endpoint: type[OrganizationInboxEndpoint]) -> None:
+    with (
+        patch.object(
+            endpoint,
+            "publish_status",
+            {method: ApiPublishStatus.PUBLIC_EXPERIMENTAL for method in endpoint.publish_status},
+        ),
+        patch.dict(os.environ, {"OPENAPIGENERATE": "1"}),
+        patch("sentry.apidocs.hooks.__write_ownership_data"),
+        patched_settings(
+            {
+                "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
+                "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
+                "AUTHENTICATION_WHITELIST": [
+                    "sentry.api.authentication.UserAuthTokenAuthentication"
+                ],
+            }
+        ),
+    ):
+        schema = generate_schema(route, view=endpoint)
     assert schema["paths"]
+    assert not find_violations(schema)
+    operations = next(iter(schema["paths"].values()))
+    assert set(operations) == {method.lower() for method in endpoint.publish_status}
+    assert all(operation["x-sentry-experimental"] for operation in operations.values())
+    assert all("x-sentry-idempotent" not in operation for operation in operations.values())
 
 
 def test_delete_api_schema() -> None:

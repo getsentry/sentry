@@ -512,51 +512,6 @@ describe('IssueListActions', () => {
     });
   });
 
-  describe('mark reviewed', () => {
-    it('acknowledges group', async () => {
-      const mockOnActionTaken = jest.fn();
-
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/',
-        method: 'PUT',
-      });
-
-      jest.spyOn(GroupStore, 'get').mockImplementation(id => {
-        return GroupFixture({
-          id,
-          inbox: {
-            date_added: '2020-11-24T13:17:42.248751Z',
-            reason: 0,
-            reason_details: null,
-          },
-        });
-      });
-      render(
-        <WrappedComponent
-          onActionTaken={mockOnActionTaken}
-          selectedIds={['1', '2', '3']}
-        />
-      );
-
-      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-      const reviewButton = screen.getByRole('menuitemradio', {name: 'Mark Reviewed'});
-      await userEvent.click(reviewButton);
-
-      expect(mockOnActionTaken).toHaveBeenCalledWith(['1', '2', '3'], {inbox: false});
-    });
-
-    it('mark reviewed disabled for group that is already reviewed', async () => {
-      GroupStore.loadInitialData([GroupFixture({id: '1', inbox: null})]);
-
-      render(<WrappedComponent {...defaultProps} groupIds={['1']} allSelected />);
-
-      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-      expect(
-        await screen.findByRole('menuitemradio', {name: 'Mark Reviewed'})
-      ).toHaveAttribute('aria-disabled', 'true');
-    });
-  });
-
   describe('copy', () => {
     beforeEach(() => {
       localStorage.clear();

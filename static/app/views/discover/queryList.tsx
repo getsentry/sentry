@@ -64,14 +64,8 @@ function getTimelineSubtitle(eventView: EventView) {
   );
 }
 
-function isDeprecatedTransactionQuery(
-  organization: Organization,
-  queryDataset: SavedQueryDatasets | undefined
-) {
-  return (
-    organization.features.includes('discover-saved-queries-deprecation') &&
-    queryDataset === SavedQueryDatasets.TRANSACTIONS
-  );
+function isDeprecatedTransactionQuery(queryDataset: SavedQueryDatasets | undefined) {
+  return queryDataset === SavedQueryDatasets.TRANSACTIONS;
 }
 
 function getWidgetType(
@@ -190,7 +184,7 @@ function PrebuiltQueryCard({
           widgetType: getWidgetType(organization, location, newQuery),
           source: DashboardWidgetSource.DISCOVERV2,
         }),
-      disabled: isDeprecatedTransactionQuery(organization, view.queryDataset),
+      disabled: isDeprecatedTransactionQuery(view.queryDataset),
     },
     {
       key: 'set-as-default',
@@ -238,10 +232,7 @@ function SavedQueryCard({
 }) {
   const savedQuery = getSavedQueryWithDataset(query)!;
   const eventView = EventView.fromSavedQuery(savedQuery);
-  const deprecateTransactionQuery = isDeprecatedTransactionQuery(
-    organization,
-    savedQuery.queryDataset
-  );
+  const deprecateTransactionQuery = isDeprecatedTransactionQuery(savedQuery.queryDataset);
 
   const menuItems: MenuItemProps[] = [
     {

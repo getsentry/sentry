@@ -2098,6 +2098,10 @@ describe('ActivitySection', () => {
         activity: [reference, comment, created, otherReference, ready],
         project,
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${activityGroup.id}/pull-requests/`,
+        body: {pullRequests: []},
+      });
       render(
         <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
           <ActivitySection group={activityGroup} variant="standalone" />
@@ -2649,12 +2653,85 @@ describe('ActivitySection', () => {
       <GroupDataContextProvider group={impactGroup} project={impactGroup.project}>
         <ActivitySection group={impactGroup} />
       </GroupDataContextProvider>,
-      {organization: OrganizationFixture()}
+      {organization: OrganizationFixture({features: ['seer-impact-assessment']})}
     );
 
     const timeline = await screen.findByTestId('activity-timeline');
     expect(timeline).toHaveTextContent('Impact assessed as High (73.5)');
     expect(timeline).toHaveTextContent('Users cannot submit an order.');
+    expect(timeline).not.toHaveTextContent('Citations:');
+  });
+
+  it('hides Impact assessments without the impact assessment feature', async () => {
+    const impactGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.IMPACT_ASSESSMENT,
+          id: 'impact-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            score: 73.5,
+            level: 'high',
+            description: 'Users cannot submit an order.',
+            citations: [],
+            sourceEventId: '7f4b9a95abc449a8a5afc3d1d2683a8b',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={impactGroup} project={impactGroup.project}>
+        <ActivitySection group={impactGroup} />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).not.toHaveTextContent('Impact assessed');
+    expect(timeline).not.toHaveTextContent('Users cannot submit an order.');
+  });
+
+  it('renders Impact assessment citations with the citations flag', async () => {
+    const impactGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.IMPACT_ASSESSMENT,
+          id: 'impact-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            score: 73.5,
+            level: 'high',
+            description: 'Users cannot submit an order.',
+            citations: [
+              {
+                source: 'event',
+                reference: 'entire-event:event-id',
+                claim: 'The request failed before order creation.',
+              },
+            ],
+            sourceEventId: '7f4b9a95abc449a8a5afc3d1d2683a8b',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={impactGroup} project={impactGroup.project}>
+        <ActivitySection group={impactGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({
+          features: ['seer-impact-assessment', 'seer-impact-assessment-citations'],
+        }),
+      }
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
     expect(timeline).toHaveTextContent('Citations:');
     expect(screen.getByTestId('impact-activity-details')).toBeInTheDocument();
 
@@ -2776,5 +2853,79 @@ describe('ActivitySection', () => {
     expect(timeline).toHaveTextContent('Mentioned in a deleted investigation');
     expect(timeline).not.toHaveTextContent('Payment retries exhaust the pool');
     expect(screen.queryByRole('link', {name: /investigation/})).not.toBeInTheDocument();
+  });
+
+  describe('linked pull requests', () => {
+    const pullRequest = PullRequestFixture({title: 'Handle missing users'});
+    const referencedGroup = GroupFixture({
+      id: '1503',
+      activity: [
+        ActivityFeedFixture({
+          id: 'pr-reference',
+          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+          data: {pullRequest},
+        }),
+      ],
+      project,
+    });
+
+    function mockLinkedPullRequests() {
+      return MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${referencedGroup.id}/pull-requests/`,
+        match: [MockApiClient.matchQuery({expand: 'checksAndReview'})],
+        body: {
+          pullRequests: [
+            {
+              ...pullRequest,
+              checksStatus: null,
+              dateLinked: '2024-01-01T00:00:00Z',
+              reviewStatus: null,
+              status: 'open',
+            },
+          ],
+        },
+      });
+    }
+
+    it('shows the linked pull request below a pull request reference', async () => {
+      mockLinkedPullRequests();
+
+      render(
+        <GroupDataContextProvider
+          group={referencedGroup}
+          project={referencedGroup.project}
+        >
+          <ActivitySection group={referencedGroup} variant="standalone" />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByTestId('loading-placeholder')).toBeInTheDocument();
+      const linkedPullRequests = await screen.findByRole('list', {
+        name: 'Linked pull requests',
+      });
+      expect(
+        within(linkedPullRequests).getByText('Handle missing users')
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+    });
+
+    it('does not show linked pull requests in the sidebar', async () => {
+      const request = mockLinkedPullRequests();
+
+      render(
+        <GroupDataContextProvider
+          group={referencedGroup}
+          project={referencedGroup.project}
+        >
+          <ActivitySection group={referencedGroup} />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByTestId('activity-timeline')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('list', {name: 'Linked pull requests'})
+      ).not.toBeInTheDocument();
+      expect(request).not.toHaveBeenCalled();
+    });
   });
 });

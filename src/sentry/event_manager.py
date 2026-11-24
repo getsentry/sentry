@@ -312,7 +312,16 @@ def get_stored_crashreports(cache_key: str | None, event: Event, max_crashreport
     # We don't need the actual number, but just whether it's more or equal to
     # the currently allowed maximum.
     query = EventAttachment.objects.filter(group_id=event.group_id, type__in=CRASH_REPORT_TYPES)
-    return query[:max_crashreports].count()
+    stored_reports = query[:max_crashreports].count()
+
+    # The count came from the database. If the limit is reached, remember it so that
+    # the cache is refilled after it expires, instead of querying the database for
+    # every crash report. This is only done for counts coming from the database, so
+    # that groups whose crash reports have since expired can drop below the limit.
+    if cache_key is not None and crashreports_exceeded(stored_reports, max_crashreports):
+        cache.set(cache_key, max_crashreports, CRASH_REPORT_TIMEOUT)
+
+    return stored_reports
 
 
 def increment_group_tombstone_hit_counter(tombstone_id: int | None, event: Event) -> None:

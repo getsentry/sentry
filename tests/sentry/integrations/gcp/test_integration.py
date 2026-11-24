@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import AbstractContextManager
-from typing import Any, cast
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -228,7 +228,7 @@ class GcpIntegrationTest(TestCase):
         data.update(overrides)
         serializer = GcpVerificationInputSerializer(data=data)
         assert serializer.is_valid(), serializer.errors
-        return cast(GcpVerification, serializer.validated_data)
+        return serializer.validated_data
 
     def test_verification_step_exposes_values_to_verify(self) -> None:
         step = GcpVerificationApiStep()

@@ -1138,6 +1138,14 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
                 trace_id=trace_id,
                 **extra_kwargs,
             )
+        # A failed span without an AI operation is not a conversation error.
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="http.client",
+            status="internal_error",
+            trace_id=trace_id,
+        )
 
         query = {
             "project": [self.project.id],

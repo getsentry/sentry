@@ -17,6 +17,7 @@ import type {ChartLayer, ChartLayersControlProps} from './chartLayersControl';
 
 const RELEASES_LAYER = 'releases';
 const FLAGS_LAYER = 'flags';
+const CONFIDENCE_LAYER = 'confidence';
 const CHANGES_LAYER = 'changes';
 
 interface UseChartLayersParams {
@@ -71,6 +72,10 @@ export function useChartLayers({
     [isReleasesLayerSelected, isFlagsLayerSelected, isChangesLayerSelected]
   );
 
+  const isConfidenceEnabled =
+    enabled && organization.features.includes('data-browsing-time-series-confidence');
+  const [isConfidenceLayerOn, setIsConfidenceLayerOn] = useState(true);
+
   const droppedData = useDroppedDataLayer(
     {dataset, interval},
     {source, annotationKinds, enabled, hidden, showAnnotationTabs: areAnnotationsEnabled}
@@ -114,6 +119,10 @@ export function useChartLayers({
         }
       : undefined;
 
+  const confidenceLayer: ChartLayer | undefined = isConfidenceEnabled
+    ? {value: CONFIDENCE_LAYER, label: t('Confidence'), selected: isConfidenceLayerOn}
+    : undefined;
+
   const changesLayer: ChartLayer | undefined =
     areAnnotationsEnabled && defined(changeItems)
       ? {
@@ -127,6 +136,7 @@ export function useChartLayers({
 
   const layers = [
     ...(droppedData.layerControl?.layers ?? []),
+    confidenceLayer,
     releasesLayer,
     flagsLayer,
     changesLayer,
@@ -135,6 +145,13 @@ export function useChartLayers({
   function onLayerChange(value: string, selected: boolean) {
     if (value === DROPPED_DATA_LAYER) {
       droppedData.layerControl?.onChange(value, selected);
+    } else if (value === CONFIDENCE_LAYER) {
+      setIsConfidenceLayerOn(selected);
+      trackAnalytics('explore.confidence.layer_toggled', {
+        organization,
+        source,
+        selected,
+      });
     } else if (value === RELEASES_LAYER) {
       setIsReleasesLayerOn(selected);
       trackAnalytics('releases.bubbles_legend', {organization, selected});
@@ -161,5 +178,11 @@ export function useChartLayers({
     [openContextDrawer]
   );
 
-  return {droppedData, annotations, layerControl, onAnnotationClick};
+  return {
+    droppedData,
+    annotations,
+    layerControl,
+    onAnnotationClick,
+    showConfidence: isConfidenceEnabled && isConfidenceLayerOn,
+  };
 }

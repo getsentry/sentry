@@ -139,6 +139,7 @@ function getSentryInitLayout(params: Params, siblingOption: string): string {
     ],
     getIntegrations,
     getDynamicParts,
+    indent: '    ',
   });
 
   return `Sentry.init({

@@ -49,7 +49,10 @@ import {
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useSpansQueryWithoutPageFilters} from 'sentry/views/insights/common/queries/useSpansQuery';
-import {getIsAiGenerationNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getIsAiGenerationNode,
+  getIsExecuteToolNode,
+} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/traceDetails/traceApi/useTransaction';
 import {IssueList} from 'sentry/views/performance/traceDetails/traceDrawer/details/issues/issues';
@@ -73,6 +76,7 @@ import {MCPInputSection} from './eapSections/mcpInput';
 import {MCPOutputSection} from './eapSections/mcpOutput';
 import {ServerRenderingSection} from './eapSections/serverRendering';
 import {TraceSpanLinks} from './eapSections/traceSpanLinks';
+import {AISpanErrorCard} from './sections/aiSpanErrorCard';
 import {HttpErrorCard} from './sections/httpErrorCard';
 
 export function useAvgSpanDuration(
@@ -400,7 +404,13 @@ function EAPSpanNodeDetailsContent({
         {issues.length > 0 ? (
           <IssueList organization={organization} issues={issues} node={node} />
         ) : null}
-        {node.hasHttpError && issues.length === 0 ? <HttpErrorCard node={node} /> : null}
+        {issues.length === 0 ? (
+          getIsExecuteToolNode(node) ? (
+            <AISpanErrorCard node={node} attributes={attributes} />
+          ) : (
+            <HttpErrorCard node={node} />
+          )
+        ) : null}
         <EAPSpanDescription
           node={node}
           project={project}

@@ -114,7 +114,7 @@ describe('Onboarding Setup Docs', () => {
 
   describe('renders Product Selection', () => {
     it('all products checked', async () => {
-      const organization = OrganizationFixture();
+      const organization = OrganizationFixture({features: ['session-replay']});
       const project = ProjectFixture({
         slug: 'javascript-react',
         platform: 'javascript-react',
@@ -130,6 +130,7 @@ describe('Onboarding Setup Docs', () => {
           <SetupDocs onComplete={() => {}} recentCreatedProject={project} />
         </OnboardingContextProvider>,
         {
+          organization,
           initialRouterConfig: {
             location: {
               pathname: `/onboarding/${organization.slug}/setup-docs/`,
@@ -189,7 +190,7 @@ describe('Onboarding Setup Docs', () => {
     });
 
     it('only session replay checked', async () => {
-      const organization = OrganizationFixture();
+      const organization = OrganizationFixture({features: ['session-replay']});
       const project = ProjectFixture({
         slug: 'javascript-react',
         platform: 'javascript-react',
@@ -205,6 +206,7 @@ describe('Onboarding Setup Docs', () => {
           <SetupDocs onComplete={() => {}} recentCreatedProject={project} />
         </OnboardingContextProvider>,
         {
+          organization,
           initialRouterConfig: {
             location: {
               pathname: `/onboarding/${organization.slug}/setup-docs/`,
@@ -219,6 +221,54 @@ describe('Onboarding Setup Docs', () => {
       const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
       expect(codeBlocks[0]).toHaveTextContent(/Session Replay/);
       expect(codeBlocks[0]).not.toHaveTextContent(/Tracing/);
+    });
+
+    it('leaves a disabled product from the URL out of the snippet', async () => {
+      const organization = OrganizationFixture({features: []});
+      const project = ProjectFixture({
+        slug: 'javascript-react',
+        platform: 'javascript-react',
+      });
+
+      ProjectsStore.init();
+      ProjectsStore.loadInitialData([project]);
+
+      renderMockRequests({project, orgSlug: organization.slug});
+
+      const {router} = render(
+        <OnboardingContextProvider>
+          <SetupDocs onComplete={() => {}} recentCreatedProject={project} />
+        </OnboardingContextProvider>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: `/onboarding/${organization.slug}/setup-docs/`,
+              query: {
+                product: [
+                  ProductSolution.METRICS,
+                  ProductSolution.PERFORMANCE_MONITORING,
+                ],
+              },
+            },
+            route: '/onboarding/:orgId/setup-docs/',
+          },
+        }
+      );
+
+      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      expect(codeBlocks[0]).toHaveTextContent(/Tracing/);
+      for (const codeBlock of codeBlocks) {
+        expect(codeBlock).not.toHaveTextContent('metrics.count(');
+      }
+      expect(
+        screen.getByRole('presentation', {name: 'Application Metrics'})
+      ).not.toBeChecked();
+      await waitFor(() =>
+        expect(router.location.query).toEqual({
+          product: ProductSolution.PERFORMANCE_MONITORING,
+        })
+      );
     });
 
     it('only error monitoring checked', async () => {

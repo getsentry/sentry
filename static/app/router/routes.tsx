@@ -296,6 +296,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/settings/account/accountDetails')),
     },
     {
+      path: 'appearance/',
+      name: t('Appearance'),
+      component: make(() => import('sentry/views/settings/account/accountAppearance')),
+    },
+    {
       path: 'notifications/',
       name: t('Notifications'),
       children: [
@@ -1012,6 +1017,7 @@ function buildRoutes(): RouteObject[] {
 
   const statsChildren: SentryRouteObject[] = [
     {index: true, component: make(() => import('sentry/views/organizationStats'))},
+    routeHook('routes:stats'),
     {
       component: make(() => import('sentry/views/organizationStats/teamInsights')),
       children: [

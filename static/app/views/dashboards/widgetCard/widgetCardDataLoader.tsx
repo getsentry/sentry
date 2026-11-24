@@ -21,6 +21,7 @@ import {WidgetQueries} from './widgetQueries';
 
 type Results = {
   loading: boolean;
+  breakdownTotal?: number | null;
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   errorMessage?: string;
@@ -44,6 +45,7 @@ type Props = {
   onDataFetched?: (
     results: Pick<
       Results,
+      | 'breakdownTotal'
       | 'pageLinks'
       | 'tableResults'
       | 'timeseriesResults'

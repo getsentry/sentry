@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
-from typing import Any, cast
+from typing import cast
 
 from sentry.models.grouphash import GroupHash
 from sentry.receivers import create_default_projects
@@ -62,7 +62,7 @@ class SnubaUtilTest(TestCase, SnubaTestCase):
         #    )
 
     def test_override_options(self) -> None:
-        override_options = cast("dict[str, Any]", snuba.OVERRIDE_OPTIONS)
+        override_options = snuba.OVERRIDE_OPTIONS
         assert override_options == {"consistent": False}
         with snuba.options_override(cast("dict[str, bool]", {"foo": 1})):
             assert override_options == {"foo": 1, "consistent": False}

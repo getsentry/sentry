@@ -405,7 +405,7 @@ Required handler contract from [`DataConditionHandler`](../types.py):
 | `group`                             | Set the top-level Detector/Workflow control placement exposed to the UI                                 |
 | `evaluate_value(value, comparison)` | Return a `DataConditionResult`; raise `DataConditionEvaluationException` for a known evaluation failure |
 | `comparison_json_schema`            | Define accepted stored/API comparison JSON                                                              |
-| `condition_result_schema`           | Define accepted stored/API result JSON; the inherited `{}` is permissive                                |
+| `condition_result_schema`           | Define accepted stored/API result JSON; workflow trigger and action filter bases require a boolean      |
 | `subgroup`                          | Optional UI-only categorization within the top-level group; it does not affect evaluation               |
 | `label_template` or `render_label`  | Needed when the condition must render through legacy rule-shaped APIs                                   |
 | `validate_comparison`               | Override for organization-scoped or cross-field validation that JSON Schema cannot express              |

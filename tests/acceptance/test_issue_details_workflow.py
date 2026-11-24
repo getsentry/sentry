@@ -4,7 +4,6 @@ from unittest import mock
 from selenium.webdriver.common.by import By
 
 from fixtures.page_objects.issue_details import IssueDetailsPage
-from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -100,14 +99,3 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         form.find_element(by=By.CSS_SELECTOR, value='button[type="submit"]').click()
 
         assert self.page.has_comment("this looks bad")
-
-    def test_mark_reviewed(self) -> None:
-        event = self.create_sample_event(platform="python")
-        assert event.group is not None
-        add_group_to_inbox(event.group, GroupInboxReason.NEW)
-        self.page.visit_issue(self.org.slug, event.group.id)
-        self.page.mark_reviewed()
-
-        res = self.page.api_issue_get(event.group)
-        assert res.status_code == 200, res
-        assert "inbox" not in res.data

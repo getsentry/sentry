@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Any, cast
+from typing import Any
 from uuid import uuid4
 
 from django.test import override_settings
@@ -131,7 +131,7 @@ class OrganizationNotebookActionRequestApplyTest(APITestCase):
             self.create_data_condition(
                 condition_group=group,
                 type=condition_type,
-                comparison=cast("str | int | Mapping[str, object]", comparison),
+                comparison=comparison,
                 condition_result=result,
             )
         detector = self.create_detector(
@@ -852,9 +852,8 @@ class OrganizationNotebookActionRequestApplyTest(APITestCase):
         )
         conditions = self.conditions()
 
-        with self.feature("organizations:discover-saved-queries-deprecation"):
-            dry_run = self.apply(action_request, dryRun=True)
-            response = self.apply(action_request)
+        dry_run = self.apply(action_request, dryRun=True)
+        response = self.apply(action_request)
 
         assert dry_run.status_code == 400
         assert dry_run.data["code"] == "validation_failed"

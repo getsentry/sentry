@@ -1,6 +1,4 @@
-from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
-from typing import cast
 
 from sentry.constants import DataCategory
 from sentry.testutils.cases import OutcomesSnubaTest
@@ -454,7 +452,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 # with [project_key.id, str(project_key.id), we are imitating the hack in
                 # project_key_stats.py cause that is what `get_range` will be called with.
                 tsdb_model,
-                cast("Sequence[int]", [project_key.id, str(project_key.id)]),
+                [project_key.id, str(project_key.id)],
                 self.start_time,
                 self.now,
                 granularity,

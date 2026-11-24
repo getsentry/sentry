@@ -434,6 +434,21 @@ describe('conversationMessages utilities', () => {
         expected: {totalMessageCount: 1, userMessageCount: 1},
       },
       {
+        name: 'counts tool requests as history but not tool results as user turns',
+        input: JSON.stringify([
+          {role: 'user', content: 'Hello'},
+          {
+            role: 'assistant',
+            content: [{type: 'tool_use', id: 'toolu_1', name: 'search', input: {}}],
+          },
+          {
+            role: 'user',
+            content: [{type: 'tool_result', tool_use_id: 'toolu_1', content: 'Found it'}],
+          },
+        ]),
+        expected: {totalMessageCount: 3, userMessageCount: 1},
+      },
+      {
         name: 'returns zeroes when input is scrubbed',
         input: '[Filtered]',
         expected: {totalMessageCount: 0, userMessageCount: 0},
@@ -2406,7 +2421,6 @@ describe('conversationMessages utilities', () => {
         viaNodeId: 't1',
         preview: 'find c2pa',
         duration: 27,
-        llmCallCount: 2,
       });
       // The task is the sub-agent's user message, and the tool's result is
       // what it returned to the parent.

@@ -33,6 +33,7 @@ const {
   GITHUB_PR_REF,
   GITHUB_RUN_ID,
   GITHUB_RUN_ATTEMPT,
+  GITHUB_WORKFLOW,
   SENTRY_DSN,
 } = process.env;
 
@@ -249,6 +250,31 @@ const ESM_NODE_MODULES = [
   '@tanstack\\+(?:react-)?hotkeys@',
 ];
 
+const sentryConfig = {
+  init: {
+    // jest project under Sentry organization (dev productivity team)
+    dsn: Boolean(CI) && Boolean(GITHUB_PR_REF) && SENTRY_DSN ? SENTRY_DSN : false,
+    // Use production env to reduce sampling of commits on master
+    environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
+    // Trace every master run so failures there are always traceable; sample PRs
+    tracesSampleRate: CI ? (IS_MASTER_BRANCH ? 1 : 0.75) : 0,
+    profilesSampleRate: 0,
+    transportOptions: {keepAlive: true},
+  },
+  // Applied to the isolation scope, so these land on error events as well as
+  // on the test suite, test and `jest run` transactions.
+  tags: {
+    ...optionalTags,
+    'ci.branch': BRANCH,
+    'ci.commit': GITHUB_PR_SHA,
+    'ci.github_run_attempt': GITHUB_RUN_ATTEMPT,
+    'ci.github_actions_run': `https://github.com/getsentry/sentry/actions/runs/${GITHUB_RUN_ID}`,
+    // The scheduled balancer workflow reruns the suite on a master commit, so
+    // per-run queries need it to tell those runs apart from pushes.
+    'ci.workflow': GITHUB_WORKFLOW,
+  },
+};
+
 const config: Config.InitialOptions = {
   rootDir,
   verbose: false,
@@ -326,7 +352,10 @@ const config: Config.InitialOptions = {
   // Matches setupStatics, so tests run Zod's jitless parsers like production does.
   globals: {__zod_globalConfig: {jitless: true}},
 
-  reporters: ['default'],
+  reporters: [
+    'default',
+    ['<rootDir>/tests/js/sentry-test/testCountReporter.ts', sentryConfig],
+  ],
   /**
    * jest.clearAllMocks() automatically called before each test
    * @link - https://jestjs.io/docs/configuration#clearmocks-boolean
@@ -334,30 +363,7 @@ const config: Config.InitialOptions = {
   clearMocks: true,
 
   testEnvironment: '<rootDir>/tests/js/sentry-test/jest-environment.cjs',
-  testEnvironmentOptions: {
-    globalsCleanup: 'on',
-    sentryConfig: {
-      init: {
-        // jest project under Sentry organization (dev productivity team)
-        dsn: Boolean(CI) && Boolean(GITHUB_PR_REF) && SENTRY_DSN ? SENTRY_DSN : false,
-        // Use production env to reduce sampling of commits on master
-        environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
-        // Trace every master run so failures there are always traceable; sample PRs
-        tracesSampleRate: CI ? (IS_MASTER_BRANCH ? 1 : 0.75) : 0,
-        profilesSampleRate: 0,
-        transportOptions: {keepAlive: true},
-      },
-      // Applied to the isolation scope, so these land on error events as well as
-      // on the test suite and test transactions.
-      tags: {
-        ...optionalTags,
-        'ci.branch': BRANCH,
-        'ci.commit': GITHUB_PR_SHA,
-        'ci.github_run_attempt': GITHUB_RUN_ATTEMPT,
-        'ci.github_actions_run': `https://github.com/getsentry/sentry/actions/runs/${GITHUB_RUN_ID}`,
-      },
-    },
-  },
+  testEnvironmentOptions: {globalsCleanup: 'on', sentryConfig},
 };
 
 /** Scope discovery and coverage, with a Node environment for standalone tools. */
