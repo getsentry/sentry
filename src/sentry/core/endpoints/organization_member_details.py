@@ -50,6 +50,7 @@ from sentry.core.endpoints.organization_member_utils import (
     get_allowed_org_roles,
     save_team_assignments,
 )
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -460,8 +461,15 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 omt.role = None
             OrganizationMemberTeam.objects.bulk_update(omts, fields=["role"])
             omt_update_count = len(omts)
+            # Control reads the owner role, so changes to or from owner replicate right away.
+            top_dog = organization_roles.get_top_dog().id
+            owner_change = member.role != role and top_dog in (member.role, role)
             member.role = role
-            member.save()
+            with outbox_context(
+                transaction.atomic(router.db_for_write(OrganizationMember)),
+                flush=True if owner_change else None,
+            ):
+                member.save()
         if omt_update_count > 0:
             metrics.incr(
                 "team_roles.update_to_minimum",

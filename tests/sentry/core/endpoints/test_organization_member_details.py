@@ -9,6 +9,8 @@ from sentry import audit_log
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.core.endpoints.organization_member_details import ERR_INSUFFICIENT_SCOPE
+from sentry.hybridcloud.models.outbox import CellOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -1027,6 +1029,31 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 
         response = self.get_error_response(self.organization.slug, placeholder_om.id, role="member")
         assert response.data["detail"] == "The requested resource does not exist"
+
+
+class UpdateOrganizationMemberAsyncReplicationTest(OrganizationMemberTestBase):
+    method = "put"
+
+    def _set_role(self, member: OrganizationMember, role: str) -> bool:
+        """Changes the role and returns whether the member's outbox row is still pending."""
+        with self.captureOnCommitCallbacks(execute=True):
+            self.get_success_response(self.organization.slug, member.id, orgRole=role)
+        return CellOutbox.objects.filter(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=self.organization.id,
+            category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE,
+            object_identifier=member.id,
+        ).exists()
+
+    @override_options({"hybridcloud.outbox.organization_member_async_replication.enabled": True})
+    def test_only_owner_role_changes_drain(self) -> None:
+        member = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+
+        assert self._set_role(member, "manager")
+        assert not self._set_role(member, "owner")
+        assert not self._set_role(member, "manager")
 
 
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
