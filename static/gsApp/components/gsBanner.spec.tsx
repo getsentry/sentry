@@ -20,7 +20,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {GuideStoreState} from 'sentry/stores/guideStore';
 
 import {openTrialEndingModal} from 'getsentry/actionCreators/modal';
-import GSBanner from 'getsentry/components/gsBanner';
+import {GSBanner} from 'getsentry/components/gsBanner';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 jest.mock('getsentry/actionCreators/modal');
@@ -110,6 +110,27 @@ describe('GSBanner', () => {
       )
     ).toBeInTheDocument();
     expect(screen.getByText('Contact Support')).toBeInTheDocument();
+  });
+
+  it('renders suspension modal after loading the subscription', async () => {
+    const organization = OrganizationFixture({slug: 'suspended-unloaded'});
+    const customerRequest = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      body: SubscriptionFixture({organization, isSuspended: true}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: {},
+    });
+
+    render(<GSBanner organization={organization} />, {organization});
+    renderGlobalModal();
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(
+      screen.getByText('Your account has been suspended with the following reason:')
+    ).toBeInTheDocument();
+    expect(customerRequest).toHaveBeenCalledTimes(1);
   });
 
   it('opens the trialEndingModal within 3 days of ending', async () => {

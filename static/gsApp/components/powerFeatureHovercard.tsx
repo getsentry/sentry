@@ -11,7 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import PlanFeature from 'getsentry/components/features/planFeature';
-import {withSubscription} from 'getsentry/components/withSubscription';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {Subscription} from 'getsentry/types';
 import {displayPlanName} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
@@ -26,7 +26,6 @@ interface PowerFeatureHovercardProps {
    */
   features: Organization['features'];
 
-  subscription: Subscription;
   children?: React.ReactNode;
   containerClassName?: string;
   containerDisplayMode?: React.ComponentProps<
@@ -52,7 +51,17 @@ interface PowerFeatureHovercardProps {
   useLearnMoreLink?: boolean;
 }
 
-function PowerFeatureHovercard({
+export function PowerFeatureHovercard(props: PowerFeatureHovercardProps) {
+  const subscription = useSubscription();
+
+  if (!subscription) {
+    return null;
+  }
+
+  return <PowerFeatureHovercardContent {...props} subscription={subscription} />;
+}
+
+function PowerFeatureHovercardContent({
   id,
   containerClassName,
   containerDisplayMode,
@@ -60,7 +69,7 @@ function PowerFeatureHovercard({
   partial,
   features,
   children,
-}: PowerFeatureHovercardProps) {
+}: PowerFeatureHovercardProps & {subscription: Subscription}) {
   const organization = useOrganization();
   const recordAnalytics = () => {
     trackGetsentryAnalytics('power_icon.clicked', {
@@ -136,5 +145,3 @@ const StyledHovercard = styled(Hovercard)`
     align-items: center;
   }
 `;
-
-export default withSubscription(PowerFeatureHovercard, {noLoader: true});

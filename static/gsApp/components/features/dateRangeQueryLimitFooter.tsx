@@ -9,7 +9,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import {UpgradeOrTrialButton} from 'getsentry/components/upgradeOrTrialButton';
-import {withSubscription} from 'getsentry/components/withSubscription';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {Subscription} from 'getsentry/types';
 
 const BUTTON_SIZE: ButtonProps['size'] = 'sm';
@@ -17,10 +17,23 @@ const BUTTON_SIZE: ButtonProps['size'] = 'sm';
 interface Props {
   description: string;
   source: string;
-  subscription: Subscription;
 }
 
-function DateRangeQueryLimitFooter({description, source, subscription}: Props) {
+export function DateRangeQueryLimitFooter(props: Props) {
+  const subscription = useSubscription();
+
+  if (!subscription) {
+    return null;
+  }
+
+  return <DateRangeQueryLimitFooterContent {...props} subscription={subscription} />;
+}
+
+function DateRangeQueryLimitFooterContent({
+  description,
+  source,
+  subscription,
+}: Props & {subscription: Subscription}) {
   const organization = useOrganization();
   const checkoutUrl = normalizeUrl(
     `/checkout/${organization.slug}/?referrer=checkout-${source}`
@@ -59,8 +72,6 @@ function DateRangeQueryLimitFooter({description, source, subscription}: Props) {
     </Stack>
   );
 }
-
-export default withSubscription(DateRangeQueryLimitFooter, {noLoader: true});
 
 const DescriptionContainer = styled('div')`
   font-size: 12px;

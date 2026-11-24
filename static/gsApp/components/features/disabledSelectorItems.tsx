@@ -10,24 +10,28 @@ import {DEFAULT_RELATIVE_PERIODS, MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 
 import UpsellProvider from 'getsentry/components/upsellProvider';
-import {withSubscription} from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 
 const PREMIUM_PERIODS = ['90d'];
 
-type Props = React.ComponentProps<typeof SelectorItems> & {subscription: Subscription};
+type Props = React.ComponentProps<typeof SelectorItems>;
 
-function DisabledSelectorItems({
-  subscription,
+export function DisabledSelectorItems({
   relativePeriods: relativePeriodsProp,
   shouldShowAbsolute,
   shouldShowRelative,
   handleSelectRelative,
   children,
 }: Props) {
+  const subscription = useSubscription();
+
+  if (!subscription) {
+    return null;
+  }
+
   let hasFeature: boolean;
 
-  if (subscription?.planDetails) {
+  if (subscription.planDetails) {
     hasFeature = subscription.planDetails.retentionDays === MAX_PICKABLE_DAYS;
   } else {
     hasFeature = true;
@@ -119,5 +123,3 @@ const StyledIconBusiness = styled(IconBusiness)`
   align-items: center;
   margin-left: ${p => p.theme.space.xs};
 `;
-
-export default withSubscription(DisabledSelectorItems, {noLoader: true});

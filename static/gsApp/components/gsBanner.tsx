@@ -32,8 +32,8 @@ import type {EventType} from 'getsentry/components/addEventsCTA';
 import {ProductTrialAlert} from 'getsentry/components/productTrial/productTrialAlert';
 import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
-import {withSubscription} from 'getsentry/components/withSubscription';
 import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {type BilledDataCategoryInfo, type Subscription} from 'getsentry/types';
 import {
   getProductTrial,
@@ -227,9 +227,22 @@ function NoticeModal({
   );
 }
 
-type Props = {organization: Organization; subscription: Subscription};
+type Props = {organization: Organization};
 
-function GSBanner({organization, subscription}: Props) {
+export function GSBanner({organization}: Props) {
+  const subscription = useSubscription({organization});
+
+  if (!subscription) {
+    return null;
+  }
+
+  return <GSBannerContent organization={organization} subscription={subscription} />;
+}
+
+function GSBannerContent({
+  organization,
+  subscription,
+}: Props & {subscription: Subscription}) {
   const api = useApi();
   // assume dismissed until we've checked the backend
   const [deactivatedMemberDismissed, setDeactivatedMemberDismissed] = useState(true);
@@ -488,10 +501,6 @@ function GSBanner({organization, subscription}: Props) {
       .filter(Boolean);
   }
 
-  if (!subscription) {
-    return null;
-  }
-
   /**
    * Alert priority:
    * 1. Past due alert
@@ -629,8 +638,6 @@ function GSBanner({organization, subscription}: Props) {
 
   return productTrialAlerts ?? null;
 }
-
-export default withSubscription(GSBanner, {noLoader: true});
 
 function InvertedAlert(props: Omit<AlertProps, 'system' | 'variant'>) {
   const invertedTheme = useInvertedTheme();
