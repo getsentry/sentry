@@ -59,12 +59,14 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         self,
         params: ParamsType,
         *,
-        dataset: Dataset = Dataset.Metrics,
+        dataset: Dataset | None = None,
         granularity: int | None = None,
         time_range_window: int | None = None,
         config: QueryBuilderConfig | None = None,
         **kwargs: Any,
     ):
+        if dataset is None:
+            dataset = Dataset.Metrics
         if dataset is not Dataset.Metrics:
             raise InvalidSearchQuery("Only session metrics are supported")
         if config is None:

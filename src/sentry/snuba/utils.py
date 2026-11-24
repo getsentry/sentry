@@ -48,6 +48,8 @@ DATASET_OPTIONS = {
     "profileFunctions": functions,
     SupportedTraceItemType.PROFILE_FUNCTIONS.value: ProfileFunctions,
     SupportedTraceItemType.REPLAYS.value: Replays,
+    # Keep the legacy label for clients that still request span metrics.
+    "spansMetrics": Spans,
     SupportedTraceItemType.SPANS.value: Spans,
     SupportedTraceItemType.TRACEMETRICS.value: TraceMetrics,
     SupportedTraceItemType.PROCESSING_ERRORS.value: ProcessingErrors,

@@ -5,6 +5,7 @@ from django.test import RequestFactory
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.auth import access
 from sentry.snuba import discover, transactions
+from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import drf_request_from_request
 
@@ -82,6 +83,9 @@ class OrganizationEventsEndpointBaseGetDatasetTest(TestCase):
 
     def test_metrics_enhanced_resolves_to_transactions(self) -> None:
         assert self.resolve("metricsEnhanced") is transactions
+
+    def test_span_metrics_resolves_to_indexed_spans(self) -> None:
+        assert self.resolve("spansMetrics") is Spans
 
     def test_discover_is_unchanged(self) -> None:
         assert self.resolve("discover") is discover

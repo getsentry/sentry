@@ -77,7 +77,6 @@ class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
             "transactions",
             "metrics",
             "metricsEnhanced",
-            "spansMetrics",
             "profiles",
             "profileFunctions",
             "issuePlatform",
@@ -200,6 +199,7 @@ class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
     def test_supported_transformations_with_no_projects(self) -> None:
         for dataset in [
             "spans",
+            "spansMetrics",
             "logs",
             "ourlogs",
             "tracemetrics",

@@ -36,6 +36,12 @@ class MetricBuilderBaseTest(TestCase):
 
 
 class MetricQueryBuilderTest(MetricBuilderBaseTest):
+    def test_default_dataset_is_session_metrics(self) -> None:
+        assert MetricsQueryBuilder(self.params).dataset is Dataset.Metrics
+
+    def test_none_dataset_defaults_to_session_metrics(self) -> None:
+        assert MetricsQueryBuilder(self.params, dataset=None).dataset is Dataset.Metrics
+
     def test_empty_environment_filter_resolves_to_integer_sentinel(self) -> None:
         # Integer-indexed metrics (release-health / alerts) store tag values in the
         # UInt64 `tags` column, so the "no environment" filter (`environment:""`)
