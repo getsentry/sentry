@@ -9,5 +9,14 @@ export default defineConfig({
     },
   },
   output: {target: 'web'},
+  tools: {
+    swc: {
+      jsc: {
+        // Component selectors, like `${Wrapper}:hover &`, need the class name
+        // the plugin gives each styled component.
+        experimental: {plugins: [['@swc/plugin-emotion', {}]]},
+      },
+    },
+  },
   plugins: [pluginReact({swcReactOptions: {importSource: '@emotion/react'}})],
 });
