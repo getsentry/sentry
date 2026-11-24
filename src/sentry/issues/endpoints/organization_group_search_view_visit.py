@@ -23,8 +23,9 @@ class GroupSearchViewVisitPermission(OrganizationPermission):
         "POST": ["member:read", *GroupSearchViewPermission.scope_map["GET"]],
     }
 
-    # saved_query:read replaces member:read and org:read in orgs with granular scopes.
-    rejects_deprecated_scopes = True
+    # Keeps accepting deprecated scopes in orgs with granular scopes until member:read
+    # translates to saved_query:read. Opting in before that would lock out member:read tokens.
+    rejects_deprecated_scopes = False
 
 
 @cell_silo_endpoint
