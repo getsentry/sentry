@@ -311,17 +311,15 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const settingsV3 = useSettingsV3();
   const isMobile = layout === 'mobile';
 
-  // With settings-v3, the title lines up with the links' leading graphic
-  // (xs body + md link padding = 12px) and the toggle icon with their
-  // trailing items (xs body + sm link padding = 10px; the sm toggle button
-  // centers its 16px icon in 32px, so 2xs + 8px).
+  // With settings-v3, the header shares the body's horizontal padding, so
+  // the toggle's hover background lines up with the links' backgrounds.
   return (
     <Grid
       columns="minmax(0, 1fr) auto"
       align="center"
       borderBottom="primary"
       height={`${PRIMARY_HEADER_HEIGHT}px`}
-      padding={isMobile ? 'md lg' : settingsV3 ? '0 2xs 0 xs' : '0 sm'}
+      padding={isMobile ? 'md lg' : settingsV3 ? '0 xs' : '0 sm'}
     >
       {props.children}
       <SecondaryNavigationToggle />
