@@ -808,6 +808,7 @@ class SeerProjectSettingsUpdate(TypedDict, total=False):
     scanner_automation: bool
     auto_create_pr: bool
     pr_iteration: bool
+    open_prs: bool
 
 
 def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettingsUpdate) -> None:
@@ -861,6 +862,10 @@ def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettin
         # off (see ``pr_iteration.project_setting``), so deleting the row on "on"
         # would turn it back off for them.
         options_to_set["sentry:seer_pr_iteration"] = data["pr_iteration"]
+
+    if "open_prs" in data:
+        # Stored even when false, so it stops following the Automation Steps dropdown.
+        options_to_set["sentry:seer_open_prs"] = data["open_prs"]
 
     if "automation_tuning" in data:
         _set_or_clear(

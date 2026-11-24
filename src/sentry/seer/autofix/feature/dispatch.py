@@ -26,7 +26,7 @@ from sentry.seer.agent.client_utils import (
 )
 from sentry.seer.agent.on_completion_hook import extract_hook_definition
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixReferrer
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
@@ -40,6 +40,7 @@ from sentry.seer.autofix.feature.models import (
     RCAStepArgs,
     SolutionStepArgs,
 )
+from sentry.seer.autofix.open_prs import get_open_prs_setting
 from sentry.seer.autofix.pr_iteration.feedback import (
     Feedback,
     feedback_text,
@@ -142,15 +143,11 @@ def should_use_single_run(
 
 
 def manual_single_run_stopping_point(project: Project) -> AutofixStoppingPoint:
-    # Turning Open PRs off sets tuning to off but keeps open_pr stored, so check both, matching
-    # how the settings page shows the switch.
-    opens_prs = (
-        project.get_option("sentry:autofix_automation_tuning")
-        != AutofixAutomationTuningSettings.OFF
-        and project.get_option("sentry:seer_automated_run_stopping_point")
-        == AutofixStoppingPoint.OPEN_PR
+    return (
+        AutofixStoppingPoint.OPEN_PR
+        if get_open_prs_setting(project)
+        else AutofixStoppingPoint.CODE_CHANGES
     )
-    return AutofixStoppingPoint.OPEN_PR if opens_prs else AutofixStoppingPoint.CODE_CHANGES
 
 
 def _single_run_pr_internal_settings(
@@ -454,7 +451,11 @@ def trigger_autofix_feature(
             stopping_point in _CODING_STOPPING_POINTS and not hand_off and _org_allows_coding(group)
         )
         payload.coding_agent_handoff = hand_off
-        open_pr = enable_coding and stopping_point == AutofixStoppingPoint.OPEN_PR
+        open_pr = (
+            enable_coding
+            and stopping_point == AutofixStoppingPoint.OPEN_PR
+            and get_open_prs_setting(group.project)
+        )
         if open_pr:
             payload.pr_internal_settings = _single_run_pr_internal_settings(group, args.referrer)
     else:
