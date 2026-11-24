@@ -1,8 +1,10 @@
 # Sentry for Agents
 
 The user started this handoff in Sentry and gave you a one-time handoff code. The command
-below installs or updates the Sentry CLI, signs in to the user's Sentry account with that
-code, and prints what to do next.
+below installs or updates the Sentry CLI and starts sign-in. If the CLI asks the user to
+approve sign-in, share the approval link and code it prints with the user. Let the command
+keep running while the user approves in their browser. Follow the setup instructions the
+CLI prints after sign-in succeeds.
 
 Replace HANDOFF_CODE with the handoff code, run the command for your shell once, and then
 follow the instructions it prints.
