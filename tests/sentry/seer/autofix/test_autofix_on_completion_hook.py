@@ -582,6 +582,109 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             verify_content=True,
         )
 
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.on_completion_hook.process_autofix_updates.apply_async")
+    @patch(
+        "sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access", return_value=True
+    )
+    @patch(
+        "sentry.seer.autofix.on_completion_hook.trigger_autofix_agent",
+        side_effect=SeerOutOfCreditsException("daily_cap_exceeded"),
+    )
+    def test_maybe_continue_pipeline_announces_a_next_step_refused_for_credits(
+        self,
+        mock_trigger: MagicMock,
+        mock_has_access: MagicMock,
+        mock_process: MagicMock,
+        mock_broadcast: MagicMock,
+    ) -> None:
+        """Entrypoints and Sentry Apps hear that the run stopped, with the refusal's reason."""
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        state = run_state(
+            blocks=[root_cause_memory_block()],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
+            },
+        )
+
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+
+        mock_trigger.assert_called_once()
+        payload = {
+            "run_id": 123,
+            "sentry_run_id": str(seer_run.uuid),
+            "group_id": self.group.id,
+            "failure_reason": "out_of_credits",
+        }
+        mock_process.assert_called_once_with(
+            kwargs={
+                "event_type": SentryAppEventType.SEER_ERRORED,
+                "event_payload": {**payload, "denial_reason": "daily_cap_exceeded"},
+                "organization_id": self.organization.id,
+            }
+        )
+        mock_broadcast.assert_called_once_with(
+            resource_name="seer",
+            event_name="errored",
+            organization_id=self.organization.id,
+            payload=payload,
+        )
+
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.on_completion_hook.process_autofix_updates.apply_async")
+    @patch(
+        "sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access", return_value=True
+    )
+    @patch(
+        "sentry.seer.autofix.on_completion_hook.trigger_push_changes",
+        side_effect=SeerOutOfCreditsException(),
+    )
+    def test_maybe_continue_pipeline_announces_a_pr_refused_for_credits(
+        self,
+        mock_push_changes: MagicMock,
+        mock_has_access: MagicMock,
+        mock_process: MagicMock,
+        mock_broadcast: MagicMock,
+    ) -> None:
+        """An automatic PR refused for credits is announced like a PR Seer couldn't open
+        for credits. A refusal without a known reason sends none."""
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+            ],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
+            },
+        )
+
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+
+        mock_push_changes.assert_called_once()
+        payload = {
+            "run_id": 123,
+            "sentry_run_id": str(seer_run.uuid),
+            "group_id": self.group.id,
+            "failure_reason": "out_of_credits",
+        }
+        mock_process.assert_called_once_with(
+            kwargs={
+                "event_type": SentryAppEventType.SEER_ERRORED,
+                "event_payload": {**payload, "denial_reason": None},
+                "organization_id": self.organization.id,
+            }
+        )
+        mock_broadcast.assert_called_once_with(
+            resource_name="seer",
+            event_name="errored",
+            organization_id=self.organization.id,
+            payload=payload,
+        )
+
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_pipeline_and_iteration_send_distinct_push_sources(

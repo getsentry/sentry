@@ -69,7 +69,7 @@ from sentry.seer.autofix.utils import (
     clear_preference_automation_handoff,
     get_automation_handoff,
 )
-from sentry.seer.credits import OUT_OF_CREDITS, get_run_denial_reason
+from sentry.seer.credits import OUT_OF_CREDITS, SeerCreditDenialReason, get_run_denial_reason
 from sentry.seer.entrypoints.operator import (
     SeerActivityAttribution,
     SeerAutofixOperator,
@@ -533,10 +533,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         seer_run: SeerRun | None,
         state: SeerRunState,
         failure_reason: str | None,
+        denial_reason: SeerCreditDenialReason | None = None,
     ) -> None:
+        """denial_reason is for a step Sentry refused for credits, which the run state doesn't
+        record. Without it, the reason is the one Seer recorded on the run."""
         entrypoint_payload: dict[str, object] = {}
         if failure_reason == OUT_OF_CREDITS:
-            entrypoint_payload["denial_reason"] = get_run_denial_reason(state)
+            entrypoint_payload["denial_reason"] = denial_reason or get_run_denial_reason(state)
         cls._announce_run_end(
             organization,
             SeerActionType.ERRORED,
@@ -547,6 +550,30 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 "failure_reason": failure_reason,
             },
             entrypoint_payload=entrypoint_payload,
+        )
+
+    @classmethod
+    def _announce_credit_refusal(
+        cls,
+        organization: Organization,
+        run_id: int,
+        group: Group,
+        state: SeerRunState,
+        denial_reason: SeerCreditDenialReason | None,
+    ) -> None:
+        """Announces a step that Sentry's credit check refused to start like a run that ran out
+        of credits in Seer, so the run doesn't just stop with no word to anyone following it."""
+        seer_run = SeerRun.objects.get_or_none(
+            organization_id=organization.id, seer_run_state_id=run_id
+        )
+        cls._announce_failure(
+            organization,
+            run_id,
+            group,
+            seer_run,
+            state,
+            OUT_OF_CREDITS,
+            denial_reason=denial_reason,
         )
 
     @classmethod
@@ -946,15 +973,17 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 run_id=run_id,
                 billing_feature=get_run_billing_feature(state),
             )
-        except SeerOutOfCreditsException:
+        except SeerOutOfCreditsException as e:
             logger.info(
                 "autofix.on_completion_hook.next_step_out_of_credits",
                 extra={
                     "run_id": run_id,
                     "organization_id": organization.id,
                     "next_step": next_step,
+                    "denial_reason": e.denial_reason,
                 },
             )
+            cls._announce_credit_refusal(organization, run_id, group, state, e.denial_reason)
 
     @classmethod
     def _push_changes(
@@ -1004,11 +1033,16 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 state=state,
                 verify_content=True,
             )
-        except SeerOutOfCreditsException:
+        except SeerOutOfCreditsException as e:
             logger.info(
                 "autofix.on_completion_hook.push_changes_out_of_credits",
-                extra={"run_id": run_id, "organization_id": group.organization.id},
+                extra={
+                    "run_id": run_id,
+                    "organization_id": group.organization.id,
+                    "denial_reason": e.denial_reason,
+                },
             )
+            cls._announce_credit_refusal(group.organization, run_id, group, state, e.denial_reason)
             return False
         except Exception:
             logger.exception(
