@@ -40,7 +40,7 @@ class AccessService(abc.ABC):
 
     def auth_identity_is_valid(
         self,
-        auth_provider: RpcAuthProvider,
+        requires_refresh: bool,
         auth_identity: RpcAuthIdentity,
         member: RpcOrganizationMemberSummary,
     ) -> bool:
@@ -51,9 +51,7 @@ class AccessService(abc.ABC):
 
         if not auth_identity.last_verified:
             return False
-        if (
-            auth_provider.provider in find_providers_requiring_refresh()
-        ) and auth_identity.last_verified < timezone.now() - timedelta(hours=24 * 7):
+        if requires_refresh and auth_identity.last_verified < timezone.now() - timedelta(days=7):
             return False
         return True
 
@@ -82,6 +80,7 @@ class AccessService(abc.ABC):
             return _SSO_BYPASS
         else:
             requires_sso = True
+            requires_refresh = auth_provider.provider in find_providers_requiring_refresh()
 
             auth_identity = self.get_auth_identity_for_user(
                 auth_provider_id=auth_provider.id, user_id=member.user_id
@@ -91,13 +90,14 @@ class AccessService(abc.ABC):
                 requires_sso = not self.can_override_sso_as_owner(auth_provider, member)
             else:
                 sso_is_valid = self.auth_identity_is_valid(
-                    auth_provider=auth_provider, auth_identity=auth_identity, member=member
+                    requires_refresh=requires_refresh, auth_identity=auth_identity, member=member
                 )
 
         return RpcMemberSsoState(
             is_required=requires_sso,
             is_valid=sso_is_valid,
             session_duration=auth_provider.sso_session_duration,
+            requires_refresh=requires_refresh,
         )
 
     def get_user_auth_state(

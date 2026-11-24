@@ -123,9 +123,10 @@ class Access(abc.ABC):
         pass
 
     @property
-    def sso_session_duration(self) -> timedelta:
+    def sso_session_duration(self) -> timedelta | None:
         """
-        How long an SSO session lasts for the organization, for `has_completed_sso`.
+        How long an SSO session lasts for the organization, for `has_completed_sso`. None is
+        no limit.
         """
         return SSO_EXPIRY_TIME
 
@@ -308,7 +309,7 @@ class DbAccess(Access):
 
     sso_is_valid: bool = False
     requires_sso: bool = False
-    sso_session_duration: timedelta = SSO_EXPIRY_TIME
+    sso_session_duration: timedelta | None = SSO_EXPIRY_TIME
     has_open_membership: bool = False
 
     # if has_global_access is True, then any project
@@ -541,8 +542,9 @@ class RpcBackedAccess(Access):
         return self.auth_state.sso_state.is_required
 
     @property
-    def sso_session_duration(self) -> timedelta:
-        return get_sso_session_duration(self.auth_state.sso_state.session_duration)
+    def sso_session_duration(self) -> timedelta | None:
+        sso_state = self.auth_state.sso_state
+        return get_sso_session_duration(sso_state.session_duration, sso_state.requires_refresh)
 
     @property
     def has_open_membership(self) -> bool:
@@ -797,7 +799,9 @@ class OrganizationMemberAccess(DbAccess):
             _member=member,
             sso_is_valid=sso_state.is_valid,
             requires_sso=sso_state.is_required,
-            sso_session_duration=get_sso_session_duration(sso_state.session_duration),
+            sso_session_duration=get_sso_session_duration(
+                sso_state.session_duration, sso_state.requires_refresh
+            ),
             has_global_access=has_global_access,
             scopes=frozenset(scopes),
             permissions=frozenset(permissions),
@@ -1367,7 +1371,9 @@ def from_request(
             scopes=superuser_scopes,
             sso_is_valid=sso_state.is_valid,
             requires_sso=sso_state.is_required,
-            sso_session_duration=get_sso_session_duration(sso_state.session_duration),
+            sso_session_duration=get_sso_session_duration(
+                sso_state.session_duration, sso_state.requires_refresh
+            ),
             permissions=access_service.get_permissions_for_user(request.user.id),
         )
 

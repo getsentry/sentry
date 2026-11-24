@@ -144,6 +144,7 @@ class SuperuserTestCase(TestCase):
         superuser.set_logged_in(user)
         assert superuser.is_active is True
 
+    @override_options({"auth.sso-session.no-limit-with-refresh": True})
     def test_sso_ignores_the_organizations_session_duration(self) -> None:
         organization = self.create_organization()
         self.create_auth_provider(

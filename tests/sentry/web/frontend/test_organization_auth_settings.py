@@ -47,6 +47,7 @@ from sentry.web.frontend.organization_auth_settings import (
 
 
 def test_format_sso_session_duration() -> None:
+    assert format_sso_session_duration(None) == "no limit"
     assert format_sso_session_duration(timedelta(days=1)) == "1 day"
     assert format_sso_session_duration(timedelta(days=14)) == "14 days"
     assert format_sso_session_duration(timedelta(hours=20)) == "20 hours"
@@ -55,7 +56,7 @@ def test_format_sso_session_duration() -> None:
 
 
 def test_sso_session_duration_choices() -> None:
-    assert sso_session_duration_choices(None) == [
+    assert sso_session_duration_choices(None, timedelta(days=7)) == [
         ("", "Default (7 days)"),
         ("86400", "1 day"),
         ("172800", "2 days"),
@@ -65,8 +66,12 @@ def test_sso_session_duration_choices() -> None:
 
 
 def test_sso_session_duration_choices_keep_the_current_duration() -> None:
-    assert ("259200", "3 days") in sso_session_duration_choices(259200)
-    assert sso_session_duration_choices(86400) == sso_session_duration_choices(None)
+    assert ("259200", "3 days") in sso_session_duration_choices(259200, timedelta(days=7))
+    assert sso_session_duration_choices(86400, None) == sso_session_duration_choices(None, None)
+
+
+def test_sso_session_duration_choices_without_default_limit() -> None:
+    assert sso_session_duration_choices(None, None)[0] == ("", "Default (no limit)")
 
 
 @control_silo_test

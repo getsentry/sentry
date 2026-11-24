@@ -24,7 +24,7 @@ from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.plugins.base.response import DeferredResponse
 from sentry.tasks.auth.auth import email_missing_links_control
-from sentry.utils.auth import SSO_EXPIRY_TIME
+from sentry.utils.auth import get_sso_session_duration
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import ControlSiloOrganizationView, control_silo_view
 
@@ -48,7 +48,10 @@ SSO_SESSION_DURATIONS = (
 )
 
 
-def format_sso_session_duration(duration: timedelta) -> str:
+def format_sso_session_duration(duration: timedelta | None) -> str:
+    if duration is None:
+        return "no limit"
+
     seconds = int(duration.total_seconds())
     for unit, unit_seconds in (("day", 86400), ("hour", 3600), ("minute", 60)):
         if seconds % unit_seconds == 0:
@@ -57,16 +60,19 @@ def format_sso_session_duration(duration: timedelta) -> str:
     return f"{seconds} seconds"
 
 
-def sso_session_duration_choices(current: int | None) -> list[tuple[str, str]]:
+def sso_session_duration_choices(
+    current: int | None, default: timedelta | None
+) -> list[tuple[str, str]]:
     """
     The choices for the session duration field. `current` is the auth provider's
     `sso_session_duration`, which keeps its choice when it isn't one of `SSO_SESSION_DURATIONS`.
+    `default` is how long a session lasts without one.
     """
     durations = {int(duration.total_seconds()) for duration in SSO_SESSION_DURATIONS}
     if current is not None:
         durations.add(current)
 
-    return [("", f"Default ({format_sso_session_duration(SSO_EXPIRY_TIME)})")] + [
+    return [("", f"Default ({format_sso_session_duration(default)})")] + [
         (str(seconds), format_sso_session_duration(timedelta(seconds=seconds)))
         for seconds in sorted(durations)
     ]
@@ -94,6 +100,17 @@ def auth_provider_settings_form(
     can_set_session_duration = features.has(
         "organizations:sso-session-duration", organization, actor=request.user
     )
+    default_session_duration = get_sso_session_duration(None, provider.requires_refresh)
+    session_duration_help = _(
+        "How long members stay signed in to this organization before they have to sign in "
+        "with %(provider)s again."
+    )
+    if default_session_duration is None:
+        session_duration_help = _(
+            "How long members stay signed in to this organization before they have to sign in "
+            "with %(provider)s again. Without a limit, Sentry checks each member's "
+            "%(provider)s account daily and removes their access when it is no longer valid."
+        )
 
     class AuthProviderSettingsForm(forms.Form):
         disabled = provider.is_partner
@@ -129,14 +146,12 @@ def auth_provider_settings_form(
         sso_session_duration = (
             forms.TypedChoiceField(
                 label=_("Session Duration"),
-                choices=sso_session_duration_choices(auth_provider.sso_session_duration),
+                choices=sso_session_duration_choices(
+                    auth_provider.sso_session_duration, default_session_duration
+                ),
                 coerce=int,
                 empty_value=None,
-                help_text=_(
-                    "How long members stay signed in to this organization before they "
-                    "have to sign in with %(provider)s again."
-                )
-                % {"provider": provider.name},
+                help_text=session_duration_help % {"provider": provider.name},
                 required=False,
                 disabled=disabled,
             )

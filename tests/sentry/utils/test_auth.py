@@ -9,6 +9,7 @@ from django.urls import reverse
 
 import sentry.utils.auth
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
 from sentry.utils.auth import (
@@ -303,9 +304,21 @@ def test_is_valid_relative_redirect(url: object, expected: bool) -> None:
     assert is_valid_relative_redirect(url) is expected
 
 
+@override_options({"auth.sso-session.no-limit-with-refresh": False})
 def test_get_sso_session_duration() -> None:
-    assert get_sso_session_duration(None) == SSO_EXPIRY_TIME
-    assert get_sso_session_duration(86400) == timedelta(days=1)
+    assert get_sso_session_duration(None, requires_refresh=False) == SSO_EXPIRY_TIME
+    assert get_sso_session_duration(None, requires_refresh=True) == SSO_EXPIRY_TIME
+    assert get_sso_session_duration(86400, requires_refresh=False) == timedelta(days=1)
+    assert get_sso_session_duration(86400, requires_refresh=True) == timedelta(days=1)
+
+
+@override_options({"auth.sso-session.no-limit-with-refresh": True})
+def test_get_sso_session_duration_no_limit_with_refresh() -> None:
+    assert get_sso_session_duration(None, requires_refresh=True) is None
+    # Without a refresh, only the limit makes a member sign in again
+    assert get_sso_session_duration(None, requires_refresh=False) == SSO_EXPIRY_TIME
+    # The auth provider's own duration still applies
+    assert get_sso_session_duration(86400, requires_refresh=True) == timedelta(days=1)
 
 
 class HasCompletedSsoTest(TestCase):
@@ -319,6 +332,7 @@ class HasCompletedSsoTest(TestCase):
 
     def test_no_sso_session(self) -> None:
         assert not has_completed_sso(self.request, self.organization.id)
+        assert not has_completed_sso(self.request, self.organization.id, None)
 
     def test_other_organizations_sso_session(self) -> None:
         self.set_sso_session_age(timedelta(hours=1))
@@ -345,3 +359,8 @@ class HasCompletedSsoTest(TestCase):
 
         self.set_sso_session_age(timedelta(hours=25))
         assert not has_completed_sso(self.request, self.organization.id, timedelta(days=1))
+
+    def test_no_limit(self) -> None:
+        self.set_sso_session_age(timedelta(days=365))
+
+        assert has_completed_sso(self.request, self.organization.id, None)

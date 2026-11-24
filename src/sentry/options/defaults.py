@@ -313,6 +313,14 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Removes the time limit on the SSO sessions of auth providers whose identities `check_auth`
+# refreshes, like Google's. An auth provider's own `sso_session_duration` still applies.
+register(
+    "auth.sso-session.no-limit-with-refresh",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Settings
 register(
