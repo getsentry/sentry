@@ -54,6 +54,7 @@ describe('SeerProjectTable', () => {
           autoCreatePr: null,
           automationTuning: 'off',
           scannerAutomation: false,
+          openPrs: false,
           prIteration: true,
           reposCount: 1,
           ...overrides,
@@ -79,6 +80,7 @@ describe('SeerProjectTable', () => {
           autoCreatePr: null,
           automationTuning: 'off',
           scannerAutomation: false,
+          openPrs: false,
           prIteration: true,
           reposCount: 1,
         },
@@ -278,6 +280,7 @@ describe('SeerProjectTable', () => {
       autoCreatePr: null,
       automationTuning: 'medium',
       scannerAutomation: false,
+      openPrs: false,
       reposCount: 1,
     };
     const server = {
@@ -619,7 +622,7 @@ describe('SeerProjectTable', () => {
       features: ['autofix-single-run'],
     });
 
-    it('replaces Automation Steps with an Open PRs switch per project', async () => {
+    it('shows an Open PRs switch per project next to Automation Steps', async () => {
       const {rowPuts} = mockTwoProjects();
 
       render(<SeerProjectTable />, {organization: singleRunOrg});
@@ -628,15 +631,13 @@ describe('SeerProjectTable', () => {
         name: 'Open PRs for project-slug',
       });
       expect(toggle).not.toBeChecked();
-      expect(screen.queryByText('Automation Steps')).not.toBeInTheDocument();
+      expect(screen.getByText('Automation Steps')).toBeInTheDocument();
 
       await userEvent.click(toggle);
       await waitFor(() =>
         expect(rowPuts['project-slug']).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({
-            data: expect.objectContaining({stoppingPoint: 'open_pr'}),
-          })
+          expect.objectContaining({data: {openPrs: true}})
         )
       );
     });
@@ -657,7 +658,7 @@ describe('SeerProjectTable', () => {
         expect(bulkPut).toHaveBeenLastCalledWith(
           expect.anything(),
           expect.objectContaining({
-            data: expect.objectContaining({automationTuning: 'off'}),
+            data: expect.objectContaining({openPrs: false}),
           })
         )
       );

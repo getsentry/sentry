@@ -59,6 +59,7 @@ describe('AutofixAgent', () => {
         autoCreatePr: null,
         automationTuning: 'off',
         scannerAutomation: false,
+        openPrs: false,
         prIteration,
         reposCount: repos.length,
       },
@@ -315,7 +316,7 @@ describe('AutofixAgent', () => {
     expect(toggle).toBeChecked();
   });
 
-  it('shows an Open PRs switch instead of Automation Steps for single-run orgs', async () => {
+  it('shows an Open PRs switch next to Automation Steps for single-run orgs', async () => {
     const putMock = mockEndpoints({repos: [seerRepo({provider: 'github'})]});
 
     render(<AutofixAgent canWrite project={project} />, {
@@ -328,10 +329,10 @@ describe('AutofixAgent', () => {
       expect(putMock).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${project.slug}/seer/settings/`,
         expect.objectContaining({
-          data: expect.objectContaining({stoppingPoint: 'open_pr'}),
+          data: {openPrs: true},
         })
       )
     );
-    expect(screen.queryByText('Automation Steps')).not.toBeInTheDocument();
+    expect(screen.getByText('Automation Steps')).toBeInTheDocument();
   });
 });

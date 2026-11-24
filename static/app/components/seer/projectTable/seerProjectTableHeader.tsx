@@ -19,15 +19,12 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemSelectedState} from 'sentry/utils/list/listItemSelectedState';
 import {ListSelectAllCheckbox} from 'sentry/utils/list/listSelectAllCheckbox';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {openPrsStoppingPoint, useShowOpenPrs} from 'sentry/utils/seer/openPrs';
+import {useShowOpenPrs} from 'sentry/utils/seer/openPrs';
 import {
   getSeerProjectSettingsMutationKey,
   type SeerBulkEditVariables,
 } from 'sentry/utils/seer/seerProjectSettings';
-import type {
-  SeerAutofixStoppingPoint,
-  SeerProjectSettingResponse,
-} from 'sentry/utils/seer/types';
+import type {SeerProjectSettingResponse} from 'sentry/utils/seer/types';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -112,7 +109,7 @@ const OPEN_PRS_COLUMN = {
       />
     </Flex>
   ),
-  key: 'automation_steps',
+  key: 'open_prs',
   sortKey: undefined,
 };
 
@@ -127,8 +124,8 @@ export function ProjectTableHeader({
   const canWrite = useCanWriteSettings();
   const showOpenPrs = useShowOpenPrs();
   const columns = showOpenPrs
-    ? COLUMNS.map(column =>
-        column.key === 'automation_steps' ? OPEN_PRS_COLUMN : column
+    ? COLUMNS.flatMap(column =>
+        column.key === 'automation_steps' ? [column, OPEN_PRS_COLUMN] : [column]
       )
     : COLUMNS;
 
@@ -158,30 +155,6 @@ export function ProjectTableHeader({
   // the server saves.
   const isDisabled = !canWrite || isRowSaving || isBulkSaving;
 
-  const setStoppingPoint = (value: SeerAutofixStoppingPoint) => {
-    mutate(
-      {query: mutableSearch.formatString(), selectedIds, stoppingPoint: value},
-      {
-        onError: () =>
-          toast.error(
-            tn(
-              'Failed to update stopping point for %s project',
-              'Failed to update stopping point for %s projects',
-              projectIds.length
-            )
-          ),
-        onSuccess: () => {
-          toast.success(
-            tn(
-              'Stopping point updated for %s project',
-              'Stopping point updated for %s projects',
-              projectIds.length
-            )
-          );
-        },
-      }
-    );
-  };
   return (
     <InfiniteTable.Head sticky>
       <ListItemSelectedState selected="none">
@@ -242,16 +215,65 @@ export function ProjectTableHeader({
                 );
               }}
             />
-            {showOpenPrs ? (
+            <StoppingPointDropdownMenu
+              isDisabled={isDisabled}
+              onChange={value => {
+                mutate(
+                  {
+                    query: mutableSearch.formatString(),
+                    selectedIds,
+                    stoppingPoint: value,
+                  },
+                  {
+                    onError: () =>
+                      toast.error(
+                        tn(
+                          'Failed to update stopping point for %s project',
+                          'Failed to update stopping point for %s projects',
+                          projectIds.length
+                        )
+                      ),
+                    onSuccess: () => {
+                      toast.success(
+                        tn(
+                          'Stopping point updated for %s project',
+                          'Stopping point updated for %s projects',
+                          projectIds.length
+                        )
+                      );
+                    },
+                  }
+                );
+              }}
+            />
+            {showOpenPrs && (
               <OnOffDropdownMenu
                 triggerLabel={t('Open PRs')}
                 isDisabled={isDisabled}
-                onChange={on => setStoppingPoint(openPrsStoppingPoint(on))}
-              />
-            ) : (
-              <StoppingPointDropdownMenu
-                isDisabled={isDisabled}
-                onChange={setStoppingPoint}
+                onChange={openPrs => {
+                  mutate(
+                    {query: mutableSearch.formatString(), selectedIds, openPrs},
+                    {
+                      onError: () =>
+                        toast.error(
+                          tn(
+                            'Failed to update Open PRs for %s project',
+                            'Failed to update Open PRs for %s projects',
+                            projectIds.length
+                          )
+                        ),
+                      onSuccess: () => {
+                        toast.success(
+                          tn(
+                            'Open PRs updated for %s project',
+                            'Open PRs updated for %s projects',
+                            projectIds.length
+                          )
+                        );
+                      },
+                    }
+                  );
+                }}
               />
             )}
             <OnOffDropdownMenu

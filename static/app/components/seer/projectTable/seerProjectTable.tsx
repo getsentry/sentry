@@ -39,7 +39,7 @@ import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {isTokenBilledSeerEnabled} from 'sentry/utils/seer/isTokenBilledSeerEnabled';
-import {openPrsStoppingPoint, useShowOpenPrs} from 'sentry/utils/seer/openPrs';
+import {useShowOpenPrs} from 'sentry/utils/seer/openPrs';
 import {
   seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
@@ -82,8 +82,10 @@ const TABLE_COLUMNS: TableColumnConfig[] = [
   {key: 'pr_iteration', width: 'max-content'},
 ];
 
-const OPEN_PRS_TABLE_COLUMNS: TableColumnConfig[] = TABLE_COLUMNS.map(column =>
-  column.key === 'automation_steps' ? {...column, width: 'max-content'} : column
+const OPEN_PRS_TABLE_COLUMNS: TableColumnConfig[] = TABLE_COLUMNS.flatMap(column =>
+  column.key === 'automation_steps'
+    ? [column, {key: 'open_prs', width: 'max-content'}]
+    : [column]
 );
 
 export function SeerProjectTable() {
@@ -334,31 +336,44 @@ export function SeerProjectTable() {
                             queryClient,
                           })}
                         >
-                          {field =>
-                            showOpenPrs ? (
-                              <field.Switch
-                                aria-label={t('Open PRs for %s', item.projectSlug)}
-                                checked={field.state.value === 'open_pr'}
-                                disabled={isRowDisabled}
-                                onChange={on =>
-                                  field.handleChange(openPrsStoppingPoint(on))
-                                }
-                                size="sm"
-                              />
-                            ) : (
-                              <field.Select
-                                disabled={isRowDisabled}
-                                menuPortalTarget={document.body}
-                                onChange={field.handleChange}
-                                options={stoppingPointOptions}
-                                size="xs"
-                                value={field.state.value}
-                              />
-                            )
-                          }
+                          {field => (
+                            <field.Select
+                              disabled={isRowDisabled}
+                              menuPortalTarget={document.body}
+                              onChange={field.handleChange}
+                              options={stoppingPointOptions}
+                              size="xs"
+                              value={field.state.value}
+                            />
+                          )}
                         </AutoSaveForm>
                       </Stack>
                     </InfiniteTable.RowCell>
+                    {showOpenPrs && (
+                      <InfiniteTable.RowCell>
+                        <AutoSaveForm
+                          key={bulkEditVersion}
+                          name="openPrs"
+                          schema={seerProjectSettingsSchema}
+                          initialValue={item.openPrs}
+                          mutationOptions={getMutateSeerProjectSettingsOptions({
+                            organization,
+                            project: {slug: item.projectSlug},
+                            queryClient,
+                          })}
+                        >
+                          {field => (
+                            <field.Switch
+                              aria-label={t('Open PRs for %s', item.projectSlug)}
+                              checked={field.state.value}
+                              disabled={isRowDisabled}
+                              onChange={field.handleChange}
+                              size="sm"
+                            />
+                          )}
+                        </AutoSaveForm>
+                      </InfiniteTable.RowCell>
+                    )}
                     <InfiniteTable.RowCell>
                       <Stack align="stretch" flex="1">
                         <PrIterationSwitchCell

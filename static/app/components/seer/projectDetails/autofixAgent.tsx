@@ -16,7 +16,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {openPrsStoppingPoint, useShowOpenPrs} from 'sentry/utils/seer/openPrs';
+import {useShowOpenPrs} from 'sentry/utils/seer/openPrs';
 import {
   NON_GITHUB_HANDOFF_WARNING,
   seerAgentIntegrationsSelectQueryOptions,
@@ -210,8 +210,40 @@ export function AutofixAgent({canWrite, project}: Props) {
             queryClient,
           })}
         >
-          {field =>
-            showOpenPrsToggle ? (
+          {field => (
+            <field.Layout.Row
+              label={t('Automation Steps')}
+              hintText={tct(
+                'Choose which steps Seer should run automatically on issues. Depending on how [actionable:actionable] the issue is, Seer may stop at an earlier step.',
+                {
+                  actionable: (
+                    <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
+                  ),
+                }
+              )}
+            >
+              <field.Select
+                disabled={!canWrite}
+                value={field.state.value}
+                onChange={field.handleChange}
+                options={stoppingPointOptions}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+
+        {showOpenPrsToggle && (
+          <AutoSaveForm
+            name="openPrs"
+            schema={seerProjectSettingsSchema}
+            initialValue={data.openPrs}
+            mutationOptions={getMutateSeerProjectSettingsOptions({
+              organization,
+              project: {slug: project.slug},
+              queryClient,
+            })}
+          >
+            {field => (
               <field.Layout.Row
                 label={t('Open PRs')}
                 hintText={t(
@@ -219,33 +251,14 @@ export function AutofixAgent({canWrite, project}: Props) {
                 )}
               >
                 <field.Switch
-                  checked={field.state.value === 'open_pr'}
+                  checked={field.state.value}
                   disabled={!canWrite}
-                  onChange={on => field.handleChange(openPrsStoppingPoint(on))}
-                />
-              </field.Layout.Row>
-            ) : (
-              <field.Layout.Row
-                label={t('Automation Steps')}
-                hintText={tct(
-                  'Choose which steps Seer should run automatically on issues. Depending on how [actionable:actionable] the issue is, Seer may stop at an earlier step.',
-                  {
-                    actionable: (
-                      <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
-                    ),
-                  }
-                )}
-              >
-                <field.Select
-                  disabled={!canWrite}
-                  value={field.state.value}
                   onChange={field.handleChange}
-                  options={stoppingPointOptions}
                 />
               </field.Layout.Row>
-            )
-          }
-        </AutoSaveForm>
+            )}
+          </AutoSaveForm>
+        )}
 
         <AutoSaveForm
           name="prIteration"
