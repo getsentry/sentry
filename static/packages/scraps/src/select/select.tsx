@@ -10,7 +10,7 @@ import {
   useState,
 } from 'react';
 import {createPortal} from 'react-dom';
-import {type CSSObject, useTheme} from '@emotion/react';
+import {css, type CSSObject, useTheme} from '@emotion/react';
 import {getFocusableTreeWalker} from '@react-aria/focus';
 import {useInteractOutside} from '@react-aria/interactions';
 import {getItemId, useListBox} from '@react-aria/listbox';
@@ -568,7 +568,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       }
     },
   };
-  const css = getSelectStyles(theme, size, {
+  const selectStyles = getSelectStyles(theme, size, {
     disabled,
     focused,
     hasChips: multiple && selected.length > 0,
@@ -588,7 +588,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
         align="center"
         justifyItems="center"
         gap="xs"
-        css={`
+        css={css`
           &:empty {
             display: none;
           }
@@ -600,7 +600,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
             size="zero"
             variant="transparent"
             aria-label={t('Clear choices')}
-            icon={<IconClose css={css.clearIcon} />}
+            icon={<IconClose css={selectStyles.clearIcon} />}
             tabIndex={-1}
             onMouseDown={event => event.preventDefault()}
             onClick={clear}
@@ -615,7 +615,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       )}
     </Fragment>
   );
-  const baseMenuStyle: CSSObject = {...css.menu, maxWidth: props.maxMenuWidth};
+  const baseMenuStyle: CSSObject = {...selectStyles.menu, maxWidth: props.maxMenuWidth};
   const menuStyle = styles?.menu?.(baseMenuStyle, {}) ?? baseMenuStyle;
   const positionStyle: CSSObject = {
     ...(menuStyle.position === 'initial' ? {marginBlockStart: MENU_GAP} : overlayStyle),
@@ -624,7 +624,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     zIndex: props.isInsideModal ? theme.zIndex.modal + 1 : theme.zIndex.dropdown,
   };
   const menuListStyle = {
-    ...css.menuList,
+    ...selectStyles.menuList,
     maxHeight: maxMenuHeight,
     minHeight: minMenuHeight ?? 0,
   };
@@ -681,7 +681,10 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
               renderSection={(section, children) => (
                 <SelectSection
                   row={section}
-                  headingStyle={styles?.groupHeading?.(css.heading, {}) ?? css.heading}
+                  headingStyle={
+                    styles?.groupHeading?.(selectStyles.heading, {}) ??
+                    selectStyles.heading
+                  }
                 >
                   {children}
                 </SelectSection>
@@ -689,7 +692,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
             />
           </ul>
           {state.collection.size === 0 && (
-            <div role="status" css={css.message}>
+            <div role="status" css={selectStyles.message}>
               {isLoading
                 ? props.loadingMessage
                   ? props.loadingMessage()
@@ -711,11 +714,17 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       className={props.className}
       ref={selectRef}
       data-scraps-select=""
-      css={styles?.container?.(css.container, {isDisabled: disabled}) ?? css.container}
+      css={
+        styles?.container?.(selectStyles.container, {isDisabled: disabled}) ??
+        selectStyles.container
+      }
     >
       <div
         ref={mergeRefs<HTMLDivElement>(controlRef, element => setTriggerElement(element))}
-        css={styles?.control?.(css.control, {isDisabled: disabled}) ?? css.control}
+        css={
+          styles?.control?.(selectStyles.control, {isDisabled: disabled}) ??
+          selectStyles.control
+        }
         onMouseDown={event => {
           if (
             event.target !== inputRef.current &&
@@ -742,26 +751,34 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
         }}
       >
         {controlLeadingItems != null && typeof controlLeadingItems !== 'boolean' && (
-          <Flex align="center" flexShrink={0} gap="xs" css={css.leadingItems}>
+          <Flex align="center" flexShrink={0} gap="xs" css={selectStyles.leadingItems}>
             {controlLeadingItems}
           </Flex>
         )}
-        <div css={css.values}>
+        <div css={selectStyles.values}>
           {multiple &&
             selectedRows.map(({option, key}, index) => (
               <div
                 key={key ?? index}
                 css={
                   styles?.multiValue?.(
-                    {...css.chip, ...(index === focusedChip && theme.focusRing())},
+                    {
+                      ...selectStyles.chip,
+                      ...(index === focusedChip && theme.focusRing()),
+                    },
                     optionStyle(option)
-                  ) ?? {...css.chip, ...(index === focusedChip && theme.focusRing())}
+                  ) ?? {
+                    ...selectStyles.chip,
+                    ...(index === focusedChip && theme.focusRing()),
+                  }
                 }
               >
                 <span
                   css={
-                    styles?.multiValueLabel?.(css.chipLabel, optionStyle(option)) ??
-                    css.chipLabel
+                    styles?.multiValueLabel?.(
+                      selectStyles.chipLabel,
+                      optionStyle(option)
+                    ) ?? selectStyles.chipLabel
                   }
                 >
                   {MultiValueLabel ? (
@@ -776,13 +793,15 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
                     tabIndex={-1}
                     aria-label={t('Remove item')}
                     css={
-                      styles?.multiValueRemove?.(css.chipRemove, optionStyle(option)) ??
-                      css.chipRemove
+                      styles?.multiValueRemove?.(
+                        selectStyles.chipRemove,
+                        optionStyle(option)
+                      ) ?? selectStyles.chipRemove
                     }
                     onMouseDown={event => event.preventDefault()}
                     onClick={() => remove(index)}
                   >
-                    <IconClose css={css.chipRemoveIcon} />
+                    <IconClose css={selectStyles.chipRemoveIcon} />
                   </button>
                 )}
               </div>
@@ -790,8 +809,8 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
           {!query && !multiple && first && (
             <div
               css={
-                styles?.singleValue?.(css.singleValue, optionStyle(first)) ??
-                css.singleValue
+                styles?.singleValue?.(selectStyles.singleValue, optionStyle(first)) ??
+                selectStyles.singleValue
               }
             >
               {Value ? (
@@ -805,13 +824,18 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
                         isFocused: false,
                       })
                     : first.leadingItems}
-                  <span css={css.valueLabel}>{first.label}</span>
+                  <span css={selectStyles.valueLabel}>{first.label}</span>
                 </Fragment>
               )}
             </div>
           )}
           {!query && !selected.length && (
-            <div css={styles?.placeholder?.(css.placeholder, {}) ?? css.placeholder}>
+            <div
+              css={
+                styles?.placeholder?.(selectStyles.placeholder, {}) ??
+                selectStyles.placeholder
+              }
+            >
               {placeholder === undefined ? t('Select...') : placeholder}
             </div>
           )}
@@ -854,11 +878,11 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
                 : undefined
             }
             tabIndex={props.tabIndex}
-            css={styles?.input?.(css.input, {}) ?? css.input}
+            css={styles?.input?.(selectStyles.input, {}) ?? selectStyles.input}
           />
         </div>
         {Indicators !== null && (
-          <Flex align="center" gap="xs" css={css.indicators}>
+          <Flex align="center" gap="xs" css={selectStyles.indicators}>
             {Indicators ? <Indicators>{indicatorContent}</Indicators> : indicatorContent}
           </Flex>
         )}
