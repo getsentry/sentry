@@ -155,3 +155,14 @@ class WorkflowTriggerHandler(TriggerHandler):
 
     def find_missing(self, targets: Sequence[TriggerTarget]) -> Collection[TriggerTarget]:
         return missing_targets(Workflow, targets)
+
+
+@register_trigger_type(ScheduledTriggerType.SEER_WORKFLOW)
+class LegacySeerWorkflowTriggerHandler(TriggerHandler):
+    """Triggers written before schedules were keyed by workflow. They no longer fire."""
+
+    def dispatch(self, firings: Sequence[TriggerFiring]) -> None:
+        pass
+
+    def find_missing(self, targets: Sequence[TriggerTarget]) -> Collection[TriggerTarget]:
+        return []
