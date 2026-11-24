@@ -129,7 +129,6 @@ function GridList<T extends ListItemBase>({
           data-test-id="select-scroll-area"
           ref={setScrollElement}
           overflowY="auto"
-          margin="xs 0"
         >
           <ListWrap
             {...mergedProps}

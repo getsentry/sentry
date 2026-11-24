@@ -264,7 +264,6 @@ export function ListBox<T extends ListItemBase>({
         <ListScrollArea
           data-test-id="select-scroll-area"
           overflowY="auto"
-          margin="xs 0"
           ref={refs}
           className={className}
           style={hasEverOverflowed ? {scrollbarGutter: 'stable'} : undefined}

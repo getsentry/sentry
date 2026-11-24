@@ -35,14 +35,19 @@ export const ListWrap = styled('ul')`
  * a margin on this element rather than padding on the list: rows start at the top
  * of the scroll area, so the virtualizer places them without being told the
  * inset, and the inset stays visible while the rows scroll.
+ *
+ * Change the inset by setting `--list-inset`, not `margin`, so the height below
+ * stays in step with it.
  */
 export const ListScrollArea = styled(Container)`
+  --list-inset: ${p => p.theme.space.xs};
+  margin: var(--list-inset) 0;
   /* Fill a container with a definite height, less the vertical margins, so the
   margins do not overflow it. Without a definite height, this resolves to auto. */
-  height: calc(100% - 2 * ${p => p.theme.space.xs});
+  height: calc(100% - 2 * var(--list-inset));
 
   &:has(> ${ListWrap}:empty) {
-    margin: 0;
+    --list-inset: 0px;
   }
 `;
 

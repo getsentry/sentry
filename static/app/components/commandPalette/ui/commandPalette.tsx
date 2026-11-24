@@ -1249,7 +1249,7 @@ const StyledInputGroupInput = styled(InputGroup.Input)<{seerEnabled?: boolean}>`
 const ResultsList = styled(Flex)`
   /* The results are already inset by this element's top padding. */
   div:has(> ${ListWrap}) {
-    margin: 0;
+    --list-inset: 0px;
   }
 
   [data-menu-item-content] {
