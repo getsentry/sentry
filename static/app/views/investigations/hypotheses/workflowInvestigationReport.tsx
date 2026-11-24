@@ -2,8 +2,6 @@ import type {ComponentProps} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {t} from 'sentry/locale';
 import {HYPOTHESES_ELEMENT_ID} from 'sentry/views/investigations/detail/outline';
 import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 import type {WorkflowReport} from 'sentry/views/investigations/types';
@@ -29,15 +27,6 @@ export function WorkflowInvestigationReport({
     <Stack gap="3xl">
       {statusBlock.variant !== 'complete' && <SeerStatusBlock {...statusBlock} />}
       {report.canCommand && <WorkflowControls report={report} notebookId={notebookId} />}
-      {!report.awaitingHypotheses && (report.summary || report.activity.length > 0) && (
-        <details>
-          <summary>{t('Broad scan')}</summary>
-          {report.summary && <p>{report.summary}</p>}
-          {report.activity.map(message => (
-            <SeerMarkdown key={message} raw={message} />
-          ))}
-        </details>
-      )}
       {(report.hypotheses.length > 0 || report.awaitingHypotheses) && (
         <section id={HYPOTHESES_ELEMENT_ID}>
           <HypothesesPanel
