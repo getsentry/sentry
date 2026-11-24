@@ -25,6 +25,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowExecutionExtras,
     SeerWorkflowRunExecution,
+    SeerWorkflowRunSource,
     SeerWorkflowStrategy,
     WorkflowRunError,
 )
@@ -198,7 +199,12 @@ class MetricAlertDefinition(AutomationDefinition[MetricBreachInputs]):
                 if not self.covers(config, group.project_id, inputs.environment):
                     return IgnoredRun("out_of_scope")
 
-                run = self.admit_run(config, trigger_key=f"issue_created:{group.id}", inputs=inputs)
+                run = self.admit_run(
+                    config,
+                    trigger_key=f"issue_created:{group.id}",
+                    source=SeerWorkflowRunSource.EVENT,
+                    inputs=inputs,
+                )
                 if run.rejection is not None:
                     return RejectedRun(
                         run=run.lifecycle.get_run(), reason=run.rejection, created=run.created

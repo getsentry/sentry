@@ -73,10 +73,8 @@ import type {IssueUpdateData} from './types';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
   DEFAULT_QUERY,
-  FOR_REVIEW_QUERIES,
   getStoredIssueSort,
   setStoredIssueSort,
-  isForReviewQuery,
   IssueSortOptions,
   Query,
 } from './utils';
@@ -283,7 +281,7 @@ function IssueListOverviewInner({
       params.statsPeriod = DEFAULT_STATS_PERIOD;
     }
 
-    params.expand = ['owners', 'inbox', ...(hasIssueInbox ? ['derivedData'] : [])];
+    params.expand = ['owners', ...(hasIssueInbox ? ['derivedData'] : [])];
     params.collapse = ['stats', 'unhandled'];
 
     return params;
@@ -649,13 +647,6 @@ function IssueListOverviewInner({
       ...getEndpointParams(),
       ...newParams,
     };
-    if (
-      queryData.sort === IssueSortOptions.INBOX &&
-      !FOR_REVIEW_QUERIES.includes(queryData.query || '')
-    ) {
-      delete queryData.sort;
-    }
-
     navigate({pathname: location.pathname, query: queryData});
   };
 
@@ -732,10 +723,10 @@ function IssueListOverviewInner({
       invalidateIssueCounts();
 
       if (response) {
-        // If on the Ignore or For Review tab, adding back to the GroupStore will make the issue show up
+        // If on the Ignore tab, adding back to the GroupStore will make the issue show up
         // on this page for a second and then be removed (will show up on All Unresolved). This is to
         // stop this from happening and avoid confusion.
-        if (!query.includes('is:ignored') && !isForReviewQuery(query)) {
+        if (!query.includes('is:ignored')) {
           GroupStore.add(groupItems);
         }
         actionTakenRef.current = true;
@@ -755,7 +746,7 @@ function IssueListOverviewInner({
     skipRefetch,
     undo,
   }: {
-    actionType: 'Reviewed' | 'Resolved' | 'Ignored' | 'Archived' | 'Reprioritized';
+    actionType: 'Resolved' | 'Ignored' | 'Archived' | 'Reprioritized';
     itemIds: string[];
     shouldRemove: boolean;
     skipRefetch?: boolean;
@@ -814,10 +805,7 @@ function IssueListOverviewInner({
         onIssueAction({
           itemIds,
           actionType: 'Resolved',
-          shouldRemove:
-            query.includes('is:unresolved') ||
-            query.includes('is:ignored') ||
-            isForReviewQuery(query),
+          shouldRemove: query.includes('is:unresolved') || query.includes('is:ignored'),
           skipRefetch: realtimeActive,
           undo: realtimeActive
             ? undefined
@@ -834,7 +822,7 @@ function IssueListOverviewInner({
         onIssueAction({
           itemIds,
           actionType: 'Archived',
-          shouldRemove: query.includes('is:unresolved') || isForReviewQuery(query),
+          shouldRemove: query.includes('is:unresolved'),
           skipRefetch: realtimeActive,
           undo: realtimeActive
             ? undefined
@@ -846,16 +834,6 @@ function IssueListOverviewInner({
         });
         return;
       }
-    }
-
-    if ('inbox' in data && !data.inbox) {
-      onIssueAction({
-        itemIds,
-        actionType: 'Reviewed',
-        shouldRemove: isForReviewQuery(query),
-        skipRefetch: realtimeActive,
-      });
-      return;
     }
 
     if ('priority' in data && typeof data.priority === 'string') {

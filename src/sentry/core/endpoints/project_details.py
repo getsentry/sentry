@@ -602,6 +602,40 @@ E.g. `['release', 'environment']`""",
     def validate_safeFields(self, value: list[str]) -> list[str]:
         return validate_pii_selectors(value)
 
+    def validate_options(self, value: dict[str, object]) -> dict[str, object]:
+        # The legacy options writer stores these keys as-is and they end up in the Relay
+        # project config, so they need the same checks as relayPiiConfig, sensitiveFields
+        # and safeFields.
+        if "sentry:relay_pii_config" in value:
+            pii_config = value["sentry:relay_pii_config"]
+            if not isinstance(pii_config, str):
+                raise serializers.ValidationError(
+                    {"sentry:relay_pii_config": "Expected a JSON string."}
+                )
+            try:
+                self.validate_relayPiiConfig(pii_config.strip())
+            except serializers.ValidationError as e:
+                raise serializers.ValidationError({"sentry:relay_pii_config": e.detail})
+
+        for key, validator in (
+            ("sentry:sensitive_fields", self.validate_sensitiveFields),
+            ("sentry:safe_fields", self.validate_safeFields),
+        ):
+            if key not in value:
+                continue
+            fields = value[key]
+            if not isinstance(fields, list) or not all(isinstance(f, str) for f in fields):
+                raise serializers.ValidationError({key: "Expected a list of strings."})
+            normalized = [f.strip().lower() for f in fields]
+            if not all(normalized):
+                raise serializers.ValidationError({key: "Empty values are not allowed."})
+            try:
+                validator(normalized)
+            except serializers.ValidationError as e:
+                raise serializers.ValidationError({key: e.detail})
+
+        return value
+
     def validate_tempestFetchScreenshots(self, value: bool) -> bool:
         organization = self.context["project"].organization
         if not has_tempest_access(organization):

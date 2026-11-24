@@ -296,6 +296,11 @@ describe('Onboarding', () => {
     );
 
     expect(await screen.findByText('Configure Next.js SDK')).toBeInTheDocument();
+    // Loading this step directly has no previous step to exit, so the footer
+    // offset must not wait on an exit animation.
+    expect(
+      screen.getAllByTestId('onboarding-step-setup-docs')[0]!.parentElement
+    ).toHaveStyle({paddingBottom: '72px', marginBottom: '72px'});
   });
 
   it('keeps a legacy session on the setup docs step after a refresh', async () => {

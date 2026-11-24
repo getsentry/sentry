@@ -94,9 +94,9 @@ class ServiceAccountService(RpcService):
     @abstractmethod
     def delete_service_account(self, *, organization_id: int, service_account_id: int) -> None:
         """
-        Soft-delete the account: keep the row, turn it off for good and remove its project
-        links. Does nothing when the account isn't in `organization_id` or was already
-        deleted. Callers must write the audit log.
+        Soft-delete the account: keep the row, turn it off for good, remove its project
+        links and deactivate its tokens. Does nothing when the account isn't in
+        `organization_id` or was already deleted. Callers must write the audit log.
         """
 
 

@@ -1167,7 +1167,8 @@ PluginActionData: TypeAlias = Any
 
 # data_schema of the seer_investigation action handler
 class SeerInvestigationActionData(TypedDict):
-    pass
+    prompt: NotRequired[str]
+    skill: NotRequired[Literal["agentic_triage"]]
 
 
 # data_schema of the sentry_app action handler
