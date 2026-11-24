@@ -93,11 +93,7 @@ function SettingsNavigationHeader() {
     case 'org':
       return <SettingsOrganizationHeader />;
     case 'account':
-      return (
-        <SecondaryNavigation.HeaderTitle>
-          {getSettingsScopeTitle(scope)}
-        </SecondaryNavigation.HeaderTitle>
-      );
+      return <SettingsStaticHeader label={getSettingsScopeTitle(scope)} />;
     default:
       return unreachable(scope);
   }
@@ -220,8 +216,25 @@ function SettingsOrganizationHeader() {
     return <SettingsOrganizationSelector />;
   }
 
-  // Same height, padding and icon spacing as the selector trigger, so the
-  // header doesn't shift between users with one organization and with several.
+  return (
+    <SettingsStaticHeader
+      icon={<OrganizationAvatar organization={organization} size={16} />}
+      label={organization.name}
+    />
+  );
+}
+
+/**
+ * Same height, padding and icon spacing as the selector trigger, so the header
+ * content lines up across the account, organization and project scopes.
+ */
+function SettingsStaticHeader({
+  label,
+  icon,
+}: {
+  label: React.ReactNode;
+  icon?: React.ReactNode;
+}) {
   return (
     <Flex
       align="center"
@@ -231,10 +244,8 @@ function SettingsOrganizationHeader() {
       paddingLeft="lg"
       paddingRight="lg"
     >
-      <Flex flexShrink={0}>
-        <OrganizationAvatar organization={organization} size={16} />
-      </Flex>
-      <Text ellipsis>{organization.name}</Text>
+      {icon ? <Flex flexShrink={0}>{icon}</Flex> : null}
+      <Text ellipsis>{label}</Text>
     </Flex>
   );
 }
