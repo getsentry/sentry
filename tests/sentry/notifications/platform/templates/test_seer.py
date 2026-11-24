@@ -11,9 +11,6 @@ from sentry.notifications.platform.templates.seer import (
     AUTOFIX_DAILY_LIMIT_MESSAGE,
     AUTOFIX_OUT_OF_CREDITS_MESSAGE,
     AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
-    AUTOFIX_START_DAILY_LIMIT_MESSAGE,
-    AUTOFIX_START_OUT_OF_CREDITS_MESSAGE,
-    AUTOFIX_START_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
     SeerAgentError,
     SeerAgentOutOfCredits,
     SeerAgentOutOfCreditsTemplate,
@@ -156,21 +153,15 @@ class SeerAgentErrorTemplateTest(TestCase):
 
 
 @pytest.mark.parametrize(
-    ("started", "auto_reload_enabled", "message"),
+    ("auto_reload_enabled", "message"),
     [
-        (True, False, AUTOFIX_OUT_OF_CREDITS_MESSAGE),
-        (True, True, AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE),
-        (False, False, AUTOFIX_START_OUT_OF_CREDITS_MESSAGE),
-        (False, True, AUTOFIX_START_OUT_OF_CREDITS_NO_RELOADS_MESSAGE),
+        (False, AUTOFIX_OUT_OF_CREDITS_MESSAGE),
+        (True, AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE),
     ],
 )
-def test_autofix_out_of_credits_template(
-    started: bool, auto_reload_enabled: bool, message: str
-) -> None:
+def test_autofix_out_of_credits_template(auto_reload_enabled: bool, message: str) -> None:
     rendered = SeerAutofixOutOfCreditsTemplate().render(
-        SeerAutofixOutOfCredits(
-            organization_id=1, started=started, auto_reload_enabled=auto_reload_enabled
-        )
+        SeerAutofixOutOfCredits(organization_id=1, auto_reload_enabled=auto_reload_enabled)
     )
 
     assert rendered.subject == message
@@ -197,23 +188,13 @@ def test_agent_out_of_credits_template(auto_reload_enabled: bool, message: str) 
     assert rendered.body[0].blocks[0].text == message
 
 
-@pytest.mark.parametrize(
-    ("started", "message"),
-    [(True, AUTOFIX_DAILY_LIMIT_MESSAGE), (False, AUTOFIX_START_DAILY_LIMIT_MESSAGE)],
-)
-def test_autofix_daily_limit_template(started: bool, message: str) -> None:
+def test_autofix_daily_limit_template() -> None:
     rendered = SeerAutofixOutOfCreditsTemplate().render(
-        SeerAutofixOutOfCredits(
-            organization_id=1, started=started, denial_reason="daily_cap_exceeded"
-        )
+        SeerAutofixOutOfCredits(organization_id=1, denial_reason="daily_cap_exceeded")
     )
 
-    assert rendered.subject == message
-    assert rendered.body[0].blocks[0].text == message
-
-
-def test_autofix_out_of_credits_defaults_to_a_started_run() -> None:
-    assert SeerAutofixOutOfCredits(organization_id=1).message == AUTOFIX_OUT_OF_CREDITS_MESSAGE
+    assert rendered.subject == AUTOFIX_DAILY_LIMIT_MESSAGE
+    assert rendered.body[0].blocks[0].text == AUTOFIX_DAILY_LIMIT_MESSAGE
 
 
 def test_agent_daily_limit_template() -> None:

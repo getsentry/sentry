@@ -38,8 +38,6 @@ from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
     AUTOFIX_DAILY_LIMIT_MESSAGE,
     AUTOFIX_OUT_OF_CREDITS_MESSAGE,
-    AUTOFIX_START_DAILY_LIMIT_MESSAGE,
-    AUTOFIX_START_OUT_OF_CREDITS_MESSAGE,
     SeerAgentError,
     SeerAgentOutOfCredits,
     SeerAgentResponse,
@@ -203,7 +201,7 @@ class SlackAutofixEntrypointTest(TestCase):
             slack_user_id=self.slack_request.user_id,
         )
         blocks = str(mock_send_threaded_ephemeral_message.call_args.kwargs["renderable"]["blocks"])
-        assert AUTOFIX_START_OUT_OF_CREDITS_MESSAGE in blocks
+        assert AUTOFIX_OUT_OF_CREDITS_MESSAGE in blocks
         assert "Configure auto-reload" in blocks
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
@@ -450,24 +448,6 @@ class SlackAutofixEntrypointTest(TestCase):
         blocks = str(mock_send_threaded_ephemeral_message.call_args.kwargs["renderable"]["blocks"])
         assert AUTOFIX_DAILY_LIMIT_MESSAGE in blocks
         assert "Configure auto-reload" in blocks
-
-    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
-    def test_on_trigger_autofix_out_of_credits_for_daily_limit_on_new_run(
-        self, mock_send_threaded_ephemeral_message: MagicMock
-    ) -> None:
-        ep = self._get_entrypoint()
-        ep.on_trigger_autofix_out_of_credits(started=False, denial_reason="daily_cap_exceeded")
-        blocks = str(mock_send_threaded_ephemeral_message.call_args.kwargs["renderable"]["blocks"])
-        assert AUTOFIX_START_DAILY_LIMIT_MESSAGE in blocks
-
-    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
-    def test_on_trigger_autofix_out_of_credits_on_started_run(
-        self, mock_send_threaded_ephemeral_message: MagicMock
-    ) -> None:
-        ep = self._get_entrypoint()
-        ep.on_trigger_autofix_out_of_credits(started=True, denial_reason=None)
-        blocks = str(mock_send_threaded_ephemeral_message.call_args.kwargs["renderable"]["blocks"])
-        assert AUTOFIX_OUT_OF_CREDITS_MESSAGE in blocks
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     @patch(
