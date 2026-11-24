@@ -1,15 +1,16 @@
 import {Fragment, useEffect, useRef} from 'react';
 import {createPortal} from 'react-dom';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {FocusScope} from '@react-aria/focus';
+import {FocusScope, useFocusRing} from '@react-aria/focus';
+import {useHover} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 import {motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
 
 import type {ButtonBarProps, ButtonProps} from '@sentry/scraps/button';
-import {ButtonBar} from '@sentry/scraps/button';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {
   Container,
@@ -37,15 +38,12 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
-  PRIMARY_NAVIGATION_OVERLAY_OFFSET,
   PRIMARY_HEADER_HEIGHT,
   PRIMARY_SIDEBAR_WIDTH,
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/navigation/constants';
-import {
-  useNavPeek,
-  usePrimaryNavigation,
-} from 'sentry/views/navigation/primaryNavigationContext';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {useSecondaryNavigationToggle} from 'sentry/views/navigation/secondary/useSecondaryNavigationToggle';
 
 interface PrimaryNavigationSidebarProps {
   children: React.ReactNode;
@@ -54,6 +52,7 @@ interface PrimaryNavigationSidebarProps {
 
 function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebarProps) {
   const theme = useTheme();
+  const {hoverBehavior} = usePrimaryNavigation();
 
   return (
     <Stack
@@ -62,48 +61,11 @@ function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebar
       width={`${PRIMARY_SIDEBAR_WIDTH}px`}
       padding="0"
       borderRight="primary"
-      position="relative"
+      // Positions `PrimaryNavigation.ExpandTab`, which only previews use.
+      position={hoverBehavior === 'preview' ? 'relative' : undefined}
       background="primary"
       align="center"
       style={{zIndex: theme.zIndex.sidebarPanel}}
-      css={css`
-        [data-secondary-navigation-toggle] {
-          position: absolute;
-          top: 50%;
-          /* Start the tab at the inside edge of the highlighted rail border. */
-          left: calc(100% - 3px);
-          z-index: 1;
-          translate: 0 -50%;
-          box-sizing: border-box;
-          width: 40px;
-          height: 40px;
-          padding-right: 3px;
-          background-color: ${theme.tokens.background.primary};
-          border: 1px solid ${theme.tokens.border.primary};
-          border-left: 0;
-          border-radius: 0 ${theme.radius.md} ${theme.radius.md} 0;
-
-          &:is(:hover, :focus-visible) {
-            padding-right: 0;
-            background-color: ${theme.tokens.background.tertiary};
-            border-width: 4px 4px 4px 0;
-            border-color: ${theme.tokens.border.accent.vibrant};
-            box-shadow: none;
-          }
-        }
-
-        &:has([data-secondary-navigation-toggle]:is(:hover, :focus-visible)) {
-          border-right-color: ${theme.tokens.border.accent.vibrant};
-          &::after {
-            content: '';
-            position: absolute;
-            inset: 0 0 0 auto;
-            /* The existing border supplies the fourth pixel. */
-            border-right: 3px solid ${theme.tokens.border.accent.vibrant};
-            pointer-events: none;
-          }
-        }
-      `}
       {...props}
     >
       {children}
@@ -323,8 +285,7 @@ interface PrimaryNavigationMenuProps extends PrimaryNavigationItemBaseProps {
 function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
   const theme = useTheme();
   const organization = useOrganization({allowNull: true});
-  const {layout} = usePrimaryNavigation();
-  const navPeek = useNavPeek();
+  const {layout, overlayOffset} = usePrimaryNavigation();
 
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
@@ -342,9 +303,7 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
       zIndex={theme.zIndex.modal}
       renderWrapAs={PassthroughWrapper}
       position={layout === 'mobile' ? 'bottom' : 'right-end'}
-      offset={
-        layout === 'sidebar' && navPeek ? PRIMARY_NAVIGATION_OVERLAY_OFFSET : undefined
-      }
+      offset={overlayOffset}
       shouldApplyMinWidth={false}
       minMenuWidth={200}
       trigger={triggerProps => {
@@ -425,6 +384,74 @@ const ButtonWithOverflowVisible = styled(OverlayTrigger.IconButton)<
   && > [data-button-label] {
     overflow: initial;
   }
+`;
+
+interface PrimaryNavigationExpandTabProps {
+  ref?: React.Ref<HTMLButtonElement>;
+}
+
+/**
+ * Expands a fully hidden secondary sidebar. It sticks out of the rail next to
+ * the sidebar header, so it must render inside `PrimaryNavigation.Sidebar`.
+ */
+function PrimaryNavigationExpandTab({ref}: PrimaryNavigationExpandTabProps) {
+  const toggleProps = useSecondaryNavigationToggle();
+  const {hoverProps, isHovered} = useHover({});
+  const {focusProps, isFocusVisible} = useFocusRing();
+
+  return (
+    <Fragment>
+      <ExpandTabButton
+        ref={ref}
+        size="sm"
+        variant="transparent"
+        {...mergeProps(toggleProps, hoverProps, focusProps)}
+      />
+      {isHovered || isFocusVisible ? <ExpandTabRailHighlight aria-hidden="true" /> : null}
+    </Fragment>
+  );
+}
+
+// Width of the highlight drawn over the rail edge, including the rail border.
+const EXPAND_TAB_HIGHLIGHT_WIDTH = 4;
+
+const ExpandTabButton = styled(Button)`
+  && {
+    position: absolute;
+    top: ${PRIMARY_HEADER_HEIGHT / 2}px;
+    /* Start the tab at the inside edge of the highlighted rail border. */
+    left: calc(100% - ${EXPAND_TAB_HIGHLIGHT_WIDTH - 1}px);
+    z-index: 1;
+    translate: 0 -50%;
+    box-sizing: border-box;
+    width: 40px;
+    height: 40px;
+    padding-right: ${EXPAND_TAB_HIGHLIGHT_WIDTH - 1}px;
+    background-color: ${p => p.theme.tokens.background.primary};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
+    border-left: 0;
+    border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
+  }
+
+  &&:is(:hover, :focus-visible) {
+    padding-right: 0;
+    background-color: ${p => p.theme.tokens.background.tertiary};
+    border-width: ${EXPAND_TAB_HIGHLIGHT_WIDTH}px ${EXPAND_TAB_HIGHLIGHT_WIDTH}px
+      ${EXPAND_TAB_HIGHLIGHT_WIDTH}px 0;
+    border-color: ${p => p.theme.tokens.border.accent.vibrant};
+    box-shadow: none;
+  }
+`;
+
+const ExpandTabRailHighlight = styled('span')`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  /* Cover the rail border as well. */
+  right: -1px;
+  border-right: ${EXPAND_TAB_HIGHLIGHT_WIDTH}px solid
+    ${p => p.theme.tokens.border.accent.vibrant};
+  pointer-events: none;
 `;
 
 function PrimaryNavigationButtonBar(props: ButtonBarProps) {
@@ -529,10 +556,10 @@ type PrimaryNavigationButtonOverlayProps = {
 };
 
 export function usePrimaryNavigationButtonOverlay(props: UseOverlayProps = {}) {
-  const {layout} = usePrimaryNavigation();
+  const {layout, overlayOffset = 8} = usePrimaryNavigation();
 
   return useOverlay({
-    offset: 8,
+    offset: overlayOffset,
     position: layout === 'mobile' ? 'bottom' : 'right-end',
     isDismissable: true,
     shouldApplyMinWidth: false,
@@ -619,4 +646,5 @@ export const PrimaryNavigation = {
   Sidebar: PrimaryNavigationSidebar,
   SidebarHeader: PrimaryNavigationSidebarHeader,
   FooterItems: PrimaryNavigationFooterItems,
+  ExpandTab: PrimaryNavigationExpandTab,
 };

@@ -28,9 +28,6 @@ import {ExploreSavedQueryNavigationItems} from './exploreSavedQueryNavigationIte
 function ExploreSecondaryNavigationImpl() {
   const settingsV3 = useSettingsV3();
   const organization = useOrganization();
-  // Checked inline, because a `<Feature>` wrapper would hide the saved queries
-  // section from the navigation preview tabs.
-  const hasExploreView = organization.features.includes('visibility-explore-view');
 
   const baseUrl = `/organizations/${organization.slug}/explore`;
   // Seer tabs live here until Seer primary nav release.
@@ -267,56 +264,55 @@ function ExploreSecondaryNavigationImpl() {
             )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-        {hasExploreView && (
+        <Feature features={['visibility-explore-view']}>
           <Fragment>
             <SecondaryNavigation.Separator />
-            <SecondaryNavigation.SectionGroup
-              id="explore-queries"
+            <SecondaryNavigation.Section
+              id="explore-saved-queries"
               tabLabel={t('Saved Queries')}
             >
-              <SecondaryNavigation.Section id="explore-saved-queries">
-                <SecondaryNavigation.List>
+              <SecondaryNavigation.List>
+                <SecondaryNavigation.ListItem>
+                  <SecondaryNavigation.Link to={`${baseUrl}/saved-queries/`}>
+                    {t('Saved Queries')}
+                  </SecondaryNavigation.Link>
+                </SecondaryNavigation.ListItem>
+                <Feature features="organizations:explore-saved-formulas">
                   <SecondaryNavigation.ListItem>
-                    <SecondaryNavigation.Link to={`${baseUrl}/saved-queries/`}>
-                      {t('Saved Queries')}
+                    <SecondaryNavigation.Link
+                      to={`${baseUrl}/saved-formulas/`}
+                      analyticsItemName="explore_saved_formulas"
+                      leadingItems={
+                        settingsV3 ? (
+                          <SecondaryNavigation.FeatureBadge type="alpha" />
+                        ) : null
+                      }
+                      trailingItems={
+                        settingsV3 ? null : (
+                          <SecondaryNavigation.FeatureBadge type="alpha" />
+                        )
+                      }
+                    >
+                      {t('Saved Formulas')}
                     </SecondaryNavigation.Link>
                   </SecondaryNavigation.ListItem>
-                  <Feature features="organizations:explore-saved-formulas">
-                    <SecondaryNavigation.ListItem>
-                      <SecondaryNavigation.Link
-                        to={`${baseUrl}/saved-formulas/`}
-                        analyticsItemName="explore_saved_formulas"
-                        leadingItems={
-                          settingsV3 ? (
-                            <SecondaryNavigation.FeatureBadge type="alpha" />
-                          ) : null
-                        }
-                        trailingItems={
-                          settingsV3 ? null : (
-                            <SecondaryNavigation.FeatureBadge type="alpha" />
-                          )
-                        }
-                      >
-                        {t('Saved Formulas')}
-                      </SecondaryNavigation.Link>
-                    </SecondaryNavigation.ListItem>
-                  </Feature>
-                </SecondaryNavigation.List>
-              </SecondaryNavigation.Section>
-              {starredQueries && starredQueries.length > 0 && (
-                <Fragment>
-                  <SecondaryNavigation.Separator />
-                  <SecondaryNavigation.Section
-                    id="explore-starred-queries"
-                    title={t('Starred Queries')}
-                  >
-                    <ExploreSavedQueryNavigationItems queries={starredQueries} />
-                  </SecondaryNavigation.Section>
-                </Fragment>
-              )}
-            </SecondaryNavigation.SectionGroup>
+                </Feature>
+              </SecondaryNavigation.List>
+            </SecondaryNavigation.Section>
+            {starredQueries && starredQueries.length > 0 && (
+              <Fragment>
+                <SecondaryNavigation.Separator />
+                <SecondaryNavigation.Section
+                  id="explore-starred-queries"
+                  title={t('Starred Queries')}
+                  tabLabel={t('Saved Queries')}
+                >
+                  <ExploreSavedQueryNavigationItems queries={starredQueries} />
+                </SecondaryNavigation.Section>
+              </Fragment>
+            )}
           </Fragment>
-        )}
+        </Feature>
       </SecondaryNavigation.Body>
     </Fragment>
   );

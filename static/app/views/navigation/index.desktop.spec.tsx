@@ -2497,6 +2497,66 @@ describe('desktop navigation', () => {
         await userEvent.click(inbox);
         expect(router.location.pathname).toBe('/organizations/org-slug/inbox/');
       });
+
+      it('adds a tab for a section that renders after the preview opens', async () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({organization: navPeek})
+        );
+
+        await userEvent.hover(screen.getByRole('link', {name: 'Dashboards'}));
+
+        const preview = within(
+          await screen.findByRole('dialog', {name: 'Navigation preview'})
+        );
+        // Starred dashboards render once they load, after "All Dashboards".
+        expect(
+          await preview.findByRole('tab', {name: 'Starred Dashboards'})
+        ).toBeInTheDocument();
+        expect(preview.getAllByRole('tab').map(tab => tab.textContent)).toEqual([
+          'Dashboards',
+          'Starred Dashboards',
+        ]);
+        expect(
+          within(preview.getByRole('tabpanel', {name: 'Dashboards'})).getByRole('link', {
+            name: 'All Dashboards',
+          })
+        ).toBeInTheDocument();
+        expect(preview.queryByRole('separator')).not.toBeInTheDocument();
+      });
+
+      it('keeps the preview open when a link opens in a new tab', async () => {
+        const {router} = render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({organization: navPeek})
+        );
+
+        const primaryNav = within(
+          screen.getByRole('navigation', {name: 'Primary Navigation'})
+        );
+        await userEvent.hover(primaryNav.getByRole('link', {name: 'Explore'}));
+        const preview = within(
+          await screen.findByRole('dialog', {name: 'Navigation preview'})
+        );
+
+        // jsdom cannot open a new tab, so skip the browser's default action.
+        const preventNavigation = (event: MouseEvent) => event.preventDefault();
+        document.addEventListener('click', preventNavigation);
+        const user = userEvent.setup();
+        await user.keyboard('{Meta>}');
+        await user.click(preview.getByRole('link', {name: 'Traces'}));
+        await user.keyboard('{/Meta}');
+        document.removeEventListener('click', preventNavigation);
+
+        expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+        expect(
+          screen.getByRole('dialog', {name: 'Navigation preview'})
+        ).toBeInTheDocument();
+      });
     });
   });
 });

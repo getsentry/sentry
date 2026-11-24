@@ -7,7 +7,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
 import {
   hasSecondaryNavigation,
-  useNavPeek,
   usePrimaryNavigation,
 } from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
@@ -30,8 +29,7 @@ import {useMouseMovement} from './useMouseMovement';
  *    nav), an extra delay is added to prevent accidental activation.
  *
  * While the sidebar is expanded, hover activation is skipped for groups without
- * a secondary navigation. With nav peek, hovering opens a preview card instead
- * (see `usePrimaryNavigationPreview`), so hover activation is skipped entirely.
+ * a secondary navigation.
  */
 
 interface UseActivateNavigationGroupOnHoverProps {
@@ -43,12 +41,8 @@ export function useActivateNavigationGroupOnHover({
   const {layout, features, setActiveGroup, activeGroup} = usePrimaryNavigation();
   const {view, setView} = useSecondaryNavigation();
   const location = useLocation();
-  const navPeek = useNavPeek();
 
-  const mouseAccelerationRef = useMouseMovement({
-    ref,
-    disabled: layout !== 'sidebar' || navPeek,
-  });
+  const mouseAccelerationRef = useMouseMovement({ref, disabled: layout !== 'sidebar'});
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const windowHeight = useWindowHeight();
 
@@ -143,7 +137,7 @@ export function useActivateNavigationGroupOnHover({
     // A group without a secondary navigation renders no sidebar. Activating it
     // hides a collapsed peek, but would pull an expanded sidebar out from under
     // the page, so it is skipped there.
-    const canPreview = !navPeek && (hasSecondaryNavigation(group) || view !== 'expanded');
+    const canPreview = hasSecondaryNavigation(group) || view !== 'expanded';
 
     return {
       'aria-current': isActive ? ('location' as const) : undefined,

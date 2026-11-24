@@ -9,10 +9,7 @@ import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {SettingsNavItem} from './settingsNavItem';
 
-export function isSettingsNavigationItemVisible(
-  item: NavigationItem,
-  props: NavigationGroupProps
-): boolean {
+function isItemVisible(item: NavigationItem, props: NavigationGroupProps): boolean {
   if (typeof item.show === 'function') {
     return item.show(props);
   }
@@ -27,7 +24,7 @@ function SettingsNavigationGroupImpl(props: NavigationGroupProps) {
     settingsV3 &&
     ['settings-organization', 'settings-account', 'settings-project'].includes(props.id);
 
-  const visibleItems = items.filter(item => isSettingsNavigationItemVisible(item, props));
+  const visibleItems = items.filter(item => isItemVisible(item, props));
 
   // A settings category and the links inside it that are actually visible to
   // this user (post access/feature/hook filtering) — the same list rendered
@@ -74,7 +71,11 @@ function SettingsNavigationGroupImpl(props: NavigationGroupProps) {
   );
 
   return (
-    <SecondaryNavigation.Section id={props.id} title={hideTitle ? undefined : name}>
+    <SecondaryNavigation.Section
+      id={props.id}
+      title={hideTitle ? undefined : name}
+      tabLabel={name}
+    >
       <SecondaryNavigation.List>{navLinks}</SecondaryNavigation.List>
     </SecondaryNavigation.Section>
   );

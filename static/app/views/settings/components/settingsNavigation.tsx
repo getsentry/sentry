@@ -26,10 +26,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOrganizations} from 'sentry/utils/useOrganizations';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {
-  SecondaryNavigation,
-  useIsSecondaryNavigationPreview,
-} from 'sentry/views/navigation/secondary/components';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
@@ -37,10 +34,7 @@ import {useSettingsProjectSwitchTemplate} from 'sentry/views/settings/useSetting
 import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
-import {
-  isSettingsNavigationItemVisible,
-  SettingsNavigationGroup,
-} from './settingsNavigationGroup';
+import {SettingsNavigationGroup} from './settingsNavigationGroup';
 
 type Props = NavigationProps & {
   /**
@@ -63,16 +57,7 @@ export function SettingsNavigation({
   hooks,
   ...otherProps
 }: Props) {
-  const isPreview = useIsSecondaryNavigationPreview();
-  const navWithHooks = navigationObjects
-    .concat(hookConfigs)
-    .filter(
-      config =>
-        !isPreview ||
-        config.items.some(item =>
-          isSettingsNavigationItemVisible(item, {...otherProps, ...config})
-        )
-    );
+  const navWithHooks = navigationObjects.concat(hookConfigs);
 
   return (
     <ErrorBoundary customComponent={null}>
@@ -83,9 +68,7 @@ export function SettingsNavigation({
         {navWithHooks.map((config, index) => (
           <Fragment key={config.name}>
             {index > 0 && <SecondaryNavigation.Separator />}
-            <SecondaryNavigation.SectionGroup id={config.id} tabLabel={config.name}>
-              <SettingsNavigationGroup {...otherProps} {...config} />
-            </SecondaryNavigation.SectionGroup>
+            <SettingsNavigationGroup {...otherProps} {...config} />
           </Fragment>
         ))}
         {hooks.length > 0 && (

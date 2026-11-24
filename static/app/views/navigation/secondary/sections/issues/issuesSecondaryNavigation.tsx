@@ -63,77 +63,75 @@ function IssuesSecondaryNavigationImpl() {
         <SecondaryNavigation.HeaderTitle>{t('Issues')}</SecondaryNavigation.HeaderTitle>
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
-        <SecondaryNavigation.SectionGroup id="issues-feed-and-types" tabLabel={t('Feed')}>
-          <SecondaryNavigation.Section id="issues-feed">
-            <SecondaryNavigation.List>
+        <SecondaryNavigation.Section id="issues-feed" tabLabel={t('Feed')}>
+          <SecondaryNavigation.List>
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/`}
+                end
+                analyticsItemName="issues_feed"
+              >
+                {t('Feed')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
+            {hasIssueInbox && (
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
-                  to={`${baseUrl}/`}
+                  to={`${baseUrl}/inbox/`}
                   end
-                  analyticsItemName="issues_feed"
+                  analyticsItemName="issues_inbox"
+                  leadingItems={
+                    settingsV3 ? <SecondaryNavigation.FeatureBadge type="new" /> : null
+                  }
+                  trailingItems={
+                    <Fragment>
+                      <InboxCountBadge />
+                      {settingsV3 ? null : (
+                        <SecondaryNavigation.FeatureBadge type="new" />
+                      )}
+                    </Fragment>
+                  }
                 >
-                  {t('Feed')}
+                  {t('Inbox')}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
-              {hasIssueInbox && (
-                <SecondaryNavigation.ListItem>
-                  <SecondaryNavigation.Link
-                    to={`${baseUrl}/inbox/`}
-                    end
-                    analyticsItemName="issues_inbox"
-                    leadingItems={
-                      settingsV3 ? <SecondaryNavigation.FeatureBadge type="new" /> : null
-                    }
-                    trailingItems={
-                      <Fragment>
-                        <InboxCountBadge />
-                        {settingsV3 ? null : (
-                          <SecondaryNavigation.FeatureBadge type="new" />
-                        )}
-                      </Fragment>
-                    }
-                  >
-                    {t('Inbox')}
-                  </SecondaryNavigation.Link>
-                </SecondaryNavigation.ListItem>
-              )}
-            </SecondaryNavigation.List>
-          </SecondaryNavigation.Section>
-          <SecondaryNavigation.Separator />
-          <SecondaryNavigation.Section id="issues-types">
-            <SecondaryNavigation.List>
-              {visibleIssueTypes.map(({key, label, badge}) => (
-                <SecondaryNavigation.ListItem key={key}>
-                  <SecondaryNavigation.Link
-                    to={`${baseUrl}/${key}/`}
-                    end
-                    analyticsItemName={`issues_types_${key}`}
-                    leadingItems={
-                      settingsV3 && badge ? (
-                        <SecondaryNavigation.FeatureBadge type={badge} />
-                      ) : null
-                    }
-                    trailingItems={
-                      !settingsV3 && badge ? (
-                        <SecondaryNavigation.FeatureBadge type={badge} />
-                      ) : null
-                    }
-                  >
-                    {label}
-                  </SecondaryNavigation.Link>
-                </SecondaryNavigation.ListItem>
-              ))}
-              <SecondaryNavigation.ListItem>
+            )}
+          </SecondaryNavigation.List>
+        </SecondaryNavigation.Section>
+        <SecondaryNavigation.Separator />
+        <SecondaryNavigation.Section id="issues-types" tabLabel={t('Feed')}>
+          <SecondaryNavigation.List>
+            {visibleIssueTypes.map(({key, label, badge}) => (
+              <SecondaryNavigation.ListItem key={key}>
                 <SecondaryNavigation.Link
-                  to={`${baseUrl}/feedback/`}
-                  analyticsItemName="issues_feedback"
+                  to={`${baseUrl}/${key}/`}
+                  end
+                  analyticsItemName={`issues_types_${key}`}
+                  leadingItems={
+                    settingsV3 && badge ? (
+                      <SecondaryNavigation.FeatureBadge type={badge} />
+                    ) : null
+                  }
+                  trailingItems={
+                    !settingsV3 && badge ? (
+                      <SecondaryNavigation.FeatureBadge type={badge} />
+                    ) : null
+                  }
                 >
-                  {t('User Feedback')}
+                  {label}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
-            </SecondaryNavigation.List>
-          </SecondaryNavigation.Section>
-        </SecondaryNavigation.SectionGroup>
+            ))}
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/feedback/`}
+                analyticsItemName="issues_feedback"
+              >
+                {t('User Feedback')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
+          </SecondaryNavigation.List>
+        </SecondaryNavigation.Section>
         {(hasSeerNightShift || !hasIssueInbox) && (
           <Fragment>
             <SecondaryNavigation.Separator />
@@ -176,22 +174,20 @@ function IssuesSecondaryNavigationImpl() {
           </Fragment>
         )}
         <SecondaryNavigation.Separator />
-        <SecondaryNavigation.SectionGroup id="issues-views" tabLabel={t('Views')}>
-          <SecondaryNavigation.Section id="issues-views-all">
-            <SecondaryNavigation.List>
-              <SecondaryNavigation.ListItem>
-                <SecondaryNavigation.Link
-                  to={`${baseUrl}/views/`}
-                  analyticsItemName="issues_all_views"
-                  end
-                >
-                  {t('All Views')}
-                </SecondaryNavigation.Link>
-              </SecondaryNavigation.ListItem>
-            </SecondaryNavigation.List>
-          </SecondaryNavigation.Section>
-          <IssueViews />
-        </SecondaryNavigation.SectionGroup>
+        <SecondaryNavigation.Section id="issues-views-all" tabLabel={t('Views')}>
+          <SecondaryNavigation.List>
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/views/`}
+                analyticsItemName="issues_all_views"
+                end
+              >
+                {t('All Views')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
+          </SecondaryNavigation.List>
+        </SecondaryNavigation.Section>
+        <IssueViews />
       </SecondaryNavigation.Body>
     </Fragment>
   );

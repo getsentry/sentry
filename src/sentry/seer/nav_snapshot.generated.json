@@ -75,10 +75,10 @@
       "when": {
         "all": [
           {
-            "flag": "explore-saved-formulas"
+            "flag": "visibility-explore-view"
           },
           {
-            "flag": "visibility-explore-view"
+            "flag": "explore-saved-formulas"
           }
         ]
       }
@@ -774,10 +774,10 @@
       "when": {
         "all": [
           {
-            "flag": "explore-saved-formulas"
+            "flag": "visibility-explore-view"
           },
           {
-            "flag": "visibility-explore-view"
+            "flag": "explore-saved-formulas"
           }
         ]
       },
@@ -899,7 +899,8 @@
         "Saved Queries",
         "Saved Queries",
         "Saved Formulas",
-        "Starred Queries"
+        "Starred Queries",
+        "Saved Queries"
       ],
       "insights": [
         "Insights",
@@ -917,6 +918,7 @@
         "Feed",
         "Feed",
         "Inbox",
+        "Feed",
         "User Feedback",
         "Autofix",
         "Overview",
@@ -930,6 +932,7 @@
         "All Monitors",
         "My Monitors",
         "By Monitor Type",
+        "Monitors",
         "Error",
         "Metric",
         "Cron",

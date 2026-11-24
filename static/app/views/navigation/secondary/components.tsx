@@ -1,8 +1,6 @@
 import {
-  Children,
   createContext,
   Fragment,
-  isValidElement,
   useContext,
   useEffect,
   useRef,
@@ -42,7 +40,6 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
-import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
@@ -73,13 +70,20 @@ import {
   type NavigationTourElementProps,
 } from 'sentry/views/navigation/navigationTour';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
-import {
-  useNavPeek,
-  usePrimaryNavigation,
-} from 'sentry/views/navigation/primaryNavigationContext';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+
+import {
+  isPreviewNavigationClick,
+  SecondaryNavigationPreviewBody,
+  SecondaryNavigationPreviewContext,
+  SecondaryNavigationPreviewTab,
+  useIsHiddenBetweenPreviewTabs,
+  useSecondaryNavigationPreview,
+} from './preview';
+import {useSecondaryNavigationToggle} from './useSecondaryNavigationToggle';
 
 const MotionContainer = motion.create(Container);
 const LEADING_SLOT_SIZE = '24px';
@@ -129,9 +133,9 @@ function SecondarySidebarPanel({
   // re-renders the tour and can hit React's update depth limit.
   const containerRef = useObjectRef(tourRef);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
-  const {layout, activeGroup} = usePrimaryNavigation();
-  // Group switches only animate to smooth over hover swaps, which nav peek replaces.
-  const navPeek = useNavPeek();
+  const {layout, activeGroup, hoverBehavior} = usePrimaryNavigation();
+  // Group switches only animate to smooth over hover swaps, which previews replace.
+  const animateGroupSwitch = hoverBehavior === 'activate';
   const isSettingsNavigation = useSettingsNavigation();
 
   const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
@@ -175,9 +179,9 @@ function SecondarySidebarPanel({
           width="100%"
           height="100%"
           key={activeGroup}
-          initial={navPeek ? false : {x: -6, opacity: 0}}
+          initial={animateGroupSwitch ? {x: -6, opacity: 0} : false}
           animate={{x: 0, opacity: 1}}
-          exit={navPeek ? undefined : {x: 6, opacity: 0}}
+          exit={animateGroupSwitch ? {x: 6, opacity: 0} : undefined}
           transition={{duration: 0.06}}
         >
           <Grid
@@ -313,19 +317,13 @@ interface SecondaryNavigationHeaderProps {
   children?: ReactNode;
 }
 
-const SecondaryNavigationPreview = createContext(false);
-
-export function useIsSecondaryNavigationPreview() {
-  return useContext(SecondaryNavigationPreview);
-}
-
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
   const settingsV3 = useSettingsV3();
   const isMobile = layout === 'mobile';
-  const isPreview = useContext(SecondaryNavigationPreview);
+  const preview = useSecondaryNavigationPreview();
 
-  if (isPreview) {
+  if (preview) {
     return null;
   }
 
@@ -366,12 +364,11 @@ function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
   );
 }
 
-function SecondaryNavigationToggle({
-  variant,
-}: Pick<ComponentProps<typeof Button>, 'variant'>) {
+function SecondaryNavigationToggle() {
   const {layout} = usePrimaryNavigation();
-  const {collapsible, view, setView} = useSecondaryNavigation();
+  const {collapsible, view} = useSecondaryNavigation();
   const isCollapsed = view !== 'expanded';
+  const toggleProps = useSecondaryNavigationToggle();
 
   if (!collapsible) {
     return null;
@@ -382,8 +379,8 @@ function SecondaryNavigationToggle({
       <Button
         size="sm"
         icon={<IconClose />}
-        aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-        onClick={() => setView(isCollapsed ? 'expanded' : 'collapsed')}
+        aria-label={toggleProps['aria-label']}
+        onClick={toggleProps.onClick}
         variant="transparent"
       />
     );
@@ -392,14 +389,8 @@ function SecondaryNavigationToggle({
   return (
     <Button
       size="sm"
-      data-secondary-navigation-toggle
-      icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
-      aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-      onClick={() => setView(isCollapsed ? 'expanded' : 'collapsed')}
-      variant={variant ?? (isCollapsed ? 'primary' : 'transparent')}
-      analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
-      analyticsEventKey="sidebar_secondary_toggle_button_clicked"
-      analyticsParams={{is_collapsed: isCollapsed}}
+      {...toggleProps}
+      variant={isCollapsed ? 'primary' : 'transparent'}
     />
   );
 }
@@ -411,9 +402,9 @@ interface SecondaryNavigationBodyProps {
 function SecondaryNavigationBody(props: SecondaryNavigationBodyProps) {
   const {layout} = usePrimaryNavigation();
   const settingsV3 = useSettingsV3();
-  const isPreview = useContext(SecondaryNavigationPreview);
+  const preview = useSecondaryNavigationPreview();
 
-  if (isPreview) {
+  if (preview) {
     return (
       <SecondaryNavigationPreviewBody>{props.children}</SecondaryNavigationPreviewBody>
     );
@@ -442,71 +433,24 @@ interface SecondaryNavigationSectionGroupProps {
   tabLabel: string;
 }
 
+/**
+ * Shows the sections inside it as one tab of a navigation preview, such as the
+ * sections that another component renders. Sections that take a `tabLabel`
+ * directly share a tab when their labels match.
+ */
 function SecondaryNavigationSectionGroup({
   children,
+  id,
+  tabLabel,
 }: SecondaryNavigationSectionGroupProps) {
-  return children;
-}
-
-function getPreviewSections(
-  children: ReactNode
-): Array<{content: ReactNode; id: string; label: string} | null> {
-  return Children.toArray(children).flatMap(child => {
-    if (isValidElement<{children: ReactNode}>(child) && child.type === Fragment) {
-      return getPreviewSections(child.props.children);
-    }
-    if (
-      isValidElement<SecondaryNavigationSectionProps>(child) &&
-      child.type === SecondaryNavigationSection
-    ) {
-      const {id, tabLabel, title} = child.props;
-      const label = tabLabel ?? (typeof title === 'string' ? title : undefined);
-      return label ? [{content: child, id, label}] : [null];
-    }
-    if (
-      isValidElement<SecondaryNavigationSectionGroupProps>(child) &&
-      child.type === SecondaryNavigationSectionGroup
-    ) {
-      return [{content: child, id: child.props.id, label: child.props.tabLabel}];
-    }
-    return isValidElement(child) && child.type === SecondaryNavigationSeparator
-      ? []
-      : [null];
-  });
-}
-
-function SecondaryNavigationPreviewBody({children}: SecondaryNavigationBodyProps) {
-  const sections = getPreviewSections(children);
-  const [firstSection] = sections;
-  if (
-    !firstSection ||
-    sections.length < 2 ||
-    !sections.every(section => section !== null)
-  ) {
-    return <Container padding="0 md">{children}</Container>;
-  }
-
   return (
-    <Tabs size="sm" defaultValue={firstSection.id}>
-      {({TabList, TabPanels}) => (
-        <Fragment>
-          <Container borderBottom="primary" padding="0 md">
-            <TabList aria-label={t('Navigation sections')}>
-              {sections.map(({id, label}) => (
-                <TabList.Item key={id}>{label}</TabList.Item>
-              ))}
-            </TabList>
-          </Container>
-          <TabPanels>
-            {sections.map(({content, id}) => (
-              <TabPanels.Item key={id}>
-                <Container padding="0 md">{content}</Container>
-              </TabPanels.Item>
-            ))}
-          </TabPanels>
-        </Fragment>
-      )}
-    </Tabs>
+    <SecondaryNavigationPreviewTab
+      id={id}
+      label={tabLabel}
+      separator={<SecondaryNavigationSeparator />}
+    >
+      {children}
+    </SecondaryNavigationPreviewTab>
   );
 }
 
@@ -637,25 +581,33 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
     `secondary-nav-section-${props.id}-collapsed`,
     false
   );
-  const isPreview = useContext(SecondaryNavigationPreview);
+  const isPreview = useSecondaryNavigationPreview() !== null;
   const canCollapse = !isPreview && layout === 'sidebar' && !!props.title;
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
-    <Container padding={settingsV3 ? '0' : 'md sm'} data-nav-section>
-      {props.title && !isPreview ? (
-        <SectionTitle
-          canCollapse={canCollapse}
-          isCollapsed={isCollapsed}
-          setIsCollapsed={setIsCollapsedState}
-        >
-          {props.title}
-        </SectionTitle>
-      ) : null}
-      <Collapsible collapsed={isCollapsed} disabled={!canCollapse}>
-        {props.children}
-      </Collapsible>
-    </Container>
+    <SecondaryNavigationPreviewTab
+      id={props.id}
+      label={
+        props.tabLabel ?? (typeof props.title === 'string' ? props.title : undefined)
+      }
+      separator={<SecondaryNavigationSeparator />}
+    >
+      <Container padding={settingsV3 ? '0' : 'md sm'} data-nav-section>
+        {props.title && !isPreview ? (
+          <SectionTitle
+            canCollapse={canCollapse}
+            isCollapsed={isCollapsed}
+            setIsCollapsed={setIsCollapsedState}
+          >
+            {props.title}
+          </SectionTitle>
+        ) : null}
+        <Collapsible collapsed={isCollapsed} disabled={!canCollapse}>
+          {props.children}
+        </Collapsible>
+      </Container>
+    </SecondaryNavigationPreviewTab>
   );
 }
 
@@ -685,6 +637,7 @@ function SecondaryNavigationLink({
   const {layout, features} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
   const {setView} = useSecondaryNavigation();
+  const preview = useSecondaryNavigationPreview();
   const isMobile = layout === 'mobile';
 
   const sharedLinkProps = {
@@ -709,6 +662,10 @@ function SecondaryNavigationLink({
       // MobileNavigation watches for view === 'collapsed' and calls setIsOpen(false).
       if (isMobile && !features.hover) {
         setView('collapsed');
+      }
+
+      if (preview && isPreviewNavigationClick(e)) {
+        preview.onNavigate();
       }
 
       onClick?.(e);
@@ -770,6 +727,11 @@ function SecondaryNavigationLeadingSlot(props: SecondaryNavigationLeadingSlotPro
 
 function SecondaryNavigationSeparator() {
   const settingsV3 = useSettingsV3();
+  const isHiddenBetweenTabs = useIsHiddenBetweenPreviewTabs();
+
+  if (isHiddenBetweenTabs) {
+    return null;
+  }
 
   if (settingsV3) {
     return (
@@ -1072,6 +1034,7 @@ function SecondaryNavigationReorderableLink({
   const {layout, features} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
   const {setView} = useSecondaryNavigation();
+  const preview = useSecondaryNavigationPreview();
   const isMobile = layout === 'mobile';
 
   function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
@@ -1093,6 +1056,9 @@ function SecondaryNavigationReorderableLink({
       setView('collapsed');
     }
 
+    if (preview && isPreviewNavigationClick(e)) {
+      preview.onNavigate();
+    }
     onNavigate?.();
   }
 
@@ -1472,11 +1438,10 @@ const LegacySidebarNavigationLink = styled(Link)`
 `;
 
 export const SecondaryNavigation = {
-  Preview: SecondaryNavigationPreview,
+  Preview: SecondaryNavigationPreviewContext,
   SectionGroup: SecondaryNavigationSectionGroup,
   Header: SecondaryNavigationHeader,
   HeaderTitle: SecondaryNavigationHeaderTitle,
-  Toggle: SecondaryNavigationToggle,
   Body: SecondaryNavigationBody,
   Section: SecondaryNavigationSection,
   Separator: SecondaryNavigationSeparator,
