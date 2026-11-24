@@ -363,7 +363,7 @@ const fullWidthButtonStyles = (p: {theme: Theme}) => `
   font-size: ${p.theme.font.size.md};
 `;
 
-const FullWidthButton = styled(Button)`
+export const FullWidthButton = styled(Button)`
   ${fullWidthButtonStyles}
 `;
 

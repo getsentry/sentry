@@ -17,8 +17,8 @@ import {
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
+import {ImpactChip} from 'sentry/views/issueDetails/groupImpact';
 
-import {ImpactChip} from './chips/impactChip';
 import {ActivityLineHeadline} from './layout';
 import {ActivityLineMarker} from './marker';
 
@@ -54,7 +54,7 @@ export function ActivityLineImpact({
           timestamp={
             <TimeSince date={activity.dateCreated} unitStyle={timestampUnitStyle} />
           }
-          trailingItems={<FeatureBadge type="alpha" />}
+          leadingItems={<FeatureBadge type="alpha" />}
         />
       }
     >
