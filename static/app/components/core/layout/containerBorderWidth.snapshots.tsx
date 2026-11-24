@@ -2,9 +2,9 @@ import type {ReactNode} from 'react';
 
 import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {lightTheme, type BorderWidthToken} from '@sentry/scraps/theme';
+import type {BorderWidthToken} from '@sentry/scraps/theme';
 
-const BORDER_WIDTHS = Object.keys(lightTheme.border) as BorderWidthToken[];
+const BORDER_WIDTHS: BorderWidthToken[] = ['0', 'md', 'lg', 'xl', '2xl'];
 
 function Swatch({children, ...props}: ContainerProps & {children: ReactNode}) {
   return (
