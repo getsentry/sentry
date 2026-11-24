@@ -238,7 +238,6 @@ describe('ReleaseHeader', () => {
       });
 
       afterEach(() => {
-        // The header is still mounted here, so the store update re-renders it.
         act(() => ProjectsStore.reset());
       });
 
@@ -281,7 +280,7 @@ describe('ReleaseHeader', () => {
         });
       });
 
-      it('offers the action for an archived release too', async () => {
+      it('offers the action for an archived release', async () => {
         const release = ReleaseFixture({
           projects: [project],
           status: ReleaseStatus.ARCHIVED,
@@ -296,7 +295,7 @@ describe('ReleaseHeader', () => {
         ]);
       });
 
-      it('hides the action without the in-product flows flag', async () => {
+      it('hides the action without the in-product flows feature flag', async () => {
         const release = ReleaseFixture({projects: [project]});
         renderHeader({
           org: OrganizationFixture({

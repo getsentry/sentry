@@ -62,7 +62,7 @@ import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
-import {getCustomFilterEntryPoint} from 'sentry/views/settings/project/projectFilters/customFilterEntryPoint';
+import {getAddInboundFilterAvailability} from 'sentry/views/settings/project/projectFilters/addInboundFilterAvailability';
 
 import {SeerCommandPaletteActions} from './seerCommandPaletteActions';
 import {ShareIssueModal} from './shareModal';
@@ -369,11 +369,14 @@ export function GroupActions({
 
   // The "Add Inbound Filter" menu item drafts a filter from the fields of the
   // error event on screen, so it needs one.
-  const inboundFilterEntryPoint = getCustomFilterEntryPoint(organization, project);
+  const addInboundFilterAvailability = getAddInboundFilterAvailability(
+    organization,
+    project
+  );
   const canAddInboundFilter =
-    inboundFilterEntryPoint.isVisible &&
+    addInboundFilterAvailability.isVisible &&
     (event?.type === EventOrGroupType.ERROR || event?.type === EventOrGroupType.DEFAULT);
-  const addInboundFilterDisabledReason = inboundFilterEntryPoint.disabledReason;
+  const addInboundFilterDisabledReason = addInboundFilterAvailability.disabledReason;
 
   const onAddInboundFilter = () => {
     if (!event) {

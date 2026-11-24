@@ -3,25 +3,22 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-type CustomFilterEntryPoint = {
-  // Why the entry point is disabled, shown next to it. Absent when the user can
-  // create a filter.
+type AddInboundFilterAvailability = {
+  // Why the "Add inbound filter" action is disabled, shown next to it.
   disabledReason: string | undefined;
-  // Whether to show the entry point at all.
   isVisible: boolean;
 };
 
 // Gating shared by the places outside project settings that open the custom
-// filter modal, like the issue and release actions menus. This module stays
-// small so those pages can check it without loading the modal itself.
+// filter modal, like the issue and release actions menus.
 //
 // `inbound-filters-v2` and `inbound-filters-v2-ui` also gate the filters table
 // in project settings. `inbound-filters-in-product-flows` gates the entry points
 // outside it.
-export function getCustomFilterEntryPoint(
+export function getAddInboundFilterAvailability(
   organization: Organization,
   project: Project
-): CustomFilterEntryPoint {
+): AddInboundFilterAvailability {
   const isVisible =
     organization.features.includes('inbound-filters-v2') &&
     organization.features.includes('inbound-filters-v2-ui') &&

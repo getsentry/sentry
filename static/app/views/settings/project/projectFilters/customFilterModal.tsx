@@ -138,7 +138,7 @@ type FilterFormValues = {conditions: string; dataType: FilterDataType; name: str
 
 // Where a draft passed to the modal comes from, which decides how the modal
 // introduces it.
-type FilterDraftSource = 'event' | 'release';
+type InboundFilterDraftSource = 'event' | 'release';
 
 type DataTypeSpec = {
   label: string;
@@ -833,7 +833,7 @@ function ObfuscatedErrorWarning({project}: {project: Project}) {
 function getModalDescription(
   legacyCondition: CustomInboundFilterCondition | undefined,
   isReadOnly: boolean,
-  draftSource: FilterDraftSource | undefined,
+  draftSource: InboundFilterDraftSource | undefined,
   project: Project
 ): string {
   if (legacyCondition) {
@@ -996,7 +996,7 @@ function CustomFilterModal({
 }: ModalRenderProps & {
   project: Project;
   // Where `initialValues` come from. Ignored when `filter` is set.
-  draftSource?: FilterDraftSource;
+  draftSource?: InboundFilterDraftSource;
   // The filter to edit. Absent when the modal creates one.
   filter?: CustomInboundFilter;
   // Starting values of a new filter. Ignored when `filter` is set.
@@ -1294,7 +1294,7 @@ function CustomFilterModal({
 // change it.
 export function openCustomFilterModal(options: {
   project: Project;
-  draftSource?: FilterDraftSource;
+  draftSource?: InboundFilterDraftSource;
   filter?: CustomInboundFilter;
   initialValues?: FilterFormValues;
   readOnlyReason?: string;

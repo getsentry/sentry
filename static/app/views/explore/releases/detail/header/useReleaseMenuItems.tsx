@@ -19,7 +19,7 @@ import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {isReleaseArchived} from 'sentry/views/explore/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
-import {getCustomFilterEntryPoint} from 'sentry/views/settings/project/projectFilters/customFilterEntryPoint';
+import {getAddInboundFilterAvailability} from 'sentry/views/settings/project/projectFilters/addInboundFilterAvailability';
 
 const MAX_VISIBLE_PROJECTS = 5;
 
@@ -112,8 +112,8 @@ export function useReleaseMenuItems({
   // carries a summary of it, so look up the full project for its features and
   // access.
   const project = useProjectFromId({project_id: projectId});
-  const inboundFilterEntryPoint = project
-    ? getCustomFilterEntryPoint(organization, project)
+  const addInboundFilterAvailability = project
+    ? getAddInboundFilterAvailability(organization, project)
     : undefined;
 
   async function handleArchive() {
@@ -205,9 +205,9 @@ export function useReleaseMenuItems({
     {
       key: 'add-inbound-filter',
       label: t('Add Inbound Filter for this release'),
-      hidden: !inboundFilterEntryPoint?.isVisible,
-      disabled: inboundFilterEntryPoint?.disabledReason !== undefined,
-      details: inboundFilterEntryPoint?.disabledReason,
+      hidden: !addInboundFilterAvailability?.isVisible,
+      disabled: addInboundFilterAvailability?.disabledReason !== undefined,
+      details: addInboundFilterAvailability?.disabledReason,
       onAction: () => {
         if (project) {
           openCustomFilterModalFromRelease(project, release.version);

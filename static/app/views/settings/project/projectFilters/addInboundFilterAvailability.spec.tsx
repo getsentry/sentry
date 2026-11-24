@@ -1,9 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {getCustomFilterEntryPoint} from './customFilterEntryPoint';
+import {getAddInboundFilterAvailability} from './addInboundFilterAvailability';
 
-describe('getCustomFilterEntryPoint', () => {
+describe('getAddInboundFilterAvailability', () => {
   const flags = [
     'inbound-filters-v2',
     'inbound-filters-v2-ui',
@@ -13,7 +13,7 @@ describe('getCustomFilterEntryPoint', () => {
   const project = ProjectFixture({features: ['custom-inbound-filters']});
 
   it('is visible and enabled with the flags, the plan feature and write access', () => {
-    expect(getCustomFilterEntryPoint(organization, project)).toEqual({
+    expect(getAddInboundFilterAvailability(organization, project)).toEqual({
       isVisible: true,
       disabledReason: undefined,
     });
@@ -25,12 +25,12 @@ describe('getCustomFilterEntryPoint', () => {
       features: flags.filter(f => f !== flag),
     });
 
-    expect(getCustomFilterEntryPoint(org, project).isVisible).toBe(false);
+    expect(getAddInboundFilterAvailability(org, project).isVisible).toBe(false);
   });
 
   it('is disabled when the plan lacks custom inbound filters', () => {
     expect(
-      getCustomFilterEntryPoint(organization, ProjectFixture({features: []}))
+      getAddInboundFilterAvailability(organization, ProjectFixture({features: []}))
         .disabledReason
     ).toBe('Your plan does not include custom inbound filters');
   });
@@ -39,7 +39,7 @@ describe('getCustomFilterEntryPoint', () => {
     const org = OrganizationFixture({...organization, access: []});
 
     expect(
-      getCustomFilterEntryPoint(org, ProjectFixture({...project, access: []}))
+      getAddInboundFilterAvailability(org, ProjectFixture({...project, access: []}))
         .disabledReason
     ).toBe('You need project write access to add custom inbound filters');
   });
@@ -48,7 +48,7 @@ describe('getCustomFilterEntryPoint', () => {
     const org = OrganizationFixture({...organization, access: []});
 
     expect(
-      getCustomFilterEntryPoint(
+      getAddInboundFilterAvailability(
         org,
         ProjectFixture({...project, access: ['project:write']})
       ).disabledReason
