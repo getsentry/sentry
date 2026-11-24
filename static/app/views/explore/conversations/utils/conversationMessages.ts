@@ -4,6 +4,7 @@ import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
 import {
   EMPTY_TEXT_CONTENT,
   extractAssistantOutput,
+  getMessageRoles,
   normalizeToMessages,
 } from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
@@ -1180,17 +1181,19 @@ export function getInputMessageStats(node: AITraceSpanNode): InputMessageStats {
     return {totalMessageCount: 0, userMessageCount: 0};
   }
 
-  const {messages} = normalizeToMessages(raw, {defaultRole: 'user'});
-  if (!messages) {
-    return {totalMessageCount: 0, userMessageCount: 0};
-  }
   // System prompts are not conversation history; exclude them so a
   // non-cumulative SDK that always prepends a system message is still
-  // recognised as single-message (non-cumulative) input.
-  const nonSystem = messages.filter(m => m.role !== 'system');
+  // recognised as single-message (non-cumulative) input. Messages without
+  // text, like an assistant's tool requests, still count as history.
+  const historyRoles = getMessageRoles(raw, {defaultRole: 'user'}).filter(
+    role => role !== 'system'
+  );
+  // Only user messages with text count as user turns, so tool results sent
+  // back in user messages don't pass for a new question.
+  const {messages} = normalizeToMessages(raw, {defaultRole: 'user'});
   return {
-    totalMessageCount: nonSystem.length,
-    userMessageCount: nonSystem.filter(m => m.role === 'user').length,
+    totalMessageCount: historyRoles.length,
+    userMessageCount: messages?.filter(m => m.role === 'user').length ?? 0,
   };
 }
 
