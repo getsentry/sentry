@@ -21,6 +21,9 @@ from sentry.notifications.notification_action.issue_alert_registry import (
     SlackIssueAlertHandler,
     WebhookIssueAlertHandler,
 )
+from sentry.notifications.notification_action.issue_alert_registry.handlers.sentry_app_issue_alert_handler import (
+    SentryAppInstallationNotFound,
+)
 from sentry.notifications.notification_action.types import (
     BaseIssueAlertHandler,
     RuleData,
@@ -32,6 +35,8 @@ from sentry.notifications.types import (
     FallthroughChoiceType,
     NotificationActionContext,
 )
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.services.app import app_service
 from sentry.testutils.helpers.data_blobs import (
     AZURE_DEVOPS_ACTION_DATA_BLOBS,
     EMAIL_ACTION_DATA_BLOBS,
@@ -40,6 +45,7 @@ from sentry.testutils.helpers.data_blobs import (
     JIRA_SERVER_ACTION_DATA_BLOBS,
     WEBHOOK_ACTION_DATA_BLOBS,
 )
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
@@ -848,6 +854,66 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
 
         # Both orgs should have different sentry app installations
         assert action_1_uuid != action_2_uuid
+
+    def _create_sentry_app_action(self) -> Action:
+        return self.create_action(
+            type=Action.Type.SENTRY_APP,
+            config={
+                "target_identifier": str(self.sentry_app.id),
+                "target_type": ActionTarget.SENTRY_APP.value,
+            },
+        )
+
+    def test_build_rule_action_blob_missing_installation(self) -> None:
+        action = self._create_sentry_app_action()
+        with assume_test_silo_mode_of(SentryAppInstallation):
+            self.sentry_app_installation.delete()
+
+        with pytest.raises(SentryAppInstallationNotFound):
+            self.handler.build_rule_action_blob(action, self.organization.id)
+
+    def test_build_rule_action_blob_multiple_installations(self) -> None:
+        action = self._create_sentry_app_action()
+        installs = app_service.get_many(
+            filter=dict(app_ids=[self.sentry_app.id], organization_id=self.organization.id)
+        )
+
+        with mock.patch.object(app_service, "get_many", return_value=installs * 2):
+            with pytest.raises(ValueError, match="Expected 1 sentry app installation"):
+                self.handler.build_rule_action_blob(action, self.organization.id)
+
+    @mock.patch(
+        "sentry.notifications.notification_action.issue_alert_registry.handlers.sentry_app_issue_alert_handler.logger"
+    )
+    @mock.patch("sentry.notifications.notification_action.types.activate_downstream_actions")
+    def test_invoke_legacy_registry_missing_installation(
+        self, mock_activate_downstream_actions: MagicMock, mock_logger: MagicMock
+    ) -> None:
+        action = self._create_sentry_app_action()
+        workflow = self.create_workflow(organization=self.organization)
+        group, _, group_event = self.create_group_event()
+        invocation = ActionInvocation(
+            event_data=WorkflowEventData(event=group_event, group=group),
+            action=action,
+            detector=self.detector,
+            notification_uuid=str(uuid.uuid4()),
+            workflow_id=workflow.id,
+        )
+        with assume_test_silo_mode_of(SentryAppInstallation):
+            self.sentry_app_installation.delete()
+
+        # Doesn't raise, so trigger_action won't retry or report an error.
+        self.handler.invoke_legacy_registry(invocation)
+
+        mock_activate_downstream_actions.assert_not_called()
+        mock_logger.info.assert_called_once_with(
+            "sentry_app.issue_alert.missing_installation",
+            extra={
+                "action_id": action.id,
+                "sentry_app_id": str(self.sentry_app.id),
+                "detector_id": self.detector.id,
+            },
+        )
 
 
 class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
