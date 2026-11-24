@@ -11,7 +11,7 @@ from sentry.anomaly_detection.detector import (
     MinuteDecisions,
 )
 from sentry.anomaly_detection.evaluation.organization import AnomalyDecision, AnomalyEvidence
-from sentry.notebooks.models import Notebook
+from sentry.notebooks.models import Notebook, NotebookStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import cell_silo_test
@@ -36,7 +36,7 @@ PRODUCE = (
     "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
 )
 DISPATCH = "sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay"
-CREATE = "sentry.investigations.services.create_agentic_manual_investigation"
+CREATE = "sentry.investigations.services.create_agentic_detector_investigation"
 EVIDENCE: AnomalyEvidence = {
     "signal": "errors",
     "change_type": ChangeType.SPIKE,
@@ -190,16 +190,26 @@ class TestAnomalyDetectionDetectorHandler(TestCase):
         assert Notebook.objects.count() == 1
         self.produce.assert_not_called()
 
-    def test_reopen_starts_a_new_investigation(self) -> None:
+    def test_reopen_reuses_the_active_investigation(self) -> None:
         self.open(self.decision(MINUTE))
         self.resolve(self.decision(MINUTE + timedelta(minutes=1), resolved=True))
         self.open(self.decision(MINUTE + timedelta(minutes=2)))
 
+        assert Notebook.objects.count() == 1
+
+    def test_reopen_after_archiving_starts_a_new_investigation(self) -> None:
+        self.open(self.decision(MINUTE))
+        self.resolve(self.decision(MINUTE + timedelta(minutes=1), resolved=True))
+        Notebook.objects.update(status=NotebookStatus.ARCHIVED)
+        self.open(self.decision(MINUTE + timedelta(minutes=2)))
+
+        assert Notebook.objects.filter(status=NotebookStatus.ACTIVE).count() == 1
         assert Notebook.objects.count() == 2
 
     def test_replayed_reopen_does_not_start_another_investigation(self) -> None:
         self.open(self.decision(MINUTE))
         self.resolve(self.decision(MINUTE + timedelta(minutes=1), resolved=True))
+        Notebook.objects.update(status=NotebookStatus.ARCHIVED)
         self.open(self.decision(MINUTE + timedelta(minutes=2)))
 
         # A retry before the checkpoint commit republishes the same minutes.
@@ -306,12 +316,12 @@ class TestAnomalyDetectionDetectorHandler(TestCase):
 
         with (
             patch.object(metrics, "incr") as incr,
-            patch.object(seer_investigation.logger, "exception") as log_exception,
+            patch.object(seer_investigation.logger, "warning") as log_warning,
         ):
             self.open(self.decision(MINUTE))
 
         assert not Notebook.objects.exists()
-        log_exception.assert_called_once()
+        log_warning.assert_called_once()
         incr.assert_any_call(
             "workflow_engine.seer_investigation.skipped",
             tags={

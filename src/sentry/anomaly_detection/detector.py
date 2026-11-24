@@ -60,8 +60,8 @@ class AnomalyDetectionDetectorHandler(BaseDetectorHandler[MinuteDecisions, Detec
     the evaluator's decision is the priority. `DetectorState` is the authority on which
     groups are open: this handler turns decisions into transitions against it, per-group
     dedupe skips replayed minutes, and the evaluator's open set only ever closes groups.
-    Each open, including a reopen, starts one Seer investigation, created by the service
-    account in the detector's config.
+    Each open starts a Seer investigation, created by the service account in the detector's
+    config; a reopen reuses the group's investigation until it's archived.
     """
 
     on_complete = DetectorOutcome.SEER_INVESTIGATION.dispatch
