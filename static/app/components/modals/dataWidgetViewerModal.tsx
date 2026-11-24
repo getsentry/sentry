@@ -706,10 +706,9 @@ function DataWidgetViewerModal(props: Props) {
             }}
             components={{Value: QueryValue, OptionLabel: QueryOptionLabel}}
             styles={{
-              singleValue: () => ({
+              singleValue: base => ({
+                ...base,
                 wordBreak: 'break-word',
-                flex: 1,
-                display: 'flex',
                 padding: `0 ${theme.space.xs}`,
               }),
             }}
