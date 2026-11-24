@@ -93,7 +93,11 @@ function SettingsNavigationHeader() {
     case 'org':
       return <SettingsOrganizationHeader />;
     case 'account':
-      return <SettingsHeaderLabel bold label={getSettingsScopeTitle(scope)} />;
+      return (
+        <SecondaryNavigation.HeaderTitle>
+          {getSettingsScopeTitle(scope)}
+        </SecondaryNavigation.HeaderTitle>
+      );
     default:
       return unreachable(scope);
   }
@@ -226,18 +230,10 @@ function SettingsOrganizationHeader() {
 
 /**
  * Same height, padding and icon spacing as the selector trigger (a `sm` button),
- * so the header content lines up across the account, organization and project
- * scopes. Keep in sync if the `sm` button padding changes.
+ * so the header doesn't shift between users with one organization and with
+ * several. Keep in sync if the `sm` button padding changes.
  */
-function SettingsHeaderLabel({
-  label,
-  icon,
-  bold,
-}: {
-  label: React.ReactNode;
-  bold?: boolean;
-  icon?: React.ReactNode;
-}) {
+function SettingsHeaderLabel({label, icon}: {icon: React.ReactNode; label: string}) {
   return (
     <Flex
       align="center"
@@ -247,10 +243,8 @@ function SettingsHeaderLabel({
       paddingLeft="lg"
       paddingRight="lg"
     >
-      {icon ? <Flex flexShrink={0}>{icon}</Flex> : null}
-      <Text ellipsis bold={bold}>
-        {label}
-      </Text>
+      <Flex flexShrink={0}>{icon}</Flex>
+      <Text ellipsis>{label}</Text>
     </Flex>
   );
 }
