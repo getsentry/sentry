@@ -16,6 +16,7 @@ from sentry.constants import (
 )
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import (
@@ -25,7 +26,7 @@ from sentry.seer.agent.client_utils import (
 )
 from sentry.seer.agent.on_completion_hook import extract_hook_definition
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
-from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
@@ -138,6 +139,16 @@ def should_use_single_run(
     return single_run_requested or features.has(
         "organizations:autofix-single-run", group.organization
     )
+
+
+def manual_single_run_stopping_point(project: Project) -> AutofixStoppingPoint:
+    opens_prs = (
+        project.get_option("sentry:autofix_automation_tuning")
+        != AutofixAutomationTuningSettings.OFF
+        and project.get_option("sentry:seer_automated_run_stopping_point")
+        == AutofixStoppingPoint.OPEN_PR
+    )
+    return AutofixStoppingPoint.OPEN_PR if opens_prs else AutofixStoppingPoint.CODE_CHANGES
 
 
 def _single_run_pr_internal_settings(
@@ -408,7 +419,7 @@ def trigger_autofix_feature(
         single_run_requested=args.single_run,
     )
     stopping_point = (
-        (args.stopping_point or AutofixStoppingPoint.CODE_CHANGES)
+        (args.stopping_point or manual_single_run_stopping_point(group.project))
         if single_run
         else args.stopping_point
     )
@@ -434,9 +445,8 @@ def trigger_autofix_feature(
             user_context=args.user_context,
             should_run_repo_checks=True,
         )
-        # The project's coding agent writes the fix, so Seer stops after the root cause. Only
-        # automated runs, which pass the project's stopping point, hand off. A manual run names
-        # none and has Seer write the fix; the user can hand off from the UI instead.
+        # Only automated runs, which pass the project's stopping point, hand off to the coding
+        # agent. A manual run names none, so Seer writes the fix and follows the project's Open PRs.
         hand_off = will_hand_off_to_coding_agent(group, args.stopping_point)
         enable_coding = (
             stopping_point in _CODING_STOPPING_POINTS and not hand_off and _org_allows_coding(group)
