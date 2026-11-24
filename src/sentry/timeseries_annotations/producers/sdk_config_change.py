@@ -218,8 +218,10 @@ def normalize(payload: Mapping[str, Any]) -> dict[str, Any]:
     Function tokens like ``[Function:xxxx]`` are kept: a changed token means the user's function
     changed. ``release``/``dsn`` are dropped — they shift per deploy without a real config change.
     """
-    options = payload.get("options", {})
-    sdk = payload.get("sdk", {})
+    # Fields come from untrusted client JSON: a present-but-null key (e.g. {"options": null})
+    # returns None from .get(default), so coalesce every nested container before using it.
+    options = payload.get("options") or {}
+    sdk = payload.get("sdk") or {}
     return {
         "sdk": {
             "name": sdk.get("name"),
@@ -231,10 +233,10 @@ def normalize(payload: Mapping[str, Any]) -> dict[str, Any]:
             for key, value in options.items()
             if key not in _NOISE_OPTIONS
         },
-        "options_set_by_user": sorted(payload.get("options_set_by_user", [])),
+        "options_set_by_user": sorted(payload.get("options_set_by_user") or []),
         "integrations": sorted(
             entry.get("name", "")
-            for entry in payload.get("integrations", [])
+            for entry in (payload.get("integrations") or [])
             if isinstance(entry, dict)
         ),
     }
@@ -310,7 +312,14 @@ def _integration_delta(changes: Mapping[str, tuple[Any, Any]]) -> tuple[list[str
 
 
 def _query_timeline(params: SnubaParams) -> list[_Sample]:
-    """One row per (project, config hash) with its first-seen time, all projects in one query."""
+    """One row per (project, config hash) with its first-seen time, all projects in one query.
+
+    Each distinct hash contributes a single first-seen (``min(timestamp_precise)``) within the
+    window, so this intentionally does not resolve a re-adopted config (A→B→A reads as one A) or
+    place a marker for two configs that already coexisted at the window start. This experimental
+    producer trades that temporal precision for one cheap grouped read; a time-bucketed scan is
+    the upgrade path if exact transition timing is needed.
+    """
     with traces.start_span(
         name="timeseries_annotations.sdk_config.timeline_query", attributes={"sentry.op": _SPAN_OP}
     ) as span:
@@ -353,12 +362,26 @@ def _resolve_configs(params: SnubaParams, hashes: set[str]) -> dict[str, _Config
         name="timeseries_annotations.sdk_config.payload_fetch", attributes={"sentry.op": _SPAN_OP}
     ) as span:
         span.set_attribute("distinct_hash_count", len(hashes))
-        return {
-            config_hash: _Config(normalized, fingerprint(normalized))
-            for config_hash in hashes
-            if (payload := _query_payload(params, config_hash)) is not None
-            and (normalized := normalize(payload))
-        }
+        resolved: dict[str, _Config] = {}
+        for config_hash in hashes:
+            config = _resolve_config(params, config_hash)
+            if config is not None:
+                resolved[config_hash] = config
+        return resolved
+
+
+def _resolve_config(params: SnubaParams, config_hash: str) -> _Config | None:
+    """Fetch and normalize one hash's config; skip (don't abort the batch) on a bad payload."""
+    payload = _query_payload(params, config_hash)
+    if payload is None:
+        return None
+    try:
+        normalized = normalize(payload)
+    except (AttributeError, TypeError):
+        # Malformed client metric JSON for this one hash: skip it, keep the rest.
+        logger.warning("timeseries_annotations.sdk_config_payload_unnormalizable")
+        return None
+    return _Config(normalized, fingerprint(normalized))
 
 
 def _query_payload(params: SnubaParams, config_hash: str) -> dict[str, Any] | None:

@@ -150,7 +150,13 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
         return [
             a
             for a in derived
-            if (not environment_ids or a.environment_id in environment_ids)
+            # Mirror the stored queryset's env scoping: an environment filter still keeps
+            # org-wide (null environment) rows, exactly as `_env_id__in | _env_id__isnull`.
+            if (
+                not environment_ids
+                or a.environment_id in environment_ids
+                or a.environment_id is None
+            )
             and (not scopes or a.scope in scopes)
             and (not types or a.annotation_type in types)
             and (not severities or a.severity in severities)
