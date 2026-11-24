@@ -5,12 +5,15 @@ import logging
 import random
 import uuid
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from time import time
 from typing import TYPE_CHECKING, Any, Callable, TypedDict
 
 import sentry_sdk
 from django.conf import settings
+from django.db import router
+from django.db.models import IntegerField, QuerySet, Value
 from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
@@ -26,6 +29,7 @@ from sentry.killswitches import (
     killswitch_matches_context,
     value_matches,
 )
+from sentry.options.rollout import in_random_rollout
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import publish_replay_event
 from sentry.signals import event_processed, issue_unignored
@@ -51,10 +55,12 @@ from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_contex
 if TYPE_CHECKING:
     from sentry.eventstream.base import GroupState
     from sentry.issues.ownership.grammar import Rule
+    from sentry.models.eventattachment import EventAttachment
     from sentry.models.group import Group
     from sentry.models.groupinbox import InboxReasonDetails
     from sentry.models.project import Project
     from sentry.models.team import Team
+    from sentry.models.userreport import UserReport
     from sentry.services.eventstore.models import Event, GroupEvent
     from sentry.users.services.user import RpcUser
 
@@ -82,6 +88,21 @@ COMMIT_CONTEXT_PROJECT_CACHE_TIMEOUT = 300
 COMMIT_CONTEXT_ORG_INTEGRATION_CACHE_TIMEOUT = 14400
 
 
+@dataclass(frozen=True)
+class EventLinkProbe:
+    """
+    Which of an event's attachments and user reports still need work in post-processing.
+    See `_get_event_link_probe`.
+    """
+
+    # `PendingEventAttachment` rows that can be promoted now that the event exists.
+    has_pending_attachments: bool
+    # `EventAttachment` rows that are not linked to the event's group.
+    has_attachments_to_relink: bool
+    # `UserReport` rows that are not linked to a group yet.
+    has_user_reports_to_link: bool
+
+
 class PostProcessJob(TypedDict, total=False):
     event: GroupEvent
     group_state: GroupState
@@ -90,6 +111,9 @@ class PostProcessJob(TypedDict, total=False):
     # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool
     halt_post_process: bool
+    # Set by `_get_event_link_probe`. None means the event was not probed, and each
+    # pipeline step queries its own table instead.
+    event_link_probe: EventLinkProbe | None
 
 
 def _should_send_error_created_hooks(project: Project) -> bool:
@@ -461,6 +485,85 @@ def handle_group_owners(
         pass
 
 
+def _attachments_to_relink(event: GroupEvent) -> QuerySet[EventAttachment]:
+    from sentry.models.eventattachment import EventAttachment
+
+    return EventAttachment.objects.filter(
+        project_id=event.project_id, event_id=event.event_id
+    ).exclude(group_id=event.group_id)
+
+
+def _user_reports_to_link(event: GroupEvent) -> QuerySet[UserReport]:
+    from sentry.models.userreport import UserReport
+
+    return UserReport.objects.filter(
+        project_id=event.project_id, event_id=event.event_id, group_id__isnull=True
+    )
+
+
+def _probe_event_links(event: GroupEvent) -> EventLinkProbe | None:
+    from sentry.models.eventattachment import EventAttachment, PendingEventAttachment
+    from sentry.models.userreport import UserReport
+
+    # A single statement can only read tables that live in the same database.
+    models = (PendingEventAttachment, EventAttachment, UserReport)
+    if len({router.db_for_read(model) for model in models}) > 1:
+        return None
+
+    def flag(queryset: QuerySet[Any], kind: int) -> QuerySet[Any, int]:
+        return queryset.annotate(kind=Value(kind, output_field=IntegerField())).values_list(
+            "kind", flat=True
+        )[:1]
+
+    pending_attachments, attachments_to_relink, user_reports_to_link = 1, 2, 3
+    found = set(
+        flag(
+            PendingEventAttachment.objects.filter(
+                project_id=event.project_id, event_id=event.event_id
+            ),
+            pending_attachments,
+        ).union(
+            flag(_attachments_to_relink(event), attachments_to_relink),
+            flag(_user_reports_to_link(event), user_reports_to_link),
+            all=True,
+        )
+    )
+    return EventLinkProbe(
+        has_pending_attachments=pending_attachments in found,
+        has_attachments_to_relink=attachments_to_relink in found,
+        has_user_reports_to_link=user_reports_to_link in found,
+    )
+
+
+def _get_event_link_probe(job: PostProcessJob) -> EventLinkProbe | None:
+    """
+    Checks in one statement whether the event has pending attachments to promote,
+    attachments to relink to its group, or user reports to link.
+
+    Almost no event has any of the three, so asking each question separately costs a
+    round trip to the database per question on every event. `update_existing_attachments`
+    and `link_event_to_user_report` share this result instead, and only touch a table
+    when the probe found something in it.
+
+    Returns None when the event was not probed. The caller then queries its own table.
+
+    The result is stored on the job so that the steps share it. A probe that raises is
+    not stored, so a failure in one step leaves the other free to try again.
+    """
+    if "event_link_probe" in job:
+        return job["event_link_probe"]
+
+    probe = None
+    # A reprocessed event is linked unconditionally, so there is nothing to ask.
+    if not job["is_reprocessed"] and in_random_rollout(
+        "post_process.consolidated-link-probe.rollout-rate"
+    ):
+        probe = _probe_event_links(job["event"])
+
+    job["event_link_probe"] = probe
+    return probe
+
+
 def update_existing_attachments(job: PostProcessJob) -> None:
     """
     Attaches the group_id to all event attachments that were either:
@@ -472,15 +575,14 @@ def update_existing_attachments(job: PostProcessJob) -> None:
     Also makes a second attempt at promoting pending attachments.
     """
     from sentry.event_manager import save_pending_attachments
-    from sentry.models.eventattachment import EventAttachment
 
     event = job["event"]
+    probe = _get_event_link_probe(job)
 
     # Update attachments from reprocessed events or feedback events,
     # which get their group ID after `save_generic_events`.
-    EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).exclude(
-        group_id=event.group_id
-    ).update(group_id=event.group_id)
+    if probe is None or probe.has_attachments_to_relink:
+        _attachments_to_relink(event).update(group_id=event.group_id)
 
     # `process_individual_attachment` decides whether an attachment is "pending" by asking
     # eventstore -- i.e. Snuba -- whether the event exists yet. Snuba lags, so an
@@ -501,7 +603,11 @@ def update_existing_attachments(job: PostProcessJob) -> None:
     # eventstore once Snuba has certainly caught up.
     #
     # NOTE: guarded on `is_reprocessed` to match the call in `save_error_events`.
-    if not job["is_reprocessed"] and event.group_id is not None:
+    if (
+        not job["is_reprocessed"]
+        and event.group_id is not None
+        and (probe is None or probe.has_pending_attachments)
+    ):
         safe_execute(
             save_pending_attachments,
             project=event.project,
@@ -1497,11 +1603,12 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
         metrics.incr("event_manager.save._update_user_reports_with_event_link")
         event = job["event"]
         project = event.project
-        user_reports_without_group = UserReport.objects.filter(
-            project_id=project.id, event_id=event.event_id, group_id__isnull=True
-        )
         # Almost no events have a user report, so skip the update and environment lookup.
         # Reports saved after this read are linked later by the update_user_reports task.
+        probe = _get_event_link_probe(job)
+        if probe is not None and not probe.has_user_reports_to_link:
+            return
+        user_reports_without_group = _user_reports_to_link(event)
         if not user_reports_without_group:
             return
         for report in user_reports_without_group:
