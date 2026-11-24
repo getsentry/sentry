@@ -8,6 +8,7 @@ from typing import Any, Literal, cast
 from django.conf import settings
 from rest_framework import serializers
 
+from sentry.constants import ENABLED_CONSOLE_PLATFORMS_DEFAULT
 from sentry.ingest import legacy_filter_lists
 from sentry.ingest.legacy_filter_lists import FilterTypes as FilterTypes
 from sentry.models.custominboundfilter import (
@@ -442,6 +443,69 @@ ACTIVE_GENERIC_FILTERS: Sequence[tuple[str, Callable[[], RuleCondition | None]]]
 ]
 
 
+# Browser SDKs report the OS of the device running the browser, so a web app opened
+# in a console browser reports a console OS without using a console SDK.
+_BROWSER_SDK_NAMES = ["sentry.javascript.*"]
+
+
+@dataclass(frozen=True)
+class _ConsolePlatformFilter:
+    # Value stored in the `sentry:enabled_console_platforms` organization option.
+    platform: str
+    sdk_names: list[str]
+    os_names: list[str]
+
+    @property
+    def filter_id(self) -> str:
+        return f"console-platform-{self.platform}"
+
+    def condition(self) -> RuleCondition:
+        not_browser: NotCondition = {
+            "op": "not",
+            "inner": {"op": "glob", "name": "event.sdk.name", "value": _BROWSER_SDK_NAMES},
+        }
+        return {
+            "op": "or",
+            "inner": [
+                {"op": "glob", "name": "event.sdk.name", "value": self.sdk_names},
+                {
+                    "op": "and",
+                    "inner": [
+                        {"op": "glob", "name": "event.contexts.os.name", "value": self.os_names},
+                        not_browser,
+                    ],
+                },
+            ],
+        }
+
+
+# Drops events from console platforms that the organization has no access to. The OS
+# name catches engine SDKs, such as Unity, that report the console OS without a
+# console-specific SDK name.
+CONSOLE_PLATFORM_FILTERS: Sequence[_ConsolePlatformFilter] = [
+    _ConsolePlatformFilter(
+        platform="playstation",
+        sdk_names=[
+            "sentry.native.playstation",
+            "sentry.native.playstation.*",
+            # Set by Relay for events built from PlayStation crash dumps.
+            "sentry.playstation.*",
+        ],
+        os_names=["PlayStation", "PlayStation *", "PS4", "PS5", "orbis_*"],
+    ),
+    _ConsolePlatformFilter(
+        platform="xbox",
+        sdk_names=["sentry.native.xbox", "sentry.native.xbox.*"],
+        os_names=["Xbox", "durangoos"],
+    ),
+    _ConsolePlatformFilter(
+        platform="nintendo-switch",
+        sdk_names=["sentry.native.switch", "sentry.native.switch.*", "nintendo.crash_report"],
+        os_names=["Nintendo", "Nintendo OS", "Nintendo Switch"],
+    ),
+]
+
+
 def get_global_generic_filters() -> GenericFiltersConfig:
     """Build shared generic filter definitions for Relay's global config.
 
@@ -453,6 +517,15 @@ def get_global_generic_filters() -> GenericFiltersConfig:
         condition = filter_fn()
         if condition is not None:
             filters.append({"id": filter_id, "isEnabled": False, "condition": condition})
+
+    for console_filter in CONSOLE_PLATFORM_FILTERS:
+        filters.append(
+            {
+                "id": console_filter.filter_id,
+                "isEnabled": False,
+                "condition": console_filter.condition(),
+            }
+        )
 
     return {"version": GENERIC_FILTERS_VERSION, "filters": filters}
 
@@ -479,6 +552,17 @@ def _trace_metric_names_generic_filters(project: Project) -> list[GenericFilter]
     return [_generic_filter("trace-metric-name", condition)]
 
 
+def _console_platform_generic_filters(project: Project) -> list[GenericFilter]:
+    enabled_platforms = project.organization.get_option(
+        "sentry:enabled_console_platforms", ENABLED_CONSOLE_PLATFORMS_DEFAULT
+    )
+    return [
+        {"id": console_filter.filter_id, "isEnabled": True, "condition": None}
+        for console_filter in CONSOLE_PLATFORM_FILTERS
+        if console_filter.platform not in enabled_platforms
+    ]
+
+
 def _ip_denylist_generic_filters(project: Project) -> list[GenericFilter]:
     """
     The legacy IP address list as a generic filter. It keeps the outcome reason of the
@@ -501,6 +585,9 @@ class InboundFilterFeatures:
 
     ``generic_ip_filter`` serves the legacy IP address list as a generic filter. The
     caller then leaves out the native ``clientIps`` setting.
+
+    ``console_platforms`` drops events from console platforms that are not in the
+    organization's ``sentry:enabled_console_platforms`` option.
     """
 
     custom_inbound_filters: bool = False
@@ -508,6 +595,7 @@ class InboundFilterFeatures:
     metrics: bool = False
     custom_inbound_filters_v2: bool = False
     generic_ip_filter: bool = False
+    console_platforms: bool = False
 
 
 def get_generic_filters(
@@ -545,6 +633,9 @@ def get_generic_filters(
             continue
 
         generic_filters.append({"id": generic_filter_id, "isEnabled": True, "condition": None})
+
+    if filter_features.console_platforms:
+        generic_filters += _console_platform_generic_filters(project)
 
     if not generic_filters:
         return None

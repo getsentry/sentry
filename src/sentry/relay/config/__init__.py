@@ -151,6 +151,9 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         generic_ip_filter=features.has(
             "organizations:inbound-filters-generic-ip-filter", organization
         ),
+        console_platforms=features.has(
+            "organizations:inbound-filters-console-platforms", organization
+        ),
     )
 
     if filter_features.custom_inbound_filters:
