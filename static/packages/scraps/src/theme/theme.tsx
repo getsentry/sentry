@@ -213,7 +213,7 @@ const font = {
   ...typography.font,
   family: {
     sans: "Rubik, 'Rubik Arial', 'Avenir Next', sans-serif",
-    mono: "'Roboto Mono', 'Roboto Mono Andale', Monaco, Consolas, 'Roboto Mono Courier', 'Courier New', monospace",
+    mono: "'Roboto Mono', 'Roboto Mono Andale', 'Roboto Mono Courier', Monaco, Consolas, 'Courier New', monospace",
   },
 } as const;
 

@@ -60,12 +60,12 @@
   --legacy-font-family-base:
     'Rubik', 'Rubik Arial', 'Avenir Next', 'Helvetica Neue', sans-serif;
   --legacy-font-family-code:
-    'Roboto Mono', 'Roboto Mono Andale', Consolas, 'Roboto Mono Courier', 'Courier New',
+    'Roboto Mono', 'Roboto Mono Andale', 'Roboto Mono Courier', Consolas, 'Courier New',
     monospace;
 
   /* Bootstrap values used outside of bootstrap/ */
   --legacy-font-family-monospace:
-    'Roboto Mono', 'Roboto Mono Andale', Menlo, Monaco, Consolas, 'Roboto Mono Courier',
+    'Roboto Mono', 'Roboto Mono Andale', 'Roboto Mono Courier', Menlo, Monaco, Consolas,
     'Courier New', monospace;
   --legacy-font-size-base: 14px;
   --legacy-line-height-base: 1.42857143;
