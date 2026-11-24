@@ -394,7 +394,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       isLowConfidenceDataPoint(param.data)
     );
     if (hasLowConfidence && !warningIconRef.current) {
-      warningIconRef.current = renderToString(<IconWarning size="xs" />);
+      warningIconRef.current = renderToString(<IconWarning size="xs" aria-hidden />);
     }
     const warningIcon = hasLowConfidence ? warningIconRef.current : '';
 

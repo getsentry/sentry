@@ -176,12 +176,17 @@ export abstract class ContinuousTimeSeries<
 
 export const DEFAULT_SEGMENT_BY: readonly TimeSeriesSegmentField[] = ['completeness'];
 
+/**
+ * Incomplete points don't count: the chart draws them in the incomplete style,
+ * which hides low confidence
+ */
 export function isLowConfidenceDataPoint(data: unknown): boolean {
   return (
     typeof data === 'object' &&
     data !== null &&
     'confidence' in data &&
-    data.confidence === 'low'
+    data.confidence === 'low' &&
+    !('completeness' in data && data.completeness === 'incomplete')
   );
 }
 
