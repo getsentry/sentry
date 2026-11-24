@@ -405,6 +405,10 @@ class Referrer(StrEnum):
     API_INSIGHTS_AGENTS_TRACE_DRAWER_TOOL_USAGE = (
         "api.insights.agent-monitoring.trace-drawer-tool-usage"
     )
+    API_INSIGHTS_AGENTS_SPAN_DETAILS = "api.insights.agent-monitoring.span-details"
+    API_INSIGHTS_AGENTS_SPAN_DETAILS_TOOL_USAGE = (
+        "api.insights.agent-monitoring.span-details-tool-usage"
+    )
     API_INSIGHTS_AGENTS_TRACES_TABLE = "api.insights.agent-monitoring.traces-table"
     API_INSIGHTS_AGENTS_ONBOARDING = "api.insights.agent-monitoring.onboarding"
 
