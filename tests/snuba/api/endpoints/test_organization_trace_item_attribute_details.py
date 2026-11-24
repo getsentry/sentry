@@ -299,7 +299,7 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
             entry.version for entry in changelog
         ]
 
-    def test_describes_the_resolved_stored_convention_when_datasets_store_different_names(
+    def test_describes_the_resolved_stored_convention_when_several_datasets_list_the_alias(
         self,
     ) -> None:
         self.store_spans([self.create_span({"sentry_tags": {"transaction": "/a"}})])
@@ -324,7 +324,7 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
             entry.version for entry in changelog
         ]
 
-    def test_keeps_the_listed_convention_context_when_an_alias_resolves_to_another_column(
+    def test_describes_the_alias_convention_when_it_resolves_to_a_differently_named_column(
         self,
     ) -> None:
         self.store_spans([self.create_span({"data": {"sentry.span_id": "a" * 16}})])
