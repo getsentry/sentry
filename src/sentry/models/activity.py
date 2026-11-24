@@ -206,7 +206,8 @@ class Activity(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
-    group = FlexibleForeignKey("sentry.Group", null=True)
+    # Lookups by group use the (group, datetime) index below.
+    group = FlexibleForeignKey("sentry.Group", null=True, db_index=False)
     # index on (type, ident)
     type: models.Field[int | ActivityType, int] = BoundedPositiveIntegerField(choices=CHOICES)
     ident = models.CharField(max_length=64, null=True)
@@ -223,6 +224,7 @@ class Activity(Model):
         indexes = (
             models.Index(fields=("project", "datetime")),
             models.Index(fields=("project", "type")),
+            models.Index(fields=("group", "datetime"), name="sentry_activity_group_date"),
         )
 
     __repr__ = sane_repr("project_id", "group_id", "event_id", "user_id", "type", "ident")

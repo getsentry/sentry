@@ -41,7 +41,7 @@ seer: 0050_rename_agentic_triage_v2
 
 seer_workflow_outputs: 0001_initial
 
-sentry: 1269_add_eventattachment_crash_report_index
+sentry: 1270_activity_group_date_index
 
 service_accounts: 0008_add_owner_kind
 
