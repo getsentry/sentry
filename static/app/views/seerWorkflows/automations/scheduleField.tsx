@@ -1,3 +1,6 @@
+import {IconClose} from '@sentry/icons/close';
+
+import {Button} from '@sentry/scraps/button';
 import {Input, type InputProps} from '@sentry/scraps/input';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
@@ -19,7 +22,15 @@ export function isValidCrontab(crontab: string) {
 
 interface ScheduleFieldProps {
   onChange: (value: WorkflowCronSchedule) => void;
+  /**
+   * Removes this schedule from the automation
+   */
+  onRemove: () => void;
   value: WorkflowCronSchedule;
+  /**
+   * Whether this schedule can be removed
+   */
+  canRemove?: boolean;
   disabled?: boolean;
   /**
    * Props for the crontab input, e.g. the field's id and blur handler
@@ -33,6 +44,8 @@ interface ScheduleFieldProps {
 export function ScheduleField({
   value,
   onChange,
+  onRemove,
+  canRemove,
   disabled,
   inputProps,
 }: ScheduleFieldProps) {
@@ -43,7 +56,7 @@ export function ScheduleField({
 
   return (
     <Stack gap="md" width="100%">
-      <Grid columns="minmax(0, 1fr) minmax(0, 1fr)" gap="md">
+      <Grid columns="minmax(0, 1fr) minmax(0, 1fr) max-content" gap="md">
         <Input
           aria-label={t('Crontab Schedule')}
           monospace
@@ -66,6 +79,12 @@ export function ScheduleField({
           options={timezoneOptions}
           disabled={disabled}
           onChange={option => onChange({...value, timezone: option.value})}
+        />
+        <Button
+          aria-label={t('Remove schedule')}
+          icon={<IconClose />}
+          disabled={disabled || !canRemove}
+          onClick={onRemove}
         />
       </Grid>
       {parsedSchedule && (

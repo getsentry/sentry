@@ -196,7 +196,7 @@ export type WorkflowCronSchedule = {
 export type SeerWorkflowConfigCreateRequest = {
   serviceAccount: SeerServiceAccountRequest;
   strategy: WorkflowStrategy;
-  cronSchedule?: WorkflowCronSchedule;
+  cronSchedule?: WorkflowCronSchedule[];
   enabled?: boolean;
   /**
    * Empty means all environments
@@ -218,7 +218,7 @@ export type SeerWorkflowConfigCreateRequest = {
  * Body of a PUT to a workflow config. Send at most one of projectIds or monitorIds
  */
 export type SeerWorkflowConfigUpdateRequest = {
-  cronSchedule?: WorkflowCronSchedule;
+  cronSchedule?: WorkflowCronSchedule[];
   enabled?: boolean;
   /**
    * Empty means all environments

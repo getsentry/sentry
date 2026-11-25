@@ -1,8 +1,9 @@
 import {useEffect, useImperativeHandle} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {
   defaultFormOptions,
@@ -49,14 +50,24 @@ import {
   type ProjectSelection,
 } from './serviceAccountAccess';
 
+/**
+ * The most schedules one automation can run on
+ */
+const MAX_SCHEDULES = 5;
+
 const schema = z.object({
   name: z.string().trim().min(1, t('Give your automation a name.')).max(64),
   enabled: z.boolean(),
   cronSchedule: z
-    .object({crontab: z.string().trim(), timezone: z.string()})
-    .refine(cron => isValidCrontab(cron.crontab), {
-      message: t('Enter a valid crontab schedule, e.g. 0 0 * * *'),
-    }),
+    .array(
+      z
+        .object({crontab: z.string().trim(), timezone: z.string()})
+        .refine(schedule => isValidCrontab(schedule.crontab), {
+          message: t('Enter a valid crontab schedule, e.g. 0 0 * * *'),
+        })
+    )
+    .min(1)
+    .max(MAX_SCHEDULES),
   projects: z
     .object({allProjects: z.boolean(), projectIds: z.array(z.string())})
     .refine(projects => projects.allProjects || projects.projectIds.length > 0, {
@@ -174,7 +185,7 @@ export function ScheduledInvestigationForm(
           ? t('Scheduled Investigation')
           : (props.config.name ?? STRATEGY_META.scheduled_investigation.label),
       // Timezone must be an IANA name.
-      cronSchedule: {crontab: DEFAULT_CRONTAB, timezone: 'UTC'},
+      cronSchedule: [{crontab: DEFAULT_CRONTAB, timezone: 'UTC'}],
       projects: defaultProjects,
       environment: currEnvironment,
       serviceAccountProjects: getServiceAccountProjectSelection(serviceAccount),
@@ -258,7 +269,7 @@ export function ScheduledInvestigationForm(
 
           <FormSection title={t('Trigger')}>
             <form.FieldGroup>
-              <form.AppField name="cronSchedule">
+              <form.AppField name="cronSchedule" mode="array">
                 {field => (
                   <field.Layout.Row
                     label={t('Schedule')}
@@ -266,16 +277,37 @@ export function ScheduledInvestigationForm(
                       link: <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />,
                     })}
                   >
-                    <field.Base<HTMLInputElement>>
-                      {({disabled: _disabled, ...inputProps}) => (
-                        <ScheduleField
-                          value={field.state.value}
-                          onChange={field.handleChange}
-                          disabled={readOnly}
-                          inputProps={inputProps}
+                    <Stack gap="md">
+                      {field.state.value.map((_, index) => (
+                        <form.AppField key={index} name={`cronSchedule[${index}]`}>
+                          {scheduleField => (
+                            <scheduleField.Base<HTMLInputElement>>
+                              {({disabled: _disabled, ...inputProps}) => (
+                                <ScheduleField
+                                  value={scheduleField.state.value}
+                                  onChange={scheduleField.handleChange}
+                                  onRemove={() => field.removeValue(index)}
+                                  // An automation always has at least one schedule
+                                  canRemove={index > 0}
+                                  disabled={readOnly}
+                                  inputProps={inputProps}
+                                />
+                              )}
+                            </scheduleField.Base>
+                          )}
+                        </form.AppField>
+                      ))}
+                      <Flex justify="end">
+                        <Button
+                          aria-label={t('Add schedule')}
+                          icon={<IconAdd />}
+                          disabled={readOnly || field.state.value.length >= MAX_SCHEDULES}
+                          onClick={() =>
+                            field.pushValue({crontab: DEFAULT_CRONTAB, timezone: 'UTC'})
+                          }
                         />
-                      )}
-                    </field.Base>
+                      </Flex>
+                    </Stack>
                   </field.Layout.Row>
                 )}
               </form.AppField>
