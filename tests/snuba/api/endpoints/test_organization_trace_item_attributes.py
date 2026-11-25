@@ -1167,6 +1167,48 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         attributes = {item["key"]: item for item in response.data}
         assert attributes["foo"]["context"]["brief"] == "Project brief"
 
+    def test_expand_context_custom_attribute_without_brief(self) -> None:
+        self._store_basic_segment()
+        self.create_context("foo", brief=None, additional_context="Only set by checkout.")
+
+        response = self.do_request(
+            query={"attributeType": "string", "expand": "context"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+
+        assert response.status_code == 200, response.data
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["foo"]["context"] == {
+            "isCustom": True,
+            "details": ["Only set by checkout."],
+        }
+
+    def test_expand_context_custom_attribute_emptied_project_context_hides_org_wide(
+        self,
+    ) -> None:
+        self._store_basic_segment()
+        self.create_context("foo", brief="Org-wide brief")
+        self.create_context("foo", project=self.project, brief=None)
+
+        response = self.do_request(
+            query={
+                "attributeType": "string",
+                "expand": "context",
+                "project": self.project.id,
+            },
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+
+        assert response.status_code == 200, response.data
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["foo"]["context"] == {}
+
     def test_expand_context_custom_attribute_type_must_match(self) -> None:
         self._store_basic_segment()
         # `foo` is a string attribute, so number-typed context must not attach.

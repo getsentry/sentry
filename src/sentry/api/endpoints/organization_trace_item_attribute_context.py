@@ -1,7 +1,10 @@
-from typing import Literal, Never
+from copy import copy
+from typing import Any, Literal, Never
 
+from django.db import router, transaction
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType as ProtoTraceItemType
@@ -23,6 +26,7 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.trace_item_attribute_context import (
+    TraceItemAttributeContextListResponse,
     TraceItemAttributeContextResponse,
     TraceItemAttributeContextSerializer,
 )
@@ -53,13 +57,25 @@ from sentry.search.eap import constants
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import attribute_name_exists
+from sentry.search.events.types import SnubaParams
 
 AttributeType = Literal["string", "number", "boolean"]
 
 
 class OrganizationTraceItemAttributeContextPutSerializer(serializers.Serializer[Never]):
     dataset = serializers.ChoiceField(
-        SUPPORTED_DATASETS, help_text="The trace item dataset the attribute belongs to."
+        SUPPORTED_DATASETS,
+        required=False,
+        help_text="The trace item dataset the attribute belongs to. Send this or `datasets`.",
+    )
+    datasets = serializers.ListField(
+        child=serializers.ChoiceField(SUPPORTED_DATASETS),
+        required=False,
+        allow_empty=False,
+        help_text=(
+            "The trace item datasets to save the same context for, all at once. Send this "
+            "or `dataset`."
+        ),
     )
     attributeType = serializers.ChoiceField(
         TraceItemAttributeTypes.TYPE_NAMES,
@@ -67,7 +83,13 @@ class OrganizationTraceItemAttributeContextPutSerializer(serializers.Serializer[
         help_text="The stored type of the attribute.",
     )
     brief = serializers.CharField(
-        max_length=280, help_text="A short description of what the attribute represents."
+        max_length=280,
+        allow_blank=True,
+        allow_null=True,
+        help_text=(
+            "A short description of what the attribute represents. Send an empty string "
+            "or null to clear it."
+        ),
     )
     additionalContext = serializers.CharField(
         source="additional_context",
@@ -81,6 +103,11 @@ class OrganizationTraceItemAttributeContextPutSerializer(serializers.Serializer[
         required=False,
         help_text="Example values of the attribute. Omit to keep the stored value.",
     )
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if ("dataset" in attrs) == ("datasets" in attrs):
+            raise serializers.ValidationError({"dataset": "Send either `dataset` or `datasets`."})
+        return attrs
 
 
 def attribute_exists_in_storage(
@@ -97,6 +124,49 @@ def attribute_exists_in_storage(
 
     with handle_query_errors():
         return attribute_name_exists(meta, attr_type, internal_name)
+
+
+def resolve_custom_attribute(
+    snuba_params: SnubaParams, dataset: str, key: str, attribute_type: str
+) -> str:
+    trace_item_type = SupportedTraceItemType(dataset)
+
+    # Existence is a property of all the org's data, so always check against
+    # the full retention window and ignore any time range filters
+    # (`statsPeriod`/`start`/`end`) on the request.
+    params = copy(snuba_params)
+    params.start, params.end = full_retention_window(trace_item_type)
+
+    column_definitions = get_column_definitions(trace_item_type)
+    resolver = SearchResolver(
+        params=params,
+        config=SearchResolverConfig(),
+        definitions=column_definitions,
+    )
+
+    # Canonicalize the key to its internal name so every check and the upsert
+    # share one identity and equivalent key forms collapse to a single row.
+    try:
+        resolved_attribute, _ = resolver.resolve_attribute(key)
+    except InvalidSearchQuery:
+        raise ParseError("Invalid attribute query.")
+
+    internal_name = resolved_attribute.internal_name
+    public_alias = resolved_attribute.public_alias
+
+    # Check both resolved forms, since conventions may key on either.
+    if is_known_attribute(public_alias, column_definitions) or is_known_attribute(
+        internal_name, column_definitions
+    ):
+        raise ParseError(f"`{public_alias}` is a reserved sentry attribute in {dataset}.")
+
+    attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
+        attribute_type, AttributeKey.Type.TYPE_STRING
+    )
+    if not attribute_exists_in_storage(resolver, trace_item_type, internal_name, attr_type):
+        raise ParseError(f"Attribute `{public_alias}` was not found in {dataset}.")
+
+    return internal_name
 
 
 @extend_schema(tags=["Explore"])
@@ -135,10 +205,12 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
         request=OrganizationTraceItemAttributeContextPutSerializer,
         responses={
             200: inline_sentry_response_serializer(
-                "TraceItemAttributeContextResponse", TraceItemAttributeContextResponse
+                "TraceItemAttributeContextPutResponse",
+                TraceItemAttributeContextResponse | TraceItemAttributeContextListResponse,
             ),
             201: inline_sentry_response_serializer(
-                "TraceItemAttributeContextResponse", TraceItemAttributeContextResponse
+                "TraceItemAttributeContextPutResponse",
+                TraceItemAttributeContextResponse | TraceItemAttributeContextListResponse,
             ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
@@ -150,7 +222,7 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
     def put(
         self, request: Request, organization: Organization, key: str
     ) -> (
-        Response[TraceItemAttributeContextResponse]
+        Response[TraceItemAttributeContextResponse | TraceItemAttributeContextListResponse]
         | Response[DetailResponse]
         | Response[ValidationErrorResponse]
     ):
@@ -159,8 +231,10 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
         values) for a custom trace item attribute. Context is scoped to a single project,
         or to the whole organization when all projects (`-1`) are requested. Sentry-defined
         attributes cannot be given custom context, and the attribute must have been seen
-        in stored data. Returns `201` when new context is created and `200` when existing
-        context is updated.
+        in stored data. Send `datasets` to save the same context for several datasets at
+        once; it returns them all as `contexts`, and saves none if any dataset is rejected.
+        Returns `201` when any new context is created and `200` when only existing context
+        is updated.
         """
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -176,9 +250,10 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
             return Response(as_validation_errors(serializer), status=400)
         data = serializer.validated_data
 
-        dataset = data["dataset"]
         attribute_type = data["attribute_type"]
-        trace_item_type = SupportedTraceItemType(dataset)
+        datasets: list[str] = (
+            list(dict.fromkeys(data["datasets"])) if "datasets" in data else [data["dataset"]]
+        )
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -200,49 +275,10 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
                 status=400,
             )
 
-        # Existence is a property of all the org's data, so always check against
-        # the full retention window and ignore any time range filters
-        # (`statsPeriod`/`start`/`end`) on the request.
-        adjusted_start, adjusted_end = full_retention_window(trace_item_type)
-        snuba_params.start = adjusted_start
-        snuba_params.end = adjusted_end
-
-        column_definitions = get_column_definitions(trace_item_type)
-        resolver = SearchResolver(
-            params=snuba_params,
-            config=SearchResolverConfig(),
-            definitions=column_definitions,
-        )
-
-        # Canonicalize the key to its internal name so every check and the upsert
-        # share one identity and equivalent key forms collapse to a single row.
-        try:
-            resolved_attribute, _ = resolver.resolve_attribute(key)
-        except InvalidSearchQuery as _e:
-            return Response({"detail": "Invalid attribute query."}, status=400)
-
-        internal_name = resolved_attribute.internal_name
-        public_alias = resolved_attribute.public_alias
-
-        # Only user-defined attributes are eligible; Sentry-owned ones are reserved.
-        # Check both resolved forms, since conventions may key on either.
-        if is_known_attribute(public_alias, column_definitions) or is_known_attribute(
-            internal_name, column_definitions
-        ):
-            return Response(
-                {"detail": f"`{public_alias}` is a reserved sentry attribute."},
-                status=400,
-            )
-
-        # Confirm the user attribute has actually been seen in storage.
-        attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
-            attribute_type, AttributeKey.Type.TYPE_STRING
-        )
-        if not attribute_exists_in_storage(resolver, trace_item_type, internal_name, attr_type):
-            return Response(
-                {"detail": f"Attribute `{public_alias}` was not found."},
-                status=400,
-            )
+        internal_names = {
+            dataset: resolve_custom_attribute(snuba_params, dataset, key, attribute_type)
+            for dataset in datasets
+        }
 
         # Only persist optional fields that were provided, so a partial update
         # doesn't clear previously stored context.
@@ -250,28 +286,37 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
             field: data[field] for field in ("additional_context", "examples") if field in data
         }
         defaults = {
-            "brief": data["brief"],
+            "brief": data["brief"] or None,
             "updated_by_id": acting_user_id(request.user),
             **optional_fields,
         }
-        # Race-safe: the lookup kwargs match the unique constraints, so a losing
-        # concurrent INSERT is caught by update_or_create rather than 500ing.
-        context, created = TraceItemAttributeContext.objects.update_or_create(
-            organization=organization,
-            project=scope_project,
-            item_type=TraceItemTypes.get_id_for_type_name(dataset),
-            attribute_key=internal_name,
-            attribute_type=TraceItemAttributeTypes.get_id_for_type_name(attribute_type),
-            defaults=defaults,
-            create_defaults={
-                "additional_context": None,
-                "examples": [],
-                **defaults,
-                "created_by_id": acting_user_id(request.user),
-            },
-        )
+        saved: dict[str, tuple[TraceItemAttributeContext, bool]] = {}
+        with transaction.atomic(router.db_for_write(TraceItemAttributeContext)):
+            # Lock rows in one fixed order, so concurrent saves can't deadlock.
+            for dataset in sorted(internal_names):
+                # Race-safe: the lookup kwargs match the unique constraints, so a losing
+                # concurrent INSERT is caught by update_or_create rather than 500ing.
+                saved[dataset] = TraceItemAttributeContext.objects.update_or_create(
+                    organization=organization,
+                    project=scope_project,
+                    item_type=TraceItemTypes.get_id_for_type_name(dataset),
+                    attribute_key=internal_names[dataset],
+                    attribute_type=TraceItemAttributeTypes.get_id_for_type_name(attribute_type),
+                    defaults=defaults,
+                    create_defaults={
+                        "additional_context": None,
+                        "examples": [],
+                        **defaults,
+                        "created_by_id": acting_user_id(request.user),
+                    },
+                )
 
-        return Response(
-            serialize(context, request.user, TraceItemAttributeContextSerializer()),
-            status=201 if created else 200,
-        )
+        contexts = [saved[dataset][0] for dataset in datasets]
+        status = 201 if any(created for _, created in saved.values()) else 200
+        response_serializer = TraceItemAttributeContextSerializer()
+        body: TraceItemAttributeContextResponse | TraceItemAttributeContextListResponse
+        if "datasets" in data:
+            body = {"contexts": serialize(contexts, request.user, response_serializer)}
+        else:
+            body = serialize(contexts[0], request.user, response_serializer)
+        return Response(body, status=status)

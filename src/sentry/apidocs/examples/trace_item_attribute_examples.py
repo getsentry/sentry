@@ -8,6 +8,7 @@ from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeValidateResponse,
 )
 from sentry.api.serializers.models.trace_item_attribute_context import (
+    TraceItemAttributeContextListResponse,
     TraceItemAttributeContextResponse,
 )
 from sentry.api.serializers.models.trace_item_attribute_value_context import (
@@ -39,6 +40,13 @@ PAYMENT_PROVIDER_CONTEXT: TraceItemAttributeContextResponse = {
     "examples": ["stripe", "adyen", "paypal"],
     "dateCreated": datetime.fromisoformat("2026-09-01T12:00:00.000000Z"),
     "dateUpdated": datetime.fromisoformat("2026-09-02T08:30:00.000000Z"),
+}
+
+PAYMENT_PROVIDER_CONTEXTS: TraceItemAttributeContextListResponse = {
+    "contexts": [
+        PAYMENT_PROVIDER_CONTEXT,
+        {**PAYMENT_PROVIDER_CONTEXT, "id": "43", "dataset": "logs"},
+    ]
 }
 
 CHECKOUT_DURATION_CONTEXT: TraceItemAttributeValueContextResponse = {
@@ -132,7 +140,13 @@ class TraceItemAttributeExamples:
             value=PAYMENT_PROVIDER_CONTEXT,
             response_only=True,
             status_codes=["200", "201"],
-        )
+        ),
+        OpenApiExample(
+            "Create or update the context for a custom attribute in several datasets",
+            value=PAYMENT_PROVIDER_CONTEXTS,
+            response_only=True,
+            status_codes=["200", "201"],
+        ),
     ]
 
     UPDATE_TRACE_ITEM_METRIC_CONTEXT = [
