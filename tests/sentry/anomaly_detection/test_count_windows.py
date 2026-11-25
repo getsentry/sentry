@@ -1,10 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from sentry.anomaly_detection.contracts import ChangeAction, Metric, SeriesKey, Signal
 from sentry.anomaly_detection.evaluation.baseline import Baseline
 from sentry.anomaly_detection.evaluation.series_history import SeriesHistory
 
-START = datetime(2024, 1, 8, 12)
+START = datetime(2024, 1, 8, 12, tzinfo=UTC)
 ERRORS = SeriesKey(1, "prod", Signal.ERRORS, Metric.COUNT)
 
 
@@ -38,10 +38,10 @@ def test_burst_over_steady_sparse_errors_opens_from_short_count_windows() -> Non
     # Three per minute never clears the five-event minute gate; only the counts can open it.
     # The mean volume, not the zero median, decides that a short window can judge it.
     values = repeat(SPARSE, -60, 1000) | repeat([3.0], 500, 560)
-    _, actions = run_errors(values, 560)
+    history, actions = run_errors(values, 560)
     [(action, event)] = actions
     assert action == "open"
-    assert event.evidence[0] == "15m of counts: too many to be chance at this volume"
+    assert history.state.series_states[ERRORS].window == 15
     assert event.start == minute(500)
     assert event.detected_at is not None and event.detected_at < minute(520)
 
@@ -52,7 +52,6 @@ def test_sparse_burst_recovers_against_the_level_that_opened_it() -> None:
     [(opened, event), (closed, closed_event)] = actions
     assert (opened, closed) == ("open", "close")
     assert closed_event is event
-    assert event.evidence[-1] == "recovered"
     assert event.ended_at is not None and event.ended_at < minute(600)
 
 

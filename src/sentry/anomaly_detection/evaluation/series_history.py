@@ -214,14 +214,13 @@ class SeriesHistory:
     def open_keys(self) -> set[SeriesKey]:
         return {key for key, state in self.state.series_states.items() if state.open}
 
-    def expire(self, key: SeriesKey, at: datetime, reason: str) -> ChangeEvent | None:
+    def expire(self, key: SeriesKey, at: datetime) -> ChangeEvent | None:
         """End the series' open episode without observing recovery, and reset its evidence."""
         state = self.state.series_states.get(key)
         if state is None or state.open is None:
             return None
         event = state.open
         event.ended_at = at
-        event.evidence.append(reason)
         self.state.series_states[key] = SeriesState(recent=deque(maxlen=state.recent.maxlen))
         return event
 
@@ -475,12 +474,6 @@ class SeriesHistory:
             peak_ratio=ratio,
             open_ratio=ratio,
         )
-        if window_minutes:
-            if window_minutes >= 60 and window_minutes % 60 == 0:
-                label = f"{window_minutes // 60}h"
-            else:
-                label = f"{window_minutes}m"
-            event.evidence.append(f"{label} of counts: too many to be chance at this volume")
         anchor_expectation = self.baseline.expected(
             key,
             self.series[key],
@@ -567,12 +560,8 @@ class SeriesHistory:
     ) -> ChangeAction:
         event.ended_at = t
         if chronic:
-            event.evidence.append(
-                f"chronic: not recovered after {self.cfg.chronic_hours:g}h, taken as the new level"
-            )
+            # Not recovered after chronic_hours: taken as the new level.
             st.excluded = {minute for minute in st.excluded if minute < event.start}
-        else:
-            event.evidence.append("recovered")
         st.open = st.anchor = st.anchor_level = None
         st.anchor_sigma = 0.0
         st.anchor_points = 0

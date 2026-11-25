@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -6,7 +6,7 @@ from sentry.anomaly_detection.contracts import Metric, SeriesKey, Signal
 from sentry.anomaly_detection.evaluation import quality
 from sentry.anomaly_detection.evaluation.series import Series, samples_key
 
-T0 = datetime(2024, 11, 4, 8)
+T0 = datetime(2024, 11, 4, 8, tzinfo=UTC)
 MINUTE = timedelta(minutes=1)
 FLAPPY = SeriesKey(1, "prod", Signal.ENDPOINTS, Metric.P95_DURATION, "/flappy")
 
