@@ -533,7 +533,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                     f"Updating {pr_text}..." if pr.pr_number else f"Creating a PR in {repo_text}..."
                 )
             case "error" if pr.pr_creation_error_code == OUT_OF_CREDITS:
-                return f"Couldn't push to {pr_text}: your organization is out of Seer credits"
+                return f"Couldn't push to {pr_text}: your organization does not have enough Seer credits"
             case "error":
                 return f"Latest push failed for {pr_text}"
             case "completed":
