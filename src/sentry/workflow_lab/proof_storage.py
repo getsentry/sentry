@@ -12,7 +12,7 @@ from django.test import RequestFactory
 
 from sentry.investigations.endpoints.workflow_storage import WorkflowStorageEndpoint
 from sentry.investigations.models import WorkflowRun
-from sentry.investigations.services.workflow_runtime import reserve_due_nodes
+from sentry.investigations.services.workflow_runtime import claim_due_nodes
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
@@ -50,7 +50,9 @@ def _serve(sock: socket.socket, org: int, keep: bool) -> None:
                     raise ValueError("Unknown recovery checkpoint")
                 if method == "DUE":
                     run = WorkflowRun.objects.get(organization_id=org, uuid=run_id)
-                    data, status = reserve_due_nodes(run=run).get(org, []), 200
+                    claim = claim_due_nodes(org, run=run)
+                    claim.acknowledge()
+                    data, status = claim.node_ids, 200
                 elif method == "FINISH":
                     completed = True
                     data, status = None, 200
