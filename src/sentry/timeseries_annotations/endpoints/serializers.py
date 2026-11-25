@@ -59,6 +59,7 @@ class TimeseriesAnnotationSerializer(Serializer):
             "annotationType": _TYPE_LABELS[obj.annotation_type],
             "scope": _SCOPE_LABELS[obj.scope],
             "severity": _SEVERITY_LABELS[obj.severity],
+            "pinned": obj.pinned,
             "description": obj.description,
             "tags": obj.tags,
             "createdBy": created_by,
@@ -83,6 +84,7 @@ class TimeseriesAnnotationPostSerializer(serializers.Serializer):
     endTimestamp = serializers.DateTimeField(required=False, allow_null=True)
     scope = serializers.ChoiceField(choices=sorted(_SCOPE_BY_LABEL), default="global")
     severity = serializers.ChoiceField(choices=sorted(_SEVERITY_BY_LABEL), default="low")
+    pinned = serializers.BooleanField(required=False, default=False)
     projectId = serializers.IntegerField(required=False, allow_null=True)
     tags = serializers.DictField(required=False, allow_null=True)
 
