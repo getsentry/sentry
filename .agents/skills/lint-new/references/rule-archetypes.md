@@ -1,139 +1,79 @@
-# Rule Archetypes
+# Scraps Rule Archetypes
 
-Load this reference when deciding which AST approach to use for a new rule.
+Load this when writing a rule in `static/oxlint/eslintPluginScraps/`. Paths below are relative to its `src/`.
 
-## Decision Table
+| You want to...                                                              | Archetype             | Key helpers                             | Example rule                                |
+| --------------------------------------------------------------------------- | --------------------- | --------------------------------------- | ------------------------------------------- |
+| Rewrite import paths                                                        | Import rewrite        | `ImportDeclaration` visitor             | `noCoreImport`, `noTokenImport`             |
+| Validate which CSS properties a theme token is used with                    | Token validation      | `createStyleVisitors`, `shouldAnalyze`  | `useSemanticToken`                          |
+| Restrict which JSX elements or props a component gets                       | JSX structural        | `createImportTracker`                   | `restrictJsxSlotChildren`, `preferInfoText` |
+| Detect patterns in the CSS text of styled templates (selectors, raw values) | CSS template analysis | `getStyledCallInfo`, `parseCssTemplate` | `noDomCoupling`, `preferPrimitives`         |
 
-| You want to...                                             | Archetype                 | Key patterns                                                       | Example rule                   |
-| ---------------------------------------------------------- | ------------------------- | ------------------------------------------------------------------ | ------------------------------ |
-| Rewrite import paths                                       | Import rewrite            | `ImportDeclaration` visitor, `fixer.replaceText(node.source, ...)` | `no-core-import`               |
-| Validate which CSS properties a token/value is used with   | Property validation       | `createStyleCollector` + `Program:exit` deferred validation        | `use-semantic-token`           |
-| Restrict which JSX elements appear in specific props       | JSX structural constraint | Import tracking + recursive JSX tree walk + config schema          | `restrict-jsx-slot-children`   |
-| Detect patterns in static CSS text (selectors, raw values) | Template text analysis    | `TaggedTemplateExpression` → walk `quasi.quasis` for static text   | `no-dom-coupling` (PR #109906) |
+## Shared Helpers
 
-## Archetype 1: Import Rewrite
+| Helper                                                                | Location                             | Use for                                                                                                |
+| --------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `createImportTracker(context)`                                        | `ast/tracker/imports.ts`             | Resolving a local name or JSX tag to its import (`is`, `resolve`, `findLocalNames`, `resolveVariable`) |
+| `getStyledCallInfo(node, importTracker)`                              | `ast/utils/styled.ts`                | Classifying a styled/css call as element, component, or css                                            |
+| `createStyleVisitors(context, check)`                                 | `ast/extractor/index.ts`             | Visiting theme-token values per CSS property                                                           |
+| `shouldAnalyze(context)`                                              | `ast/extractor/index.ts`             | Cheap text pre-scan to skip files without Emotion usage                                                |
+| `parseCssTemplate`, `cookCssTemplateText`, `isDisabledByCssDirective` | `ast/extractor/css.ts`               | Parsing a styled template into declarations, selectors, and at-rules                                   |
+| `normalizePropertyName`                                               | `ast/utils/normalizePropertyName.ts` | Normalizing CSS property names (`backgroundColor` → `background-color`)                                |
+| `removeJsxAttributes`                                                 | `ast/utils/removeJsxAttributes.ts`   | Autofixes that drop JSX attributes                                                                     |
+| `getChildrenRenderFunction`                                           | `ast/utils/renderFunction.ts`        | Finding a render-prop child function                                                                   |
 
-**When**: Rule checks import sources and rewrites them.
+When two rules need the same logic, move it into `ast/utils/` and reuse it.
 
-**Pattern**: Single `ImportDeclaration` visitor. Autofix replaces the source string.
+## Import Rewrite
+
+One `ImportDeclaration` visitor; the autofix replaces the source string. Safe to autofix almost always.
 
 ```typescript
 create(context) {
   return {
     ImportDeclaration(node) {
       const importPath = node.source.value;
-      if (typeof importPath === 'string' && importPath.startsWith(FORBIDDEN)) {
-        context.report({
-          node,
-          messageId: '...',
-          fix(fixer) {
-            return fixer.replaceText(node.source, `'${newPath}'`);
-          },
-        });
+      if (!importPath.startsWith(FORBIDDEN_PATH)) {
+        return;
       }
+      context.report({
+        node,
+        messageId: 'forbidden',
+        fix: fixer => fixer.replaceText(node.source, `'${newPath}'`),
+      });
     },
   };
 }
 ```
 
-**Autofix**: Almost always safe. The fix just changes a string literal.
+Type-only imports, mixed named imports, and re-exports keep working because only the path string changes.
 
-**Edge cases**: Type-only imports (`import type`), mixed named imports, re-exports — all handled automatically since you're only replacing the source path string.
+## Token Validation
 
-## Archetype 2: Property Validation (Style Collector)
+`createStyleVisitors` calls back with each CSS property and the theme token used in its value. It only sees interpolated values, not the CSS text. Usage in [styled-css-guide.md](styled-css-guide.md); per-category data belongs in `config/` (see "Config-Driven Rules" in [schema-patterns.md](schema-patterns.md)).
 
-**When**: Rule validates which CSS properties a dynamic value (theme token, variable) is used with.
+## JSX Structural
 
-**Key insight**: Uses a **two-phase approach** — collect during traversal, validate after.
-
-1. `createStyleCollector(context)` returns `{collector, visitors}` — spread `visitors` into your return object
-2. In `Program:exit`, iterate `collector.getAll()` to validate each `StyleDeclaration`
-3. Call `collector.clear()` at the end for cleanup
+Resolve components by import, never by bare name, so aliases and shadowed names behave:
 
 ```typescript
 create(context) {
-  if (!shouldAnalyze(context)) return {};  // Fast bailout
-
-  const {collector, visitors} = createStyleCollector(context);
-
+  const imports = createImportTracker(context);
   return {
-    ...visitors,
-    'Program:exit'() {
-      for (const decl of collector.getAll()) {
-        // decl.property.name — the CSS property (already normalized)
-        // decl.values — array of {rawNode, tokenInfo: {tokenPath, node}}
-        validateDeclaration(decl);
+    JSXOpeningElement(node) {
+      if (!imports.is(node.name, '@sentry/scraps/menu', 'MenuItem')) {
+        return;
       }
-      collector.clear();
+      // inspect node.attributes
     },
   };
 }
 ```
 
-**Important**: The collector handles _interpolated expressions_ (`${...}` parts) in template literals. It does NOT analyze static CSS text in quasis. If you need to detect patterns in the static text itself (like raw hex colors or nested selectors), use Archetype 4 instead.
+- `imports.is(node, source, name)` handles `import {Foo as Bar}`, namespace imports (`Menu.Item`), and skips type-only imports.
+- When walking slot contents, recurse through ternaries, logical expressions, `JSXExpressionContainer`, `JSXFragment`, and arrow-function bodies; treat `Fragment` as transparent.
+- Autofix is rarely safe: swapping components needs knowledge of their APIs.
 
-**Config-driven rules**: If validation rules vary by category, put the mapping in `src/config/` and load it from there. See `tokenRules.ts` for the pattern. This lets you add new categories without changing the rule logic.
+## CSS Template Analysis
 
-**`shouldAnalyze`**: Always use this as a fast pre-scan bailout. It checks for Emotion import/usage patterns via regex and skips files that clearly don't use styled-components.
-
-## Archetype 3: JSX Structural Constraint
-
-**When**: Rule restricts which JSX elements can appear in specific props or slots.
-
-**Pattern**: Use `createImportTracker` from `src/ast/tracker/imports.ts` for import resolution, plus a `JSXAttribute` visitor for tree walking:
-
-1. `createImportTracker()` — merge its `visitors`, then use `resolve(localName)` or `findLocalNames(source, name)` to check imports
-2. `JSXAttribute` — when a configured prop is found, recursively walk the JSX tree checking each element against the allowed set
-
-```typescript
-create(context) {
-  const importTracker = createImportTracker();
-
-  return {
-    ...importTracker.visitors,
-    JSXAttribute(node) {
-      // Use importTracker.resolve(displayName) to check where an element comes from
-      // Use importTracker.findLocalNames(source, name) to find local aliases
-    },
-  };
-}
-```
-
-**Key patterns**:
-
-- Handle import aliasing: `import {Foo as Bar}` means `Bar` is the local name — `importTracker.resolve('Bar')` returns `{source, imported: 'Foo'}`
-- Handle member expressions: `MenuComponents.Alert` must match `${localName}.${member}`
-- Recurse through: direct JSX children, ternaries, logical expressions (`&&`, `||`, `??`), `JSXExpressionContainer`, `JSXFragment`, arrow function expression bodies
-- Skip `React.Fragment` / `<Fragment>` (transparent wrappers)
-- Stop recursion on disallowed elements (report and return)
-
-**Schema**: Uses a complex options schema with nested arrays. See `restrict-jsx-slot-children` for the full pattern.
-
-**Autofix**: Generally NOT safe — replacing JSX elements requires understanding the component API, which is beyond what the AST alone can tell you.
-
-## Archetype 4: Template Text Analysis
-
-**When**: Rule detects patterns in the static CSS text of template literals (not in interpolated expressions).
-
-**Pattern**: Use `createQuasiScanner` from `src/ast/scanner/index.ts` — it handles `shouldAnalyze` bailout, tag detection via `getStyledCallInfo`, and quasi iteration for you:
-
-```typescript
-import {createQuasiScanner} from '../ast/scanner/index';
-
-create(context) {
-  return createQuasiScanner(context, (cssText, quasi, info) => {
-    // cssText: the static CSS text of this quasi segment
-    // quasi: the TemplateElement node (use for error reporting)
-    // info: { kind: 'element' | 'component' | 'css', name?: string }
-    for (const match of cssText.matchAll(MY_PATTERN)) {
-      context.report({ node: quasi, messageId: '...' });
-    }
-  });
-}
-```
-
-The scanner calls your `analyze` callback for every quasi element in every styled/css tagged template in the file. It automatically skips files without Emotion usage.
-
-**When to use this vs Archetype 2**: If you're looking for patterns in the CSS _text itself_ (raw colors, nested selectors, property names), use `createQuasiScanner`. If you're validating _what values are passed_ to CSS properties via interpolation (`${theme.tokens.X}`), use `createStyleCollector`.
-
-**Tag detection utility**: `getStyledCallInfo(node)` from `src/ast/utils/styled.ts` classifies any `TaggedTemplateExpression` or `CallExpression` as `{kind: 'element', name}`, `{kind: 'component', name}`, `{kind: 'css'}`, or `null`. Handles `styled.div`, `styled('div')`, `styled(Component)`, `styled(Component).attrs(...)`, and `css` patterns. The scanner uses this internally, but you can also use it directly in custom visitors.
+For patterns in the CSS text itself (selectors, raw colors, layout declarations). Identify styled templates with `getStyledCallInfo`, then parse them with `parseCssTemplate` rather than regex over raw quasis: it handles interpolations, nesting, and `/* oxlint-disable */` comments inside CSS. Details in [styled-css-guide.md](styled-css-guide.md).
