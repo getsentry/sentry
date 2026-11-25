@@ -2,7 +2,7 @@ import {RuleTester} from 'oxlint/plugins-dev';
 
 import {preferAriaDisabledAssertion} from './preferAriaDisabledAssertion';
 
-const ruleTester = new RuleTester();
+const ruleTester = new RuleTester({languageOptions: {parserOptions: {lang: 'ts'}}});
 
 const ENABLED = ".not.toHaveAttribute('aria-disabled', 'true')";
 const DISABLED = ".toHaveAttribute('aria-disabled', 'true')";
@@ -126,6 +126,21 @@ ruleTester.run('prefer-aria-disabled-assertion', preferAriaDisabledAssertion, {
       errors: [
         error(
           `const options = screen.getAllByRole('option'); const first = options[0]; expect(first)${DISABLED};`,
+          DISABLED
+        ),
+      ],
+    },
+    {
+      name: 'non-null assertion on an indexed list',
+      code: `expect(screen.getAllByRole('option')[0]!).toBeEnabled();`,
+      errors: [error(`expect(screen.getAllByRole('option')[0]!)${ENABLED};`, ENABLED)],
+    },
+    {
+      name: 'const with a non-null assertion and a cast',
+      code: `const rows = screen.getAllByRole('row') as HTMLElement[]; const first = rows[0]!; expect(first).toBeDisabled();`,
+      errors: [
+        error(
+          `const rows = screen.getAllByRole('row') as HTMLElement[]; const first = rows[0]!; expect(first)${DISABLED};`,
           DISABLED
         ),
       ],

@@ -10,6 +10,7 @@ import base, {
   configOverride,
   effectOverride,
   storyOverride,
+  testAssertionRules,
   testOverride,
   typescriptOverride,
 } from './oxlint.base.ts';
@@ -603,8 +604,8 @@ const config = defineConfig({
         // Tests sometimes contain intentionally unusual hard-coded numbers.
         'no-loss-of-precision': 'off',
         '@sentry/no-relative-api-url': 'off',
-        '@sentry/prefer-aria-disabled-assertion': 'error',
         '@sentry/prefer-react-component': 'off',
+        ...testAssertionRules,
         'no-restricted-imports': [
           'error',
           {

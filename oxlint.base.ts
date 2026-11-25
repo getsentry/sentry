@@ -127,6 +127,10 @@ export const fakeTimerRules = defineConfig({
   },
 }).rules;
 
+export const testAssertionRules = defineConfig({
+  rules: {'@sentry/prefer-aria-disabled-assertion': 'error'},
+}).rules;
+
 const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'];
 
 export const typescriptOverride: OxlintOverride = {
@@ -1030,7 +1034,10 @@ export function createPackageConfig(
           ],
         },
       },
-      {files: ['**/*.spec.{ts,tsx,js,jsx}'], rules: fakeTimerRules},
+      {
+        files: ['**/*.spec.{ts,tsx,js,jsx}'],
+        rules: {...fakeTimerRules, ...testAssertionRules},
+      },
       ...(config.overrides ?? []),
     ],
   });

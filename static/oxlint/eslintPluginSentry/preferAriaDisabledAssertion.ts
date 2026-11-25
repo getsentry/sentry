@@ -30,8 +30,17 @@ function calleeName(node: ESTree.CallExpression): string | null {
   return node.callee.type === 'Identifier' ? node.callee.name : propertyName(node.callee);
 }
 
-function unwrapAwait(node: ESTree.Node): ESTree.Node {
-  return node.type === 'AwaitExpression' ? node.argument : node;
+// Strips `await`, non-null assertions and `as` casts, e.g. `(await findAllByRole('row'))[0]!`.
+function unwrap(node: ESTree.Node): ESTree.Node {
+  let current = node;
+  while (
+    current.type === 'AwaitExpression' ||
+    current.type === 'TSNonNullExpression' ||
+    current.type === 'TSAsExpression'
+  ) {
+    current = current.type === 'AwaitExpression' ? current.argument : current.expression;
+  }
+  return current;
 }
 
 function queriedRole(node: ESTree.Node, queries: Set<string>): string | null {
@@ -60,7 +69,7 @@ export const preferAriaDisabledAssertion = defineRule({
     schema: [],
     messages: {
       preferAriaDisabledAssertion:
-        "{{matcher}}() only checks the native disabled attribute, but '{{role}}' elements are disabled with aria-disabled, so this assertion ignores its state. Use .not.toHaveAttribute('aria-disabled', 'true') for enabled or .toHaveAttribute('aria-disabled', 'true') for disabled. For an <option> in a native <select>, disable this rule for the line.",
+        "{{matcher}}() only checks the native disabled attribute, but '{{role}}' elements are disabled with aria-disabled, so this assertion ignores its state. Use .not.toHaveAttribute('aria-disabled', 'true') for enabled or .toHaveAttribute('aria-disabled', 'true') for disabled. For an <option> in a native <select>, toBeDisabled() works: add // oxlint-disable-next-line @sentry/prefer-aria-disabled-assertion.",
       useAriaDisabled: 'Replace with {{replacement}}.',
     },
   },
@@ -78,9 +87,9 @@ export const preferAriaDisabledAssertion = defineRule({
       return null;
     }
 
-    // Follows `await` and const variables back to the expression they hold.
+    // Follows wrappers stripped by unwrap() and const variables back to the expression they hold.
     function resolve(node: ESTree.Node, seen = new Set<ESTree.Node>()): ESTree.Node {
-      const subject = unwrapAwait(node);
+      const subject = unwrap(node);
       if (subject.type !== 'Identifier' || seen.has(subject)) {
         return subject;
       }
