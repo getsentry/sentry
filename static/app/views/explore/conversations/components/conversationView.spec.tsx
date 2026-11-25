@@ -285,6 +285,30 @@ describe('ConversationViewContent', () => {
     expect(screen.queryByText('1/1')).not.toBeInTheDocument();
   });
 
+  it('searches the system prompt and selects the span it came from', async () => {
+    mockConversation([
+      spanFixture({
+        ...CONVERSATION_BODY[0],
+        'gen_ai.input.messages': JSON.stringify([
+          {role: 'system', content: 'You sort emails into labels.'},
+          {role: 'user', content: 'First?'},
+        ]),
+      }),
+      CONVERSATION_BODY[1]!,
+    ]);
+    const onSelectSpan = jest.fn();
+    renderView({onSelectSpan});
+    await screen.findByText('First answer');
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search in transcript'}),
+      'sort emails{Enter}'
+    );
+
+    expect(await screen.findByText('1/1')).toBeInTheDocument();
+    expect(onSelectSpan).toHaveBeenCalledWith('span-a');
+  });
+
   it('loads later pages until the search finds a match', async () => {
     MockApiClient.clearMockResponses();
     mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});

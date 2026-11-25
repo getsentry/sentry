@@ -26,12 +26,12 @@ from sentry.workflow_engine.processors import DataConditionGroupEvaluation, Dete
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     APIGate,
-    DetectorAPIOperation,
     DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
     DetectorType,
     FeatureGate,
+    WorkflowEngineAPIOperation,
 )
 from tests.sentry.workflow_engine.endpoints.test_helpers import GATE_FEATURE
 
@@ -84,7 +84,7 @@ def test_internal_types_opt_out_of_discovery(detector_type: DetectorType) -> Non
         organization = Organization()
         assert detector_type not in get_visible_detector_types(organization)
         assert detector_type in get_excluded_detector_types(
-            DetectorAPIOperation.DISCOVER, organization
+            WorkflowEngineAPIOperation.DISCOVER, organization
         )
 
 
@@ -205,7 +205,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         response = self.get_success_response(self.organization.slug, status_code=200)
         assert response.data == self.expected_type_slugs
 
-    def gate_first_type(self, availability: Mapping[DetectorAPIOperation, APIGate]) -> None:
+    def gate_first_type(self, availability: Mapping[WorkflowEngineAPIOperation, APIGate]) -> None:
         # The fixture types share one settings class, so give the gated type its own subclass.
         # setUp's patch.dict restores the registrations afterwards.
         gated_slug = self.expected_type_slugs[0]
@@ -217,23 +217,23 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         detector_settings_registry.registrations[gated_slug] = GatedDetectorSettings
 
     def test_get_excluded_type_is_not_returned(self) -> None:
-        self.gate_first_type({DetectorAPIOperation.GET: False})
+        self.gate_first_type({WorkflowEngineAPIOperation.GET: False})
         response = self.get_success_response(self.organization.slug)
         assert response.data == self.expected_type_slugs[1:]
 
     def test_list_exclusion_does_not_affect_type_discovery(self) -> None:
-        self.gate_first_type({DetectorAPIOperation.LIST: False})
+        self.gate_first_type({WorkflowEngineAPIOperation.LIST: False})
         response = self.get_success_response(self.organization.slug)
         assert response.data == self.expected_type_slugs
 
     def test_discovery_excluded_type_is_not_returned(self) -> None:
-        self.gate_first_type({DetectorAPIOperation.DISCOVER: False})
+        self.gate_first_type({WorkflowEngineAPIOperation.DISCOVER: False})
         response = self.get_success_response(self.organization.slug)
         assert response.data == self.expected_type_slugs[1:]
 
     def test_get_feature_gate_is_scoped_to_each_organization_request(self) -> None:
         other_org = self.create_organization(owner=self.user)
-        self.gate_first_type({DetectorAPIOperation.GET: FeatureGate(GATE_FEATURE)})
+        self.gate_first_type({WorkflowEngineAPIOperation.GET: FeatureGate(GATE_FEATURE)})
         with self.feature({GATE_FEATURE: [self.organization.slug]}):
             response = self.get_success_response(self.organization.slug)
             assert response.data == self.expected_type_slugs
@@ -273,7 +273,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
 
         class GatedSettings(DetectorSettings):
             handler = original_settings.handler
-            api_availability = {DetectorAPIOperation.DISCOVER: FeatureGate(GATE_FEATURE)}
+            api_availability = {WorkflowEngineAPIOperation.DISCOVER: FeatureGate(GATE_FEATURE)}
 
         with (
             patch.dict(detector_settings_registry.registrations, {detector_type: GatedSettings}),
@@ -287,14 +287,17 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
     def test_partial_availability_inherits_default_discovery(self) -> None:
         class VisibleSettings(DetectorSettings):
             handler = detector_settings_registry.get(self.expected_type_slugs[0]).handler
-            api_availability = {DetectorAPIOperation.GET: True, DetectorAPIOperation.LIST: True}
+            api_availability = {
+                WorkflowEngineAPIOperation.GET: True,
+                WorkflowEngineAPIOperation.LIST: True,
+            }
 
         detector_type = DetectorType.PERFORMANCE_SLOW_DB_QUERY
         with patch.dict(detector_settings_registry.registrations, {detector_type: VisibleSettings}):
             response = self.get_success_response(self.organization.slug)
             assert response.data == sorted([*self.expected_type_slugs, detector_type])
             assert detector_type not in get_excluded_detector_types(
-                DetectorAPIOperation.LIST, self.organization
+                WorkflowEngineAPIOperation.LIST, self.organization
             )
 
     def test_validation_suggestions_include_validators_by_default(self) -> None:
@@ -316,8 +319,8 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         class SuggestionSettings(DetectorSettings):
             validator = BaseDetectorTypeValidator
             api_availability = {
-                DetectorAPIOperation.DISCOVER: FeatureGate(GATE_FEATURE),
-                DetectorAPIOperation.GET: False,
+                WorkflowEngineAPIOperation.DISCOVER: FeatureGate(GATE_FEATURE),
+                WorkflowEngineAPIOperation.GET: False,
             }
 
         with (
@@ -336,8 +339,8 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
     def test_discovery_preserves_organization_visibility_and_get_actor(self) -> None:
         self.gate_first_type(
             {
-                DetectorAPIOperation.GET: FeatureGate(GATE_FEATURE),
-                DetectorAPIOperation.DISCOVER: FeatureGate(GATE_FEATURE),
+                WorkflowEngineAPIOperation.GET: FeatureGate(GATE_FEATURE),
+                WorkflowEngineAPIOperation.DISCOVER: FeatureGate(GATE_FEATURE),
             }
         )
         with patch(
@@ -346,7 +349,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         ) as has_feature:
             assert (
                 get_excluded_detector_types(
-                    DetectorAPIOperation.DISCOVER, self.organization, actor=self.user
+                    WorkflowEngineAPIOperation.DISCOVER, self.organization, actor=self.user
                 )
                 == []
             )

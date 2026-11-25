@@ -17,14 +17,18 @@ from sentry.models.repository import REPOSITORY_NAME_LENGTH
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.agent.client_utils import has_seer_agent_access_with_detail
 from sentry.seer.agent.tools import get_repository_definition
+from sentry.seer.scm_connect import NO_SCM_INTEGRATION, has_seer_scm_integration
 from sentry.seer.sentry_data_models import RepositoryDefinitionFailure
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.auth import is_user_from_viewer_context
 
 
 class RepoAccessQuerySerializer(serializers.Serializer):
-    # A name longer than Repository.name can hold can't match a repository.
-    repoName = serializers.CharField(max_length=REPOSITORY_NAME_LENGTH, trim_whitespace=True)
+    # A name longer than Repository.name can hold can't match a repository. Without one, the check
+    # is whether any source control is connected: the popup for an empty repository list.
+    repoName = serializers.CharField(
+        max_length=REPOSITORY_NAME_LENGTH, trim_whitespace=True, required=False
+    )
 
 
 @cell_silo_endpoint
@@ -66,6 +70,9 @@ class OrganizationSeerRepoAccessEndpoint(OrganizationEndpoint):
         Seer can open the repository, a failure reason (``no_scm_integration``,
         ``scm_account_not_connected``, ``repo_not_in_sentry`` or ``repo_ambiguous``) when it
         can't, or ``unknown`` when the lookup misses for a reason Sentry can't name.
+
+        Without ``repoName``, ``status`` is ``found`` when any source control Seer can use is
+        connected, and ``no_scm_integration`` when none is.
         """
         # The auth middleware signs in a viewer-context user before authentication runs, so the
         # call would pass as a browser session. Refuse it: only the UI checks this.
@@ -84,9 +91,14 @@ class OrganizationSeerRepoAccessEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
+        repo_name = serializer.validated_data.get("repoName")
+        if repo_name is None:
+            status = "found" if has_seer_scm_integration(organization) else NO_SCM_INTEGRATION
+            return Response({"status": status, "connectedAccounts": []})
+
         result = get_repository_definition(
             organization_id=organization.id,
-            repo_full_name=serializer.validated_data["repoName"],
+            repo_full_name=repo_name,
             report_failure_reason=True,
         )
         # Only the outcome is returned: the popup doesn't need the repository's details.

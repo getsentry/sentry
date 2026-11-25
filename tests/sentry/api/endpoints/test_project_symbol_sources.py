@@ -1,3 +1,5 @@
+from typing import Any
+
 import orjson
 
 from sentry.lang.native.sources import redact_source_secrets
@@ -372,3 +374,87 @@ class ProjectSymbolSourcesPutTest(APITestCase):
             raw_data=update_config,
             status=400,
         )
+
+    def _two_sources(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "id": "honk",
+                "name": "honk source",
+                "layout": {"type": "native"},
+                "type": "http",
+                "url": "http://honk.beep",
+                "username": "honkhonk",
+                "password": "honkpassword",
+            },
+            {
+                "id": "beep",
+                "name": "beep source",
+                "layout": {"type": "native"},
+                "type": "http",
+                "url": "http://beep.boop",
+                "username": "beepbeep",
+                "password": "beeppassword",
+            },
+        ]
+
+    def test_update_redacted_secret_keeps_secret(self) -> None:
+        project = self.project  # force creation
+        project.update_option("sentry:symbol_sources", orjson.dumps(self._two_sources()).decode())
+        self.login_as(user=self.user)
+
+        update_config = redact_source_secrets(self._two_sources())[0]
+        update_config["name"] = "renamed source"
+
+        self.get_success_response(
+            project.organization.slug,
+            project.slug,
+            qs_params={"id": "honk"},
+            raw_data=update_config,
+        )
+        saved = orjson.loads(project.get_option("sentry:symbol_sources"))
+        assert saved[0]["name"] == "renamed source"
+        assert saved[0]["password"] == "honkpassword"
+
+    def test_update_redacted_secret_destination_changed(self) -> None:
+        project = self.project  # force creation
+        stored = orjson.dumps(self._two_sources()).decode()
+        project.update_option("sentry:symbol_sources", stored)
+        self.login_as(user=self.user)
+
+        update_config = redact_source_secrets(self._two_sources())[0]
+        update_config["url"] = "http://attacker.example"
+
+        response = self.get_error_response(
+            project.organization.slug,
+            project.slug,
+            qs_params={"id": "honk"},
+            raw_data=update_config,
+            status_code=400,
+        )
+        assert response.data == {
+            "error": "Hidden symbol source secret must be provided again when changing `url`"
+        }
+        assert project.get_option("sentry:symbol_sources") == stored
+
+    def test_update_redacted_secret_from_other_source(self) -> None:
+        project = self.project  # force creation
+        stored = orjson.dumps(self._two_sources()).decode()
+        project.update_option("sentry:symbol_sources", stored)
+        self.login_as(user=self.user)
+
+        # Replace `honk` with a copy of `beep` (including its id), hoping to have beep's password
+        # restored into the replacement. The secret must come from `honk`, the source being
+        # replaced, whose destination differs.
+        update_config = redact_source_secrets(self._two_sources())[1]
+
+        response = self.get_error_response(
+            project.organization.slug,
+            project.slug,
+            qs_params={"id": "honk"},
+            raw_data=update_config,
+            status_code=400,
+        )
+        assert response.data == {
+            "error": "Hidden symbol source secret must be provided again when changing `url`"
+        }
+        assert project.get_option("sentry:symbol_sources") == stored
