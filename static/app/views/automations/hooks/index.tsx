@@ -239,7 +239,7 @@ export function useUpdateAutomation({
         getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/', {
           path: {organizationIdOrSlug: org.slug, workflowId: data.id},
         }),
-        {method: 'PUT', data}
+        {method: 'PUT', data: {...data, type: ALERT_AUTOMATION_TYPE}}
       ),
     onSuccess: data => {
       // Update cache with new automation data
