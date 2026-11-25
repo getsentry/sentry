@@ -285,11 +285,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             organization_id=organization.id, seer_run_state_id=run_id
         )
         if not cls._run_completed(organization, run_id, state) and not paused:
+            # The overview lists runs by milestone rows, so a run that is still coding,
+            # or that crashed after finding a root cause, still needs them.
+            if seer_run is not None:
+                reconcile_milestones(seer_run, state)
             if state.status == "error":
-                # The overview lists runs by milestone rows, so a run that crashes after
-                # finding a root cause still needs them.
-                if seer_run is not None:
-                    reconcile_milestones(seer_run, state)
                 cls._announce_failure(
                     organization, run_id, group, seer_run, state, state.failure_reason
                 )
