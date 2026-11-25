@@ -108,10 +108,16 @@ export function useUpdateConfig({configId}: {configId: string}) {
 }
 
 /**
- * Triggers a manual run of an automation, optionally on behalf of a user.
+ * Triggers a manual run of an automation, optionally on behalf of a user, and refetches
+ * the organization's runs.
  */
-export function useManualRunConfig({configId}: {configId: string}) {
+export function useManualRun({configId}: {configId: string}) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const runsFilter = apiOptions.queryFilter(
+    '/organizations/$organizationIdOrSlug/seer/workflows/runs/',
+    {path: {organizationIdOrSlug: organization.slug}}
+  );
   // TODO: Mock endpoint. Use getApiUrl once the API route exists.
   const manualRunUrl =
     `/organizations/${organization.slug}/seer/workflows/manual-run/` as ReturnType<
@@ -125,6 +131,7 @@ export function useManualRunConfig({configId}: {configId: string}) {
         method: 'POST',
         data: {config_id: configId, ...(userId ? {user_id: userId} : {})},
       }),
+    onSuccess: () => queryClient.invalidateQueries(runsFilter),
   });
 }
 

@@ -41,7 +41,7 @@ import {
   useDeleteConfig,
   useFetchConfigs,
   useIsUpdatingConfig,
-  useManualRunConfig,
+  useManualRun,
   useUpdateConfig,
 } from 'sentry/views/seerWorkflows/automations/hooks/configs';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
@@ -82,7 +82,7 @@ export default function AutomationDetail() {
   const updateConfig = useUpdateConfig({configId: automationId});
   const deleteConfig = useDeleteConfig({configId: automationId});
   const isUpdatingConfig = useIsUpdatingConfig({configId: automationId});
-  const manualRun = useManualRunConfig({configId: automationId});
+  const manualRun = useManualRun({configId: automationId});
   const user = useUser();
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [draftName, setDraftName] = useState('');
