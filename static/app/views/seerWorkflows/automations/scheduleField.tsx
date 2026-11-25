@@ -36,7 +36,10 @@ export function ScheduleField({
   disabled,
   inputProps,
 }: ScheduleFieldProps) {
-  const parsedSchedule = crontabAsText(value.crontab.trim());
+  // Only describe schedules that can be saved, e.g. not aliases like @daily
+  const parsedSchedule = isValidCrontab(value.crontab)
+    ? crontabAsText(value.crontab.trim())
+    : null;
 
   return (
     <Stack gap="md" width="100%">
@@ -49,8 +52,12 @@ export function ScheduleField({
           value={value.crontab}
           disabled={disabled}
           onChange={e =>
-            // Keep only printable ASCII characters in the crontab schedule
-            onChange({...value, crontab: e.target.value.replace(/[^ -~]/g, '')})
+            // Separate fields with spaces, e.g. for pasted tabs, and keep only
+            // printable ASCII characters
+            onChange({
+              ...value,
+              crontab: e.target.value.replace(/\s/g, ' ').replace(/[^ -~]/g, ''),
+            })
           }
         />
         <Select

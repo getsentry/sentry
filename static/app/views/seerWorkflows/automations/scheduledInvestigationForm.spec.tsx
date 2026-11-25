@@ -179,6 +179,47 @@ describe('ScheduledInvestigationForm', () => {
       );
     });
 
+    it('saves a pasted tab-separated crontab with spaces', async () => {
+      const create = MockApiClient.addMockResponse({
+        url: configsUrl,
+        method: 'POST',
+        body: config,
+      });
+      render(<ScheduledInvestigationForm mode="create" />, {organization});
+
+      const crontab = screen.getByRole('textbox', {name: 'Crontab Schedule'});
+      await userEvent.clear(crontab);
+      await userEvent.click(crontab);
+      await userEvent.paste('30\t9\t*\t*\t1-5');
+      expect(crontab).toHaveValue('30 9 * * 1-5');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create automation'}));
+
+      await waitFor(() =>
+        expect(create).toHaveBeenCalledWith(
+          configsUrl,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              cronSchedule: {crontab: '30 9 * * 1-5', timezone: 'UTC'},
+            }),
+          })
+        )
+      );
+    });
+
+    it('only describes a crontab that can be saved', async () => {
+      render(<ScheduledInvestigationForm mode="create" />, {organization});
+
+      expect(screen.getByText('"At 12:00 AM"')).toBeInTheDocument();
+
+      // Readable as a schedule, but not a five field crontab
+      const crontab = screen.getByRole('textbox', {name: 'Crontab Schedule'});
+      await userEvent.clear(crontab);
+      await userEvent.type(crontab, '@daily');
+
+      expect(screen.queryByText('"At 12:00 AM"')).not.toBeInTheDocument();
+    });
+
     it('blocks saving an invalid crontab', async () => {
       const create = MockApiClient.addMockResponse({
         url: configsUrl,
