@@ -16,17 +16,38 @@ const INTERVAL = '5m';
 
 const SCHEDULER_UTILIZATION = traceMetricField(
   'avg',
-  'elixir.runtime.scheduler.utilization',
+  'process.runtime.elixir.scheduler.utilization',
   'gauge',
   'ratio'
 );
 
-function memoryField(type: string) {
-  return traceMetricField('avg', `elixir.runtime.mem.${type}`, 'gauge', SizeUnit.BYTE);
-}
+const MEMORY_USED = traceMetricField(
+  'avg',
+  'process.runtime.elixir.memory.used',
+  'gauge',
+  SizeUnit.BYTE
+);
+
+const RUN_QUEUE_LENGTH = traceMetricField(
+  'avg',
+  'process.runtime.elixir.run_queue.length',
+  'gauge',
+  null
+);
 
 function query(aggregates: string[], conditions = ''): WidgetQuery {
   return {name: '', fields: aggregates, aggregates, columns: [], conditions, orderby: ''};
+}
+
+function groupedQuery(aggregate: string, column: string): WidgetQuery {
+  return {
+    name: '',
+    fields: [column, aggregate],
+    aggregates: [aggregate],
+    columns: [column],
+    conditions: '',
+    orderby: `-${aggregate}`,
+  };
 }
 
 const KPI_WIDGETS = spaceWidgetsEquallyOnRow(
@@ -53,7 +74,12 @@ const KPI_WIDGETS = spaceWidgetsEquallyOnRow(
       interval: INTERVAL,
       queries: [
         query([
-          traceMetricField('max', 'elixir.runtime.process.utilization', 'gauge', 'ratio'),
+          traceMetricField(
+            'max',
+            'process.runtime.elixir.process.utilization',
+            'gauge',
+            'ratio'
+          ),
         ]),
       ],
     },
@@ -68,7 +94,12 @@ const KPI_WIDGETS = spaceWidgetsEquallyOnRow(
       interval: INTERVAL,
       queries: [
         query([
-          traceMetricField('max', 'elixir.runtime.atom.utilization', 'gauge', 'ratio'),
+          traceMetricField(
+            'max',
+            'process.runtime.elixir.atom.utilization',
+            'gauge',
+            'ratio'
+          ),
         ]),
       ],
     },
@@ -88,15 +119,8 @@ const MEMORY_WIDGETS = spaceWidgetsEquallyOnRow(
       displayType: DisplayType.AREA,
       widgetType: WidgetType.TRACEMETRICS,
       interval: INTERVAL,
-      queries: [
-        query([
-          memoryField('processes'),
-          memoryField('binary'),
-          memoryField('ets'),
-          memoryField('code'),
-          memoryField('atom'),
-        ]),
-      ],
+      limit: 5,
+      queries: [groupedQuery(MEMORY_USED, 'process.runtime.elixir.memory.type')],
     },
   ],
   1
@@ -124,12 +148,8 @@ const SCHEDULER_WIDGETS = spaceWidgetsEquallyOnRow(
       displayType: DisplayType.LINE,
       widgetType: WidgetType.TRACEMETRICS,
       interval: INTERVAL,
-      queries: [
-        query([
-          traceMetricField('avg', 'elixir.runtime.run_queue.cpu', 'gauge', null),
-          traceMetricField('avg', 'elixir.runtime.run_queue.io', 'gauge', null),
-        ]),
-      ],
+      limit: 2,
+      queries: [groupedQuery(RUN_QUEUE_LENGTH, 'process.runtime.elixir.run_queue.type')],
     },
   ],
   3
@@ -147,7 +167,9 @@ const CORRELATION_WIDGETS = spaceWidgetsEquallyOnRow(
       widgetType: WidgetType.TRACEMETRICS,
       interval: INTERVAL,
       queries: [
-        query([traceMetricField('avg', 'elixir.runtime.process.count', 'gauge', null)]),
+        query([
+          traceMetricField('avg', 'process.runtime.elixir.process.count', 'gauge', null),
+        ]),
       ],
     },
     {

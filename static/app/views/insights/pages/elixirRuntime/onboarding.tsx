@@ -16,7 +16,7 @@ const DEPS_SNIPPET = `# mix.exs
 defp deps do
   [
     # ...
-    {:telemetry_poller, "~> 1.0"}
+    {:telemetry_poller, "~> 1.3"}
   ]
 end`;
 
@@ -39,6 +39,13 @@ export function ElixirRuntimeMetricsOnboarding() {
               {t(
                 'Track scheduler utilization, memory usage, run queues, and process, atom, and port counts for your BEAM nodes. Enable runtime metrics in the Sentry Elixir SDK to start collecting data.'
               )}
+            </Text>
+
+            <Text as="p" size="md">
+              {tct('Runtime metrics require [sdk] version [version] or later.', {
+                sdk: <InlineCode>sentry</InlineCode>,
+                version: <InlineCode>14.1.0</InlineCode>,
+              })}
             </Text>
 
             <Text as="p" size="md">

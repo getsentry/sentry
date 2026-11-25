@@ -9,7 +9,8 @@ describe('ElixirRuntimeMetricsOnboarding', () => {
     expect(
       screen.getByRole('heading', {name: 'Monitor Elixir Runtime Metrics'})
     ).toBeInTheDocument();
-    expect(screen.getByText(/telemetry_poller, "~> 1.0"/)).toBeInTheDocument();
+    expect(screen.getByText('14.1.0')).toBeInTheDocument();
+    expect(screen.getByText(/telemetry_poller, "~> 1.3"/)).toBeInTheDocument();
     expect(
       screen.getByText(/metrics: \[runtime: \[enabled: true\]\]/)
     ).toBeInTheDocument();
