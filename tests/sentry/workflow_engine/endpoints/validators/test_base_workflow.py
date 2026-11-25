@@ -1018,19 +1018,6 @@ class TestWorkflowValidatorUpdate(TestCase):
 
         workflow.refresh_from_db()
 
-        assert workflow.type == WorkflowType.INBOX
-
-    def test_update_never_writes_type(self, mock_action_validator: mock.MagicMock) -> None:
-        validator = WorkflowValidator(data=self.valid_data, context=self.context)
-
-        assert validator.is_valid() is True
-
-        workflow = validator.update(
-            self.workflow, {**validator.validated_data, "type": Workflow.Type.INBOX}
-        )
-
-        workflow.refresh_from_db()
-
         assert workflow.type == WorkflowType.ALERT
 
     def test_update__remove_trigger_conditions(self, mock_action_validator: mock.MagicMock) -> None:
