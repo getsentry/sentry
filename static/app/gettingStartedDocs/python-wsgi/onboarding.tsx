@@ -40,7 +40,7 @@ sentry_sdk.init(
     # of profile sessions.
     profile_session_sample_rate=1.0,
     # Set profile_lifecycle to "trace" to automatically
-    # run the profiler on when there is an active transaction
+    # run the profiler while there is an active span
     profile_lifecycle="trace",`
         : ''
     }
