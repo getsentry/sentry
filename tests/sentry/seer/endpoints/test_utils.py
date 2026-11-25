@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.auth.access import from_user
-from sentry.seer.endpoints.utils import ResolvedSeerRun, authorize_seer_run, resolve_seer_run
+from sentry.seer.endpoints.utils import ResolvedSeerRun, resolve_seer_run
 from sentry.seer.models.run import SeerAgentRun, SeerRunMirrorStatus
 from sentry.testutils.cases import TestCase
 from sentry.users.models.user import User
@@ -192,11 +192,12 @@ class AuthorizeSeerRunTest(TestCase):
         publish: bool = False,
         run_id: str = "555",
     ) -> ResolvedSeerRun | Response:
-        return authorize_seer_run(
+        return resolve_seer_run(
             run_id,
             self.organization,
-            from_user(user, self.organization, scopes=scopes),
-            user.id,
+            for_continue=True,
+            user_id=user.id,
+            access=from_user(user, self.organization, scopes=scopes),
             publish=publish,
         )
 

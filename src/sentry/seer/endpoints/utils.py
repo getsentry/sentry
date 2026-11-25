@@ -19,7 +19,6 @@ from sentry.utils.numbers import validate_bigint
 if TYPE_CHECKING:
     from sentry.auth.access import Access
     from sentry.models.organization import Organization
-    from sentry.models.project import Project
 
 
 SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
@@ -93,21 +92,49 @@ def _no_access_response() -> Response:
     )
 
 
-def _resolve_run(
+def _can_act_on_run(
+    run: SeerRun, user_id: int | None, access: Access | None, publish: bool
+) -> bool:
+    """Issue and automated runs are open to teammates with scope; personal chats are owner-only."""
+    is_owner = user_id is not None and run.user_id == user_id
+    if access is None:
+        return is_owner
+    scopes = PUBLISH_SCOPES if publish else AUTOFIX_RUN_SCOPES
+    try:
+        agent: SeerAgentRun | None = run.agent
+    except SeerAgentRun.DoesNotExist:
+        agent = None
+
+    if agent is not None and agent.group_id is not None:
+        if agent.group is None:
+            return is_owner
+        return is_owner or access.has_any_project_scope(agent.group.project, scopes)
+    if run.user_id is not None:
+        return is_owner
+    if agent is not None and agent.project_id is not None:
+        return agent.project is not None and access.has_any_project_scope(agent.project, scopes)
+    return any(access.has_scope(scope) for scope in scopes)
+
+
+def resolve_seer_run(
     run_id: str | int,
     organization: Organization,
     *,
-    for_continue: bool,
-    allowed: Callable[[SeerRun], bool] | None,
+    for_continue: bool = False,
+    user_id: int | None = None,
+    access: Access | None = None,
+    publish: bool = False,
 ) -> ResolvedSeerRun | Response:
     """Resolve a client-facing run id (numeric ``seer_run_state_id`` or
     ``SeerRun.uuid``) to a :class:`ResolvedSeerRun`, or an error ``Response``
-    (narrow with ``isinstance``). When ``allowed`` is supplied, the mirrored run
-    must pass it. A numeric id with no ``SeerRun`` row is rejected
-    in that case. For a not-ready run, a poll gets the 200
+    (narrow with ``isinstance``). ``user_id`` alone limits the run to its owner;
+    adding ``access`` applies the team rule in :func:`_can_act_on_run`, and
+    ``publish`` requires publish scopes. A numeric id with no ``SeerRun`` row is
+    rejected in either case. For a not-ready run, a poll gets the 200
     ``{"session": {"status": ...}}`` shape; ``for_continue`` instead gets 409
     (still mirroring) or 422 (mirror failed).
     """
+    checked = user_id is not None or access is not None
     runs = SeerRun.objects.filter(organization=organization).select_related(
         "agent__group__project", "agent__project"
     )
@@ -120,7 +147,7 @@ def _resolve_run(
         if not validate_bigint(seer_run_state_id):
             return Response({"detail": "Invalid run_id"}, status=status.HTTP_400_BAD_REQUEST)
         run = runs.filter(seer_run_state_id=seer_run_state_id).first()  # noqa: S035
-        if allowed is not None and (run is None or not allowed(run)):
+        if checked and (run is None or not _can_act_on_run(run, user_id, access, publish)):
             return _no_access_response()
         return ResolvedSeerRun(seer_run_state_id, str(run.uuid) if run else None)
 
@@ -132,7 +159,7 @@ def _resolve_run(
     run = runs.filter(uuid=run_uuid).first()  # noqa: S035
     if run is None:
         return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
-    if allowed is not None and not allowed(run):
+    if checked and not _can_act_on_run(run, user_id, access, publish):
         return _no_access_response()
     if run.mirror_status == SeerRunMirrorStatus.FAILED:
         if for_continue:
@@ -149,66 +176,6 @@ def _resolve_run(
             )
         return Response({"session": {"status": "processing"}})
     return ResolvedSeerRun(run.seer_run_state_id, str(run.uuid))
-
-
-def resolve_seer_run(
-    run_id: str | int,
-    organization: Organization,
-    *,
-    for_continue: bool = False,
-    user_id: int | None = None,
-) -> ResolvedSeerRun | Response:
-    """Resolve a run id; when ``user_id`` is given, only the run's owner passes."""
-    return _resolve_run(
-        run_id,
-        organization,
-        for_continue=for_continue,
-        allowed=None if user_id is None else lambda run: run.user_id == user_id,
-    )
-
-
-def _has_run_scope(access: Access, project: Project | None, *, publish: bool) -> bool:
-    """Check Seer write (or publish) scopes on the project, or org-wide when there is none."""
-    scopes = PUBLISH_SCOPES if publish else AUTOFIX_RUN_SCOPES
-    if project is None:
-        return any(access.has_scope(scope) for scope in scopes)
-    return access.has_any_project_scope(project, scopes)
-
-
-def _can_act_on_run(run: SeerRun, access: Access, user_id: int | None, *, publish: bool) -> bool:
-    """Issue and automated runs are open to teammates with scope; personal chats are owner-only."""
-    is_owner = user_id is not None and run.user_id == user_id
-    try:
-        agent: SeerAgentRun | None = run.agent
-    except SeerAgentRun.DoesNotExist:
-        agent = None
-
-    if agent is not None and agent.group_id is not None:
-        if agent.group is None:
-            return is_owner
-        return is_owner or _has_run_scope(access, agent.group.project, publish=publish)
-    if run.user_id is not None:
-        return is_owner
-    if agent is not None and agent.project_id is not None:
-        return agent.project is not None and _has_run_scope(access, agent.project, publish=publish)
-    return _has_run_scope(access, None, publish=publish)
-
-
-def authorize_seer_run(
-    run_id: str | int,
-    organization: Organization,
-    access: Access,
-    user_id: int | None,
-    *,
-    publish: bool = False,
-) -> ResolvedSeerRun | Response:
-    """Resolve a run id for replying to or updating it, applying the team access rule."""
-    return _resolve_run(
-        run_id,
-        organization,
-        for_continue=True,
-        allowed=lambda run: _can_act_on_run(run, access, user_id, publish=publish),
-    )
 
 
 _RpcReturn = TypeVar("_RpcReturn")
