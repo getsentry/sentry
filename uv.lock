@@ -307,14 +307,14 @@ wheels = [
 
 [[package]]
 name = "django"
-version = "5.2.17"
+version = "5.2.19"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "asgiref" },
     { name = "sqlparse" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/django-5.2.17-py3-none-any.whl", hash = "sha256:f04fb3b36ee119e1af4fa1d397d5fd6cf12700f49321e84d4f4c642c5b1973db" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/django-5.2.19-py3-none-any.whl", hash = "sha256:5965d974a5218a2b68a11dd1276434707f23886525c23f0598eccedaf4f4ca00" },
 ]
 
 [[package]]
@@ -2357,7 +2357,7 @@ requires-dist = [
     { name = "cryptography", specifier = ">=50.0.0" },
     { name = "cssselect", specifier = ">=1.0.3" },
     { name = "datadog", specifier = ">=0.49.1" },
-    { name = "django", specifier = ">=5.2.15" },
+    { name = "django", specifier = ">=5.2.19" },
     { name = "django-crispy-forms", specifier = ">=1.14.0" },
     { name = "django-csp", specifier = ">=3.8" },
     { name = "django-pg-zero-downtime-migrations", specifier = ">=0.18" },
