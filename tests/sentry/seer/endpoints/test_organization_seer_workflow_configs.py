@@ -1360,6 +1360,9 @@ class OrganizationSeerWorkflowManualRunTest(APITestCase):
         for config_id in (metric.id, foreign.id, I64_MAX):
             self.get_error_response(self.organization.slug, configId=config_id, status_code=404)
 
+    def test_config_id_out_of_range_returns_400(self) -> None:
+        self.get_error_response(self.organization.slug, configId=I64_MAX + 1, status_code=400)
+
     def test_member_without_access_to_every_project_cannot_run(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()

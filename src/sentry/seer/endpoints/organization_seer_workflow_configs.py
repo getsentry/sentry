@@ -27,6 +27,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
 from sentry.cadence.api import ScheduledTriggerType, get_schedules
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS, ObjectStatus
+from sentry.db.models.fields.bounded import I64_MAX
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
@@ -845,7 +846,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
 
 
 class ManualRunSerializer(serializers.Serializer):
-    configId = serializers.IntegerField(min_value=1)
+    configId = serializers.IntegerField(min_value=1, max_value=I64_MAX)
 
 
 class ManualRunResponse(TypedDict):
