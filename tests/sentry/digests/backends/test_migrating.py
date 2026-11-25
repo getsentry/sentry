@@ -60,6 +60,25 @@ class MigratingBackendTestCase(TestCase):
         with self.backend.digest("timeline", 0) as records:
             assert [record.key for record in records] == ["record:1"]
 
+    def test_add_to_old(self) -> None:
+        backend = MigratingBackend(
+            old={"path": "sentry.digests.backends.redis.RedisBackend"},
+            new={
+                "path": "sentry.digests.backends.redis.RedisBackend",
+                "options": {"cluster": "digests-cluster", "namespace": f"d-{uuid.uuid4().hex}"},
+            },
+            add_to_old=True,
+        )
+        # A rollback from new leaves records there.
+        backend.new.add("new-timeline", self.record("record:1"))
+
+        assert backend.add("timeline", self.record("record:2")) is True
+
+        with backend.old.digest("timeline", 0) as records:
+            assert [record.key for record in records] == ["record:2"]
+        with backend.digest("new-timeline", 0) as records:
+            assert [record.key for record in records] == ["record:1"]
+
     def test_digest_uses_new_while_old_is_being_digested(self) -> None:
         self.backend.old.add("timeline", self.record("record:1"))
         self.backend.new.add("timeline", self.record("record:2"))
