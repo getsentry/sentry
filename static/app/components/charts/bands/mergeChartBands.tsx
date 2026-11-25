@@ -9,7 +9,12 @@ import type {
 import type {EChartClickHandler} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
 
-import {BAND_Y_AXIS, BAND_Z, type BandBucket} from './bandShapes';
+import {
+  BAND_STACK_PADDING_BOTTOM,
+  BAND_Y_AXIS,
+  BAND_Z,
+  type BandBucket,
+} from './bandShapes';
 
 /**
  * A strip of per-bucket markers drawn under a chart's plot.
@@ -20,7 +25,7 @@ export interface ChartBand {
   id: string;
   series: (offset: number) => CustomSeriesOption;
   onClick?: (start: number) => void;
-  tooltipSection?: (start: number) => React.ReactElement | null;
+  tooltipSection?: (hovered: BandBucket) => React.ReactElement | null;
 }
 
 interface ChartBandsOptions {
@@ -37,8 +42,9 @@ interface MergeChartBandsParams {
 
 /**
  * Stacks bands under a chart's plot in the order given. Each band takes the
- * next y-axis and sits below the bands before it. Their total height is added
- * to the grid bottom and x-axis offset to keep the x-axis under the stack.
+ * next y-axis and sits below the bands before it. Their total height, plus the
+ * padding under the last band, is added to the grid bottom and x-axis offset to
+ * keep the x-axis under the stack.
  */
 export function mergeChartBands(
   options: ChartBandsOptions,
@@ -64,7 +70,7 @@ export function mergeChartBands(
     return bandSeriesOption;
   });
 
-  const stackHeight = bandOffset - offset;
+  const stackHeight = bandOffset - offset + BAND_STACK_PADDING_BOTTOM;
 
   return {
     grid: {...grid, bottom: grid.bottom + stackHeight},

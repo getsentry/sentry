@@ -12,7 +12,7 @@ from sentry.search.events import fields
 from sentry.snuba.metrics import parse_mri
 from sentry.utils.snuba import get_measurement_name
 
-APDEX_USER_MISERY_PATTERN = r"(apdex|user_misery)\((\d*\.?\d+)\)"
+APDEX_USER_MISERY_PATTERN = r"(apdex|user_misery)\((\d+(?:\.\d+)?|\.\d+)\)"
 
 INDEXED_EQUATIONS_PATTERN = r"^equation\[(\d+)\]$"
 

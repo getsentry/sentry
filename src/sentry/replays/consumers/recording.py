@@ -1,6 +1,7 @@
+import hashlib
 import logging
 import zlib
-from typing import NoReturn, cast
+from typing import Any, NoReturn, cast
 
 import sentry_sdk
 from sentry_kafka_schemas.codecs import Codec, ValidationError
@@ -20,14 +21,25 @@ from sentry.replays.usecases.ingest import (
 from sentry.replays.usecases.ingest.types import ProcessorContext
 from sentry.services.filestore.gcs import is_replay_gcs_retryable_error
 from sentry.utils import json, metrics
+from sentry.utils.sdk import sdk_logger
 
 RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
 
 logger = logging.getLogger(__name__)
 
+# Enough to tell what sits in the header slot (a zlib stream, JSON, or garbage) without logging
+# recording contents. The hash correlates reports of the same payload.
+INVALID_RECORDING_LOG_PREFIX_BYTES = 64
+
 
 class DropSilently(Exception):
     pass
+
+
+class InvalidRecording(Exception):
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
 
 
 # Processing Task
@@ -55,10 +67,14 @@ def process_message(message: bytes) -> ProcessedEvent | None:
 @traces.trace
 def parse_recording_event(message: bytes) -> Event:
     recording = parse_request_message(message)
-    segment_id, payload = parse_headers(cast(bytes, recording["payload"]), recording["replay_id"])
-    compressed, decompressed = decompress_segment(
-        payload, max_size=options.get("replay.consumer.max-segment-decompressed-size")
-    )
+    try:
+        segment_id, payload = parse_headers(cast(bytes, recording["payload"]))
+        compressed, decompressed = decompress_segment(
+            payload, max_size=options.get("replay.consumer.max-segment-decompressed-size")
+        )
+    except InvalidRecording as exc:
+        _report_invalid_recording(recording, exc.reason)
+        raise DropSilently() from exc
 
     replay_event_json = recording.get("replay_event")
     if replay_event_json:
@@ -135,8 +151,7 @@ def decompress_segment(segment: bytes, max_size: int) -> tuple[bytes, bytes]:
                 _drop_oversized_segment(len(segment), max_size)
             return (zlib.compress(segment), segment)
         else:
-            logger.exception("Invalid recording body.")
-            raise DropSilently()
+            raise InvalidRecording("invalid_body")
 
     if len(decompressed) > max_size:
         _drop_oversized_segment(len(segment), max_size)
@@ -154,13 +169,68 @@ def _drop_oversized_segment(compressed_size: int, max_size: int) -> NoReturn:
 
 
 @traces.trace
-def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
+def parse_headers(recording: bytes) -> tuple[int, bytes]:
+    # Malformed headers are client data we can't recover, not a bug in this consumer, so
+    # they're counted, logged, and dropped rather than reported as errors.
     try:
         recording_headers_json, recording_segment = recording.split(b"\n", 1)
-        return int(json.loads(recording_headers_json)["segment_id"]), recording_segment
-    except Exception:
-        logger.exception("Recording headers could not be extracted %s", replay_id)
-        raise DropSilently()
+    except ValueError:
+        raise InvalidRecording("missing_headers")
+
+    try:
+        headers = json.loads(recording_headers_json)
+    except ValueError:  # Includes UnicodeDecodeError, e.g. compressed bytes in the header.
+        raise InvalidRecording("invalid_headers_json")
+
+    try:
+        return int(headers["segment_id"]), recording_segment
+    except (KeyError, TypeError, ValueError):
+        raise InvalidRecording("invalid_segment_id")
+
+
+def _report_invalid_recording(recording: ReplayRecording, reason: str) -> None:
+    sentry_sdk.metrics.count("replays.consumer.recording.invalid", 1, attributes={"reason": reason})
+
+    payload = cast(bytes, recording["payload"])
+    sdk_logger.warning(
+        "replays.consumer.recording.invalid",
+        attributes={
+            "reason": reason,
+            "org_id": recording["org_id"],
+            "project_id": recording["project_id"],
+            "key_id": recording.get("key_id"),
+            "replay_id": recording["replay_id"],
+            "payload_size": len(payload),
+            "payload_prefix": payload[:INVALID_RECORDING_LOG_PREFIX_BYTES].hex(),
+            "payload_sha256": hashlib.sha256(payload).hexdigest(),
+            **_replay_event_attributes(cast(bytes | None, recording.get("replay_event"))),
+        },
+    )
+
+
+def _replay_event_attributes(replay_event_json: bytes | None) -> dict[str, Any]:
+    if not replay_event_json:
+        return {}
+    try:
+        replay_event = json.loads(replay_event_json)
+    except ValueError:
+        return {}
+    if not isinstance(replay_event, dict):
+        return {}
+
+    contexts = replay_event.get("contexts")
+    contexts = contexts if isinstance(contexts, dict) else {}
+    sdk = replay_event.get("sdk")
+    sdk = sdk if isinstance(sdk, dict) else {}
+    return {
+        "sdk_name": sdk.get("name"),
+        "sdk_version": sdk.get("version"),
+        "platform": replay_event.get("platform"),
+        "environment": replay_event.get("environment"),
+        "replay_type": replay_event.get("replay_type"),
+        "browser": contexts.get("browser"),
+        "os": contexts.get("os"),
+    }
 
 
 # I/O Task

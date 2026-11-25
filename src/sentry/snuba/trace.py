@@ -44,7 +44,7 @@ from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
-from sentry.snuba.referrer import Referrer, is_valid_referrer
+from sentry.snuba.referrer import Referrer, resolve_client_referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.uptime.eap_utils import get_columns_for_uptime_result
 from sentry.utils.numbers import base32_encode
@@ -915,8 +915,7 @@ def query_trace_data(
     # Attributes added only for metric tagging that should not appear in the response
     metric_only_attributes = metric_attributes - set(additional_attributes or [])
 
-    if referrer is None or referrer == "" or not is_valid_referrer(referrer):
-        referrer = Referrer.API_TRACE_VIEW_GET_EVENTS.value
+    referrer = resolve_client_referrer(referrer, Referrer.API_TRACE_VIEW_GET_EVENTS.value)
 
     errors_query = _errors_query(snuba_params, [trace_id], error_id)
     occurrence_query = _perf_issues_query(snuba_params, [trace_id], organization)

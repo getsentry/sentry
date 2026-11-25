@@ -219,18 +219,6 @@ class _FilterSpec:
             self.config_name = config_name
 
 
-def _get_filter_settings(project_config: Any, flt: _FilterSpec) -> Any:
-    """
-    Gets the filter options from the relay config or the default option if not specified in the relay config
-
-    :param project_config: the relay config for the request
-    :param flt: the filter
-    :return: the options for the filter
-    """
-    filter_settings = project_config.config.get("filterSettings", {})
-    return filter_settings.get(get_filter_key(flt), None)
-
-
 _localhost_filter = _FilterSpec(
     id=FilterStatKeys.LOCALHOST,
     name="Filter out events coming from localhost",

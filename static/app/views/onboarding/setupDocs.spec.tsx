@@ -15,6 +15,7 @@ import {
   OnboardingContextProvider,
   useOnboardingContext,
 } from 'sentry/components/onboarding/onboardingContext';
+import {OnboardingDrawerStore} from 'sentry/stores/onboardingDrawerStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -479,6 +480,43 @@ describe('Onboarding Setup Docs', () => {
     expect(screen.getByTestId('selected-features')).not.toHaveTextContent(
       ProductSolution.SESSION_REPLAY
     );
+  });
+
+  it('leaves onboarding for the project issues with Quick Start open on Set up later', async () => {
+    const organization = OrganizationFixture();
+    const project = ProjectFixture({
+      slug: 'javascript-react',
+      platform: 'javascript-react',
+      firstEvent: null,
+    });
+
+    ProjectsStore.init();
+    ProjectsStore.loadInitialData([project]);
+
+    renderMockRequests({project, orgSlug: organization.slug});
+    sessionStorageWrapper.setItem(
+      'onboarding',
+      JSON.stringify({selectedPlatform: {key: project.platform}})
+    );
+    const openSpy = jest.spyOn(OnboardingDrawerStore, 'open');
+
+    const {router} = render(
+      <OnboardingContextProvider>
+        <SetupDocs onComplete={() => {}} recentCreatedProject={project} />
+      </OnboardingContextProvider>,
+      {organization}
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Set up later'}));
+
+    expect(router.location.pathname).toBe(`/organizations/${organization.slug}/issues/`);
+    expect(router.location.query).toEqual(
+      expect.objectContaining({project: project.id, referrer: 'onboarding-setup-docs'})
+    );
+    expect(sessionStorageWrapper.getItem('onboarding')).toBeNull();
+    await waitFor(() => expect(openSpy).toHaveBeenCalled());
+
+    openSpy.mockRestore();
   });
 
   it('reads feature selections from URL params', async () => {

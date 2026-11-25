@@ -2928,4 +2928,38 @@ describe('ActivitySection', () => {
       expect(request).not.toHaveBeenCalled();
     });
   });
+
+  it('renders an investigation started by a Seer automation', async () => {
+    const captureMessage = jest.spyOn(Sentry, 'captureMessage');
+    const startedGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.INVESTIGATION_STARTED,
+          id: 'investigation-started-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {investigation: {id: '42', title: 'Checkout latency', status: 'active'}},
+          source: 'system',
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={startedGroup} project={startedGroup.project}>
+        <ActivitySection group={startedGroup} />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Started investigation Checkout latency');
+    expect(screen.getByRole('link', {name: 'Checkout latency'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/investigations/42/'
+    );
+    expect(screen.getByLabelText('Seer activity')).toBeInTheDocument();
+    expect(screen.queryByTestId('user-activity-actor')).not.toBeInTheDocument();
+    expect(captureMessage).not.toHaveBeenCalled();
+  });
 });

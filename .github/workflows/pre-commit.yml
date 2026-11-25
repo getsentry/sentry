@@ -114,6 +114,13 @@ jobs:
           LINT_CONFIG_CHANGED: ${{ steps.changes.outputs.lint_config }}
         run: .github/workflows/scripts/run-prek.sh
 
+      - name: Flag new API findings (report-only)
+        if: github.event_name == 'pull_request' && !cancelled() && (steps.prek.outcome == 'success' || steps.prek.outcome == 'failure')
+        continue-on-error: true
+        env:
+          CHANGED_FILES: ${{ fromJSON(steps.changes.outputs.changed_count) <= 1000 && steps.changes.outputs.changed_files || '' }}
+        run: .venv/bin/python -m tools.api_guidelines.check_new
+
       - name: Prune suppression budgets
         if: github.event_name == 'pull_request' && !cancelled() && (steps.prek.outcome == 'success' || steps.prek.outcome == 'failure') && steps.changes.outputs.frontend == 'true'
         run: pnpm run lint:suppressions --prune

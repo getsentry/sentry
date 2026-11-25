@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django.conf.urls import include
-from django.urls import URLPattern, URLResolver, re_path
+from django.urls import URLPattern, URLResolver, path, re_path
 from django.urls.converters import UUIDConverter
 
 from sentry.agent_handoff.endpoints.claim_agent_handoff import ClaimAgentHandoffEndpoint
@@ -606,6 +606,11 @@ from sentry.seer.endpoints.organization_events_anomalies import OrganizationEven
 from sentry.seer.endpoints.organization_seer_agent_chat import (
     OrganizationSeerAgentChatEndpoint,
 )
+from sentry.seer.endpoints.organization_seer_agent_conversations import (
+    OrganizationSeerAgentConversationDetailsEndpoint,
+    OrganizationSeerAgentConversationMessagesEndpoint,
+    OrganizationSeerAgentConversationsEndpoint,
+)
 from sentry.seer.endpoints.organization_seer_agent_update import (
     OrganizationSeerAgentUpdateEndpoint,
 )
@@ -635,6 +640,7 @@ from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeer
 from sentry.seer.endpoints.organization_seer_workflow_configs import (
     OrganizationSeerWorkflowConfigDetailsEndpoint,
     OrganizationSeerWorkflowConfigsEndpoint,
+    OrganizationSeerWorkflowManualRunEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_workflow_runs import (
     OrganizationSeerWorkflowRunsEndpoint,
@@ -2499,13 +2505,13 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationWorkflowCommandsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-workflow-commands",
     ),
-    re_path(
-        rf"^(?P<organization_id_or_slug>[^/]+)/notebooks/workflow-runs/(?P<workflow_run_id>{UUIDConverter.regex})/$",
+    path(
+        "<str:organization_id_or_slug>/notebooks/workflow-runs/<uuid:workflow_run_id>/",
         OrganizationNotebookWorkflowEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-workflow",
     ),
-    re_path(
-        rf"^(?P<organization_id_or_slug>[^/]+)/notebooks/workflow-runs/(?P<workflow_run_id>{UUIDConverter.regex})/writer/$",
+    path(
+        "<str:organization_id_or_slug>/notebooks/workflow-runs/<uuid:workflow_run_id>/writer/",
         OrganizationNotebookWorkflowWriterEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-workflow-writer",
     ),
@@ -2630,6 +2636,21 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-explorer-chat-run-id",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/agents/(?P<agent>[a-z0-9_]+)/conversations/$",
+        OrganizationSeerAgentConversationsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-agent-conversations",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/agents/(?P<agent>[a-z0-9_]+)/conversations/(?P<conversation_id>[^/]+)/$",
+        OrganizationSeerAgentConversationDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-agent-conversation-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/agents/(?P<agent>[a-z0-9_]+)/conversations/(?P<conversation_id>[^/]+)/messages/$",
+        OrganizationSeerAgentConversationMessagesEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-agent-conversation-messages",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/chat-suggestions/$",
         OrganizationSeerChatSuggestionsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-chat-suggestions",
@@ -2668,6 +2689,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/configs/(?P<config_id>[^/]+)/$",
         OrganizationSeerWorkflowConfigDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-workflow-config-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/manual-run/$",
+        OrganizationSeerWorkflowManualRunEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-workflow-manual-run",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/runs/$",

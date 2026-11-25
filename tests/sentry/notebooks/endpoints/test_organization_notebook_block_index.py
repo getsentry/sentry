@@ -342,6 +342,20 @@ class NotebookProducerBlockTest(APITestCase):
         assert oversized.status_code == 400
         assert "key" in oversized.data
 
+    def test_preflight_checks_destination_without_opening_notebook(self) -> None:
+        url = self.workflow_url()
+        before = Notebook.objects.filter(organization=self.organization).count()
+        query = {"preflight": 1, "notebookId": self.notebook.id, "projectId": [self.project.id]}
+        assert self.client.get(url, query).data["notebookId"] is None
+        other = self.create_project(organization=self.organization)
+        assert (
+            self.client.get(url, {**query, "projectId": [self.project.id, other.id]}).status_code
+            == 400
+        )
+        assert self.client.get(url, {**query, "notebookId": 999999999}).status_code == 404
+        assert self.client.get(url).data["notebookId"] is None
+        assert Notebook.objects.filter(organization=self.organization).count() == before
+
     def test_workflow_embed_replays_and_rejects_stale_writes(self) -> None:
         run_id = uuid4()
         url = self.bind_workflow(run_id)
@@ -354,6 +368,16 @@ class NotebookProducerBlockTest(APITestCase):
             "kind": "embed",
             "embed": {"name": "issue", "body": {"id": "123", "shortId": "TEST-123"}},
             "embedSource": "issue TEST-123",
+        }
+        invalid = self.client.post(
+            self.url,
+            {**block_body, "embed": {"name": "issue", "body": {"id": "123", "shortId": 17}}},
+            format="json",
+        )
+        assert invalid.status_code == 400
+        assert invalid.data["embed"] == {
+            "field": "embed.body.shortId",
+            "reason": "Expected string.",
         }
         block = self.client.post(self.url, block_body)
         assert block.status_code == 201, block.data
@@ -390,6 +414,38 @@ class NotebookProducerBlockTest(APITestCase):
         assert self.client.patch(url, {**summary, "version": latest}).status_code == 409
         next_write = {**changed, "revision": 3, "blockVersion": latest}
         assert self.client.post(self.url, next_write).status_code == 409
+
+    def test_workflow_delete_only_removes_blocks_created_by_that_run(self) -> None:
+        first, current = uuid4(), uuid4()
+        human = self.create_notebook_block(notebook=self.notebook, position=0, kind="text")
+        self.bind_workflow(first)
+        link_writer_run(self.organization, first, 91, None)
+        earlier = self.write(workflowRunId=str(first), writerRunId=91, key="earlier").data
+        self.bind_workflow(current, first)
+        link_writer_run(self.organization, current, 92, None)
+        author = {"workflowRunId": str(current), "writerRunId": 92}
+        own = self.write(**author, key="current").data
+        self.notebook.refresh_from_db()
+        for block_id, version, expected in (
+            (human.id, human.version, 409),
+            (earlier["id"], earlier["version"], 409),
+            (own["id"], own["version"], 204),
+        ):
+            url = reverse(
+                "sentry-api-0-organization-notebook-block-details",
+                args=[self.organization.slug, self.notebook.id, block_id],
+            )
+            response = self.client.delete(
+                url,
+                {**author, "version": version, "notebookVersion": self.notebook.version},
+                format="json",
+            )
+            assert response.status_code == expected
+            if expected == 409:
+                assert response.data["code"] == "foreign_block"
+        assert set(
+            self.notebook.blocks.filter(deleted_at__isnull=True).values_list("id", flat=True)
+        ) == {human.id, int(earlier["id"])}
 
     def test_replacing_writer_fences_all_block_mutations(self) -> None:
         run_id = uuid4()
