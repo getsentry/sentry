@@ -213,27 +213,30 @@ def _provider_label(provider: int | None) -> str:
 
 
 def record_feature_flag_change_as_annotation(flag_log: FlagAuditLogModel) -> None:
-    """Create a POINT annotation for one FlagAuditLog row. Best-effort; never raises."""
+    """Create a POINT annotation for one FlagAuditLog row. Best-effort; never raises.
+
+    Lean metrics (all tagged ``producer`` + ``provider``):
+    - ``producer_created`` — annotation write succeeded
+    - ``producer_failed`` — unexpected error after FlagLog was already persisted
+    - ``producer_skipped_flag_off`` / ``producer_skipped_org_missing`` — expected skips
+    """
+    provider = _provider_label(flag_log.provider)
+    metric_tags = {"producer": _PRODUCER, "provider": provider}
     try:
         organization = Organization.objects.get_or_none(id=flag_log.organization_id)
         if organization is None:
-            metrics.incr(
-                "timeseries_annotations.producer_skipped_org_missing",
-                tags={"producer": _PRODUCER},
-            )
+            metrics.incr("timeseries_annotations.producer_skipped_org_missing", tags=metric_tags)
             return
 
         if not features.has(
             "organizations:timeseries-annotations-usecase-feature-flag-change", organization
         ):
-            metrics.incr(
-                "timeseries_annotations.producer_skipped_flag_off",
-                tags={"producer": _PRODUCER},
-            )
+            metrics.incr("timeseries_annotations.producer_skipped_flag_off", tags=metric_tags)
             logger.info(
                 "timeseries_annotations.producer_skipped_flag_off",
                 extra={
                     "producer": _PRODUCER,
+                    "provider": provider,
                     "organization_id": organization.id,
                     "flag_log_id": flag_log.id,
                 },
@@ -241,7 +244,6 @@ def record_feature_flag_change_as_annotation(flag_log: FlagAuditLogModel) -> Non
             return
 
         action = _action_label(flag_log.action)
-        provider = _provider_label(flag_log.provider)
         enriched = _enrich_tags_for_annotation(flag_log.tags)
         description = build_feature_flag_annotation_description(
             flag=flag_log.flag,
@@ -264,8 +266,14 @@ def record_feature_flag_change_as_annotation(flag_log: FlagAuditLogModel) -> Non
                 created_by_label="feature-flag-webhook",
             )
         )
+        metrics.incr("timeseries_annotations.producer_created", tags=metric_tags)
     except Exception:
+        metrics.incr("timeseries_annotations.producer_failed", tags=metric_tags)
         logger.exception(
             "timeseries_annotations.feature_flag_producer_failed",
-            extra={"flag_log_id": flag_log.id, "organization_id": flag_log.organization_id},
+            extra={
+                "flag_log_id": flag_log.id,
+                "organization_id": flag_log.organization_id,
+                "provider": provider,
+            },
         )
