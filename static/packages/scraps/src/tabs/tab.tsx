@@ -299,7 +299,15 @@ export function Tab({
     </TabWrap>
   );
 
-  return tooltipProps ? <Tooltip {...tooltipProps}>{tab}</Tooltip> : tab;
+  // An overflowing tab keeps its place in the layout, so its tooltip would still
+  // open when hovering the empty space it leaves.
+  return tooltipProps ? (
+    <Tooltip {...tooltipProps} disabled={tooltipProps.disabled || overflowing}>
+      {tab}
+    </Tooltip>
+  ) : (
+    tab
+  );
 }
 
 const TabWrap = StyledTabWrap;

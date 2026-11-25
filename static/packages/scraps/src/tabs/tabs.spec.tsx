@@ -945,6 +945,63 @@ describe('Tabs overflow', () => {
     }
   );
 
+  it('places the overflow trigger right after the last visible tab', async () => {
+    // Fits the first two tabs (budget = 260 - 48 = 212 => 2 * 100).
+    containerWidth = 260;
+    render(<OverflowTabs />, {wrapper: ThemeWrapper});
+
+    const trigger = await screen.findByRole('button', {name: 'More tabs'});
+    // oxlint-disable-next-line testing-library/no-node-access -- the trigger is positioned by its wrapper.
+    expect(trigger.closest('[style*="left"]')).toHaveStyle({left: '200px'});
+  });
+
+  describe('with tooltips', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      try {
+        act(() => jest.runOnlyPendingTimers());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('does not show the tooltip of an overflowing tab', async () => {
+      // Fits the first two tabs (budget = 260 - 48 = 212 => 2 * 100).
+      containerWidth = 260;
+      render(
+        <Tabs defaultValue="details">
+          {({TabList}) => (
+            <TabList>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key} tooltip={{title: `${tab.label} tooltip`}}>
+                  {tab.label}
+                </TabList.Item>
+              ))}
+            </TabList>
+          )}
+        </Tabs>,
+        {wrapper: ThemeWrapper}
+      );
+      expect(await screen.findByRole('button', {name: 'More tabs'})).toBeInTheDocument();
+
+      // The overflowing tab is invisible but still takes up space, so the pointer
+      // can land on it.
+      const user = userEvent.setup({
+        pointerEventsCheck: 0,
+        advanceTimers: jest.advanceTimersByTime,
+      });
+      await user.hover(screen.getByRole('tab', {name: 'Details'}));
+      expect(await screen.findByText('Details tooltip')).toBeInTheDocument();
+
+      await user.hover(screen.getByText('Attachments'));
+      act(() => jest.advanceTimersByTime(1000));
+      expect(screen.queryByText('Attachments tooltip')).not.toBeInTheDocument();
+    });
+  });
+
   it('never overflows tabs in vertical orientation', () => {
     containerWidth = 260;
     render(<OverflowTabs orientation="vertical" />, {wrapper: ThemeWrapper});

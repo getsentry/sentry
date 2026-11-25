@@ -68,7 +68,6 @@ const StyledTabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp
 
 const StyledTabListOverflowWrap = styled('div')`
   position: absolute;
-  right: 0;
   top: 50%;
   transform: translateY(-50%);
   z-index: ${p => p.theme.zIndex.dropdown};
@@ -81,10 +80,25 @@ const StyledTabListOverflowWrap = styled('div')`
  */
 const RESERVED_OVERFLOW_TRIGGER_WIDTH = 48;
 
+interface TabOverflow {
+  /**
+   * Keys of the tabs that don't fit, as a contiguous suffix.
+   */
+  keys: Array<string | number>;
+  /**
+   * Distance (px) from the start of the list to where the overflow trigger
+   * goes: right after the last visible tab.
+   */
+  triggerOffset: number;
+}
+
+const NO_OVERFLOW: TabOverflow = {keys: [], triggerOffset: 0};
+
 /**
  * Measures the tab list against the space available in its container and
- * returns the keys of the tabs that don't fit, as a contiguous suffix. Those
- * tabs are visually hidden (see `Tab`) and surfaced through an overflow menu.
+ * returns the tabs that don't fit and where to place the overflow trigger.
+ * Overflowing tabs are visually hidden (see `Tab`) and surfaced through an
+ * overflow menu.
  *
  * This uses direct measurement rather than an IntersectionObserver on purpose:
  * the result is deterministic, so for a given container width the same set of
@@ -113,12 +127,12 @@ function useOverflowTabs({
   tabItemsRef: RefObject<Record<string | number, HTMLLIElement | null>>;
   tabListRef: RefObject<HTMLUListElement | null>;
 }) {
-  const [overflowTabs, setOverflowTabs] = useState<Array<string | number>>([]);
+  const [overflow, setOverflow] = useState<TabOverflow>(NO_OVERFLOW);
 
   // Measures the list against the available space and updates the overflow set.
   const recompute = useEffectEvent(() => {
     if (disabled) {
-      setOverflowTabs(prev => (prev.length === 0 ? prev : []));
+      setOverflow(prev => (prev.keys.length === 0 ? prev : NO_OVERFLOW));
       return;
     }
 
@@ -150,18 +164,18 @@ function useOverflowTabs({
       0
     );
 
-    let nextOverflow: Array<string | number>;
+    let nextOverflow: TabOverflow;
     if (fullWidth <= available) {
-      nextOverflow = [];
+      nextOverflow = NO_OVERFLOW;
     } else {
       // Overflow is needed, so leave room for the trigger button.
       const budget = available - RESERVED_OVERFLOW_TRIGGER_WIDTH;
-      nextOverflow = [];
+      const overflowKeys: Array<string | number> = [];
       let used = 0;
       let isOverflowing = false;
       keys.forEach((key, index) => {
         if (isOverflowing) {
-          nextOverflow.push(key);
+          overflowKeys.push(key);
           return;
         }
         const nextUsed = used + (tabWidths.get(key) ?? 0) + (index === 0 ? 0 : gap);
@@ -171,16 +185,18 @@ function useOverflowTabs({
           used = nextUsed;
         } else {
           isOverflowing = true;
-          nextOverflow.push(key);
+          overflowKeys.push(key);
         }
       });
+      nextOverflow = {keys: overflowKeys, triggerOffset: used + gap};
     }
 
     // Bail out when the result is unchanged to avoid re-render churn (and any
     // observer feedback from hiding/showing tabs).
-    setOverflowTabs(prev =>
-      prev.length === nextOverflow.length &&
-      prev.every((key, index) => key === nextOverflow[index])
+    setOverflow(prev =>
+      prev.triggerOffset === nextOverflow.triggerOffset &&
+      prev.keys.length === nextOverflow.keys.length &&
+      prev.keys.every((key, index) => key === nextOverflow.keys[index])
         ? prev
         : nextOverflow
     );
@@ -237,19 +253,23 @@ function useOverflowTabs({
   const hiddenKeys = new Set<string | number>(
     tabItems.filter(item => item.hidden).map(item => item.key)
   );
-  return overflowTabs.filter(key => !hiddenKeys.has(key));
+  return {
+    overflowTabs: overflow.keys.filter(key => !hiddenKeys.has(key)),
+    triggerOffset: overflow.triggerOffset,
+  };
 }
 
 interface OverflowMenuProps {
   disabled: boolean | undefined;
   overflowMenuItems: MenuItemProps[];
+  triggerOffset: number;
 }
 
-function OverflowMenu({overflowMenuItems, disabled}: OverflowMenuProps) {
+function OverflowMenu({overflowMenuItems, disabled, triggerOffset}: OverflowMenuProps) {
   const {t} = useTranslation();
 
   return (
-    <TabListOverflowWrap>
+    <TabListOverflowWrap style={{left: triggerOffset}}>
       <DropdownMenu
         items={overflowMenuItems}
         isDisabled={disabled}
@@ -323,7 +343,7 @@ function BaseTabList({
 
   // Detect tabs that overflow from the wrapper and put them in an overflow menu
   const tabItemsRef = useRef<Record<string | number, HTMLLIElement | null>>({});
-  const overflowTabs = useOverflowTabs({
+  const {overflowTabs, triggerOffset} = useOverflowTabs({
     outerWrapRef,
     tabListRef,
     tabItemsRef,
@@ -401,7 +421,11 @@ function BaseTabList({
       </TabListWrap>
 
       {orientation === 'horizontal' && overflowMenuItems.length > 0 && (
-        <OverflowMenu overflowMenuItems={overflowMenuItems} disabled={disabled} />
+        <OverflowMenu
+          overflowMenuItems={overflowMenuItems}
+          disabled={disabled}
+          triggerOffset={triggerOffset}
+        />
       )}
     </Container>
   );
