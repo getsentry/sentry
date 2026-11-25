@@ -84,6 +84,26 @@ describe('getFormatter', () => {
     expect(nameFormatter.mock.calls.map(([name]) => name)).toEqual(['high']);
     expect(valueFormatter).toHaveBeenCalledTimes(1);
   });
+
+  it('renders the header above the series with the visible series', () => {
+    const renderHeader = jest.fn(
+      (_seriesParams: CallbackDataParams[]) => '<div class="tooltip-header">Header</div>'
+    );
+    const formatter = getFormatter({
+      isGroupedByDate: true,
+      showTimeInTooltip: true,
+      limit: 2,
+      renderHeader,
+    });
+    const container = document.createElement('div');
+    container.innerHTML = formatter(params, '') as string;
+
+    expect(container.firstElementChild).toHaveClass('tooltip-header');
+    expect(renderHeader.mock.calls[0]![0].map(param => param.seriesName)).toEqual([
+      'high',
+      'mid',
+    ]);
+  });
 });
 
 it('keeps the end date when a bucket spans matching days in different months', () => {

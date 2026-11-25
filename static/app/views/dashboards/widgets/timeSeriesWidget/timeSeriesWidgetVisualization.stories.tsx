@@ -886,8 +886,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
         <p>
           Data points with <code>confidence: 'low'</code> are estimated from too few
           samples to be reliable. With <code>showConfidence</code>,{' '}
-          <code>TimeSeriesWidgetVisualization</code> draws them differently from
-          high-confidence data, hatches the chart background behind any stretch of time
+          <code>TimeSeriesWidgetVisualization</code> hatches over any stretch of time
           where a visible series has low confidence data, and the tooltip labels them.
         </p>
 

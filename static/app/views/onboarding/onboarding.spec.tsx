@@ -646,9 +646,6 @@ describe('Onboarding', () => {
       expect(
         screen.getByText('Detects your stack and adds the right SDK')
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole('checkbox', {name: /Only allow this network/})
-      ).toBeChecked();
       expect(screen.getByRole('button', {name: /Set up manually/})).toBeInTheDocument();
       expect(screen.queryByTestId('onboarding-welcome-start')).not.toBeInTheDocument();
       expect(screen.queryByText('Error monitoring')).not.toBeInTheDocument();

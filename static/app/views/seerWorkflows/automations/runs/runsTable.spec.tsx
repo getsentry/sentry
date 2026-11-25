@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {
   act,
@@ -288,6 +289,40 @@ describe('RunsTable', () => {
     expect(await screen.findByText('Schedule')).toBeInTheDocument();
     expect(screen.getByText('Custom Trigger Type')).toBeInTheDocument();
     expect(screen.queryByRole('link', {name: /issue:/})).not.toBeInTheDocument();
+  });
+
+  it('shows who manually triggered a run', async () => {
+    MockApiClient.addMockResponse({
+      url: runsUrl,
+      body: {runs: [makeRun({trigger: {type: 'manual', userId: '7'}})]},
+    });
+    const userRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/7/`,
+      body: UserFixture({id: '7', name: 'Jane Doe'}),
+    });
+
+    render(<RunsTable />, {organization});
+
+    expect(await screen.findByText('Manually triggered')).toBeInTheDocument();
+    expect(await screen.findByText('Jane Doe')).toBeInTheDocument();
+    expect(userRequest).toHaveBeenCalled();
+  });
+
+  it('shows a manually triggered run without a user', async () => {
+    MockApiClient.addMockResponse({
+      url: runsUrl,
+      body: {runs: [makeRun({trigger: {type: 'manual'}})]},
+    });
+    const userRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/7/`,
+      body: UserFixture({id: '7', name: 'Jane Doe'}),
+    });
+
+    render(<RunsTable />, {organization});
+
+    expect(await screen.findByText('Manually triggered')).toBeInTheDocument();
+    expect(screen.queryByText('Jane Doe')).not.toBeInTheDocument();
+    expect(userRequest).not.toHaveBeenCalled();
   });
 
   it('leaves the automation out when showStrategy is false', async () => {

@@ -107,4 +107,25 @@ describe('ProjectDetail > ProjectAnr', () => {
       '/organizations/org-slug/issues/?project=1&query=mechanism%3A%5BANR%2CAppExitInfo%5D%20release%3Aabc&sort=freq&statsPeriod=7d'
     );
   });
+
+  it('renders open in issues CTA with only fatal ANRs for android', async () => {
+    organization.features = ['discover-basic'];
+    render(
+      <ProjectAnrScoreCard
+        organization={{...organization}}
+        selection={selection}
+        isProjectStabilized
+        query="release:abc"
+        location={location}
+        platform="android"
+      />
+    );
+
+    await screen.findByText('11.56%');
+
+    expect(screen.getByRole('button', {name: 'View Issues'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/?project=1&query=mechanism%3A%5BANR%2CAppExitInfo%5D%20error.unhandled%3ATrue%20release%3Aabc&sort=freq&statsPeriod=7d'
+    );
+  });
 });

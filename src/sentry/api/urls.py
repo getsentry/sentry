@@ -595,6 +595,11 @@ from sentry.seer.endpoints.organization_events_anomalies import OrganizationEven
 from sentry.seer.endpoints.organization_seer_agent_chat import (
     OrganizationSeerAgentChatEndpoint,
 )
+from sentry.seer.endpoints.organization_seer_agent_conversations import (
+    OrganizationSeerAgentConversationDetailsEndpoint,
+    OrganizationSeerAgentConversationMessagesEndpoint,
+    OrganizationSeerAgentConversationsEndpoint,
+)
 from sentry.seer.endpoints.organization_seer_agent_update import (
     OrganizationSeerAgentUpdateEndpoint,
 )
@@ -2588,6 +2593,21 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-chat/(?P<run_id>[^/]+)/$",
         OrganizationSeerAgentChatEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-chat-run-id",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/agents/(?P<agent>[a-z0-9_]+)/conversations/$",
+        OrganizationSeerAgentConversationsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-agent-conversations",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/agents/(?P<agent>[a-z0-9_]+)/conversations/(?P<conversation_id>[^/]+)/$",
+        OrganizationSeerAgentConversationDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-agent-conversation-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/agents/(?P<agent>[a-z0-9_]+)/conversations/(?P<conversation_id>[^/]+)/messages/$",
+        OrganizationSeerAgentConversationMessagesEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-agent-conversation-messages",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/chat-suggestions/$",
