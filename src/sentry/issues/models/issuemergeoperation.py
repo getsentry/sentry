@@ -51,25 +51,13 @@ class BaseIssueMergeOperation(DefaultFieldsModel):
     )
     step = models.CharField(max_length=32, choices=OperationStep, default=OperationStep.MOVE)
     worker_token = models.UUIDField(null=True)
-    lease_expires_at = models.DateTimeField(null=True)
+    lease_expires_at = models.DateTimeField(null=True, db_index=True)
     retries_without_progress = models.PositiveIntegerField(default=0)
     historical_cutoff = models.DateTimeField(null=True)
     batch_cursor = models.JSONField(default=dict)
 
     class Meta:
         abstract = True
-        indexes = [
-            models.Index(
-                fields=["project"],
-                condition=Q(status__in=UNFINISHED_STATUSES),
-                name="%(class)s_pending",
-            ),
-            models.Index(
-                fields=["lease_expires_at"],
-                condition=Q(status=OperationStatus.RUNNING, step=OperationStep.MOVE),
-                name="%(class)s_lease",
-            ),
-        ]
 
     def claim(self, *, lease_duration: timedelta) -> UUID | None:
         """Claim a queued move or replace an expired worker. Only one claimant wins."""
@@ -135,7 +123,7 @@ class IssueMergeOperation(BaseIssueMergeOperation):
     source_hashes_at_acceptance = ArrayField(models.CharField(max_length=32), default=list)
     sample_event_ids_by_source = models.JSONField(default=dict)
 
-    class Meta(BaseIssueMergeOperation.Meta):
+    class Meta:
         app_label = "sentry"
         db_table = "sentry_issuemergeoperation"
 
@@ -147,7 +135,7 @@ class IssueUnmergeOperation(BaseIssueMergeOperation):
     group_hashes = ArrayField(models.CharField(max_length=32))
     destination_group_id = BoundedBigIntegerField(null=True)
 
-    class Meta(BaseIssueMergeOperation.Meta):
+    class Meta:
         app_label = "sentry"
         db_table = "sentry_issueunmergeoperation"
 
