@@ -5,17 +5,18 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {limitDateTimeParamsToMaxPoints} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 import {useMetricDetectorChart} from 'sentry/views/detectors/components/details/metric/chart';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
@@ -26,6 +27,7 @@ import {
 } from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getOpenPeriodIssuePath} from 'sentry/views/detectors/utils/getOpenPeriodIssuePath';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
+import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
 
 interface MetricIssueChartProps {
   event: Event | undefined;
@@ -47,33 +49,22 @@ function getDetectorErrorMessage(detectorError: Error): string {
   return t('The metric monitor could not be loaded.');
 }
 
-function useDispatchOpenPeriodCount(groupId: string) {
-  const {dispatch} = useIssueDetails();
-
-  const {selection} = usePageFilters();
-
-  const pageDateTimeParams = normalizeDateTimeParams(selection.datetime);
-
-  const {data: openPeriodCount} = useOpenPeriodCount({
-    groupId,
-    start: pageDateTimeParams.start,
-    end: pageDateTimeParams.end,
-    statsPeriod: pageDateTimeParams.statsPeriod,
-  });
-
-  useEffect(() => {
-    if (defined(openPeriodCount)) {
-      dispatch({type: 'UPDATE_EVENT_COUNT', count: openPeriodCount});
-    }
-  }, [openPeriodCount, dispatch]);
-}
-
 export function MetricIssueChart({group, event}: MetricIssueChartProps) {
-  const {detectorDetails} = useIssueDetails();
+  const {eventId} = useParams<{eventId?: string}>();
+  const location = useLocation();
+  const defaultStatsPeriod = useGroupDefaultStatsPeriod(group, group.project);
+  const {statsPeriod, start, end} = location.query;
+  const period = normalizeDateTimeParams(
+    statsPeriod || start || end
+      ? getPeriod({
+          start: start as string,
+          end: end as string,
+          period: statsPeriod as string,
+        })
+      : defaultStatsPeriod
+  );
+  const {dispatch, detectorDetails} = useIssueDetails();
   const detectorId = detectorDetails?.detectorId;
-
-  useDispatchOpenPeriodCount(group.id);
-
   const {
     data: detector,
     isPending: isDetectorPending,
@@ -83,7 +74,17 @@ export function MetricIssueChart({group, event}: MetricIssueChartProps) {
     enabled: !!detectorId && detectorDetails?.detectorType === 'metric_alert',
     retry: false,
   });
-  const {data: openPeriods = []} = useOpenPeriods({groupId: group.id});
+  const {data: openPeriodCount} = useOpenPeriodCount({
+    groupId: group.id,
+    start: period.start,
+    end: period.end,
+    statsPeriod: period.statsPeriod,
+  });
+  useEffect(() => {
+    if (defined(openPeriodCount)) {
+      dispatch({type: 'UPDATE_EVENT_COUNT', count: openPeriodCount});
+    }
+  }, [openPeriodCount, dispatch]);
 
   if (isDetectorError) {
     return (
@@ -100,36 +101,43 @@ export function MetricIssueChart({group, event}: MetricIssueChartProps) {
   return (
     <MetricIssueChartContent
       detector={detector}
-      openPeriods={openPeriods}
       group={group}
       event={event}
+      period={period}
+      isOverview={!eventId}
     />
   );
 }
 
 function MetricIssueChartContent({
   detector,
-  openPeriods,
   group,
   event,
+  period,
+  isOverview,
 }: {
   detector: MetricDetector;
   event: Event | undefined;
   group: Group;
-  openPeriods: GroupOpenPeriod[];
+  isOverview: boolean;
+  period: ReturnType<typeof normalizeDateTimeParams>;
 }) {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
-  const {selection} = usePageFilters();
-  const {data: openPeriod, isPending: isOpenPeriodPending} = useEventOpenPeriod({
+  // Wait for the event's open period because we will zoom into it on the chart
+  const {data: openPeriod, isLoading: isOpenPeriodLoading} = useEventOpenPeriod({
     groupId: group.id,
-    eventId: event?.id,
+    eventId: isOverview ? undefined : event?.id,
   });
-  const dateTimeParams = normalizeDateTimeParams(selection.datetime);
   const intervalSeconds = detector.dataSources[0]?.queryObj?.snubaQuery?.timeWindow;
   const {dateTimeParams: cappedDateTimeParams, isRangeLimited} =
-    limitDateTimeParamsToMaxPoints({...dateTimeParams, intervalSeconds});
+    limitDateTimeParamsToMaxPoints({...period, intervalSeconds});
+
+  const {data: openPeriods = []} = useOpenPeriods({
+    groupId: group.id,
+    ...cappedDateTimeParams,
+  });
 
   const navigateToOpenPeriodIssue = useCallback(
     (clickedOpenPeriod: GroupOpenPeriod) =>
@@ -150,11 +158,11 @@ function MetricIssueChartContent({
     highlightedOpenPeriodId: openPeriod?.id,
     onOpenPeriodClick: navigateToOpenPeriodIssue,
     height: CHART_HEIGHT,
-    enabled: !isOpenPeriodPending,
+    enabled: !isOpenPeriodLoading,
     ...cappedDateTimeParams,
   });
 
-  if (isOpenPeriodPending || isLoading) {
+  if (isOpenPeriodLoading || isLoading) {
     return <MetricIssueChartPlaceholder />;
   }
 

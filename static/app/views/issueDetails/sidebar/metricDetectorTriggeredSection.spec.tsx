@@ -5,7 +5,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
+import {setMockDate, textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
@@ -1291,58 +1291,44 @@ describe('MetricDetectorTriggeredSection', () => {
   });
 
   describe('zoom to open period', () => {
-    it('applies detector zoom range when URL has no time period', async () => {
-      const {router} = render(
-        <MetricDetectorTriggeredSectionWithProvider {...defaultProps} />,
-        {
-          initialRouterConfig: {
-            location: {
-              pathname: `/organizations/org-slug/issues/${defaultGroup.id}/`,
-              query: {},
+    it.each([
+      {view: 'issue overview', path: '', query: undefined, expectedQuery: {}},
+      {
+        view: 'explicit event',
+        path: `events/${defaultEvent.id}/`,
+        query: undefined,
+        expectedQuery: {start: '2023-12-31T23:48:00', end: '2024-01-01T00:15:00'},
+      },
+      {
+        view: 'explicit event with a selected range',
+        path: `events/${defaultEvent.id}/`,
+        query: {statsPeriod: '24h'},
+        expectedQuery: {statsPeriod: '24h'},
+      },
+    ])(
+      'preserves the $view route and applies its time range',
+      async ({path, query, expectedQuery}) => {
+        setMockDate(Date.parse('2024-01-10T00:00:00Z'));
+        const pathname = `/organizations/org-slug/issues/${defaultGroup.id}/${path}`;
+        const {router} = render(
+          <MetricDetectorTriggeredSectionWithProvider {...defaultProps} />,
+          {
+            initialRouterConfig: {
+              location: {pathname, query},
+              routes: [
+                '/organizations/:orgId/issues/:groupId/',
+                '/organizations/:orgId/issues/:groupId/events/:eventId/',
+              ],
             },
-            routes: [
-              '/organizations/:orgId/issues/:groupId/',
-              '/organizations/:orgId/issues/:groupId/events/:eventId/',
-            ],
-          },
-        }
-      );
-
-      await screen.findByRole('region', {name: 'Triggered Condition'});
-
-      await waitFor(() => {
-        expect(router.location.pathname).toMatch(
-          `/organizations/org-slug/issues/${defaultGroup.id}/events/${defaultEvent.id}/`
+          }
         );
-      });
-      expect(router.location.query.statsPeriod).toBeDefined();
-    });
 
-    it('does not apply detector zoom range when URL already has a time period', async () => {
-      const {router} = render(
-        <MetricDetectorTriggeredSectionWithProvider {...defaultProps} />,
-        {
-          initialRouterConfig: {
-            location: {
-              pathname: `/organizations/org-slug/issues/${defaultGroup.id}/`,
-              query: {statsPeriod: '24h'},
-            },
-            routes: [
-              '/organizations/:orgId/issues/:groupId/',
-              '/organizations/:orgId/issues/:groupId/events/:eventId/',
-            ],
-          },
-        }
-      );
-
-      await screen.findByRole('region', {name: 'Triggered Condition'});
-
-      expect(router.location.pathname).toMatch(
-        `/organizations/org-slug/issues/${defaultGroup.id}/`
-      );
-      expect(router.location.query.statsPeriod).toBe('24h');
-      expect(router.location.query.start).toBeUndefined();
-      expect(router.location.query.end).toBeUndefined();
-    });
+        await screen.findByRole('region', {name: 'Triggered Condition'});
+        // The action is available once the event's open period has loaded.
+        await screen.findByRole('button', {name: 'Open in Explore'});
+        await waitFor(() => expect(router.location.query).toEqual(expectedQuery));
+        expect(router.location.pathname).toBe(pathname);
+      }
+    );
   });
 });

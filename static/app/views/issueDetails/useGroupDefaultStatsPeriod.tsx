@@ -6,6 +6,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useParams} from 'sentry/utils/useParams';
 
 function getDaysSinceDateRoundedUp(date: string): number {
   const dateWithTime = moment(new Date(date)).startOf('day');
@@ -40,6 +41,7 @@ export function useGroupDefaultStatsPeriod(
   const useGetMaxRetentionDays =
     getOverride('react-hook:use-get-max-retention-days') ?? (() => MAX_PICKABLE_DAYS);
   const maxRetentionDays = useGetMaxRetentionDays(); // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
+  const {eventId} = useParams<{eventId?: string}>();
   let isMaxRetention = false;
 
   if (!group) {
@@ -47,6 +49,12 @@ export function useGroupDefaultStatsPeriod(
   }
 
   const issueTypeConfig = getConfigForIssueType(group, project);
+  if (!eventId && issueTypeConfig.header.graph.type === 'detector-history') {
+    // Days since first seen, rounded up. 7d fits the chart's point limit at any interval.
+    const days = Math.min(Math.ceil(moment().diff(group.firstSeen, 'days', true)), 7);
+    return {statsPeriod: days > 1 ? `${days}d` : '24h', isMaxRetention};
+  }
+
   if (!issueTypeConfig.defaultTimePeriod.sinceFirstSeen) {
     return {statsPeriod: DEFAULT_STATS_PERIOD, isMaxRetention};
   }

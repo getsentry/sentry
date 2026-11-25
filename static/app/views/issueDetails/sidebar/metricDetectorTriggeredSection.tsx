@@ -45,6 +45,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {
   buildDetectorZoomQuery,
   computeZoomRangeMs,
@@ -79,6 +80,7 @@ import type {
 import {getInvestigationPath} from 'sentry/views/investigations/utils';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
+import {RESERVED_EVENT_IDS} from 'sentry/views/issueDetails/useGroupEvent';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
 import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
@@ -406,6 +408,7 @@ function TriggeredConditionDetails({
   groupId: string;
   projectId: string | number;
 }) {
+  const {eventId: routeEventId} = useParams<{eventId?: string}>();
   const {conditions, dataSources, value} = evidenceData;
   const dataSource = dataSources[0];
   const snubaQuery = dataSource?.queryObj?.snubaQuery;
@@ -443,14 +446,16 @@ function TriggeredConditionDetails({
 
   return (
     <Fragment>
-      {!isOpenPeriodLoading && (
-        <ZoomToOpenPeriod
-          eventId={eventId}
-          intervalSeconds={snubaQuery?.timeWindow}
-          openPeriodStart={startDate}
-          openPeriodEnd={endDate}
-        />
-      )}
+      {routeEventId &&
+        (routeEventId === eventId || RESERVED_EVENT_IDS.has(routeEventId)) &&
+        !isOpenPeriodLoading && (
+          <ZoomToOpenPeriod
+            eventId={eventId}
+            intervalSeconds={snubaQuery?.timeWindow}
+            openPeriodStart={startDate}
+            openPeriodEnd={endDate}
+          />
+        )}
       <FoldSection
         title="Triggered Condition"
         sectionKey="triggered_condition"
