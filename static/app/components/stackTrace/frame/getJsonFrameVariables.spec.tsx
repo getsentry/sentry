@@ -325,8 +325,46 @@ describe('native variables extracted by Symbolicator', () => {
     });
   });
 
+  it('reads values that lost their type to the size limit of Relay', () => {
+    // Relay drops the keys after the point where a frame's variables exceed its size
+    // limit, in alphabetical order: a value cut inside `members` keeps `kind` and loses
+    // `pointer_address` and `type`.
+    expect(
+      convert(
+        {
+          kind: 'parameter',
+          members: {
+            id: {type: 'int', value: 1},
+            position: {members: {x: {type: 'double', value: 102}}},
+          },
+        },
+        {
+          '': {len: 4},
+          members: {'': {len: 7}, position: {'': {len: 2}, members: {'': {len: 3}}}},
+        }
+      )
+    ).toEqual({
+      name: 'variable',
+      kind: 'object',
+      meta: {len: 7},
+      children: [
+        {name: 'id', type: 'int', kind: 'number', value: '1'},
+        {
+          name: 'position',
+          kind: 'object',
+          meta: {len: 3},
+          children: [{name: 'x', type: 'double', kind: 'number', value: '102'}],
+        },
+      ],
+    });
+  });
+
   it('leaves variables of other platforms and legacy native strings untouched', () => {
     expect(convert('0x2a (int)')).toMatchObject({kind: 'unformatted'});
+    expect(convert({kind: 'circle', radius: 2})).toMatchObject({
+      kind: 'object',
+      children: [{name: 'kind'}, {name: 'radius'}],
+    });
     expect(
       getJsonFrameVariables({shape: {kind: 'circle', type: 'round'}}, undefined, 'node')
     ).toMatchObject([{kind: 'object'}]);

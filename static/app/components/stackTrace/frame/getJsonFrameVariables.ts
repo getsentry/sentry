@@ -14,12 +14,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+/**
+ * Every record below a native variable is a value. `type` cannot identify one: Relay
+ * drops the keys after the point where a frame's variables exceed its size limit, in
+ * alphabetical order, so a value cut inside its members has no `type`.
+ */
 function isNativeValue(value: unknown): value is NativeFrameVariableValue {
-  return isRecord(value) && typeof value.type === 'string';
+  return isRecord(value);
 }
 
+/** `kind` is the first key of a variable, so it is the last one the size limit drops. */
 function isNativeVariable(value: unknown): value is NativeFrameVariable {
-  return isNativeValue(value) && 'kind' in value;
+  return isRecord(value) && (value.kind === 'local' || value.kind === 'parameter');
 }
 
 /**

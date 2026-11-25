@@ -814,8 +814,6 @@ export type EventIdResponse = {
  * https://github.com/getsentry/symbolicator/blob/master/crates/symbolicator-native/src/interface/variables.rs
  */
 export interface NativeFrameVariableValue {
-  /** Type name, empty when Symbolicator does not support the type. */
-  type: string;
   /** Structure members. For a pointer, the members of the final pointee. */
   members?: Record<string, NativeFrameVariableValue>;
   /**
@@ -823,6 +821,11 @@ export interface NativeFrameVariableValue {
    * first address that cannot be dereferenced.
    */
   pointer_address?: string[];
+  /**
+   * Type name, empty when Symbolicator does not support the type. Missing when Relay's
+   * size limit cut the value.
+   */
+  type?: string;
   /**
    * Formatted value. For a pointer, the value of the final pointee. Bytes of an
    * unknown encoding are a list of hex strings.
