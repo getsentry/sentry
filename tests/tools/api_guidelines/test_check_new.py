@@ -154,9 +154,10 @@ def test_new_findings_are_written_for_the_pr_comment(repo: Path) -> None:
     _run(repo, json.dumps([PATH]))
 
     rows = json.loads((repo / FINDINGS_PATH).read_text())
+    s026 = RULES[ApiRule.S026]
     assert rows == [
-        {"path": PATH, "line": 5, "rule": "S026", "summary": RULES[ApiRule.S026].summary},
-        {"path": PATH, "line": 6, "rule": "S026", "summary": RULES[ApiRule.S026].summary},
+        {"path": PATH, "line": 5, "rule": "S026", "title": s026.title, "fix": s026.fix},
+        {"path": PATH, "line": 6, "rule": "S026", "title": s026.title, "fix": s026.fix},
     ]
 
 

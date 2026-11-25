@@ -12,7 +12,8 @@ interface Finding {
   path: string;
   line: number;
   rule: string;
-  summary: string;
+  title: string;
+  fix: string;
 }
 
 interface IssueComment {
@@ -91,28 +92,49 @@ function findingsBody(
   sha: string,
   runUrl: string
 ): string {
-  const lines = findings
-    .slice(0, MAX_LISTED)
-    .map(
-      finding =>
-        `- [${finding.path}:${finding.line}](https://github.com/${owner}/${repo}/blob/${sha}/${finding.path}#L${finding.line}) ${finding.rule} ${finding.summary}`
-    );
-  const count =
-    findings.length === 1
-      ? "1 API finding in this PR's changed files isn't"
-      : `${findings.length} API findings in this PR's changed files aren't`;
-  if (findings.length > MAX_LISTED) {
-    lines.push(`- and ${findings.length - MAX_LISTED} more, see [the run](${runUrl})`);
+  const blobUrl = `https://github.com/${owner}/${repo}/blob/${sha}`;
+  // rule -> path -> lines, in the check's path then line order
+  const byRule = new Map<string, Map<string, number[]>>();
+  const ruleInfo = new Map<string, {fix: string; title: string}>();
+  for (const finding of findings.slice(0, MAX_LISTED)) {
+    if (!byRule.has(finding.rule)) {
+      byRule.set(finding.rule, new Map());
+      ruleInfo.set(finding.rule, {title: finding.title, fix: finding.fix});
+    }
+    const byPath = byRule.get(finding.rule)!;
+    const lines = byPath.get(finding.path) ?? [];
+    lines.push(finding.line);
+    byPath.set(finding.path, lines);
   }
+
+  const sections: string[] = [];
+  for (const [rule, byPath] of byRule) {
+    const {title, fix} = ruleInfo.get(rule)!;
+    const files: string[] = [];
+    let count = 0;
+    for (const [path, lines] of byPath) {
+      count += lines.length;
+      const links = lines.map(line => `[L${line}](${blobUrl}/${path}#L${line})`);
+      files.push(`- [${path.split('/').pop()}](${blobUrl}/${path}) ${links.join(', ')}`);
+    }
+    sections.push(`**${title}** · \`${rule}\` · ${count}`, '', fix, '', ...files, '');
+  }
+  if (findings.length > MAX_LISTED) {
+    sections.push(
+      `And ${findings.length - MAX_LISTED} more, see [the run](${runUrl}).`,
+      ''
+    );
+  }
+
+  const inputs = findings.length === 1 ? '1 API input' : `${findings.length} API inputs`;
   return [
     NEW_API_FINDINGS_MARKER,
     '## New API findings',
     '',
-    `${count} in \`api_exceptions/exceptions.json\`. This check is report-only, so it doesn't block merging.`,
+    `This PR has ${inputs} our docs can't see. When an endpoint reads params that its schema doesn't declare, the public API docs end up wrong and changes can break customers without anyone noticing. Nothing blocks the merge, this is a heads-up.`,
     '',
-    ...lines,
-    '',
-    "If one is intentional, mark it with `# api-exception: <rule> <status> - <reason>` (this doesn't silence it yet).",
+    ...sections,
+    "Add `# api-exception: <rule> <status> - <reason>` next to the error if it's intentional. Note: the comment doesn't silence anything yet but will be used in the future to bypass these checks.",
   ].join('\n');
 }
 

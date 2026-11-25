@@ -16,7 +16,8 @@ const FINDING = {
   path: 'src/sentry/api/endpoints/example.py',
   line: 12,
   rule: 'S026',
-  summary: 'Reads a request input the docs do not declare',
+  title: 'Params read straight off the request',
+  fix: 'Read them through a serializer.',
 };
 
 const marked = {id: 99, body: '<!-- NEW_API_FINDINGS -->\nold'};
@@ -81,9 +82,31 @@ describe('syncNewApiFindingsComment', () => {
     assert.equal(calls.create[0]!.issue_number, 42);
     assert.ok(
       calls.create[0]!.body!.includes(
-        '[src/sentry/api/endpoints/example.py:12](https://github.com/getsentry/sentry/blob/deadbeef/src/sentry/api/endpoints/example.py#L12)'
+        '[example.py](https://github.com/getsentry/sentry/blob/deadbeef/src/sentry/api/endpoints/example.py) [L12](https://github.com/getsentry/sentry/blob/deadbeef/src/sentry/api/endpoints/example.py#L12)'
       )
     );
+  });
+
+  it('groups the lines of each file under its rule', async () => {
+    const calls = await run(
+      writeFindings([
+        FINDING,
+        {...FINDING, line: 15},
+        {
+          ...FINDING,
+          rule: 'S028',
+          title: 'The whole query string or body passed into a call',
+          line: 20,
+        },
+      ])
+    );
+
+    const body = calls.create[0]!.body!;
+    assert.ok(body.includes('**Params read straight off the request** · `S026` · 2'));
+    assert.ok(
+      body.includes('**The whole query string or body passed into a call** · `S028` · 1')
+    );
+    assert.ok(body.includes('#L12), [L15]('));
   });
 
   it('updates the existing comment', async () => {

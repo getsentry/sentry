@@ -116,12 +116,14 @@ def write_findings(file: Path, new: list[Finding]) -> None:
     """
     rows: list[dict[str, object]] = []
     for path, violation in new:
+        rule = RULES[violation.rule]
         rows.append(
             {
                 "path": path,
                 "line": violation.line,
                 "rule": violation.rule,
-                "summary": RULES[violation.rule].summary,
+                "title": rule.title,
+                "fix": rule.fix,
             }
         )
     file.parent.mkdir(parents=True, exist_ok=True)
