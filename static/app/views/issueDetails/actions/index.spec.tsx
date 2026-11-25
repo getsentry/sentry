@@ -437,9 +437,7 @@ describe('GroupActions', () => {
 
     describe('in the command palette', () => {
       beforeEach(() => {
-        ConfigStore.loadInitialData({
-          user: UserFixture({id: '1', name: 'Test User'}),
-        } as any);
+        ConfigStore.set('user', UserFixture({id: '1', name: 'Test User'}));
         MockApiClient.addMockResponse({
           url: `/projects/${filterOrg.slug}/${project.slug}/events/${event.id}/owners/`,
           body: {owners: [], rule: null, rules: []},
