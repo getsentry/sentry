@@ -87,6 +87,29 @@ def test_beta_binomial_sf(
 
 
 @pytest.mark.parametrize(
+    ("successes", "trials", "a", "b", "expected"),
+    [
+        # Either side of the switch from summing to integrating.
+        (999, 100_000, 0.5, 2000.5, 2.8754470635445551e-10),
+        (1000, 100_000, 0.5, 2000.5, 2.8171478071955087e-10),
+        (120_000, 200_000, 0.5, 0.5, 0.43590756995119456),  # Weak prior, near the median.
+        (99_000, 100_000, 0.5, 0.5, 0.063792390895626548),  # Near the top end.
+        (8519, 100_000, 50.5, 950.5, 1.0357203347691544e-05),
+        (18_943, 100_000, 50.5, 950.5, 1.8229901792880878e-38),
+        (41_099, 100_000, 2.5, 40.5, 2.7709280073574735e-08),
+        # Prior at a tenth of the trials, the strongest the quadrature accepts.
+        (12_000, 100_000, 1000.5, 8999.5, 8.4192657058884928e-10),
+        (13_000, 100_000, 1000.5, 8999.5, 4.9579231680388895e-19),
+    ],
+)
+def test_beta_binomial_sf_many_trials(
+    successes: float, trials: float, a: float, b: float, expected: float
+) -> None:
+    # References are exact sums at 40 digits; lgamma cancellation limits the quadrature.
+    assert beta_binomial_sf(successes, trials, a, b) == pytest.approx(expected, rel=1e-7)
+
+
+@pytest.mark.parametrize(
     ("successes", "trials", "expected"), [(0, 10, 1.0), (-1, 10, 1.0), (11, 10, 0.0)]
 )
 def test_beta_binomial_sf_edges(successes: float, trials: float, expected: float) -> None:

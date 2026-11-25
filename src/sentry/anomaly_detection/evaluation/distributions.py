@@ -13,6 +13,14 @@ _CONVERGENCE_TOLERANCE = 1e-14
 # Smallest magnitude a Lentz denominator may take before it is nudged off zero.
 _LENTZ_TINY = 1e-300
 
+# beta_binomial_sf integrates instead of summing once both k and n - k + 1 reach this. Below
+# it the sum is short, and the order statistic is too skewed for the trapezoid rule.
+_MIN_QUADRATURE_COUNT = 1000
+# Trapezoid grid over the order statistic, in its standard deviations: node spacing, and
+# nodes on each side of its mean (+/- 16 sd).
+_QUADRATURE_STEP_SDS = 0.5
+_QUADRATURE_HALF_NODES = 32
+
 
 def negative_binomial_sf(n: float, mean: float, size: float) -> float:
     """P(X >= n) for X ~ NegativeBinomial with the given mean and shape (size).
@@ -36,12 +44,17 @@ def beta_binomial_sf(successes: float, trials: float, a: float, b: float) -> flo
 
     pmf(x) = C(n, x) B(x + a, n - x + b) / B(a, b): successes in n trials whose success rate
     is uncertain, distributed Beta(a, b). successes is rounded up and trials to nearest.
+    Sums the pmf term by term, which takes on the order of the distribution's spread in
+    steps. When that spread is wide (many trials against a weak prior, away from both ends),
+    integrates over the order statistic instead; see _beta_binomial_sf_by_quadrature.
     """
     k, n = math.ceil(successes - 1e-9), round(trials)
     if k <= 0:
         return 1.0
     if k > n:
         return 0.0
+    if min(k, n - k + 1) >= _MIN_QUADRATURE_COUNT and n >= 10 * (a + b):
+        return _beta_binomial_sf_by_quadrature(k, n, a, b)
     lg = math.lgamma
 
     def log_pmf(x: int) -> float:
@@ -71,6 +84,28 @@ def beta_binomial_sf(successes: float, trials: float, a: float, b: float) -> flo
         lambda x: x / (n - x + 1) * (n - x + b) / (x - 1 + a),
     )
     return max(0.0, 1.0 - lower)
+
+
+def _beta_binomial_sf_by_quadrature(k: int, n: int, a: float, b: float) -> float:
+    """P(X >= k) for X ~ BetaBinomial(n, a, b), as E[P(p >= T)] over T ~ Beta(k, n - k + 1).
+
+    Given the success rate p, X >= k exactly when the k-th smallest of n uniforms, T, is at
+    most p. With n >= 10(a + b), T's density is much narrower than p's, so the trapezoid
+    rule over it converges geometrically: within 1e-7 of the exact sum down to tails near
+    1e-150. Past that, p's tail pulls the integrand's peak off T's mean and the grid starts
+    to undercount, which no threshold on these probabilities can notice.
+    """
+    alpha, beta = k, n - k + 1
+    log_norm = math.lgamma(alpha + beta) - math.lgamma(alpha) - math.lgamma(beta)
+    mean = alpha / (alpha + beta)
+    step = _QUADRATURE_STEP_SDS * math.sqrt(mean * (1 - mean) / (alpha + beta + 1))
+    total = 0.0
+    for i in range(-_QUADRATURE_HALF_NODES, _QUADRATURE_HALF_NODES + 1):
+        t = mean + i * step
+        if 0 < t < 1:
+            log_density = log_norm + (alpha - 1) * math.log(t) + (beta - 1) * math.log1p(-t)
+            total += math.exp(log_density) * _regularized_beta(b, a, 1 - t)  # P(p >= t).
+    return min(1.0, total * step)
 
 
 def gamma_sf(a: float, x: float) -> float:
