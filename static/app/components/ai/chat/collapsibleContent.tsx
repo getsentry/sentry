@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {createContext, useContext, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 
@@ -47,6 +48,11 @@ interface CollapsibleContentProps {
    * open state, e.g. to show a collapsed preview only while closed.
    */
   title: ReactNode | ((isOpen: boolean) => ReactNode);
+  /**
+   * Where the chevron sits. `end` leaves it to the caller, which places it
+   * through the function form of `title`.
+   */
+  chevronPosition?: 'start' | 'end';
   /** Forwarded to the root `<details>`, so callers can style it with `styled()`. */
   className?: string;
   /** Start expanded when uncontrolled. Defaults to collapsed. */
@@ -70,6 +76,7 @@ export function CollapsibleContent({
   children,
   title,
   className,
+  chevronPosition = 'start',
   defaultOpen = false,
   open,
   onOpenChange,
@@ -100,7 +107,9 @@ export function CollapsibleContent({
         cursor="pointer"
         onClick={e => e.stopPropagation()}
       >
-        <IconChevron direction={isOpen ? 'down' : 'right'} size="sm" variant="muted" />
+        {chevronPosition === 'start' && (
+          <IconChevron direction={isOpen ? 'down' : 'right'} size="sm" variant="muted" />
+        )}
         {typeof title === 'function' ? title(isOpen) : title}
       </Flex>
       {children}
@@ -142,8 +151,13 @@ export function CollapsibleChatRow({
 }: CollapsibleChatRowProps) {
   const title = (isOpen: boolean) => (
     <Flex flex="1" minWidth={0} align="center" gap="md">
-      <Flex flex="1" minWidth={0} align="center">
-        {typeof titleProp === 'function' ? titleProp(isOpen) : titleProp}
+      {/* The chevron trails the title text, so titles stay flush with the
+       * messages and the toggle sits right where the line ends. */}
+      <Flex flex="1" minWidth={0} align="center" gap="xs">
+        <Flex minWidth={0} align="center">
+          {typeof titleProp === 'function' ? titleProp(isOpen) : titleProp}
+        </Flex>
+        <ChatRowChevron isOpen={isOpen} />
       </Flex>
       <Container width={TURN_META_WIDTH} flexShrink={0}>
         {meta}
@@ -151,8 +165,39 @@ export function CollapsibleChatRow({
     </Flex>
   );
 
-  return <StyledCollapsibleChatRow {...props} title={title} />;
+  return <StyledCollapsibleChatRow {...props} chevronPosition="end" title={title} />;
 }
+
+/**
+ * The trailing chevron of a transcript row, shared so rows that toggle without
+ * a `<details>` (like thinking) match `CollapsibleChatRow`.
+ */
+export function ChatRowChevron({isOpen}: {isOpen: boolean}) {
+  return (
+    <Flex
+      flexShrink={0}
+      align="center"
+      data-chat-row-chevron
+      css={css`
+        opacity: 0;
+        transition: opacity 0.1s ease-in-out;
+      `}
+    >
+      <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
+    </Flex>
+  );
+}
+
+/**
+ * Reveals a row's `ChatRowChevron` while the row is hovered or focused, so the
+ * transcript stays clean while scanning.
+ */
+export const revealChatRowChevron = css`
+  &:hover [data-chat-row-chevron],
+  &:focus-visible [data-chat-row-chevron] {
+    opacity: 1;
+  }
+`;
 
 const StyledCollapsibleChatRow = styled(CollapsibleContent)`
   & > summary {
@@ -170,5 +215,7 @@ const StyledCollapsibleChatRow = styled(CollapsibleContent)`
     &:hover {
       background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
+
+    ${revealChatRowChevron}
   }
 `;

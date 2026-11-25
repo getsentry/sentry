@@ -36,10 +36,10 @@ interface MessageToolCallsProps {
 }
 
 /**
- * A turn with fewer tool calls than this reads fine as a plain list, so it is
- * left expanded; longer runs are the ones that bury the surrounding reasoning.
+ * Tool calls are the signal in a transcript, so runs stay expanded unless they
+ * are long enough to push the next message well out of view.
  */
-const COLLAPSE_THRESHOLD = 5;
+const COLLAPSE_THRESHOLD = 10;
 
 /**
  * Tool-call list for the redesigned transcript. Runs of at least
