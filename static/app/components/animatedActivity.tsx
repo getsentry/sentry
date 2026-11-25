@@ -1,4 +1,4 @@
-import {Activity, type ReactNode, type Ref, useEffect, useState} from 'react';
+import {Activity, type ReactNode, useEffect, useState} from 'react';
 import {
   motion,
   type TargetAndTransition,
@@ -17,7 +17,6 @@ interface AnimatedActivityProps {
   initial: TargetAndTransition;
   mode: ActivityMode;
   transition: Transition;
-  elementRef?: Ref<HTMLDivElement>;
   layoutMode?: 'normal' | 'pop';
 }
 
@@ -26,7 +25,6 @@ interface AnimatedActivityProps {
 export function AnimatedActivity({
   animate,
   children,
-  elementRef,
   exit,
   initial,
   layoutMode = 'normal',
@@ -79,9 +77,7 @@ export function AnimatedActivity({
         initial={mode === 'visible' ? false : initial}
         animate={controls}
       >
-        {/* Motion components don't reattach when their ref prop changes, so a
-            swapped-out ref never gets its cleanup. A plain element does. */}
-        <Container ref={elementRef}>{children}</Container>
+        {children}
       </MotionContainer>
     </Activity>
   );

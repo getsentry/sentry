@@ -126,7 +126,9 @@ export function SecondFactorAuth({
         animate={methodHeight ? {height: methodHeight} : undefined}
         transition={theme.motion.framer.spring.moderate}
       >
-        <Grid columns="1fr" position="relative">
+        {/* Hidden methods are display: none and the exiting one is absolute, so the
+            grid is as tall as the active method. */}
+        <Grid ref={methodRef} columns="1fr" position="relative">
           {/* Preserve each method's local state across switches. Remounting the SMS
               method would automatically request another challenge. */}
           {sortedMethods.map(method => {
@@ -137,7 +139,6 @@ export function SecondFactorAuth({
                 key={method.id}
                 mode={isActive ? 'visible' : 'hidden'}
                 layoutMode="pop"
-                elementRef={isActive ? methodRef : undefined}
                 initial={METHOD_INITIAL}
                 animate={METHOD_ANIMATE}
                 exit={METHOD_EXIT}
