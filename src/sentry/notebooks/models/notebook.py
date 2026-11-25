@@ -209,7 +209,9 @@ class Notebook(DefaultFieldsModel):
             return None
         if self.workflow_evidence_scope == WorkflowEvidenceScope.ORGANIZATION:
             return []
-        ids: list[int | None] = list(self.evidence_project_links.values_list("project_id", flat=True))
+        ids: list[int | None] = list(
+            self.evidence_project_links.values_list("project_id", flat=True)
+        )
         projects = []
         for project_id in ids:
             if project_id is None:
